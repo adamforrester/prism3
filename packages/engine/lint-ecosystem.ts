@@ -97,7 +97,7 @@ const DATA = `${DIR}/ecosystem.json`;
 const PAGE = `${DIR}/index.html`;
 const DOCS_CSS = 'docs/public/docs.css';
 /** The pages that load `docs.css`. Authored here: each must link it and carry no style of its own. */
-const DOCS_PAGES = ['docs/public/index.html'];
+const DOCS_PAGES = ['docs/public/index.html', 'docs/public/guides/_page.html'];
 const MESSAGES = 'apps/plugin/src/messages.ts';
 const PLUGIN_UI_ENTRY = 'apps/plugin/src/ui/entry.ts';
 

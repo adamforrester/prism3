@@ -167,7 +167,10 @@ export type UiToMain =
    *  choice for hand edits. The confirmed `update-components`, through the same action; answered with its
    *  `component-update-result`. `input`: the panel's brand, the one the check measured, so the plans the apply lays are
    *  the plans the check hashed. */
-  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput };
+  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput }
+  /** #3170 Q3170.4 A: "Stop after <set>". The panel's running `update-sets` finishes the set it is on and stops at the
+   *  next set boundary; the sets already done keep their changes. Nothing running, nothing to stop. */
+  | { type: 'update-stop' };
 
 /** One set as the scoped check reads it (#2909): its members, what an update would do to them, and whether it is blocked. */
 export type CheckedSet = {
@@ -238,9 +241,9 @@ export interface StyleGuideOptions {
 }
 
 /** The kinds of table the Build style guides page groups by (owner decision H8): color; spacing and size (every
- *  `dimension` table, radius included); the five font-variable kinds; the text styles; and (#2353 batch 2a) the effect
- *  styles and the gradient paint styles. */
-export type StyleGuideKind = 'color' | 'dimension' | 'font' | 'text' | 'effect' | 'gradient';
+ *  `dimension` table, radius included); the five font-variable kinds; the text styles; (#2353 batch 2a) the effect
+ *  styles and the gradient paint styles; and (#3171) the grid styles. */
+export type StyleGuideKind = 'color' | 'dimension' | 'font' | 'text' | 'effect' | 'gradient' | 'grid';
 /** One table a run with no filter would draw, in the order it draws them. */
 export interface StyleGuideCatalogTable {
   /** The table's key (`<type>|<collection id>|<group path>`): what the `tables` option matches besides the title. */
@@ -272,6 +275,8 @@ export interface StyleGuideCatalogCollection {
   textStyles?: true;
   effectStyles?: true;
   gradientStyles?: true;
+  /** #3171: the file's grid styles, as one more entry. */
+  gridStyles?: true;
 }
 /** What the Build style guides page shows before a run (S11.2). */
 export interface StyleGuideCatalog {
@@ -408,6 +413,14 @@ export type MainToUi =
    *  land in either action's result slot. `tableMs` is what the last table cost, the live run's calibration
    *  data for the executor's yield spacing (`CELLS_PER_YIELD` in `style-guide.ts`); 0 on the first reading. */
   | { type: 'style-guide-progress'; done: number; total: number; tableMs: number }
+  /** #3170 part 2 (Q3170.1–2 A): how far a run the panel started has got, for the status strip at the panel's foot.
+   *  `run`: the read after open (`read`, a page at a time), the panel's in-place update (`update`), or its Apply Theme
+   *  (`apply-theme`). `phase`: `check`, the read before the first write (no item yet); `work`, `item` being done, with
+   *  `done` of `total` finished before it; `finish`, the run's work items are done (`done` of them), its closing writes
+   *  remain. `item`: the def id an update is writing, the stage key Apply Theme is writing (`APPLY_STAGES`), or null.
+   *  Posted at every boundary and again at each yield inside one, so the panel hears from a long set. Its own kind for
+   *  the `component-progress` reason: a reading is not a verdict. Never sent for an agent's run. */
+  | { type: 'run-progress'; run: 'read' | 'update' | 'apply-theme'; phase: 'check' | 'work' | 'finish'; item: string | null; done: number; total: number }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below.
    *
