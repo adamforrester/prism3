@@ -42,7 +42,7 @@ import { STYLE_GUIDE_GROUPS, styleGuideGroup, styleGuideGroupOf } from '@prism3/
 import type { RGB } from '@prism3/engine/color';
 import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import { HEADER_VARIANT } from './page-header';
-import { TAXONOMY, allLeaves, leafPageName } from './file-taxonomy';
+import { FORMER_TABLE_PAGES, TAXONOMY, allLeaves, leafPageName, movesClause } from './file-taxonomy';
 import { findCellSets, pickVariant, SAMPLE_TEXT, SPACING_CELL_SET, SWATCH_SET, TEXT_CELL_SET, stretchSwatches } from './style-guide-cells';
 import type { CellNode } from './style-guide-cells';
 import { realYield } from './write-components';
@@ -94,12 +94,18 @@ export interface SgStop { position: number; color: { r: number; g: number; b: nu
 /** A local paint style (#2353 batch 2a), as `getLocalPaintStylesAsync` returns it. Only one holding a gradient paint is
  *  drawn, in the Gradient styles table. */
 export interface SgPaintStyle { id: string; name: string; description?: string; paints: readonly { type: string; gradientStops?: readonly SgStop[] }[] }
+/** One layout grid of a grid style (#3171), as the host's `LayoutGrid` holds it: a column grid's count, gutter and offset
+ *  (its margin). */
+export interface SgLayoutGrid { pattern: string; count?: number; gutterSize?: number; offset?: number; color?: { r: number; g: number; b: number; a: number } }
+/** A local grid style (#3171), as `getLocalGridStylesAsync` returns it. */
+export interface SgGridStyle { id: string; name: string; description?: string; layoutGrids: readonly SgLayoutGrid[] }
 export interface SgCatalog {
   collections: readonly SgCollection[];
   variables: readonly SgVariable[];
   textStyles?: readonly SgTextStyle[];
   effectStyles?: readonly SgEffectStyle[];
   paintStyles?: readonly SgPaintStyle[];
+  gridStyles?: readonly SgGridStyle[];
 }
 
 /** The engine's contrast contract, per mode: `resolveAllModes(theme)` satisfies it structurally. */
@@ -112,10 +118,11 @@ export type { SwatchType, ValueFormat, StyleGuideOptions, DimensionDisplay, Font
 import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages';
 
 /** The types phases 1 and 2 document: `color`; `dimension` (spacing, size, radius and icon-size variables); `borderWidth`
- *  and `opacity` (#2353 batch 1); the five font-variable kinds, one table each; `typography`, the file's text styles; and
- *  `shadow` and `gradient` (#2353 batch 2a), its effect styles and its gradient paint styles. Everything else is named in
- *  the result as a later phase. Matched in any case. */
-export const PHASE_TYPES = ['color', 'dimension', 'borderWidth', 'opacity', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'typography', 'shadow', 'gradient'] as const;
+ *  and `opacity` (#2353 batch 1); the five font-variable kinds, one table each; `typography`, the file's text styles;
+ *  `shadow` and `gradient` (#2353 batch 2a), its effect styles and its gradient paint styles; and `grid` (#3171), its grid
+ *  styles with the layout variables they copy. Everything else is named in the result as a later phase. Matched in any
+ *  case. */
+export const PHASE_TYPES = ['color', 'dimension', 'borderWidth', 'opacity', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'typography', 'shadow', 'gradient', 'grid'] as const;
 /** The font-variable kinds, each its own table (proposed, owner to confirm: one table per kind). */
 export const FONT_KINDS = ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'] as const;
 export type FontKind = (typeof FONT_KINDS)[number];
@@ -128,6 +135,8 @@ const leafName = (page: string): string => {
 };
 export const PRIMITIVE_PAGE = leafName('Primitive tokens');
 export const SEMANTIC_PAGE = leafName('Semantic tokens');
+/** The grid styles and the container widths (#3171, owner decisions Q3171.1–7, all A). */
+export const GRIDS_PAGE = leafName('Grids & layouts');
 
 /** The plugin-data key a table's wrapper frame carries — its value is the table's `key`. */
 export const TABLE_KEY = 'prism3-style-guide';
@@ -190,7 +199,11 @@ export type SgSpecimen =
   | { kind: 'effect' }
   /** A fill swatch filled with the paint style (#2353 batch 2a): the `type=default` member filling its cell edge to edge,
    *  as a color's fill swatch does, its fill the style. */
-  | { kind: 'gradient' };
+  | { kind: 'gradient' }
+  /** A grid style drawn at 1:8 (#3171, Q3171.2 A): a frame `frame` px wide, its `columns` columns `gutter` apart inside a
+   *  `margin` either side, as the style lays them out, and the content cap shaded where the frame is wider than `cap`.
+   *  Plain frames, redrawn on rerun, as the value text is. */
+  | { kind: 'grid'; frame: number; columns: number; gutter: number; margin: number; cap: number | null; color?: RGBA };
 
 export interface SgRow {
   variableId: string;
@@ -206,8 +219,9 @@ export interface SgRow {
   cells: SgCell[];
   /** Phase 2: the specimen, when the row is not a color. */
   specimen?: SgSpecimen;
-  /** Phase 2: values printed once per row, after the mode columns (a text style's family, weight, letter spacing). */
-  extra?: { value: string; alias: string | null }[];
+  /** Phase 2: values printed once per row, after the mode columns (a text style's family, weight, letter spacing).
+   *  `always`: the chip is drawn whatever the Aliases toggle says, the plan having decided what it holds (#3171). */
+  extra?: { value: string; alias: string | null; always?: boolean }[];
   /** The row's own collection, when it is not the table's (#2353: the focus ring's widths in the Border width table).
    *  Its cells' mode IDs are that collection's, and its specimens pin that collection. */
   collectionId?: string;
@@ -554,6 +568,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   if (wantTypes.includes('typography') && !wantCollections) tables.push(...planTextStyles(catalog, ix, options));
   if (wantTypes.includes('shadow') && !wantCollections) tables.push(...planEffectStyles(catalog, options, format));
   if (wantTypes.includes('gradient') && !wantCollections) tables.push(...planGradientStyles(catalog, ix, options, format));
+  if (wantTypes.includes('grid') && !wantCollections) tables.push(...planGridTable(catalog, ix, options));
   // PHASE 2 TITLES ARE UNIQUE (proposed, owner to confirm): two collections can both hold a font-size table (`core`
   // and `type-sets`), so a title two phase-2 tables share names its collection, "Font size (core)". The tables filter
   // matches a title, so a shared one would draw both. Color titles are phase 1's and unchanged.
@@ -568,7 +583,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   // THE GROUP A FRESH FILE DRAWS IT IN (#2801, Q378 decision 1): by type and tier, never by family name. A semantic
   // dimension table whose every row is a radius is Borders' (the kind is read from scopes and names, `varKind`); an
   // inverse color family is Inverse colors' (owner decision, 2026-10-19).
-  for (const t of tables) t.group = styleGuideGroupOf({ type: t.type, tier: t.kind, allRadius: t.rows.length > 0 && t.rows.every((r) => r.specimen?.kind === 'radius'), inverse: isInverseKey(t.key) });
+  for (const t of tables) t.group = styleGuideGroupOf({ type: t.type, tier: t.kind, allRadius: t.rows.length > 0 && t.rows.every((r) => r.specimen?.kind === 'radius'), inverse: isInverseKey(t.key), container: t.type === 'dimension' && t.page === GRIDS_PAGE });
   return narrow(tables, notes, options.tables);
 };
 
@@ -589,7 +604,7 @@ const counterpartKey = (key: string): string | null => {
  *  `dimension` table per collection; each font kind draws its own table; the rest wait for phase 3. */
 export type VarKind = 'spacing' | 'size' | 'radius' | 'scale' | FontKind
   | 'fontStyle' | 'paragraphSpacing' | 'paragraphIndent' | 'effect' | 'gradient' | 'duration' | 'motion'
-  | 'opacity' | 'borderWidth' | 'iconSize' | 'breakpoint' | 'grid' | 'other';
+  | 'opacity' | 'borderWidth' | 'iconSize' | 'breakpoint' | 'grid' | 'container' | 'other';
 
 /** A scope that names ONE property that is not a length on a frame: the variable is that property, whatever its
  *  name. The dimension scopes (WIDTH_HEIGHT, GAP, CORNER_RADIUS, STROKE_FLOAT) are read below, after the name. */
@@ -603,9 +618,14 @@ const DIMENSION_SCOPES = new Set(['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROK
  *  table prints it in its Style column (#2353, Q161 A). One no text style binds is drawn nowhere, so it is named here. */
 const LATER_KIND: Partial<Record<VarKind, string>> = {
   fontStyle: 'font style', paragraphSpacing: 'paragraph spacing', paragraphIndent: 'paragraph indent', effect: 'shadow and effect', gradient: 'gradient',
-  duration: 'duration', motion: 'motion', breakpoint: 'breakpoint', grid: 'grid',
+  duration: 'duration', motion: 'motion',
   other: 'other number or string',
 };
+/** The kinds the Grids table prints (#3171): a breakpoint's min width and a grid's columns, gutter and margin, per mode. */
+const GRID_KINDS: readonly VarKind[] = ['breakpoint', 'grid'];
+/** Whether a file has a Grids table to draw (#3171): a grid style, or a `grid/*` variable whose collection's modes are the
+ *  breakpoints. A breakpoint variable alone has no row to sit in, so it stays a later phase. */
+const hasGridTable = (catalog: SgCatalog): boolean => !!catalog.gridStyles?.length || catalog.variables.some((v) => varKind(v) === 'grid');
 
 /**
  * A FLOAT or STRING variable's kind, from its SCOPES first and its NAME second (proposed, owner to confirm).
@@ -655,13 +675,16 @@ export const varKind = (v: SgVariable): VarKind | null => {
   if (has('fontweight') || (font && has('weight'))) return 'fontWeight';
   if (has('radius', 'corner', 'cornerradius') || only('CORNER_RADIUS')) return 'radius';
   if (only('GAP') || has('space', 'spacing', 'gap', 'padding', 'inset', 'margin')) return 'spacing';
+  // A CONTAINER WIDTH (#3171): drawn as a dimension, in the Container table on Grids & layouts. Decided after a radius,
+  // a border width and a spacing, so a `border/radius/container/*` corner stays a radius, drawn with Borders.
+  if (has('container')) return 'container';
   if (only('WIDTH_HEIGHT') || has('size', 'height', 'width')) return 'size';
   if ((scopes.length && scopes.every((s) => DIMENSION_SCOPES.has(s))) || has('dimension', 'dimensions', 'scale')) return 'scale';
   return 'other';
 };
 /** The kinds drawn in a collection's `dimension` table. An icon size is one (#2353, owner direction: "in the existing size
  *  and dimension tables, not a type of its own"), drawn as a size is. */
-const DIMENSION_KINDS: readonly VarKind[] = ['spacing', 'size', 'radius', 'scale', 'iconSize'];
+const DIMENSION_KINDS: readonly VarKind[] = ['spacing', 'size', 'radius', 'scale', 'iconSize', 'container'];
 /** The table type a kind draws in: `dimension`, `borderWidth`, `opacity`, a font kind, or null for a later phase. */
 const typeOfKind = (k: VarKind): string | null =>
   DIMENSION_KINDS.includes(k) ? 'dimension' : k === 'borderWidth' || k === 'opacity' || (FONT_KINDS as readonly string[]).includes(k) ? k : null;
@@ -757,6 +780,8 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
       const type = typeOfKind(kind);
       if (!type) {
         if (kind === 'fontStyle' && styleBound.has(v.id)) continue;
+        // Printed in the Grids table (#3171), when the file has one, so no later phase.
+        if (GRID_KINDS.includes(kind) && hasGridTable(catalog)) continue;
         const l = LATER_KIND[kind] ?? kind; later.set(l, (later.get(l) ?? 0) + 1); continue;
       }
       if (!wantTypes.includes(type.toLowerCase())) continue;
@@ -786,6 +811,9 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
         for (const mine of split ? [inRoot.filter(literal), inRoot.filter((m) => !literal(m))] : [inRoot]) {
           const prefix = commonPrefix(mine.map((m) => m.v.name.split('/').slice(0, -1)));
           const primitive = mine.every(literal);
+          // A TABLE OF CONTAINER WIDTHS IS DRAWN ON GRIDS & LAYOUTS (#3171, Q3171.5 A): moved there unchanged, its key
+          // kept, so a file drawn before keeps its table (`relocateTables`).
+          const container = type === 'dimension' && mine.every((m) => m.kind === 'container');
           // DRAFT for the owner (#2371): the roles' title when the weights are split, so the two tables' titles differ.
           // AN ICON-SIZE TABLE IS "Icon size" (#2728, owner decision Q341 A): titled from its collection it read "Icon",
           // the icon colors' title on the same page. The key is unchanged, so a rerun retitles the table in place.
@@ -837,7 +865,7 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
             key: `${type}|${col.id}|${prefix.join('/')}`,
             type,
             kind: primitive ? 'primitive' : 'semantic',
-            page: primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
+            page: container ? GRIDS_PAGE : primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
             collectionId: col.id,
             title,
             description: `${n} ${noun} in ${where}${perMode}${refs}`,
@@ -1096,6 +1124,128 @@ const planGradientStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
   }];
 };
 
+/** The pseudo-collection the Grids table's key names (#3171): grid styles belong to no collection. */
+export const GRID_STYLES_ID = 'grid-styles';
+/** The scale a grid specimen is drawn at (Q3171.2 A), and its height. */
+export const GRID_SPECIMEN_SCALE = 1 / 8;
+const GRID_SPECIMEN_H = 34;
+/** Owner-approved wording (#3171, Q3171.3 A): a gutter or margin linked to a value that is not a space step. */
+export const OFF_SPACE_SCALE = 'off space scale';
+/** Owner-approved wording (#3171, Q3171.3 A): a gutter or margin that is a plain value, linked to no variable. */
+export const UNLINKED_PX = '⚠ unlinked px';
+/** The grid style holds `style` where the variable holds `variable` (#3171, Q3171.3 A). DRAFT wording for the owner: the
+ *  wireframe's chip with a comma for its not-equal sign (U+2260), which the chrome's subset of Inter does not carry, so the
+ *  build's glyph gate (`apps/studio/chrome/glyphs.mjs`) refuses it in any string the panel can be handed. */
+export const gridMismatch = (style: number, variable: number): string => `⚠ style ${trimNum(style, 2)}, variable ${trimNum(variable, 2)}`;
+/** DRAFT wording for the owner (#3171): a breakpoint the layout variables have and no grid style is named for. */
+export const NO_GRID_STYLE = '⚠ no grid style';
+/** The width each column of a column grid takes in a frame `frame` px wide (#3171, Q3171.4 A). */
+export const columnWidth = (frame: number, columns: number, gutter: number, margin: number): number =>
+  columns > 0 ? (frame - 2 * margin - (columns - 1) * gutter) / columns : 0;
+
+/**
+ * THE GRIDS TABLE (#3171, owner decisions Q3171.1–4, all A). One row per breakpoint, which is one per grid style: the
+ * modes of the collection holding the `grid/*` variables, each matched to the grid style of its name (`sm`, or Prism3's
+ * old `Grid / sm`), on `↳ Grids & layouts`. A grid style no mode names is a row of its own after them. In the shape of
+ * the Effect styles table: Token | Specimen | Min width | Columns | Gutter | Margin | Column | Max width | Description.
+ *   • MIN WIDTH is `breakpoint/<mode>`, MAX WIDTH `container/max`, COLUMNS, GUTTER and MARGIN the `grid/*` variables in
+ *     that mode: always the variables, never the style, so a style that drifted from them shows as drift.
+ *   • THE LINK CHIP under a gutter or margin (#3052 / #3065 order): the space step it aliases; else the variable it aliases
+ *     (a core dimension), marked `OFF_SPACE_SCALE`; else `UNLINKED_PX`. Read from the variable's own alias, so nothing new
+ *     is emitted. Shown with the alias chips (the Aliases toggle), as every link is.
+ *   • THE MISMATCH CHIP, the plugin-side twin of the engine's G1 gate: only where the grid style's count, gutter or offset
+ *     differs from the variable, on that column, whatever the Aliases toggle says.
+ *   • THE SPECIMEN is the style's grid at 1:8 in a frame the breakpoint's min width wide (`container/min` for a breakpoint
+ *     that starts at 0), the content cap shaded where that is wider than `container/max`. COLUMN is the width the style
+ *     gives a column there.
+ */
+const planGridTable = (catalog: SgCatalog, ix: Index, options: StyleGuideOptions): SgTable[] => {
+  const styles = catalog.gridStyles ?? [];
+  const gridVars = catalog.variables.filter((v) => varKind(v) === 'grid');
+  const layout = gridVars.length ? ix.collections.get(gridVars[0].variableCollectionId) : undefined;
+  if (!styles.length && !layout) return [];
+  const inLayout = (kind: VarKind, last: string): SgVariable | undefined =>
+    layout ? catalog.variables.find((v) => v.variableCollectionId === layout.id && varKind(v) === kind && v.name.split('/').pop() === last) : undefined;
+  const columnsVar = inLayout('grid', 'columns'), gutterVar = inLayout('grid', 'gutter'), marginVar = inLayout('grid', 'margin');
+  const maxVar = inLayout('container', 'max'), minVar = inLayout('container', 'min');
+  const at = (v: SgVariable | undefined, modeId: string | undefined): number | null => {
+    if (!v || modeId === undefined) return null;
+    const lit = resolveLiteral(ix, v, modeId);
+    return typeof lit === 'number' ? lit : null;
+  };
+  const aliasesOn = options.aliases !== false;
+  const styleFor = (name: string): SgGridStyle | undefined =>
+    styles.find((st) => st.name === name) ?? styles.find((st) => st.name.split('/').pop()!.trim() === name);
+  const modes = layout?.modes ?? [];
+  const matched = new Set<SgGridStyle>();
+  const entries: { mode: SgMode | null; style: SgGridStyle | undefined }[] = modes.map((m) => {
+    const st = styleFor(m.name);
+    if (st) matched.add(st);
+    return { mode: m, style: st };
+  });
+  for (const st of styles) if (!matched.has(st)) entries.push({ mode: null, style: st });
+  const rows: SgRow[] = entries.map(({ mode, style }) => {
+    const modeId = mode?.modeId;
+    const cols = at(columnsVar, modeId), gutter = at(gutterVar, modeId), margin = at(marginVar, modeId);
+    const bpVar = mode ? inLayout('breakpoint', mode.name) : undefined;
+    const bp = at(bpVar, modeId), max = at(maxVar, modeId), min = at(minVar, modeId);
+    const grid = style?.layoutGrids.find((g) => g.pattern === 'COLUMNS') ?? style?.layoutGrids[0];
+    // The style's own numbers lay the specimen and the column width out; the variables', where the file has no style.
+    const sCount = grid?.count ?? cols ?? 0, sGutter = grid?.gutterSize ?? gutter ?? 0, sMargin = grid?.offset ?? margin ?? 0;
+    const frame = bp || min || 0;
+    const mismatch = (styleN: number | undefined, varN: number | null): string =>
+      style && typeof styleN === 'number' && varN !== null && Math.abs(styleN - varN) > 0.001 ? gridMismatch(styleN, varN) : '';
+    const chip = (...parts: (string | null | undefined)[]): string | null => parts.filter(Boolean).join(' · ') || null;
+    const nameOf = (v: SgVariable | undefined): string | null => (aliasesOn && v ? v.name : null);
+    const length = (n: number | null): string => (n === null ? '—' : remOn(options) ? `${formatPx(n)} · ${formatRem(n)}` : formatPx(n));
+    /** The link a gutter or margin resolves through, in this mode (#3052 / #3065 order). */
+    const link = (v: SgVariable | undefined): string | null => {
+      if (!aliasesOn || !v || modeId === undefined) return null;
+      const target = ix.byId.get(aliasId(v.valuesByMode[modeId]) ?? '');
+      if (!target) return UNLINKED_PX;
+      return varKind(target) === 'spacing' ? target.name : `${target.name} · ${OFF_SPACE_SCALE}`;
+    };
+    const cells: SgCell[] = [{
+      modeId: STYLE_SPECIMEN.modeId,
+      modeName: STYLE_SPECIMEN.name,
+      value: bp === null ? '—' : formatPx(bp),
+      alias: nameOf(bpVar),
+      // What the row holds, independent of the print format: the variables in this mode and the style's column grid.
+      raw: JSON.stringify([bp, cols, gutter, margin, max, min, grid ? [grid.count ?? null, grid.gutterSize ?? null, grid.offset ?? null] : null]),
+      groundId: null,
+      contrast: null,
+    }];
+    const cw = columnWidth(frame, sCount, sGutter, sMargin);
+    const extra = [
+      { value: cols === null ? '—' : trimNum(cols, 2), alias: chip(nameOf(columnsVar), mismatch(grid?.count, cols), mode && !style ? NO_GRID_STYLE : ''), always: true },
+      { value: length(gutter), alias: chip(link(gutterVar), mismatch(grid?.gutterSize, gutter)), always: true },
+      { value: length(margin), alias: chip(link(marginVar), mismatch(grid?.offset, margin)), always: true },
+      { value: frame ? `${formatPx(cw)}\nat ${formatPx(frame)}` : '—', alias: null },
+      { value: max === null ? '—' : formatPx(max), alias: nameOf(maxVar) },
+    ];
+    const token = style?.name ?? mode!.name;
+    return {
+      variableId: style?.id ?? `${layout!.id}|${modeId}`, name: token, token, tokenCell: token, label: humanizeName([token]),
+      description: style?.description ?? '', display: 'default' as SwatchType, cells, extra,
+      specimen: { kind: 'grid', frame, columns: sCount, gutter: sGutter, margin: sMargin, cap: max, ...(grid?.color ? { color: grid.color } : {}) },
+    };
+  });
+  const n = rows.length;
+  return [{
+    key: `grid|${GRID_STYLES_ID}|`,
+    type: 'grid',
+    kind: 'semantic',
+    page: GRIDS_PAGE,
+    collectionId: GRID_STYLES_ID,
+    title: 'Grid styles',
+    // Owner-approved wording (#3171, the proposal's wireframe).
+    description: `${n} grid style${n === 1 ? '' : 's'}, one per breakpoint, with the layout variables ${n === 1 ? 'it copies' : 'they copy'}`,
+    modes: [STYLE_SPECIMEN],
+    columns: ['Token', STYLE_SPECIMEN.name, 'Min width', 'Columns', 'Gutter', 'Margin', 'Column', 'Max width', ...(options.description === false ? [] : ['Description'])],
+    rows,
+  }];
+};
+
 /** A size word the humanized name keeps upper-case: xs, sm, md, lg, xl, 2xl, 3xl, xxl, 2xs (proposed, owner to confirm). */
 const SIZE_WORD = /^(\d*x{1,3}[sl]|sm|md|lg)$/i;
 /**
@@ -1289,6 +1439,9 @@ export interface StyleGuideApi {
   /** #2353 batch 2a: the file's local effect and paint styles, in the file's order. Optional: without one, no table of it. */
   getLocalEffectStylesAsync?(): Promise<readonly unknown[]>;
   getLocalPaintStylesAsync?(): Promise<readonly unknown[]>;
+  /** #3171: the file's local grid styles, in the file's order. Optional: without it, the Grids table reads the layout
+   *  variables alone. */
+  getLocalGridStylesAsync?(): Promise<readonly unknown[]>;
   /** The fonts the host has, for the face a family specimen is set in (#2371). Optional: without it, the faces the
    *  file's text styles use and the cell's own style are tried. */
   listAvailableFontsAsync?(): Promise<ReadonlyArray<{ fontName: { family: string; style: string } }>>;
@@ -1347,6 +1500,8 @@ export interface StyleGuideResult {
    *  ones the designer confirms. Only `edited`, `moved`, `copied` and `unrecorded` are offered; a table kept by the
    *  run's own guards (`no-collection`, `nothing-drawn`) or one the host refused to remove is not. */
   retired?: { id: string; name: string }[];
+  /** #3171: the tables this run moved to the page they are drawn on now (`relocateTables`), before it drew. */
+  relocated?: TableMove[];
   /** Set when `StyleGuideRun.stop` ended the run early (S11.2, owner decision P7): `done` of `total` tables were
    *  reached. A stopped run judges no superseded table and re-flows nothing it did not draw, as a filtered one. */
   stopped?: { done: number; total: number };
@@ -1397,12 +1552,13 @@ export const CELLS_PER_YIELD = 28;
  *  Every variable, not only COLOR: phase 2 reads FLOAT and STRING ones (the #146 lesson — a type-filtered fetch
  *  misses the font family and size variables). The effect and paint styles too (#2353 batch 2a), when asked for. */
 export const readCatalog = async (vars: StyleGuideApi['variables'], textStyles?: () => Promise<readonly unknown[]>,
-  styles: { effect?: () => Promise<readonly unknown[]>; paint?: () => Promise<readonly unknown[]> } = {}): Promise<{ catalog: SgCatalog; collectionById: Map<string, unknown>; variableById: Map<string, unknown> }> => {
+  styles: { effect?: () => Promise<readonly unknown[]>; paint?: () => Promise<readonly unknown[]>; grid?: () => Promise<readonly unknown[]> } = {}): Promise<{ catalog: SgCatalog; collectionById: Map<string, unknown>; variableById: Map<string, unknown> }> => {
   const cols = (await vars.getLocalVariableCollectionsAsync()) as readonly (SgCollection & { id: string })[];
   const vs = (await vars.getLocalVariablesAsync()) as readonly SgVariable[];
   const ts = (textStyles ? await textStyles() : []) as readonly SgTextStyle[];
   const es = (styles.effect ? await styles.effect() : []) as readonly SgEffectStyle[];
   const ps = (styles.paint ? await styles.paint() : []) as readonly SgPaintStyle[];
+  const gs = (styles.grid ? await styles.grid() : []) as readonly SgGridStyle[];
   const catalog: SgCatalog = {
     collections: cols.map((c) => ({ id: c.id, name: c.name, modes: c.modes.map((m) => ({ modeId: m.modeId, name: m.name })), defaultModeId: c.defaultModeId })),
     variables: vs.map((v) => ({ id: v.id, name: v.name, variableCollectionId: v.variableCollectionId, resolvedType: v.resolvedType, description: v.description, valuesByMode: v.valuesByMode, scopes: v.scopes ? [...v.scopes] : undefined })),
@@ -1417,6 +1573,10 @@ export const readCatalog = async (vars: StyleGuideApi['variables'], textStyles?:
     paintStyles: ps.map((t) => ({
       id: t.id, name: t.name, description: t.description,
       paints: (t.paints ?? []).map((p) => ({ type: p.type, gradientStops: p.gradientStops?.map((st) => ({ position: st.position, color: st.color, boundVariables: st.boundVariables })) })),
+    })),
+    gridStyles: gs.map((t) => ({
+      id: t.id, name: t.name, description: t.description,
+      layoutGrids: (t.layoutGrids ?? []).map((g) => ({ pattern: g.pattern, count: g.count, gutterSize: g.gutterSize, offset: g.offset, color: g.color })),
     })),
   };
   return { catalog, collectionById: new Map(cols.map((c) => [c.id, c])), variableById: new Map(vs.map((v) => [v.id, v])) };
@@ -1475,6 +1635,10 @@ const TRACK_GAP = 0;
  *  the style guide's own chrome, not the brand's. Nothing in a table is transparent, so it reads the same on a light
  *  or a dark canvas. */
 const CELL_FILL = WHITE;
+/** A grid specimen's paints (#3171): a column in red, as Figma's default grid color, where the style has none; the
+ *  content cap in blue. The style guide's own chrome, fixed, as the cell white is. */
+const GRID_COLUMN = { r: 1, g: 0, b: 0, a: 0.1 };
+const GRID_CAP = { r: 47 / 255, g: 91 / 255, b: 211 / 255, a: 0.14 };
 const GRID_LINE = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 224 / 255, g: 224 / 255, b: 224 / 255 } }];
 /** A paint that hides what is behind it: a visible solid at full opacity and full alpha. A bound paint counts by its
  *  own opacity; its variable's alpha is the brand's (a palette or ground color is opaque). */
@@ -1546,7 +1710,7 @@ export const categoryOfKey = (key: string): string => {
 };
 /** Rows in this order down a page; a later phase's category after them, by name. The effect and gradient styles (#2353
  *  batch 2a) each start a row of their own after the text styles'. Owner-approved (Q272 A). */
-const CATEGORY_ORDER = ['color', 'dimension', 'font', 'typography', 'shadow', 'gradient'];
+const CATEGORY_ORDER = ['color', 'dimension', 'font', 'typography', 'shadow', 'gradient', 'grid'];
 const categoryRank = (cat: string): number => { const i = CATEGORY_ORDER.indexOf(cat); return i < 0 ? CATEGORY_ORDER.length : i; };
 /** The radius swatch's four corners, each bound to the radius variable. */
 const RADIUS_CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
@@ -1774,7 +1938,112 @@ const fitToContent = (f: SgNode): void => {
 };
 
 const collectionIdsOf = (catalog: SgCatalog): Set<string> => new Set([...catalog.collections.map((c) => c.id), ...(catalog.textStyles?.length ? [TEXT_STYLES_ID] : []),
-  ...(catalog.effectStyles?.length ? [EFFECT_STYLES_ID] : []), ...(catalog.paintStyles?.some((st) => st.paints.some(isGradient)) ? [GRADIENT_STYLES_ID] : [])]);
+  ...(catalog.effectStyles?.length ? [EFFECT_STYLES_ID] : []), ...(catalog.paintStyles?.some((st) => st.paints.some(isGradient)) ? [GRADIENT_STYLES_ID] : []),
+  ...(hasGridTable(catalog) ? [GRID_STYLES_ID] : [])]);
+
+const gridRowOf = (n: SgNode): number => num(read(n, 'gridRowAnchorIndex'));
+const gridColOf = (n: SgNode): number => num(read(n, 'gridColumnAnchorIndex'));
+const moveCell = (k: SgNode, r: number, c: number): void => (k as SgNode & { setGridChildPosition?(r: number, c: number): void }).setGridChildPosition?.(r, c);
+/** Track counts set, every track HUG: assigned, as the table grid's are, and re-assigned whenever a count moves. */
+const setTracks = (grid: SgNode, rows: number, cols: number): void => {
+  if (num(grid.gridRowCount) !== rows) grid.gridRowCount = rows;
+  if (num(grid.gridColumnCount) !== cols) grid.gridColumnCount = cols;
+  for (const [key, n] of [['gridRowSizes', rows], ['gridColumnSizes', cols]] as const) {
+    try { grid[key] = Array.from({ length: n }, () => ({ type: 'HUG' })); }
+    catch { for (const sz of grid[key] ?? []) sz.type = 'HUG'; }
+  }
+};
+/** A grid closed over its empty tracks: an empty column (and an empty last row) dropped, the guides keeping order. */
+const closeGrid = (grid: SgNode): void => {
+  const kids = (grid.children ?? []) as SgNode[];
+  if (!kids.length) return;
+  const cols = [...new Set(kids.map(gridColOf))].sort((a, b) => a - b);
+  // Ascending, so each guide moves into a cell already left by the one before it.
+  for (const k of [...kids].sort((a, b) => gridColOf(a) - gridColOf(b))) {
+    const to = cols.indexOf(gridColOf(k));
+    if (to !== gridColOf(k)) moveCell(k, gridRowOf(k), to);
+  }
+  setTracks(grid, Math.max(...kids.map(gridRowOf)) + 1, cols.length);
+};
+
+// ── Tables on a former page (#3171, owner decision Q3171.7 A) ──────────────────────────────────────────────
+/** One style-guide table to move: by its frame's name and its key, from and to full page names. */
+export type TableMove = { table: string; key: string; from: string; to: string };
+/** The kind of table a frame is, as `FORMER_TABLE_PAGES` names it: `container`, a dimension table whose group path ends
+ *  in a `container` segment and whose every row, as it was last written (`ROWS_KEY`), is named a container width, which
+ *  is the Container table `planVariableTables` draws. A `border/radius/container` table ends the same way and is not one. */
+const tableKindOf = (key: string, f: SgNode): string | null => {
+  if (!key.startsWith('dimension|') || pathSegs(key).pop() !== 'container') return null;
+  const rows = (() => { try { return Object.values(JSON.parse(f.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot); } catch { return []; } })();
+  const named = (name: string): VarKind | null => varKind({ id: name, name, variableCollectionId: '', resolvedType: 'FLOAT', valuesByMode: {} });
+  return rows.length > 0 && rows.every((r) => named(r.name) === 'container') ? 'container' : null;
+};
+/** The page each kind of table is drawn on now. */
+const TABLE_PAGE: Record<string, string> = { container: GRIDS_PAGE };
+const framesIn = (p: SgPage): SgNode[] => {
+  try {
+    return ((p.findAllWithCriteria ? p.findAllWithCriteria({ types: ['FRAME'] }) : p.children) as readonly SgNode[]).filter((n) => n.type === 'FRAME');
+  } catch { return []; }
+};
+const sitsOn = (n: SgNode, p: SgPage): boolean => { const par = n.parent as { id?: unknown } | null | undefined; return !!par && (par === p || (p.id !== undefined && par.id === p.id)); };
+/** Its mark names its own id: the frame the generator wrote, not a designer's copy that carries its plugin data. */
+const markedOwn = (n: SgNode, key: string): boolean => { const mark = n.getPluginData?.(key) || ''; return !!mark && mark.slice(mark.lastIndexOf('|') + 1) === String(n.id); };
+/** A table that is where the generator puts one: directly on the page, or inside a group Prism3 drew there. */
+const whereDrawn = (f: SgNode, p: SgPage): boolean => {
+  if (sitsOn(f, p)) return true;
+  let cur = f.parent as SgNode | null | undefined;
+  for (let i = 0; cur && i < 64 && !sitsOn(cur, p); i++) cur = cur.parent as SgNode | null | undefined;
+  return !!cur && cur.type === 'FRAME' && !!cur.getPluginData?.(GROUP_KEY) && markedOwn(cur, GROUP_MARK_KEY);
+};
+const tablesDue = (pages: readonly SgPage[]): { move: TableMove; frame: SgNode; to: SgPage }[] => {
+  const out: { move: TableMove; frame: SgNode; to: SgPage }[] = [];
+  for (const former of FORMER_TABLE_PAGES) {
+    const from = pages.find((p) => p.name === leafName(former.page));
+    const to = pages.find((p) => p.name === TABLE_PAGE[former.table]);
+    if (!from || !to || from === to) continue;
+    // A table already on its page is the one the run updates: a second is never moved in beside it.
+    const there = new Set(framesIn(to).map((f) => f.getPluginData?.(TABLE_KEY)).filter(Boolean));
+    for (const f of framesIn(from)) {
+      const key = f.getPluginData?.(TABLE_KEY) || '';
+      if (!key || tableKindOf(key, f) !== former.table || there.has(key) || !markedOwn(f, MARK_KEY) || !whereDrawn(f, from)) continue;
+      there.add(key);
+      out.push({ move: { table: String(f.name), key, from: from.name, to: to.name }, frame: f, to });
+    }
+  }
+  return out;
+};
+
+/** THE TABLE MOVES DUE (#3171), read off the pages and writing nothing, in `FORMER_TABLE_PAGES` order: each table
+ *  Prism3 drew (its mark names its own id) on a page an earlier build drew it on, at the top level or in a group Prism3
+ *  drew, where the page it is drawn on now exists and holds no table of that key. A copy, and a table a designer put on
+ *  another page or in a frame of their own, are never due. Update file's dry run lists them (`pageMovesLine`). */
+export const tableMovesDue = (pages: readonly unknown[]): TableMove[] => tablesDue(pages as readonly SgPage[]).map((d) => d.move);
+
+/**
+ * MAKE THE TABLE MOVES `tableMovesDue` reads now (#3171, owner decision Q3171.7 A): one function, which Update file and the
+ * style-guide run both call, so the order a designer runs them in does not matter. Each table is appended to its page
+ * (Figma's own move between pages, which keeps the node's id, so its hand edits come with it), below that page's content,
+ * and its group record cleared, so the next style-guide run puts it in its group there. A grid of guides it leaves closes
+ * over the gap, as it does for a deleted guide; every other guide keeps its order. No page is ever deleted.
+ */
+export const relocateTables = async (api: { root: { readonly children: readonly unknown[] }; loadAllPagesAsync(): Promise<void> }): Promise<{ moved: TableMove[] }> => {
+  await api.loadAllPagesAsync();
+  const moved: TableMove[] = [];
+  for (const d of tablesDue(api.root.children as readonly SgPage[])) {
+    const grid = d.frame.parent as SgNode | null | undefined;
+    const closes = !!grid && grid.layoutMode === 'GRID' && grid.getPluginData?.(PART_KEY) === 'guides';
+    // Measured before the move, so the table is not counted below itself.
+    const shown = (d.to.children as readonly SgNode[]).filter((n) => n.visible !== false);
+    const at = shown.length ? { x: Math.min(...shown.map((n) => num(n.x))), y: Math.max(...shown.map((n) => num(n.y) + num(n.height))) + GROUP_GAP } : { x: 0, y: 0 };
+    d.to.appendChild(d.frame);
+    d.frame.x = at.x;
+    d.frame.y = at.y;
+    d.frame.setPluginData?.(IN_GROUP_KEY, '');
+    if (closes) closeGrid(grid!);
+    moved.push(d.move);
+  }
+  return { moved };
+};
 
 /** Run the plan into the file. Never throws for a missing optional piece; the host throwing is the caller's.
  *  Yields to the host after every table and every `CELLS_PER_YIELD` cells within one (#1778): a full run held
@@ -1785,6 +2054,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const { catalog, collectionById, variableById } = await readCatalog(api.variables, api.getLocalTextStylesAsync ? () => api.getLocalTextStylesAsync!() : undefined, {
     effect: api.getLocalEffectStylesAsync ? () => api.getLocalEffectStylesAsync!() : undefined,
     paint: api.getLocalPaintStylesAsync ? () => api.getLocalPaintStylesAsync!() : undefined,
+    grid: api.getLocalGridStylesAsync ? () => api.getLocalGridStylesAsync!() : undefined,
   });
   const plan = planStyleGuide(catalog, contract, options);
   const misses: string[] = [];
@@ -1803,6 +2073,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // places at any size grows its square with it. A table's fill swatch no longer shows the square (#2336: the instance
   // paints the color edge to edge), so this is the set's repair, not the table's. A set the owner made is never changed.
   if (plan.tables.length) await run.beforeWrite?.(plan.tables.length);
+  // A TABLE ON A FORMER PAGE MOVES FIRST (#3171, Q3171.7 A), once the version is saved, so the run finds it on its page and
+  // updates it there, never drawing a second.
+  const relocated = plan.tables.length ? (await relocateTables(api)).moved : [];
   if (plan.tables.some((t) => t.kind === 'primitive')) stretchSwatches(swatches);
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
@@ -2090,30 +2363,6 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     return Number.isFinite(x) && Number.isFinite(y) && !!n.getPluginData?.(GROUP_AT_KEY) && near(num(n.x), x) && near(num(n.y), y);
   };
   const guidesGridOf = (g: SgNode): SgNode | null => (((g.children ?? []) as SgNode[]).find((c) => c.getPluginData?.(PART_KEY) === 'guides') ?? null);
-  const gridRowOf = (n: SgNode): number => num(read(n, 'gridRowAnchorIndex'));
-  const gridColOf = (n: SgNode): number => num(read(n, 'gridColumnAnchorIndex'));
-  const moveCell = (k: SgNode, r: number, c: number): void => (k as SgNode & { setGridChildPosition?(r: number, c: number): void }).setGridChildPosition?.(r, c);
-  /** Track counts set, every track HUG: assigned, as the table grid's are, and re-assigned whenever a count moves. */
-  const setTracks = (grid: SgNode, rows: number, cols: number): void => {
-    if (num(grid.gridRowCount) !== rows) grid.gridRowCount = rows;
-    if (num(grid.gridColumnCount) !== cols) grid.gridColumnCount = cols;
-    for (const [key, n] of [['gridRowSizes', rows], ['gridColumnSizes', cols]] as const) {
-      try { grid[key] = Array.from({ length: n }, () => ({ type: 'HUG' })); }
-      catch { for (const sz of grid[key] ?? []) sz.type = 'HUG'; }
-    }
-  };
-  /** A grid closed over its empty tracks: an empty column (and an empty last row) dropped, the guides keeping order. */
-  const closeGrid = (grid: SgNode): void => {
-    const kids = (grid.children ?? []) as SgNode[];
-    if (!kids.length) return;
-    const cols = [...new Set(kids.map(gridColOf))].sort((a, b) => a - b);
-    // Ascending, so each guide moves into a cell already left by the one before it.
-    for (const k of [...kids].sort((a, b) => gridColOf(a) - gridColOf(b))) {
-      const to = cols.indexOf(gridColOf(k));
-      if (to !== gridColOf(k)) moveCell(k, gridRowOf(k), to);
-    }
-    setTracks(grid, Math.max(...kids.map(gridRowOf)) + 1, cols.length);
-  };
   // Where the page's groups stack from (Q2 A), read BEFORE anything is drawn: the groups Prism3 left in place, else
   // the guides an earlier build drew loose (its category rows), so a file drawn before groups is grouped where its
   // tables were. A page with neither stacks from where its first new group lands.
@@ -2522,6 +2771,39 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         place(box, r, c);
         return;
       }
+      if (spec.kind === 'grid') {
+        // A GRID STYLE AT 1:8 (#3171, Q3171.2 A): plain frames in a padded cell, redrawn on every run. The frame is the
+        // breakpoint's min width, ruled; the content cap is shaded where the frame is wider than `container/max`; each
+        // column is painted the style's own color, as Figma shows the grid on a frame.
+        const S = GRID_SPECIMEN_SCALE;
+        const solid = (c: { r: number; g: number; b: number }, opacity: number) => [{ type: 'SOLID', visible: true, opacity, blendMode: 'NORMAL', color: { r: c.r, g: c.g, b: c.b } }];
+        const rect = (into: SgNode, name: string, x: number, w: number, fills: unknown): void => {
+          const f = api.createFrame();
+          f.name = name;
+          f.fills = fills;
+          into.appendChild?.(f);
+          f.resize?.(Math.max(0.5, w), GRID_SPECIMEN_H);
+          f.x = x;
+          f.y = 0;
+        };
+        const frame = api.createFrame();
+        frame.name = 'Grid';
+        frame.fills = CELL_FILL;
+        frame.strokes = GRID_LINE;
+        frame.strokeWeight = 1;
+        frame.strokeAlign = 'INSIDE';
+        frame.clipsContent = true;
+        frame.resize?.(Math.max(1, spec.frame * S), GRID_SPECIMEN_H);
+        if (spec.cap !== null && spec.frame > spec.cap) rect(frame, 'Content cap', ((spec.frame - spec.cap) / 2) * S, spec.cap * S, solid(GRID_CAP, GRID_CAP.a));
+        const cw = columnWidth(spec.frame, spec.columns, spec.gutter, spec.margin);
+        const ink = spec.color ?? GRID_COLUMN;
+        for (let i = 0; i < spec.columns; i++) rect(frame, `Column ${i + 1}`, (spec.margin + i * (cw + spec.gutter)) * S, cw * S, solid(ink, ink.a));
+        const box = cellBox(true);
+        box.appendChild?.(frame);
+        keepSize({ inst: frame, w: Math.max(1, spec.frame * S), h: GRID_SPECIMEN_H });
+        place(box, r, c);
+        return;
+      }
       if (spec.kind === 'effect' || spec.kind === 'gradient') {
         // A STYLE'S SPECIMEN (#2353 batch 2a) is the swatches set's type=default member with the style applied, so it
         // stays bound to the style and follows an edit to it. Its own layers are hidden, as a fill swatch's are.
@@ -2633,7 +2915,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
           place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
           if (cell.rem !== undefined) place(await textCell('default', 'white', cell.rem), r + 1, c++);
         }
-        for (const x of row.extra ?? []) place(await textCell(options.aliases !== false && x.alias ? 'value alias' : 'default', 'white', x.value, x.alias), r + 1, c++);
+        for (const x of row.extra ?? []) place(await textCell((x.always || options.aliases !== false) && x.alias ? 'value alias' : 'default', 'white', x.value, x.alias), r + 1, c++);
       } else for (const cell of row.cells) {
         // A palette step, or a semantic FILL (inverse fills included): the swatch fills its cell (#2268, #2331). A text,
         // border or icon role: its mark on its ground, the inverse background for an inverse token (#2331).
@@ -3253,7 +3535,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   }
   for (const [what, ws] of noSet) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not drawn: this file has no ${SPACING_CELL_SET} set, which Set up file adds (${placesOf(ws)})`); }
   for (const [what, ws] of noLayer) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
-  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched,
+  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched, ...(relocated.length ? { relocated } : {}),
     groups: { drawn: groupsDrawn, adopted: groupsAdopted, removed: groupsRemoved, rearranged: groupsRearranged }, retired, ...(stopped ? { stopped } : {}) };
 };
 
@@ -3269,6 +3551,7 @@ export const removeRetiredTables = async (api: StyleGuideApi, contract: SgContra
   const { catalog } = await readCatalog(api.variables, api.getLocalTextStylesAsync ? () => api.getLocalTextStylesAsync!() : undefined, {
     effect: api.getLocalEffectStylesAsync ? () => api.getLocalEffectStylesAsync!() : undefined,
     paint: api.getLocalPaintStylesAsync ? () => api.getLocalPaintStylesAsync!() : undefined,
+    grid: api.getLocalGridStylesAsync ? () => api.getLocalGridStylesAsync!() : undefined,
   });
   const plan = planStyleGuide(catalog, contract, {});
   const planned = new Set(plan.tables.map((t) => t.key));
@@ -3325,6 +3608,8 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   // A failed table first, by its title and the host's reason (S11.2): it is what the designer has to act on.
   for (const t of failed) parts.push(`${t.title}: ${t.reason}`);
   if (r.stopped) parts.push(`Stopped after table ${r.stopped.done} of ${r.stopped.total}. The tables already drawn stay`);
+  // #3171: a table moved to its page, in Update file's words (#2989, Q3 A).
+  if (r.relocated?.length) parts.push(movesClause(r.relocated.map((m) => ({ name: m.table, from: m.from, to: m.to })), true));
   // A filtered run (#1778) often draws one table, so every count here agrees with its number.
   const tables = (n: number): string => `${n} table${n === 1 ? '' : 's'}`;
   if (made.length) parts.push(`${tables(made.length)} created (${made.slice(0, 3).map((t) => t.title).join(', ')}${made.length > 3 ? '…' : ''})`);
@@ -3404,10 +3689,10 @@ export const isSetUp = (root: StyleGuideApi['root']): boolean => {
  *  are a kind each, as the text styles are. */
 const KIND_OF_TYPE = (type: string): StyleGuideKind =>
   type === 'color' ? 'color' : type === 'dimension' || type === 'borderWidth' || type === 'opacity' ? 'dimension' : type === 'typography' ? 'text'
-    : type === 'shadow' ? 'effect' : type === 'gradient' ? 'gradient' : 'font';
+    : type === 'shadow' ? 'effect' : type === 'gradient' ? 'gradient' : type === 'grid' ? 'grid' : 'font';
 /** The variable kinds whose number is a length, printed in px in the tree. */
 const LENGTH_KINDS: ReadonlySet<VarKind> = new Set<VarKind>(['spacing', 'size', 'radius', 'scale', 'fontSize', 'lineHeight', 'letterSpacing',
-  'paragraphSpacing', 'paragraphIndent', 'borderWidth', 'iconSize', 'breakpoint', 'grid']);
+  'paragraphSpacing', 'paragraphIndent', 'borderWidth', 'iconSize', 'breakpoint', 'grid', 'container']);
 
 /**
  * WHAT THE PAGE SHOWS BEFORE A RUN (S11.2): every collection with its variables, the text styles, and for each the
@@ -3426,6 +3711,9 @@ export const catalogFor = (catalog: SgCatalog, contract: SgContract | null, setU
     const id = st.boundVariables?.[field]?.id;
     if (id && !tableOf.has(id)) tableOf.set(id, textTable);
   }
+  // The breakpoint and grid variables (#3171) are printed in the Grids table, so the page lists them there.
+  const gridTable = plan.tables.findIndex((t) => t.type === 'grid');
+  if (gridTable >= 0) for (const v of catalog.variables) { const k = varKind(v); if (k && GRID_KINDS.includes(k) && !tableOf.has(v.id)) tableOf.set(v.id, gridTable); }
   const ix: Index = { byId: new Map(catalog.variables.map((v) => [v.id, v])), collections: new Map(catalog.collections.map((c) => [c.id, c])) };
   const valueOf = (v: SgVariable, col: SgCollection): string => {
     const mode = defaultMode(col);
@@ -3452,6 +3740,9 @@ export const catalogFor = (catalog: SgCatalog, contract: SgContract | null, setU
   if (effects.length) collections.push({ id: EFFECT_STYLES_ID, name: 'Effect styles', modes: [], effectStyles: true, items: effects.map((st) => ({ name: st.name, table: tableOf.get(st.id) ?? -1, value: '' })) });
   const gradients = (catalog.paintStyles ?? []).filter((st) => st.paints.some(isGradient));
   if (gradients.length) collections.push({ id: GRADIENT_STYLES_ID, name: 'Gradient styles', modes: [], gradientStyles: true, items: gradients.map((st) => ({ name: st.name, table: tableOf.get(st.id) ?? -1, value: '' })) });
+  // The grid styles (#3171), one more entry after them.
+  const grids = catalog.gridStyles ?? [];
+  if (grids.length) collections.push({ id: GRID_STYLES_ID, name: 'Grid styles', modes: [], gridStyles: true, items: grids.map((st) => ({ name: st.name, table: tableOf.get(st.id) ?? -1, value: '' })) });
   return {
     setUp,
     collections,

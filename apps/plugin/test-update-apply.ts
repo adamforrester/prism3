@@ -469,6 +469,59 @@ section('page moves — a set on its former page moves to the page the taxonomy 
   ok(!again.pageMoves && previewVerdict(again).headline === '✓ All sets up to date', `moves/converges: the next dry run lists no move (${previewVerdict(again).headline})`);
 }
 
+/* ── table moves ──────────────────────────────────────────────────────────────────────────────────────── */
+// #3171, owner decision Q3171.7 A: the Container table an earlier build drew on Primitive tokens is listed by the dry run,
+// on the set moves' line, and moved by the apply onto Grids & layouts, once: the same node, every other table where it
+// was, no page lost, and a second Update finds nothing to move. Mutations: the dry run's read dropped → `tables/dry run`;
+// the apply's move dropped → `tables/apply`.
+section('table moves — the Container table on Primitive tokens moves to Grids & layouts, once');
+{
+  const w = await world(TAG);
+  type P = { id: string; name: string; children: F[]; appendChild(c: F): void };
+  type F = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; parent: P | null; data: Record<string, string>; getPluginData(k: string): string; setPluginData(k: string, v: string): void };
+  const pages: P[] = [];
+  const pg = (id: string, name: string): P => {
+    const p: P = { id, name, children: [], appendChild(c: F) { for (const q of pages) { const i = q.children.indexOf(c); if (i >= 0) q.children.splice(i, 1); } p.children.push(c); c.parent = p; } };
+    return p;
+  };
+  // A table as the style guide draws one: its key, a mark naming the page it was drawn on and its own id, and the rows it
+  // was last written with (each row's variable name, under the group path its key ends in).
+  const table = (id: string, name: string, key: string, on: P, rows: string[]): F => {
+    const path = key.split('|').slice(2).join('|');
+    const snapshot = Object.fromEntries(rows.map((r, i) => [`VariableID:${id}:${i}`, { name: `${path}/${r}`, values: {} }]));
+    const f: F = { id, name, type: 'FRAME', x: 0, y: 0, width: 400, height: 200, parent: null,
+      data: { 'prism3-style-guide': key, 'prism3-style-guide-mark': `${on.id}|${id}`, 'prism3-style-guide-rows': JSON.stringify(snapshot) },
+      getPluginData(k) { return f.data[k] ?? ''; }, setPluginData(k, v) { f.data[k] = v; } };
+    on.appendChild(f);
+    return f;
+  };
+  pages.push(pg('0:1', 'Cover'), pg('0:2', '↳ Primitive tokens'), pg('0:3', '↳ Semantic tokens'), pg('0:4', '↳ Grids & layouts'));
+  const KEY = 'dimension|VariableCollectionId:layout|brand/container';
+  const cont = table('9:1', 'Style guide — Container', KEY, pages[1], ['max', 'narrow', 'min']);
+  const dim = table('9:2', 'Style guide — Dimension', 'dimension|VariableCollectionId:core|brand/core/dimension', pages[1], ['4', '8']);
+  const space = table('9:3', 'Style guide — Space', 'dimension|VariableCollectionId:space|brand/space', pages[2], ['100', '200']);
+  // Each page's style-guide tables, by id: the Update draws the Cover page's own frames, which are no table.
+  const census = (): string => pages.map((p) => `${p.name}:${p.children.filter((c) => !!c.data?.['prism3-style-guide']).map((c) => c.id).join('+')}`).join(', ');
+  const host = { ...w.host, async loadAllPagesAsync() {}, root: { ...w.host.root, get children() { return pages; } } } as unknown as ApplyHost;
+  const targets = [{ def: TAG, plans: w.plans }];
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  ok(JSON.stringify(pre.tableMoves) === JSON.stringify([{ table: 'Style guide — Container', key: KEY, from: '↳ Primitive tokens', to: '↳ Grids & layouts' }])
+    && v.lines.includes('To move to its page: Style guide — Container (Primitive tokens to Grids & layouts).') && cont.parent === pages[1],
+    `tables/dry run: the Container table listed on the moves' line, nothing moved yet (${JSON.stringify(pre.tableMoves)}; ${v.lines.join(' | ')})`);
+  const res = await applyUpdate(host, w.api as any, targets, previewHashOf(pre));
+  const av = applyVerdict(res);
+  ok(cont.parent === pages[3] && pages[3].children.length === 1 && cont.id === '9:1' && census() === 'Cover:, ↳ Primitive tokens:9:2, ↳ Semantic tokens:9:3, ↳ Grids & layouts:9:1'
+    && dim.parent === pages[1] && space.parent === pages[2],
+    `tables/apply: the same Container node now sits on Grids & layouts, every other table where it was, every page still there (${census()})`);
+  ok(av.headline === '✓ 1 table moved to its page' && av.lines.includes('Moved to its page: Style guide — Container (Primitive tokens to Grids & layouts).') && w.api._versions.length === 1,
+    `tables/verdict: the move named, after one named version (${av.headline}; ${av.lines.join(' | ')}; ${JSON.stringify(w.api._versions)})`);
+  const again = await previewUpdate(host, targets);
+  const res2 = await applyUpdate(host, w.api as any, targets, previewHashOf(again));
+  ok(!again.tableMoves && !res2.relocatedTables && pages[3].children.length === 1 && w.api._versions.length === 1 && census() === 'Cover:, ↳ Primitive tokens:9:2, ↳ Semantic tokens:9:3, ↳ Grids & layouts:9:1',
+    `tables/once: a second Update lists and moves nothing (${previewVerdict(again).headline}; ${census()})`);
+}
+
 /* ── block headers ────────────────────────────────────────────────────────────────────────────────────── */
 // #3172, owner decisions Q3172.1–3, all A: the provider logos get a Size=Medium header of their own on Icons & assets,
 // 80px over their block. On a file built when they had their own page, Update moves that page's header with them (the

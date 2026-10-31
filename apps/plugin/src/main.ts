@@ -1625,7 +1625,7 @@ const styleGuideCatalog = async (): Promise<void> => {
     // #3170: whether Set up file has run, from the file's read a page per turn (shared with one already going), never a
     // search of the whole file in one turn.
     const { nodes } = await readPresent();
-    const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync(), { effect: () => figma.getLocalEffectStylesAsync(), paint: () => figma.getLocalPaintStylesAsync() });
+    const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync(), { effect: () => figma.getLocalEffectStylesAsync(), paint: () => figma.getLocalPaintStylesAsync(), grid: () => figma.getLocalGridStylesAsync() });
     postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0])) });
   } catch (e) {
     postToUi({ type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: (e as Error)?.message ?? String(e) });
