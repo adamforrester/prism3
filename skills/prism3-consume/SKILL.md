@@ -110,12 +110,15 @@ that hold across brands:
 - **`*.on-*` ink goes on its paired fill, nothing else.** `interactive.primary.on-fill` sits on
   `interactive.primary.fill.rest`; `text.on-danger` on `foreground.danger`. Plain `text.primary`
   goes on the page surfaces (`background.primary`/`secondary`/`tertiary`,
-  `foreground.primary`/`secondary`/`tertiary`); `text.secondary` is measured only on
-  `background.primary`, `background.secondary` and `foreground.primary` (its `sits_on`). Neither
-  goes on a solid vivid fill such as `foreground.danger`.
+  `foreground.primary`/`secondary`/`tertiary`); `text.secondary` is measured only on the surfaces
+  its `sits_on` lists, by default `background.primary`, `background.secondary` and
+  `foreground.primary`, and `background.primary` alone in a brand that sets
+  `secondaryTextGround: page`. Neither goes on a solid vivid fill such as `foreground.danger`.
 - **The contrast floor is the one text promise.** The secondary, tertiary, status and link inks
   (text and icon) clear their bar on the floor surface, `background.secondary` by default
-  (`inverse.background.secondary` on a band), and on every surface nearer the page. A surface
+  (`inverse.background.secondary` on a band), and on every surface nearer the page, unless the
+  brand sets `secondaryTextGround: page`, in which case `text.secondary` and `icon.secondary` are
+  promised on `background.primary` only, in light and dark. Read each role's `sits_on`. A surface
   deeper than the floor (`background.tertiary`, `foreground.secondary` and `foreground.tertiary`
   by default, and their inverse twins) carries no text promise by design; each ink's `avoid_when`
   names those surfaces for its brand. A brand that needs text there moves the floor

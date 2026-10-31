@@ -84,7 +84,8 @@
  * centered on the label's line box: the root's height binds `type.label.md.line-box`, the baked px of that line
  * box (the checkbox row's #1201 construction), so the root is exactly one label line tall and each line sits on
  * its middle. The label is `type.label.md.default` in `color.text.secondary` (Q3051.4 A, Q3051.5 A), held at 4.5:1
- * on the page tiers by `test.ts`; the lines keep the plain rule's `color.border.secondary` and hairline. Center
+ * on the page tiers its `.ai.json` lists (`sits_on`) by `test.ts` (#3051; a brand with `secondaryTextGround: page`
+ * promises only `background.primary`, Q3212.6 A); the lines keep the plain rule's `color.border.secondary` and hairline. Center
  * only (Q3051.3 A); inset `none` only (Q3051.6 A), so `excludeCoordinates` removes the two insets × labeled.
  * Placeholder copy "Or", sentence case (Q3051.7 A).
  *
@@ -159,7 +160,7 @@ export const divider: ComponentDef = {
     // neutral edge contracted at 3:1 on every page and surface tier. No Figma member draws it (see header).
     'separator.fill': 'color.border.tertiary',
     // THE LABEL (#3051, Q3051.4 A and Q3051.5 A): the medium label style in the secondary text ink, the part that
-    // carries meaning, so it is held at 4.5:1 against the page tiers (`test.ts` #3051).
+    // carries meaning, so it is held at 4.5:1 against the page tiers its `.ai.json` lists (`test.ts` #3051).
     'label': 'color.text.secondary',
     'label.type': 'type.label.md.default',
     // THE THICKNESS (DRAFT, owner item) — the box's cross dimension, per orientation. A horizontal labeled root is
@@ -329,7 +330,7 @@ export const divider: ComponentDef = {
       // The tinted-surface limit (owner Q208 A) is closed by #2569 (Q259 3A): a separator binds `border.tertiary`,
       // contracted at 3:1 against every page and surface tier in every mode. DRAFT copy, owner item.
       '1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.',
-      '1.4.3 Contrast (Minimum) — a labeled divider\'s label is text.secondary, which clears 4.5:1 against the primary and secondary page backgrounds in every mode. Its two lines are decorative and need no minimum.',
+      '1.4.3 Contrast (Minimum) — a labeled divider\'s label is text.secondary, which clears 4.5:1 on the page backgrounds its color\'s metadata lists. Its two lines are decorative and need no minimum.',
     ],
     focus: 'None. A divider is not focusable and takes no place in the tab order.',
     aria: 'By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an <hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical". A labeled divider sets no role: a separator hides its own text, so the label would not be read. Its two lines set aria-hidden="true", and the label is plain text in the reading order, read as Or between the two groups. Pass the translated word.',

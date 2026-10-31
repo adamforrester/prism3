@@ -245,6 +245,11 @@ export type RaisedSurface = typeof RAISED_SURFACE_VALUES[number];
 /** The `scrimStrength` lever's values (#3050, owner Q825 B): today's scrim (default), or a heavier one. */
 export const SCRIM_STRENGTH_VALUES = ['standard', 'strong'] as const;
 export type ScrimStrength = typeof SCRIM_STRENGTH_VALUES[number];
+/** The `secondaryTextGround` setting's values (owner Q-TXT1 A): the ground `text.secondary` and `icon.secondary` are
+ *  fitted against on the page. 'floor' (default) is the contrast floor, `background.secondary` unless `floorStep` moves
+ *  it; 'page' is the page itself, `background.primary`, the lightest secondary ink that still clears its bar there. */
+export const SECONDARY_TEXT_GROUND_VALUES = ['floor', 'page'] as const;
+export type SecondaryTextGround = typeof SECONDARY_TEXT_GROUND_VALUES[number];
 
 /**
  * A brand-added glass role (#3073, owner Q806, Q807 A): `color.glass.<name>`, a translucent fill beside the shipped
@@ -417,6 +422,12 @@ export type Theme = {
   // The scrim's strength (#3050, owner Q825 B): which `black-alpha` step `color.scrim.default` aliases in each mode.
   // Unset reads as `standard`, today's steps; `scrimStep` in `modes.ts` holds the table.
   scrimStrength?: ScrimStrength;
+  // The ground the page's secondary ink is fitted against (owner Q-TXT1 A). Unset reads as 'floor', today's fit:
+  // `text.secondary` clears its bar on the contrast floor, `background.secondary` by default. 'page' fits it on
+  // `background.primary`, so it runs lighter and no longer clears the bar on the floor; the role's description and
+  // `.ai.json` per-surface wording say so, because both are measured. Light and dark only (owner Q3212.3 B): high
+  // contrast and the inverse band keep their floor.
+  secondaryTextGround?: SecondaryTextGround;
   // Brand-added glass roles (#3073, owner Q806, Q807 A), `color.glass.<name>`, validated by `validGlassRoles`. Unset
   // adds none: the brand ships `color.glass.surface` alone.
   glassRoles?: Record<string, GlassRoleInput>;
@@ -657,6 +668,12 @@ export type BrandInput = {
    *  'standard' (default) is 40% light, 60% dark, 60% hc-light, 70% hc-dark; 'strong' is 80% light and dark and 90%
    *  in both high-contrast modes. It moves the alias to an existing `black-alpha` step; no token name changes. */
   scrimStrength?: ScrimStrength;
+  /** The ground the page's secondary ink is fitted against (owner Q-TXT1 A). 'floor' (default): `text.secondary` and
+   *  `icon.secondary` clear their bar on the contrast floor, `background.secondary` unless `floorStep` moves it, so
+   *  they hold on every page tier down to it. 'page': they clear it on `background.primary` only, the lightest
+   *  secondary that still passes on the page; on `background.secondary` they may fall below it. 'page' applies in
+   *  light and dark; high contrast and the inverse band keep their floor. No token name changes. */
+  secondaryTextGround?: SecondaryTextGround;
   /** Brand-added glass roles (#3073): `color.glass.<name>`, each a semantic role's palette color (`role`, per mode)
    *  or one palette color (`palette`), at `alpha` percent. `surface` is the shipped glass and cannot be redefined. */
   glassRoles?: Record<string, GlassRoleInput>;
@@ -2794,6 +2811,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'neutralEmphasis', value: input.neutralEmphasis, options: ['subtle', 'strong'] },
     { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
     { path: 'scrimStrength', value: input.scrimStrength, options: SCRIM_STRENGTH_VALUES },
+    { path: 'secondaryTextGround', value: input.secondaryTextGround, options: SECONDARY_TEXT_GROUND_VALUES },
     { path: 'radioDot', value: input.radioDot, options: RADIO_DOT_SHARES },
   ];
   for (const { path, value, options } of enumLevers) {
@@ -3506,6 +3524,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
     ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),
+    ...(input.secondaryTextGround ? { secondaryTextGround: input.secondaryTextGround } : {}),
     ...(glassRoles ? { glassRoles } : {}),
     ...(radioDot !== RADIO_DOT_DEFAULT ? { radioDot } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
@@ -3571,6 +3590,10 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     raisedSurface: 'white',
     // The reference brand's designs put a heavy black backdrop behind its dialogs (#3050, owner Q825 B): the strong scrim.
     scrimStrength: 'strong',
+    // The reference brand's secondary ink is fitted on the page, not the floor (owner Q-TXT1 A, 2026-10-31): its designs
+    // run placeholders and secondary copy lighter, so it takes the lightest secondary that clears 4.5:1 on
+    // `background.primary`. It no longer clears 4.5:1 on `background.secondary`, and its description says so.
+    secondaryTextGround: 'page',
     // The reference brand's card glass (#3073, owner Q807 A; 70%, the owner's correction of 2026-10-27): the card
     // ground, `foreground.primary`'s palette color in each mode, at 70%.
     glassRoles: { card: { role: 'foreground.primary', alpha: 70 } },

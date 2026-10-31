@@ -64,7 +64,7 @@ Use a divider to separate groups of related content when spacing alone does not 
 
 - 1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees
 - 1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.
-- 1.4.3 Contrast (Minimum) — a labeled divider's label is text.secondary, which clears 4.5:1 against the primary and secondary page backgrounds in every mode. Its two lines are decorative and need no minimum.
+- 1.4.3 Contrast (Minimum) — a labeled divider's label is text.secondary, which clears 4.5:1 on the page backgrounds its color's metadata lists. Its two lines are decorative and need no minimum.
 
 ## Content guidelines
 

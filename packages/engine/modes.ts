@@ -1091,6 +1091,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     base: RGB; baseName: string;      // this context's own primary surface
     floor: RGB; floorName: string;    // its worst-case supported surface
     floorLabel: string;               // the ROLE the prose names for the floor — same in every mode (#1623)
+    // The ground the SECONDARY ink is fitted on (owner Q-TXT1 A): the floor above, unless the brand's
+    // `secondaryTextGround` is 'page', which fits it on the page's own primary surface instead (light and dark
+    // only, owner Q3212.3 B). Only the page context reads the setting; the inverse band always fits on its floor.
+    secondary: { rgb: RGB; name: string; label: string };
     dir: number;                      // which way a stronger neutral steps here
     tint: (r: Role) => Cand;          // the subtle tint a status ink is ALSO gated against
     mutedStep: number;                // the muted-ink palette step
@@ -2046,7 +2050,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const largeOnly = (pr: Profile, min: number): string =>
       pr.label === 'text' && min < BODY_TEXT_FLOOR ? `; ${LARGE_TEXT_ONLY}, below the ${BODY_TEXT_FLOOR}:1 body floor` : '';
     T('primary', pickMostExtreme(textCands, g.base), `Primary ${p.label}${on} — strongest neutral`, g.baseName, cfg.primaryMin);
-    T('secondary', pickMinPass(textCands, g.floor, p.secondaryMin), `Secondary ${p.label}${on} — ${p.secondaryMin}:1 on ${g.floorLabel}`, g.floorName, p.secondaryMin);
+    T('secondary', pickMinPass(textCands, g.secondary.rgb, p.secondaryMin), `Secondary ${p.label}${on} — ${p.secondaryMin}:1 on ${g.secondary.label}`, g.secondary.name, p.secondaryMin);
     T('tertiary', pickMinPass(textCands, g.floor, p.tertiaryMin), `Tertiary ${p.label}${on} — ${p.tertiaryMin}:1 on ${g.floorLabel}${largeOnly(p, p.tertiaryMin)}`, g.floorName, p.tertiaryMin);
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, not a per-family role.)
     // Bold semantic ink. Gated against the WORSE of the two grounds it is actually placed on: the
@@ -2224,8 +2228,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //
   // Both passes run for every brand. The second used to be gated by the `inverse` lever; #895 removed
   // it, so the inverse content set is now as unconditional as the page one.
-  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, floorLabel: cfg.floorLabel, dir, tint: subtleTint, mutedStep, page: true };
-  const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', floorLabel: 'inverse.background.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
+  // `secondaryTextGround: 'page'` (owner Q-TXT1 A) fits the page's secondary ink on `background.primary`, the same
+  // ground `text.primary` names, so it is the lightest secondary that still clears its bar on the page. Light and
+  // dark only (owner Q3212.3 B): high contrast keeps its floor fit, because HC is for maximum legibility and the
+  // floor there is also the hover wash and the subtle tints.
+  const pageSecondary = theme.secondaryTextGround === 'page' && cfg.kind !== 'hc'
+    ? { rgb: baseRgb, name: 'background.primary', label: 'background.primary' }
+    : { rgb: floorRgb, name: cfg.floorName, label: cfg.floorLabel };
+  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, floorLabel: cfg.floorLabel, secondary: pageSecondary, dir, tint: subtleTint, mutedStep, page: true };
+  const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', floorLabel: 'inverse.background.secondary', secondary: { rgb: invFloorRgb, name: 'inverse.background.secondary', label: 'inverse.background.secondary' }, dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
 
   for (const s of buildContent(textProfile, pageGround)) put(`text.${s.key}`, s.r, s.desc, s.against, s.min);
   for (const s of buildContent(iconProfile, pageGround)) put(`icon.${s.key}`, s.r, s.desc, s.against, s.min);
