@@ -3178,16 +3178,47 @@ const writeComponentSet = async (
     const own = [...fresh, ...((dest.children ?? []) as CompNode[]).filter((c) => c.type === 'COMPONENT' && String(c.name ?? '').startsWith(`${component}/`) && !fresh.includes(c))];
     const pitchX = Math.max(0, ...own.map((c) => Number(c.width) || 0)) + GAP;
     const pitchY = Math.max(0, ...own.map((c) => Number(c.height) || 0)) + GAP;
-    // IN AN UPDATE (#2296), a component the plan gained goes in the first slot of that grid no existing component
-    // of this def already overlaps, never over one. A build lays out from the origin: everything there is its own.
-    const taken: { x: number; y: number; w: number; h: number }[] = [];
-    if (opts.update) for (const c of own) if (!fresh.includes(c)) taken.push({ x: Number(c.x) || 0, y: Number(c.y) || 0, w: Number(c.width) || 0, h: Number(c.height) || 0 });
+    // WHERE THE NEW COMPONENTS GO (#3192). Single defs share pages (since #3148 `icon` and `provider-logo` share Icons &
+    // assets), so neither case may start from the page origin, which is another def's block as often as not.
+    //   · THE DEF HAS NO COMPONENT ON THE PAGE YET: a fresh block, laid out as the grid always was (`cols` square, at the
+    //     measured pitch), placed as the page move places a single-component block (`relocateSets`, `page-moves.ts`):
+    //     `SET_GAP` right of everything on the page, header included, level with the page's top set or component. Its
+    //     own block header (#3172) is then drawn over it, clear of the page's. On an empty page, the origin, as before.
+    //   · IT HAS SOME (an Update that adds a member, #2296, or a re-run build): the block stays where it is, and each new
+    //     component extends it. First beside its KIND's row, the `payment` in `provider-logo/payment/visa`: one pitch right
+    //     of the last component in the row that holds the kind's last member. Else, or for a def whose names carry no kind
+    //     (`icon/arrow-down`), the first free slot of the block's own grid, read row by row from its top-left corner with the
+    //     block's own column count. A spot is free when the component, widened by `GAP` on every side, meets no node on the
+    //     page: another def's block, the header, a designer's note, a component this run already placed.
+    // The page is read here, after the build loop, with this run's components left out: they are what is being placed.
+    const others = ((dest.children ?? []) as CompNode[]).filter((c) => !fresh.includes(c));
+    const ownPrior = own.filter((c) => !fresh.includes(c));
+    const boxOf = (c: CompNode) => ({ x: Number(c.x) || 0, y: Number(c.y) || 0, w: Number(c.width) || 0, h: Number(c.height) || 0 });
+    const ownBoxes = ownPrior.map((c) => ({ name: String(c.name ?? ''), ...boxOf(c) }));
+    const taken = others.map(boxOf);
+    const clear = (b: { x: number; y: number; w: number; h: number }): boolean =>
+      !taken.some((t) => t.x < b.x + b.w + GAP && b.x - GAP < t.x + t.w && t.y < b.y + b.h + GAP && b.y - GAP < t.y + t.h);
+    const tops = others.filter((c) => c.type === 'COMPONENT_SET' || c.type === 'COMPONENT');
+    const fromPage = ownBoxes.length === 0 && others.length
+      ? { x: Math.max(...taken.map((t) => t.x + t.w)) + SET_GAP, y: tops.length ? Math.min(...tops.map((c) => Number(c.y) || 0)) : 0 }
+      : null;
+    const ox = ownBoxes.length ? Math.min(...ownBoxes.map((b) => b.x)) : fromPage?.x ?? 0;
+    const oy = ownBoxes.length ? Math.min(...ownBoxes.map((b) => b.y)) : fromPage?.y ?? 0;
+    const blockCols = ownBoxes.length ? Math.max(1, ...ownBoxes.map((b) => Math.round((b.x - ox) / pitchX) + 1)) : cols;
     let slot = 0;
-    const nextSlot = (): number => {
+    const place = (c: CompNode, name: string): { x: number; y: number } => {
+      const w = Number(c.width) || 0, h = Number(c.height) || 0;
+      const kind = name.slice(component.length + 1).split('/');
+      const kin = kind.length > 1 ? ownBoxes.filter((b) => b.name.startsWith(`${component}/${kind[0]}/`)) : [];
+      if (kin.length) {
+        const last = kin.reduce((a, b) => (b.y > a.y || (b.y === a.y && b.x > a.x) ? b : a));
+        const end = ownBoxes.filter((b) => b.y < last.y + last.h && last.y < b.y + b.h).reduce((a, b) => (b.x > a.x ? b : a));
+        const at = { x: end.x + pitchX, y: last.y };
+        if (clear({ ...at, w, h })) return at;
+      }
       for (;; slot++) {
-        const x = (slot % cols) * pitchX, y = Math.floor(slot / cols) * pitchY;
-        const box = { x, y, w: pitchX - GAP, h: pitchY - GAP };
-        if (!taken.some((t) => t.x < box.x + box.w && box.x < t.x + t.w && t.y < box.y + box.h && box.y < t.y + t.h)) { taken.push(box); return slot++; }
+        const at = { x: ox + (slot % blockCols) * pitchX, y: oy + Math.floor(slot / blockCols) * pitchY };
+        if (clear({ ...at, w, h })) return at;
       }
     };
     fresh.forEach((c, i) => {
@@ -3198,10 +3229,13 @@ const writeComponentSet = async (
       // Placed, not litter: drop it from the partial-write trail so a later throw does not try to park a
       // component that is exactly where it belongs.
       trail.loose.delete(c);
-      // A SIMPLE GRID so N components are not stacked at the origin, at the measured pitch above.
-      const at = opts.update ? nextSlot() : i;
-      wr(c).x = (at % cols) * pitchX;
-      wr(c).y = Math.floor(at / cols) * pitchY;
+      // A SIMPLE GRID so N components are not stacked at the origin, at the measured pitch above, placed as above.
+      const at = ownBoxes.length ? place(c, newName) : { x: ox + (i % cols) * pitchX, y: oy + Math.floor(i / cols) * pitchY };
+      wr(c).x = at.x;
+      wr(c).y = at.y;
+      const b = { name: newName, ...boxOf(c), ...at };
+      taken.push(b);
+      if (ownBoxes.length) ownBoxes.push(b);
     });
     // THE "AS BUILT" BASELINE (#2265), as on the set path: after the last write, on this run's members only.
     for (const c of fresh) {
