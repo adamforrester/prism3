@@ -70,7 +70,9 @@ lists the waiting ids under `awaitingReconnect`. On reconnect the plugin names t
 and re-sends its last results by command id. The server answers the call with the first copy and
 logs any repeat as ignored. It never sends a command twice, so nothing runs twice. A command the
 reconnected plugin does not hold (it never arrived, or the plugin was reloaded) fails at once with
-that reason. Progress and log lines streamed while the socket was down are not replayed.
+that reason. Progress and log lines streamed while the socket was down are not replayed. After a bridge restart, each
+result the plugin still keeps logs "a result for a command this bridge is not waiting on"; that is
+harmless.
 
 ## How it is built
 

@@ -16,11 +16,13 @@
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
  * Arms, by name: mcp · no-plugin · handshake · fragmented · ping · run · stream · progress · big-frame · timeout ·
- * unmasked · disconnect · reconnect · resend/hand · e2e/routes · e2e/parity · resend/e2e · e2e/link-off · e2e/switch-off
+ * unmasked · disconnect · reconnect · resend/hand · e2e/routes · e2e/parity · resend/e2e · resend/running · e2e/link-off ·
+ * e2e/switch-off
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
- * posted, and asserts the result reaches the MCP client exactly once and the command ran once.
+ * posted, and asserts the result reaches the MCP client exactly once and the command ran once. `resend/running` drops it
+ * and lets the relay reconnect while the command still runs, so at the hello the id is held as running, not as a result.
  */
 import { spawn } from 'node:child_process';
 import { connect } from 'node:net';
@@ -455,6 +457,28 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
     await sleep(200);
     ok(replyCount.get(done.rpcId) === 1, `resend/e2e: the call is answered exactly once (${replyCount.get(done.rpcId)})`);
     ok(g2.__resendRuns === 1, `resend/e2e: the command ran once (${g2.__resendRuns})`);
+  }
+
+  // #2497, the case real use hits: the relay retries in seconds and a command runs for minutes, so the relay is
+  // back BEFORE the result exists. At that hello the id is still running (in the relay's `mine`, not `kept`),
+  // and the server must adopt it from there. run-code waits 1500 ms; the socket drops with no refuse.
+  {
+    const g2 = globalThis as Record<string, unknown>;
+    g2.__midRuns = 0;
+    const isResult = (m: any) => m.type === 'agent-result' && m.result.cmd === 'run-code' && m.result.result?.data?.value === 'mid-run';
+    const done = callLater('figma_run', { cmd: 'run-code', args: { code: 'globalThis.__midRuns++; await new Promise((r) => setTimeout(r, 1500)); return "mid-run";' }, timeoutMs: 10000 });
+    ok(await until(() => g2.__midRuns === 1), 'resend/running: the command is running in main.ts');
+    sock!.close();
+    ok(await until(() => relay!.connected() === false), 'resend/running: the socket drops mid-command');
+    ok(await until(() => relay!.connected()), 'resend/running: the relay reconnects');
+    ok(!posted.some(isResult), 'resend/running: the reconnect came before the result (the command was still running at the hello)');
+    const r = await done();
+    const env = r.value as AgentResult;
+    ok(!r.isError && env.ok === true && env.cmd === 'run-code' && env.result?.data.value === 'mid-run',
+      `resend/running: the result arrives after a reconnect mid-run (${JSON.stringify(r.value).slice(0, 120)})`);
+    await sleep(200);
+    ok(replyCount.get(done.rpcId) === 1, `resend/running: the call is answered exactly once (${replyCount.get(done.rpcId)})`);
+    ok(g2.__midRuns === 1, `resend/running: the command ran once (${g2.__midRuns})`);
   }
 
   toMain({ type: 'agent-link', on: false });
