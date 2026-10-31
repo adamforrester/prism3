@@ -6,7 +6,7 @@
  * adds nothing to it: it builds the command envelope, hands it to the plugin, and returns the plugin's
  * result envelope unchanged.
  *
- *   npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000] [--config <file>] [--rotate]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS, PRISM3_BRIDGE_CONFIG)
+ *   npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000] [--config <file>] [--rotate] [--pair]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS, PRISM3_BRIDGE_CONFIG)
  *
  * TWO SIDES, ONE PROCESS:
  *   · stdio MCP (newline-delimited JSON-RPC, hand-rolled like `packages/engine/mcp.ts`, whose protocol
@@ -30,9 +30,10 @@
  * the plugin until it proves the pairing token against the challenge's nonce. Until then it is sent no command, and it
  * replaces no one; a connection that sends anything else first, or a wrong proof, is closed. The token is derived from a
  * random secret kept in a user-only file (mode 0600, `bridgeConfigPath`), so pairing survives restarts; `--rotate`
- * makes a new secret, and every paired plugin then asks for a code again. Each start prints a one-time pairing code on
- * stderr (and `figma_status` names it, since an MCP host may not show stderr); the plugin asks for it the first time it
- * connects on a machine and keeps the token it is given in `figma.clientStorage`.
+ * makes a new secret, and every paired plugin then asks for a code again. A one-time pairing code is issued only on
+ * demand, from a `figma_status` call while no plugin is connected or a `--pair` start, and lives 10 minutes (Q3204.5 A,
+ * `createPairing`). It is printed on stderr and `figma_status` names it, since an MCP host may not show stderr. The
+ * plugin asks for it the first time it connects on a machine and keeps the token it is given in `figma.clientStorage`.
  *
  * One plugin connection at a time (a newer PAIRED one replaces the older), one command in flight at a time.
  *
@@ -185,6 +186,10 @@ export const loadSecret = (path: string, opts: { rotate?: boolean; say?: (s: str
 
 /** Wrong codes allowed before the code is retired and a new one printed. */
 export const MAX_PAIR_FAILS = 5;
+/** How long a code is live after it is issued (the owner's Q3204.5 A). */
+export const CODE_TTL_MS = 10 * 60_000;
+/** Codes retired by wrong guesses before pairing closes until the next request (Q3204.5 A). */
+export const MAX_RETIREMENTS = 3;
 /** How long a connection may take to pair or prove itself before it is closed. */
 export const AUTH_MS = 120_000;
 
@@ -195,23 +200,48 @@ const sameHex = (want: Buffer, got: unknown): boolean => {
 };
 const newCode = (): string => Array.from({ length: CODE_LENGTH }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('');
 
-/** The server's half of the pairing: the token the secret gives, the open code, and the two checks. */
-export const createPairing = (secret: Buffer, say: (s: string) => void = () => undefined) => {
+/** The server's half of the pairing: the token the secret gives, the open code, and the two checks.
+ *
+ *  A CODE IS LIVE ONLY FOR A WINDOW (the owner's Q3204.5 A). None is issued at start: `request()` issues one on demand
+ *  (`figma_status` while no plugin is connected, or a `--pair` start), and keeps a live one rather than replacing it. A
+ *  code expires `CODE_TTL_MS` after it is issued. `MAX_PAIR_FAILS` wrong codes retire it for a new one, and after
+ *  `MAX_RETIREMENTS` retirements pairing closes until the next request. A paired plugin proving its token (`settle()`)
+ *  leaves no code live, so a paired machine has none. `now` is injected so the tests move the clock instead of sleeping. */
+export const createPairing = (secret: Buffer, say: (s: string) => void = () => undefined, now: () => number = Date.now) => {
   const token = hmac(secret, TOKEN_LABEL).toString('hex');
   let code: string | null = null;
+  let issuedAt = 0;
   let fails = 0;
-  const issue = () => { code = newCode(); fails = 0; say(`pairing code: ${formatCode(code)} — the Prism3 plugin asks for it the first time it connects on this machine`); };
-  issue();
+  let retired = 0;
+  const issue = () => {
+    code = newCode(); issuedAt = now(); fails = 0;
+    say(`pairing code: ${formatCode(code)} (live for ${CODE_TTL_MS / 60_000} minutes) — the Prism3 plugin asks for it the first time it connects on this machine`);
+  };
+  /** The live code, after dropping one that has expired. */
+  const live = (): string | null => {
+    if (code !== null && now() - issuedAt >= CODE_TTL_MS) { code = null; say('the pairing code expired'); }
+    return code;
+  };
   return {
     token,
-    code: (): string | null => (code ? formatCode(code) : null),
+    code: (): string | null => { const c = live(); return c ? formatCode(c) : null; },
+    /** On demand: keep the live code, or open a new window with a new one. */
+    request: (): string => { if (live() === null) { retired = 0; issue(); } return formatCode(code!); },
+    /** A paired plugin proved its token: no code stays live. */
+    settle: (): void => { code = null; },
     nonce: (): string => randomBytes(32).toString('hex'),
     helloOk: (nonce: string, proof: unknown): boolean => sameHex(hmac(token, HELLO_LABEL + nonce), proof),
-    /** A pairing attempt. A right code is spent; after `MAX_PAIR_FAILS` wrong ones the code is retired for a new one. */
+    /** A pairing attempt. A right code is spent; after `MAX_PAIR_FAILS` wrong ones the code is retired for a new one,
+     *  and after `MAX_RETIREMENTS` retirements for none. */
     pairOk: (nonce: string, proof: unknown): boolean => {
-      if (code === null) return false;
-      if (sameHex(hmac(code, PAIR_LABEL + nonce), proof)) { code = null; say('paired: the code is spent'); return true; }
-      if (++fails >= MAX_PAIR_FAILS) { say(`${MAX_PAIR_FAILS} wrong pairing codes: that code is retired`); issue(); }
+      const c = live();
+      if (c === null) return false;
+      if (sameHex(hmac(c, PAIR_LABEL + nonce), proof)) { code = null; say('paired: the code is spent'); return true; }
+      if (++fails >= MAX_PAIR_FAILS) {
+        say(`${MAX_PAIR_FAILS} wrong pairing codes: that code is retired`);
+        if (++retired >= MAX_RETIREMENTS) { code = null; say(`${MAX_RETIREMENTS} codes retired: pairing is closed until figma_status asks for a code or the bridge starts with --pair`); }
+        else issue();
+      }
       return false;
     },
   };
@@ -314,6 +344,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
         return;
       }
       if (m.type === 'hello' && pairing.helloOk(conn.nonce!, m.proof)) {
+        pairing.settle();
         conn.authed = true;
         if (conn.authTimer) { clearTimeout(conn.authTimer); conn.authTimer = undefined; }
         attach(conn);
@@ -383,7 +414,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
   return {
     open, detach, onMessage, run,
     status: () => ({
-      connected: !!plugin, connectedAt: plugin?.connectedAt ?? null, plugin: pluginState, pairingCode: pairing.code(),
+      connected: !!plugin, connectedAt: plugin?.connectedAt ?? null, plugin: pluginState, pairingCode: plugin ? pairing.code() : pairing.request(),
       running: [...pending.keys()], awaitingReconnect: orphans(), bridge: SERVER_INFO, protocol: AGENT_PROTOCOL_VERSION, commands: [...AGENT_COMMANDS],
     }),
     logs: (since = 0, limit = 200) => {
@@ -476,7 +507,7 @@ type RpcOut = { jsonrpc: '2.0'; id: number | string | null; result?: unknown; er
 export const TOOLS = [
   {
     name: 'figma_status',
-    description: 'Whether the Prism3 plugin in the owner\'s Figma is connected to this bridge, the link state it last reported, and any command in flight. Call first. Not connected while `pairingCode` is set: the owner enters that code in the plugin once per machine. For the file\'s own state, run the `status` command with figma_run.',
+    description: 'Whether the Prism3 plugin in the owner\'s Figma is connected to this bridge, the link state it last reported, and any command in flight. Call first. While no plugin is connected, this call issues a pairing code (`pairingCode`) if none is live: the owner enters it in the plugin once per machine, within 10 minutes. For the file\'s own state, run the `status` command with figma_run.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
   {
@@ -598,7 +629,9 @@ if (isMain) {
     process.exit(1);
   }
   if (loaded.created) say(`a new pairing secret is in ${configPath}${argv.includes('--rotate') ? ': every paired plugin asks for a code again' : ''}`);
-  const bridge = createBridge({ graceMs, pairing: createPairing(loaded.secret, say) });
+  const pairing = createPairing(loaded.secret, say);
+  if (argv.includes('--pair')) pairing.request();
+  const bridge = createBridge({ graceMs, pairing });
   const send = (msg: unknown) => process.stdout.write(JSON.stringify(msg) + '\n');
   const notify = (method: string, params: unknown) => send({ jsonrpc: '2.0', method, params });
   const bound = await listen(bridge, port).catch((e: Error) => {

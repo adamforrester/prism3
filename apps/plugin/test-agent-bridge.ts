@@ -15,7 +15,7 @@
  *      then travels MCP → server → socket → relay → main thread → the `ACTIONS` table → back, and the
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
- * Arms, by name: mcp · relay/url · no-plugin · origin/refused · pair/secret-file · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-evict ·
+ * Arms, by name: mcp · relay/url · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
  * e2e/link-off · e2e/switch-off
@@ -36,6 +36,8 @@
  * `pairOk` accepting any code → `pair/wrong-code`; the main thread keeping the token with `setSharedPluginData` →
  * `pair/not-in-file`; one nonce for every connection (`nonce: () => 'ab'.repeat(32)`) → `pair/replay`; the wrong-code
  * count reset on every attempt (`fails = 0` before the check) → `pair/limit` (both from the #3204 delta review, B2).
+ * The code's window (the owner's Q3204.5 A): no expiry → `pair/expiry`; a code issued at start → `pair/on-demand`; no
+ * cap on retirements → `pair/cap`. The window arms drive `createPairing` in process on an injected clock.
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
@@ -56,7 +58,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { createBridgeRelay, BRIDGE_PORT, BRIDGE_URL } from './src/agent-bridge-relay';
 import type { WsLike } from './src/agent-bridge-relay';
-import { createProgressCounter, loadSecret } from '../../tools/figma-bridge/server';
+import { createPairing, createProgressCounter, loadSecret } from '../../tools/figma-bridge/server';
 import { HANDSHAKE_PROBES } from '../../packages/engine/mcp-handshake-probes';
 
 let failed = 0;
@@ -144,8 +146,9 @@ if (!(await until(() => /listening on localhost:(\d+)/.test(stderr), 60000))) {
   process.exit(1);
 }
 const PORT = Number(/listening on localhost:(\d+)/.exec(stderr)![1]);
-/** The one-time pairing code the server printed. `pair/limit` retires it, and then reads the new one. */
-let CODE = /pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/.exec(stderr)?.[1] ?? '';
+/** The live pairing code. None is issued at start (Q3204.5 A): `pair/on-demand` asks `figma_status` for it, and the
+ *  arms that settle or retire it read the next one the same way. */
+let CODE = '';
 
 /* ── a hand-rolled WebSocket client ─────────────────────────────────────────────────────────────────── */
 
@@ -240,6 +243,46 @@ section('mcp — the stdio loop');
 
 section('relay url');
 ok(BRIDGE_URL === `ws://localhost:${BRIDGE_PORT}` && BRIDGE_PORT === 17331, `relay/url: the relay's written-out URL is the bridge's port (${BRIDGE_URL}, port ${BRIDGE_PORT})`);
+
+/* ── a code only on demand (#3204, the owner's Q3204.5 A) ───────────────────────────────────────────────── */
+section('pair/on-demand — a code is issued only when asked for');
+{
+  // Before any figma_status: the start printed no code. A plugin with the kept token pairs without one, and while it is
+  // connected figma_status issues none. Only once no plugin is connected does figma_status ask for one.
+  ok(createPairing(SECRET).code() === null, 'pair/on-demand: a new pairing holds no live code until one is requested');
+  ok(!/pairing code: /.test(stderr), 'pair/on-demand: a start without --pair prints no pairing code');
+  const live = await openClient();
+  await live.hello();
+  ok(await until(() => live.texts().some((m) => m.type === 'welcome')), 'pair/on-demand: a plugin with the kept token is welcomed with no code live');
+  const st = (await call('figma_status')).value;
+  ok(st?.connected === true && st?.pairingCode === null && !/pairing code: /.test(stderr),
+    `pair/on-demand: with a paired plugin connected, no code is live and figma_status issues none (pairingCode ${st?.pairingCode}, ${/pairing code: /.test(stderr) ? 'one printed' : 'none printed'})`);
+  live.sock.destroy();
+  await untilAsync(async () => (await call('figma_status')).value?.connected === false);
+  const asked = (await call('figma_status')).value?.pairingCode;
+  ok(typeof asked === 'string' && /^[2-9A-Z]{4}-[2-9A-Z]{4}$/.test(asked) && stderr.includes(`pairing code: ${asked} `),
+    `pair/on-demand: with no plugin connected, figma_status issues a code, prints it and names it (${asked})`);
+  // A plugin proving its kept token leaves no code live: the one just issued is dropped, not kept for 10 minutes.
+  const back = await openClient();
+  await back.hello();
+  await until(() => back.texts().some((m) => m.type === 'welcome'));
+  const settled = (await call('figma_status')).value;
+  ok(settled?.connected === true && settled?.pairingCode === null, `pair/on-demand: a paired plugin's welcome leaves no code live (pairingCode ${settled?.pairingCode})`);
+  back.sock.destroy();
+  await untilAsync(async () => (await call('figma_status')).value?.connected === false);
+  CODE = (await call('figma_status')).value?.pairingCode ?? '';
+  ok(CODE !== asked && /^[2-9A-Z]{4}-[2-9A-Z]{4}$/.test(CODE), 'pair/on-demand: and the next figma_status with no plugin connected issues a new one');
+  // A --pair start issues one at once, for a host where the owner reads stderr.
+  const cfg = join(TMP, 'pair-start.json');
+  writeFileSync(cfg, JSON.stringify({ v: 1, secret: SECRET.toString('hex') }), { mode: 0o600 });
+  const other = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--config', cfg, '--pair'], { stdio: ['pipe', 'pipe', 'pipe'] });
+  let otherErr = '';
+  other.stderr.setEncoding('utf8');
+  other.stderr.on('data', (d) => { otherErr += d; });
+  await until(() => /listening on localhost:/.test(otherErr), 60000);
+  ok(/pairing code: [2-9A-Z]{4}-[2-9A-Z]{4} /.test(otherErr), 'pair/on-demand: a --pair start prints a code at once');
+  other.kill();
+}
 
 section('no-plugin');
 {
@@ -337,7 +380,49 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   ok(mode(path) === 0o600, `pair/secret-file: a secret file readable by others is narrowed to 0600 (${mode(path).toString(8)})`);
 }
 {
-  ok(CODE.length === 9 && (await call('figma_status')).value?.pairingCode === CODE, `pair: the server prints a one-time code and figma_status names it (${CODE ? 'printed' : 'missing'})`);
+  // THE CODE'S WINDOW (Q3204.5 A), on an injected clock: the pairing core is driven in process, so nothing sleeps.
+  // The numbers are written here, not imported: the owner's decision is 10 minutes, 5 wrong tries, 3 retirements.
+  const TTL_MS = 10 * 60_000;
+  const FAILS = 5;
+  const RETIREMENTS = 3;
+  const n = () => randomBytes(32).toString('hex');
+  const wrongFor = (c: string | null) => (c === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'ZZZZ-ZZZZ');
+  let t = 1_000_000;
+  const p = createPairing(SECRET, () => undefined, () => t);
+  const c1 = p.request();
+  t += TTL_MS - 1;
+  let nonce = n();
+  ok(p.pairOk(nonce, provePair(c1, nonce)), 'pair/expiry: a code 1 ms short of 10 minutes old still pairs');
+  const c2 = p.request();
+  t += TTL_MS;
+  nonce = n();
+  ok(!p.pairOk(nonce, provePair(c2, nonce)) && p.code() === null,
+    `pair/expiry: a code 10 minutes old on the injected clock does not pair, and no code is live (code ${p.code()})`);
+
+  const said: string[] = [];
+  const q = createPairing(SECRET, (s) => said.push(s), () => t);
+  const issued = () => said.filter((s) => s.startsWith('pairing code: ')).length;
+  const first = q.request();
+  const seen = new Set<string>([first]);
+  for (let i = 0; i < FAILS * RETIREMENTS; i++) {
+    nonce = n();
+    q.pairOk(nonce, provePair(wrongFor(q.code()), nonce));
+    const c = q.code();
+    if (c) seen.add(c);
+  }
+  ok(q.code() === null && seen.size === RETIREMENTS,
+    `pair/cap: after ${RETIREMENTS} codes are retired by wrong guesses, pairing is closed (code ${q.code()}, ${seen.size} codes issued)`);
+  const before = issued();
+  for (let i = 0; i < FAILS; i++) { nonce = n(); q.pairOk(nonce, provePair(wrongFor(null), nonce)); }
+  nonce = n();
+  ok(q.code() === null && issued() === before && !q.pairOk(nonce, provePair([...seen][RETIREMENTS - 1], nonce)),
+    `pair/cap: while closed, more guesses issue no new code (${issued() - before} issued)`);
+  const next = q.request();
+  nonce = n();
+  ok(!seen.has(next) && q.pairOk(nonce, provePair(next, nonce)), 'pair/cap: the next request opens a new window, and its code pairs');
+}
+{
+  ok(CODE.length === 9 && (await call('figma_status')).value?.pairingCode === CODE, `pair: figma_status keeps the live code rather than replacing it (${CODE ? 'named' : 'missing'})`);
   // A WRONG code: closed with 4403, never paired, and the code stays open (one miss, under the limit).
   let wrong = 'ZZZZ-ZZZZ';
   if (wrong === CODE) wrong = 'YYYY-YYYY';
@@ -365,6 +450,8 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   second.sock.destroy();
   first.sock.destroy();
   ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'pair/replay: closed');
+  // The welcome left no code live (Q3204.5 A); with no plugin connected, figma_status asks for a new one.
+  CODE = (await call('figma_status')).value?.pairingCode ?? '';
   // A pair proof made with the RIGHT code on connection 1's nonce, sent on connection 2: refused with 4403, no token,
   // and the code stays open. (Sending it on connection 1 would spend the code, so a later replay could fail for that
   // reason alone; this way only the nonce binding refuses it.)
@@ -383,7 +470,7 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
   // THE WRONG-CODE LIMIT (#3204 review B2 b): the count is the server's, not the connection's. MAX_PAIR_FAILS wrong
   // codes, each on its own connection, retire the code: figma_status and stderr name a new one, and the old one no
   // longer pairs. (The arms above spent some of the count already, so the retirement lands inside this run.)
-  // Written here, not imported: the promise in the prompt and the README is "5 wrong tries" (docs/34 shape 1).
+  // Written here, not imported: the README's promise is "5 wrong codes" (docs/34 shape 1).
   const MAX_PAIR_FAILS = 5;
   const old = CODE;
   const before = (stderr.match(/pairing code: /g) ?? []).length;
@@ -646,6 +733,9 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
     `pair/relay: with no token kept, the relay asks for the code and stays unconnected (${pairings.join(' → ')})`);
   await sleep(300);
   ok(relay.pairing() === 'needed' && !relay.connected(), 'pair/relay: and it does not retry while it waits for the code');
+  // The arms above settled the last code (a welcome leaves none live, Q3204.5 A). The relay is unconnected, so
+  // figma_status asks for a new one, as the owner's agent would.
+  CODE = (await call('figma_status')).value?.pairingCode ?? '';
   relay.pair(CODE === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'zzzz zzzz');
   ok(await until(() => relay!.pairing() === 'wrong-code') && !relay.connected(), `pair/relay: a wrong code comes back as wrong-code (${pairings.join(' → ')})`);
   relay.pair(CODE.toLowerCase());

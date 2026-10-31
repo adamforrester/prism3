@@ -121,18 +121,19 @@ export const agentLinkWord = (s: AgentLinkState | null, bridgeBuilt = true): { r
   return { text: `Listening · ${s.transports.bridge ? 'bridge' : 'mailbox'}`, error: false };
 };
 
-/** #3204 (Q3204.1 A): the pairing prompt's words, by where pairing stands. DRAFT wording, for the owner. `line` is the
+/** #3204 (Q3204.1 A): the pairing prompt's words, by where pairing stands. Approved (Q3204.4 A), except `wrongCode`,
+ *  reworded for the code's 10-minute window (Q3204.5 A) and DRAFT for the owner. `line` is the
  *  prompt's one line; `error` is the line under the field, or null. Nothing is asked while pairing is 'none'. Pure. */
 export const PAIR_WORDS = {
   title: 'Pair with the desktop bridge',
-  line: 'Enter the code the bridge printed when it started. This computer is asked once.',
-  refusedLine: 'The bridge no longer accepts this computer\'s pairing. Enter the code it printed when it started.',
+  line: 'Enter the code from the desktop bridge. Your agent can show it too. Prism3 asks once on each computer.',
+  refusedLine: 'The bridge no longer accepts this computer\'s pairing. Enter its current code.',
   label: 'Pairing code',
   placeholder: 'XXXX-XXXX',
   submit: 'Pair',
   busy: 'Pairing…',
   later: 'Not now',
-  wrongCode: 'The bridge did not accept that code. Each code works once, and 5 wrong tries replace it. Check the bridge for its current code.',
+  wrongCode: 'The bridge did not accept that code. A code works once, for 10 minutes. Ask your agent for a current one.',
   badShape: 'A pairing code is 8 letters and digits, such as 7KQ4-M2XR.',
 } as const;
 export const pairPromptText = (p: BridgePairing): { readonly line: string; readonly error: string | null; readonly busy: boolean } | null => {

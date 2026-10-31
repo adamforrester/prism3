@@ -19,11 +19,13 @@ section 31. ENGINE patch (change note). CONTRACT unchanged. `AGENT_PROTOCOL_VERS
   lists no `devAllowedDomains` any more; the release build still deletes the key if it comes back.
 - **Pairing (Q3204.1 A).** The server keeps a random secret in a user-only file (0600, under the user's config
   directory; `--rotate` replaces it) and prints a one-time code (8 characters from a 30-symbol alphabet with no
-  look-alikes, about 39 bits) at each start; `figma_status` names it too. Every connection opens with a challenge.
+  look-alikes, about 39 bits) only on demand, from a `figma_status` call while no plugin is connected or a `--pair`
+  start, and `figma_status` names it (Q3204.6 A). A code lasts 10 minutes; 5 wrong codes retire it, and after 3
+  retirements pairing closes until the next request; a plugin proving its token leaves no code live (Q3204.5 A). Every connection opens with a challenge.
   The plugin asks for the code once per machine, sends an HMAC of it over the nonce, and keeps the token it gets back
   in `figma.clientStorage`, never in the file. Each later hello carries an HMAC of the token over the nonce. A
   connection without a valid proof is closed (4401) before it is sent a command, and it never replaces a paired
-  plugin. 5 wrong codes retire the code. The plugin's HMAC-SHA-256 is written in `bridge-auth.ts` (the iframe's
+  plugin. The plugin's HMAC-SHA-256 is written in `bridge-auth.ts` (the iframe's
   opaque origin may have no `crypto.subtle`); the server uses `node:crypto`.
 - **Origin check, now defense in depth.** The server answers 403 before the handshake to any upgrade whose `Origin`
   is not `null`; a request with no `Origin` is refused too. A page's sandboxed iframe sends `null` as well, so this
@@ -31,7 +33,9 @@ section 31. ENGINE patch (change note). CONTRACT unchanged. `AGENT_PROTOCOL_VERS
   test's real-relay arm sends `Origin: null` explicitly, as the iframe does. Loopback-only bind kept.
 - **Link word.** The Activity drawer's bar-row word names the transport: "Listening · bridge" while the bridge is
   connected, otherwise "Listening · mailbox"; "Prism3 Studio Offline" reads "Listening · mailbox only" (Q3204.2 A).
-  The manifest reasoning, these words and the 403 body are approved (Q3204.3 A). The pairing prompt's words are DRAFT.
+  The manifest reasoning, these words and the 403 body are approved (Q3204.3 A). The pairing prompt's words are
+  approved (Q3204.4 A, with the reviewer's two edits), except the wrong-code line, reworded for the 10-minute window
+  and DRAFT for the owner.
 - **No arbitrary code in a release** (Q3147.4 A). `run-code` stays behind `PRISM3_DEV`, and `lint-release-bundle.ts`
   still holds it absent from both releases.
 
@@ -42,7 +46,8 @@ section 31. ENGINE patch (change note). CONTRACT unchanged. `AGENT_PROTOCOL_VERS
   on an ordinary page, in Chromium), each pass the origin check and are closed with 4401, never become the plugin and
   never receive a command. `pair/*`: the secret file's mode and rotation, a wrong code refused, a hello or pair proof
   captured on one connection refused on the next (`pair/replay`), 5 wrong codes on 5 connections retiring the code
-  (`pair/limit`), a paired plugin not evicted by an unpaired one, the real relay pairing with the printed code to the token the test derived itself from
+  (`pair/limit`), a code issued only on demand (`pair/on-demand`), expired after 10 minutes on an injected clock
+  (`pair/expiry`), pairing closed after 3 retirements (`pair/cap`), a paired plugin not evicted by an unpaired one, the real relay pairing with the printed code to the token the test derived itself from
   the secret it wrote, and the token never written to the file's plugin data. The plugin's shim tests now run after
   the Chromium install in `ci.yml`, since this arm drives a browser.
 - `test-agent-link.ts` `link/word-offline`: the offline build's word.

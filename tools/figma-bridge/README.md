@@ -24,14 +24,19 @@ connects to 17331 unless the manifest entry and `BRIDGE_PORT` in
 `apps/plugin/src/agent-bridge-relay.ts` change with it.
 
 **Who may connect: pairing (#3204, the owner's Q3204.1 A).** A connection is not the plugin until it
-proves a pairing token. When the server starts it prints a one-time pairing code on stderr, such as
-`pairing code: 7KQ4-M2XR`; `figma_status` names it too (`pairingCode`), since an MCP host may not show
-stderr. The first time the plugin connects on a machine it asks for that code, and the server answers
+proves a pairing token. A one-time pairing code is issued only when it is asked for (the owner's
+Q3204.5 A): by a `figma_status` call while no plugin is connected, or by starting the server with
+`--pair`. The server prints it on stderr, such as `pairing code: 7KQ4-M2XR (live for 10 minutes)`, and
+`figma_status` names it (`pairingCode`), since an MCP host may not show stderr. A later `figma_status`
+keeps a live code rather than replacing it. The first time the plugin connects on a machine it asks for
+that code, and the server answers
 with a token the plugin keeps in `figma.clientStorage` (per person, per machine; never in the file or
 its plugin data). From then on every connection opens with the server's challenge, and the plugin's
 hello carries an HMAC of the token over the challenge's nonce. A connection without a valid proof is
 closed (4401) before it is sent any command, and it never replaces a paired plugin that is connected.
 A wrong code is closed with 4403; after 5 wrong codes the server retires the code and prints a new one.
+A code lasts 10 minutes. After 3 codes are retired, pairing closes until the next request. Once a plugin
+has proved its token, no code is live, so a paired machine has none.
 
 The token comes from a random secret the server keeps in a user-only file (mode 0600, in a 0700
 directory): `$PRISM3_BRIDGE_CONFIG`, else `~/.config/prism3/figma-bridge.json` (`$XDG_CONFIG_HOME`
@@ -48,7 +53,8 @@ stays in the dev build only (Q3147.4 A): a release build answers it `unknown-com
 
 1. The owner opens the file, runs the Prism3 plugin (a development import of
    `apps/plugin/manifest.json`, freshly built), and switches **Agent link** on. The first time on a
-   machine, the plugin asks for the server's pairing code under the Agent switch. The Activity drawer
+   machine, the plugin asks for the server's pairing code under the Agent switch: call `figma_status`
+   to get one. The Activity drawer
    reads `Listening · bridge` once the plugin has connected. It retries every 2 s, so the server can
    start before or after the plugin.
 2. `figma_status` — `connected: true`, plus the link state the plugin last reported.
