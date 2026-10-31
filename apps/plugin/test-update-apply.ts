@@ -240,6 +240,7 @@ import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummar
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { headerFor } from './src/page-header';
 
 let failed = 0;
 let executed = 0;
@@ -466,6 +467,152 @@ section('page moves — a set on its former page moves to the page the taxonomy 
   ok(w.api._versions.length === 1 && w.api._versions[0] === 'Saved before Prism3 updated breadcrumb-item', `moves/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
   const again = await previewUpdate(host, targets);
   ok(!again.pageMoves && previewVerdict(again).headline === '✓ All sets up to date', `moves/converges: the next dry run lists no move (${previewVerdict(again).headline})`);
+}
+
+/* ── block headers ────────────────────────────────────────────────────────────────────────────────────── */
+// #3172, owner decisions Q3172.1–3, all A: the provider logos get a Size=Medium header of their own on Icons & assets,
+// 80px over their block. On a file built when they had their own page, Update moves that page's header with them (the
+// same node), titles it "Provider logos" while it still reads the old name or the placeholder, keeps any other text a
+// designer typed, and reports the page it leaves as safe to delete, never deleting it. A second Update does nothing, and
+// the header is the one a fresh build draws. Every expected value is a literal here: "Provider logos", the 80px gap, the
+// shim's 120px header height and 1000px variant width, the summary copied from `provider-logo.ts`.
+// Mutations, each failing the arm it names: the apply's `placeBlockHeaders` call dropped → `blocks/apply`; the dry run's
+// read dropped → `blocks/dry run`, `blocks/apply`; the earlier-name rewrite (`also`) dropped → `blocks/title`; every
+// Title rewritten → `blocks/designer`; the tag check in `blockHeadersDue` dropped → `blocks/idempotent`; the block's own
+// header untagged → `blocks/idempotent`, `blocks/fresh lead`; `headerFor`'s block arm dropped → `blocks/fresh`; the
+// blocks left in the lead header's measure → `blocks/fresh lead`; the lead's present-check counting a tagged header →
+// `blocks/fresh`, `blocks/fresh lead`; the emptied former page not reported → `blocks/page kept`, `/verdict`, `/rerun`.
+// The moved header left untagged → `blocks/apply`, `/idempotent`, `/rerun`, `/designer`.
+section('block headers — the provider logos\' own header, moved with them from their old page, or drawn');
+{
+  const SUMMARY = 'A provider\'s own mark, in its own colors: sign-in, payment and social. Never retinted.';
+  type K = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; visible?: boolean; children?: K[]; characters?: string; fontName?: unknown;
+    data?: Record<string, string>; getSharedPluginData(ns: string, k: string): string; setSharedPluginData?(ns: string, k: string, v: string): void; [k: string]: unknown };
+  type P = { name: string; isPageDivider?: boolean; children: K[]; appendChild(c: K): void; remove(): void };
+  const findIn = (n: K, f: (x: K) => boolean): K | null => { for (const c of n.children ?? []) { if (f(c)) return c; const d = findIn(c, f); if (d) return d; } return null; };
+  const text = (name: string, characters: string): K => ({ id: `t:${name}`, type: 'TEXT', name, characters, fontName: { family: 'Inter', style: 'Regular' }, x: 0, y: 0, width: 0, height: 0, getSharedPluginData: () => '' });
+  // The `_Section-header` set, one Size=Medium variant authored 1000 wide, its text the placeholder.
+  const hset: K = { id: 'hset', type: 'COMPONENT_SET', name: '_Section-header', x: 0, y: 0, width: 1000, height: 120, children: [], getSharedPluginData: () => '' };
+  const variant: K = { id: 'hv', type: 'COMPONENT', name: 'Size=Medium', x: 0, y: 0, width: 1000, height: 120, parent: hset,
+    children: [{ ...text('Text', ''), type: 'FRAME', children: [text('Title', 'Section header'), text('Description', 'Descriptive Text')] }], getSharedPluginData: () => '' };
+  variant.findOne = (f: (x: K) => boolean) => findIn(variant, f);
+  hset.children!.push(variant);
+  let made = 0;
+  // An instance of it: 120 tall, its text and plugin data its own.
+  const header = (id: string, title: string, description: string, x: number, y: number, width = 1000): K => {
+    const h: K = { id, type: 'INSTANCE', name: '_Section-header', x, y, width, height: 120, data: {},
+      children: [{ ...text('Text', ''), type: 'FRAME', children: [text('Title', title), text('Description', description)] }],
+      componentProperties: {}, getSharedPluginData(ns, k) { return ns === NS ? h.data![k] ?? '' : ''; }, setSharedPluginData(ns, k, v) { if (ns === NS) h.data![k] = v; } };
+    h.findOne = (f: (x: K) => boolean) => findIn(h, f);
+    h.getMainComponentAsync = async () => variant;
+    h.resize = (w: number) => { h.width = w; };
+    h.setProperties = () => {};
+    return h;
+  };
+  variant.createInstance = () => header(`new${++made}`, 'Section header', 'Descriptive Text', 0, 0);
+  const comp = (id: string, name: string, x: number, y: number, width: number): K =>
+    ({ id, name, type: 'COMPONENT', x, y, width, height: 24, getSharedPluginData: (ns, k) => (ns === NS && k === STAMP_KEY ? '9.9.9|0123456789abcdef|1' : '') });
+  const titleOf = (h: K) => findIn(h, (n) => n.name === 'Title')!.characters;
+  const descOf = (h: K) => findIn(h, (n) => n.name === 'Description')!.characters;
+  const headersOn = (p: P) => p.children.filter((n) => n.type === 'INSTANCE' && n.name === '_Section-header');
+  const tagged = (p: P) => headersOn(p).filter((h) => h.data?.headerFor === 'provider-logo');
+  // A file of Icons & assets (the icons and their header) and, before #3148, Brand marks: the marks and their header.
+  const file = async (o: { moved?: boolean; title?: string; description?: string } = {}) => {
+    const w = await world(TAG);
+    const pages: P[] = [];
+    const removed: string[] = [];
+    const pg = (name: string, isPageDivider = false): P => {
+      const p: P = { name, isPageDivider, children: [], appendChild(c: K) { for (const q of pages) { const i = q.children.indexOf(c); if (i >= 0) q.children.splice(i, 1); } p.children.push(c); },
+        remove() { removed.push(p.name); const i = pages.indexOf(p); if (i >= 0) pages.splice(i, 1); } };
+      return p;
+    };
+    pages.push(pg('Cover'), pg('---', true), pg('Foundations'), pg('↳ Icons & assets'), pg('↳ Brand marks'));
+    const [icons, marks] = [pages[3], pages[4]];
+    icons.children.push(header('h-icon', 'Icon', 'An icon.', 0, 0), comp('i1', 'icon/check', 0, 200, 24), comp('i2', 'icon/close', 48, 200, 24));
+    // Pre-#3172 Update had moved the marks, left the header (the owner's file), or nothing had moved yet.
+    const logos = o.moved
+      ? [comp('b1', 'provider-logo/payment/visa', 1160, 200, 54), comp('b2', 'provider-logo/logo/apple-pay', 1238, 200, 54)]
+      : [comp('b1', 'brand-mark/payment/visa', 0, 200, 54), comp('b2', 'brand-mark/logo/apple-pay', 78, 200, 54)];
+    (o.moved ? icons : marks).children.push(...logos);
+    const old = header('h-bm', o.title ?? 'Brand marks', o.description ?? 'Descriptive Text', 0, 0);
+    marks.children.push(old);
+    const host = { ...w.host, createPage() { const p = pg(''); pages.push(p); return p; }, async loadAllPagesAsync() {},
+      root: { ...w.host.root, get children() { return pages; }, insertChild(i: number, p: P) { const at = pages.indexOf(p); if (at >= 0) pages.splice(at, 1); pages.splice(i, 0, p); }, appendChild(p: P) { pages.push(p); },
+        findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? [...w.host.root.findAllWithCriteria(c), hset] : w.host.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+    return { w, host, pages, removed, icons, marks, logos, old };
+  };
+  const targets = (w: Awaited<ReturnType<typeof world>>) => [{ def: TAG, plans: w.plans }];
+  const update = async (f: Awaited<ReturnType<typeof file>>) => {
+    const pre = await previewUpdate(f.host, targets(f.w));
+    return { pre, res: await applyUpdate(f.host, f.w.api as any, targets(f.w), previewHashOf(pre)) };
+  };
+
+  // The update-in-place arm the issue asks for: the old layout with its header, then Update.
+  const f = await file();
+  const { pre, res } = await update(f);
+  const v = previewVerdict(pre);
+  ok(JSON.stringify(pre.blockHeaders) === JSON.stringify([{ def: 'provider-logo', title: 'Provider logos', page: '↳ Icons & assets', from: '↳ Brand marks' }])
+    && v.lines.includes('Provider logos header: to move from Brand marks to Icons & assets.'),
+    `blocks/dry run: the header on Brand marks is listed to move with the marks (${JSON.stringify(pre.blockHeaders)}; ${v.lines.join(' | ')})`);
+  const av = applyVerdict(res);
+  const box = { left: Math.min(...f.logos.map((m) => m.x)), top: Math.min(...f.logos.map((m) => m.y)) };
+  ok(tagged(f.icons).length === 1 && tagged(f.icons)[0] === f.old && f.old.id === 'h-bm' && headersOn(f.icons).length === 2 && headersOn(f.marks).length === 0,
+    `blocks/apply: exactly one provider-logos header on Icons & assets, the same node as Brand marks' (id kept), beside the icons' own, and none left on Brand marks (${f.icons.children.map((n) => n.id).join(', ')} | ${f.marks.children.map((n) => n.id).join(', ')})`);
+  ok(f.old.x === box.left && f.old.y === box.top - 80 - 120 && f.old.y === 0,
+    `blocks/apply place: on the block's left edge, its bottom 80px above the block, level with the icons' header (${f.old.x},${f.old.y} over ${box.left},${box.top})`);
+  ok(titleOf(f.old) === 'Provider logos' && descOf(f.old) === SUMMARY, `blocks/title: "Brand marks" and the placeholder rewritten (${titleOf(f.old)} / ${descOf(f.old)})`);
+  ok(f.pages.includes(f.marks) && f.removed.length === 0 && f.marks.children.length === 0 && JSON.stringify(res.emptied) === JSON.stringify(['↳ Brand marks']),
+    `blocks/page kept: Brand marks is empty, still there, and reported (${JSON.stringify(res.emptied)})${f.removed.length ? ` — REMOVED: ${f.removed.join(', ')}` : ''}`);
+  ok(av.lines.includes('Provider logos header: moved from Brand marks to Icons & assets.') && av.lines.includes('Brand marks is now empty, safe to delete.'),
+    `blocks/verdict: the move and the emptied page named (${av.lines.join(' | ')})`);
+  // The idempotence arm: a second Update finds nothing to do, and writes nothing.
+  const versions = f.w.api._versions.length;
+  const at = f.icons.children.map((n) => `${n.id}@${n.x},${n.y}`).join();
+  const again = await update(f);
+  ok(!again.pre.blockHeaders && !again.pre.pageMoves && previewVerdict(again.pre).headline === '✓ All sets up to date' && f.w.api._versions.length === versions
+    && f.icons.children.map((n) => `${n.id}@${n.x},${n.y}`).join() === at && headersOn(f.icons).length === 2,
+    `blocks/idempotent: a second Update lists nothing, saves no version and moves nothing (${previewVerdict(again.pre).headline}; ${JSON.stringify(again.pre.blockHeaders)})`);
+
+  // The owner's file: an Update before #3172 had moved the marks and left the header. Running Update again fixes it.
+  const g = await file({ moved: true });
+  const gr = await update(g);
+  ok(tagged(g.icons).length === 1 && tagged(g.icons)[0] === g.old && g.marks.children.length === 0 && JSON.stringify(gr.res.emptied) === JSON.stringify(['↳ Brand marks'])
+    && applyVerdict(gr.res).headline === '✓ 1 section header placed',
+    `blocks/rerun: on a file whose marks moved without their header, Update moves it now (${applyVerdict(gr.res).headline}; ${JSON.stringify(gr.res.emptied)})`);
+
+  // The designer-edited arm: a Title and Description they typed are kept; the header still moves.
+  const d = await file({ title: 'Our partners', description: 'Wallets and sign-in, as each provider draws them.' });
+  await update(d);
+  ok(tagged(d.icons)[0] === d.old && titleOf(d.old) === 'Our partners' && descOf(d.old) === 'Wallets and sign-in, as each provider draws them.',
+    `blocks/designer: a Title and Description a designer typed are kept (${titleOf(d.old)} / ${descOf(d.old)})`);
+  const s = await file({ title: 'Brand mark' });
+  await update(s);
+  ok(titleOf(s.old) === 'Provider logos', `blocks/title singular: "Brand mark" is the old name too, rewritten (${titleOf(s.old)})`);
+
+  {
+    const e = await file();
+    e.marks.children.push({ ...comp('dz', 'Designer note', 0, 600, 100), type: 'FRAME' } as K);
+    const er = await update(e);
+    const nh = tagged(e.icons)[0];
+    ok(e.marks.children.includes(e.old) && headersOn(e.marks).length === 1 && !e.old.data?.headerFor && !!nh && nh !== e.old
+      && titleOf(nh) === 'Provider logos' && descOf(nh) === SUMMARY && !(er.res.emptied ?? []).includes('↳ Brand marks'),
+      `blocks/designer page: a Brand marks page with designer content keeps its header; the logos get a new one (${e.marks.children.map((c) => c.id).join(', ')} | ${JSON.stringify(er.res.emptied)})`);
+    const yy = await file(); yy.old.y = 500; yy.old.x = 333; await update(yy);
+    ok(yy.old.y === 0 && yy.old.x === Math.min(...yy.logos.map((m) => m.x)), `blocks/apply place moved: the header moves from 333,500 to over the block (${yy.old.x},${yy.old.y})`);
+  }
+
+  // The fresh-build arm: the build labels Icons & assets with each def's header, logos built first. The page gets the
+  // icons' header and the logos' own, and the logos' matches the one Update moved, relative to the block.
+  const n = await file({ moved: true });
+  n.icons.children.splice(n.icons.children.findIndex((c) => c.id === 'h-icon'), 1);
+  for (const def of ['provider-logo', 'icon']) await headerFor(def, n.icons.name, componentDefs)!.label(n.host as never, n.icons as never);
+  const lead = headersOn(n.icons).find((h) => !h.data?.headerFor);
+  const mine = tagged(n.icons)[0];
+  ok(headersOn(n.icons).length === 2 && !!mine && titleOf(mine) === 'Provider logos' && descOf(mine) === SUMMARY
+    && mine.x - 1160 === f.old.x - box.left && mine.y - 200 === f.old.y - box.top && mine.width === f.old.width,
+    `blocks/fresh: a fresh build draws the same header Update leaves, the same text, gap, edge and width (${mine ? `${titleOf(mine)} ${mine.x},${mine.y} ${mine.width}` : 'none'})`);
+  ok(!!lead && titleOf(lead) === 'Icon' && lead.x === 0 && lead.width === 1000 && lead.y === 0,
+    `blocks/fresh lead: the page's own header is placed beside it, over the icons alone (${lead ? `${titleOf(lead)} ${lead.x},${lead.y} ${lead.width}` : 'none'})`);
 }
 
 /* ── hand ────────────────────────────────────────────────────────────────────────────────────────────── */

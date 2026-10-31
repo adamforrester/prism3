@@ -57,10 +57,12 @@ import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, 
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-moves';
+import { blockHeadersLines, placeBlockHeaders, type BlockHeaderApi, type BlockHeaderDue } from './page-header';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
+import { rereadAfter, withRoot } from './run-read';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
-import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { saveVersion } from './version-title';
@@ -87,6 +89,8 @@ export const previewHashOf = (r: UpdatePreview): string =>
   fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash, ...(s.setMove ? [s.setMove] : []), ...(s.blockers.length ? [s.blockers] : []), ...(s.furniture ? [s.furniture] : [])]), r.missing, r.refused, ...(r.pages ? [r.pages] : []),
     // #2989: the sets to move to their pages, only when there are any, so a file with none hashes as it did before.
     ...(r.pageMoves ? [{ pageMoves: r.pageMoves }] : []),
+    // #3172: the block headers, the same way.
+    ...(r.blockHeaders ? [{ blockHeaders: r.blockHeaders }] : []),
     // #2858: the About frame, only while it is work, so a file whose frame is current hashes as it did before it.
     ...(aboutIsWork(r.about) ? [r.about] : []),
     // #2859: the library cover, the same way.
@@ -181,6 +185,8 @@ export type ApplyResult = {
    *  when none. */
   relocated?: PageMove[];
   emptied?: string[];
+  /** #3172 — the block headers placed, or moved from a former page. Absent when none. */
+  headers?: BlockHeaderDue[];
   /** #2858 — the Cover page's "About this library" frame, drawn after the sets. Absent when the run wrote nothing. */
   about?: AboutOutcome;
   /** #2858 — the library publish description, offered with a Copy button: no Plugin API call sets it. Absent when the
@@ -608,8 +614,11 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   return out;
 };
 
-/** The canvas furniture's redraw for one set the update acted on (`main.ts`'s `furnishSet`, #2406). */
-export type Furnish = (def: string, set: { id?: unknown }) => Promise<void>;
+/** The re-read after a write (#3177, `rereadAfter`): the pages `nodes` sit on, or every page. */
+type Reread = (nodes: readonly unknown[], all?: boolean) => Promise<void>;
+/** The canvas furniture's redraw for one set the update acted on (`main.ts`'s `furnishSet`, #2406). `file` is the run's
+ *  host (#3177): its lookups are answered from the run's one read of the file. */
+export type Furnish = (def: string, set: { id?: unknown }, file: ApplyHost) => Promise<void>;
 
 /**
  * THE PAGE'S SETS, RE-SPACED FROM WHAT IS ON IT NOW (#2542, #2723). The sets this update reads, each blocked when the
@@ -672,7 +681,7 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
  * is saved before the first move; refused or unavailable, the sets stay where they are, and the next dry run lists
  * the moves.
  */
-const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { furnish?: Furnish; choices?: UpdateChoices; ledger?: readonly ComponentRename[]; nameOf?: (def: string) => string | undefined }): Promise<void> => {
+const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { furnish?: Furnish; choices?: UpdateChoices; ledger?: readonly ComponentRename[]; nameOf?: (def: string) => string | undefined; reread?: Reread }): Promise<void> => {
   if (!opts.furnish) return;
   // #2734: which sets sit at exactly `SET_GAP` now, before a redraw can narrow the labels beside them.
   const snug = pageSnugSets(await liveSets(host, targets, preview, res, opts) as never, docPanelReaches(host as unknown as Pick<PanelApi, 'root'>));
@@ -680,7 +689,10 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
     const t = targets.find((x) => x.def === o.def);
     if (!t || t.single) continue;
     const set = await liveFor(host, t, o.set, opts.ledger);
-    if (set) await opts.furnish(o.def, set);
+    if (!set) continue;
+    await opts.furnish(o.def, set, host);
+    // #3177: the labels and the panel just drawn are on the set's page; the run's next lookup reads that page anew.
+    await opts.reread?.([set]);
   }
   if (res.outcomes.some((o) => o.stopped)) return;
   await respaceLive(host, targets, preview, res, opts, async (names) => {
@@ -733,15 +745,25 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
  * `host` reads the file as the dry run does; `api` is the executor's port. Both are `figma` in the plugin.
  */
 export const applyUpdate = async (
-  host: ApplyHost,
-  api: ComponentsApi,
+  file: ApplyHost,
+  fileApi: ComponentsApi,
   targets: readonly UpdateTarget[],
   previewHash: string,
   /** `ledger` is the engine's `COMPONENT_RENAMES` unless a test passes its own. */
-  opts: { descriptionOf?: (def: string) => string | undefined; nameOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish;
+  options: { descriptionOf?: (def: string) => string | undefined; nameOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish;
     /** The run's date for the About frame, `YYYY-MM-DD`; today, UTC, unless a test passes its own. */
     today?: string } = {},
 ): Promise<ApplyResult> => {
+  // #3177: ONE READ OF THE FILE FOR THE RUN, a page per turn, shared by the dry run below, every set's lookups and the
+  // executor's (`api`, the same root when it is the same file, as `figma` is both in the plugin). After each write the
+  // pages it touched are read again (`reread`), so a lookup after it sees what it added.
+  const host = await runHost(file, options.breathe);
+  const api = (fileApi as { root?: unknown }).root === file.root ? withRoot(fileApi, host.root) : await runHost(fileApi as ComponentsApi & { root: object }, options.breathe);
+  const reread: Reread = async (nodes, all) => {
+    await rereadAfter(host.root, nodes, all);
+    if ((api as { root?: unknown }).root !== host.root) await rereadAfter((api as { root?: unknown }).root, nodes, all);
+  };
+  const opts = { ...options, reread };
   const preview = await previewUpdate(host, targets, opts.breathe, opts.ledger);
   const res: ApplyResult = { outcomes: [], missing: preview.missing, refused: preview.refused };
   if (previewHashOf(preview) !== previewHash) {
@@ -790,11 +812,13 @@ export const applyUpdate = async (
     && typeof (host as unknown as { loadAllPagesAsync?: unknown }).loadAllPagesAsync === 'function';
   // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
   // …and the library cover (#2859), when it is missing or behind.
+  // THE BLOCK HEADERS (#3172) are work of their own too, on a host that can search the file and load a font.
+  const headering = !!preview.blockHeaders?.length && !!host.root.children && typeof host.loadFontAsync === 'function';
   const about = aboutIsWork(preview.about) || coverIsWork(preview.cover);
-  if (!ready.length && !moving.length && !reorder && !relocate && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
+  if (!ready.length && !moving.length && !reorder && !relocate && !headering && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
   // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
   // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
-  if (!ready.length && !moving.length && !reorder && !relocate && !furnishing.length) {
+  if (!ready.length && !moving.length && !reorder && !relocate && !headering && !furnishing.length) {
     res.aboutOnly = true;
     await settle(host, targets, preview, res, opts);
     if (res.version) delete res.aboutOnly;
@@ -805,7 +829,7 @@ export const applyUpdate = async (
   // Refused or unavailable, nothing is written.
   const setIds = [...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set), ...(relocate ? preview.pageMoves!.map((m) => m.set) : [])])];
   try {
-    res.version = (await saveVersion(host, { run: 'update', sets: setIds.map((set) => ({ set, name: opts.nameOf?.(set) })), pageOrder: reorder, about: aboutIsWork(preview.about), cover: coverIsWork(preview.cover), pageMoves: relocate })).title;
+    res.version = (await saveVersion(host, { run: 'update', sets: setIds.map((set) => ({ set, name: opts.nameOf?.(set) })), pageOrder: reorder, about: aboutIsWork(preview.about), cover: coverIsWork(preview.cover), pageMoves: relocate, headers: headering })).title;
   } catch (err) {
     res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
     return res;
@@ -822,6 +846,16 @@ export const applyUpdate = async (
     const r = await relocateSets(host as unknown as Parameters<typeof relocateSets>[0]);
     if (r.moved.length) res.relocated = r.moved;
     if (r.emptied.length) res.emptied = r.emptied;
+    // #3177: sets moved between pages, and pages made: the whole file is read again, a page per turn.
+    if (r.moved.length || r.emptied.length) await reread([], true);
+  }
+  // A MOVED BLOCK'S HEADER GOES WITH IT, and a block with none gets one (#3172), before any set is written: the header is
+  // placed over the block where the move left it. Read again here, from the file as the move left it.
+  if (headering) {
+    const h = await placeBlockHeaders(host as unknown as BlockHeaderApi);
+    const done = h.placed.filter((p) => p.outcome.status === 'placed' || (p.from && p.outcome.status === 'present'));
+    if (done.length) res.headers = done.map(({ outcome: _o, ...d }) => d);
+    if (h.emptied.length) res.emptied = [...(res.emptied ?? []), ...h.emptied];
   }
   for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
@@ -847,6 +881,9 @@ export const applyUpdate = async (
       o.content.push(...o.carried.misses);
     }
     res.outcomes.push(o);
+    // #3177: the members this set gained are on its page (a single-component def's, on its components' pages); the
+    // run's next lookup reads them anew.
+    await reread(t.single ? kidsOf(fresh) : [fresh]);
     if (o.stopped) break;
   }
   // THE SETS MOVE ON THEIR PAGES LAST (#2542, owner decision Q245.2 A), once every set has its new size, so each sits
@@ -929,6 +966,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   const furnished = r.outcomes.filter((o) => !o.refused && !o.stopped && furnitureDueCount(o.furniture)).length;
   const reordered = r.reordered?.length ?? 0;
   const relocated = r.relocated?.length ?? 0;
+  const headers = r.headers?.length ?? 0;
   const lines: string[] = [];
   for (const o of r.outcomes) {
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
@@ -976,6 +1014,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   // #2989: the sets moved to their pages, and any page the move left empty, for the owner to delete by hand.
   if (relocated) lines.push(pageMovesLine(r.relocated, true));
+  lines.push(...blockHeadersLines(r.headers, true));
   if (r.emptied?.length) lines.push(emptiedLine(r.emptied));
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.
@@ -998,6 +1037,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                     : setsMoved ? `✓ ${n(setsMoved, 'set')} moved` : reordered ? `✓ reordered ${n(reordered, 'page')}`
                       // Owner-approved wording (#2989, Q3 A, 2026-10-24): a run whose only work was moving sets to their pages.
                       : relocated ? `✓ ${n(relocated, 'set')} moved to ${relocated === 1 ? 'its page' : 'their pages'}`
+                      // DRAFT wording for the owner (#3172): a run whose only work was a block header.
+                      : headers ? `✓ ${n(headers, 'section header')} placed`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
                       : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}`
                         // DRAFT wording for the owner (#2858): a run whose only work was the About frame.

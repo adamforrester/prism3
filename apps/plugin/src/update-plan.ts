@@ -54,11 +54,11 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { reaches } from './executor-reach';
 import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
-import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
+import { FURNITURE_KEY, FURNITURE_NS, furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
-import { PANEL_GAP, SPEC_GAP, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReaches, ownerSet, type PanelReach, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, PANEL_GAP, SPEC_GAP, SPEC_WIDTH, docPanelBlockers, docPanelDue, docPanelReaches, ownerSet, type PanelReach, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import type { CheckedSet } from './messages';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
@@ -66,11 +66,14 @@ import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { pageMovesDue, pageMovesLine, type PageMove } from './page-moves';
+import { blockHeadersDue, blockHeadersLines, type BlockHeaderDue } from './page-header';
+import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import { whatChangedLines } from './release-summary';
 import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
 import { readDocSettings } from './doc-settings';
 import { COVER_NAME, coverDue, coverDueLine, coverIsWork, coverPageOnlyLine, type CoverDue } from './cover-frame';
 import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
+import { isRunRoot, readRun, withRoot, type Criteria } from './run-read';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -935,6 +938,28 @@ export type UpdateHost = {
   loadFontAsync?(font: { family: string; style: string }): Promise<void>;
 };
 
+/**
+ * WHAT AN UPDATE RUN SEARCHES THE FILE FOR (#3177): the components and sets (`locateSets`, `readSingleView`,
+ * `hostPorts`, `fileBlockers`, the templates, the executor's own lookups), the canvas furniture by its tag, and the usage
+ * panels by theirs. Read once per run (`runHost`); a lookup outside these is passed to the file and searches all of it.
+ */
+export const UPDATE_READ: readonly Criteria[] = [
+  { types: ['COMPONENT_SET', 'COMPONENT'] },
+  { types: ['INSTANCE'], sharedPluginData: { namespace: FURNITURE_NS, keys: [FURNITURE_KEY] } },
+  { types: ['FRAME'], sharedPluginData: { namespace: DOC_PANEL_NS, keys: [DOC_PANEL_KEY] } },
+];
+/**
+ * `host`, its lookups answered from ONE READ OF THE FILE (#3177, `run-read.ts`): every page loaded and searched a page
+ * per turn, then shared by every set the run reads. A host already reading a run's is returned as it is, so the apply's
+ * dry run shares the apply's read. Under `dynamic-page` a document-wide call still needs `loadAllPagesAsync` called; the
+ * pages are loaded by then, so it loads nothing.
+ */
+export const runHost = async <H extends { root: object }>(host: H, breathe?: () => Promise<void>): Promise<H> => {
+  if (isRunRoot(host.root)) return host;
+  const all = (host as { loadAllPagesAsync?: () => Promise<void> }).loadAllPagesAsync;
+  return withRoot(host, await readRun(host.root, UPDATE_READ, breathe, typeof all === 'function' ? () => all.call(host) : undefined));
+};
+
 /** One def to check: its id and the plans the engine would build for it today. */
 export type UpdateTarget = {
   def: string; plans: AnatomyPlan[];
@@ -1119,6 +1144,9 @@ export type UpdatePreview = {
   /** #2989, owner decision Q656 A — the sets on a page an earlier taxonomy placed them on, which the apply moves to the
    *  page it names now (`pageMovesDue`). Read for the file, like `pages`. Absent when none. */
   pageMoves?: PageMove[];
+  /** #3172, owner decisions Q3172.1–3 A — the block headers the apply places or moves (`blockHeadersDue`). Read for the
+   *  file, like `pageMoves`. Absent when none. */
+  blockHeaders?: BlockHeaderDue[];
   /** #2858 — what the Update owes the Cover page's "About this library" frame (`about-frame.ts`). Absent for a host
    *  with no page list. */
   about?: AboutDue;
@@ -1232,7 +1260,9 @@ const pageViews = (found: readonly PageSet[], reach: PanelReach = 0) => {
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
  *  because which one an update should touch is not this command's call. */
-export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
+export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
+  // #3177: every set below is found in one read of the file, never by a search of the whole file per set.
+  const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
   const found: { preview: SetPreview; set: LiveSet; lead: boolean }[] = [];
@@ -1313,6 +1343,11 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   // THE SETS ON A FORMER PAGE (#2989): read once for the file, like the page order.
   const pageMoves = host.root.children ? pageMovesDue(host.root.children) : [];
   if (pageMoves.length) out.pageMoves = pageMoves;
+  // THE BLOCK HEADERS (#3172): read once for the file, like the moves they can follow.
+  const blockHeaders = host.root.children
+    ? blockHeadersDue(host.root.children, () => host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }).some((n) => isTemplateSet((n as { name?: unknown }).name, SECTION_HEADER_SET)))
+    : [];
+  if (blockHeaders.length) out.blockHeaders = blockHeaders;
   // THE ABOUT FRAME (#2858): read once for the file, like the page order.
   const about = await aboutDue(host.root);
   if (about) out.about = about;
@@ -1637,7 +1672,7 @@ export const variablesLine = (variables: readonly string[] | undefined): string 
  *  set to move and no page to reorder. A set that can't be checked is refused by the confirm, so it adds no work. The
  *  apply then saves no named version, and the dry run says so. */
 export const aboutOnly = (r: UpdatePreview): boolean =>
-  (aboutIsWork(r.about) || coverIsWork(r.cover)) && !r.pages?.length && !r.pageMoves?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
+  (aboutIsWork(r.about) || coverIsWork(r.cover)) && !r.pages?.length && !r.pageMoves?.length && !r.blockHeaders?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
 
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
@@ -1656,7 +1691,9 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
   // DRAFT wording for the owner (#2859): the cover the same way, when the About frame is not also due.
   const about = aboutIsWork(r.about) ? `Would ${r.about!.state === 'stale' ? 'redraw' : 'draw'} ${ABOUT_NAME}`
     : coverIsWork(r.cover) ? `Would ${r.cover!.state === 'stale' ? 'update' : 'draw'} the ${COVER_NAME.toLowerCase()}` : '';
-  const moveTo = relocate ? `Would move ${n(relocate, 'set')} to ${relocate === 1 ? 'its page' : 'their pages'}` : '';
+  // DRAFT wording for the owner (#3172): a block header to place, when no set moves.
+  const headers = r.blockHeaders?.length ?? 0;
+  const moveTo = relocate ? `Would move ${n(relocate, 'set')} to ${relocate === 1 ? 'its page' : 'their pages'}` : headers ? `Would place ${n(headers, 'section header')}` : '';
   const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : moveTo || about || 'No sets to check')
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
       : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}` : moveTo ? moveTo : about ? about
@@ -1673,6 +1710,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
     pageMovesLine(r.pageMoves, false),
+    ...blockHeadersLines(r.blockHeaders, false),
     coverDueLine(r.cover),
     aboutDueLine(r.about),
     aboutOnly(r) ? coverPageOnlyLine({ about: aboutIsWork(r.about), cover: coverIsWork(r.cover) }, false) : '',
