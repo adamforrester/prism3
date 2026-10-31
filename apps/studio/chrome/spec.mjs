@@ -180,6 +180,17 @@ export const PRODUCT_VARS = [
   ['bar-track-h', 'core.dimension.20', 'core.dimension.20', D, 'the Agent switch\'s track height (Q3083.7 B)'],
   ['bar-thumb', 'core.dimension.16', 'core.dimension.16', D, 'the Agent switch\'s knob (Q3083.7 B)'],
   ['bar-thumb-inset', 'core.dimension.2', 'core.dimension.2', D, 'the Agent switch\'s knob inset (Q3083.7 B)'],
+  // #3150 (the owner's Q3150.2 A and Q3150.3 A, 2026-10-31): the chrome's motion, from Prism3's default theme and never the
+  // edited brand, so the tool stays quieter than the brand beside it. A panel enters on the normal duration (the Activity
+  // drawer, the 380 sheet, a dialog); a small surface enters on the fast one, and every exit leaves on it; under reduced
+  // motion every moving surface crossfades on the reduced fast duration. The enter and exit easing roles only: never the
+  // emphasized curve or a spring, which stay with the brand. Own names, not `dur-fast`, so the spinner's timing and the
+  // surfaces' are read apart.
+  ['motion-panel', 'motion.duration.normal', 'motion.duration.normal', T, 'a panel or dialog entering (#3150)'],
+  ['motion-fast', 'motion.duration.fast', 'motion.duration.fast', T, 'a small surface entering, and every exit (#3150)'],
+  ['motion-reduced', 'motion.duration-reduced.fast', 'motion.duration-reduced.fast', T, 'the crossfade under reduced motion (#3150)'],
+  ['ease-enter', 'motion.easing-role.enter', 'motion.easing-role.enter', E, 'the curve a surface enters on (#3150)'],
+  ['ease-exit', 'motion.easing-role.exit', 'motion.easing-role.exit', E, 'the curve a surface leaves on (#3150)'],
 ];
 /** Pairs the product adds beyond the mockup's PAIRS, for PRODUCT_VARS rows the mockup never maps (`build-v6.mjs` reads
  *  PAIRS and would refuse a name it has no row for). Same shape as PAIRS; the product build evaluates both. */
@@ -241,6 +252,8 @@ export const SHELL_VARS = [
   'rail-w', 'icon-md', 'rail-tile',
   // #3083 (Q3083.7 B): the Agent switch's bar-only size.
   'bar-track-w', 'bar-track-h', 'bar-thumb', 'bar-thumb-inset',
+  // #3150: the chrome's motion: the two enter durations, the reduced crossfade, and the enter and exit curves.
+  'motion-panel', 'motion-fast', 'motion-reduced', 'ease-enter', 'ease-exit',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
