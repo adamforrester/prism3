@@ -15,12 +15,17 @@
  *   verdict/…  the line the run leaves: done with its time, stopped after a set with what it kept, stopped at a set with
  *              its cause (Q3170.6 A).
  *   order/…    a run wins over the read after open, which wins over a verdict.
+ *   agent/…    #3189: an agent's Capture baseline or Adopt, in its Activity words: indeterminate while it reads the file,
+ *              then n of N defs and a bar by defs done; no Stop, no clock. A panel run wins over it; it wins over the read.
+ * #3189 mutations, each failing by name: the agent's reading dropped from `stripView` → `agent/check`, `agent/work`;
+ * its fill counted from the def reached (`done + 1`) → `agent/work`; the read after open winning over it → `order/agent`;
+ * `agentHeard` not clearing on `agent-finished` (#3210 review, M-C) → `agent/cleared`.
  *
  * Mutations, each failing by name: the silence test dropped (`still` always null) → `still/after 3 s`; the fill counted
  * from the set being written (`done + 1`) → `run/fill`; the check given a count → `run/check`; `rowState` reading every
  * seen set Updated → `rows/updating`; `stripVerdict` reading a stop the person asked for as a failure → `verdict/stopped`.
  */
-import { elapsed, heard, rowState, startStripRun, stepEnded, stripVerdict, stripView, withReading, type StripRun } from './src/state/status-strip';
+import { agentHeard, elapsed, heard, rowState, startStripRun, stepEnded, stripVerdict, stripView, withReading, type StripRun } from './src/state/status-strip';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -114,6 +119,34 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
   const q = stripView({ read: null, run: startStripRun(T0), step: { step: 'sets', stopping: false, queue: { id: 'tag', at: 3, of: 7 } }, verdict: null, now: T0, nameOf });
   ok(q.kind === 'running' && q.what === 'Adding Tag' && q.n === '3 of 7 · 0:00' && q.stop.label === 'Stop after Tag', `run/sets: "Adding Tag", "3 of 7" (${J(q)})`);
   ok(elapsed(3_723_000) === '62:03' && elapsed(-5) === '0:00', 'elapsed: m:ss, never negative');
+}
+
+// ── an agent's Capture baseline and Adopt (#3189) ──
+{
+  const at = (agent: Parameters<typeof stripView>[0]['agent'], read: { done: number; total: number } | null = null) => stripView({ read, agent, run: null, step: null, verdict: null, now: T0, nameOf });
+  const c = at({ run: 'capture', phase: 'check', done: 0, total: 60 });
+  ok(J(c) === J({ kind: 'reading', what: 'Recording the sets as built…', n: null, fill: null, sub: 'An agent runs this. Details in Activity.' }),
+    `agent/check: while it reads the file, its Activity words, no count, indeterminate (${J(c)})`);
+  const w = at({ run: 'adopt', phase: 'work', done: 15, total: 60 });
+  ok(J(w) === J({ kind: 'reading', what: 'Adopting members…', n: '16 of 60', fill: 0.25, sub: 'An agent runs this. Details in Activity.' }),
+    `agent/work: "Adopting members…", "16 of 60", the bar by defs done (${J(w)})`);
+  const f = at({ run: 'capture', phase: 'finish', done: 60, total: 60 });
+  ok(f.kind === 'reading' && f.n === '60 of 60' && f.fill === 1, `agent/finish: every def done, the bar full (${J(f)})`);
+  ok(at({ run: 'capture', phase: 'work', done: 3, total: 60 }, { done: 10, total: 60 }).kind === 'reading' && (at({ run: 'capture', phase: 'work', done: 3, total: 60 }, { done: 10, total: 60 }) as { what: string }).what === 'Recording the sets as built…',
+    'order/agent: an agent\'s run wins over the read after open');
+  ok(stripView({ read: null, agent: { run: 'adopt', phase: 'work', done: 1, total: 2 }, run: r, step, verdict: null, now: T0, nameOf }).kind === 'running', 'order/agent-run: a panel run wins over an agent\'s');
+  ok(at(null).kind === 'idle', 'agent/none: no agent run, no read, no verdict: the strip is hidden');
+  // M-C (#3210 review): the agent's run as the panel hears the host. Its readings set it; `agent-finished` clears it, so
+  // the strip is hidden again rather than sitting on "60 of 60"; other messages leave it alone.
+  // Mutation: `agentHeard` no longer clears on `agent-finished` → `agent/cleared`.
+  let a = agentHeard(null, { kind: 'run-progress', run: 'adopt', phase: 'check', done: 0, total: 60 });
+  a = agentHeard(a, { kind: 'run-progress', run: 'adopt', phase: 'work', done: 59, total: 60 });
+  a = agentHeard(a, { kind: 'run-progress', run: 'adopt', phase: 'finish', done: 60, total: 60 });
+  ok(J(a) === J({ run: 'adopt', phase: 'finish', done: 60, total: 60 }), `agent/heard: its readings set the agent's run (${J(a)})`);
+  ok(agentHeard(a, { kind: 'run-progress', run: 'read', phase: 'work', done: 3, total: 60 }) === a && agentHeard(a, { kind: 'file-sets' }) === a,
+    "agent/kept: another run's reading or another message leaves it as it was");
+  const cleared = agentHeard(a, { kind: 'agent-finished' });
+  ok(cleared === null && at(cleared).kind === 'idle', `agent/cleared: the agent's command ending clears it, and the strip is hidden (${J(cleared)})`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

@@ -82,6 +82,12 @@ accepts('apply-result with a malformed lines leaves them off', { type: 'apply-re
   { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: null });
 accepts('style-guide-result without a headline', { type: 'style-guide-result', ok: true, summary: 't' },
   { kind: 'style-guide-result', ok: true, headline: '✓ style guide written', summary: 't' , lines: null, retired: [] });
+// #3189: an agent's Capture baseline and Adopt readings reach the strip; an unknown run is dropped.
+accepts('run-progress from Capture baseline', { type: 'run-progress', run: 'capture', phase: 'work', item: 'button', done: 2, total: 60 },
+  { kind: 'run-progress', run: 'capture', phase: 'work', item: 'button', done: 2, total: 60 });
+accepts('run-progress from Adopt', { type: 'run-progress', run: 'adopt', phase: 'check', item: null, done: 0, total: 60 },
+  { kind: 'run-progress', run: 'adopt', phase: 'check', item: null, done: 0, total: 60 });
+drops('run-progress from an unknown run', wire({ type: 'run-progress', run: 'paint', phase: 'work', item: null, done: 0, total: 1 }));
 accepts('component-progress', { type: 'component-progress', phase: 'wire', done: 3.7, total: 10, chunkMs: 41 },
   { kind: 'component-progress', phase: 'wire', done: 3, total: 10, chunkMs: 41 });
 accepts('style-guide-progress', { type: 'style-guide-progress', done: 6.4, total: 22, tableMs: 900 },
