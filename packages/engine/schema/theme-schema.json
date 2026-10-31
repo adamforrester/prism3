@@ -278,7 +278,7 @@
       "type": "string",
       "enum": ["floor", "page"],
       "default": "floor",
-      "description": "OPTIONAL. The ground the page's secondary ink is fitted against (owner Q-TXT1 A). 'floor' (default): `text.secondary` and `icon.secondary` clear their bar on the contrast floor, `background.secondary` unless `floorStep` moves it. 'page': they clear it on `background.primary` only, the lightest secondary that still passes on the page, and may fall below it on `background.secondary`. The inverse band keeps its own floor. No token name changes."
+      "description": "OPTIONAL. The ground the page's secondary ink is fitted against (owner Q-TXT1 A). 'floor' (default): `text.secondary` and `icon.secondary` clear their bar on the contrast floor, `background.secondary` unless `floorStep` moves it. 'page': they clear it on `background.primary` only, the lightest secondary that still passes on the page, and may fall below it on `background.secondary`. 'page' applies in light and dark; high contrast and the inverse band keep their floor. No token name changes."
     },
     "glassRoles": {
       "type": "object",

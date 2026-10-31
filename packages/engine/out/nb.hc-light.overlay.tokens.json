@@ -63,8 +63,8 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{nbds.core.palette.neutral.650}",
-          "$description": "Secondary text — 7:1 on background.primary"
+          "$value": "{nbds.core.palette.neutral.700}",
+          "$description": "Secondary text — 7:1 on background.secondary"
         },
         "tertiary": {
           "$type": "color",
@@ -204,8 +204,8 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{nbds.core.palette.neutral.650}",
-          "$description": "Secondary icon — 7:1 on background.primary"
+          "$value": "{nbds.core.palette.neutral.700}",
+          "$description": "Secondary icon — 7:1 on background.secondary"
         },
         "tertiary": {
           "$type": "color",

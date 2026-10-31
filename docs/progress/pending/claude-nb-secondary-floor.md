@@ -12,8 +12,8 @@ clears 4.5:1 on `background.secondary` in this brand.
   `theme-schema.json`), gives the page context a separate ground for the secondary ink. The inverse band keeps its
   floor. The reference brand's legacy fixture sets `page`; no other brand sets it, and none moved.
 - **What moved.** Light: neutral.550 #636A6F (5.49:1 on white) → neutral.500 #70767C (4.59:1). The next lighter step,
-  450, is 3.84:1. hc-light 700 → 650 (8.15:1) and hc-dark 300 → 350 (7.49:1): the HC body bar is 7:1, and the page fit
-  lightens there too. Dark keeps 450 (5.06:1 on its page): 500 would be about 4.1:1. `icon.secondary` moves with the
+  450, is 3.84:1. Dark keeps 450 (5.06:1 on its page): 500 would be 4.23:1. High contrast does not move: the page fit
+  applies in light and dark only (owner Q3212.3 B), so hc-light keeps 700 and hc-dark 300, byte-identical to main. `icon.secondary` moves with the
   text, since the brand's `iconContrast` is `text` (#352: icons beside text match it).
 - **What it costs, measured.** Light secondary is 3.78:1 on `background.secondary` and on the brand's card
   (`foreground.primary`, the same neutral.050), and 4.29:1 on #F7F7F7. The role description now reads "4.5:1 on
@@ -22,12 +22,18 @@ clears 4.5:1 on `background.secondary` in this brand.
 - **Gates.** New `Q-TXT1 A` arms in `test.ts`: the reference brand's secondary is the lightest neutral step clearing
   the body bar on `background.primary` in every mode, 4.5–4.8:1 on white in light, icon equal to text; `nb.ai.json`
   is contracted on the page; a literal origin/main snapshot pins every other brand's secondary inks (41 cells). The
-  owner's band of 4.5–4.8 "in every mode" cannot hold literally: dark has no step between 5.06 and 4.1, and HC's bar is
-  7:1. The arm pins "lightest passing step" in every mode and the band in light. Updated arms: the legacy fixture
-  comparison records the six moves as known divergences; the Q689 floor sweep promises a page-fitted secondary on the
+  owner's band of 4.5–4.8 "in every mode" cannot hold literally: dark has no step between 5.06 and 4.23. The arm pins
+  "lightest passing step" in light and dark, the band in light only (Q3212.2 A), and HC as main's literal hex. Updated arms: the legacy fixture
+  comparison records the two light moves as known divergences; the Q689 floor sweep promises a page-fitted secondary on the
   page only; #63 declares exactly one preview shortfall (light "body on card"); the #3049 dialog sweep skips
   `text.secondary` on a panel darker than the page for a page-fitted brand.
-- **Held for the owner.** (1) The card: secondary body copy on this brand's card is 3.78:1 in light. (2) The redesign
+- **Review fixes (owner Q3212.1–8).** HC keeps its floor fit (Q3212.3 B). The `prism3-consume` skill names the
+  `secondaryTextGround` exception where the floor promise is stated, and says to read `sits_on` (B1, Q3212.8 A).
+  Divider's 1.4.3 line now reads "clears 4.5:1 on the page backgrounds its color's metadata lists", and the #3051
+  arm covers the reference brand with one declared cell, light `background.secondary` (B2, Q3212.6 A). Doc 06 names
+  the exception (S1). `levers.ts` says why it is not a lever (Q3212.7 A). Follow-ups filed for the redesign seed
+  (Q3212.4 A) and `field.placeholder` (Q3212.5 A).
+- **Held for the owner (resolved on the PR: Q3212.1 A, Q3212.4 A, Q3212.5 A).** (1) The card: secondary body copy on this brand's card is 3.78:1 in light. (2) The redesign
   seed (`nb-redesign.design.md`) does not set the input, so its secondary stays #696869 (4.57:1 on its floor); setting
   it there is one line. (3) `field.placeholder` keeps its floor fit at #636A6F. The text field and select defs bind
   `text.secondary` for the placeholder, so the components move; Studio's fields style-guide section still draws

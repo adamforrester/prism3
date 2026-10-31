@@ -760,7 +760,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.field.border.hover | neutral.300 | 8.75 | 4.5 | ✅ |
 | inverse.field.placeholder | neutral.350 | 7.49 | 7 | ✅ |
 | text.primary | black | 21.00 | 15 | ✅ |
-| text.secondary | neutral.650 | 8.15 | 7 | ✅ |
+| text.secondary | neutral.700 | 8.09 | 7 | ✅ |
 | text.tertiary | neutral.550 | 4.52 | 4.5 | ✅ |
 | text.brand | red.700 | 8.25 | 7 | ✅ |
 | text.success | green.700 | 8.28 | 7 | ✅ |
@@ -783,7 +783,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | text.link.focused | red.700 | 8.25 | 7 | ✅ |
 | text.link.pressed | red.900 | 14.98 | 7 | ✅ |
 | icon.primary | black | 21.00 | 15 | ✅ |
-| icon.secondary | neutral.650 | 8.15 | 7 | ✅ |
+| icon.secondary | neutral.700 | 8.09 | 7 | ✅ |
 | icon.tertiary | neutral.550 | 4.52 | 4.5 | ✅ |
 | icon.brand | red.700 | 8.25 | 7 | ✅ |
 | icon.success | green.700 | 8.28 | 7 | ✅ |
@@ -1048,7 +1048,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.field.border.hover | neutral.700 | 9.84 | 4.5 | ✅ |
 | inverse.field.placeholder | neutral.650 | 8.15 | 7 | ✅ |
 | text.primary | white | 21.00 | 15 | ✅ |
-| text.secondary | neutral.350 | 7.49 | 7 | ✅ |
+| text.secondary | neutral.300 | 7.49 | 7 | ✅ |
 | text.tertiary | neutral.450 | 4.68 | 4.5 | ✅ |
 | text.brand | red.300 | 7.50 | 7 | ✅ |
 | text.success | green.300 | 7.19 | 7 | ✅ |
@@ -1071,7 +1071,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | text.link.focused | red.300 | 7.50 | 7 | ✅ |
 | text.link.pressed | red.100 | 13.04 | 7 | ✅ |
 | icon.primary | white | 21.00 | 15 | ✅ |
-| icon.secondary | neutral.350 | 7.49 | 7 | ✅ |
+| icon.secondary | neutral.300 | 7.49 | 7 | ✅ |
 | icon.tertiary | neutral.450 | 4.68 | 4.5 | ✅ |
 | icon.brand | red.300 | 7.50 | 7 | ✅ |
 | icon.success | green.300 | 7.19 | 7 | ✅ |

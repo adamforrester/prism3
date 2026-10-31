@@ -3993,8 +3993,8 @@
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.500}",
         "dark": "{nbds.core.palette.neutral.450}",
-        "hc-light": "{nbds.core.palette.neutral.650}",
-        "hc-dark": "{nbds.core.palette.neutral.350}"
+        "hc-light": "{nbds.core.palette.neutral.700}",
+        "hc-dark": "{nbds.core.palette.neutral.300}"
       },
       "sits_on": [
         "background.primary"
@@ -4654,8 +4654,8 @@
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.500}",
         "dark": "{nbds.core.palette.neutral.450}",
-        "hc-light": "{nbds.core.palette.neutral.650}",
-        "hc-dark": "{nbds.core.palette.neutral.350}"
+        "hc-light": "{nbds.core.palette.neutral.700}",
+        "hc-dark": "{nbds.core.palette.neutral.300}"
       },
       "sits_on": [
         "background.primary"
@@ -10065,7 +10065,9 @@
       "aliased_by": [
         "color.disabled.on-fill",
         "color.field.border.hover",
-        "color.inverse.field.border.hover"
+        "color.icon.secondary",
+        "color.inverse.field.border.hover",
+        "color.text.secondary"
       ]
     },
     "core.palette.neutral.350": {
@@ -10077,15 +10079,13 @@
       "aliased_by": [
         "color.field.border.hover",
         "color.field.placeholder",
-        "color.icon.secondary",
         "color.interactive.neutral.fill.pressed",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
         "color.inverse.field.border.hover",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
-        "color.inverse.text.secondary",
-        "color.text.secondary"
+        "color.inverse.text.secondary"
       ]
     },
     "core.palette.neutral.400": {
@@ -10190,13 +10190,11 @@
         "color.disabled.on-fill",
         "color.field.border.hover",
         "color.field.placeholder",
-        "color.icon.secondary",
         "color.interactive.neutral.fill.pressed",
         "color.inverse.field.border.hover",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
-        "color.inverse.text.secondary",
-        "color.text.secondary"
+        "color.inverse.text.secondary"
       ]
     },
     "core.palette.neutral.700": {
@@ -10208,10 +10206,12 @@
       "aliased_by": [
         "color.border.secondary",
         "color.field.border.hover",
+        "color.icon.secondary",
         "color.inverse.border.secondary",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
-        "color.inverse.field.border.hover"
+        "color.inverse.field.border.hover",
+        "color.text.secondary"
       ]
     },
     "core.palette.neutral.750": {

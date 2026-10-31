@@ -425,7 +425,8 @@ export type Theme = {
   // The ground the page's secondary ink is fitted against (owner Q-TXT1 A). Unset reads as 'floor', today's fit:
   // `text.secondary` clears its bar on the contrast floor, `background.secondary` by default. 'page' fits it on
   // `background.primary`, so it runs lighter and no longer clears the bar on the floor; the role's description and
-  // `.ai.json` per-surface wording say so, because both are measured. The inverse band keeps its own floor.
+  // `.ai.json` per-surface wording say so, because both are measured. Light and dark only (owner Q3212.3 B): high
+  // contrast and the inverse band keep their floor.
   secondaryTextGround?: SecondaryTextGround;
   // Brand-added glass roles (#3073, owner Q806, Q807 A), `color.glass.<name>`, validated by `validGlassRoles`. Unset
   // adds none: the brand ships `color.glass.surface` alone.
@@ -670,8 +671,8 @@ export type BrandInput = {
   /** The ground the page's secondary ink is fitted against (owner Q-TXT1 A). 'floor' (default): `text.secondary` and
    *  `icon.secondary` clear their bar on the contrast floor, `background.secondary` unless `floorStep` moves it, so
    *  they hold on every page tier down to it. 'page': they clear it on `background.primary` only, the lightest
-   *  secondary that still passes on the page; on `background.secondary` they may fall below it. The inverse band
-   *  keeps its own floor. No token name changes. */
+   *  secondary that still passes on the page; on `background.secondary` they may fall below it. 'page' applies in
+   *  light and dark; high contrast and the inverse band keep their floor. No token name changes. */
   secondaryTextGround?: SecondaryTextGround;
   /** Brand-added glass roles (#3073): `color.glass.<name>`, each a semantic role's palette color (`role`, per mode)
    *  or one palette color (`palette`), at `alpha` percent. `surface` is the shipped glass and cannot be redefined. */
