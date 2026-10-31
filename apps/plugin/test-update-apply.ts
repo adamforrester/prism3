@@ -469,6 +469,59 @@ section('page moves — a set on its former page moves to the page the taxonomy 
   ok(!again.pageMoves && previewVerdict(again).headline === '✓ All sets up to date', `moves/converges: the next dry run lists no move (${previewVerdict(again).headline})`);
 }
 
+/* ── table moves ──────────────────────────────────────────────────────────────────────────────────────── */
+// #3171, owner decision Q3171.7 A: the Container table an earlier build drew on Primitive tokens is listed by the dry run,
+// on the set moves' line, and moved by the apply onto Grids & layouts, once: the same node, every other table where it
+// was, no page lost, and a second Update finds nothing to move. Mutations: the dry run's read dropped → `tables/dry run`;
+// the apply's move dropped → `tables/apply`.
+section('table moves — the Container table on Primitive tokens moves to Grids & layouts, once');
+{
+  const w = await world(TAG);
+  type P = { id: string; name: string; children: F[]; appendChild(c: F): void };
+  type F = { id: string; name: string; type: string; x: number; y: number; width: number; height: number; parent: P | null; data: Record<string, string>; getPluginData(k: string): string; setPluginData(k: string, v: string): void };
+  const pages: P[] = [];
+  const pg = (id: string, name: string): P => {
+    const p: P = { id, name, children: [], appendChild(c: F) { for (const q of pages) { const i = q.children.indexOf(c); if (i >= 0) q.children.splice(i, 1); } p.children.push(c); c.parent = p; } };
+    return p;
+  };
+  // A table as the style guide draws one: its key, a mark naming the page it was drawn on and its own id, and the rows it
+  // was last written with (each row's variable name, under the group path its key ends in).
+  const table = (id: string, name: string, key: string, on: P, rows: string[]): F => {
+    const path = key.split('|').slice(2).join('|');
+    const snapshot = Object.fromEntries(rows.map((r, i) => [`VariableID:${id}:${i}`, { name: `${path}/${r}`, values: {} }]));
+    const f: F = { id, name, type: 'FRAME', x: 0, y: 0, width: 400, height: 200, parent: null,
+      data: { 'prism3-style-guide': key, 'prism3-style-guide-mark': `${on.id}|${id}`, 'prism3-style-guide-rows': JSON.stringify(snapshot) },
+      getPluginData(k) { return f.data[k] ?? ''; }, setPluginData(k, v) { f.data[k] = v; } };
+    on.appendChild(f);
+    return f;
+  };
+  pages.push(pg('0:1', 'Cover'), pg('0:2', '↳ Primitive tokens'), pg('0:3', '↳ Semantic tokens'), pg('0:4', '↳ Grids & layouts'));
+  const KEY = 'dimension|VariableCollectionId:layout|brand/container';
+  const cont = table('9:1', 'Style guide — Container', KEY, pages[1], ['max', 'narrow', 'min']);
+  const dim = table('9:2', 'Style guide — Dimension', 'dimension|VariableCollectionId:core|brand/core/dimension', pages[1], ['4', '8']);
+  const space = table('9:3', 'Style guide — Space', 'dimension|VariableCollectionId:space|brand/space', pages[2], ['100', '200']);
+  // Each page's style-guide tables, by id: the Update draws the Cover page's own frames, which are no table.
+  const census = (): string => pages.map((p) => `${p.name}:${p.children.filter((c) => !!c.data?.['prism3-style-guide']).map((c) => c.id).join('+')}`).join(', ');
+  const host = { ...w.host, async loadAllPagesAsync() {}, root: { ...w.host.root, get children() { return pages; } } } as unknown as ApplyHost;
+  const targets = [{ def: TAG, plans: w.plans }];
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  ok(JSON.stringify(pre.tableMoves) === JSON.stringify([{ table: 'Style guide — Container', key: KEY, from: '↳ Primitive tokens', to: '↳ Grids & layouts' }])
+    && v.lines.includes('To move to its page: Style guide — Container (Primitive tokens to Grids & layouts).') && cont.parent === pages[1],
+    `tables/dry run: the Container table listed on the moves' line, nothing moved yet (${JSON.stringify(pre.tableMoves)}; ${v.lines.join(' | ')})`);
+  const res = await applyUpdate(host, w.api as any, targets, previewHashOf(pre));
+  const av = applyVerdict(res);
+  ok(cont.parent === pages[3] && pages[3].children.length === 1 && cont.id === '9:1' && census() === 'Cover:, ↳ Primitive tokens:9:2, ↳ Semantic tokens:9:3, ↳ Grids & layouts:9:1'
+    && dim.parent === pages[1] && space.parent === pages[2],
+    `tables/apply: the same Container node now sits on Grids & layouts, every other table where it was, every page still there (${census()})`);
+  ok(av.headline === '✓ 1 table moved to its page' && av.lines.includes('Moved to its page: Style guide — Container (Primitive tokens to Grids & layouts).') && w.api._versions.length === 1,
+    `tables/verdict: the move named, after one named version (${av.headline}; ${av.lines.join(' | ')}; ${JSON.stringify(w.api._versions)})`);
+  const again = await previewUpdate(host, targets);
+  const res2 = await applyUpdate(host, w.api as any, targets, previewHashOf(again));
+  ok(!again.tableMoves && !res2.relocatedTables && pages[3].children.length === 1 && w.api._versions.length === 1 && census() === 'Cover:, ↳ Primitive tokens:9:2, ↳ Semantic tokens:9:3, ↳ Grids & layouts:9:1',
+    `tables/once: a second Update lists and moves nothing (${previewVerdict(again).headline}; ${census()})`);
+}
+
 /* ── block headers ────────────────────────────────────────────────────────────────────────────────────── */
 // #3172, owner decisions Q3172.1–3, all A: the provider logos get a Size=Medium header of their own on Icons & assets,
 // 80px over their block. On a file built when they had their own page, Update moves that page's header with them (the
@@ -1894,6 +1947,50 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
 // value (it has a second slash and is not a plan coordinate), so the dry run renames it in place rather than building
 // a second component beside it. The old names are typed here from the ledger's decision, not read from it.
 // Mutation: the ledger values dropped from `readSingleView`'s `known` → `marks/rename: dry run`.
+section('single, place — a mark Update adds lands in its block, clear of the page (#3192)');
+{
+  // THE REFERENCE BRAND'S FAULT, REBUILT (#3192): the icon block at the page origin, the provider-logo block right of it
+  // at y=144, and an Update that adds `provider/facebook-blue`. It landed at (0,0) on `icon/arrow-down`. Now it goes one
+  // pitch (the widest mark plus 24, #3134) right of the end of the row that holds its kind, or into a free slot of the
+  // block's own grid, overlapping no node on the page; every other component keeps its place and its id. Square marks,
+  // as above, so the shim's span sizing reads no drift. Mutations: the executor as it stood before #3192 → `#3192 update
+  // add` (at 0,0, over icon/arrow-down); the kind step off and the block's grid read from the page origin → `#3192 update
+  // add` (outside its block).
+  const glyphOf = (n: PlanNode): PlanNode | undefined => n.glyphSvg ? n : (n.children ?? []).map(glyphOf).find(Boolean);
+  const MARK = 'provider/facebook-blue';
+  const squareAll = plansOf('provider-logo').filter((p) => { const g = glyphOf(p.root)!; return g.glyphViewBox![0] === g.glyphViewBox![1]; });
+  const misread = new Set((await previewUpdate((await singleWorld(squareAll)).host, [{ def: 'provider-logo', plans: squareAll, single: true }])).sets[0]?.states.map((x) => x.member) ?? []);
+  const square = squareAll.filter((p) => !misread.has(`name=${p.coord.name}`));
+  const icons = plansOf('icon');
+  const w = await singleWorld(square.filter((p) => p.coord.name !== MARK), [...new Set(icons.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))]);
+  const iconRun = await applyComponentPlan(icons, w.api, { emitAsComponents: true });
+  const named = (pre: string): Node[] => w.comps().filter((c) => String(c.name).startsWith(pre));
+  const shift = (ns: Node[], x: number, y: number): void => {
+    const mx = Math.min(...ns.map((n) => Number(n.x))), my = Math.min(...ns.map((n) => Number(n.y)));
+    for (const n of ns) { n.x = Number(n.x) - mx + x; n.y = Number(n.y) - my + y; }
+  };
+  shift(named('icon/'), 0, 0);
+  shift(named('provider-logo/'), Math.max(...named('icon/').map((n) => Number(n.x) + Number(n.width))) + 2000, 144);
+  const place = (): Map<string, string> => new Map(w.comps().map((c) => [String(c.name), `${c.id}@${c.x},${c.y}`] as const));
+  const before = place();
+  const t = { def: 'provider-logo', plans: square, single: true };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+  const after = place();
+  const added = w.comps().find((c) => String(c.name) === `provider-logo/${MARK}`);
+  const box = (n: Node) => ({ name: String(n.name), x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const a = added ? box(added) : undefined;
+  const hits = a ? w.page.children.filter((n) => n !== added).map(box).filter((o) => a.x < o.x + o.w && o.x < a.x + a.w && a.y < o.y + o.h && o.y < a.y + a.h).map((o) => o.name) : [];
+  const marks = named('provider-logo/').filter((n) => n !== added).map(box);
+  const pitch = Math.max(...marks.map((m) => m.w)) + 24;
+  const ox = Math.min(...marks.map((m) => m.x)), oy = Math.min(...marks.map((m) => m.y));
+  const kin = marks.filter((m) => m.name.startsWith('provider-logo/provider/'));
+  const rowEnd = (y: number) => Math.max(...marks.filter((m) => m.y === y).map((m) => m.x));
+  const besideKind = !!a && kin.some((k) => k.y === a.y) && a.x === rowEnd(a.y) + pitch;
+  const inSlot = !!a && (a.x - ox) % pitch === 0 && (a.y - oy) % pitch === 0 && a.x >= ox && a.y >= oy;
+  const moved = [...before].filter(([n, v]) => after.get(n) !== v).map(([n]) => n);
+  ok(iconRun.misses.length === 0 && kin.length >= 2 && res.outcomes[0]?.added === 1 && !!a && (besideKind || inSlot) && hits.length === 0 && moved.length === 0,
+    `#3192 update add: the mark Update adds lands ${besideKind ? 'beside its kind\'s row' : inSlot ? 'in a free slot of its block' : 'outside its block'} at ${a ? `${a.x},${a.y}` : 'nowhere'}, overlapping ${hits.length ? hits.slice(0, 3).join(', ') : 'nothing'}; ${moved.length} existing component(s) moved or re-keyed${moved.length ? ` (${moved.slice(0, 3).join(', ')})` : ''}`);
+}
 section('single, marks — a mark built under its former kind is renamed in place (#2343 PR 3)');
 {
   // Typed from the decision: each new name and the name it had. One of each kind is renamed, picked among those the

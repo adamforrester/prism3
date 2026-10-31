@@ -56,7 +56,7 @@ import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
-import { emptiedLine, pageMovesLine, relocateSets, type PageMove } from './page-moves';
+import { emptiedLine, pageMovesLine, relocateSets, relocateTables, type PageMove, type TableMove } from './page-moves';
 import { blockHeadersLines, placeBlockHeaders, type BlockHeaderApi, type BlockHeaderDue } from './page-header';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
@@ -89,6 +89,8 @@ export const previewHashOf = (r: UpdatePreview): string =>
   fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash, ...(s.setMove ? [s.setMove] : []), ...(s.blockers.length ? [s.blockers] : []), ...(s.furniture ? [s.furniture] : [])]), r.missing, r.refused, ...(r.pages ? [r.pages] : []),
     // #2989: the sets to move to their pages, only when there are any, so a file with none hashes as it did before.
     ...(r.pageMoves ? [{ pageMoves: r.pageMoves }] : []),
+    // #3171: the style-guide tables to move, the same way.
+    ...(r.tableMoves ? [{ tableMoves: r.tableMoves }] : []),
     // #3172: the block headers, the same way.
     ...(r.blockHeaders ? [{ blockHeaders: r.blockHeaders }] : []),
     // #2858: the About frame, only while it is work, so a file whose frame is current hashes as it did before it.
@@ -184,6 +186,8 @@ export type ApplyResult = {
   /** #2989 — the sets moved to the page the taxonomy names now, and the pages that left empty (never deleted). Absent
    *  when none. */
   relocated?: PageMove[];
+  /** #3171 — the style-guide tables moved to the page they are drawn on now. Absent when none. */
+  relocatedTables?: TableMove[];
   emptied?: string[];
   /** #3172 — the block headers placed, or moved from a former page. Absent when none. */
   headers?: BlockHeaderDue[];
@@ -197,7 +201,16 @@ export type ApplyResult = {
   /** #2858, owner decision Q498 B — the Cover page's furniture (the About frame, and the cover, #2859) was the run's only
    *  work, so no named version was saved for it. */
   aboutOnly?: true;
+  /** #3170 Q3170.4 A — the person stopped the run ("Stop after <set>"): it finished the set it was on and wrote no set
+   *  after it. `after` is the last set finished (null when the stop came before the first write, and nothing was
+   *  written), `done` of `total` the sets written, `left` the sets not touched. Absent when the run was not stopped. */
+  halted?: { after: string | null; done: number; total: number; left: string[] };
 };
+
+/** #3170 part 2: one reading of how far an apply has got (`run-progress` in the plugin). `check`, the dry run before the
+ *  first write; `work`, `item` (a def id) being written, `done` of `total` finished before it; `finish`, the sets are
+ *  done (`done` of them) and the closing writes remain. */
+export type ApplyProgress = { phase: 'check' | 'work' | 'finish'; item: string | null; done: number; total: number };
 
 type LiveNode = { id?: unknown; key?: unknown; name?: unknown; type?: unknown; children?: readonly unknown[]; parent?: unknown };
 type LiveSet = LiveNode & {
@@ -385,7 +398,7 @@ export const namesMember = (miss: string, member: string, known: readonly string
   return false;
 };
 
-const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: () => Promise<void>; handEdits: HandEditChoice; noBaseline: NoRecordChoice; ledger?: readonly ComponentRename[] }): Promise<SetOutcome> => {
+const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: (ms?: number) => Promise<void>; chunk?: number; handEdits: HandEditChoice; noBaseline: NoRecordChoice; ledger?: readonly ComponentRename[] }): Promise<SetOutcome> => {
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
@@ -510,6 +523,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     r = await applyComponentPlan(t.plans, api, {
       ...(opts.description ? { description: opts.description } : {}),
       ...(opts.yieldTo ? { yieldTo: opts.yieldTo } : {}),
+      // #3170 Q3170.5 A: the plugin passes 1, so `yieldTo` is asked after every member and hands the thread back once
+      // about 50 ms of work has run (`main.ts` `paced`). The executor's own chunking is unchanged.
+      ...(opts.chunk ? { chunk: opts.chunk } : {}),
       ...(pageFor(t, live) ? { targetPage: pageFor(t, live) } : {}),
       // A single-component def is built and updated as the build makes it: separate components, no set (#2296).
       ...(t.single ? { emitAsComponents: true } : {}),
@@ -694,7 +710,7 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
     // #3177: the labels and the panel just drawn are on the set's page; the run's next lookup reads that page anew.
     await opts.reread?.([set]);
   }
-  if (res.outcomes.some((o) => o.stopped)) return;
+  if (res.outcomes.some((o) => o.stopped) || res.halted) return;
   await respaceLive(host, targets, preview, res, opts, async (names) => {
     if (res.version) return true;
     try {
@@ -714,7 +730,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   if (!res.version && !res.aboutOnly) return;
   // THE LIBRARY COVER (#2859) first, so a cover drawn now is the thumbnail the About frame is placed beside. An edited
   // cover only has its version text set; a refused write is named, never thrown.
-  if (preview.cover && !res.outcomes.some((o) => o.stopped)) {
+  if (preview.cover && !res.outcomes.some((o) => o.stopped) && !res.halted) {
     try {
       res.cover = await drawCover(api as unknown as CoverApi, host.root as CoverRoot);
     } catch (e) {
@@ -724,7 +740,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   // A run whose only work is the cover (#2859) leaves a current About frame as it is: no set changed, so its date and
   // its words have nothing new to say.
   const coverOnly = !!res.aboutOnly && !aboutIsWork(preview.about);
-  if (preview.about && !coverOnly && !res.outcomes.some((o) => o.stopped)) {
+  if (preview.about && !coverOnly && !res.outcomes.some((o) => o.stopped) && !res.halted) {
     try {
       res.about = await drawAbout(api as unknown as AboutApi, host.root as AboutRoot, { updated: today ?? new Date().toISOString().slice(0, 10) });
     } catch (e) {
@@ -750,10 +766,18 @@ export const applyUpdate = async (
   targets: readonly UpdateTarget[],
   previewHash: string,
   /** `ledger` is the engine's `COMPONENT_RENAMES` unless a test passes its own. */
-  options: { descriptionOf?: (def: string) => string | undefined; nameOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish;
+  options: { descriptionOf?: (def: string) => string | undefined; nameOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: (ms?: number) => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish;
     /** The run's date for the About frame, `YYYY-MM-DD`; today, UTC, unless a test passes its own. */
-    today?: string } = {},
+    today?: string;
+    /** #3170: members per executor chunk, passed through to the build's pass (`ComponentApplyOptions.chunk`). */
+    chunk?: number;
+    /** #3170: told at the check, at every set boundary, and when the sets are done (`ApplyProgress`). Synchronous. */
+    progress?: (p: ApplyProgress) => void;
+    /** #3170 Q3170.4 A: read before the first write and at every set boundary after the first set; true stops the run
+     *  there. A set is never stopped inside. */
+    stop?: () => boolean } = {},
 ): Promise<ApplyResult> => {
+  options.progress?.({ phase: 'check', item: null, done: 0, total: targets.length });
   // #3177: ONE READ OF THE FILE FOR THE RUN, a page per turn, shared by the dry run below, every set's lookups and the
   // executor's (`api`, the same root when it is the same file, as `figma` is both in the plugin). After each write the
   // pages it touched are read again (`reread`), so a lookup after it sees what it added.
@@ -810,21 +834,32 @@ export const applyUpdate = async (
   // THE SETS ON A FORMER PAGE (#2989) are work of their own too, on a host that can make and move pages.
   const relocate = !!preview.pageMoves?.length && !!host.root.children && typeof (host as unknown as { createPage?: unknown }).createPage === 'function'
     && typeof (host as unknown as { loadAllPagesAsync?: unknown }).loadAllPagesAsync === 'function';
+  // THE STYLE-GUIDE TABLES ON A FORMER PAGE (#3171) too, on a host that can load its pages.
+  const retable = !!preview.tableMoves?.length && !!host.root.children && typeof (host as unknown as { loadAllPagesAsync?: unknown }).loadAllPagesAsync === 'function';
   // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
   // …and the library cover (#2859), when it is missing or behind.
   // THE BLOCK HEADERS (#3172) are work of their own too, on a host that can search the file and load a font.
   const headering = !!preview.blockHeaders?.length && !!host.root.children && typeof host.loadFontAsync === 'function';
   const about = aboutIsWork(preview.about) || coverIsWork(preview.cover);
-  if (!ready.length && !moving.length && !reorder && !relocate && !headering && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
+  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !headering && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
   // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
   // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
-  if (!ready.length && !moving.length && !reorder && !relocate && !headering && !furnishing.length) {
+  if (!ready.length && !moving.length && !reorder && !relocate && !retable && !headering && !furnishing.length) {
     res.aboutOnly = true;
     await settle(host, targets, preview, res, opts);
     if (res.version) delete res.aboutOnly;
     await finishAbout(host, api, preview, res, opts.today);
     return res;
   }
+  // #3170 Q3170.4 A: STOPPED BEFORE THE FIRST WRITE, during the check. Nothing is written, no version saved.
+  const halt = (done: number): void => {
+    const left = [...ready.slice(done).map((x) => x.p.set), ...furnishing.map((p) => p.set)];
+    // A set whose only work was its furniture is drawn in `settle`, after the sets: stopped, it is left as it is too.
+    res.outcomes = res.outcomes.filter((o) => !furnishing.some((p) => p.set === o.set));
+    res.halted = { after: done ? ready[done - 1].p.set : null, done, total: ready.length, left };
+    opts.progress?.({ phase: 'finish', item: null, done, total: ready.length });
+  };
+  if (opts.stop?.()) { halt(0); return res; }
   // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7), for all of it: the sets updated or moved, then the page order.
   // Refused or unavailable, nothing is written.
   const setIds = [...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set), ...(relocate ? preview.pageMoves!.map((m) => m.set) : [])])];
@@ -849,6 +884,11 @@ export const applyUpdate = async (
     // #3177: sets moved between pages, and pages made: the whole file is read again, a page per turn.
     if (r.moved.length || r.emptied.length) await reread([], true);
   }
+  // …and the style-guide tables (#3171), the same function the style-guide run calls (Q3171.7 A).
+  if (retable) {
+    const t = await relocateTables(host as unknown as Parameters<typeof relocateTables>[0]);
+    if (t.moved.length) res.relocatedTables = t.moved;
+  }
   // A MOVED BLOCK'S HEADER GOES WITH IT, and a block with none gets one (#3172), before any set is written: the header is
   // placed over the block where the move left it. Read again here, from the file as the move left it.
   if (headering) {
@@ -857,7 +897,12 @@ export const applyUpdate = async (
     if (done.length) res.headers = done.map(({ outcome: _o, ...d }) => d);
     if (h.emptied.length) res.emptied = [...(res.emptied ?? []), ...h.emptied];
   }
-  for (const { t, p, live, stampOnly } of ready) {
+  for (const [i, { t, p, live, stampOnly }] of ready.entries()) {
+    // #3170 Q3170.4 A: "Stop after <set>" is read at each boundary, so the set before it is finished and this one untouched.
+    if (i > 0 && opts.stop?.()) { halt(i); break; }
+    opts.progress?.({ phase: 'work', item: t.def, done: i, total: ready.length });
+    // Q3170.5 A: a reported run hands the thread back at every set boundary, so the panel repaints with the reading.
+    if (opts.progress) await opts.breathe?.();
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
     const fresh = (await liveFor(host, t, p.set, opts.ledger)) ?? live;
     if (stampOnly) {
@@ -871,7 +916,7 @@ export const applyUpdate = async (
     // REPEATING ROWS INTO A SLOT (#2649): the placed instances are read BEFORE the set changes under them, the same read
     // the dry run listed (its hash checked above), and filled after.
     const mig = p.slotMigration ? await slotMigrationFor(t, fresh as unknown as MigNode, opts.ledger, opts.breathe) : null;
-    const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set), ledger: opts.ledger });
+    const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, chunk: opts.chunk, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set), ledger: opts.ledger });
     if (p.furniture && !o.refused && !o.stopped) o.furniture = p.furniture;
     // #2831: the confirm names what it broke for library consumers, as the check listed it.
     if (p.breaking && !o.refused && !o.stopped) o.breaking = p.breaking;
@@ -886,11 +931,12 @@ export const applyUpdate = async (
     await reread(t.single ? kidsOf(fresh) : [fresh]);
     if (o.stopped) break;
   }
+  if (!res.halted && !res.outcomes.some((o) => o.stopped)) opts.progress?.({ phase: 'finish', item: null, done: ready.length, total: ready.length });
   // THE SETS MOVE ON THEIR PAGES LAST (#2542, owner decision Q245.2 A), once every set has its new size, so each sits
   // where a fresh build would place it. Read again from the live sets: the moves the dry run listed, plus any a resize
   // just made (as #2519 counts the member moves the dry run could not list). A set the apply refused or stopped in
   // holds its page still. Only `x` and `y` are written, so every set and member keeps its id.
-  if (!res.outcomes.some((o) => o.stopped)) await respaceLive(host, targets, preview, res, opts);
+  if (!res.outcomes.some((o) => o.stopped) && !res.halted) await respaceLive(host, targets, preview, res, opts);
   await settle(host, targets, preview, res, opts);
   await finishAbout(host, api, preview, res, opts.today);
   return res;
@@ -936,6 +982,12 @@ const unfinishedOf = (o: SetOutcome): { members: string[]; others: string[] } =>
   return { members, others };
 };
 
+/** #3170 Q3170.4 A, DRAFT wording: a run the person stopped at a set boundary. */
+const haltedHeadline = (h: NonNullable<ApplyResult['halted']>): string =>
+  h.after ? `⚠ stopped after ${h.after}: ${h.done} of ${n(h.total, 'set')} updated` : '⚠ stopped before writing: nothing updated';
+const haltedLine = (h: NonNullable<ApplyResult['halted']>): string =>
+  `${h.after ? `Stopped after ${h.after}, as asked.` : 'Stopped before the first write, as asked. Nothing was written.'}${h.left.length ? ` Not updated, and still due: ${h.left.join(', ')}.` : ''}`;
+
 /** The verdict for an applied update. `lines` is the Activity drawer's copy (#2177). */
 /** Whether the run wrote to the cover. */
 const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'none';
@@ -966,6 +1018,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   const furnished = r.outcomes.filter((o) => !o.refused && !o.stopped && furnitureDueCount(o.furniture)).length;
   const reordered = r.reordered?.length ?? 0;
   const relocated = r.relocated?.length ?? 0;
+  const tablesMoved = r.relocatedTables?.length ?? 0;
   const headers = r.headers?.length ?? 0;
   const lines: string[] = [];
   for (const o of r.outcomes) {
@@ -1013,9 +1066,11 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   // #2989: the sets moved to their pages, and any page the move left empty, for the owner to delete by hand.
-  if (relocated) lines.push(pageMovesLine(r.relocated, true));
+  if (relocated || tablesMoved) lines.push(pageMovesLine([...(r.relocated ?? []), ...(r.relocatedTables ?? [])], true));
   lines.push(...blockHeadersLines(r.headers, true));
   if (r.emptied?.length) lines.push(emptiedLine(r.emptied));
+  // #3170 Q3170.4 A (DRAFT wording): the stop the person asked for, and the sets it left as they were.
+  if (r.halted) lines.push(haltedLine(r.halted));
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.
   // #2859: the library cover, kept current before it.
@@ -1024,6 +1079,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
   else if (r.aboutOnly && (r.about?.drawn || coverDid(r.cover))) lines.push(coverPageOnlyLine({ about: !!r.about?.drawn, cover: coverDid(r.cover) }, true));
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
+    : r.halted ? haltedHeadline(r.halted)
     : failed.length ? `⚠ ${n(failed.length, 'set')} not verified`
       : refused ? `✗ ${n(refused, 'set')} not updated`
         : updated ? `✓ updated ${updated} in place`
@@ -1037,6 +1093,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                     : setsMoved ? `✓ ${n(setsMoved, 'set')} moved` : reordered ? `✓ reordered ${n(reordered, 'page')}`
                       // Owner-approved wording (#2989, Q3 A, 2026-10-24): a run whose only work was moving sets to their pages.
                       : relocated ? `✓ ${n(relocated, 'set')} moved to ${relocated === 1 ? 'its page' : 'their pages'}`
+                      // DRAFT wording for the owner (#3171): the same, for style-guide tables.
+                      : tablesMoved ? `✓ ${n(tablesMoved, 'table')} moved to ${tablesMoved === 1 ? 'its page' : 'their pages'}`
                       // DRAFT wording for the owner (#3172): a run whose only work was a block header.
                       : headers ? `✓ ${n(headers, 'section header')} placed`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
@@ -1045,5 +1103,5 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                         : r.about?.drawn ? `✓ ${ABOUT_NAME} drawn`
                           // DRAFT wording for the owner (#2859): a run whose only work was the cover.
                           : coverDid(r.cover) ? `✓ ${COVER_NAME} ${r.cover!.did === 'drawn' ? 'drawn' : 'updated'}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
-  return { ok: !stopped && !failed.length && !refused, headline: `${headline}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines };
+  return { ok: !stopped && !r.halted && !failed.length && !refused, headline: `${headline}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines };
 };

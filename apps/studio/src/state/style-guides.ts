@@ -106,15 +106,17 @@ export const keepSelection = (was: StyleGuideCatalog, sel: ReadonlySet<number>, 
   return new Set(now.tables.flatMap((t, i) => (keys.has(t.key) ? [i] : [])));
 };
 
-/** What a selection's summary counts: its tables, and the variables, text styles, effect styles and gradient styles they draw. */
-export interface SgCounts { tables: number; variables: number; textStyles: number; effectStyles: number; gradientStyles: number }
-/** The variables (not styles), text styles, effect styles and gradient styles (#2353 batch 2a) a selection draws, counted. */
+/** What a selection's summary counts: its tables, and the variables, text styles, effect styles, gradient styles and grid
+ *  styles they draw. */
+export interface SgCounts { tables: number; variables: number; textStyles: number; effectStyles: number; gradientStyles: number; gridStyles: number }
+/** The variables (not styles), text styles, effect styles and gradient styles (#2353 batch 2a) and grid styles (#3171) a
+ *  selection draws, counted. */
 export const countsOf = (cat: StyleGuideCatalog, sel: ReadonlySet<number>): SgCounts => {
-  let variables = 0, textStyles = 0, effectStyles = 0, gradientStyles = 0;
+  let variables = 0, textStyles = 0, effectStyles = 0, gradientStyles = 0, gridStyles = 0;
   for (const col of cat.collections) for (const it of col.items) if (it.table >= 0 && sel.has(it.table)) {
-    if (col.textStyles) textStyles++; else if (col.effectStyles) effectStyles++; else if (col.gradientStyles) gradientStyles++; else variables++;
+    if (col.textStyles) textStyles++; else if (col.effectStyles) effectStyles++; else if (col.gradientStyles) gradientStyles++; else if (col.gridStyles) gridStyles++; else variables++;
   }
-  return { tables: sel.size, variables, textStyles, effectStyles, gradientStyles };
+  return { tables: sel.size, variables, textStyles, effectStyles, gradientStyles, gridStyles };
 };
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
@@ -123,7 +125,8 @@ export const summaryText = (c: SgCounts): { lead: string; rest: string } | null 
   c.tables === 0 ? null : {
     lead: plural(c.tables, 'table', 'tables'),
     rest: [c.variables && plural(c.variables, 'variable', 'variables'), c.textStyles && plural(c.textStyles, 'text style', 'text styles'),
-      c.effectStyles && plural(c.effectStyles, 'effect style', 'effect styles'), c.gradientStyles && plural(c.gradientStyles, 'gradient style', 'gradient styles')].filter(Boolean).join(', '),
+      c.effectStyles && plural(c.effectStyles, 'effect style', 'effect styles'), c.gradientStyles && plural(c.gradientStyles, 'gradient style', 'gradient styles'),
+      c.gridStyles && plural(c.gridStyles, 'grid style', 'grid styles')].filter(Boolean).join(', '),
   };
 /** Draw's label (approved copy, P12): "Draw 32 tables", or "Draw" with nothing selected. */
 export const drawLabel = (n: number): string => (n ? `Draw ${plural(n, 'table', 'tables')}` : 'Draw');

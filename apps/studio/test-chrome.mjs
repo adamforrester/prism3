@@ -18156,6 +18156,227 @@ for (const host of ['web', 'figma']) {
   } finally { await ctx.close(); }
 }
 } // 3138
+
+// =============================================================================================
+// #3170 PART 2 — THE STATUS STRIP AT THE PANEL'S FOOT, UPDATE FILE'S ROWS, ITS STOP AND THE WRITES IT HOLDS (the owner's
+// decisions Q3170.1–6, all A, 2026-10-30)
+// =============================================================================================
+// The plugin, light and dark at 1280 and light at 380. The host's readings are planted as `main.ts` posts them
+// (`run-progress`), and what the panel posts back is read off the message channel. Each state is read as drawn:
+//   · Q3170.1 A: the read after open: "Reading this file…" with an indeterminate bar (no value) at page 0, "page 24 of
+//     60" and the bar at 0.4 after it, and the strip gone once the host's full read at open lands;
+//   · Q3170.2 A: Update file's update step: "Checking 2 sets before writing" (no count), then "Updating Button", "1 of 2 ·
+//     m:ss" and the bar at 0; the checklist's rows read Updating, then Updated, the set not reached still Due;
+//   · Q3170.3 A: while the run is out every writing control on Components (each box) and Documentation (the two switches,
+//     Draw specs) is off, its hover reason "Update is running", and on again when the run ends;
+//   · Q3170.5 A: "Still working on Button" after 3 s with no reading, and not at 1 s;
+//   · Q3170.4 A: "Stop after Button" posts `update-stop` and reads "Stopping after Button…", off;
+//   · Q3170.6 A: the run's end turns the strip into the verdict line ("Stopped after Button", "1 of 2 updated", what it
+//     kept), which stays until the next action (Clean up's dry run here) ends it; Apply Theme's "Writing color variables",
+//     "2 of 7", and its own line, "Theme applied";
+//   · the chrome audit (`measure`, `check`) in the reading and running states: the strip's words at their floor, its Stop
+//     a classified control at least 24 × 24.
+// INDEPENDENCE (docs/34): every string, count and fill is a literal typed from the decisions and the wireframe; nothing is
+// read from `STRIP_COPY`.
+// Mutations, each failing by name: the strip never mounted (`frame.ts`' prepend dropped) → `3170 … Q3170.1 A: the read
+// after open shows …`; the read's end ignored (`stripHears`' file-sets arm dropped) → `3170 … the strip goes once the full
+// read lands`; `writeOff` ignoring the run → `3170 … Q3170.3 A: …`; `stop` not posting `update-stop` → `3170 … Q3170.4 A:
+// Stop posts update-stop …`; `rowState` dropped from the lend (every row Due) → `3170 … Q3170.2 A: the rows read …`.
+if (runs('3170')) {
+console.log(`\n#3170 — the status strip, Update file's rows, its Stop and the writes it holds\n${'='.repeat(78)}`);
+const T_FILE = { type: 'file-sets', present: ['button', 'tag', 'badge'], setUp: true, queued: [],
+  due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'due', reason: 'definition' }, badge: { state: 'current' } } };
+const T_CHECK = { type: 'update-check', previewHash: 'H-3170', missing: [], refused: [], sets: [
+  { def: 'button', hash: 'a', members: 576, update: 24, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false },
+  { def: 'tag', hash: 'b', members: 45, update: 12, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false }] };
+const strip = (page) => page.evaluate(() => {
+  const s = document.querySelector('[data-p3="status-strip"]');
+  const t = (role) => { const n = s?.querySelector(`[data-p3="${role}"]`); return n && !n.hidden && n.checkVisibility() ? n.textContent : null; };
+  const bar = s?.querySelector('[data-p3="status-bar"]');
+  const stop = s?.querySelector('[data-p3="status-stop"]');
+  return { shown: !!s && !s.hidden && s.checkVisibility(), kind: s?.dataset.kind ?? null, tone: s?.dataset.tone ?? null, what: t('status-what'), n: t('status-n'), line: t('status-line'),
+    bar: bar && !bar.hidden && bar.checkVisibility() ? (bar.hasAttribute('value') ? Number(bar.value) : 'indeterminate') : null,
+    stop: stop && !stop.hidden && stop.checkVisibility() ? { label: stop.textContent, disabled: stop.disabled } : null,
+    inDrawer: !!s?.closest('[data-p3="activity-drawer"]') };
+});
+const N_CLOCK = /^(\d+ of \d+ · )?\d+:\d\d$/;
+for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
+  const where = `3170 figma ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: w === 380 ? 760 : 900 });
+  let step = 'the read after open';
+  try {
+    await page.evaluate(() => { window.__u = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['update-sets', 'update-stop', 'apply-theme', 'prune', 'update-check-request'].includes(m.type)) window.__u.push(m.type); }); });
+    const sent = () => page.evaluate(() => window.__u.splice(0));
+    // ── Q3170.1 A ──
+    ok(!(await strip(page)).shown, `${where}: before the host says a read has started, the strip is not drawn`);
+    await postMsg(page, { type: 'run-progress', run: 'read', phase: 'work', item: null, done: 0, total: 60 });
+    await settle(page);
+    const r0 = await strip(page);
+    ok(r0.shown && r0.inDrawer && r0.what === 'Reading this file…' && r0.n === null && r0.bar === 'indeterminate' && r0.stop === null,
+      `${where}: Q3170.1 A: the read after open shows "Reading this file…", indeterminate, at the panel's foot (${JSON.stringify(r0)})`);
+    await postMsg(page, { type: 'run-progress', run: 'read', phase: 'work', item: null, done: 24, total: 60 });
+    await settle(page);
+    const r1 = await strip(page);
+    ok(r1.n === 'page 24 of 60' && r1.bar === 0.4 && r1.line === 'The panel works meanwhile. Counts may still change.', `${where}: Q3170.1 A: then "page 24 of 60", the bar at 0.4 (${JSON.stringify(r1)})`);
+    const mr = await measure(page, `${where} / reading`, 'figma', w);
+    check(mr, `${where} / reading`, columnOf('figma', w), w === 380 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+    await postMsg(page, { ...T_FILE, atOpen: true });
+    await settle(page);
+    ok(!(await strip(page)).shown, `${where}: Q3170.1 A: the strip goes once the full read at open lands`);
+    // ── the update step ──
+    step = 'Update file, the update step';
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+    await postMsg(page, T_FILE);
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
+    await postMsg(page, T_CHECK);
+    await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+    await postMsg(page, T_FILE);
+    await postMsg(page, T_CHECK);
+    // The premise's rows, waited for and never swallowed: a slow runner waits for them, and a real absence fails by name.
+    await hooks.need(page, '[data-p3="update-dialog"] [role="checkbox"][data-key="due=tag"][aria-checked="true"]', WAIT);
+    // The update alone: Style guides off too, so the run is one step.
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked'))) === 'true') await hooks.click(page.locator('[data-p3="update-check-guides"]'), WAIT);
+    const ticks = await page.evaluate(() => [...document.querySelectorAll('[data-p3="update-dialog"] [role="checkbox"]')].map((n) => `${n.dataset.key}=${n.getAttribute('aria-checked')}`));
+    ok(JSON.stringify(ticks) === '["item=theme=false","due=button=true","due=tag=true","item=guides=false"]', `${where}: premise: only the two due sets are ticked (${JSON.stringify(ticks)})`);
+    await sent();
+    await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+    await settle(page);
+    ok(JSON.stringify(await sent()) === '["update-sets"]', `${where}: premise: Update file posts the update of the two due sets`);
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'check', item: null, done: 0, total: 2 });
+    await settle(page);
+    const c0 = await strip(page);
+    ok(c0.what === 'Checking 2 sets before writing' && /^\d+:\d\d$/.test(c0.n ?? '') && c0.bar === 'indeterminate' && c0.stop?.label === 'Stop after the check',
+      `${where}: Q3170.2 A: before the first write the strip says it is checking, with no count and no fill (#3177) (${JSON.stringify(c0)})`);
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'work', item: 'button', done: 0, total: 2 });
+    await settle(page);
+    const u0 = await strip(page);
+    ok(u0.kind === 'running' && u0.what === 'Updating Button' && /^1 of 2 · \d+:\d\d$/.test(u0.n ?? '') && u0.bar === 0 && u0.line === null && u0.stop?.label === 'Stop after Button' && !u0.stop.disabled,
+      `${where}: Q3170.2 A: "Updating Button", "1 of 2 · m:ss", the bar at 0 sets done, "Stop after Button" (${JSON.stringify(u0)})`);
+    const mu = await measure(page, `${where} / updating`, 'figma', w);
+    check(mu, `${where} / updating`, columnOf('figma', w), w === 380 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="status-stop"]'] });
+    // ── Q3170.3 A ──
+    step = 'the writing controls';
+    const offs = async () => {
+      await hooks.click(page.locator('[data-p3="rail-components"]'), WAIT);
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="components-list"] [data-p3="cp-box"]'), null, WAIT).catch(() => {});
+      const boxes = await page.evaluate(() => [...document.querySelectorAll('[data-p3="cp-box"]')].map((b) => [b.disabled, b.title]));
+      await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
+      if (w === 380) await page.locator('[data-p3="docs-select"]').selectOption('panels');
+      else await hooks.click(page.locator('[data-p3="docs-tab-panels"]'), WAIT);
+      const sw = await page.evaluate(() => { const s = document.querySelector('[data-p3="docs-panels-switch"]'); return s ? [s.disabled, s.getAttribute('title')] : null; });
+      if (w === 380) await page.locator('[data-p3="docs-select"]').selectOption('specs');
+      else await hooks.click(page.locator('[data-p3="docs-tab-specs"]'), WAIT);
+      const draw = await page.evaluate(() => { const d = document.querySelector('[data-p3="docs-specs-draw"]'); return d ? [d.getAttribute('aria-disabled') === 'true', d.getAttribute('title')] : null; });
+      return { boxes, sw, draw };
+    };
+    const during = await offs();
+    ok(during.boxes.length > 0 && during.boxes.every(([d, t]) => d && t === 'Update is running') && JSON.stringify(during.sw) === '[true,"Update is running"]' && JSON.stringify(during.draw) === '[true,"Update is running"]',
+      `${where}: Q3170.3 A: while the run is out every writing control is off, "Update is running" on hover: ${during.boxes.length} boxes on Components, the panels switch and Draw specs (${JSON.stringify({ boxes: [...new Set(during.boxes.map(String))], sw: during.sw, draw: during.draw })})`);
+    // ── Q3170.5 A ──
+    step = 'the silence';
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'work', item: 'button', done: 0, total: 2 });
+    await settle(page);
+    await page.waitForTimeout(1000);
+    ok((await strip(page)).line === null, `${where}: Q3170.5 A: heard from 1 s ago, no "Still working"`);
+    // The strip repaints once a second, so the line is drawn by the first tick past 3 s.
+    await page.waitForTimeout(3200);
+    const s3 = await strip(page);
+    ok(s3.line === 'Still working on Button', `${where}: Q3170.5 A: "Still working on Button" after 3 s with no reading (${JSON.stringify(s3)})`);
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'work', item: 'button', done: 0, total: 2 });
+    await settle(page);
+    ok((await strip(page)).line === null, `${where}: Q3170.5 A: a reading from the run clears it`);
+    // ── Q3170.2 A, the rows ──
+    step = 'the rows';
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.need(page, '[data-p3="update-run-row"]', WAIT);
+    const rows = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="update-run-row"]')].map((r) => [r.dataset.id, r.querySelector('[data-p3="update-run-state"]')?.textContent]));
+    const rw0 = await rows();
+    ok(JSON.stringify(rw0) === '[["button","Updating"],["tag","Due"]]', `${where}: Q3170.2 A: the rows read Button Updating, Tag Due (${JSON.stringify(rw0)})`);
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'work', item: 'tag', done: 1, total: 2 });
+    await settle(page);
+    const rw1 = await rows();
+    ok(JSON.stringify(rw1) === '[["button","Updated"],["tag","Updating"]]', `${where}: Q3170.2 A: the rows read Button Updated, Tag Updating (${JSON.stringify(rw1)})`);
+    const u1 = await strip(page);
+    ok(u1.what === 'Updating Tag' && /^2 of 2 · /.test(u1.n ?? '') && u1.bar === 0.5, `${where}: Q3170.2 A: "Updating Tag", "2 of 2", the bar at half (${JSON.stringify(u1)})`);
+    await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+    // ── Q3170.4 A ──
+    step = 'Stop';
+    await sent();
+    await hooks.click(page.locator('[data-p3="status-stop"]'), WAIT);
+    await settle(page);
+    const st = await strip(page);
+    ok(JSON.stringify(await sent()) === '["update-stop"]' && st.stop?.label === 'Stopping after Tag…' && st.stop.disabled,
+      `${where}: Q3170.4 A: Stop posts update-stop and reads "Stopping after Tag…", off (${JSON.stringify(st.stop)})`);
+    // The host's stop: Tag finished, so the update ends with both written (its finish reading), and the run ends.
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'finish', item: null, done: 2, total: 2 });
+    await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ updated 36 in place', summary: 'done', lines: ['done'] });
+    await settle(page);
+    const v = await strip(page);
+    ok(v.kind === 'verdict' && v.tone === 'ok' && v.what === '2 sets updated' && /^\d+:\d\d$/.test(v.n ?? '') && v.line === 'Details in Activity.' && v.bar === null && v.stop === null,
+      `${where}: Q3170.6 A: the run's end turns the strip into its verdict line, "2 sets updated" and its time (${JSON.stringify(v)})`);
+    const after = await offs();
+    ok(after.boxes.length > 0 && after.boxes.every(([d]) => !d) && after.sw?.[1] === null && after.draw?.[0] === false, `${where}: Q3170.3 A: the run ended, every writing control is on again (${JSON.stringify({ boxes: [...new Set(after.boxes.map(String))], sw: after.sw, draw: after.draw })})`);
+    ok((await strip(page)).kind === 'verdict', `${where}: Q3170.6 A: the verdict line stays while nothing else runs`);
+    // ── a run the person stops after the first set ──
+    step = 'a stopped run';
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+    await postMsg(page, T_FILE);
+    await postMsg(page, T_CHECK);
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]') && !document.querySelector('[data-p3="update-go"]').disabled, null, WAIT).catch(() => {});
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) === 'true') {
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+      await postMsg(page, T_FILE);
+      await postMsg(page, T_CHECK);
+    }
+    await page.waitForFunction(() => !document.querySelector('[data-p3="update-go"]')?.disabled, null, WAIT).catch(() => {});
+    await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+    ok((await strip(page)).kind === 'running', `${where}: Q3170.6 A: the next run replaces the verdict line`);
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'work', item: 'button', done: 0, total: 2 });
+    await settle(page);
+    await hooks.click(page.locator('[data-p3="status-stop"]'), WAIT);
+    await postMsg(page, { type: 'run-progress', run: 'update', phase: 'finish', item: null, done: 1, total: 2 });
+    await postMsg(page, { type: 'component-update-result', ok: false, headline: '⚠ stopped after button: 1 of 2 sets updated', summary: 'Stopped after button, as asked.', lines: ['Stopped after button, as asked.'] });
+    await settle(page);
+    const vs = await strip(page);
+    ok(vs.tone === 'warn' && vs.what === 'Stopped after Button' && vs.n === '1 of 2 updated' && vs.line === 'The 1 set updated keeps its changes; the other 1 is unchanged. Details in Activity.',
+      `${where}: Q3170.6 A: "Stopped after Button", "1 of 2 updated", what it kept (${JSON.stringify(vs)})`);
+    // The next action ends the line: Clean up's dry run.
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.click(page.locator('[data-p3="update-tab-clean"]'), WAIT);
+    await settle(page);
+    ok(!(await strip(page)).shown, `${where}: Q3170.6 A: the next action the panel starts (Clean up's dry run) ends the verdict line`);
+    await postMsg(page, { type: 'prune-result', ok: true, applied: false, count: 0, summary: 'Nothing stale.' });
+    await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+    // ── Apply Theme ──
+    step = 'Apply Theme';
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+    await postMsg(page, { ...T_FILE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'current' } } });
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) !== 'true') await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+    await postMsg(page, { ...T_FILE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'current' } } });
+    await page.waitForFunction(() => !document.querySelector('[data-p3="update-go"]')?.disabled, null, WAIT).catch(() => {});
+    await sent();
+    await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+    await settle(page);
+    ok(JSON.stringify(await sent()) === '["apply-theme"]', `${where}: premise: Update file posts Apply Theme`);
+    await postMsg(page, { type: 'run-progress', run: 'apply-theme', phase: 'work', item: 'color', done: 1, total: 7 });
+    await settle(page);
+    const a = await strip(page);
+    ok(a.what === 'Writing color variables' && /^2 of 7 · \d+:\d\d$/.test(a.n ?? '') && Math.abs(a.bar - 1 / 7) < 1e-6 && a.stop?.label === 'Stop after Theme',
+      `${where}: Q3170.2 A: Apply Theme: "Writing color variables", "2 of 7", by stages done, "Stop after Theme" (${JSON.stringify(a)})`);
+    await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'applied', lines: ['applied'] });
+    await settle(page);
+    const av = await strip(page);
+    ok(av.kind === 'verdict' && av.what === 'Theme applied' && N_CLOCK.test(av.n ?? ''), `${where}: Q3170.6 A: "Theme applied" and its time (${JSON.stringify(av)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3170
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
