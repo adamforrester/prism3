@@ -676,7 +676,7 @@
     },
     "toast": {
       "members": 2,
-      "sha256": "7316ee149eb7b8b621c0f689852d5fb326b4bed730b56993c9a77bf4874bcc14",
+      "sha256": "6c722abf8fde5ddbed9d6e44bf2d52ec93a8bf31cbdc6b93358957007b328d3c",
       "properties": [
         "action:BOOLEAN",
         "close:BOOLEAN",
