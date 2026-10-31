@@ -1553,7 +1553,7 @@
             "silver",
             "purple"
           ],
-          "description": "The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style another provider uses is refused."
+          "description": "The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style the provider does not offer is refused."
         },
         {
           "name": "size",
