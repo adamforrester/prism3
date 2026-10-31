@@ -19,7 +19,7 @@ A labeled set for selecting any number — zero to many — from a bounded list 
 
 Shown on the default member: size `medium`, status `default`.
 
-1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width.
+1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts primary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width.
 2. **Items** — The items: a native slot holding the Checkbox.Row instances, three by default. A designer adds, removes and reorders rows in place.
 3. **Row1** — The first Checkbox.Row — always present. Nests the labeled row (which nests the control), following the group's size. Fills the group's width. Its checked state is derived from the group's value array, not wired here.
 4. **Row2** — The second default item: a Checkbox.Row, the same nest configuration as the first, including the group-width fill.
@@ -160,7 +160,7 @@ Keyed by `status`.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
+- `container/label` nests `field-label` at `size=medium, emphasis=primary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
 - `container/items` is a slot, preferring `checkbox-row`
 - `container/items/row1` nests `checkbox-row` at `size=medium, status=default`; follows `size`, `status`
 - `container/items/row2` nests `checkbox-row` at `size=medium, status=default`; follows `size`, `status`

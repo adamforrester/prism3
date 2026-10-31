@@ -357,7 +357,7 @@ Keyed by `type`, `state`.
 
 ### Nesting and properties
 
-- `container/field/header/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; `state=disabled` takes `state=disabled`
+- `container/field/header/label` nests `field-label` at `size=medium, emphasis=primary, weight=bold, state=rest`; `state=disabled` takes `state=disabled`
 - `container/field/control/track/thumb` nests `_slider-thumb` at `size=medium, state=rest`; `state=hover` takes `state=hover`, `state=pressed` takes `state=pressed`, `state=focus-visible` takes `state=focus-visible`, `state=disabled` takes `state=disabled`; follows `size`
 - `container/inputs/inputSingle` nests `text-field` at `size=medium, status=default, state=filled`; `state=disabled` takes `state=disabled`
 - `container/message` nests `field-message` at `status=default`

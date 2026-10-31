@@ -349,7 +349,7 @@ export const codeInput: ComponentDef = {
         nests: 'field-label',
         // One label size at every cell size: FieldLabel has no xlarge, and the label names the field, it does not
         // scale with the cells. Dims with the field (`variantWhen`).
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // NOT STRETCHED (#2928): the host does not let a column hug a child that fills it. The label was the first child
         // stretched, so the field froze at its 320 and the cells ran past it from medium up (six medium cells are 328).
         // The label keeps its own width and the field hugs the wider of it and the cells (DRAFT, held on #2928).

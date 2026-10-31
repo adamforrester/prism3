@@ -20,7 +20,7 @@ A compact row of two to five short options in one neutral track, where exactly o
 Shown on the default member: size `medium`.
 
 1. **Container** — The control: a label above the track. It fills its column.
-2. **Label** (optional) — The visible label, naming what is being chosen. Shown by default. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).
+2. **Label** (optional) — The visible label, naming what is being chosen. Shown by default. Starts primary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).
 3. **Track** — The track: a neutral fill behind every option, with no outline. Each option fills an equal share of it, and the selected one shows a pill on it.
 4. **Items** — The options: a native slot holding Segment instances, three by default, the first selected. Each option fills an equal share of the track.
 5. **Segment1** — The first option, selected.
@@ -167,7 +167,7 @@ Keyed by nothing: one row covers every member.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
+- `container/label` nests `field-label` at `size=medium, emphasis=primary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
 - `container/track/items` is a slot, preferring `segmented-control-segment`
 - `container/track/items/segment1` nests `segmented-control-segment` at `selection=selected, size=medium, state=rest`; follows `size`
 - `container/track/items/segment2` nests `segmented-control-segment` at `selection=unselected, size=medium, state=rest`; follows `size`
