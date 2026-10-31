@@ -53,9 +53,11 @@ The oracle is the `.md` files on disk, listed and parsed with the test's own pat
 | numbered lists drawn as `<ul>` | `guides/<name>.html draws its N numbered step(s) in an <ol>` |
 | "On this page" never drawn | `guides/<name>.html draws "On this page" from its N ## heading(s)` |
 | Previous and Next swapped | `guides/<name>.html's Previous and Next follow index.md's order`, for all 8 guides |
+| code spans unprotected, escaped as text | `guides/<name>.html draws its N inline code span(s) as <code>`, for all 10 pages |
 
 Review found `**Build *Name***` drawn as `<strong>Build <em>Name</strong></em>`: the lazy bold pass closed inside
-`***`. Bold now admits an italic span inside it. The last five rows came from that review.
+`***`. Bold now admits an italic span inside it. The five rows before the last came from that review; the
+last, inline code, from the next.
 
 ### Next
 
