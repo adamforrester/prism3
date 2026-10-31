@@ -1576,6 +1576,12 @@ for (const how of ['pointer', 'focus']) {
       const d = document.querySelector(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-body"]`);
       return !!d && d.checkVisibility() && (d.textContent ?? '').length > 0;
     }, op, { timeout: 5000 }).catch(() => {});
+    // #3150: the drawer slides up as it opens (the chrome's motion), so where it sits is read once every finite animation
+    // has finished, bounded: the end state, never a frame mid-move.
+    await page.evaluate(() => Promise.race([
+      Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))),
+      new Promise((r) => setTimeout(r, 3000)),
+    ]));
     const seen = await page.evaluate((k) => {
       const row = document.querySelector(`[data-p3="activity-op"][data-op="${k}"]`);
       const detail = row?.querySelector('[data-p3="op-body"]') ?? null;

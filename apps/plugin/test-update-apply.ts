@@ -1476,6 +1476,62 @@ section('accordion title weight — a file built with the emphasis title takes t
     `accordion weight/current: the next dry run reads the other 18 current and still reports the 30 hand edits (${JSON.stringify(post.counts)})`);
 }
 
+section('accordion divider — a file built before the `divider` boolean takes it in place, member ids kept, and 30 members hand-edited on the header\'s padding keep it (#3198, Q-ACC2 A)');
+// THE FILE: the set as main built it before #3198 — the nested Divider in every member, no property on it — rebuilt from
+// today's def by taking the boolean back out, so both sides are the real def's projection. 30 of the 48 members carry a
+// hand edit on the header's block padding. THE UPDATE: today's plans. EXPECTED, typed here: the set declares one BOOLEAN
+// `divider`, default on; every member's Divider is visible and wired to it; every member and node keeps its key and id;
+// the 30 edited headers keep the designer's padding.
+// Mutation: the def's `divider` boolean removed → `accordion divider/dry run` (nothing to update), `accordion divider/property`.
+{
+  const ACC = 'accordion';
+  const now = componentDefs.find((x) => x.id === ACC)!;
+  const { optional: _opt, ...oldDivider } = now.anatomy.parts.divider;
+  void _opt;
+  const { divider: _b, ...oldBooleans } = now.figmaProperties!.booleans ?? {};
+  void _b;
+  const before3198 = {
+    ...now,
+    props: now.props.filter((q) => q.name !== 'divider'),
+    anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, divider: oldDivider } },
+    figmaProperties: { ...now.figmaProperties, booleans: oldBooleans },
+  } as typeof now;
+  const oldPlans = figmaAnatomySet(before3198, { swapTarget: SWAP_TARGET });
+  const plans = plansOf(ACC);
+  const w = await world(ACC, oldPlans, { extraVars: ['space/0'] });
+  const propsOf = () => Object.entries((w.set().componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue: unknown }>).filter(([k]) => k.split('#')[0] === 'divider');
+  const wiredTo = (m: Node): string => String(((childNamed(m, 'divider')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0];
+  const members = membersOf(w.set());
+  ok(members.length === 48 && propsOf().length === 0 && members.every((m) => !!childNamed(m, 'divider') && wiredTo(m) === ''),
+    `accordion divider/premise: the file's 48 members each nest a Divider, and the set has no 'divider' property (${propsOf().length} properties, ${members.filter((m) => wiredTo(m) !== '').length} wired)`);
+  const zero = await varIdOf(w, 'space/0');
+  const edited = members.slice(0, 30);
+  for (const m of edited) for (const f of ['paddingTop', 'paddingBottom']) (childNamed(m, 'header').setBoundVariable as (f: string, v: { id: string }) => void)(f, { id: zero });
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: ACC, plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update + p.counts.handEdited === 48 && p.counts.handEdited === 30 && p.counts.add === 0 && p.counts.drop === 0 && !p.replacements.length && !p.renames.length,
+    `accordion divider/dry run: all 48 members to update, 30 of them with a hand edit, nothing added, dropped, renamed or replaced (${JSON.stringify(p?.counts)}, ${p?.blockers.join('; ') || 'no blockers'})`);
+  const v = applyVerdict(res);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(v.ok && JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 48,
+    `accordion divider/in place: the set, every member and every node keep their keys and ids (${v.headline}; ${moved.length} members, ${kidsMoved.length} nodes moved)`);
+  const props = propsOf();
+  ok(props.length === 1 && props[0][1].type === 'BOOLEAN' && props[0][1].defaultValue === true,
+    `accordion divider/property: the set declares one BOOLEAN 'divider', default on (${JSON.stringify(props)})`);
+  const unwired = membersOf(w.set()).filter((m) => wiredTo(m) !== 'divider' || childNamed(m, 'divider')?.visible === false).map((m) => String(m.name));
+  ok(unwired.length === 0, `accordion divider/wired: all 48 members' Divider is visible and its visibility follows 'divider' (${unwired.slice(0, 3).join('; ') || 'all 48'})`);
+  const padOf = (m: Node) => ['paddingTop', 'paddingBottom'].map((f) => (childNamed(m, 'header').boundVariables as Record<string, { id: string }>)[f]?.id);
+  const lostPad = edited.filter((m) => !padOf(m).every((id) => id === zero)).map((m) => String(m.name));
+  ok(lostPad.length === 0 && res.outcomes[0].kept.length === 30 && res.outcomes[0].kept.every((k) => k.path === 'header'),
+    `accordion divider/hand edits kept: the 30 edited headers keep the designer's padding and are listed as kept (${lostPad.length} lost, ${res.outcomes[0].kept.length} kept)`);
+  const post = (await previewUpdate(w.host, [{ def: ACC, plans }])).sets[0];
+  ok(post.counts.current === 18 && post.handEdits.length === 30,
+    `accordion divider/current: the next dry run reads the other 18 current and still reports the 30 hand edits (${JSON.stringify(post.counts)})`);
+}
+
 section('min/max — a member built under one Tag style and updated under the other has a fresh build\'s min and max sizes (#2976)');
 {
   // Owner QA 2026-10-23: a file built as Pill and updated to Underline kept the pill's height and 1.5x width as plain

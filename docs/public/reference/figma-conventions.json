@@ -407,11 +407,22 @@
         "kind": "component set",
         "page": "↳ Icons & assets",
         "section": "Foundations",
-        "members": 75,
+        "members": 86,
         "variantProperties": [
           {
             "name": "name",
             "values": [
+              "button/apple-pay-black",
+              "button/apple-pay-white",
+              "button/apple-pay-white-outline",
+              "button/google-pay-black",
+              "button/google-pay-white",
+              "button/paypal-black",
+              "button/paypal-blue",
+              "button/paypal-gold",
+              "button/paypal-silver",
+              "button/paypal-white",
+              "button/shop-pay-purple",
               "logo/affirm",
               "logo/amazon-pay",
               "logo/amex",
@@ -768,7 +779,7 @@
         "kind": "component set",
         "page": "↳ Wallet button",
         "section": "Components",
-        "members": 20,
+        "members": 68,
         "variantProperties": [
           {
             "name": "provider",
@@ -777,6 +788,19 @@
               "google-pay",
               "paypal",
               "shop-pay"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "any",
+              "black",
+              "white",
+              "white-outline",
+              "gold",
+              "blue",
+              "silver",
+              "purple"
             ]
           },
           {
@@ -2209,6 +2233,10 @@
           {
             "name": "title",
             "type": "TEXT"
+          },
+          {
+            "name": "divider",
+            "type": "BOOLEAN"
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/accordion.md"
