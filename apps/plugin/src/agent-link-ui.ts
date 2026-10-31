@@ -121,8 +121,8 @@ export const agentLinkWord = (s: AgentLinkState | null, bridgeBuilt = true): { r
   return { text: `Listening · ${s.transports.bridge ? 'bridge' : 'mailbox'}`, error: false };
 };
 
-/** #3204 (Q3204.1 A): the pairing prompt's words, by where pairing stands. Approved (Q3204.4 A), except `wrongCode`,
- *  reworded for the code's 10-minute window (Q3204.5 A) and DRAFT for the owner. `line` is the
+/** #3204 (Q3204.1 A): the pairing prompt's words, by where pairing stands. Approved (Q3204.4 A); `wrongCode`, reworded
+ *  for the code's 10-minute window (Q3204.5 A), approved as Q3204.7 A. `line` is the
  *  prompt's one line; `error` is the line under the field, or null. Nothing is asked while pairing is 'none'. Pure. */
 export const PAIR_WORDS = {
   title: 'Pair with the desktop bridge',

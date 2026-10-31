@@ -935,7 +935,7 @@ section('state — what the panel shows');
     && agentLinkStatusText({ ...s, inboxError: 'the inbox is not a JSON array' }, at).endsWith(' Inbox error: the inbox is not a JSON array.'),
     'the bridge, no transport and an inbox error each read in words');
   ok(agentLinkStatusText(null) === agentLinkStatusText({ ...s, on: false }), 'and reads off before the first state arrives');
-  // #3147 Phase 1: the bar row's word names the transport (DRAFT wording). Literals: the bridge while it is connected,
+  // #3147 Phase 1: the bar row's word names the transport (approved, Q3204.3 A). Literals: the bridge while it is connected,
   // the mailbox otherwise; the error words are unchanged. MUTATION: the suffix dropped → this arm fails by name.
   ok(agentLinkWord({ ...s, transports: { mailbox: true, bridge: true } })?.text === 'Listening · bridge'
     && agentLinkWord({ ...s, transports: { mailbox: true, bridge: false } })?.text === 'Listening · mailbox'

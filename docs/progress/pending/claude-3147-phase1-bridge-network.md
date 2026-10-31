@@ -34,8 +34,8 @@ section 31. ENGINE patch (change note). CONTRACT unchanged. `AGENT_PROTOCOL_VERS
 - **Link word.** The Activity drawer's bar-row word names the transport: "Listening · bridge" while the bridge is
   connected, otherwise "Listening · mailbox"; "Prism3 Studio Offline" reads "Listening · mailbox only" (Q3204.2 A).
   The manifest reasoning, these words and the 403 body are approved (Q3204.3 A). The pairing prompt's words are
-  approved (Q3204.4 A, with the reviewer's two edits), except the wrong-code line, reworded for the 10-minute window
-  and DRAFT for the owner.
+  approved (Q3204.4 A, with the reviewer's two edits); the wrong-code line, reworded for the 10-minute window, and
+  the window's stderr lines and `figma_status` description are approved too (Q3204.7 A).
 - **No arbitrary code in a release** (Q3147.4 A). `run-code` stays behind `PRISM3_DEV`, and `lint-release-bundle.ts`
   still holds it absent from both releases.
 
