@@ -65,6 +65,15 @@
  * `update/one-read`; the furniture drawn on `figma` → `update/apply-no-walk`. The executor's lookups, the re-reads after a
  * write and the twin comparison are `test-run-read.ts`'s, which builds a set the executor can write.
  *
+ * #3189, CAPTURE BASELINE AND ADOPT on the same host, each over every def, driven through `ACTIONS` with an agent's sink
+ * (both are agent commands): `capture/no-walk`, `adopt/no-walk` (no whole-file search, one page a turn at most),
+ * `capture/one-read`, `adopt/one-read` (each page searched once per criterion, never once per set), `capture/answers`,
+ * `adopt/answers` (the answer a whole-file search gives, as literals; its digest is printed, and matched the one before
+ * #3189) and `capture/progress`, `adopt/progress` (check, a reading per def in order, finish). Mutations failing by name:
+ * the capture without the run's read (`runHost`) → `capture/no-walk`, `capture/one-read`; Adopt without it →
+ * `adopt/no-walk`, `adopt/one-read`; a page left out of the run's read → `capture/answers`, `adopt/answers`; the capture's
+ * or Adopt's readings not posted → `capture/progress`, `adopt/progress`.
+ *
  * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
  * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
  */
@@ -233,7 +242,7 @@ const timings: { stage: string; ms: number; turn?: number }[] = [];
 timings.push = (...e: { stage: string; ms: number }[]) => Array.prototype.push.call(timings, ...e.map((x) => ({ ...x, turn: turnNo })));
 g.PRISM3_OPEN_TIMINGS = timings;
 
-await import('./src/main');
+const { ACTIONS } = await import('./src/main');
 
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
 
@@ -523,6 +532,81 @@ const update = async (label: string, msg: unknown, answer: string): Promise<{ ms
   const named = sets.length + ((check?.msg?.missing ?? []) as unknown[]).length + ((check?.msg?.refused ?? []) as unknown[]).length;
   ok(!!check && !check.msg.error && named === SETS && !!apply && !/changed since the check/.test(String(apply.msg.summary ?? '')),
     `update/answers: the check answers for all ${SETS} sets and the apply runs under its hash (${check ? `${sets.length} read, ${named} named` : 'no check'}; ${apply ? String(apply.msg.headline ?? '') : 'no apply'})`);
+}
+
+/* ── Capture baseline and Adopt (#3189) ────────────────────────────────────────────────────────────── */
+
+// #3189, the same shape as #3177 on the two other commands of the update's host: `capture-baseline` and `adopt-members`,
+// over every def (no `def`, as an agent sends them), each on the stand-in with its pages unloaded. Both are agent
+// commands, so they are driven through `ACTIONS` with an agent's sink, as the agent link does.
+//   · `capture/no-walk`, `adopt/no-walk`: no search of the whole file, in one turn, and no turn searches more than one page.
+//   · `capture/one-read`, `adopt/one-read`: one read per run, every page searched once per criterion it reads (3), never
+//     once per set. Both write plugin data only, which adds no node, so neither reads a page again.
+//   · `capture/answers`, `adopt/answers`: the result is the one a whole-file search gives (literals below): every stand-in
+//     set read in the targets' order, its one hand-made member skipped and none recorded (capture) or claimed by Adopt
+//     (adopt), every other def missing, Adopt never offered for a single-component def, nothing refused.
+//   · `capture/progress`, `adopt/progress`: the run posts its readings for the status strip (`run-progress`, its own
+//     `run`): `check` before the read, then `work` for each def in the targets' order, `done` counting those before it,
+//     then `finish` with every def done.
+// MEASURED, NOT ASSERTED: the longest stall, each run's time, and each answer digested for a before/after comparison.
+console.log('\n  Capture baseline and Adopt (#3189)');
+{
+  const all = componentDefs.filter((d) => d.figmaProperties).map((d) => d.id);
+  const singles = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
+  const digest = (m: unknown): string => { let h = 2166136261; for (const ch of JSON.stringify(m)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h.toString(16); };
+  type Sink = { post(m: any): void; data(d: Record<string, unknown>): void };
+  const agentRun = async (label: string, go: (sink: Sink) => Promise<void>) => {
+    for (const p of pages) p.loaded = false;
+    allCalled = false; loads = 0; inTurn = 0; worstTurn = 0; docSearches = 0; worstSearch = 0; searchesOf.clear();
+    const from = posted.length;
+    const verdicts: any[] = [];
+    const data: any[] = [];
+    let stall = 0;
+    let on = true;
+    const tick = (): void => { const at = Date.now(); realTimeout(() => { stall = Math.max(stall, Date.now() - at - 1); if (on) tick(); }, 1); };
+    tick();
+    const at = Date.now();
+    // The agent's command starts a turn of its own, as a message from the panel does.
+    inTurn = 0; searchedInTurn = 0; turnNo++;
+    await go({ post: (m) => verdicts.push(m), data: (d) => data.push(d) });
+    on = false;
+    const counts = pages.map((p) => searchesOf.get(p.id) ?? 0);
+    const readings = posted.slice(from).map((p) => p.msg).filter((m) => m?.type === 'run-progress' && m.run === label);
+    const out = { verdict: verdicts.find((m) => m?.type === 'component-update-result'), update: data.find((d) => d.update)?.update, searches: docSearches, worst: worstSearch, most: Math.max(...counts), least: Math.min(...counts), readings };
+    console.log(`    ${label}: ${out.searches} whole-file searches, most pages searched in one turn ${out.worst}, each page searched ${out.least}–${out.most} times, ${readings.length} readings, longest stall ${stall} ms, ${Date.now() - at} ms in all; answer ${digest(out.update ?? null)}, verdict ${digest(out.verdict ?? null)}`);
+    return out;
+  };
+  // An answer first: a run that failed searched nothing, and must not pass for one that searched no whole file.
+  const readsOnce = (r: { update: unknown; searches: number; worst: number }) => !!r.update && r.searches === 0 && r.worst <= 1;
+  const oneRead = (r: { most: number; least: number }) => r.least === UPDATE_READS && r.most === UPDATE_READS;
+  const progressed = (r: { readings: any[] }) => {
+    const [first, ...rest] = r.readings;
+    const work = rest.slice(0, -1);
+    const last = rest[rest.length - 1];
+    return !!first && first.phase === 'check' && first.done === 0 && first.total === all.length
+      && work.length === all.length && work.every((w, i) => w.phase === 'work' && w.item === all[i] && w.done === i && w.total === all.length)
+      && !!last && last.phase === 'finish' && last.done === all.length && last.total === all.length;
+  };
+  const sameIds = (a: unknown, b: readonly string[]) => Array.isArray(a) && a.length === b.length && a.every((x, i) => x === b[i]);
+  const handMade = (s: any) => s.skipped.length === 1 && s.skipped[0].member === 'Variant=Default';
+
+  const cap = await agentRun('capture', (sink) => ACTIONS.captureBaseline(undefined, sink as never));
+  ok(readsOnce(cap), `capture/no-walk: Capture baseline over every def searches no whole file in one turn, one page a turn at most (${cap.searches} whole-file searches, worst ${cap.worst})`);
+  ok(oneRead(cap), `capture/one-read: Capture baseline reads the file once, every page searched ${UPDATE_READS} times, never once per set (${cap.least}–${cap.most})`);
+  const cu = cap.update;
+  ok(!!cu && sameIds(cu.sets?.map((s: any) => s.set), setIds) && cu.sets.every((s: any) => s.recorded === 0 && handMade(s))
+    && sameIds(cu.missing, all.filter((id) => !setIds.includes(id))) && cu.refused?.length === 0,
+    `capture/answers: every one of the ${SETS} stand-in sets read in order, its hand-made member skipped, the other ${all.length - SETS} defs missing, none refused (${cu ? `${cu.sets?.length} sets, ${cu.missing?.length} missing, ${cu.refused?.length} refused` : 'no answer'})`);
+  ok(progressed(cap), `capture/progress: Capture baseline posts check, a reading per def (${all.length}) in order, and finish (${cap.readings.map((m: any) => m.phase[0]).join('').replace(/w+/, (w: string) => `w×${w.length}`) || 'none'})`);
+
+  const ad = await agentRun('adopt', (sink) => ACTIONS.adoptMembers(undefined, sink as never));
+  ok(readsOnce(ad), `adopt/no-walk: Adopt over every def searches no whole file in one turn, one page a turn at most (${ad.searches} whole-file searches, worst ${ad.worst})`);
+  ok(oneRead(ad), `adopt/one-read: Adopt reads the file once, every page searched ${UPDATE_READS} times, never once per set (${ad.least}–${ad.most})`);
+  const au = ad.update;
+  ok(!!au && sameIds(au.sets?.map((s: any) => s.set), setIds) && au.sets.every((s: any) => s.adopted === 0 && handMade(s))
+    && sameIds(au.missing, all.filter((id) => !setIds.includes(id) && !singles.includes(id))) && sameIds(au.notOffered, singles) && au.refused?.length === 0,
+    `adopt/answers: every one of the ${SETS} stand-in sets read in order, its hand-made member skipped, the single-component defs not offered, the rest missing, none refused (${au ? `${au.sets?.length} sets, ${au.missing?.length} missing, ${au.notOffered?.length ?? 0} not offered, ${au.refused?.length} refused` : 'no answer'})`);
+  ok(progressed(ad), `adopt/progress: Adopt posts check, a reading per def (${all.length}) in order, and finish (${ad.readings.map((m: any) => m.phase[0]).join('').replace(/w+/, (w: string) => `w×${w.length}`) || 'none'})`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

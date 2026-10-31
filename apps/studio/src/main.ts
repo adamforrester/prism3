@@ -35,7 +35,7 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityLend, ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { StatusLend } from './shell/status-strip';
-import { heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
+import { heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
 import { brandFor, DUE_DEBOUNCE_MS, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
@@ -2027,6 +2027,8 @@ subscribe('identity', recountDue);
 // until the next action the panel starts (`clearStripLine`).
 let stripRead: StripRead = null;
 let stripRun: StripRun | null = null;
+/** #3189: an agent's Capture baseline or Adopt, from its first reading to the agent's command ending. */
+let stripAgent: StripAgent = null;
 let stripLine: StripVerdict | null = null;
 const setName = (id: string): string => displayNameOf(componentCatalog(), id);
 /** A reading the host posted, or a message that tells the strip the run is still answering. The update's and Apply
@@ -2036,11 +2038,13 @@ const stripHears = (m: Parameters<typeof reduce>[1]): void => {
   const step = updateRun ? stepOf(updateRun) : null;
   if (m.kind === 'run-progress') {
     if (m.run === 'read') stripRead = { done: m.done, total: m.total };
+    else if (m.run === 'capture' || m.run === 'adopt') stripAgent = { run: m.run, phase: m.phase, done: m.done, total: m.total };
     else if (stripRun && ((m.run === 'update' && step === 'update' && updatePhase === 'apply') || (m.run === 'apply-theme' && step === 'theme')))
       stripRun = withReading(stripRun, { run: m.run, phase: m.phase, item: m.item, done: m.done, total: m.total }, Date.now());
     invalidate('host:run');
     return;
   }
+  if (m.kind === 'agent-finished' && stripAgent) { stripAgent = null; invalidate('host:run'); return; }
   if (m.kind === 'file-sets' && m.atOpen && !m.partial && stripRead) { stripRead = null; invalidate('host:run'); return; }
   if (stripRun && (m.kind === 'component-progress' || m.kind === 'style-guide-progress' || m.kind === 'update-check')) { stripRun = heard(stripRun, Date.now()); invalidate('host:run'); }
 };
@@ -2053,7 +2057,7 @@ const writeOff = (): string | null => (restoreFailure ? RESTORE_OFF_HINT : updat
 const writesMoved = (): void => { invalidate('host:run'); invalidate('host:components'); invalidate('host'); };
 const statusLend: StatusLend = {
   read: () => stripView({
-    read: stripRead, run: stripRun, verdict: stripLine, now: Date.now(), nameOf: setName,
+    read: stripRead, agent: stripAgent, run: stripRun, verdict: stripLine, now: Date.now(), nameOf: setName,
     step: updateRun && stepOf(updateRun) ? { step: stepOf(updateRun)!, stopping: updateRun.stopping, queue: run && currentOf(run) ? { id: currentOf(run)!, at: run.results.length + 1, of: run.ids.length } : null } : null,
   }),
   stop: () => updateFileLend.stop(),
