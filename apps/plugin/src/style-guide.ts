@@ -665,8 +665,6 @@ export const varKind = (v: SgVariable): VarKind | null => {
   if (has('paragraphindent')) return 'paragraphIndent';
   if (has('breakpoint', 'breakpoints')) return 'breakpoint';
   if (has('grid')) return 'grid';
-  // A CONTAINER WIDTH (#3171): drawn as a dimension, in the Container table on Grids & layouts.
-  if (has('container')) return 'container';
   if (has('opacity', 'alpha')) return 'opacity';
   if (has('icon')) return 'iconSize';
   if (has('borderwidth', 'strokewidth', 'stroke') || (has('border') && has('width')) || only('STROKE_FLOAT')) return 'borderWidth';
@@ -677,6 +675,9 @@ export const varKind = (v: SgVariable): VarKind | null => {
   if (has('fontweight') || (font && has('weight'))) return 'fontWeight';
   if (has('radius', 'corner', 'cornerradius') || only('CORNER_RADIUS')) return 'radius';
   if (only('GAP') || has('space', 'spacing', 'gap', 'padding', 'inset', 'margin')) return 'spacing';
+  // A CONTAINER WIDTH (#3171): drawn as a dimension, in the Container table on Grids & layouts. Decided after a radius,
+  // a border width and a spacing, so a `border/radius/container/*` corner stays a radius, drawn with Borders.
+  if (has('container')) return 'container';
   if (only('WIDTH_HEIGHT') || has('size', 'height', 'width')) return 'size';
   if ((scopes.length && scopes.every((s) => DIMENSION_SCOPES.has(s))) || has('dimension', 'dimensions', 'scale')) return 'scale';
   return 'other';
@@ -1968,9 +1969,15 @@ const closeGrid = (grid: SgNode): void => {
 // ── Tables on a former page (#3171, owner decision Q3171.7 A) ──────────────────────────────────────────────
 /** One style-guide table to move: by its frame's name and its key, from and to full page names. */
 export type TableMove = { table: string; key: string; from: string; to: string };
-/** The kind of table a key names, as `FORMER_TABLE_PAGES` names it: `container`, a dimension table whose group path ends
- *  in a `container` segment, which is the Container table `planVariableTables` draws. */
-const tableKindOf = (key: string): string | null => (key.startsWith('dimension|') && pathSegs(key).pop() === 'container' ? 'container' : null);
+/** The kind of table a frame is, as `FORMER_TABLE_PAGES` names it: `container`, a dimension table whose group path ends
+ *  in a `container` segment and whose every row, as it was last written (`ROWS_KEY`), is named a container width, which
+ *  is the Container table `planVariableTables` draws. A `border/radius/container` table ends the same way and is not one. */
+const tableKindOf = (key: string, f: SgNode): string | null => {
+  if (!key.startsWith('dimension|') || pathSegs(key).pop() !== 'container') return null;
+  const rows = (() => { try { return Object.values(JSON.parse(f.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot); } catch { return []; } })();
+  const named = (name: string): VarKind | null => varKind({ id: name, name, variableCollectionId: '', resolvedType: 'FLOAT', valuesByMode: {} });
+  return rows.length > 0 && rows.every((r) => named(r.name) === 'container') ? 'container' : null;
+};
 /** The page each kind of table is drawn on now. */
 const TABLE_PAGE: Record<string, string> = { container: GRIDS_PAGE };
 const framesIn = (p: SgPage): SgNode[] => {
@@ -1998,7 +2005,7 @@ const tablesDue = (pages: readonly SgPage[]): { move: TableMove; frame: SgNode; 
     const there = new Set(framesIn(to).map((f) => f.getPluginData?.(TABLE_KEY)).filter(Boolean));
     for (const f of framesIn(from)) {
       const key = f.getPluginData?.(TABLE_KEY) || '';
-      if (!key || tableKindOf(key) !== former.table || there.has(key) || !markedOwn(f, MARK_KEY) || !whereDrawn(f, from)) continue;
+      if (!key || tableKindOf(key, f) !== former.table || there.has(key) || !markedOwn(f, MARK_KEY) || !whereDrawn(f, from)) continue;
       there.add(key);
       out.push({ move: { table: String(f.name), key, from: from.name, to: to.name }, frame: f, to });
     }

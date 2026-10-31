@@ -15,11 +15,12 @@ and `lint-executor-revision.ts` passes.
   scale", else "⚠ unlinked px". A column where the grid style disagrees with the variable carries "⚠ style N, variable M"
   (DRAFT wording: the wireframe's not-equal sign is not in the chrome's Inter subset), whatever the Aliases toggle says: the plugin-side twin of the engine's G1 gate.
 - **The Container table** is drawn on the same page, in Containers, with its key unchanged. `container/*` is a kind of
-  its own, drawn as a dimension. Breakpoint and grid variables leave the later-phase note.
+  its own, drawn as a dimension, decided after a radius, a border width and a spacing, so Prism 2's
+  `pds/border/radius/container/*` corners stay radii, in Borders. Breakpoint and grid variables leave the later-phase note.
 - **The move.** `FORMER_TABLE_PAGES` (beside `FORMER_PAGES`) and `relocateTables`. Update file lists the move in its dry
   run on the set moves' line and makes it after its version; the style-guide run makes it once its version is saved,
-  before it draws. Only a table Prism3 drew, on Primitive tokens or in a Prism3 group there, moves; the grid it leaves
-  closes up; no page is deleted.
+  before it draws. Only a table Prism3 drew, on Primitive tokens or in a Prism3 group there, keyed `…/container` with
+  every row a container width, moves; the grid it leaves closes up; no page is deleted.
 
 ### Where it lives, and why there
 
@@ -37,3 +38,5 @@ the move with a per-page key census. `test-update-apply.ts` "table moves": the d
 once, a second Update does nothing. Mutations, each failing by name: gutter read from the style → `43f`; group close-up
 skipped → `43h: no other guide moved`; every alias called a space step → `43b`; the container page dropped → `43d`; the
 dry run's read dropped → `tables/dry run`; the apply's move dropped → `tables/apply`.
+Review fixes: `container` decided before the radius check again → `43k` (both arms); `tableKindOf` reading the key
+alone → `43k: a primitive pds/border/radius/container table…`; `NO_GRID_STYLE` never emitted → `43l`.

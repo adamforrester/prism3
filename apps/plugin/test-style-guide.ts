@@ -4840,6 +4840,42 @@ const main = async (): Promise<void> => {
       const framed = tableMovesDue(f.pages);
       ok(copy.length === 0 && framed.length === 0, `43j: a copy, and a table in a designer's own frame, are never due (${copy.length}, ${framed.length})`);
     }
+    // (k) A CORNER NAMED FOR A CONTAINER IS A RADIUS: Prism 2's `pds/border/radius/container/{xs…2xl}` (CORNER_RADIUS-scoped,
+    // reference/Prism2) are radii, drawn with Borders and a corner specimen, never a container width on Grids & layouts.
+    // Aliased (a semantic table) and literal (a primitive one, drawn on Primitive tokens beside the reference brand's
+    // layout): neither is a Container table, so neither is moved.
+    {
+      const SIZES = ['xs', 'sm', 'md', 'lg'];
+      const corner = (i: number, value: unknown): ShimVar =>
+        ({ id: `VariableID:rc:${i}`, name: `pds/border/radius/container/${SIZES[i]}`, variableCollectionId: 'VariableCollectionId:rc', resolvedType: 'FLOAT', description: '', valuesByMode: { 'rc:0': value }, scopes: ['CORNER_RADIUS'] });
+      const rcCol: ShimCol = { id: 'VariableCollectionId:rc', name: 'brand-theme', modes: [{ modeId: 'rc:0', name: 'Default' }], defaultModeId: 'rc:0' };
+      const kinds = SIZES.map((_, i) => varKind(corner(i, 4)));
+      const f = await layoutFile(REF[0], REF[1]);
+      const six = f.vars.find((v) => v.name.endsWith('/dimension/6'))!;
+      const aliased = planStyleGuide({ collections: [...f.cols, rcCol], variables: [...f.vars, ...SIZES.map((_, i) => corner(i, { type: 'VARIABLE_ALIAS', id: six.id }))] }, null)
+        .tables.find((t) => t.collectionId === rcCol.id);
+      ok(kinds.every((k) => k === 'radius') && !!aliased && aliased.page === SEM && aliased.group === 'borders' && aliased.rows.every((r) => r.specimen?.kind === 'radius'),
+        `43k: pds/border/radius/container/* is a radius, its table on Semantic tokens in Borders with corner specimens (${kinds.join(', ')}; ${aliased?.page}; ${aliased?.group}; ${aliased?.rows.map((r) => r.specimen?.kind).join(', ')})`);
+      f.cols.push(rcCol);
+      SIZES.forEach((_, i) => f.vars.push(corner(i, 4 * (i + 1))));
+      await draw(f.api, null);
+      const rc = tablesOn(f.prim).find((t) => t.pluginData['prism3-style-guide'].startsWith(`dimension|${rcCol.id}|`));
+      ok(!!rc && rc.pluginData['prism3-style-guide'].endsWith('/container') && !tablesOn(f.grids).includes(rc) && tableMovesDue(f.pages).length === 0
+        && (await relocateTables(f.api)).moved.length === 0 && rc.parent !== f.grids && tablesOn(f.prim).includes(rc),
+        `43k: a primitive pds/border/radius/container table, keyed …/container on Primitive tokens, is never due and never moved (${rc?.pluginData['prism3-style-guide']}; due ${JSON.stringify(tableMovesDue(f.pages))})`);
+    }
+    // (l) A BREAKPOINT WITH NO GRID STYLE: the reference brand's lg style deleted. The lg row is still drawn from the variables
+    // and its Columns chip reads "⚠ no grid style"; no other row carries it.
+    {
+      const f = await layoutFile(REF[0], REF[1]);
+      f.gridStyles.splice(f.gridStyles.findIndex((st) => st.name === 'lg'), 1);
+      const rows = planStyleGuide(catOf(f), null).tables.find((t) => t.type === 'grid')!.rows;
+      const lg = rows.find((r) => r.token === 'lg');
+      const others = rows.filter((r) => r !== lg && (r.extra ?? []).some((x) => (x.alias ?? '').includes('⚠ no grid style'))).map((r) => r.token);
+      ok(!!lg && (lg.extra?.[0].alias ?? '').endsWith('⚠ no grid style') && lg.extra![0].value === String(literalOf(f, 'grid/columns', 'layout:2')) && others.length === 0
+        && JSON.stringify(rows.map((r) => r.token)) === JSON.stringify(REF[1]),
+        `43l: a breakpoint with no grid style keeps its row, its Columns chip "⚠ no grid style", and no other row carries it (${lg?.extra?.[0].value} [${lg?.extra?.[0].alias}]; elsewhere: ${others.join(', ') || 'none'})`);
+    }
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
