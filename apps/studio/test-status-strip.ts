@@ -18,13 +18,14 @@
  *   agent/…    #3189: an agent's Capture baseline or Adopt, in its Activity words: indeterminate while it reads the file,
  *              then n of N defs and a bar by defs done; no Stop, no clock. A panel run wins over it; it wins over the read.
  * #3189 mutations, each failing by name: the agent's reading dropped from `stripView` → `agent/check`, `agent/work`;
- * its fill counted from the def reached (`done + 1`) → `agent/work`; the read after open winning over it → `order/agent`.
+ * its fill counted from the def reached (`done + 1`) → `agent/work`; the read after open winning over it → `order/agent`;
+ * `agentHeard` not clearing on `agent-finished` (#3210 review, M-C) → `agent/cleared`.
  *
  * Mutations, each failing by name: the silence test dropped (`still` always null) → `still/after 3 s`; the fill counted
  * from the set being written (`done + 1`) → `run/fill`; the check given a count → `run/check`; `rowState` reading every
  * seen set Updated → `rows/updating`; `stripVerdict` reading a stop the person asked for as a failure → `verdict/stopped`.
  */
-import { elapsed, heard, rowState, startStripRun, stepEnded, stripVerdict, stripView, withReading, type StripRun } from './src/state/status-strip';
+import { agentHeard, elapsed, heard, rowState, startStripRun, stepEnded, stripVerdict, stripView, withReading, type StripRun } from './src/state/status-strip';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -135,6 +136,17 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
     'order/agent: an agent\'s run wins over the read after open');
   ok(stripView({ read: null, agent: { run: 'adopt', phase: 'work', done: 1, total: 2 }, run: r, step, verdict: null, now: T0, nameOf }).kind === 'running', 'order/agent-run: a panel run wins over an agent\'s');
   ok(at(null).kind === 'idle', 'agent/none: no agent run, no read, no verdict: the strip is hidden');
+  // M-C (#3210 review): the agent's run as the panel hears the host. Its readings set it; `agent-finished` clears it, so
+  // the strip is hidden again rather than sitting on "60 of 60"; other messages leave it alone.
+  // Mutation: `agentHeard` no longer clears on `agent-finished` → `agent/cleared`.
+  let a = agentHeard(null, { kind: 'run-progress', run: 'adopt', phase: 'check', done: 0, total: 60 });
+  a = agentHeard(a, { kind: 'run-progress', run: 'adopt', phase: 'work', done: 59, total: 60 });
+  a = agentHeard(a, { kind: 'run-progress', run: 'adopt', phase: 'finish', done: 60, total: 60 });
+  ok(J(a) === J({ run: 'adopt', phase: 'finish', done: 60, total: 60 }), `agent/heard: its readings set the agent's run (${J(a)})`);
+  ok(agentHeard(a, { kind: 'run-progress', run: 'read', phase: 'work', done: 3, total: 60 }) === a && agentHeard(a, { kind: 'file-sets' }) === a,
+    "agent/kept: another run's reading or another message leaves it as it was");
+  const cleared = agentHeard(a, { kind: 'agent-finished' });
+  ok(cleared === null && at(cleared).kind === 'idle', `agent/cleared: the agent's command ending clears it, and the strip is hidden (${J(cleared)})`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

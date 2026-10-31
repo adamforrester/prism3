@@ -1,8 +1,8 @@
 ## (2026-10-31) — Capture baseline and Adopt read the file once, a page per turn (#3189)
 
 **Status:** plugin and panel. ENGINE patch (change note): no committed artifact, emission or component surface moves. The
-component executor is unchanged, so `EXECUTOR_REVISION` stays at 44 (`lint-executor-revision` agrees). New strip copy is
-DRAFT, listed below.
+component executor is unchanged, so `EXECUTOR_REVISION` stays at 44 (`lint-executor-revision` agrees). The strip shows an
+agent's run (Q3210.1 A), in copy the owner approved as worded (Q3210.2 A), listed below.
 
 ### What it does
 
@@ -17,7 +17,11 @@ DRAFT, listed below.
   through the agent's sink, which would take each one for a verdict.
 - **The strip.** `stripView` takes an agent's reading (`StripAgent`) and draws it as the read after open is drawn: the
   passive kind, no Stop (the panel holds no run of its own to stop) and no clock. A panel run wins over it; it wins over
-  the read after open. It clears when the agent's command ends (`agent-finished`).
+  the read after open. It clears when the agent's command ends (`agent-finished`): `agentHeard` in
+  `state/status-strip.ts` holds both the set and the clear, so `test-status-strip.ts` reaches it (the #3210 review's M-C).
+- **On Figma's host.** Both commands now read through `runHost` → `withRoot`, which since #3214 is a facade, not a
+  `Proxy` (#3209). A `Proxy` over `figma` throws on Figma's fixed methods; on main before this PR neither command went
+  through it, so the new arms hold that they still run on a host whose methods are fixed.
 
 ### Measured on the stand-in (`test-open-large-file.ts`, 60 pages, 50 sets, every def)
 
@@ -31,7 +35,7 @@ DRAFT, listed below.
 The answer and the verdict digest the same before and after (capture `48e8f46b` / `ea8490a8`, adopt `137c86a5` /
 `488854b1`).
 
-### DRAFT copy (status strip, `STRIP_COPY`)
+### Strip copy (`STRIP_COPY`, approved as worded, Q3210.2 A)
 
 - `agentRun.capture`: "Recording the sets as built…" and `agentRun.adopt`: "Adopting members…". These are the words
   Activity already gives the two commands (Q114 A), reused for the strip.
@@ -41,7 +45,9 @@ The answer and the verdict digest the same before and after (capture `48e8f46b` 
 ### Gates
 
 `test-open-large-file.ts`: `capture/no-walk`, `capture/one-read`, `capture/answers`, `capture/progress` and the same four
-for `adopt/`. A no-walk arm needs an answer first: a run that threw searched nothing, and must not pass for one that
+for `adopt/`, then `capture/fixed` and `adopt/fixed`: both again through `ACTIONS`, over a `figma` and a root whose methods
+are fixed (`fixHostMethods`), each giving the plain host's answer. `withRoot` put back as a `Proxy` fails both by name. A no-walk arm needs an answer first: a run that threw searched nothing, and must not pass for one that
 searched no whole file. `test-status-strip.ts`: `agent/check`, `agent/work`, `agent/finish`, `order/agent`,
-`order/agent-run`, `agent/none`. `test-write-adapter.ts`: the two new runs accepted, an unknown one dropped. Every arm was
+`order/agent-run`, `agent/none`, `agent/heard`, `agent/kept`, `agent/cleared` (the clear on `agent-finished` dropped
+fails it by name). `test-write-adapter.ts`: the two new runs accepted, an unknown one dropped. Every arm was
 seen to fail by name under a mutation (the PR lists them).

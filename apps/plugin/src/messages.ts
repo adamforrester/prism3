@@ -292,10 +292,10 @@ export interface StyleGuideCatalog {
  *  it (P6). */
 export type StyleGuideTableStatus = 'waiting' | 'drawing' | 'done' | 'failed';
 
-/** Messages the main thread sends TO the UI iframe. */
 /** #3170, #3189: the runs a `run-progress` reading can be from. */
 export type RunProgressKind = 'read' | 'update' | 'apply-theme' | 'capture' | 'adopt';
 
+/** Messages the main thread sends TO the UI iframe. */
 export type MainToUi =
   /** Result of an `apply-theme` write: ok + a human summary (counts / any misses) for the UI.
    *

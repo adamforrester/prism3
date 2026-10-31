@@ -74,6 +74,21 @@ export const rowState = (r: StripRun | null, id: string): 'updating' | 'updated'
 /** #3189: an agent's Capture baseline (`capture`) or Adopt (`adopt`), its last reading, or null when none runs. */
 export type StripAgent = { readonly run: 'capture' | 'adopt'; readonly phase: 'check' | 'work' | 'finish'; readonly done: number; readonly total: number } | null;
 
+/** What `agentHeard` reads of a message from the host: its kind, and a reading's fields when it carries one. */
+export type StripAgentHears = { readonly kind: string; readonly run?: unknown; readonly phase?: unknown; readonly done?: unknown; readonly total?: unknown };
+
+/**
+ * #3189: the agent's run after `m`. A `capture` or `adopt` reading becomes the run; `agent-finished`, posted once each
+ * agent command ends, failed ones included (`agent-dispatch.ts`), clears it, so the strip never sits on a run that ended.
+ * Anything else leaves it as it was (the same object, so the caller can tell nothing moved).
+ */
+export const agentHeard = (agent: StripAgent, m: StripAgentHears): StripAgent => {
+  if (m.kind === 'run-progress' && (m.run === 'capture' || m.run === 'adopt') && (m.phase === 'check' || m.phase === 'work' || m.phase === 'finish') && typeof m.done === 'number' && typeof m.total === 'number')
+    return { run: m.run, phase: m.phase, done: m.done, total: m.total };
+  if (m.kind === 'agent-finished') return null;
+  return agent;
+};
+
 /** The read after open (Q3170.1 A): `done` of `total` pages, or null when no read is going. */
 export type StripRead = { readonly done: number; readonly total: number } | null;
 
@@ -131,7 +146,8 @@ export const STRIP_COPY = {
   updatedOf: (n: number, of: number): string => `${n} of ${of} updated`,
   kept: (n: number, rest: number): string => `${n === 1 ? 'The 1 set updated keeps its changes' : `The ${n} sets updated keep their changes`}; the other ${rest} ${rest === 1 ? 'is' : 'are'} unchanged.`,
   details: 'Details in Activity.',
-  /** #3189: an agent's Capture baseline and Adopt, in the words Activity already gives them (Q114 A). */
+  /** #3189: an agent's Capture baseline and Adopt, in the words Activity already gives them (Q114 A). These two and
+   *  `agentSub` are the owner's, approved as worded (Q3210.2 A), not DRAFT. */
   agentRun: { capture: 'Recording the sets as built…', adopt: 'Adopting members…' } as Record<'capture' | 'adopt', string>,
   /** #3189: the line under an agent's run. */
   agentSub: 'An agent runs this. Details in Activity.',

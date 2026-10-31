@@ -35,7 +35,7 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityLend, ActivityReading, OpReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { StatusLend } from './shell/status-strip';
-import { heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
+import { agentHeard, heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
 import { brandFor, DUE_DEBOUNCE_MS, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
@@ -2036,15 +2036,16 @@ const setName = (id: string): string => displayNameOf(componentCatalog(), id);
  *  queued behind a step's verdict belongs to no step. */
 const stripHears = (m: Parameters<typeof reduce>[1]): void => {
   const step = updateRun ? stepOf(updateRun) : null;
+  // #3189: an agent's Capture baseline or Adopt, set by its readings and cleared when its command ends (`agentHeard`).
+  const agent = agentHeard(stripAgent, m);
+  if (agent !== stripAgent) { stripAgent = agent; invalidate('host:run'); }
   if (m.kind === 'run-progress') {
     if (m.run === 'read') stripRead = { done: m.done, total: m.total };
-    else if (m.run === 'capture' || m.run === 'adopt') stripAgent = { run: m.run, phase: m.phase, done: m.done, total: m.total };
     else if (stripRun && ((m.run === 'update' && step === 'update' && updatePhase === 'apply') || (m.run === 'apply-theme' && step === 'theme')))
       stripRun = withReading(stripRun, { run: m.run, phase: m.phase, item: m.item, done: m.done, total: m.total }, Date.now());
     invalidate('host:run');
     return;
   }
-  if (m.kind === 'agent-finished' && stripAgent) { stripAgent = null; invalidate('host:run'); return; }
   if (m.kind === 'file-sets' && m.atOpen && !m.partial && stripRead) { stripRead = null; invalidate('host:run'); return; }
   if (stripRun && (m.kind === 'component-progress' || m.kind === 'style-guide-progress' || m.kind === 'update-check')) { stripRun = heard(stripRun, Date.now()); invalidate('host:run'); }
 };

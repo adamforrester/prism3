@@ -72,12 +72,14 @@
  * #3189) and `capture/progress`, `adopt/progress` (check, a reading per def in order, finish). Mutations failing by name:
  * the capture without the run's read (`runHost`) → `capture/no-walk`, `capture/one-read`; Adopt without it →
  * `adopt/no-walk`, `adopt/one-read`; a page left out of the run's read → `capture/answers`, `adopt/answers`; the capture's
- * or Adopt's readings not posted → `capture/progress`, `adopt/progress`.
+ * or Adopt's readings not posted → `capture/progress`, `adopt/progress`. And `capture/fixed`, `adopt/fixed` (#3209, the
+ * #3210 review): both again over a host and root whose methods are fixed, as Figma's are, each giving the plain host's
+ * answer. Mutation: `withRoot` put back as a `Proxy` → `capture/fixed`, `adopt/fixed`.
  *
  * Also held: `open/race`, the checklist's own request asked while the read after open is still going, is answered
  * without `atOpen`, so the panel keeps it over the read after open (`host-session.ts`, `awaitingRead`).
  */
-import { makeShim } from './component-shim';
+import { fixHostMethods, makeShim } from './component-shim';
 import type { Node } from './component-shim';
 import { componentDefs } from '@prism3/engine/components/index';
 import { materializerFor } from './src/brand-def';
@@ -607,6 +609,26 @@ console.log('\n  Capture baseline and Adopt (#3189)');
     && sameIds(au.missing, all.filter((id) => !setIds.includes(id) && !singles.includes(id))) && sameIds(au.notOffered, singles) && au.refused?.length === 0,
     `adopt/answers: every one of the ${SETS} stand-in sets read in order, its hand-made member skipped, the single-component defs not offered, the rest missing, none refused (${au ? `${au.sets?.length} sets, ${au.missing?.length} missing, ${au.notOffered?.length ?? 0} not offered, ${au.refused?.length} refused` : 'no answer'})`);
   ok(progressed(ad), `adopt/progress: Adopt posts check, a reading per def (${all.length}) in order, and finish (${ad.readings.map((m: any) => m.phase[0]).join('').replace(/w+/, (w: string) => `w×${w.length}`) || 'none'})`);
+
+  // #3209 on these two commands (#3210 review): on Figma the host's methods, and its root's, are own data properties
+  // neither writable nor configurable, so a `Proxy` over either whose `get` trap hands back a bound copy throws on the
+  // first read. Capture baseline and Adopt are driven again through `ACTIONS`, over a `figma` and a root copied from the
+  // stand-in with every method fixed (`fixHostMethods`). Each must give the answer the plain host gave: the action catches
+  // a throw and posts `✗ record failed` / `✗ adopt failed` with no answer, which fails the arm by name.
+  // Mutation: `withRoot` put back as a `new Proxy(host, …v.bind(t))` → `capture/fixed`, `adopt/fixed`.
+  const plain = g.figma;
+  // A copy with every own descriptor, not a spread: the root's `children` is a non-enumerable getter, as a page list is.
+  const copy = <T extends object>(o: T): T => Object.defineProperties({}, Object.getOwnPropertyDescriptors(o)) as T;
+  const fixed = fixHostMethods(Object.assign(copy(shim), { root: fixHostMethods(copy(root)) }));
+  g.figma = fixed;
+  const premise = Object.getOwnPropertyDescriptor(fixed, 'getLocalTextStylesAsync');
+  ok(premise?.configurable === false && premise?.writable === false && Object.getOwnPropertyDescriptor(fixed.root, 'findAllWithCriteria')?.configurable === false,
+    'fixed/premise: the host carries getLocalTextStylesAsync, and its root findAllWithCriteria, fixed, as Figma does');
+  const capF = await agentRun('capture', (sink) => ACTIONS.captureBaseline(undefined, sink as never));
+  ok(!!capF.update && digest(capF.update) === digest(cu), `capture/fixed: Capture baseline on a host whose methods are fixed gives the plain host's answer (${capF.update ? `answer ${digest(capF.update)} vs ${digest(cu)}` : `${capF.verdict?.headline}: ${String(capF.verdict?.summary).slice(0, 300)}`})`);
+  const adF = await agentRun('adopt', (sink) => ACTIONS.adoptMembers(undefined, sink as never));
+  ok(!!adF.update && digest(adF.update) === digest(au), `adopt/fixed: Adopt on a host whose methods are fixed gives the plain host's answer (${adF.update ? `answer ${digest(adF.update)} vs ${digest(au)}` : `${adF.verdict?.headline}: ${String(adF.verdict?.summary).slice(0, 300)}`})`);
+  g.figma = plain;
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

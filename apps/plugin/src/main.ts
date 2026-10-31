@@ -246,7 +246,9 @@ void (async (): Promise<void> => {
  * panel starts posts `run-progress` at every boundary it has (a page of the read after open, a set of the update, a
  * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set (Q3170.5 A)
  * or every `COLOR_YIELD_EVERY` color variables, posting the same reading again so the panel can tell a long set from a
- * stalled panel. Never for an agent's run: its sink collects every post as a verdict.
+ * stalled panel. Never through an agent's sink, which collects every post as a verdict: an agent's update and Apply
+ * Theme post no readings, and its Capture baseline and Adopt (#3189) post theirs to the panel directly (`postProgress`),
+ * a reading at each def, for the status strip.
  */
 const PACE_MS = 50;
 const postProgress = (run: RunProgressKind, p: ApplyProgress): void => postToUi({ type: 'run-progress', run, ...p });
