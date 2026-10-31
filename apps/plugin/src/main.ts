@@ -1023,10 +1023,10 @@ const defName = (id: string): string => componentDefs.find((d) => d.id === id)?.
  * THE USAGE PANEL FOR ONE SET (#846, `doc-panel.ts`), drawn after its labels on a build or an update. CAUGHT HERE, never
  * rethrown, as the labels are: the set is already written, and the panel is documentation, not the build.
  */
-const panelFor = async (set: XNode, defId: string): Promise<PanelOutcome> => {
+const panelFor = async (set: XNode, defId: string, api: PanelApi = figma as unknown as PanelApi): Promise<PanelOutcome> => {
   const def = componentDefs.find((d) => d.id === defId);
   if (!def) return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
-  try { return await drawDocPanel(figma as unknown as PanelApi, set as unknown as PNode, def, { names: defName }); }
+  try { return await drawDocPanel(api, set as unknown as PNode, def, { names: defName }); }
   catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
 };
 
@@ -1042,12 +1042,68 @@ const panelBeside = async (f: FurnitureOutcome, setId: string, defId: string): P
  * components) the file holds, by the name the build gives it (`presentNames`, the dependency walk's own search), and
  * whether Set up file has run. Never throws to the panel: an unreadable file answers with `error` and nothing present.
  */
-const presentDefs = async (onPage?: (done: number, total: number) => void): Promise<string[]> => {
-  await timed('page loads', () => loadPagesYielding(onPage));
-  const names = await timed('file search', () => presentNames(figma as unknown as Parameters<typeof presentNames>[0]));
-  presentCache = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
-  return presentCache;
+const presentDefs = async (): Promise<string[]> => (await readPresent()).ids;
+/** #3170: ONE READ OF THE FILE'S SETS AT A TIME. A caller that asks while one is going (the badge's first recount, about
+ *  250 ms after open; the checklist; the hand-edit pass) shares it, instead of loading and searching every page again
+ *  beside it. A write starting or ending (`guarded`) drops it, so the next caller reads the file as the write left it. */
+const readPresent = (onPage?: (done: number, total: number) => void): Promise<FileRead> => {
+  if (presentRead) return presentRead;
+  const gen = presentGen;
+  const read = (async (): Promise<FileRead> => {
+    const nodes = await timed('page reads', () => searchPagesYielding(['COMPONENT', 'COMPONENT_SET'], onPage));
+    const names = presentNames({ root: rootOver(nodes) } as unknown as Parameters<typeof presentNames>[0]);
+    const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
+    if (gen === presentGen) presentCache = ids;
+    return { ids, nodes };
+  })();
+  presentRead = read;
+  const clear = (): void => { if (presentRead === read) presentRead = null; };
+  read.then(clear, clear);
+  return read;
 };
+type FileRead = { ids: string[]; nodes: readonly SearchNode[] };
+type SearchNode = { readonly type?: string; readonly name?: string };
+let presentRead: Promise<FileRead> | null = null;
+/** Moved by each write's start and end (`guarded`): a read begun before it does not leave its answer as the cache. */
+let presentGen = 0;
+/**
+ * #3170: THE FILE'S COMPONENTS AND SETS, A PAGE PER TURN. A document-wide `findAllWithCriteria` walks every node of every
+ * page inside one turn, and the file freezes for all of it. On open that search ran once for the read and once per set
+ * in the hand-edit pass, about 57 times on the 60-page stand-in, after #3110 had moved the page loads off the path.
+ * Each page is loaded and then searched in its own turn, so no turn holds the thread for more than one page. A host
+ * whose pages cannot be searched one at a time (a Node shim) is searched in one go, as before.
+ */
+const searchPagesYielding = async (types: string[], onPage?: (done: number, total: number) => void): Promise<SearchNode[]> => {
+  const pages = figma.root.children as readonly { loadAsync?(): Promise<void>; findAllWithCriteria?(c: { types: string[] }): readonly SearchNode[] }[];
+  if (!pages.every((p) => typeof p.findAllWithCriteria === 'function')) {
+    await loadPagesYielding(onPage);
+    return [...(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[])];
+  }
+  const out: SearchNode[] = [];
+  onPage?.(0, pages.length);
+  for (const [i, p] of pages.entries()) {
+    if (typeof p.loadAsync === 'function') { await p.loadAsync(); await breathe(); }
+    out.push(...p.findAllWithCriteria!({ types }));
+    onPage?.(i + 1, pages.length);
+    await breathe();
+  }
+  // Nothing left to load; under `dynamic-page` the document-wide searches of a later write still need it called.
+  await figma.loadAllPagesAsync();
+  return out;
+};
+/** A root that answers a search from one read (`searchPagesYielding`), for the readers that take a root and search it:
+ *  `presentNames`, `isSetUp` and the hand-edit pass's `locateSets`. Its pages are the file's. */
+const rootOver = (nodes: readonly SearchNode[]) => ({
+  children: figma.root.children,
+  findAllWithCriteria: (c: { types?: readonly string[] }) => nodes.filter((n) => !c.types || c.types.includes(n.type ?? '')),
+});
+/** The rest of the update's host, beside a `rootOver` root: what the hand-edit pass's reads may reach. */
+const hostApi = () => ({
+  variables: figma.variables,
+  getLocalTextStylesAsync: () => figma.getLocalTextStylesAsync(),
+  getLocalEffectStylesAsync: () => figma.getLocalEffectStylesAsync(),
+  loadFontAsync: (f: FontName) => figma.loadFontAsync(f),
+});
 /** #3081 Q810 A: the sets the last `presentDefs` found. The badge's live recount (`fileDue`) reuses them, so a change
  *  in the panel never loads every page or walks the file: that is the costly part on a large file. A write starting and
  *  ending clears them (`guarded`), so the next recount reads the file again. */
@@ -1186,7 +1242,7 @@ const thenRestamp = <A extends unknown[]>(fn: (...a: A) => Promise<void>) => asy
  *  a request asked meanwhile can be answered first; the panel tells the two apart by this. */
 const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
   try {
-    const present = await presentDefs(atOpen ? (done, total) => postProgress('read', { phase: 'work', item: null, done, total }) : undefined);
+    const { ids: present, nodes } = await readPresent(atOpen ? (done, total) => postProgress('read', { phase: 'work', item: null, done, total }) : undefined);
     // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
     // #3082 Q811 A: a set whose engine moved is printed, a set at a time with the thread handed back, and is due only
     // when its plans moved.
@@ -1195,7 +1251,7 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const print = printNow(input);
     await printYielding(print, needsPrint(ledger, present, now));
     const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(atOpen ? { atOpen: true as const } : {}) });
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
   }
@@ -1257,12 +1313,18 @@ const handEditsPass = async (): Promise<void> => {
   const mine = ++handPass;
   const stale = (): boolean => mine !== handPass || (['build-components', 'apply-theme', 'file-setup', 'style-guide'] as const).some((c) => guard.busy(c));
   try {
-    const present = await presentDefs();
-    const { targets } = updateTargets(present);
-    for (const t of targets) {
+    const { ids: present, nodes } = await readPresent();
+    // #3170: each set is found in the read just made, never by a search of the whole file per set, and its plans are
+    // projected in its own turn: projecting every set at once held the thread for about 0.5 s in Node.
+    const host = { ...hostApi(), root: rootOver(nodes) } as unknown as UpdateHost;
+    for (const id of present) {
+      if (stale()) return;
+      const t = (await timed('plan', () => updateTargets(id))).targets[0];
+      if (!t) { await breathe(); continue; }
+      await breathe();
       if (stale()) return;
       let r: { members: number; edited: number } | null = null;
-      try { r = await handEditsOf(figma as unknown as UpdateHost, t, breathe); } catch { r = null; }
+      try { r = await handEditsOf(host, t, breathe); } catch { r = null; }
       if (stale()) return;
       if (r) postToUi({ type: 'hand-edits', def: t.def, members: r.members, edited: r.edited });
       await breathe();
@@ -1279,7 +1341,7 @@ const handEditsPass = async (): Promise<void> => {
 const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<void> => {
   try {
     const { targets, refused } = updateTargets(defs, input);
-    await loadPagesYielding();
+    // #3177: `previewUpdate` loads and searches the file a page per turn, once, for every set it reads.
     const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
     r.refused.push(...refused);
     // `previewUpdate` adds a preview for each target it found, in the targets' order, and names the rest as missing or
@@ -1332,7 +1394,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
   try {
     const { targets, unknown, refused } = updateTargets(defId, input);
     if (unknown !== null) return unknownDef(unknown, sink);
-    await loadPagesYielding();
+    // #3177: the check and the apply each load and search the file a page per turn, once, for every set they read.
     if (previewHash === null) {
       const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
       r.refused.push(...refused);
@@ -1350,7 +1412,10 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // only work was its furniture (#2803) is one of them. Reported in the data, and in the verdict only where a part
     // was skipped.
     const furniture: FurnitureOutcome[] = [];
-    const furnish = async (def: string): Promise<void> => { furniture.push(...await furnishUpdate(figma as unknown as FurnitureApi, { outcomes: [{ def }] }, targets, panelFor)); };
+    // #3177: drawn through the run's host (`file`), whose lookups are answered from the run's one read of the file.
+    const furnish = async (def: string, _set: unknown, file: unknown): Promise<void> => {
+      furniture.push(...await furnishUpdate(file as FurnitureApi, { outcomes: [{ def }] }, targets, (set, d) => panelFor(set, d, file as PanelApi)));
+    };
     // #3170: the panel's own update reports each set boundary and hands the thread back after about `PACE_MS` inside a
     // set (`chunk: 1`, `paced`), and reads its Stop at each boundary. An agent's update yields as before and posts nothing.
     const panel = sink === uiSink;
@@ -1599,9 +1664,11 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
  */
 const styleGuideCatalog = async (): Promise<void> => {
   try {
-    await loadPagesYielding();
+    // #3170: whether Set up file has run, from the file's read a page per turn (shared with one already going), never a
+    // search of the whole file in one turn.
+    const { nodes } = await readPresent();
     const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync(), { effect: () => figma.getLocalEffectStylesAsync(), paint: () => figma.getLocalPaintStylesAsync() });
-    postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0])) });
+    postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0])) });
   } catch (e) {
     postToUi({ type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: (e as Error)?.message ?? String(e) });
   }
@@ -1755,8 +1822,8 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
     if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
-    presentCache = null;
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; });
+    presentCache = null; presentRead = null; presentGen++;
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; presentRead = null; presentGen++; });
   };
 
 /**
@@ -1839,18 +1906,27 @@ figma.on('close', () => { try { agentLink.setOn(false); } catch { /* closing; no
 onUiMessage((msg: UiToMain) => {
   switch (msg.type) {
     case 'ui-ready':
-      // UI's listener is attached — run the boot read-back (seed summary) + rehydrate the knobs.
-      void ACTIONS.seedFromFile(uiSink);
+      // UI's listener is attached — rehydrate the knobs, then run the boot read-back (seed summary).
       restoreToUi();
-      void sendFonts();
       // The link is off on every launch; the panel's control starts from this.
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
-      // #2909 Q2909.8 A: what is due, from the ledger, then the background hand-edit pass, so the panel knows both at rest.
-      // #3110: the ledger's answer first, with no page loaded, so the panel is ready before the file is read.
-      void ledgerSets().then(() => timed('file-sets', () => fileSets(undefined, true))).then(() => timed('hand-edit pass', handEditsPass));
       void sendThemePref();
       void sendActivityHeight();
       postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });
+      // #3170: the panel paints first. This turn posts only what one root read answers; the reads below each start in a
+      // turn of their own, so the panel has its brand and settings before any of them holds the thread.
+      // #2909 Q2909.8 A: what is due, from the ledger, then the background hand-edit pass, so the panel knows both at rest.
+      // #3110: the ledger's answer first, with no page loaded, so the panel is ready before the file is read.
+      void (async () => {
+        await breathe();
+        void ACTIONS.seedFromFile(uiSink);
+        await breathe();
+        void sendFonts();
+        await breathe();
+        await ledgerSets();
+        await timed('file-sets', () => fileSets(undefined, true));
+        await timed('hand-edit pass', handEditsPass);
+      })();
       return;
     case 'set-theme-pref':
       // The Theme menu's choice, kept per person (the owner's top-bar decision, 2026-10-05).

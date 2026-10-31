@@ -4,55 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prism3 docs</title>
-<meta name="description" content="Prism3's docs: task guides for designers, a map of how its parts connect, and a reference for AI agents.">
+<meta name="description" content="Prism3's docs: task guides for designers, a map of how Prism3's parts connect, and a reference for AI agents.">
 <!--
-  The /docs landing page (#2637, owner decision Q384 A). The studio serves docs/public/ at /docs (apps/studio/docs-route.mjs).
-  Its colors are the ecosystem page's (docs/public/ecosystem/index.html), whose text pairs lint-ecosystem.ts checks at 4.5:1;
-  this page uses the same values for the same roles and adds no pair of its own. Copy approved by the owner (2026-10-16).
+  The /docs landing page (#2637, owner decision Q384 A; restyled by #3176, Q3176.6 A). The studio serves docs/public/
+  at /docs (apps/studio/docs-route.mjs). Its styles are docs.css, shared with the guide pages; that file's colors are
+  the ecosystem page's, and lint-ecosystem.ts's DOCS arm checks they stay so. This page carries no style of its own.
+  The guide names and lines are guides/index.md's own copy. Copy approved by the owner (2026-10-16, 2026-10-30).
 -->
-<style>
-:root {
-  --bg: #f6f6f3;
-  --surface: #ffffff;
-  --text: #16181d;
-  --text-muted: #545a65;
-  --border: #c9ccd2;
-  --link: #1f4fbf;
-  --focus: #1f4fbf;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1115;
-    --surface: #171a20;
-    --text: #eceef2;
-    --text-muted: #a8aeb9;
-    --border: #3a404b;
-    --link: #8db4ff;
-    --focus: #8db4ff;
-  }
-}
-:root { color-scheme: light dark; }
-* { box-sizing: border-box; }
-html, body { margin: 0; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  -webkit-text-size-adjust: 100%;
-}
-main { max-width: 720px; margin: 0 auto; padding: 48px 16px 64px; }
-h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; }
-.lede { margin: 0 0 32px; color: var(--text-muted); }
-ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-a.entry {
-  display: block; padding: 16px 20px; border: 1px solid var(--border); border-radius: 8px;
-  background: var(--surface); color: var(--text); text-decoration: none;
-}
-a.entry:hover { border-color: var(--link); }
-.entry-name { display: block; font-size: 17px; font-weight: 600; color: var(--link); }
-.entry-desc { display: block; margin-top: 2px; color: var(--text-muted); }
-:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-</style>
+<link rel="stylesheet" href="docs.css">
+<script src="docs.js"></script>
 </head>
 <body>
 <script>
@@ -60,22 +20,34 @@ a.entry:hover { border-color: var(--link); }
   // below would resolve one level up. The ecosystem page does the same (docs/public/ecosystem/index.html).
   if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);
 </script>
-<main>
+<header class="dhead">
+  <a class="mark" href="./">Prism3 docs</a>
+  <span class="crumb"></span>
+  <span class="seg" role="group" aria-label="Appearance">
+    <button type="button" data-theme-set="system">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button>
+  </span>
+</header>
+<main class="landing">
   <h1>Prism3 docs</h1>
   <p class="lede">Task guides for designers, a map of how Prism3's parts connect, and a reference for AI agents.</p>
-  <ul>
-    <li><a class="entry" href="guides/index.md">
-      <span class="entry-name">Guides</span>
-      <span class="entry-desc">Theme a brand, apply it in Figma, build components and export tokens.</span>
-    </a></li>
-    <li><a class="entry" href="ecosystem/">
-      <span class="entry-name">Ecosystem map</span>
-      <span class="entry-desc">How the web studio, the Figma plugin, the engine and agents connect.</span>
-    </a></li>
-    <li><a class="entry" href="llms.txt">
-      <span class="entry-name">Agent reference</span>
-      <span class="entry-desc">The entry point for an AI agent, with the commands and tools it can use.</span>
-    </a></li>
+  <h2 class="eyebrow" id="guides">Guides · in task order</h2>
+  <ul class="glist" aria-labelledby="guides">
+    <li><a href="guides/theme-a-brand.md"><span class="g-num">01</span><span class="g-name">Theme a brand</span><span class="g-desc">Start a brand, set its levers, import or export a <code>design.md</code> brief.</span></a></li>
+    <li><a href="guides/apply-a-theme.md"><span class="g-num">02</span><span class="g-name">Apply a theme to a Figma file</span><span class="g-desc">What Apply Theme writes, and what makes it refuse.</span></a></li>
+    <li><a href="guides/file-setup.md"><span class="g-num">03</span><span class="g-name">Set up a file</span><span class="g-desc">The pages and helper components Set up file adds.</span></a></li>
+    <li><a href="guides/build-components.md"><span class="g-num">04</span><span class="g-name">Build components</span><span class="g-desc">Build a component set from the Components tab.</span></a></li>
+    <li><a href="guides/update-a-file-safely.md"><span class="g-num">05</span><span class="g-name">Update a real file safely</span><span class="g-desc">Dry runs, confirming, what refuses, and pruning with a preview.</span></a></li>
+    <li><a href="guides/style-guides.md"><span class="g-num">06</span><span class="g-name">Build style guides</span><span class="g-desc">Draw token tables from the file's own variables and styles.</span></a></li>
+    <li><a href="guides/export-tokens.md"><span class="g-num">07</span><span class="g-name">Export tokens</span><span class="g-desc">From the studio, from the plugin, and from any Figma file with TokenPress.</span></a></li>
+    <li><a href="guides/agent-link.md"><span class="g-num">08</span><span class="g-name">Use the agent link</span><span class="g-desc">Let an AI agent drive the open plugin, and how it stays off by default.</span></a></li>
+  </ul>
+  <h2 class="eyebrow" id="more">Reference</h2>
+  <ul class="more" aria-labelledby="more">
+    <li><a href="guides/features.md"><span class="g-name">Feature reference</span><span class="g-desc">What each surface can do, side by side.</span></a></li>
+    <li><a href="ecosystem/"><span class="g-name">Ecosystem map</span><span class="g-desc">How the web studio, the Figma plugin, the engine and agents connect.</span></a></li>
+    <li><a href="llms.txt"><span class="g-name">Agent reference</span><span class="g-desc">The entry point for an AI agent, with the commands and tools it can use.</span></a></li>
+    <li><a href="releases/index.md"><span class="g-name">Release notes</span><span class="g-desc">One page per engine version, newest first.</span></a></li>
+    <li><a href="reports/index.md"><span class="g-name">Reports</span><span class="g-desc">Generated reports on the registered components, read from their definitions and the emission.</span></a></li>
   </ul>
 </main>
 </body>

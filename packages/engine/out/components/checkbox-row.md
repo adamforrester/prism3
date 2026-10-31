@@ -143,7 +143,7 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.100` / `space.0` / `space.100` / `space.0` | — | — | — | 120px (literal) | min height `size.md.height`; build width 320px (literal) |
-| `row/content` | — | `space.100` | — | — | — | — |
+| `row/content` | — | `space.150` | — | — | — | — |
 | `row/content/controlCell` | — | — | — | — | — | min height `type.body.sm.line-box` |
 | `row/content/controlCell/control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
 | `row/content/textStack` | `control.size.md.label-inset` / — / — / — | `space.050` | — | — | — | — |

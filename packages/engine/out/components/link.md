@@ -31,7 +31,7 @@ Shown on the default member: style `standalone`, weight `emphasis`, size `medium
 | --- | --- | --- | --- |
 | `style` | `standalone`, `inline` | once, when authored | Standalone shows its underline at hover, pressed and focus; inline is underlined at every state, for a link in body copy. |
 | `weight` | `emphasis`, `default` | once, when authored | Emphasis is the starting value; choose Default for a lighter weight link. |
-| `size` | `medium`, `small`, `large` | once, when authored | The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it. |
+| `size` | `medium`, `x-small`, `small`, `large` | once, when authored | The body type size: 12, 14, 16 or 18px. The box is one text line tall; the icon (16px at x-small, small and medium, 20px at large) sits inside it. |
 | `surface` | `default`, `inverse` | once, when authored | The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors. |
 | `selection` | `unselected`, `selected` | at runtime | — |
 
@@ -41,7 +41,7 @@ Shown on the default member: style `standalone`, weight `emphasis`, size `medium
 
 ## Usage guidelines
 
-Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. A link inside small print is a text range with that text's own link style.
+Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.
 
 ### Do
 
@@ -49,6 +49,7 @@ Use a link to go somewhere: another page, a place on the page, a file or another
 - State the format and size of a file link
 - Keep opening in a new tab for narrow cases, and say so
 - Use the inline style for a link in body copy, so it is underlined at rest
+- Use x-small only for dense metadata, such as an order row or a legal line
 - Mark the page the user is on in a navigation with current, which also sets aria-current="page"
 
 ### Don't
@@ -56,6 +57,7 @@ Use a link to go somewhere: another page, a place on the page, a file or another
 - Use a link for an action that does not change the address; that is a button
 - Make a disabled link; render plain text instead
 - Add an icon to an inline link
+- Set running body text in x-small
 - Tell a link in running text apart by color alone
 - Mark the current page with the inline style; it reads as a link in running text
 
@@ -75,7 +77,7 @@ Use a link to go somewhere: another page, a place on the page, a file or another
 - 1.4.3 Contrast (targets 4.5:1 for the link text against the page)
 - 1.4.11 Non-text Contrast (targets 3:1 for an icon and the current-page bar against the page)
 - 2.4.7 Focus Visible and 2.4.13 Focus Appearance (the shared focus ring)
-- 2.5.8 Target Size (targets 24px through a code-side hit area; an inline link in a sentence is exempt)
+- 2.5.8 Target Size (targets 24px through a code-side hit area at x-small and small, whose line is shorter; an inline link in a sentence is exempt)
 - 3.2.5 Change on Request (a link that opens a new tab says so)
 - 2.4.1 Bypass Blocks (the skip link)
 
@@ -111,7 +113,7 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 | `href` | string | — | yes | The destination: a URL, a fragment such as "#main", or a file. With no href, render plain text rather than a link. |
 | `style` | enum: 'standalone' \| 'inline' | `standalone` | no | Standalone shows its underline at hover, pressed and focus; inline is underlined at every state, for a link in body copy. |
 | `weight` | enum: 'emphasis' \| 'default' | `emphasis` | no | Emphasis is the starting value; choose Default for a lighter weight link. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it. |
+| `size` | enum: 'x-small' \| 'small' \| 'medium' \| 'large' | `medium` | no | The body type size: 12, 14, 16 or 18px. The box is one text line tall; the icon (16px at x-small, small and medium, 20px at large) sits inside it. |
 | `current` | boolean | `false` | no | Marks the link to the page the user is on, in a navigation: a 2px bar under the text and aria-current="page". Standalone links only. It stays a link with its href. |
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors. |
 | `isExternal` | boolean | `false` | no | Opens in a new tab: adds the trailing external icon, visually hidden "(opens in new tab)" text and rel="noopener noreferrer". Keep it for narrow cases. |
@@ -120,7 +122,7 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 144 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 192 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -139,6 +141,14 @@ Padding reads top / right / bottom / left when its sides differ.
 Keyed by `size`.
 
 **size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.050` | — | — | — | — |
+| `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/bar` | — | — | `border-width.thick` | — | — | — |
+
+**size=x-small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -172,6 +182,10 @@ Keyed by `size`, `style`, `weight`, `selection`, `state`.
 | size=medium, style=standalone, weight=emphasis, selection=unselected, state=hover | `container/label` | `type.body.md.strong-link` |
 | size=medium, style=standalone, weight=emphasis, selection=unselected, state=pressed | `container/label` | `type.body.md.strong-link` |
 | size=medium, style=standalone, weight=emphasis, selection=unselected, state=focus-visible | `container/label` | `type.body.md.strong-link` |
+| size=x-small, style=standalone, weight=emphasis, selection=unselected, state=rest | `container/label` | `type.body.xs.strong` |
+| size=x-small, style=standalone, weight=emphasis, selection=unselected, state=hover | `container/label` | `type.body.xs.strong-link` |
+| size=x-small, style=standalone, weight=emphasis, selection=unselected, state=pressed | `container/label` | `type.body.xs.strong-link` |
+| size=x-small, style=standalone, weight=emphasis, selection=unselected, state=focus-visible | `container/label` | `type.body.xs.strong-link` |
 | size=small, style=standalone, weight=emphasis, selection=unselected, state=rest | `container/label` | `type.body.sm.strong` |
 | size=small, style=standalone, weight=emphasis, selection=unselected, state=hover | `container/label` | `type.body.sm.strong-link` |
 | size=small, style=standalone, weight=emphasis, selection=unselected, state=pressed | `container/label` | `type.body.sm.strong-link` |
@@ -184,6 +198,10 @@ Keyed by `size`, `style`, `weight`, `selection`, `state`.
 | size=medium, style=standalone, weight=emphasis, selection=selected, state=hover | `container/label` | `type.body.md.strong` |
 | size=medium, style=standalone, weight=emphasis, selection=selected, state=pressed | `container/label` | `type.body.md.strong` |
 | size=medium, style=standalone, weight=emphasis, selection=selected, state=focus-visible | `container/label` | `type.body.md.strong` |
+| size=x-small, style=standalone, weight=emphasis, selection=selected, state=rest | `container/label` | `type.body.xs.strong` |
+| size=x-small, style=standalone, weight=emphasis, selection=selected, state=hover | `container/label` | `type.body.xs.strong` |
+| size=x-small, style=standalone, weight=emphasis, selection=selected, state=pressed | `container/label` | `type.body.xs.strong` |
+| size=x-small, style=standalone, weight=emphasis, selection=selected, state=focus-visible | `container/label` | `type.body.xs.strong` |
 | size=small, style=standalone, weight=emphasis, selection=selected, state=rest | `container/label` | `type.body.sm.strong` |
 | size=small, style=standalone, weight=emphasis, selection=selected, state=hover | `container/label` | `type.body.sm.strong` |
 | size=small, style=standalone, weight=emphasis, selection=selected, state=pressed | `container/label` | `type.body.sm.strong` |
@@ -196,6 +214,10 @@ Keyed by `size`, `style`, `weight`, `selection`, `state`.
 | size=medium, style=standalone, weight=default, selection=unselected, state=hover | `container/label` | `type.body.md.default-link` |
 | size=medium, style=standalone, weight=default, selection=unselected, state=pressed | `container/label` | `type.body.md.default-link` |
 | size=medium, style=standalone, weight=default, selection=unselected, state=focus-visible | `container/label` | `type.body.md.default-link` |
+| size=x-small, style=standalone, weight=default, selection=unselected, state=rest | `container/label` | `type.body.xs.default` |
+| size=x-small, style=standalone, weight=default, selection=unselected, state=hover | `container/label` | `type.body.xs.default-link` |
+| size=x-small, style=standalone, weight=default, selection=unselected, state=pressed | `container/label` | `type.body.xs.default-link` |
+| size=x-small, style=standalone, weight=default, selection=unselected, state=focus-visible | `container/label` | `type.body.xs.default-link` |
 | size=small, style=standalone, weight=default, selection=unselected, state=rest | `container/label` | `type.body.sm.default` |
 | size=small, style=standalone, weight=default, selection=unselected, state=hover | `container/label` | `type.body.sm.default-link` |
 | size=small, style=standalone, weight=default, selection=unselected, state=pressed | `container/label` | `type.body.sm.default-link` |
@@ -208,6 +230,10 @@ Keyed by `size`, `style`, `weight`, `selection`, `state`.
 | size=medium, style=standalone, weight=default, selection=selected, state=hover | `container/label` | `type.body.md.default` |
 | size=medium, style=standalone, weight=default, selection=selected, state=pressed | `container/label` | `type.body.md.default` |
 | size=medium, style=standalone, weight=default, selection=selected, state=focus-visible | `container/label` | `type.body.md.default` |
+| size=x-small, style=standalone, weight=default, selection=selected, state=rest | `container/label` | `type.body.xs.default` |
+| size=x-small, style=standalone, weight=default, selection=selected, state=hover | `container/label` | `type.body.xs.default` |
+| size=x-small, style=standalone, weight=default, selection=selected, state=pressed | `container/label` | `type.body.xs.default` |
+| size=x-small, style=standalone, weight=default, selection=selected, state=focus-visible | `container/label` | `type.body.xs.default` |
 | size=small, style=standalone, weight=default, selection=selected, state=rest | `container/label` | `type.body.sm.default` |
 | size=small, style=standalone, weight=default, selection=selected, state=hover | `container/label` | `type.body.sm.default` |
 | size=small, style=standalone, weight=default, selection=selected, state=pressed | `container/label` | `type.body.sm.default` |
@@ -220,6 +246,10 @@ Keyed by `size`, `style`, `weight`, `selection`, `state`.
 | size=medium, style=inline, weight=emphasis, selection=unselected, state=hover | `container/label` | `type.body.md.strong-link` |
 | size=medium, style=inline, weight=emphasis, selection=unselected, state=pressed | `container/label` | `type.body.md.strong-link` |
 | size=medium, style=inline, weight=emphasis, selection=unselected, state=focus-visible | `container/label` | `type.body.md.strong-link` |
+| size=x-small, style=inline, weight=emphasis, selection=unselected, state=rest | `container/label` | `type.body.xs.strong-link` |
+| size=x-small, style=inline, weight=emphasis, selection=unselected, state=hover | `container/label` | `type.body.xs.strong-link` |
+| size=x-small, style=inline, weight=emphasis, selection=unselected, state=pressed | `container/label` | `type.body.xs.strong-link` |
+| size=x-small, style=inline, weight=emphasis, selection=unselected, state=focus-visible | `container/label` | `type.body.xs.strong-link` |
 | size=small, style=inline, weight=emphasis, selection=unselected, state=rest | `container/label` | `type.body.sm.strong-link` |
 | size=small, style=inline, weight=emphasis, selection=unselected, state=hover | `container/label` | `type.body.sm.strong-link` |
 | size=small, style=inline, weight=emphasis, selection=unselected, state=pressed | `container/label` | `type.body.sm.strong-link` |
@@ -232,6 +262,10 @@ Keyed by `size`, `style`, `weight`, `selection`, `state`.
 | size=medium, style=inline, weight=default, selection=unselected, state=hover | `container/label` | `type.body.md.default-link` |
 | size=medium, style=inline, weight=default, selection=unselected, state=pressed | `container/label` | `type.body.md.default-link` |
 | size=medium, style=inline, weight=default, selection=unselected, state=focus-visible | `container/label` | `type.body.md.default-link` |
+| size=x-small, style=inline, weight=default, selection=unselected, state=rest | `container/label` | `type.body.xs.default-link` |
+| size=x-small, style=inline, weight=default, selection=unselected, state=hover | `container/label` | `type.body.xs.default-link` |
+| size=x-small, style=inline, weight=default, selection=unselected, state=pressed | `container/label` | `type.body.xs.default-link` |
+| size=x-small, style=inline, weight=default, selection=unselected, state=focus-visible | `container/label` | `type.body.xs.default-link` |
 | size=small, style=inline, weight=default, selection=unselected, state=rest | `container/label` | `type.body.sm.default-link` |
 | size=small, style=inline, weight=default, selection=unselected, state=hover | `container/label` | `type.body.sm.default-link` |
 | size=small, style=inline, weight=default, selection=unselected, state=pressed | `container/label` | `type.body.sm.default-link` |
