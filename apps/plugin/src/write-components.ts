@@ -843,7 +843,7 @@ export const STAMP_KEY = 'memberStamp';
 export const OLD_SINGLE_PITCH = 48;
 
 /** A box on the page, by its top-left corner and size. */
-export type PageBox = { x: number; y: number; w: number; h: number };
+export type GridBox = { x: number; y: number; w: number; h: number };
 
 /**
  * AN UPDATE RE-LAYS A BLOCK STILL ON THE OLD 48PX GRID (#3145). Before #3142 a single-component block was laid out at a
@@ -865,16 +865,16 @@ export type PageBox = { x: number; y: number; w: number; h: number };
  * pushed aside to make room. Returns the moves by index into `own`.
  */
 export const relayOldGrid = (
-  own: readonly (PageBox & { name: string })[],
+  own: readonly (GridBox & { name: string })[],
   pitch: { x: number; y: number },
-  obstacles: readonly PageBox[],
+  obstacles: readonly GridBox[],
 ): { moves: { i: number; x: number; y: number }[]; blocked?: string } => {
   const P = OLD_SINGLE_PITCH;
   const mod = (v: number): number => ((Math.round(v) % P) + P) % P;
   const groups = new Map<string, number[]>();
   own.forEach((c, i) => { const k = `${mod(c.x)},${mod(c.y)}`; groups.set(k, [...(groups.get(k) ?? []), i]); });
   const grid = [...groups.values()].reduce<number[]>((a, b) => (b.length > a.length ? b : a), []);
-  const meets = (a: PageBox, b: PageBox): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const meets = (a: GridBox, b: GridBox): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   if (!grid.some((a, n) => grid.some((b, m) => n < m && meets(own[a], own[b])))) return { moves: [] };
   const ox = Math.min(...grid.map((i) => Math.round(own[i].x))), oy = Math.min(...grid.map((i) => Math.round(own[i].y)));
   const hand = own.filter((_, i) => !grid.includes(i));
