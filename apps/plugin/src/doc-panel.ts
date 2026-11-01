@@ -62,7 +62,7 @@
  * HELD FOR THE OWNER: `PANEL_GAP`, `PANEL_PAD`, `SECTION_GAP`, `MODE_GAP`, the panel's name, and every sentence this
  * file writes (DRAFT wording). `PANEL_WIDTH` and `THEMING_ROW_MAX` are the owner's (#2970 Q1 A, Q2 A).
  */
-import { docSections, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
+import { docSections, partName, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { componentDefs } from '@prism3/engine/components/index';
 import { CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
@@ -166,7 +166,7 @@ export interface PanelPlan { def: string; title: string; lede: string; family?: 
  * another marked part, the root among them (Q551 A on Q5): a bracket along its left edge instead of a leader. `parts`
  * counts the repeats merged into it (Q4): siblings with the same nest settings are one entry, marked on the first.
  */
-export interface AnatomyMark { n: number; part: string; path: string[]; bracket: boolean; parts: number }
+export interface AnatomyMark { n: number; part: string; path: string[]; bracket: boolean; parts: number; run: string[] }
 
 /** THE FAMILY A DEF'S PANEL COVERS (#2927, owner decision Q551 A on Q1): the defs on its taxonomy page that draw canvas
  *  furniture, in page order, and the one that leads (`leadOf`). A def on no page is a family of one. Null for a def
@@ -199,19 +199,77 @@ export const plain = (s: string): string => s.replace(/`/g, '').replace(/\s+/g, 
 export const firstSentences = (s: string, n: number): string => plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/).slice(0, n).join(' ');
 
 /**
- * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927), from the def's part tree: pure, so the merge and the bracket rule are
- * checked with no host. `listed` is the model's parts, in its order. Repeats (Q551 A on Q4) are numbered siblings of
- * one name (`item1`, `item2`) that nest the same component with the same settings, variant, follows and presence; their
- * overrides (an item's own text) are content, not settings. The first of them carries the entry; the numbering runs over the entries.
+ * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927, #3265), from the def's part tree: pure, so the runs and the bracket rule
+ * are checked with no host. `listed` is the model's parts, in its order. A repeat (Q551 A on Q4) is a numbered sibling of
+ * one name (`item1`, `item2`) nesting one component; its overrides (an item's own text) are content, not settings.
+ * NUMBERED INSTANCES (#3265, owner decisions Q3265.1 A and Q3265.2 A): each instance keeps its number, and NEIGHBORS that
+ * look the same ON THE SPECIMEN make one entry, a run (`run`, its parts in order). "The same on the specimen" is the variant
+ * each one resolves to on the default member, never its `variantWhen` for other members: Code input's six cells differ
+ * only at the focus states, so on the default member they rest alike and make one run. Two parts with different names
+ * (`decrement`, `increment`) nest one component for different jobs, so they stay apart. The first part of a run carries its
+ * marker; the numbering runs over the entries.
  */
 export const anatomyMarks = (def: ComponentDef, listed: readonly string[]): AnatomyMark[] => {
-  const parts = (def.anatomy?.parts ?? {}) as Record<string, { kind?: string; children?: string[]; nests?: string; nesting?: unknown; presentWhen?: unknown }>;
+  type Nesting = { kind?: string; variant?: Record<string, string>; follow?: readonly string[]; expose?: readonly string[];
+    variantWhen?: Record<string, Record<string, Record<string, string>>>; variantWhere?: ReadonlyArray<{ when: Record<string, string>; set: Record<string, string> }> };
+  const parts = (def.anatomy?.parts ?? {}) as Record<string, { kind?: string; children?: string[]; nests?: string; nesting?: Nesting; presentWhen?: unknown; optional?: boolean }>;
   const root = def.anatomy?.root;
   const parentOf = new Map<string, string>();
   for (const [id, p] of Object.entries(parts)) for (const c of p.children ?? []) parentOf.set(c, id);
   const pathOf = (id: string): string[] => { const out: string[] = []; for (let q: string | undefined = id; q && q !== root; q = parentOf.get(q)) out.unshift(q); return out; };
-  // A numbered part (`item2`) nesting what its numbered sibling nests, the same way: a repeat. Two parts with different
-  // names (`decrement`, `increment`) nest one component for different jobs, so they stay apart.
+  // The default member, as the Anatomy's specimen shows it: each axis's first value, and the first state.
+  const shownOn: Record<string, string> = Object.fromEntries(Object.entries(def.variants ?? {}).flatMap(([a, vs]) => (vs?.length ? [[a, vs[0]]] : [])));
+  if (def.states?.length && shownOn.state === undefined) shownOn.state = def.states[0];
+  // The variant a nest resolves to on that member, as the projection resolves it: the fixed variant, then `variantWhen`,
+  // then `variantWhere`, then `follow` (`anatomy-figma.ts`'s `nestVariantOf`).
+  const resolved = (n: Nesting): Record<string, string> => {
+    const out: Record<string, string> = { ...(n.variant ?? {}) };
+    for (const [axis, byValue] of Object.entries(n.variantWhen ?? {})) { const v = shownOn[axis]; if (v !== undefined && byValue[v]) Object.assign(out, byValue[v]); }
+    for (const w of n.variantWhere ?? []) if (Object.entries(w.when).every(([a, v]) => shownOn[a] === v)) Object.assign(out, w.set);
+    for (const axis of n.follow ?? []) { const v = shownOn[axis]; if (v !== undefined) out[axis] = v; }
+    return Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));
+  };
+  const key = (id: string): string | null => {
+    const p = parts[id];
+    return p?.kind === 'nest' && /\d$/.test(id)
+      ? JSON.stringify([id.replace(/\d+$/, ''), parentOf.get(id) ?? '', p.nests, p.nesting?.kind ?? null, p.nesting?.expose ?? null, p.nesting ? resolved(p.nesting) : null, p.presentWhen ?? null, !!p.optional])
+      : null;
+  };
+  const entries: { part: string; run: string[]; key: string | null }[] = [];
+  for (const id of listed) {
+    const k = key(id);
+    const last = entries[entries.length - 1];
+    if (k !== null && last?.key === k) { last.run.push(id); continue; }
+    entries.push({ part: id, run: [id], key: k });
+  }
+  const marked = new Set(entries.map((e) => e.part));
+  const holds = (id: string): boolean => [...marked].some((o) => o !== id && pathOf(o).includes(id));
+  return entries.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), bracket: e.part === root || holds(e.part), parts: e.run.length, run: e.run }));
+};
+
+/** The number a repeat's part carries (`cell4` → 4), or null for a part that is not numbered. */
+const instanceNo = (id: string): string | null => /\d+$/.exec(id)?.[0] ?? null;
+/** A legend entry's name and caption (#3265, owner decisions Q3265.1 A and Q3265.2 A; the wording DRAFT under Q10). The
+ *  name is the def's part key through `partName`, never a layer's name. One instance reads "Cell 4" and keeps its own
+ *  note. A run reads "Cells 1–6" (an en dash) and takes its parts' note when they share one, else the nested component's
+ *  summary, so the caption is true of every part the entry covers. */
+export const anatomyEntry = (def: ComponentDef, m: AnatomyMark, caption: (id: string) => string): { label: string; caption: string } => {
+  const no = instanceNo(m.part);
+  const nests = (def.anatomy?.parts as Record<string, { kind?: string; nests?: string }> | undefined)?.[m.part];
+  if (!no || nests?.kind !== 'nest') return { label: partName(m.part), caption: caption(m.part) };
+  const name = partName(m.part.replace(/\d+$/, ''));
+  if (m.run.length === 1) return { label: `${name} ${no}`, caption: caption(m.part) };
+  const notes = new Set(m.run.map(caption));
+  const shared = notes.size === 1 ? [...notes][0] : componentDefs.find((d) => d.id === nests.nests)?.summary ?? '';
+  return { label: `${name}s ${no}\u2013${instanceNo(m.run[m.run.length - 1])}`, caption: shared };
+};
+/** The legend's labels before #3265 numbered instances: a repeat merged by its settings (`nesting` whole, so `variantWhen`
+ *  too) wherever it stood, labelled with its first part's name less its number and how many ("Item ×4"). Kept for
+ *  `writtenTexts` alone, so a panel drawn then and printed before `printView` still reads as Prism3's own text. */
+const labelsBefore3265 = (def: ComponentDef, listed: readonly string[]): string[] => {
+  const parts = (def.anatomy?.parts ?? {}) as Record<string, { kind?: string; children?: string[]; nests?: string; nesting?: unknown; presentWhen?: unknown; optional?: boolean }>;
+  const parentOf = new Map<string, string>();
+  for (const [id, p] of Object.entries(parts)) for (const c of p.children ?? []) parentOf.set(c, id);
   const key = (id: string): string => {
     const p = parts[id];
     return p?.kind === 'nest' && /\d$/.test(id) ? JSON.stringify([id.replace(/\d+$/, ''), parentOf.get(id) ?? '', p.nests, p.nesting ?? null, p.presentWhen ?? null]) : `part:${id}`;
@@ -219,16 +277,16 @@ export const anatomyMarks = (def: ComponentDef, listed: readonly string[]): Anat
   const firsts: { part: string; parts: number }[] = [];
   const byKey = new Map<string, { part: string; parts: number }>();
   for (const id of listed) {
-    const k = key(id);
-    const had = byKey.get(k);
+    const had = byKey.get(key(id));
     if (had) { had.parts++; continue; }
     const e = { part: id, parts: 1 };
-    byKey.set(k, e);
+    byKey.set(key(id), e);
     firsts.push(e);
   }
-  const marked = new Set(firsts.map((e) => e.part));
-  const holds = (id: string): boolean => [...marked].some((o) => o !== id && pathOf(o).includes(id));
-  return firsts.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), bracket: e.part === root || holds(e.part), parts: e.parts }));
+  return firsts.map((e, i) => {
+    const name = partName(e.part);
+    return `${i + 1}  ${e.parts > 1 ? `${name.replace(/\s*\d+$/, '')} ×${e.parts}` : name}${parts[e.part]?.optional ? ' (optional)' : ''}`;
+  });
 };
 
 /**
@@ -259,9 +317,9 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         blocks.push({ type: 'Specimen', caption: `Shown on the default member: ${s.specimen.map((x) => `${x.axis} ${x.value}`).join(', ')}`, marks });
         for (const m of marks) {
           const p = s.parts.find((x) => x.id === m.part)!;
-          // DRAFT wording (Q10): a merged repeat reads as its first part's name without the number, and how many.
-          const label = m.parts > 1 ? `${p.name.replace(/\s*\d+$/, '')} ×${m.parts}` : p.name;
-          field(`${m.n}  ${label}${p.optional ? ' (optional)' : ''}`, p.caption ?? '', 1);
+          // #3265: "Cell 4" for one instance, "Cells 1–6" for a run, each captioned truly for every part it covers.
+          const e = anatomyEntry(def, m, (id) => s.parts.find((x) => x.id === id)?.caption ?? '');
+          field(`${m.n}  ${e.label}${p.optional ? ' (optional)' : ''}`, e.caption, 1);
         }
         break;
       }
@@ -555,6 +613,8 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
     // Related by each def's own name, before #2970 named families.
     if (s.id === 'related') for (const l of s.lists) out.add(l.ids.map(names).join('\n'));
     if (s.id === 'anatomy') s.parts.forEach((p, i) => { out.add(`${i + 1}  ${p.name}${p.optional ? ' (optional)' : ''}`); out.add(firstSentences(p.caption ?? '', 1)); });
+    // The merged labels a panel read before #3265 numbered instances.
+    if (s.id === 'anatomy') for (const l of labelsBefore3265(def, s.parts.map((p) => p.id))) out.add(l);
     if (s.id === 'usage') {
       [...s.do, ...s.dont].forEach((t) => out.add(plain(t)));
       out.add(`Showing ${Math.min(s.do.length, PANEL_DO_ITEMS)} of ${s.do.length} Do items and ${Math.min(s.dont.length, PANEL_DO_ITEMS)} of ${s.dont.length} Don't items.`);
