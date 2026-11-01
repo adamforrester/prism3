@@ -48,16 +48,26 @@ export const removeOnce = (obj: { id: string; removed: boolean }, what: string):
  * sees exactly what it saw before. Use the returned proxy everywhere, including inside the object's own
  * methods (their `this` is the proxy when called through it), so identity checks see one object.
  */
-export const deadOnRemove = <T extends { id: string }>(obj: T, what: string): T & { removed: boolean } => {
+export const deadOnRemove = <T extends { id: string }>(obj: T, what: string, use?: () => void): T & { removed: boolean } => {
   Object.defineProperty(obj, 'removed', { value: false, writable: true, enumerable: false, configurable: true });
   const live = obj as T & { removed: boolean };
+  // `use` (#3208): told of every method called and every property written from outside, so a shim can count the API
+  // calls a write makes. A call the object makes on itself (`this.modes` inside `addMode`) is not one.
+  let inside = 0;
   return new Proxy(live, {
     get(t, p, receiver) {
       if (t.removed && p !== 'id' && p !== 'removed') throw dead(what, t.id, String(p));
-      return Reflect.get(t, p, receiver);
+      const v = Reflect.get(t, p, receiver);
+      if (!use || typeof v !== 'function') return v;
+      return function (this: unknown, ...a: unknown[]) {
+        if (!inside) use();
+        inside++;
+        try { return (v as (...x: unknown[]) => unknown).apply(this, a); } finally { inside--; }
+      };
     },
     set(t, p, v, receiver) {
       if (t.removed && p !== 'removed') throw dead(what, t.id, String(p));
+      if (use && !inside && p !== 'removed') use();
       return Reflect.set(t, p, v, receiver);
     },
   });

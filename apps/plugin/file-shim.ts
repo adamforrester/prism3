@@ -40,13 +40,31 @@ export class FileShim {
   private seq = 0;
   private minted = new WeakSet<object>();
   private rootData = new Map<string, string>();
-  constructor(private opts: FileShimOpts = {}) {}
+  /** #3208: every host call made so far — a method called on the file, a collection, a variable or a style, or a property
+   *  of one written. A test reads it at each hand-back to count the calls a write makes between two. */
+  calls = 0;
+  private use = (): void => { this.calls++; };
+  constructor(private opts: FileShimOpts = {}) {
+    // The file's own methods count as calls too; a method the file calls on itself (`style` from `createTextStyle`) not.
+    let inside = 0;
+    for (const k of Object.getOwnPropertyNames(FileShim.prototype)) {
+      const d = Object.getOwnPropertyDescriptor(FileShim.prototype, k)!;
+      if (['constructor', 'id', 'shared', 'style', 'rootRecord'].includes(k) || typeof d.value !== 'function') continue;
+      const f = d.value as (...a: unknown[]) => unknown;
+      Object.defineProperty(this, k, { configurable: true, writable: true, value: (...a: unknown[]) => {
+        if (!inside) this.calls++;
+        inside++;
+        try { return f.apply(this, a); } finally { inside--; }
+      } });
+    }
+  }
   private id(p: string): string { return `${p}:${++this.seq}`; }
   private shared(store: Map<string, string>) {
     const refuse = this.opts.refuseSharedData;
     return {
-      getSharedPluginData: (ns: string, k: string): string => { if (refuse) throw new Error('not implemented'); return store.get(`${ns}/${k}`) ?? ''; },
+      getSharedPluginData: (ns: string, k: string): string => { this.calls++; if (refuse) throw new Error('not implemented'); return store.get(`${ns}/${k}`) ?? ''; },
       setSharedPluginData: (ns: string, k: string, v: string): void => {
+        this.calls++;
         if (refuse) throw new Error('not implemented');
         if (v === '') store.delete(`${ns}/${k}`); else store.set(`${ns}/${k}`, v);
       },
@@ -75,7 +93,7 @@ export class FileShim {
         shim.vars = shim.vars.filter((v) => !v.removed);
       },
       ...this.shared(data),
-    }, 'variable collection');
+    }, 'variable collection', this.use);
     this.minted.add(c);
     this.collections.push(c);
     return c;
@@ -127,7 +145,7 @@ export class FileShim {
         this.valuesByMode[modeId] = value;
       },
       remove() { v.removed = true; shim.vars = shim.vars.filter((x) => x !== v); },
-    }, 'variable');
+    }, 'variable', this.use);
     this.vars.push(v);
     return v;
   }
@@ -146,7 +164,7 @@ export class FileShim {
       ...(kind === 'text' ? { fontName: { family: 'Inter', style: 'Regular' }, fontSize: 12 } : {}),
       setBoundVariable(field: string, v: any) { if (v) this.boundVariables[field] = { type: 'VARIABLE_ALIAS', id: v.id }; else delete this.boundVariables[field]; },
       remove() { s.removed = true; shim.styles[kind] = shim.styles[kind].filter((x) => x !== s); },
-    }, 'style');
+    }, 'style', this.use);
     this.styles[kind].push(s);
     return s;
   }
