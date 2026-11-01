@@ -28,7 +28,7 @@ field is the label's.
 **Trap for whoever re-verifies.** The placeholder layer's ink is `label.rest` / `.hover` / `.focus-visible`, not
 `label.empty`: `empty` is a code-only state. Mutating `label.empty` moves nothing in Figma.
 
-**Prose is DRAFT.** FieldLabel's new `emphasis` description and the sentence added to its `docs.usage` are unapproved
-wording, marked `// DRAFT wording for the owner (#3200)` beside each string in `field-label.ts`; the owner reviews voice.
+**Prose approved.** FieldLabel's new `emphasis` description and the sentence added to its `docs.usage` were approved
+as written (owner Q3203.2 A). The DRAFT comments beside them in `field-label.ts` came off in #3222.
 
 **Decided.** The label default is global, not a brand lever (owner Q3203.1 A).
