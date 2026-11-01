@@ -26,9 +26,17 @@
  * same way on both is reported as `error`, never as `same`: a drawing the gate could not make is not a drawing that
  * did not move (docs/34 shape 9).
  *
- * WHAT IT CANNOT SEE: a write the shim does not model reads the same on both sides (docs/34 shape 17, both sides share
- * the host model), and an executor branch only some other lever combination reaches. `executor-reach.ts` says what an
- * author does about each.
+ * A HOST API THE SHIM LACKS (#3160). The executor calls optional host APIs as `node.setProperties?.(…)`, and a method
+ * the shim does not implement makes that call a no-op on both sides, so a real drawing change through it (the review's
+ * M-D: `setExplicitVariableModeForCollection?.()` on a nested instance) read `same`. So every node is a `Proxy`
+ * (`wrapNode` in `component-shim.ts`) whose `get` records each property name read from it that it lacks, in
+ * `_unmodeled`, an enumerable field the serializer below reads like any other. A host API NEW asks a node for and OLD
+ * does not then reads `changed`. It over-reports by design (a lacking property read for any reason is recorded), which
+ * the record allows: an entry may name more sets than moved, never fewer.
+ *
+ * WHAT IT CANNOT SEE: a write the shim does not model to a property it DOES carry, or through a method it implements
+ * as a no-op, reads the same on both sides (docs/34 shape 17, both sides share the host model), and an executor branch
+ * only some other lever combination reaches. `executor-reach.ts` says what an author does about each.
  */
 import * as AF from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -89,6 +97,19 @@ const everyPlan = new Map<BrandInput | null, AnatomyPlan[]>();
 const allPlans = (b: BrandInput | null): AnatomyPlan[] => { let a = everyPlan.get(b); if (!a) everyPlan.set(b, a = PROJECTED.flatMap(project(b))); return a; };
 
 // ---- the drawing, serialized -------------------------------------------------------------------------------------
+/** Reads that are not a host API: `await`/`Promise.resolve` probe `then`, and `JSON.stringify` probes `toJSON`. */
+const NOT_HOST = new Set(['then', 'toJSON']);
+/** #3160: the node wrapped so a read of a property it lacks is recorded on it, in `_unmodeled` (see the header). The
+ *  `get` returns the target's own value untouched, so the node behaves exactly as unwrapped. */
+export const recordUnmodeled = (n: Node): Node => new Proxy(n, {
+  get(t, k, receiver) {
+    if (typeof k === 'string' && !(k in t) && !NOT_HOST.has(k)) {
+      if (!(t._unmodeled instanceof Set)) Object.defineProperty(t, '_unmodeled', { value: new Set<string>(), enumerable: true, configurable: true, writable: true });
+      (t._unmodeled as Set<string>).add(k);
+    }
+    return Reflect.get(t, k, receiver);
+  },
+});
 const STAMPED = /\d{4}-\d\d-\d\dT[\d:.]+Z/g;
 const isNode = (v: unknown): v is Node => !!v && typeof v === 'object' && typeof (v as Node).type === 'string' && Array.isArray((v as Node).children);
 const value = (v: unknown, seen: Set<unknown>): unknown => {
@@ -134,7 +155,7 @@ const draw = async (def: ComponentDef, brand0: BrandInput | null, build: Exec, u
   const page: Page = { children: [] };
   const shim = makeShim({
     ...fileFor(live ? [...plans, ...brands.flatMap(allPlans)] : plans), ...(live ? { comps: [SWAP], liveRoot: true, liveComponents: true } : {}),
-    identities: true, scaleConstrained: true, page,
+    identities: true, scaleConstrained: true, page, wrapNode: recordUnmodeled,
   } as Parameters<typeof makeShim>[0]) as unknown as Record<string, unknown> & { root: { findAllWithCriteria(c: { types: string[] }): unknown[] } };
   const emit = (d: ComponentDef) => ({ emitAsComponents: d.figmaProperties?.emitAsComponents });
   if (live && build.prebuild) await build.prebuild(def, { defs: componentDefs, project: project(brand0), host: shim, build: (d: ComponentDef) => build.apply(project(brand0)(d), shim, emit(d)) });

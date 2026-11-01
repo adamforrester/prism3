@@ -61,7 +61,8 @@
  *                  current after. Mutation: the def's binding reverted → `edge/<def> rebound`.
  *   <host> leads/… a field host built with its FieldLabel at emphasis=secondary takes primary in place on Update (#3200,
  *                  owner Q-PH1 A), every key and id kept, a hand edit on the label and one on the member root kept.
- *                  Mutations: the in-place swap skipped → `<host> leads/primary`; the `kept` check dropped from the
+ *                  Mutations: the in-place swap skipped → `<host> leads/primary` and `<host> leads/verdict` (the
+ *                  apply's verify reads each nested instance's member, #3206); the `kept` check dropped from the
  *                  nested path → `<host> leads/hand edit kept`.
  *   reach/…        a member stamped under a revision that did not redraw its set reads current; below the record's
  *                  floor it is to update (#3101). Mutation: `update-plan.ts` without `reaches` → `reach/dry run 42`.
@@ -5161,8 +5162,10 @@ section('label leads — every field host built with its FieldLabel at emphasis=
   // update must leave as the designer left it (owner decision Q1: keep and report), and the member's own root, which
   // holds that node only, so the label under it still takes primary. Expected values are literals typed here.
   // Mutations, each failing the arm it names: the def's nested emphasis left at secondary → `<host> leads/premise`
-  // (nothing to update); the executor's in-place `swapComponent` skipped → `<host> leads/primary`; the `kept` check
-  // dropped from the nested-instance path → `<host> leads/hand edit kept`.
+  // (nothing to update); the executor's in-place `swapComponent` skipped → `<host> leads/primary`, and since #3206
+  // `<host> leads/verdict` too, because the apply's verify now reads each nested instance's member off the host
+  // (`nestedMemberFaults`); the `kept` check dropped from the nested-instance path → `<host> leads/hand edit kept`; the
+  // verify's hand-edit test dropped from `nestedMemberFaults` → `<host> leads/verdict` (the kept label is listed).
   const HOSTS = ['text-field', 'password-field', 'search-field', 'card-number-field', 'textarea', 'select', 'code-input', 'counter', 'checkbox-group', 'radio-group', 'segmented-control', 'slider'];
   const LABEL_MEMBERS = plansOf('field-label').map(planComponentName);
   const HARNESS_LIMITED = ['card-number-field', 'code-input', 'counter', 'slider'];

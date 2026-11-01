@@ -231,7 +231,9 @@ const mainOpts = (id) => ({
   // deliberately NOT defined here — this entry never references it, and defining an identifier no code
   // reads would make `assertIdentity` the only thing proving either define does anything.
   // `PRISM3_DEV` (#2530): true in `dist/`, false in `release/`, where every `if (PRISM3_DEV)` branch is dropped.
-  define: { PRISM3_BUILD: JSON.stringify(id), PRISM3_DEV: String(!release) },
+  // `PRISM3_NETWORK` (#3218): false only in the offline variant, as the UI's (#3138), so the main thread's bridge-token
+  // plumbing drops with the relay it serves.
+  define: { PRISM3_BUILD: JSON.stringify(id), PRISM3_DEV: String(!release), PRISM3_NETWORK: String(!offline) },
   // The release build folds `if (false)` away (#2530). Without minification esbuild keeps a dead branch's TEXT, and
   // a branch's text keeps its imports alive, so the dev code would ship unreachable instead of absent. Syntax only:
   // no renaming, no whitespace change, so a release stack trace still reads like the dev build's.

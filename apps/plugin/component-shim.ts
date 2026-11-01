@@ -465,6 +465,11 @@ export type ShimOpts = {
   styleIdPrefix?: string;
   /** `saveVersionHistoryAsync` refuses (#2265 PR 2, §10 Q7): the update must then write nothing. */
   refuseVersion?: boolean;
+  /** #3160 — WRAP EVERY NODE AS IT IS MADE. `mkNode` hands back what this returns, and its own methods close over the
+   *  same value, so a `Proxy` here sees every read of the node, the executor's and the shim's. `reach-draw.ts` uses it
+   *  to record a host API the executor asks a node for that the shim does not model (a `?.()` call that is a no-op
+   *  here). Unset, a node is the plain object it always was. */
+  wrapNode?: (n: Node) => Node;
 };
 
 
@@ -838,7 +843,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
   };
 
   const mkNode = (type: string): Node => {
-    const node: Node = {
+    const raw: Node = {
       type, name: '', boundVariables: {} as Record<string, unknown>,
       // #682: the aspect-ratio lock STARTS ENGAGED and only `unlockAspectRatio()` releases it, which is
       // the whole reason the call is load-bearing. A shim that started unlocked would pass whether the
@@ -1208,6 +1213,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         (node._pluginData as Map<string, string>).set(`${namespace}|${key}`, value);
       },
     };
+    // #3160: the node every caller holds, the executor's and the shim's own closures alike, so a wrapper sees every
+    // read. `wrapNode` unset (every suite but `reach-draw.ts`), it is the literal itself.
+    const node: Node = opts.wrapNode ? opts.wrapNode(raw) : raw;
     // `strokesIncludedInLayout` is an AUTO-LAYOUT-ONLY property, and the real host THROWS when it is
     // written on a `layoutMode: NONE` (or unset) frame — the constraint the #1266 focus-ring regression
     // fell through, because the offline shim modelled it as a plain settable boolean and so could never

@@ -28,7 +28,7 @@ import {
   BLANK_BRAND, HEX_ERROR, IMPORT_ACCEPT, importErrorText, readDesignMdFile, readHex, seedFromColor, validateDesignMd, validatePaste,
   type GuardText,
 } from '../state/start-input';
-import { focusables, glyph, h, hook, trapTab } from './dom';
+import { focusables, glyph, h, hook, leave, trapTab } from './dom';
 import type { Host } from './pages';
 
 /** A start choice: the brand it loads and where that brand came from. */
@@ -127,7 +127,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   const closeGuard = (refocus: boolean): void => {
     if (!guard) return;
     const { from } = guard;
-    guard.scrim.remove();
+    leave(guard.scrim);   // #3207: it leaves through its exit
     guard = null;
     dlg.inert = false;
     if (refocus) (from && from.isConnected ? from : focusables(dlg)[0])?.focus();
@@ -280,7 +280,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
     dismiss: (to) => {
       readGen++;   // a read still in flight loads nothing into a closed window
       closeGuard(false);
-      scrim.remove();
+      leave(scrim);   // #3207: it leaves through its exit
       behind.forEach((c, i) => { c.inert = wasInert[i]; });
       to?.focus();
     },

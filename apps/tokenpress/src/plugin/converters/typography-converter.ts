@@ -23,6 +23,12 @@ export interface BoundTypographyVariables {
 }
 
 /**
+ * A text style's decoration thickness or offset, as Figma gives it
+ * (TextDecorationThickness / TextDecorationOffset).
+ */
+type DecorationMetric = { value?: number; unit: 'PIXELS' | 'PERCENT' | 'AUTO' };
+
+/**
  * Converter for typography tokens.
  * Handles complex text style conversion with proper variable resolution,
  * caching, and unit conversion.
@@ -68,6 +74,24 @@ export class TypographyConverter {
     const textDecoration = this.convertFigmaTextDecoration(textStyle.textDecoration);
     if (textDecoration && textDecoration !== 'none') {
       typographyValue.textDecoration = textDecoration;
+
+      // The decoration's thickness and offset (prism3 #3085). Neither field takes a variable in Figma,
+      // so each is the style's literal. Written beside textDecoration, only when a decoration is drawn,
+      // and left out when Figma has it on AUTO (the font's own metric, which has no number to export).
+      const thickness = this.resolveDecorationMetric(
+        (textStyle as { textDecorationThickness?: DecorationMetric | null }).textDecorationThickness,
+        context
+      );
+      if (thickness !== null) {
+        typographyValue.textDecorationThickness = thickness;
+      }
+      const offset = this.resolveDecorationMetric(
+        (textStyle as { textDecorationOffset?: DecorationMetric | null }).textDecorationOffset,
+        context
+      );
+      if (offset !== null) {
+        typographyValue.textDecorationOffset = offset;
+      }
     }
 
     // Add fontStyle for italic/oblique fonts
@@ -379,6 +403,35 @@ export class TypographyConverter {
     }
 
     return 'normal';
+  }
+
+  /**
+   * Converts a text style's decoration thickness or offset to a dimension (prism3 #3085).
+   * PERCENT is a share of the font size and exports as '%'; PIXELS follows the px/rem
+   * preference, as letter spacing does. AUTO, a missing field and a non-number value
+   * return null, so the caller leaves the field out.
+   *
+   * @param metric Figma TextDecorationThickness or TextDecorationOffset
+   * @param context Conversion context
+   * @returns Dimension, or null when there is no number to export
+   */
+  private resolveDecorationMetric(
+    metric: DecorationMetric | null | undefined,
+    context: ConversionContext
+  ): string | DTCGDimension | null {
+    if (!metric || metric.unit === 'AUTO' || typeof metric.value !== 'number') {
+      return null;
+    }
+    if (metric.unit === 'PERCENT') {
+      return this.formatDimension(metric.value, '%', context);
+    }
+    if (metric.unit === 'PIXELS') {
+      if (context.useRem) {
+        return this.formatDimension(metric.value / context.baseFontSize, 'rem', context);
+      }
+      return this.formatDimension(metric.value, 'px', context);
+    }
+    return null;
   }
 
   /**
