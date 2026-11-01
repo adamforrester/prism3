@@ -49,7 +49,8 @@
  *     main thread is the authority on whether the link is on;
  *   · it renders every `agent-link-state` the main thread posts, and tells Activity whether the link is on;
  *   · and, while the link is on, the socket to the local desktop bridge (transport B) — the main thread has
- *     no network, so the iframe holds it and relays envelopes (`agent-bridge-relay.ts`).
+ *     no network, so the iframe holds it and relays envelopes (`agent-bridge-relay.ts`). In the network build and the
+ *     dev build only (#3147): "Prism3 Studio Offline" carries no socket and offers the mailbox only.
  *
  * Compiled under `tsconfig.ui.json` (DOM, no plugin typings); reaches the main thread only by
  * `parent.postMessage`, like `apps/studio/src/write-adapter.ts`.
@@ -57,7 +58,8 @@
 import type { UiToMain } from './messages';
 import type { AgentLinkState } from './agent-protocol';
 import { createBridgeRelay } from './agent-bridge-relay';
-import type { WsLike } from './agent-bridge-relay';
+import type { BridgePairing, WsLike } from './agent-bridge-relay';
+import { codeShaped } from './bridge-auth';
 import { glyph, h, hook, switchEl, tile } from '../../studio/src/shell/dom';
 import { OP_TITLE, setAgentLinkOn, setAgentLinkStatus } from '../../studio/src/shell/activity';
 
@@ -106,12 +108,39 @@ export const agentLinkStatusText = (s: AgentLinkState | null, now: number = Date
 
 /** #3113 (Q3113.7 A): the bar row's one word for the link, beside its glyph and dot: nothing while it is off, "Error" for
  *  an inbox error, "Not listening" while it is on with no transport listening, otherwise "Listening". The error states
- *  draw in the chrome's error inks. DRAFT wording, except "Listening". Pure. */
-export const agentLinkWord = (s: AgentLinkState | null): { readonly text: string; readonly error: boolean } | null => {
+ *  draw in the chrome's error inks. Since #3147 Phase 1 the listening word names the transport commands arrive by:
+ *  "Listening · bridge" while the desktop bridge is connected (the mailbox is still read; the full line names both),
+ *  otherwise "Listening · mailbox". Both are approved (Q3204.3 A), as is the Offline word below. `bridgeBuilt` is whether this build
+ *  carries the bridge at all (`PRISM3_NETWORK`): "Prism3 Studio Offline" has none, so its word is "Listening · mailbox
+ *  only" (Q3204.2 A). Pure. */
+export const agentLinkWord = (s: AgentLinkState | null, bridgeBuilt = true): { readonly text: string; readonly error: boolean } | null => {
   if (!s || !s.on) return null;
   if (s.inboxError) return { text: 'Error', error: true };
   if (!s.transports.mailbox && !s.transports.bridge) return { text: 'Not listening', error: true };
-  return { text: 'Listening', error: false };
+  if (!bridgeBuilt) return { text: 'Listening · mailbox only', error: false };
+  return { text: `Listening · ${s.transports.bridge ? 'bridge' : 'mailbox'}`, error: false };
+};
+
+/** #3204 (Q3204.1 A): the pairing prompt's words, by where pairing stands. Approved (Q3204.4 A); `wrongCode`, reworded
+ *  for the code's 10-minute window (Q3204.5 A), approved as Q3204.7 A. `line` is the
+ *  prompt's one line; `error` is the line under the field, or null. Nothing is asked while pairing is 'none'. Pure. */
+export const PAIR_WORDS = {
+  title: 'Pair with the desktop bridge',
+  line: 'Enter the code from the desktop bridge. Your agent can show it too. Prism3 asks once on each computer.',
+  refusedLine: 'The bridge no longer accepts this computer\'s pairing. Enter its current code.',
+  label: 'Pairing code',
+  placeholder: 'XXXX-XXXX',
+  submit: 'Pair',
+  busy: 'Pairing…',
+  later: 'Not now',
+  wrongCode: 'The bridge did not accept that code. A code works once, for 10 minutes. Ask your agent for a current one.',
+  badShape: 'A pairing code is 8 letters and digits, such as 7KQ4-M2XR.',
+} as const;
+export const pairPromptText = (p: BridgePairing): { readonly line: string; readonly error: string | null; readonly busy: boolean } | null => {
+  if (p === 'none') return null;
+  if (p === 'refused') return { line: PAIR_WORDS.refusedLine, error: null, busy: false };
+  if (p === 'wrong-code') return { line: PAIR_WORDS.line, error: PAIR_WORDS.wrongCode, busy: false };
+  return { line: PAIR_WORDS.line, error: null, busy: p === 'pairing' };
 };
 
 /** The link's short status for the Activity drawer's bar row (#2213, the owner's AS1 A, 2026-10-06): nothing while the
@@ -207,6 +236,9 @@ export const mountAgentLink = (): void => {
   minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
   wrap.append(label, chip, minBtn);
 
+  /** #3204: draws the bridge's pairing prompt; the network build sets it below, with the relay. */
+  let renderPair = (): void => undefined;
+
   // #2879 (Q613 3 A): the library home's row: its title, the link's full status line, and the switch. The same request as
   // the tile's click; the switch shows only what the main thread publishes.
   const homeRow = hook(h('div', 'p3-home-agentrow'), 'home-agent-row');
@@ -285,25 +317,89 @@ export const mountAgentLink = (): void => {
     // #3113 (Q3113.7 A): the drawer's bar row draws the link's glyph, a dot and one word ("Listening"); the full line, in
     // operation words with a relative age, heads the open drawer and is the word's tooltip. The ticker below keeps the
     // age current while the link is on.
-    const word = agentLinkWord(state);
+    const word = agentLinkWord(state, PRISM3_NETWORK);
     setAgentLinkStatus({ short: word?.text ?? null, error: !!word?.error,
       full: state && (state.on || state.inboxError) ? agentLinkStatusText(state) : null });
+    renderPair();
     if (on && drawerTicker === null) drawerTicker = setInterval(render, 30_000);
     if (!on && drawerTicker !== null) { clearInterval(drawerTicker); drawerTicker = null; }
   };
 
   // Transport B: while the link is on, hold a socket to the local desktop bridge and relay its commands
   // to the main thread (`agent-bridge-relay.ts`). Nothing connects while the link is off.
-  // DEV BUILDS ONLY (#2530): the socket's one origin is listed under `devAllowedDomains`, which Figma honours only
-  // for a development import, so the release build (`PRISM3_DEV` false) drops the relay and its URL entirely.
+  // THE NETWORK BUILD ONLY (#3147, the owner's Q3147.1 A and Q3147.5 A): "Prism3 Studio" lists the socket's one origin
+  // in `allowedDomains`, so the relay ships in it and in the dev build. "Prism3 Studio Offline" (`PRISM3_NETWORK` false)
+  // drops the relay and its URL entirely and offers the mailbox only. Until #3147 this was `PRISM3_DEV` (#2530): the
+  // origin sat under `devAllowedDomains`, which Figma honours only for a development import.
   let relay: ReturnType<typeof createBridgeRelay> | null = null;
-  if (PRISM3_DEV) {
+  if (PRISM3_NETWORK) {
+    // #3204 (Q3204.1 A): the desktop bridge's pairing prompt, under the switch, while the relay needs a code. The menu's
+    // surface, not a modal: the rest of the panel stays usable, and "Not now" hides it until the link is next switched on.
+    // The network build only: the offline build has no bridge to pair with, and carries none of this.
+    const pairBox = hook(h('div', 'p3-menu p3-agent-pair'), 'agent-pair');
+    pairBox.setAttribute('role', 'group');
+    pairBox.hidden = true;
+    const pairTitle = h('span', 'p3-agent-pair-title', PAIR_WORDS.title);
+    pairTitle.id = 'p3-agent-pair-title';
+    pairBox.setAttribute('aria-labelledby', pairTitle.id);
+    const pairLine = hook(h('span', 'p3-agent-pair-line'), 'agent-pair-line');
+    const pairForm = h('form', 'p3-agent-pair-row');
+    const pairInput = hook(h('input', 'p3-text-input p3-value'), 'agent-pair-code');
+    pairInput.type = 'text';
+    pairInput.autocomplete = 'off';
+    pairInput.spellcheck = false;
+    pairInput.maxLength = 12;
+    pairInput.placeholder = PAIR_WORDS.placeholder;
+    pairInput.setAttribute('aria-label', PAIR_WORDS.label);
+    const pairSubmit = hook(h('button', 'p3-btn', PAIR_WORDS.submit), 'agent-pair-submit');
+    pairSubmit.type = 'submit';
+    const pairLater = hook(h('button', 'p3-btn p3-btn-ghost', PAIR_WORDS.later), 'agent-pair-later');
+    pairLater.type = 'button';
+    pairForm.append(pairInput, pairSubmit, pairLater);
+    const pairErr = hook(h('p', 'p3-field-err'), 'agent-pair-error');
+    pairErr.id = 'p3-agent-pair-error';
+    pairErr.setAttribute('role', 'alert');
+    pairInput.setAttribute('aria-describedby', pairErr.id);
+    pairBox.append(pairTitle, pairLine, pairForm, pairErr);
+    let pairState: BridgePairing = 'none';
+    let pairDismissed = false;
+    renderPair = (): void => {
+      if (!state?.on) pairDismissed = false;
+      const t = pairPromptText(pairState);
+      const show = !!t && !pairDismissed && !!state?.on;
+      const wasHidden = pairBox.hidden;
+      pairBox.hidden = !show;
+      if (!t) return;
+      pairLine.textContent = t.line;
+      if (t.error !== null || pairErr.dataset.local !== 'true') { pairErr.textContent = t.error ?? ''; delete pairErr.dataset.local; }
+      pairInput.setAttribute('aria-invalid', String(t.error !== null));
+      pairSubmit.disabled = t.busy;
+      pairSubmit.textContent = t.busy ? PAIR_WORDS.busy : PAIR_WORDS.submit;
+      if (show && wasHidden) pairInput.focus();
+    };
+    wrap.append(pairBox);
     relay = createBridgeRelay({
       open: (url) => new WebSocket(url) as unknown as WsLike,
       post,
       schedule: (fn, ms) => setTimeout(fn, ms),
       cancel: (t) => clearTimeout(t as ReturnType<typeof setTimeout>),
+      onPairing: (p) => { pairState = p; renderPair(); },
     });
+    const r = relay;
+    pairForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!codeShaped(pairInput.value)) {
+        pairErr.textContent = PAIR_WORDS.badShape;
+        pairErr.dataset.local = 'true';
+        pairInput.setAttribute('aria-invalid', 'true');
+        return;
+      }
+      delete pairErr.dataset.local;
+      pairErr.textContent = '';
+      r.pair(pairInput.value);
+      pairInput.value = '';
+    });
+    pairLater.addEventListener('click', () => { pairDismissed = true; renderPair(); });
   }
 
   window.addEventListener('message', (e: MessageEvent) => {

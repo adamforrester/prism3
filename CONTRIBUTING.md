@@ -1574,7 +1574,7 @@ npx tsx apps/plugin/lint-release-bundle.ts
 npx tsx apps/plugin/lint-network-reach.ts
                                           # EACH PLUGIN BUILD REACHES ONLY WHAT ITS MANIFEST ALLOWS (#3138, the
                                           # owner's network model). One codebase, two plugins: "Prism3 Studio"
-                                          # (release/) lists the two Google Fonts hosts, and every host its
+                                          # (release/) lists the two Google Fonts hosts and the local bridge (#3147), and every host its
                                           # bundles name is one of them or reference-only, with a reason;
                                           # "Prism3 Studio Offline" (release-offline/) allows ["none"] and
                                           # carries no request primitive and no allowed host. Lists authored in
