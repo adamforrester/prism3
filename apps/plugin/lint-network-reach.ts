@@ -35,7 +35,8 @@
  * `manifest.json` → `release/manifest.json allows exactly the listed domains`; the relay's `if (PRISM3_NETWORK)` in
  * `agent-link-ui.ts` turned off → `release/ui.html carries the desktop bridge relay's socket` (#3147); a request to an unlisted host in the
  * loader → `[host example.com] in release/ui.html is allowed or reference-only`; an offline-only `new Image().src` to an
- * unlisted host → `[host tracker.example.net] in release-offline/ui.html is reference-only`.
+ * unlisted host → `[host tracker.example.net] in release-offline/ui.html is reference-only`; the same request written
+ * protocol-relative, `'//tracker.example.net/p.gif'` (#3188, the N2 mutation) → the same name.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -77,6 +78,15 @@ const PRIMITIVES: readonly Pattern[] = [
   { name: 'css-import', re: /@import\s/, positive: '@import url(x.css);', negative: '@importance' },
 ];
 const URL_HOST = /\b(?:https?|wss?):\/\/([a-z0-9.-]+\.[a-z]{2,})/gi;
+/** A protocol-relative URL (#3188): `'//tracker.example.net/p.gif'` takes the page's scheme and requests the host as
+ *  surely as `https://` does, and URL_HOST, which needs a scheme, never saw it. Matched after a quote, `(`, `=` or
+ *  whitespace, the places a URL starts in a string, a CSS `url(`, an attribute or markup. A `// comment` has a space
+ *  after the slashes, so it is not a host; a scheme's `://` is preceded by `:`, so URL_HOST keeps those. An ADDITION:
+ *  every host either reads is held to the same lists, and URL_HOST is not narrowed. */
+const PROTO_REL_HOST = /(?:["'`(=]|\s)\/\/([a-z0-9.-]+\.[a-z]{2,})/gi;
+/** Every host a bundle names, through either shape. The one place the two are applied, so neither build can miss one. */
+const hostsIn = (text: string): string[] =>
+  [...new Set([...text.matchAll(URL_HOST), ...text.matchAll(PROTO_REL_HOST)].map((m) => m[1].toLowerCase()))].sort();
 
 let failed = 0;
 const ok = (cond: boolean, label: string, detail = ''): void => {
@@ -98,6 +108,11 @@ console.log('\nNetwork reach — Prism3 Studio reaches only its listed domains; 
 // The detector first: a pattern that cannot match, or matches everything, makes every other check meaningless.
 for (const p of PRIMITIVES) ok(p.re.test(p.positive) && !p.re.test(p.negative), `detector [${p.name}]: matches its positive control and not its negative`);
 ok([...'x https://fonts.gstatic.com/s/a.woff2 y'.matchAll(URL_HOST)].map((m) => m[1]).join() === 'fonts.gstatic.com', 'detector [host]: reads the host of a URL');
+// The protocol-relative shape, after each lead it claims, and never a comment, a path or a scheme's `://` (#3188).
+ok(hostsIn(`a='//q.example.net/p.gif' b="//r.example.net" c=\`//s.example.net\` url(//t.example.net/x) src=//u.example.net v //w.example.net`).join()
+  === 'q.example.net,r.example.net,s.example.net,t.example.net,u.example.net,w.example.net',
+  'detector [host]: reads the host of a protocol-relative URL after a quote, `(`, `=` or whitespace');
+ok(hostsIn('x // see the notes.md y; a/b//c.example.net; z:////k').join() === '', 'detector [host]: a `// comment`, a path and an empty scheme read no host');
 
 const bundles = (dir: string) => ({ 'main.js': read(dir, 'main.js'), 'ui.html': read(dir, 'ui.html') });
 const net = bundles(BUILDS.network.dir);
@@ -114,7 +129,7 @@ for (const [f, text] of Object.entries(off)) {
   for (const h of ALLOWED_HOSTS) ok(text.length > 0 && !text.includes(h), `[host ${h}] is absent from release-offline/${f}`, near(text, new RegExp(h.replace(/\./g, '\\.'))));
   // A primitive list is never complete (`new Image().src`, `<script src>`, `new Worker(url)`…), so the hosts the bundle
   // names are held too: offline, only a reference-only host may appear, whatever would request it.
-  for (const h of [...new Set([...text.matchAll(URL_HOST)].map((m) => m[1].toLowerCase()))].sort()) {
+  for (const h of hostsIn(text)) {
     ok(h in REFERENCE_ONLY, `[host ${h}] in release-offline/${f} is reference-only`,
       `${h} is not in REFERENCE_ONLY: the offline build names no host it could request, and a reference needs its reason here`);
   }
@@ -142,8 +157,7 @@ ok(/\bnew\s+WebSocket\b/.test(net['ui.html']) && net['ui.html'].includes('localh
   'the relay (apps/plugin/src/agent-bridge-relay.ts) is not in the network build: it ships there since #3147');
 for (const p of PRIMITIVES) ok(!p.re.test(net['main.js']), `[${p.name}] is absent from release/main.js (the main thread makes no request)`, near(net['main.js'], p.re));
 for (const [f, text] of Object.entries(net)) {
-  const hosts = new Set([...text.matchAll(URL_HOST)].map((m) => m[1].toLowerCase()));
-  for (const h of [...hosts].sort()) {
+  for (const h of hostsIn(text)) {
     ok(ALLOWED_HOSTS.includes(h) || h in REFERENCE_ONLY, `[host ${h}] in release/${f} is allowed or reference-only`,
       `${h} is in neither ALLOWED nor REFERENCE_ONLY: a request there is refused by Figma's CSP, and a reference needs its reason here`);
   }
