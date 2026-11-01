@@ -2,14 +2,21 @@
   "name": "Prism3 Studio",
   "id": "prism3-theming-plugin",
   "api": "1.0.0",
-  "editorType": ["figma"],
+  "editorType": [
+    "figma"
+  ],
   "main": "dist/main.js",
   "ui": "dist/ui.html",
   "documentAccess": "dynamic-page",
-  "permissions": ["teamlibrary"],
+  "permissions": [
+    "teamlibrary"
+  ],
   "networkAccess": {
-    "allowedDomains": ["https://fonts.googleapis.com", "https://fonts.gstatic.com"],
-    "reasoning": "Loads a brand's fonts from Google Fonts so the preview can show them. Google receives the font family name and your IP address. Nothing from your file is sent. The Prism3 engine runs inside the plugin and makes no other network calls.",
-    "devAllowedDomains": ["ws://localhost:17331"]
+    "allowedDomains": [
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com",
+      "ws://localhost:17331"
+    ],
+    "reasoning": "Loads a brand's fonts from Google Fonts so the preview can show them. Google receives the font family name and your IP address. When you turn on the agent link, Prism3 also connects to a local agent on this computer only (localhost). Nothing from your file leaves your computer. The Prism3 engine runs inside the plugin and makes no other network calls."
   }
 }

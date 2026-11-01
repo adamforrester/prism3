@@ -158,7 +158,8 @@ export type TextStyleApplyResult = {
  * variable-backed props. Assumes `applyVarCollectionPlan` already wrote `core/font`/`type-sets` (so the
  * bound targets exist); a missing target is recorded in `misses` but doesn't abort.
  */
-export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi): Promise<TextStyleApplyResult> => {
+export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi, tick?: () => Promise<void>): Promise<TextStyleApplyResult> => {
+  // `tick` (#3208): offered after every style written, as in every Apply Theme executor (`Tick` in `write-figma.ts`).
   const byName = new Map((await api.getLocalTextStylesAsync()).map((s) => [s.name, s] as const));
   // Unfiltered — the bound targets are STRING (family) + FLOAT (size/weight) vars (the #146 lesson).
   const varByName = new Map((await api.getLocalVariablesAsync()).map((v) => [v.name, v] as const));
@@ -270,6 +271,7 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     bind('fontFamily', row.fontFamilyVar);
     bind('fontSize', row.fontSizeVar);
     bind('fontStyle', row.fontStyleVar);
+    await tick?.();
   }
 
   return { total: plan.length, created, skipped, bound, misses, resolvedStyles, resolvedCuts, cutRefused };

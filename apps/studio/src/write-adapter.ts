@@ -492,6 +492,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // a command's start, its build progress, and its end. The result envelope and the log lines stay the
   // relay's.
   'agent-link-state': null,
+  // The desktop bridge's pairing token (#3204): read by the bridge relay alone, never by the shared UI.
+  'agent-bridge-token': null,
   // The link strip's state (#2949): read by the agent-link control (`agent-link-ui.ts`), not here.
   'ui-minimized': null,
   // The chrome theme's kept choice: read by the plugin's UI entry (`apps/plugin/src/ui/entry.ts`), not here.

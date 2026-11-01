@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+Badge gains an inline status style (#3199, owner decisions Q-ST1 A and Q1–Q8 A): a new authoring axis, `style: contained | inline`, on the status label. An inline badge is an 8px status dot and plain body text on a text line, with no fill, padding, radius or edge, as tall as the line (24px at medium, 21px at small). The label is `text.primary` in `type.body.md.default` or `type.body.sm.default`; the dot is the tone's icon role (neutral `icon.secondary`), bound to `space.100` and centered in a cell one line box tall, so a wrapping label keeps it on the first line. The set grows from 40 to 50 members. The 40 existing members gain `style=contained`, the first value, and an update renames them in place, keeping their ids. The paint keys gain the style segment (`{tone}.{type}.{style}.{emphasis}.{slot}`), and Tab item's nested count badge names `style=contained`. No token name moves.

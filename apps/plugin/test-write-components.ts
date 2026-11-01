@@ -5925,7 +5925,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // the host list is a literal, so a host that drops out (or a new one that joins without being listed) fails by name.
 // Mutations, each failing the arm it names: one host's nested `emphasis` back to secondary → `#3200 label leads`;
 // FieldLabel's `primary.label` repointed to color.text.secondary → `#3200 label leads`; Text field's rest placeholder ink
-// (`label.rest`) repointed to color.text.primary → `#3200 placeholder stays secondary`.
+// (`label.rest`) repointed to color.text.primary → `#3200 placeholder stays secondary`; Slider's own label dropped from
+// its header (#3203 mutation E) → `#3200 label leads`, EMPTY on every brand's slider cell, since the label of the Text
+// field Slider's value input nests is not Slider's own (#3222).
 {
   const HOSTS = ['text-field', 'password-field', 'search-field', 'card-number-field', 'textarea', 'select', 'code-input', 'counter', 'checkbox-group', 'radio-group', 'segmented-control', 'slider'];
   // The hosts that draw a placeholder layer, typed here: an empty field shows it in the quieter ink.
@@ -5938,6 +5940,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(HOSTS.every((id) => !!byDef(id)) && componentDefs.filter((d) => d.id !== 'field-label' && JSON.stringify(d.anatomy ?? {}).includes('"nests":"field-label"')).map((d) => d.id).sort().join() === [...HOSTS].sort().join(),
     `#3200 hosts: every def that nests FieldLabel is in the list (the three built on Text field through its factory included)`);
   const flat = (n: Node): Node[] => [n, ...((n.children as Node[] | undefined) ?? []).flatMap(flat)];
+  // Like `flat`, but an INSTANCE below the root is listed and never entered: what a nested component holds is its own.
+  const ownNodes = (n: Node, root = true): Node[] => [n, ...(!root && n.type === 'INSTANCE' ? [] : ((n.children as Node[] | undefined) ?? []).flatMap((c) => ownNodes(c, false)))];
   const leadOff: string[] = [], phOff: string[] = [], phSeen = new Set<string>();
   let leadChecked = 0;
   // Counted per brand/host cell, not in total: a host that contributes no label in one brand (its label part renamed,
@@ -5958,7 +5962,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
       const labelSet = page.children.find((c) => c.name === 'field-label' && c.type === 'COMPONENT_SET') as Node | undefined;
       for (const m of ((set?.children as Node[] | undefined) ?? [])) {
-        const label = flat(m).find((n) => n.name === 'label' && n.type === 'INSTANCE');
+        // The host's OWN label: the first `label` instance not inside another INSTANCE. Slider's value input nests a
+        // Text field, whose label would otherwise stand in for a missing Slider label (#3222, #3203 mutation E).
+        const label = ownNodes(m).find((n) => n.name === 'label' && n.type === 'INSTANCE');
         const main = label?.mainComponent as Node | undefined;
         if (!label || !main || !/(^|, )state=rest(,|$)/.test(String(main.name))) continue;
         leadChecked++;

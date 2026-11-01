@@ -1574,7 +1574,7 @@ npx tsx apps/plugin/lint-release-bundle.ts
 npx tsx apps/plugin/lint-network-reach.ts
                                           # EACH PLUGIN BUILD REACHES ONLY WHAT ITS MANIFEST ALLOWS (#3138, the
                                           # owner's network model). One codebase, two plugins: "Prism3 Studio"
-                                          # (release/) lists the two Google Fonts hosts, and every host its
+                                          # (release/) lists the two Google Fonts hosts and the local bridge (#3147), and every host its
                                           # bundles name is one of them or reference-only, with a reason;
                                           # "Prism3 Studio Offline" (release-offline/) allows ["none"] and
                                           # carries no request primitive and no allowed host. Lists authored in
@@ -1771,6 +1771,38 @@ the thing it was there to cover.
 closes with a `Gaps` section: what was not done, what was not checked, and the risks that
 remain. When there are none it says `Gaps: none` — the section is never omitted, because a
 verdict with no such line cannot be told apart from one that never asked (#2850).
+
+### Running a lane (#3240)
+
+Owner decision Q-SI1 A: a self-check loop. These four rules apply to every lane, agent or person.
+
+**1. An escape review on every bug fix.** When a bug reached the owner or real Figma, the PR that
+fixes it fills the template's **Escape review** section. It is required for a PR that closes a
+`type:bug` issue, and the reviewer checks it (`.claude/commands/review-pr.md`). It answers two
+questions:
+
+- which check should have caught it, and why didn't it?
+- what was added, or filed, so it can't escape that way again?
+
+"Nothing could have caught it" is an answer only with the reason. A check that was filed rather than
+added is named by its issue number.
+
+**2. The corrections log.** When the owner corrects how an agent works, the correction gets a line
+in [`docs/corrections.md`](docs/corrections.md): the date, the correction, where it became a rule
+(CLAUDE.md, a skill, a gate, or the stance skills), and the PR or issue. A correction with no rule
+yet says so in the "Rule" column. The weekly retro checks that every line has landed as a rule.
+
+**3. Re-read the PR and the issue before posting Ready.** Owner answers that arrive after a lane's
+instructions get missed: #3204's Q3204.4–6 were answered on the PR while its lane was working. So,
+immediately before posting Ready, re-read the PR's and the issue's comments for owner decisions
+posted since the lane started. Apply each one, or say in the Ready comment why not. The Ready
+comment names the decisions it applied, or says there were none.
+
+**4. Never end a turn while a long command is still running.** Nobody wakes a lane that ended its
+turn "waiting for the run to finish". On 2026-10-31 two lanes ended their turns that way, and both
+stalled. Run long commands in the foreground, split a long run into chunks that fit the
+command timeout (`npm run verify` takes gate ids and shards, `npx tsx verify.ts <id> …`), and end
+the turn only when the work is done or blocked on a stated question.
 
 **Search before you build a mechanism.** Before adding a new gate, script, helper or
 convention, look for one that already does the job (the lint gates, the harnesses under

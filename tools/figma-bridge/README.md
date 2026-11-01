@@ -15,21 +15,48 @@ Register the server with Claude Code as a stdio MCP server:
 claude mcp add prism3-figma -- npx tsx /path/to/prism3/tools/figma-bridge/server.ts
 ```
 
-It listens on `ws://localhost:17331`. That is the one origin the plugin manifest lists under
-`networkAccess.devAllowedDomains`, and Figma refuses any origin it does not list. `--port` (or
+It listens on `ws://localhost:17331`, bound to loopback only. That is the origin the plugin manifest
+lists in `networkAccess.allowedDomains` (since #3147 the relay ships in the network build, "Prism3
+Studio"; "Prism3 Studio Offline" has no socket and offers the mailbox only), and Figma refuses any origin
+it does not list. `--port` (or
 `PRISM3_BRIDGE_PORT`) changes the server's port for tests or a collision, but the plugin still
 connects to 17331 unless the manifest entry and `BRIDGE_PORT` in
 `apps/plugin/src/agent-bridge-relay.ts` change with it.
 
-The shipped `allowedDomains: ["none"]` is unchanged. `devAllowedDomains` applies only to a plugin
-imported from its manifest for development.
+**Who may connect: pairing (#3204, the owner's Q3204.1 A).** A connection is not the plugin until it
+proves a pairing token. A one-time pairing code is issued only when it is asked for (the owner's
+Q3204.5 A): by a `figma_status` call while no plugin is connected, or by starting the server with
+`--pair`. The server prints it on stderr, such as `pairing code: 7KQ4-M2XR (live for 10 minutes)`, and
+`figma_status` names it (`pairingCode`), since an MCP host may not show stderr. A later `figma_status`
+keeps a live code rather than replacing it. The first time the plugin connects on a machine it asks for
+that code, and the server answers
+with a token the plugin keeps in `figma.clientStorage` (per person, per machine; never in the file or
+its plugin data). From then on every connection opens with the server's challenge, and the plugin's
+hello carries an HMAC of the token over the challenge's nonce. A connection without a valid proof is
+closed (4401) before it is sent any command, and it never replaces a paired plugin that is connected.
+A wrong code is closed with 4403; after 5 wrong codes the server retires the code and prints a new one.
+A code lasts 10 minutes. After 3 codes are retired, pairing closes until the next request. Once a plugin
+has proved its token, no code is live, so a paired machine has none.
+
+The token comes from a random secret the server keeps in a user-only file (mode 0600, in a 0700
+directory): `$PRISM3_BRIDGE_CONFIG`, else `~/.config/prism3/figma-bridge.json` (`$XDG_CONFIG_HOME`
+when set, `%APPDATA%` on Windows), or the path given with `--config`. Pairing survives a restart.
+`--rotate` writes a new secret: every paired plugin then asks for a code again.
+
+The other two checks stay as defense in depth. The server binds loopback only, and it refuses with 403,
+before the handshake, any upgrade whose `Origin` is not `null` (#3147); a request with no `Origin` is
+refused too. That keeps out a page's own script, but not a page's sandboxed iframe, whose origin is
+`null` as well: the review of #3204 drove the bridge from one, which is why pairing exists. `run-code`
+stays in the dev build only (Q3147.4 A): a release build answers it `unknown-command`.
 
 ## Use
 
 1. The owner opens the file, runs the Prism3 plugin (a development import of
-   `apps/plugin/manifest.json`, freshly built), and switches **Agent link** on. The chip reads
-   `+ desktop bridge` once the plugin has connected. It retries every 2 s, so the server can start
-   before or after the plugin.
+   `apps/plugin/manifest.json`, freshly built), and switches **Agent link** on. The first time on a
+   machine, the plugin asks for the server's pairing code under the Agent switch: call `figma_status`
+   to get one. The Activity drawer
+   reads `Listening · bridge` once the plugin has connected. It retries every 2 s, so the server can
+   start before or after the plugin.
 2. `figma_status` — `connected: true`, plus the link state the plugin last reported.
 3. `figma_run { cmd: "status" }` — confirms the round trip, the engine version and the plugin build.
 4. `figma_run { cmd, args, timeoutMs }` for each command. The result is the protocol's result
@@ -86,8 +113,11 @@ harmless.
   server, speaks MCP to it over stdio (including the shared `initialize` probes in
   `packages/engine/mcp-handshake-probes.ts`), drives its socket with a hand-rolled client (fragmented,
   64-bit-length, ping, unmasked and disconnect cases), then connects the real relay to the real
-  `main.ts` and proves a `figma_run` reaches the panel's own handler.
+  `main.ts` and proves a `figma_run` reaches the panel's own handler. Its pairing arms run the server
+  on a secret the test writes itself, so the token is derived there independently, and include the
+  review's reproduction: a web page in Chromium whose sandboxed iframe opens the socket, refused.
 
-**Not yet verified live:** that Figma's desktop app lets a development plugin's iframe open
-`ws://localhost:17331` under `devAllowedDomains`. Confirm this on the first run: switch the link on
+**Not yet verified live:** that Figma's desktop app lets the plugin's iframe open
+`ws://localhost:17331` from `allowedDomains`, in a development import and in the org-private
+published build (the owner's Phase 1 live checks on #3147). Confirm this on the first run: switch the link on
 with the server running, then check that `figma_status` reports `connected: true`.

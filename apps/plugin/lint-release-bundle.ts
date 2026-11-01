@@ -13,7 +13,7 @@
  *
  * SUBJECT: the built `release/main.js`, `release/ui.html` and `release/manifest.json`, the bytes a release hands Figma.
  *
- * EXPECTED: `DEV_ONLY` below, authored here from what the dev-only code IS (the relay's URL and its factory), never
+ * EXPECTED: `DEV_ONLY` and `NETWORK_ONLY` below, authored here from what that code IS (`run-code`; the relay's URL and factory), never
  * read from either bundle. A list derived from the bundle could not fail (docs/34 shape 2).
  *
  * ── THE MARKERS ARE NOT VACUOUS ───────────────────────────────────────────────────────────────────
@@ -36,11 +36,27 @@
  * and networkAccess), and its `allowedDomains` is `["none"]`, written here as a literal: the literal that held
  * `release/` until the network build listed its domains. Those domains are `lint-network-reach.ts`'s.
  *
- * BY-NAME MUTATIONS (each proven red, then restored): the dispatcher's `PRISM3_DEV &&` guards removed (#2530 PR 2) →
+ * ── THE RELAY IS NETWORK-ONLY (#3147) ─────────────────────────────────────────────────────────────
+ *
+ * Since #3147 Phase 1 the desktop bridge relay is not dev-only: it sits behind `PRISM3_NETWORK`, so it ships in
+ * "Prism3 Studio" (`release/`) and its origin is in that manifest's `allowedDomains`. Its two markers moved from
+ * `DEV_ONLY` to `NETWORK_ONLY`: present in `dist/` and `release/`, absent from `release-offline/`. `run-code` stays
+ * in `DEV_ONLY`, absent from both releases (Q3147.4 A: no arbitrary code in a release).
+ *
+ * Since #3218 the main thread's side of it is network-only too: the pairing token's clientStorage key and its readers sit
+ * behind `PRISM3_NETWORK` in `main.ts`, so `[bridge-token]` checks `main.js` the same way.
+ *
+ * BY-NAME MUTATIONS (each proven red, then restored; #3147's are in its PR's table): `main.ts`'s three
+ * `PRISM3_NETWORK` guards on the token replaced with `true` → `[bridge-token]` fails on `release-offline/main.js` (#3218);
+ * `PRISM3_NETWORK` dropped from `build.mjs`'s main-entry define → the same (the harness fallback reads it as the network
+ * build); the relay's `if (PRISM3_NETWORK)`
+ * changed to `if (true)` → `[bridge-relay-url]` and `[bridge-relay]` fail on `release-offline/ui.html`; changed back to
+ * `if (PRISM3_DEV)` → both fail as absent from `release/ui.html`; the dispatcher's `PRISM3_DEV &&` guard on `run-code`
+ * removed → `[dev-command-name]` fails on both releases. Before #3147: the dispatcher's `PRISM3_DEV &&` guards removed (#2530 PR 2) →
  * `[dev-command-name]` and `[dev-command-eval]` fail on `release/main.js`; `dev-commands.ts` back to a DIRECT eval →
  * the same two (a direct eval stops esbuild dropping the module); the relay's `if (PRISM3_DEV)` guard removed in
- * `agent-link-ui.ts` → `[bridge-relay-url]` and `[bridge-relay]` fail on `release/ui.html`; `minifySyntax` dropped
- * from the release build → the same two fail (the dead branch kept as text keeps the module); the manifest's
+ * `agent-link-ui.ts` → `[bridge-relay-url]` and `[bridge-relay]` failed on `release/ui.html` (they are network-only
+ * now); `minifySyntax` dropped from the release build → the dead branch kept as text keeps the module; the manifest's
  * `delete … devAllowedDomains` removed in `build.mjs` → `release/manifest.json carries no devAllowedDomains` fails.
  */
 
@@ -59,23 +75,8 @@ type Bundle = 'main.js' | 'ui.html';
 type Marker = { name: string; re: RegExp; in: readonly Bundle[]; positive: string; negative: string; what: string };
 
 // Authored from what the dev-only code is, NOT read from a bundle (docs/34). A new dev-only piece adds its marker here.
+// Absent from BOTH releases.
 const DEV_ONLY: readonly Marker[] = [
-  {
-    name: 'bridge-relay-url',
-    re: /localhost:17331|\b17331\b/,
-    in: ['ui.html'],
-    positive: 'var BRIDGE_PORT = 17331;',
-    negative: 'var BRIDGE_PORT = 173310;',
-    what: "the agent link's desktop bridge port (`agent-bridge-relay.ts`), reachable only under devAllowedDomains",
-  },
-  {
-    name: 'bridge-relay',
-    re: /\bcreateBridgeRelay\b/,
-    in: ['ui.html'],
-    positive: 'relay = createBridgeRelay({',
-    negative: 'relay = createBridgeRelayed({',
-    what: "the relay's factory (`agent-bridge-relay.ts`)",
-  },
   {
     name: 'dev-command-name',
     re: /\brun-code\b/,
@@ -91,6 +92,37 @@ const DEV_ONLY: readonly Marker[] = [
     positive: 'pending = (0, eval)(wrapped);',
     negative: 'pending = (0, evaluate)(wrapped);',
     what: "the dev-only command's evaluation (`dev-commands.ts`): no eval of any kind ships in a release",
+  },
+];
+
+/** THE NETWORK-ONLY CODE (#3147, the owner's Q3147.1 A and Q3147.5 A): the desktop bridge relay left dev-only and ships in
+ *  "Prism3 Studio", behind `PRISM3_NETWORK`. So each marker must be PRESENT in the dev build and in `release/`, and ABSENT
+ *  from `release-offline/`, which offers the mailbox only. Authored from what the relay is, not read from a bundle. */
+const NETWORK_ONLY: readonly Marker[] = [
+  {
+    name: 'bridge-relay-url',
+    re: /localhost:17331|\b17331\b/,
+    in: ['ui.html'],
+    positive: 'var BRIDGE_PORT = 17331;',
+    negative: 'var BRIDGE_PORT = 173310;',
+    what: "the agent link's desktop bridge port (`agent-bridge-relay.ts`), listed in the network manifest's allowedDomains",
+  },
+  {
+    name: 'bridge-relay',
+    re: /\bcreateBridgeRelay\b/,
+    in: ['ui.html'],
+    positive: 'relay = createBridgeRelay({',
+    negative: 'relay = createBridgeRelayed({',
+    what: "the relay's factory (`agent-bridge-relay.ts`)",
+  },
+  {
+    // #3218: the main thread keeps the relay's pairing token in clientStorage. The offline build has no relay, so it reads none.
+    name: 'bridge-token',
+    re: /prism3:bridge-token/,
+    in: ['main.js'],
+    positive: 'BRIDGE_TOKEN_KEY = "prism3:bridge-token"',
+    negative: 'THEME_PREF_KEY = "prism3:theme-pref"',
+    what: "the main thread's clientStorage key for the bridge's pairing token (`main.ts`, `sendBridgeToken` and the paired/unpaired handlers)",
   },
 ];
 
@@ -111,7 +143,7 @@ const near = (text: string, re: RegExp): string => {
 console.log('\nRelease bundle — no dev-only code (#2530)\n');
 
 // The detector first: a pattern that cannot match, or matches everything, makes every other check meaningless.
-for (const m of DEV_ONLY) {
+for (const m of [...DEV_ONLY, ...NETWORK_ONLY]) {
   ok(m.re.test(m.positive) && !m.re.test(m.negative), `detector [${m.name}]: matches its positive control and not its negative`);
 }
 
@@ -131,6 +163,18 @@ for (const m of DEV_ONLY) {
     ok(m.re.test(dev[f]), `[${m.name}] is in the dev build's dist/${f}, so its absence from a release means something`,
       `the marker no longer names code the dev build carries (${m.what}): update DEV_ONLY with the code`);
     for (const [name, rel] of rels) ok(rel[f].length > 0 && !m.re.test(rel[f]), `[${m.name}] is absent from ${name}/${f}: ${m.what}`, near(rel[f], m.re));
+  }
+}
+
+// The relay (#3147): in the dev build and "Prism3 Studio", never in "Prism3 Studio Offline".
+const [, netRel] = rels[0];
+const [, offRel] = rels[1];
+for (const m of NETWORK_ONLY) {
+  for (const f of m.in) {
+    ok(m.re.test(dev[f]), `[${m.name}] is in the dev build's dist/${f}`, `the marker no longer names code the dev build carries (${m.what}): update NETWORK_ONLY with the code`);
+    ok(m.re.test(netRel[f]), `[${m.name}] is present in release/${f}: the network build ships ${m.what}`,
+      'the relay is gated out of the network release: it sits behind PRISM3_NETWORK since #3147, not PRISM3_DEV');
+    ok(offRel[f].length > 0 && !m.re.test(offRel[f]), `[${m.name}] is absent from release-offline/${f}: the offline build offers the mailbox only`, near(offRel[f], m.re));
   }
 }
 

@@ -20,7 +20,7 @@ Type: dimension. Bound by 26 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `border-width` | surface | every member (40 of 40) |
+| badge | `border-width` | surface | every member (50 of 50) |
 | banner | `border-width`, `width.contained.edge-side` | container | every member (8 of 8) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
@@ -120,7 +120,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `danger.status.surface.fill`, `info.status.surface.fill`, `neutral.status.surface.fill`, `success.status.surface.fill`, `warning.status.surface.fill` | surface | emphasis: surface · type: status (10 of 40) |
+| badge | `danger.status.contained.surface.fill`, `info.status.contained.surface.fill`, `neutral.status.contained.surface.fill`, `success.status.contained.surface.fill`, `warning.status.contained.surface.fill` | surface | emphasis: surface · style: contained · type: status (10 of 50) |
 | segmented-control-segment | `disabled.fill`, `selected.fill` | indicator | selection: selected (15 of 30) |
 
 ### `color.background.secondary`
@@ -149,7 +149,7 @@ Type: color. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `danger.status.subtle.border` | surface | emphasis: subtle · tone: danger · type: status (2 of 40) |
+| badge | `danger.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: danger · type: status (2 of 50) |
 | banner | `danger.border` | container | tone: danger (2 of 8) |
 | card-number-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | checkbox-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.indeterminate.border.focus-visible`, `error.indeterminate.border.hover`, `error.indeterminate.border.pressed`, `error.indeterminate.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (36 of 90) |
@@ -197,7 +197,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `info.status.subtle.border` | surface | emphasis: subtle · tone: info · type: status (2 of 40) |
+| badge | `info.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: info · type: status (2 of 50) |
 | banner | `info.border` | container | tone: info (2 of 8) |
 
 ### `color.border.primary`
@@ -232,7 +232,7 @@ Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `success.status.subtle.border` | surface | emphasis: subtle · tone: success · type: status (2 of 40) |
+| badge | `success.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: success · type: status (2 of 50) |
 | banner | `success.border` | container | tone: success (2 of 8) |
 | card-number-field | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
 | password-field | `success.border.empty`, `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
@@ -247,7 +247,7 @@ Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `neutral.status.subtle.border` | surface | emphasis: subtle · tone: neutral · type: status (2 of 40) |
+| badge | `neutral.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: neutral · type: status (2 of 50) |
 | divider | `separator.fill` | (not drawn) | — |
 | pagination-item | `selected.underline.page.fill.focus-visible`, `selected.underline.page.fill.rest` | underline | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
 
@@ -257,7 +257,7 @@ Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `warning.status.subtle.border` | surface | emphasis: subtle · tone: warning · type: status (2 of 40) |
+| badge | `warning.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: warning · type: status (2 of 50) |
 | banner | `warning.border` | container | tone: warning (2 of 8) |
 | card-number-field | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
 | password-field | `warning.border.empty`, `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
@@ -466,7 +466,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `danger.count.bold.fill`, `danger.dot.bold.fill`, `danger.status.bold.fill` | surface | emphasis: bold · tone: danger (4 of 40) |
+| badge | `danger.count.contained.bold.fill`, `danger.dot.contained.bold.fill`, `danger.status.contained.bold.fill` | surface | emphasis: bold · style: contained · tone: danger (4 of 50) |
 
 ### `color.foreground.danger-subtle`
 
@@ -474,7 +474,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `danger.status.subtle.fill` | surface | emphasis: subtle · tone: danger · type: status (2 of 40) |
+| badge | `danger.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: danger · type: status (2 of 50) |
 | banner | `danger.fill` | container | tone: danger (2 of 8) |
 
 ### `color.foreground.info`
@@ -483,7 +483,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `info.count.bold.fill`, `info.dot.bold.fill`, `info.status.bold.fill` | surface | emphasis: bold · tone: info (4 of 40) |
+| badge | `info.count.contained.bold.fill`, `info.dot.contained.bold.fill`, `info.status.contained.bold.fill` | surface | emphasis: bold · style: contained · tone: info (4 of 50) |
 
 ### `color.foreground.info-subtle`
 
@@ -491,7 +491,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `info.status.subtle.fill` | surface | emphasis: subtle · tone: info · type: status (2 of 40) |
+| badge | `info.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: info · type: status (2 of 50) |
 | banner | `info.fill` | container | tone: info (2 of 8) |
 
 ### `color.foreground.raised`
@@ -508,7 +508,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `neutral.status.subtle.fill` | surface | emphasis: subtle · tone: neutral · type: status (2 of 40) |
+| badge | `neutral.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: neutral · type: status (2 of 50) |
 
 ### `color.foreground.success`
 
@@ -516,7 +516,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `success.count.bold.fill`, `success.dot.bold.fill`, `success.status.bold.fill` | surface | emphasis: bold · tone: success (4 of 40) |
+| badge | `success.count.contained.bold.fill`, `success.dot.contained.bold.fill`, `success.status.contained.bold.fill` | surface | emphasis: bold · style: contained · tone: success (4 of 50) |
 
 ### `color.foreground.success-subtle`
 
@@ -524,7 +524,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `success.status.subtle.fill` | surface | emphasis: subtle · tone: success · type: status (2 of 40) |
+| badge | `success.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: success · type: status (2 of 50) |
 | banner | `success.fill` | container | tone: success (2 of 8) |
 
 ### `color.foreground.warning`
@@ -533,7 +533,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `warning.count.bold.fill`, `warning.dot.bold.fill`, `warning.status.bold.fill` | surface | emphasis: bold · tone: warning (4 of 40) |
+| badge | `warning.count.contained.bold.fill`, `warning.dot.contained.bold.fill`, `warning.status.contained.bold.fill` | surface | emphasis: bold · style: contained · tone: warning (4 of 50) |
 
 ### `color.foreground.warning-subtle`
 
@@ -541,7 +541,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `warning.status.subtle.fill` | surface | emphasis: subtle · tone: warning · type: status (2 of 40) |
+| badge | `warning.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: warning · type: status (2 of 50) |
 | banner | `warning.fill` | container | tone: warning (2 of 8) |
 
 ### `color.icon.brand`
@@ -557,10 +557,11 @@ Type: color. Bound by 2 component(s).
 
 ### `color.icon.danger`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| badge | `danger.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: danger · type: status (2 of 50) |
 | banner | `danger.icon` | dangerGlyph | tone: danger (2 of 8) |
 | field-message | `error.icon` | errorGlyph | status: error (1 of 4) |
 | icon | `tone.danger` | (not drawn) | — |
@@ -570,10 +571,11 @@ Type: color. Bound by 4 component(s).
 
 ### `color.icon.info`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| badge | `info.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: info · type: status (2 of 50) |
 | banner | `info.icon` | infoGlyph | tone: info (2 of 8) |
 | icon | `tone.info` | (not drawn) | — |
 
@@ -636,22 +638,24 @@ Type: color. Bound by 9 component(s).
 
 ### `color.icon.secondary`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | _breadcrumb-separator | `icon` | chevronGlyph | type: chevron (1 of 2) |
 |  |  | slashGlyph | type: slash (1 of 2) |
+| badge | `neutral.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: neutral · type: status (2 of 50) |
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
 | textarea | `icon` | gripGlyph | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 
 ### `color.icon.success`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| badge | `success.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: success · type: status (2 of 50) |
 | banner | `success.icon` | successGlyph | tone: success (2 of 8) |
 | field-message | `success.icon` | successGlyph | status: success (1 of 4) |
 | icon | `tone.success` | (not drawn) | — |
@@ -670,10 +674,11 @@ Type: color. Bound by 2 component(s).
 
 ### `color.icon.warning`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| badge | `warning.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: warning · type: status (2 of 50) |
 | banner | `warning.icon` | warningGlyph | tone: warning (2 of 8) |
 | field-message | `warning.icon` | warningGlyph | status: warning (1 of 4) |
 | icon | `tone.warning` | (not drawn) | — |
@@ -1336,7 +1341,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `neutral.count.bold.fill`, `neutral.dot.bold.fill`, `neutral.status.bold.fill` | surface | emphasis: bold · tone: neutral (4 of 40) |
+| badge | `neutral.count.contained.bold.fill`, `neutral.dot.contained.bold.fill`, `neutral.status.contained.bold.fill` | surface | emphasis: bold · style: contained · tone: neutral (4 of 50) |
 
 ### `color.inverse.icon.link.default`
 
@@ -1858,8 +1863,8 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `neutral.count.bold.label`, `neutral.status.bold.label` | count | emphasis: bold · size: medium · tone: neutral · type: count (1 of 40) |
-|  |  | label | emphasis: bold · tone: neutral · type: status (2 of 40) |
+| badge | `neutral.count.contained.bold.label`, `neutral.status.contained.bold.label` | count | emphasis: bold · size: medium · style: contained · tone: neutral · type: count (1 of 50) |
+|  |  | label | emphasis: bold · style: contained · tone: neutral · type: status (2 of 50) |
 | toast | `label` | message | every member (2 of 2) |
 
 ### `color.text.danger`
@@ -1868,7 +1873,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `danger.status.subtle.label`, `danger.status.surface.label` | label | emphasis: subtle, surface · tone: danger · type: status (4 of 40) |
+| badge | `danger.status.contained.subtle.label`, `danger.status.contained.surface.label` | label | emphasis: subtle, surface · style: contained · tone: danger · type: status (4 of 50) |
 | field-message | `error.label` | label | status: error (1 of 4) |
 
 ### `color.text.info`
@@ -1877,7 +1882,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `info.status.subtle.label`, `info.status.surface.label` | label | emphasis: subtle, surface · tone: info · type: status (4 of 40) |
+| badge | `info.status.contained.subtle.label`, `info.status.contained.surface.label` | label | emphasis: subtle, surface · style: contained · tone: info · type: status (4 of 50) |
 
 ### `color.text.link.default`
 
@@ -1917,8 +1922,8 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `danger.count.bold.label`, `danger.status.bold.label` | count | emphasis: bold · size: medium · tone: danger · type: count (1 of 40) |
-|  |  | label | emphasis: bold · tone: danger · type: status (2 of 40) |
+| badge | `danger.count.contained.bold.label`, `danger.status.contained.bold.label` | count | emphasis: bold · size: medium · style: contained · tone: danger · type: count (1 of 50) |
+|  |  | label | emphasis: bold · style: contained · tone: danger · type: status (2 of 50) |
 
 ### `color.text.on-info`
 
@@ -1926,8 +1931,8 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `info.count.bold.label`, `info.status.bold.label` | count | emphasis: bold · size: medium · tone: info · type: count (1 of 40) |
-|  |  | label | emphasis: bold · tone: info · type: status (2 of 40) |
+| badge | `info.count.contained.bold.label`, `info.status.contained.bold.label` | count | emphasis: bold · size: medium · style: contained · tone: info · type: count (1 of 50) |
+|  |  | label | emphasis: bold · style: contained · tone: info · type: status (2 of 50) |
 
 ### `color.text.on-success`
 
@@ -1935,8 +1940,8 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `success.count.bold.label`, `success.status.bold.label` | count | emphasis: bold · size: medium · tone: success · type: count (1 of 40) |
-|  |  | label | emphasis: bold · tone: success · type: status (2 of 40) |
+| badge | `success.count.contained.bold.label`, `success.status.contained.bold.label` | count | emphasis: bold · size: medium · style: contained · tone: success · type: count (1 of 50) |
+|  |  | label | emphasis: bold · style: contained · tone: success · type: status (2 of 50) |
 
 ### `color.text.on-warning`
 
@@ -1944,8 +1949,8 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `warning.count.bold.label`, `warning.status.bold.label` | count | emphasis: bold · size: medium · tone: warning · type: count (1 of 40) |
-|  |  | label | emphasis: bold · tone: warning · type: status (2 of 40) |
+| badge | `warning.count.contained.bold.label`, `warning.status.contained.bold.label` | count | emphasis: bold · size: medium · style: contained · tone: warning · type: count (1 of 50) |
+|  |  | label | emphasis: bold · style: contained · tone: warning · type: status (2 of 50) |
 
 ### `color.text.primary`
 
@@ -1954,7 +1959,7 @@ Type: color. Bound by 21 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `body` | placeholder | expansion: expanded (24 of 48) |
-| badge | `neutral.status.subtle.label`, `neutral.status.surface.label` | label | emphasis: subtle, surface · tone: neutral · type: status (4 of 40) |
+| badge | `danger.status.inline.subtle.label`, `info.status.inline.subtle.label`, `neutral.status.contained.subtle.label`, `neutral.status.contained.surface.label`, `neutral.status.inline.subtle.label`, `success.status.inline.subtle.label`, `warning.status.inline.subtle.label` | label | emphasis: subtle, surface · type: status (14 of 50) |
 | banner | `body`, `label` | placeholder | every member (8 of 8) |
 |  |  | title | every member (8 of 8) |
 | breadcrumb-item | `label` | current | kind: current · separator: chevron (2 of 10) |
@@ -2024,7 +2029,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `success.status.subtle.label`, `success.status.surface.label` | label | emphasis: subtle, surface · tone: success · type: status (4 of 40) |
+| badge | `success.status.contained.subtle.label`, `success.status.contained.surface.label` | label | emphasis: subtle, surface · style: contained · tone: success · type: status (4 of 50) |
 | field-message | `success.label` | label | status: success (1 of 4) |
 
 ### `color.text.warning`
@@ -2033,7 +2038,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `warning.status.subtle.label`, `warning.status.surface.label` | label | emphasis: subtle, surface · tone: warning · type: status (4 of 40) |
+| badge | `warning.status.contained.subtle.label`, `warning.status.contained.surface.label` | label | emphasis: subtle, surface · style: contained · tone: warning · type: status (4 of 50) |
 | field-message | `warning.label` | label | status: warning (1 of 4) |
 
 ### `color.veil.dark.clear`
@@ -2280,7 +2285,7 @@ Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `dot-size` | dot | emphasis: bold · size: medium · type: dot (5 of 40) |
+| badge | `dot-size` | dot | emphasis: bold · size: medium · style: contained · type: dot (5 of 50) |
 | radio-control | `size.small.dot` | dot | selection: checked · size: small (10 of 60) |
 
 ### `control.size.sm.height`
@@ -2696,10 +2701,11 @@ Type: dimension. Bound by 11 component(s).
 
 ### `radius.none`
 
-Type: dimension. Bound by 5 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| badge | `inline.count.radius`, `inline.dot.radius`, `inline.status.radius` | surface | emphasis: subtle · style: inline · type: status (10 of 50) |
 | banner | `width.full.radius` | container | width: full (4 of 8) |
 | dialog | `placement.bottom.radius-bottom`, `placement.end.radius-bottom`, `placement.end.radius-top`, `placement.full.radius-bottom`, `placement.full.radius-top` | panel | placement: bottom, end, full · size: medium (12 of 24) |
 | flush-icon-button | `radius.flush` | container | shape: flush (30 of 60) |
@@ -2716,7 +2722,8 @@ Type: dimension. Bound by 13 component(s).
 |  |  | frame | every member (15 of 15) |
 |  |  | hoverHalo | every member (15 of 15) |
 |  |  | pressHalo | every member (15 of 15) |
-| badge | `count.radius`, `dot.radius` | surface | emphasis: bold · size: medium · type: count, dot (10 of 40) |
+| badge | `contained.count.radius`, `contained.dot.radius`, `status-dot.radius` | statusDot | emphasis: subtle · style: inline · type: status (10 of 50) |
+|  |  | surface | emphasis: bold · size: medium · style: contained · type: count, dot (10 of 50) |
 | flush-icon-button | `radius.round` | container | shape: round (30 of 60) |
 | flush-icon-button-destructive | `radius.round` | container | shape: round (30 of 60) |
 | flush-icon-button-neutral | `radius.round` | container | shape: round (30 of 60) |
@@ -2737,7 +2744,7 @@ Type: dimension. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `status.radius` | surface | type: status (30 of 40) |
+| badge | `contained.status.radius` | surface | style: contained · type: status (30 of 50) |
 | card-number-field | `radius` | control | every member (84 of 84) |
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
@@ -2894,7 +2901,7 @@ Type: dimension. Bound by 22 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | expansion: expanded (24 of 48) |
-| badge | `size.medium.dot.pad-x`, `size.medium.dot.pad-y`, `size.small.dot.pad-x`, `size.small.dot.pad-y` | surface | emphasis: bold · size: medium · type: dot (5 of 40) |
+| badge | `size.medium.contained.dot.pad-x`, `size.medium.contained.dot.pad-y`, `size.medium.contained.gap`, `size.medium.inline.count.pad-x`, `size.medium.inline.count.pad-y`, `size.medium.inline.dot.pad-x`, `size.medium.inline.dot.pad-y`, `size.medium.inline.status.pad-x`, `size.medium.inline.status.pad-y`, `size.small.contained.dot.pad-x`, `size.small.contained.dot.pad-y`, `size.small.contained.gap`, `size.small.inline.count.pad-x`, `size.small.inline.count.pad-y`, `size.small.inline.dot.pad-x`, `size.small.inline.dot.pad-y`, `size.small.inline.status.pad-x`, `size.small.inline.status.pad-y` | surface | every member (50 of 50) |
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-neutral | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
@@ -2938,7 +2945,7 @@ Type: dimension. Bound by 3 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.title-offset`, `size.medium.title-offset`, `size.small.title-offset` | titleBox | every member (48 of 48) |
-| badge | `size.medium.count.pad-y`, `size.small.count.pad-y`, `size.small.status.pad-y` | surface | type: count, status (20 of 40) |
+| badge | `size.medium.contained.count.pad-y`, `size.small.contained.count.pad-y`, `size.small.contained.status.pad-y` | surface | style: contained · type: count, status (20 of 50) |
 | tag | `size.small.dismissible.gap` | content | selection: unselected · size: small · type: dismissible (5 of 45) |
 
 ### `space.050`
@@ -2974,7 +2981,7 @@ Type: dimension. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `size.medium.count.pad-x`, `size.small.count.pad-x` | surface | emphasis: bold · size: medium · type: count (5 of 40) |
+| badge | `size.medium.contained.count.pad-x`, `size.small.contained.count.pad-x`, `size.small.inline.gap` | surface | emphasis: bold, subtle · type: count, status (10 of 50) |
 | button | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-destructive | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-neutral | `size.small.padding-y` | container | size: small (192 of 576) |
@@ -3004,7 +3011,8 @@ Type: dimension. Bound by 34 component(s).
 |---|---|---|---|
 | accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (16 of 48) |
 |  |  | titleRow | size: small (16 of 48) |
-| badge | `size.medium.status.pad-y`, `size.small.status.pad-x` | surface | type: status (30 of 40) |
+| badge | `size.medium.contained.status.pad-y`, `size.medium.inline.gap`, `size.small.contained.status.pad-x`, `status-dot-size` | statusDot | emphasis: subtle · style: inline · type: status (10 of 50) |
+|  |  | surface | type: status (35 of 50) |
 | breadcrumb-item | `size.medium.gap` | container | size: medium (5 of 10) |
 | breadcrumbs | `size.medium.gap` | items | path: full · size: medium (2 of 6) |
 | button | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
@@ -3069,7 +3077,7 @@ Type: dimension. Bound by 19 component(s).
 | accordion | `size.medium.gap`, `size.medium.pad-y`, `size.small.pad-x`, `size.small.panel-pad-end` | content | expansion: expanded · size: small (8 of 48) |
 |  |  | header | size: medium, small (32 of 48) |
 |  |  | titleRow | size: medium (16 of 48) |
-| badge | `size.medium.status.pad-x` | surface | size: medium · type: status (15 of 40) |
+| badge | `size.medium.contained.status.pad-x` | surface | size: medium · style: contained · type: status (15 of 50) |
 | banner | `actions-gap`, `gap` | actions | every member (8 of 8) |
 |  |  | container | every member (8 of 8) |
 | button | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
@@ -3237,11 +3245,12 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 17 component(s).
+Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (8 of 48) |
+| badge | `size.medium.inline.type` | label | emphasis: subtle · size: medium · style: inline · type: status (5 of 50) |
 | banner | `body-type` | placeholder | every member (8 of 8) |
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3278,10 +3287,11 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.line-box`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| badge | `size.medium.dot-cell` | dotCell | emphasis: subtle · size: medium · style: inline · type: status (5 of 50) |
 | checkbox-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 | radio-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 
@@ -3305,11 +3315,12 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.default`
 
-Type: typography. Bound by 18 component(s).
+Type: typography. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (8 of 48) |
+| badge | `size.small.inline.type` | label | emphasis: subtle · size: small · style: inline · type: status (5 of 50) |
 | breadcrumb-item | `size.small.type` | current | kind: current · separator: chevron · size: small (1 of 10) |
 | card-number-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
@@ -3352,10 +3363,11 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.line-box`
 
-Type: dimension. Bound by 4 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| badge | `size.small.dot-cell` | dotCell | emphasis: subtle · size: small · style: inline · type: status (5 of 50) |
 | checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | radio-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | switch-row | `size.medium.control-box` | controlCell | size: medium (2 of 4) |
@@ -3448,7 +3460,7 @@ Type: typography. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `size.small.type` | label | size: small · type: status (15 of 40) |
+| badge | `size.small.contained.type` | label | size: small · style: contained · type: status (15 of 50) |
 
 ### `type.label.lg.default`
 
@@ -3568,8 +3580,8 @@ Type: typography. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `size.medium.type` | count | emphasis: bold · size: medium · type: count (5 of 40) |
-|  |  | label | size: medium · type: status (15 of 40) |
+| badge | `size.medium.contained.type` | count | emphasis: bold · size: medium · style: contained · type: count (5 of 50) |
+|  |  | label | size: medium · style: contained · type: status (15 of 50) |
 | button | `size.small.filled.type`, `size.small.outline.type` | label | appearance: filled, outline · inset: default · size: small (96 of 576) |
 | button-destructive | `size.small.filled.type`, `size.small.outline.type` | label | appearance: filled, outline · inset: default · size: small (96 of 576) |
 | button-neutral | `size.small.filled.type`, `size.small.outline.type` | label | appearance: filled, outline · inset: default · size: small (96 of 576) |
@@ -3649,9 +3661,9 @@ Declared, not drawn: `color.border.focus`
 
 ### badge
 
-37 token(s); 40 design-file member(s).
+47 token(s); 50 design-file member(s).
 
-`border-width.hairline`, `color.background.primary`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger`, `color.foreground.danger-subtle`, `color.foreground.info`, `color.foreground.info-subtle`, `color.foreground.secondary`, `color.foreground.success`, `color.foreground.success-subtle`, `color.foreground.warning`, `color.foreground.warning-subtle`, `color.inverse.foreground.tertiary`, `color.inverse.text.primary`, `color.text.danger`, `color.text.info`, `color.text.on-danger`, `color.text.on-info`, `color.text.on-success`, `color.text.on-warning`, `color.text.primary`, `color.text.success`, `color.text.warning`, `control.size.sm.dot`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `space.075`, `space.100`, `space.150`, `type.caption.md.strong`, `type.label.sm.emphasis`
+`border-width.hairline`, `color.background.primary`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger`, `color.foreground.danger-subtle`, `color.foreground.info`, `color.foreground.info-subtle`, `color.foreground.secondary`, `color.foreground.success`, `color.foreground.success-subtle`, `color.foreground.warning`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.secondary`, `color.icon.success`, `color.icon.warning`, `color.inverse.foreground.tertiary`, `color.inverse.text.primary`, `color.text.danger`, `color.text.info`, `color.text.on-danger`, `color.text.on-info`, `color.text.on-success`, `color.text.on-warning`, `color.text.primary`, `color.text.success`, `color.text.warning`, `control.size.sm.dot`, `radius.none`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `space.075`, `space.100`, `space.150`, `type.body.md.default`, `type.body.md.line-box`, `type.body.sm.default`, `type.body.sm.line-box`, `type.caption.md.strong`, `type.label.sm.emphasis`
 
 ### banner
 

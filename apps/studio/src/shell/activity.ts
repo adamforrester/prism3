@@ -306,6 +306,12 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   // closed bar row is a control, not a region: since #3113 the plugin draws it from launch, on every page.
   const drawer = hook(h('div', 'p3-drawer'), 'activity-drawer');
   drawer.id = 'p3-activity';
+  // #3217: the close's exit has ended (or was cut short by a width change or an open), so the mark goes with it.
+  const exitDone = (e: AnimationEvent): void => {
+    if (e.target === drawer && (e.animationName === 'p3-drawer-down' || e.animationName === 'p3-strip-down')) delete drawer.dataset.closing;
+  };
+  drawer.addEventListener('animationend', exitDone);
+  drawer.addEventListener('animationcancel', exitDone);
   // The bar row is one button, as v6's is: the newest operation, its time, the counts, and the chevron.
   const toggle = hook(h('button', 'p3-drawer-bar'), 'activity-toggle');
   toggle.type = 'button';
@@ -682,6 +688,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
 
   const paint = (): void => {
     const { running, failed, failures, warnings } = counts(last);
+    // #3217: the exit plays on a real close only. Marked here, in the paint that turns an open drawer closed, and
+    // cleared when the exit ends (`exitDone`), so a drawer drawn closed at boot, or one the width changes under, never sinks.
+    if (open) delete drawer.dataset.closing;
+    else if (drawer.dataset.open === 'true' && !(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)) drawer.dataset.closing = 'true';
     drawer.dataset.open = String(open);
     if (open) { drawer.setAttribute('role', 'region'); drawer.setAttribute('aria-label', 'Activity'); }
     else { drawer.removeAttribute('role'); drawer.removeAttribute('aria-label'); }

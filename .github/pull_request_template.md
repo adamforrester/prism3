@@ -24,6 +24,14 @@
 - [ ] Engine bump: `packages/engine/changes/…md` declaring `engine: …` — or none owed, because …
 - [ ] Reuse: the existing mechanism this reused — or, for a new gate, script or helper, why nothing fit
 
+## Escape review
+
+<!-- Required when this PR closes a `type:bug` issue whose bug reached the owner or real Figma
+     (#3240, CONTRIBUTING.md §4 "Running a lane"). Otherwise write "Not a bug fix." -->
+
+- **Which check should have caught it, and why didn't it?**
+- **What was added, or filed, so it can't escape that way again?**
+
 ## Gates
 
 <!-- Run these and report the results. Not a formality — a PR isn't done until they're
@@ -121,7 +129,7 @@
 - [ ] `npx tsx apps/plugin/lint-executor-reach.ts` → clean — each new `EXECUTOR_REVISION` names every set it redraws in `apps/plugin/src/executor-reach.json` (#3101), so Update file makes only those sets due. When the revision rose, the gate draws every set no new entry names with the base's executor and with this tree's, in the component shim, and fails one that drew differently: add it to the entry (or declare `"all"`). Entries at or below the base's revision do not change.
 - [ ] `npx tsx apps/plugin/lint-bundle-prose.ts` → clean — **what the built plugin ships of a component def** (#1623). A def's `notes` and `anatomy.codeOnly` are maintainer-only and are stripped on the way into `dist/`; no "Prism 2" in any component module region; every def's one-line `summary` (the Figma description) is present. Run it **after** `build`.
 - [ ] `npx tsx apps/plugin/lint-release-bundle.ts` → clean — **the release build carries no dev-only code** (#2530): each dev-only marker is in `dist/` and absent from `release/`, and the release manifest has no `devAllowedDomains`. Run it **after** both plugin builds
-- [ ] `npx tsx apps/plugin/lint-network-reach.ts` → clean — **each plugin build reaches only what its manifest allows** (#3138): "Prism3 Studio" (`release/`) lists the two Google Fonts hosts and names no other host but reference-only ones; "Prism3 Studio Offline" (`release-offline/`) allows `["none"]` and carries no request. Run it **after** `build:release`, which builds both
+- [ ] `npx tsx apps/plugin/lint-network-reach.ts` → clean — **each plugin build reaches only what its manifest allows** (#3138): "Prism3 Studio" (`release/`) lists the two Google Fonts hosts and the local desktop bridge (#3147), and names no other host but reference-only ones; "Prism3 Studio Offline" (`release-offline/`) allows `["none"]` and carries no request. Run it **after** `build:release`, which builds both
 - [ ] `npm run -w @prism3/tokenpress test` → _N/N passed_ — the ported suite on tsx; the runner asserts a **per-file** census against the pre-port vitest baseline, so a vanished test fails too
 - [ ] `npm run -w @prism3/tokenpress build` → succeeds — `build.mjs` asserts four properties of what it *wrote* (`__PLUGIN_VERSION__` substituted, iife wrapper, 0 `node:` builtins, jszip's `setImmediate` shim); `dist/` is gitignored, so nothing else can catch a regression there. There is deliberately **no** `typecheck` — see `CONTRIBUTING.md` §3
 - [ ] `npx tsx tools/exporter-comparison/gate.ts` → clean — the two DTCG exporters agree on all four assertable arms across every brand with a Figma emission (#697): 0 `$type` disagreements on shared paths, 0 tokenpress-only paths, 0 float32 leaks, 0 opacity-scale disagreements (#709), and every prism3-only path accounted for by name in `KNOWN_UNREACHABLE`. Run it after the TokenPress build — it executes TokenPress's real `TokenExporter` in memory. Its sibling `compare.ts` is a **measurement** and always exits 0; categories 3–5 are reporting-only on purpose

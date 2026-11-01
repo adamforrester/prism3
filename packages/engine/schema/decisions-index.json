@@ -320,6 +320,13 @@
       "title": "Effect styles and Gradient styles each in a group frame",
       "doc": "docs/45-style-guide-generator.md",
       "section": null
+    },
+    {
+      "date": "2026-10-31",
+      "issue": 3221,
+      "title": "the reference brand's secondary text is fitted on the page",
+      "doc": "docs/06-surface-and-content-color-model.md",
+      "section": null
     }
   ]
 }

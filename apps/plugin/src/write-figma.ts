@@ -537,6 +537,7 @@ const upsertCollection = async (
   name: string,
   planned: readonly string[],
   pass?: Migration,
+  tick?: Tick,
 ): Promise<{ collection: VarCollection; byName: Map<string, Variable> }> => {
   const collections = await vars.getLocalVariableCollectionsAsync();
   const collection =
@@ -574,6 +575,7 @@ const upsertCollection = async (
       v.name = o.to;                 // id preserved → every existing binding comes with it
       byName.delete(o.from);
       byName.set(o.to, v);           // so the caller's create loop finds it and UPDATES rather than creates
+      await tick?.();
     }
   }
   return { collection, byName };
@@ -583,21 +585,21 @@ const upsertCollection = async (
  * Materialise the colour write-plan into `figma.variables`. Runs the three passes in order —
  * palette first (the colour aliases target it), then the two-pass colour write.
  */
-/** #3170 Q3170.5 A: inside Apply Theme's color stage, the thread is handed back every this many variables written, across
- *  the palette, the color values and the aliases. */
-export const COLOR_YIELD_EVERY = 200;
+/**
+ * #3208: AN APPLY'S CHANCE TO HAND THE THREAD BACK, offered after every variable written (and every collection renamed on
+ * the way in), in every variable executor. The plugin's Apply Theme passes one that hands back only once about `PACE_MS`
+ * of work has run since it last did (`main.ts`'s `themePace`), the cadence a component write keeps; so the strip's timer
+ * ticks and Stop answers whatever a stage writes. A caller with none (the paste harness, most tests) writes in one turn.
+ */
+export type Tick = () => Promise<void>;
 
-export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration, tick?: () => Promise<void>): Promise<ApplyResult> => {
-  // #3170: `tick` (the plugin's Apply Theme only) after every `COLOR_YIELD_EVERY`th variable, so the panel hears from the
-  // run and can repaint. A caller with none (the paste harness, the tests) writes as before, in one turn.
-  let written = 0;
-  const due = (): boolean => !!tick && ++written % COLOR_YIELD_EVERY === 0;
+export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration, tick?: Tick): Promise<ApplyResult> => {
   // ---- pass 1: `core`'s palette slice (one Default mode, literal RGBA, hidden primitives) ----
   // The collection is `core` since #1097 — the label comes from the engine's own emission constant, so a
   // future collection rename does not need an edit here. The palette SLICE of it is derived from the
   // planned names inside `upsertCollection`.
   const paletteNames = plan.palette.map((r) => r.name);
-  const pal = await upsertCollection(vars, CORE_COLLECTION, paletteNames, mig);
+  const pal = await upsertCollection(vars, CORE_COLLECTION, paletteNames, mig, tick);
   // Snapshot AFTER the migration pass, deliberately: a variable that was MIGRATED now carries a
   // planned name and is no longer drift. `orphans` keeps meaning "what we could not explain";
   // `Migration.outcomes` is "what we moved". Overlapping the two would double-report every rename.
@@ -611,7 +613,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     v.description = row.description;
     v.hiddenFromPublishing = row.hidden;
     v.setValueForMode(palModeId, row.value);
-    if (due()) await tick!();
+    await tick?.();
   }
 
   // ---- pass 2: color create (N modes, literal per-mode fallback values) ----
@@ -621,7 +623,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
   // rather than read off the plan because `plan.color` carries no name — the one collection name in this
   // file that is not `plan.name`, which is why this line had to be edited by both renames.
   const { modes, create, aliases } = plan.color;
-  const col = await upsertCollection(vars, 'color', create.map((r) => r.name), mig);
+  const col = await upsertCollection(vars, 'color', create.map((r) => r.name), mig, tick);
   const colPreExisting = [...col.byName.keys()];   // snapshot before creates (and after migration)
   // Modes by stable identity — claim, then rename only a fresh collection, then add (#1570).
   const modeIds = reconcileModes(col.collection, modes);
@@ -632,7 +634,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     v.scopes = row.scopes;
     v.description = row.description;
     modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
-    if (due()) await tick!();
+    await tick?.();
   }
 
   // ---- pass 3: color aliases (bind PER MODE — each mode to its OWN target) ----
@@ -668,7 +670,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
       } else v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
       bound++;
     });
-    if (due()) await tick!();
+    await tick?.();
   }
 
   return {
@@ -743,6 +745,7 @@ export const applyFloatPlan = async (
   plans: FloatCollectionPlan[],
   vars: VariablesApi,
   mig?: Migration,
+  tick?: Tick,
 ): Promise<FloatApplyResult> => {
   const collections: FloatApplyResult['collections'] = [];
   // Per-collection modeId maps, kept for pass B; and the global name→Variable map across all axes.
@@ -751,7 +754,7 @@ export const applyFloatPlan = async (
 
   // ---- pass A: create/update every FLOAT var in every collection (literal per-mode values) ----
   for (const p of plans) {
-    const { collection, byName } = await upsertCollection(vars, p.name, p.create.map((r) => r.name), mig);
+    const { collection, byName } = await upsertCollection(vars, p.name, p.create.map((r) => r.name), mig, tick);
     const preExisting = [...byName.keys()];   // snapshot before creates — see applyVarCollectionPlan
     // Modes by stable identity (#1570). `layout` is the collection this matters most for: its modes ARE
     // the breakpoint ladder, so shrinking `layout.breakpoints` is what used to duplicate a mode name.
@@ -766,6 +769,7 @@ export const applyFloatPlan = async (
       v.description = row.description;
       v.hiddenFromPublishing = row.hidden;
       p.modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
+      await tick?.();
     }
     const createNames = p.create.map((r) => r.name);
     collections.push({ name: axisLabel(p.name, createNames), total: p.create.length, created, orphans: orphansOf(preExisting, createNames) });
@@ -789,6 +793,7 @@ export const applyFloatPlan = async (
         v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
         bound++;
       });
+      await tick?.();
     }
   }
 
@@ -875,6 +880,7 @@ export const applyVarCollectionPlan = async (
   plans: VarCollectionPlan[],
   vars: VariablesApi,
   mig?: Migration,
+  tick?: Tick,
 ): Promise<VarCollectionApplyResult> => {
   const collections: VarCollectionApplyResult['collections'] = [];
   const modeIdsByCollection = new Map<string, Record<string, string>>();
@@ -885,7 +891,7 @@ export const applyVarCollectionPlan = async (
 
   // ---- pass A: create/update every var (STRING or FLOAT) with its literal per-mode value ----
   for (const p of plans) {
-    const { collection, byName } = await upsertCollection(vars, p.name, p.rows.map((r) => r.name), mig);
+    const { collection, byName } = await upsertCollection(vars, p.name, p.rows.map((r) => r.name), mig, tick);
     // Read BEFORE `reconcileModes` stamps the collection: the retype is for a collection Prism3 had already made.
     const stamped = ownedModeIds(collection).length > 0;
     // Snapshot BEFORE the row loop — `byName` gains every var this pass creates, and a set read after
@@ -914,6 +920,7 @@ export const applyVarCollectionPlan = async (
       v.description = row.description;
       v.hiddenFromPublishing = row.hidden;
       p.modes.forEach((m, i) => setSurviving(v!, modeIds[m], m, row.valuesByMode[i], refused));
+      await tick?.();
     }
     const rowNames = p.rows.map((r) => r.name);
     collections.push({ name: axisLabel(p.name, rowNames), total: p.rows.length, created, orphans: orphansOf(preExisting, rowNames) });
@@ -939,6 +946,7 @@ export const applyVarCollectionPlan = async (
         setSurviving(v, modeIds[m], m, vars.createVariableAlias(tv), refused);
         if (refused.length === before) bound++;
       });
+      await tick?.();
     }
   }
 
