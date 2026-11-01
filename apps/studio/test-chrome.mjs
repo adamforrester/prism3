@@ -18422,6 +18422,10 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 //     then the page waits for every animation to finish and the surface sits on its end state (no transform, full
 //     opacity; a closed drawer's body undrawn). What must not move does not: a repaint of an open dialog (`data-still`),
 //     a fold-out drawn again by a page change, and a fold-out's collapse.
+//   · EXITS (#3207): a surface the shell removes (the Inspect menu, the brand menu, the Update file dialog, the start window,
+//     the bar row's unread dot) stays drawn through its exit, marked `data-leaving` and inert, with focus outside it and its
+//     control reading closed; it leaves on 100ms, the exit curve; and it is removed once the exit ends. Every other section
+//     runs with the durations at 0s, where nothing runs and the removal is at once, so "gone after Escape" holds there.
 //   · REDUCED: under `prefers-reduced-motion: reduce` the same changes animate no transform, translate or scale, and every
 //     surface's crossfade lasts 100ms.
 //   · SETTLED: every other section's pages read the three motion durations as 0s, and nothing else moved: the spinner's
@@ -18437,7 +18441,9 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 //   mapped to `duration.fast` → `#3150 LIVE … the drawer slides up on 200ms`; the reduced block's `animation: none` dropped
 //   → `#3150 REDUCED … no transform moves`; `data-still` not set on a repaint → `#3150 LIVE … a repaint of the open dialog
 //   does not scale in again`; the fold-out's focus gate dropped → `#3150 LIVE … a page change does not replay`; the
-//   drawer's exit unscoped from `data-closing` (#3217) → `#3150 LIVE … at boot the closed drawer plays no exit` and
+//   menu's `leave` back to `menu.remove()` → `#3150 LIVE … the Inspect menu, closed by Escape, stays drawn through its exit`;
+//   `isOpen` reading a leaving menu as open → `… reads as closed`; an exit rule dropped → `#3150 DECLARED: … declares no
+//   motion` and its LIVE exit arm; the drawer's exit unscoped from `data-closing` (#3217) → `#3150 LIVE … at boot the closed drawer plays no exit` and
 //   `… a narrow → wide resize under the closed drawer plays no exit`.
 // =============================================================================================
 if (runs('3150')) {
@@ -18461,8 +18467,9 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['rule', '.p3-frame[data-w="narrow"] .p3-drawer'], ['start', '.p3-frame[data-w="narrow"] .p3-drawer'],
     // Pop: the status dot on the drawer's bar row (a result nobody has opened).
     ['rule', '.p3-drawer-bar .p3-status-dot[data-state="unread"]'], ['start', '.p3-drawer-bar .p3-status-dot[data-enter="true"]'],
+    ['rule', '.p3-drawer-bar .p3-status-dot[data-leaving="true"]'],
     // Shift: a menu.
-    ['rule', '.p3-menu'], ['start', '.p3-menu'],
+    ['rule', '.p3-menu'], ['start', '.p3-menu'], ['rule', '.p3-menu[data-leaving="true"]'],
     // Fade: a tooltip; the error strip and the notices row it sits in; the Update file rows that land.
     ['rule', '.p3-tile-tip'], ['start', '.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip'],
     ['rule', '.p3-notices'], ['rule', '.p3-errstrip'], ['rule', '.p3-errstrip[hidden]'], ['start', '.p3-errstrip'],
@@ -18470,6 +18477,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     // Scale in: a dialog and its scrim.
     ['rule', ':is(.p3-bardlg-scrim, .p3-scrim)'], ['rule', ':is(.p3-bardlg-scrim, .p3-scrim) > :is(.p3-bardlg, .p3-dialog)'],
     ['start', ':is(.p3-bardlg-scrim, .p3-scrim):not([data-still="true"])'], ['start', ':is(.p3-bardlg-scrim, .p3-scrim):not([data-still="true"]) > :is(.p3-bardlg, .p3-dialog)'],
+    // The exits of the surfaces the shell removes (#3207): a menu, a dialog and its scrim, the unread dot.
+    ['rule', ':is(.p3-bardlg-scrim, .p3-scrim)[data-leaving="true"]'], ['rule', ':is(.p3-bardlg-scrim, .p3-scrim)[data-leaving="true"] > :is(.p3-bardlg, .p3-dialog)'],
     // Expand: fold-out content, moving only in the frame its toggle opened it.
     ['rule', ':is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)'],
     ['start', ':is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)[data-enter="true"]'],
@@ -18540,6 +18549,16 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
   const atRest = (r) => !!r && r.transform === 'none' && r.translate === 'none' && r.scale === 'none' && r.opacity === '1' && r.moving === 0;
   const one = (list, name) => (list ?? []).find((a) => a.name === name);
   const fmt = (x) => JSON.stringify(x);
+  /** #3207: a surface the shell removes, read the moment it closes: marked leaving, inert, focus outside it, and the control
+   *  that opened it (when it has one) reading closed. */
+  const leavingOf = (page, sel, btnSel) => page.evaluate(([s, b]) => {
+    const el = document.querySelector(s);
+    const btn = b ? document.querySelector(b) : null;
+    return { drawn: !!el, leaving: el?.dataset.leaving ?? null, inert: el?.inert ?? null, focusInside: !!el && el.contains(document.activeElement),
+      focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName.toLowerCase() ?? null, expanded: btn?.getAttribute('aria-expanded') ?? null };
+  }, [sel, btnSel]);
+  const closedWhileLeaving = (g, focus, expanded) => g.drawn && g.leaving === 'true' && g.inert === true && !g.focusInside && g.focus === focus && (expanded === undefined || g.expanded === expanded);
+  const goneNow = (page, sel) => page.evaluate((s) => !document.querySelector(s), sel);
 
   // ── DECLARED ──
   {
@@ -18635,6 +18654,30 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       const afterClose = await exitAt(page);
       ok(afterClose.name === 'none' && afterClose.closing === null, `${where}: once the exit ends, the close's mark goes with it (animation ${afterClose.name}; data-closing ${afterClose.closing})`);
 
+      // #3207: the bar row's unread dot. A result lands while the drawer is closed; opening the drawer reads it, and the dot
+      // shrinks away where it stood (the bar row stays at 1280), unhooked and inert, then is removed.
+      step = 'the status dot leaves';
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await hooks.need(page, '[data-p3="activity-unread"]');
+      await settleAll(page, cdp);
+      await slow();
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+      const goingSel = '[data-p3="activity-toggle"] > .p3-status-dot[data-leaving="true"]';
+      const dGo = await page.evaluate((sel) => { const d = document.querySelector(sel); return { drawn: !!d, inert: d?.inert ?? null, hook: d?.dataset.p3 ?? null, unread: !!document.querySelector('[data-p3="activity-unread"]') }; }, goingSel);
+      const dOut = await movesOf(page, goingSel);
+      ok(dGo.drawn && dGo.inert === true && dGo.hook === null && !dGo.unread, `${where}: opening the drawer reads the result: the dot stays drawn through its exit, inert and no longer the unread mark (read ${fmt(dGo)})`);
+      if (!reduced) ok(one(dOut, 'scale')?.dur === OUT && one(dOut, 'scale')?.ease === EXIT && one(dOut, 'opacity')?.dur === OUT,
+        `${where}: the status dot shrinks away, scale and opacity on ${OUT}ms, the exit curve (read ${fmt(dOut)})`);
+      else {
+        const dScale = await page.evaluate((sel) => { const d = document.querySelector(sel); return d ? getComputedStyle(d).scale : null; }, goingSel);
+        ok(!!dOut && dOut.every((a) => a.moves.length === 0) && one(dOut, 'opacity')?.dur === REDUCED && dScale === 'none',
+          `${where}: the status dot crossfades out on ${REDUCED}ms and scales nothing, not even a snap (read ${fmt(dOut)}; scale ${dScale})`);
+      }
+      await settleAll(page, cdp);
+      ok(await goneNow(page, '[data-p3="activity-toggle"] > .p3-status-dot[data-state="unread"]'), `${where}: settled, the status dot is removed once its exit ends`);
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+      await settleAll(page, cdp);
+
       // The error strip: Fade in and out, the notices row holding through the exit.
       step = 'the error strip';
       await slow();
@@ -18663,7 +18706,26 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       } else reducedOk(mIn, 'the Inspect menu opening');
       await settleAll(page, cdp);
       ok(atRest(await restOf(page, '[data-p3="inspect-menu"]')), `${where}: settled, the Inspect menu sits at rest (${fmt(await restOf(page, '[data-p3="inspect-menu"]'))})`);
+      // #3207: it leaves as a fade, and reads as closed from the moment it closes.
+      step = 'the Inspect menu closes';
+      await slow();
       await page.keyboard.press('Escape');
+      const mGo = await leavingOf(page, '[data-p3="inspect-menu"]', '[data-p3="inspect-open"]');
+      const mOut = await movesOf(page, '[data-p3="inspect-menu"]');
+      ok(closedWhileLeaving(mGo, 'inspect-open', 'false'), `${where}: the Inspect menu, closed by Escape, stays drawn through its exit and reads as closed: marked leaving, inert, focus back on its button, the button not expanded (read ${fmt(mGo)})`);
+      if (!reduced) ok(!!mOut && one(mOut, 'opacity')?.dur === OUT && one(mOut, 'opacity')?.ease === EXIT && mOut.every((a) => a.moves.length === 0),
+        `${where}: the Inspect menu leaves as a fade, opacity on ${OUT}ms, the exit curve, moving nothing (read ${fmt(mOut)})`);
+      else reducedOk(mOut, 'the Inspect menu closing');
+      // Opened again mid-exit: its button reads it as closed, so the click opens it, and the menu that comes back is not leaving.
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      const mBack = await page.evaluate(() => { const m = document.querySelector('[data-p3="inspect-menu"]'); return { n: document.querySelectorAll('[data-p3="inspect-menu"]').length, leaving: m?.dataset.leaving ?? null, inert: m?.inert ?? null, expanded: document.querySelector('[data-p3="inspect-open"]')?.getAttribute('aria-expanded') }; });
+      ok(mBack.n === 1 && mBack.leaving === null && mBack.inert === false && mBack.expanded === 'true',
+        `${where}: a click on Inspect during the menu's exit opens it again, one menu, not leaving (read ${fmt(mBack)})`);
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, '[data-p3="inspect-menu"]')), `${where}: settled, the reopened Inspect menu sits at rest and was not removed by the earlier exit (${fmt(await restOf(page, '[data-p3="inspect-menu"]'))})`);
+      await page.keyboard.press('Escape');
+      await settleAll(page, cdp);
+      ok(await goneNow(page, '[data-p3="inspect-menu"]'), `${where}: settled, the Inspect menu is removed once its exit ends`);
 
       // A dialog: Scale in; a repaint of the open dialog does not scale it again; the checklist fades in when it lands.
       step = 'the Update file dialog';
@@ -18692,7 +18754,24 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       ok(landed.rows.length > 0 && landed.rows.every((r) => r.land === 'true' && r.fades.some(([p, d]) => p === 'opacity' && d === rowFade)),
         `${where}: once the file is read the checklist lands, each row fading in on ${rowFade}ms (read ${fmt(landed.rows)})`);
       await settleAll(page, cdp);
+      // #3207: the scrim fades and the dialog shrinks back, and the dialog reads as closed while it leaves.
+      step = 'the Update file dialog closes';
+      await slow();
       await page.keyboard.press('Escape');
+      const uGo = await leavingOf(page, '[data-p3="update-layer"] > .p3-bardlg-scrim', null);
+      const sOut = await movesOf(page, '[data-p3="update-layer"] > .p3-bardlg-scrim');
+      const gOut = await movesOf(page, '[data-p3="update-dialog"]');
+      ok(closedWhileLeaving(uGo, 'update-file'), `${where}: the Update file dialog, closed by Escape, stays drawn through its exit and reads as closed: marked leaving, inert, focus back on Update file (read ${fmt(uGo)})`);
+      if (!reduced) {
+        ok(one(sOut, 'opacity')?.dur === OUT && one(sOut, 'opacity')?.ease === EXIT, `${where}: the dialog's scrim fades out on ${OUT}ms, the exit curve (read ${fmt(sOut)})`);
+        ok(one(gOut, 'scale')?.dur === OUT && one(gOut, 'scale')?.ease === EXIT, `${where}: the Update file dialog scales down on ${OUT}ms, the exit curve (read ${fmt(gOut)})`);
+      } else {
+        reducedOk([...(sOut ?? []), ...(gOut ?? [])], 'the Update file dialog closing');
+        const gScale = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="update-dialog"]')).scale);
+        ok(gScale === 'none', `${where}: the leaving dialog keeps its size under reduced motion, no snap to its exit scale (scale ${gScale})`);
+      }
+      await settleAll(page, cdp);
+      ok(await page.evaluate(() => document.querySelector('[data-p3="update-layer"]')?.children.length === 0), `${where}: settled, the dialog is removed once its exit ends`);
 
       // Fold-out content: Expand, gated on its toggle; a page change that draws it again does not replay it; collapse at once.
       step = 'the advanced fold-out';
@@ -18770,6 +18849,10 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await slow();
       await hooks.click(page.locator('[data-p3="activity-toggle"]'));
       const up = await movesOf(page, '[data-p3="activity-drawer"]');
+      // #3207: opening the sheet reads the result. At 380 the open sheet hides the bar row the dot sits on, so there is no exit
+      // to see and the dot goes at once (the exit is held at 1280, where the bar row stays).
+      const dGo = await page.evaluate(() => ({ leaving: !!document.querySelector('[data-p3="activity-toggle"] > .p3-status-dot[data-leaving="true"]'), unread: !!document.querySelector('[data-p3="activity-unread"]') }));
+      ok(!dGo.leaving && !dGo.unread, `${where}: opening the sheet reads the result, and the dot goes at once with the bar row the sheet hides (read ${fmt(dGo)})`);
       if (!reduced) ok(one(up, 'p3-drawer-up')?.dur === IN && one(up, 'p3-drawer-up')?.ease === ENTER, `${where}: the sheet slides up on ${IN}ms, the enter curve (read ${fmt(up)})`);
       else ok((up ?? []).every((a) => a.moves.length === 0 && a.kind !== 'CSSAnimation'), `${where}: the sheet moves no transform under reduced motion (read ${fmt(up)})`);
       await settleAll(page, cdp);
@@ -18813,7 +18896,7 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     } finally { await ctx.close(); }
   }
 
-  // ── a tooltip (Fade), on the web at 1280 ──
+  // ── a tooltip (Fade), the brand menu's and the start window's exits (#3207), on the web at 1280 ──
   for (const reduced of [false, true]) {
     const where = `#3150 ${reduced ? 'REDUCED' : 'LIVE'} web light 1280`;
     const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900, liveMotion: true });
@@ -18835,6 +18918,41 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await page.mouse.move(640, 600);
       const tOut = await page.evaluate(() => [...document.querySelectorAll('.p3-tile-tip')].filter((t) => getComputedStyle(t).display !== 'none').length);
       ok(tOut === 0, `${where}: the tooltip goes at once (${tOut} still drawn)`);
+
+      // #3207: the brand menu (drawn by the bar, not the shared menu button) leaves as a fade, reading closed.
+      step = 'the brand menu';
+      await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+      await hooks.need(page, '[data-p3="brand-menu"]');
+      await settleAll(page, cdp);
+      await slow();
+      await page.keyboard.press('Escape');
+      const bGo = await leavingOf(page, '[data-p3="brand-menu"]', '[data-p3="brand-switcher"]');
+      const bOut = await movesOf(page, '[data-p3="brand-menu"]');
+      ok(closedWhileLeaving(bGo, 'brand-switcher', 'false'), `${where}: the brand menu, closed by Escape, stays drawn through its exit and reads as closed: marked leaving, inert, focus back on the switcher, not expanded (read ${fmt(bGo)})`);
+      if (!reduced) ok(!!bOut && one(bOut, 'opacity')?.dur === OUT && one(bOut, 'opacity')?.ease === EXIT && bOut.every((a) => a.moves.length === 0),
+        `${where}: the brand menu leaves as a fade, opacity on ${OUT}ms, the exit curve, moving nothing (read ${fmt(bOut)})`);
+      else ok(!!bOut && bOut.every((a) => a.moves.length === 0) && one(bOut, 'opacity')?.dur === REDUCED, `${where}: the brand menu crossfades out on ${REDUCED}ms and moves nothing (read ${fmt(bOut)})`);
+      await settleAll(page, cdp);
+      ok(await goneNow(page, '[data-p3="brand-menu"]'), `${where}: settled, the brand menu is removed once its exit ends`);
+
+      // #3207: the start window, reopened from the brand menu and closed by its X: the scrim fades, the window shrinks back.
+      step = 'the start window';
+      await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      await hooks.need(page, '[data-p3="start-screen"]');
+      await settleAll(page, cdp);
+      await slow();
+      await hooks.click(page.locator('[data-p3="start-close"]'));
+      const wGo = await leavingOf(page, '[data-p3="start-screen-scrim"]', null);
+      const wsOut = await movesOf(page, '[data-p3="start-screen-scrim"]');
+      const wdOut = await movesOf(page, '[data-p3="start-screen"]');
+      ok(wGo.drawn && wGo.leaving === 'true' && wGo.inert === true && !wGo.focusInside, `${where}: the start window, closed by its X, stays drawn through its exit and reads as closed: marked leaving, inert, focus outside it (read ${fmt(wGo)})`);
+      if (!reduced) ok(one(wsOut, 'opacity')?.dur === OUT && one(wsOut, 'opacity')?.ease === EXIT && one(wdOut, 'scale')?.dur === OUT && one(wdOut, 'scale')?.ease === EXIT,
+        `${where}: the start window's scrim fades and the window scales down, on ${OUT}ms, the exit curve (scrim ${fmt(wsOut)}; window ${fmt(wdOut)})`);
+      else ok([...(wsOut ?? []), ...(wdOut ?? [])].every((a) => a.moves.length === 0) && one(wsOut, 'opacity')?.dur === REDUCED,
+        `${where}: the start window crossfades out on ${REDUCED}ms and scales nothing (scrim ${fmt(wsOut)}; window ${fmt(wdOut)})`);
+      await settleAll(page, cdp);
+      ok(await goneNow(page, '[data-p3="start-screen-scrim"]'), `${where}: settled, the start window is removed once its exit ends`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);

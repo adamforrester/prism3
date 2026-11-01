@@ -43,7 +43,7 @@
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
 import type { Host } from './pages';
-import { armEnter, enterMark, glyph, h, hook, tile } from './dom';
+import { armEnter, enterMark, glyph, h, hook, leave, tile } from './dom';
 
 /** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
  *  "agent link on" while it is). The plugin's Agent tile (`apps/plugin/src/agent-link-ui.ts`) reports each state the
@@ -658,6 +658,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       lead0.push(u);
       parts.push(h('span', 'p3-sr', 'New result'));
     }
+    // #3207: the paint that drops the dot (opening the drawer reads it) keeps the drawn one in its place through its exit;
+    // a repaint during that exit keeps it there too. Unhooked and inert once it leaves, it is no longer the unread mark.
+    const prevDot = toggle.querySelector<HTMLElement>(':scope > .p3-status-dot[data-state="unread"]:not(.p3-op-mark)');
+    const goingDot = !unread && prevDot && (dotShown || prevDot.dataset.leaving === 'true') ? prevDot : null;
     dotShown = unread;
     parts.push(h('span', 'p3-spacer'));
     parts.push(...countEls());
@@ -668,9 +672,15 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     runs.append(...parts);
     // #3150: the chevron is one node for the drawer's life, never redrawn, so it turns as the drawer opens and closes (the
     // chrome's motion); what is around it is drawn afresh.
-    for (const n of [...toggle.childNodes]) if (n !== chevron) n.remove();
+    for (const n of [...toggle.childNodes]) if (n !== chevron && n !== goingDot) n.remove();
     if (!chevron.isConnected) toggle.append(chevron);
-    chevron.before(...lead0, runs);
+    if (goingDot) {
+      // Kept in place (a moved node would restart its style, and its exit with it): the mark before it, the rest after.
+      goingDot.before(...lead0);
+      chevron.before(runs);
+      delete goingDot.dataset.p3;
+      leave(goingDot);
+    } else chevron.before(...lead0, runs);
     chevron.after(h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
     // The sheet's header row carries the same counts and the agent dot (Q3113.8 A).
     const sheetLink = linkEl();

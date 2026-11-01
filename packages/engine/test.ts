@@ -11629,14 +11629,16 @@ arm: {
     `Q-TXT1 A: nb.ai.json text.secondary is contracted on background.primary and says it falls below 4.5:1 on background.secondary (contrast_with ${cw.map((c) => c.token).join(',') || 'none'}; when_to_use "${String(ai.when_to_use ?? '').slice(0, 160)}")`);
 
   // Arm 2: no other brand moved. origin/main's values, before the setting existed: text.secondary, icon.secondary,
-  // inverse.text.secondary per mode.
+  // inverse.text.secondary per mode. One row is not main's: the redesign seed sets `secondaryTextGround: page` too
+  // (#3219, owner Q3212.4 A), so its light text and icon secondary are pinned at the page fit, #767576 (4.6:1 on
+  // white; main's floor fit was #696869). Its inverse ink stays on the band's floor and does not move.
   const BEFORE: Record<string, Record<string, string>> = {
     prism3: { light: '#67696b #67696b #808284', dark: '#808284 #808284 #67696b', 'hc-light': '#424346 #424346 #999a9c', 'hc-dark': '#a6a7a9 #a6a7a9 #4e5052' },
     aurora: { light: '#68686d #818286 #818286', dark: '#818286 #68686d #68686d', 'hc-light': '#434347 #68686d #9a9a9e', 'hc-dark': '#a7a7aa #818286 #4f4f54' },
     harbor: { light: '#5e5b58 #5e5b58 #83817e', dark: '#83817e #83817e #6b6865', 'hc-light': '#454341 #454341 #9c9a98', 'hc-dark': '#a8a6a5 #a8a6a5 #514f4c' },
     wendys: { light: '#67696a #67696a #808283', dark: '#808283 #808283 #67696a', 'hc-light': '#424345 #424345 #999a9c', 'hc-dark': '#a6a7a8 #a6a7a8 #4e5051' },
     minimal: { light: '#66696d #66696d #7f8285', dark: '#7f8285 #7f8285 #66696d', 'hc-light': '#424347 #424347 #999a9d', 'hc-dark': '#a5a7aa #a5a7aa #4d5053' },
-    'nb-redesign': { light: '#696869 #696869 #828282' },
+    'nb-redesign': { light: '#767576 #767576 #828282' },
   };
   const others: Array<[string, Theme | undefined]> = [
     ...contractCorpus().filter(({ id }) => id.split(' ')[0] !== 'nb').map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
@@ -11665,7 +11667,7 @@ arm: {
   ok(viaInput['text.secondary'].hex.toLowerCase() !== BEFORE.minimal.light.split(' ')[0] && minimalPage >= 4.5 - 1e-9 && minimalPage <= 4.8 + 1e-9,
     `Q-TXT1 A: secondaryTextGround 'page' on a BrandInput fits text.secondary on the page (minimal light ${BEFORE.minimal.light.split(' ')[0]} → ${viaInput['text.secondary'].hex}, ${minimalPage.toFixed(2)}:1 on background.primary)`);
   ok(compared >= 41 && moved.length === 0,
-    `Q-TXT1 A: no other brand's secondary ink moved — text, icon and inverse text match origin/main in every corpus brand, prism3 and the redesign seed (${compared} brand × mode cells${moved.length ? `; MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
+    `Q-TXT1 A: no other brand's secondary ink moved — text, icon and inverse text match origin/main in every corpus brand and prism3, and the redesign seed holds its page fit (#3219) (${compared} brand × mode cells${moved.length ? `; MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
 }
 
 // (10b) #63 — CLOSED, by fixing the cause rather than accepting it. History, because the shape of the
@@ -19176,6 +19178,14 @@ arm: {
     // Width: the floor clears the provider's minimum.
     const narrow = plans.filter((p) => { const w = typeof p.root.minWidth === 'number' ? p.root.minWidth : NaN; return !(w >= (RULES[String(p.coord.provider)]?.minW ?? 0)); });
     ok(narrow.length === 0, `#2343 PR 4 provider rules WIDTH: every member's width floor clears its provider's minimum (${narrow.map((p) => `${planComponentName(p)}: ${p.root.minWidth}`).join('; ') || 'clean'})`);
+    // Q3175 A (#3175): PayPal's SDK frame holds 150px, above the 120 floor. The Figma floor stays 120 (no PayPal minW
+    // above), and the 150 is a code-only note, held on both places the decision is written: codeOnly and contested.
+    const paypalWidthNote = (wb.anatomy.codeOnly ?? []).find((c) => c.startsWith('the width — ')) ?? '';
+    const paypalContested = (wb.notes?.contested ?? []).find((c) => c.startsWith('Q3175 A')) ?? '';
+    ok(/PayPal's script holds its own frame at 150 or wider/.test(paypalWidthNote) && /design file's floor stays 120/.test(paypalWidthNote)
+      && /150px/.test(paypalContested) && /floor stays 120/.test(paypalContested) && /code-only provider note in codeOnly/.test(paypalContested)
+      && plans.filter((p) => p.coord.provider === 'paypal').every((p) => p.root.minWidth === 120),
+      `#3175 PAYPAL WIDTH NOTE: PayPal's 150px SDK minimum is a code-only note in codeOnly and contested, and the PayPal members keep the 120 floor (codeOnly '${paypalWidthNote || 'missing'}'; contested '${paypalContested || 'missing'}')`);
     // Radius: Google Pay's at most half the height, at every density.
     const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
     const overHalf = (bs: typeof builds) => plans.filter((p) => RULES[String(p.coord.provider)]?.halfHeightRadius).flatMap((p) => bs.flatMap((b) => {
