@@ -848,3 +848,157 @@ export const planCollectionRenames = (
   }
   return out;
 };
+
+
+/* ── APPLY: the one rename pass both Figma write paths run (#1024) ─────────────────────────────────
+ *
+ * Everything above DECIDES; the three functions below APPLY. They used to live in the plugin executor
+ * (`apps/plugin/src/write-figma.ts` `beginMigration` / `upsertCollection`), which made the plugin the only
+ * write path that migrated a renamed variable. The CLI paste path (`materialise-to-figma.ts`) kept
+ * create-or-update-by-name, so one rename had two outcomes depending on the surface a designer used: the
+ * plugin moved the variable and kept its bindings, the paste path created the new name beside the old one
+ * and orphaned every binding.
+ *
+ * Here so there is ONE definition with two callers. The plugin imports them. The paste path cannot import
+ * (its payload is a string pasted into `figma_execute`), so it ships their SOURCE — `plannerSources` below,
+ * assembled by `rename-runtime.ts` — and calls them in the file: the engine's established move for a
+ * function both executors need (`nestVariantMatchSrc` in `anatomy-figma.ts`).
+ *
+ * THEY LIVE IN THIS MODULE, AND TAKE `root` AS AN ARGUMENT, BECAUSE OF HOW THE SOURCE IS PRODUCED. Under
+ * `tsx` a reference to an IMPORTED name compiles to a module-interop property read
+ * (`(0, import_x.name)(…)`), which names an object the payload does not have. A reference to a function in
+ * the SAME module compiles to the bare name, which the payload defines. So every function `plannerSources`
+ * ships may call only the others it ships — no imports, no module constants. Asserted by execution, not
+ * remembered: `apps/plugin/test-rename-parity.ts` runs the real paste payload.
+ *
+ * Host-neutral: a collection or a variable is anything with a writable `name`.
+ */
+
+/** Anything the pass can rename in place: a Figma `Variable` or `VariableCollection`. */
+export type Named = { name: string };
+
+/**
+ * One rename pass, shared by every executor in a single apply (#1013).
+ *
+ * State, not just a map, for two reasons. The static validation must run **once, before any write**
+ * and neuter the whole pass rather than per collection — so `openMigration` is the only construction
+ * point and an invalid map cannot reach `renameVariables`. And `outcomes` accumulates across every
+ * executor, so a caller reads one list.
+ */
+export type Migration = {
+  /** Empty when `refusals` is non-empty: a statically-invalid map migrates NOTHING. */
+  map: RenameMap;
+  /** The MATERIALIZATION rules, carried on the pass rather than imported at the point of use — so that
+   *  emptying `map` on a refusal disarms them TOO. They are not part of the map (they are rules, not
+   *  rows) but they are part of the same migration, and a refusal that neutered only the rows would
+   *  leave every variable renaming into collections that did not move. */
+  rules: readonly MaterializationStep[];
+  /** Every entry the pass considered, no-ops included — "checked, none" ≠ "never checked". */
+  outcomes: RenameOutcome[];
+  /** Static refusals. Non-empty means the rename pass was abandoned and the write proceeded
+   *  unmigrated — the orphan-and-recreate behavior, reported rather than silent. */
+  refusals: string[];
+};
+
+/** Validate once, up front. A statically-invalid map does NOT abort the write: it abandons the rename
+ *  pass only and degrades to the pre-#1013 behavior, which is a known state rather than a new one. */
+export const openMigration = (map: RenameMap, rules: readonly MaterializationStep[]): Migration => {
+  const refusals = validateRenameMap(map);
+  return {
+    map: refusals.length ? { collections: [], variables: [] } : map,
+    rules: refusals.length ? [] : rules,
+    outcomes: [],
+    refusals,
+  };
+};
+
+/**
+ * Rename every COLLECTION, once, before any find-by-name runs (#1035).
+ *
+ * **Atomic.** `planCollectionRenames` plans the whole ordered sequence against a simulated name set, so
+ * every outcome is visible before the first mutation. If ANY is a refusal, none is applied and the whole
+ * pass is neutered, exactly as a static refusal neuters it: the variable rows are keyed by their
+ * collection's NEW name, so a variable rename against a collection that did not move would find no rows
+ * and orphan the variable it was there to migrate. The two halves stand or fall together. A future edit
+ * that applies outcomes as it walks them has deleted that guarantee.
+ */
+export const renameCollections = (mig: Migration, collections: readonly Named[]): void => {
+  if (!mig.map.collections.length) return;
+  const planned = planCollectionRenames(collections.map((c) => c.name), mig.map.collections);
+  // Every outcome is reported either way — "checked, none" ≠ "never checked" — but only a clean plan
+  // is applied.
+  mig.outcomes.push(...planned);
+  const refused = planned.filter((o) => isRefusal(o.status));
+  if (refused.length) {
+    mig.refusals.push(...refused.map((o) => 'collection ' + o.from + ' -> ' + o.to + ': ' + o.status));
+    mig.map = { collections: [], variables: [] };
+    mig.rules = [];
+    return;
+  }
+  // Renaming in place keeps the collection id, and therefore every variable in it and every binding to
+  // those variables.
+  for (const o of planned) {
+    if (o.status !== 'migrated') continue;
+    const c = collections.find((x) => x.name === o.from);
+    if (c) c.name = o.to;
+  }
+};
+
+/**
+ * Rename the VARIABLES of one collection the caller is about to write, and keep its index current.
+ *
+ * `byName` is the caller's index of the variables it OWNS in that collection (for `core`, one group's
+ * slice — see `upsertCollection` in the plugin executor for why). `planned` is the names the caller is
+ * about to write there. A migrated variable is re-keyed under its new name, so the caller's create loop
+ * finds it and UPDATES rather than creates. Returns the migrated outcomes, so a caller can pace per write.
+ *
+ * `root` is the brand root read off the plan (`rootOf(planned[0])`, #1097). An EMPTY root means an empty
+ * plan: there is no root to read and nothing for a migration to land on, so the pass is skipped rather
+ * than run against a guess — the write itself is unaffected.
+ */
+export const renameVariables = (
+  mig: Migration,
+  collection: string,
+  byName: Map<string, Named>,
+  planned: readonly string[],
+  root: string,
+): RenameOutcome[] => {
+  if (!root) return [];
+  // The CONTRACT rows and the MATERIALIZATION rules, composed into one list per live name, so a
+  // variable needing both moves in a single step rather than through an intermediate name no plan
+  // asks for. `composeVariableRenames` carries the reasoning and the fixed order.
+  const rows = composeVariableRenames(collection, byName.keys(), mig.map.variables, mig.rules, root);
+  const outcomes = planVariableRenames(byName.keys(), planned, rows);
+  mig.outcomes.push(...outcomes);
+  const moved: RenameOutcome[] = [];
+  for (const o of outcomes) {
+    if (o.status !== 'migrated') continue;
+    const v = byName.get(o.from);
+    if (!v) continue;
+    v.name = o.to;                 // id preserved -> every existing binding comes with it
+    byName.delete(o.from);
+    byName.set(o.to, v);
+    moved.push(o);
+  }
+  return moved;
+};
+
+/**
+ * Every function the rename pass runs, AS SOURCE, by the name its callers use (#1024).
+ *
+ * `rename-runtime.ts` ships these into the paste payload. Each closes over nothing but the others listed
+ * here (see the APPLY header above for why that is the whole constraint, and where it is asserted).
+ * `materialize` and `topoOrder` stay unexported: they are shipped, not offered.
+ */
+export const plannerSources = (): string => ([
+  ['isRefusal', isRefusal],
+  ['validateRenameMap', validateRenameMap],
+  ['planVariableRenames', planVariableRenames],
+  ['materialize', materialize],
+  ['composeVariableRenames', composeVariableRenames],
+  ['topoOrder', topoOrder],
+  ['planCollectionRenames', planCollectionRenames],
+  ['openMigration', openMigration],
+  ['renameCollections', renameCollections],
+  ['renameVariables', renameVariables],
+] as const).map(([name, fn]) => 'const ' + name + '=' + fn.toString() + ';').join('\n');

@@ -66,6 +66,9 @@
  *                  nested path → `<host> leads/hand edit kept`.
  *   verb/…         a count's verb and pronoun agree with it in the Update verdict (#3243): "1 field still differs",
  *                  "1 left as it is", and the plural for two. Mutations: each form reverted → the `verb/…` arm it names.
+ *   nest dry run/… a member whose stamp and record read current but whose nested FieldLabel is another member than the
+ *                  plan's coordinate reads "to update" in the dry run, named by part, and the update then swaps it
+ *                  (#3242). Mutation: the dry run's `nestedMemberFaults` call removed → `nest dry run/<host> to update`.
  *   reach/…        a member stamped under a revision that did not redraw its set reads current; below the record's
  *                  floor it is to update (#3101). Mutation: `update-plan.ts` without `reaches` → `reach/dry run 42`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
@@ -239,7 +242,7 @@ import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { adoptions, applyComponentPlan, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
+import { adoptions, applyComponentPlan, memberStamp, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { EXECUTOR_REACH } from './src/executor-reach';
@@ -5232,6 +5235,49 @@ section('label leads — every field host built with its FieldLabel at emphasis=
     const moved = labelled.filter((m) => String(labelOf(m)?.id) !== labelIds.get(String(m.name)) || after.members.get(String(m.name))?.key !== before.members.get(String(m.name))?.key || after.members.get(String(m.name))?.id !== before.members.get(String(m.name))?.id).map((m) => String(m.name));
     ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set) && after.members.size === before.members.size,
       `${id} leads/in place: the set, every member's key and id, and every label instance's id are kept, so the label was swapped, not rebuilt (${moved.slice(0, 2).join('; ') || `all ${labelled.length}`})`);
+  }
+}
+
+section('nest dry run — a member stamped and recorded current whose nested FieldLabel is another member reads to update in the dry run (#3242)');
+{
+  // THE FILE: built with every host's nested FieldLabel at `emphasis=secondary`, then each member given the stamp
+  // today's plan writes, so its stamp reads current and its record (taken at the build) matches it. Only the nested
+  // instance's member is wrong: what an executor that skipped the in-place swap left behind before #3206. Before
+  // #3242 the dry run read every such member current (`diffAnatomy` holds the instance to its set, not its member), so
+  // the apply never ran. Expected values are literals typed here; the expected coordinate is the plan's own.
+  const LABEL_MEMBERS = plansOf('field-label').map(planComponentName);
+  const atSecondary = (n: PlanNode): PlanNode => ({
+    ...n,
+    ...((n as { nestTarget?: string }).nestTarget === 'field-label' ? { nestVariant: { ...(n as { nestVariant: Record<string, string> }).nestVariant, emphasis: 'secondary' } } : {}),
+    children: (n.children ?? []).map(atSecondary),
+  } as PlanNode);
+  const labelOf = (m: Node): Node | undefined => {
+    const walk = (n: Node): Node | undefined => n.name === 'label' && n.type === 'INSTANCE' ? n : ((n.children as Node[] | undefined) ?? []).map(walk).find(Boolean);
+    return walk(m);
+  };
+  const emphasisOf = (n: Node | undefined): string => /emphasis=([a-z]+)/.exec(String((n?.mainComponent as { name?: string } | undefined)?.name ?? ''))?.[1] ?? '(none)';
+  for (const id of ['text-field', 'select']) {
+    const planned = plansOf(id);
+    const byName = new Map(planned.map((p) => [planComponentName(p), p] as const));
+    const w = await world(id, planned.map((p) => ({ ...p, root: atSecondary(p.root) })), { fileSets: [{ name: 'field-label', variants: LABEL_MEMBERS }] });
+    const members = membersOf(w.set());
+    for (const m of members) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, memberStamp(byName.get(String(m.name))!));
+    const labelled = members.filter((m) => !!labelOf(m));
+    ok(labelled.length > 0 && labelled.every((m) => emphasisOf(labelOf(m)) === 'secondary') && members.every((m) => byName.has(String(m.name))),
+      `nest dry run/${id} premise: every member carries today's stamp, and its ${labelled.length} labels instance FieldLabel at emphasis=secondary (${[...new Set(labelled.map((m) => emphasisOf(labelOf(m))))].join(', ')})`);
+    const pre = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
+    const nest = pre.changes.filter((c) => c.field === 'nestVariant');
+    ok(pre.counts.update === labelled.length && pre.counts.current === members.length - labelled.length && pre.counts.handEdited === 0 && !pre.blockers.length,
+      `nest dry run/${id} to update: the ${labelled.length} labelled members read update, the rest current (${JSON.stringify(pre.counts)})`);
+    ok(nest.length > 0 && nest.every((c) => c.part.endsWith('label') && /^field-label\/.*emphasis=secondary/.test(c.from) && /^field-label\/.*emphasis=primary/.test(c.to))
+      && nest.reduce((a, c) => a + c.members, 0) === labelled.length && pre.counts.reapplied === 0,
+      `nest dry run/${id} named: each is listed as a nestVariant change on its label, secondary to primary, never as a bare re-apply (${JSON.stringify(nest.map((c) => [c.part, c.from, c.to, c.members])).slice(0, 240)})`);
+    const { res } = await confirm(w, [{ def: id, plans: planned }]);
+    const wrong = labelled.filter((m) => emphasisOf(labelOf(m)) !== 'primary').map((m) => String(m.name));
+    ok(wrong.length === 0 && res.outcomes[0].content.filter((c) => c.includes('.nestVariant:')).length === 0,
+      `nest dry run/${id} applied: every label now instances FieldLabel at emphasis=primary, and the verify lists no nested member (${wrong.length} off: ${wrong.slice(0, 2).join('; ')})`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
+    ok(post.counts.current === members.length, `nest dry run/${id} current: the next dry run reads all ${members.length} current (${JSON.stringify(post.counts)})`);
   }
 }
 
