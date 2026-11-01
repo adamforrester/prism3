@@ -1764,6 +1764,18 @@ section('census/… — the sets with no usage panel, from one search for panel 
     `census/missing: Tag (no panel) and Divider (its panel names a set no longer in the file) lack a panel; Badge has one; the icons draw none (${JSON.stringify(missing)})`);
   ok(live.length === 2 && panelled.includes('badge') && !panelled.includes('divider'), `census/live: two live panels found by their tag, one still on its set (${live.length}; ${JSON.stringify(panelled)})`);
 }
+{
+  // Q3137.2 A, THE TEMPLATE FILE'S CASE: Badge seated with no room, its panel blocked by Divider. The census lists it; the
+  // one in-place update over both sets (Badge's only work is its panel) makes room and draws it; the census then doesn't.
+  const { p, a, uh, targets, livePanel } = await roomPage('↳ Census update');
+  const setIds = () => new Set((uh.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).map((n) => String(n.id)));
+  const missing = () => unpanelledOf(['badge', 'divider'], panelledOf(livePanels(uh.root).map((x) => x.tag), setIds()));
+  const before = missing();
+  const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (set, id) => drawDocPanel(uh, set as unknown as PNode, componentDefs.find((d) => d.id === id)!, { names })); };
+  await applyUpdate(uh as never, uh as never, targets, previewHashOf(await previewUpdate(uh, targets)), { furnish });
+  ok(JSON.stringify(before) === '["badge"]' && JSON.stringify(missing()) === '[]' && !!livePanel(a) && !!p,
+    `census/update draws it: Badge, blocked when built, is listed; the in-place update draws its panel, and the census lists nothing (${JSON.stringify(before)} → ${JSON.stringify(missing())})`);
+}
 /* ── clean: Clean up removes the panels that still hold what was drawn, never an edited one (#3137, Q3137.7 A) ── */
 section('clean/… — panels off: Clean up removes unedited panels, and an edited one stays (#3137)');
 {
