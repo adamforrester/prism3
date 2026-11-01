@@ -197,7 +197,7 @@ for (const l of lits) { const p = plainOf(l); if (p) exact.add(p); }
 
 /** Whether `label` is a string the given literals hold, whole. */
 const labelIn = (label: string, pool: readonly Lit[], plain: ReadonlySet<string> | null): boolean => {
-  const want = norm(label.replace(/\*([^*]+)\*/g, '*$1*'));
+  const want = norm(label);
   if (!hasPlaceholder(label)) {
     if (plain ? plain.has(want) : pool.some((l) => plainOf(l) === want)) return true;
   }
@@ -237,7 +237,7 @@ const anchorsOf = (claim: string): string[] => {
 /** Whether the cited lines hold the anchor: every fixed part appears in them, or a template literal that starts in
  *  them matches it whole. */
 const anchorIn = (anchor: string, text: string, inRange: readonly Lit[]): boolean => {
-  const parts = fixedParts(anchor.replace(/\*([^*]+)\*/g, '*$1*'));
+  const parts = fixedParts(anchor);
   if (parts.length && parts.every((p) => text.includes(p))) return true;
   return labelIn(anchor, inRange, null);
 };
