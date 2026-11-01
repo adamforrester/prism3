@@ -324,6 +324,17 @@ visual design, naming, voice copy) is an owner question, not a requested change:
 separately, with the options and your recommendation. List every new user-visible string
 verbatim for the owner.
 
+**Escape review on a bug fix (#3240).** A PR that closes a `type:bug` issue fills the template's
+**Escape review** section: which check should have caught the bug and why it didn't, and what was
+added or filed so it can't escape that way again. Check both answers against the diff: a check the
+PR claims to add must be in it and fail by name under your mutation, and a filed one must be an open
+issue. A missing or empty section on such a PR is a should-fix (`CONTRIBUTING.md` §4, "Running a
+lane").
+
+**Owner decisions posted while the lane worked (#3240).** Before you post a verdict, re-read the PR's
+and the issue's comments for owner decisions posted since the lane started. Check the Ready comment
+applied each one, or said why not. One it missed is blocking.
+
 **File what you find outside the PR's scope** as its own issue, citing where you found it
 (principle 3). A defect in another open PR goes on that PR.
 

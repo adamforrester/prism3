@@ -34,6 +34,8 @@ export interface DTCGTypography {
   letterSpacing: DTCGDimension | DTCGAlias;
   lineHeight: number | DTCGAlias; // DTCG specifies this as a number multiplier
   textDecoration?: 'none' | 'underline' | 'overline' | 'line-through' | DTCGAlias;
+  textDecorationThickness?: DTCGDimension;
+  textDecorationOffset?: DTCGDimension;
 }
 
 export interface DTCGShadowLayer {

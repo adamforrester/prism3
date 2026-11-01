@@ -43,7 +43,13 @@
  * `DEV_ONLY` to `NETWORK_ONLY`: present in `dist/` and `release/`, absent from `release-offline/`. `run-code` stays
  * in `DEV_ONLY`, absent from both releases (Q3147.4 A: no arbitrary code in a release).
  *
- * BY-NAME MUTATIONS (each proven red, then restored; #3147's are in its PR's table): the relay's `if (PRISM3_NETWORK)`
+ * Since #3218 the main thread's side of it is network-only too: the pairing token's clientStorage key and its readers sit
+ * behind `PRISM3_NETWORK` in `main.ts`, so `[bridge-token]` checks `main.js` the same way.
+ *
+ * BY-NAME MUTATIONS (each proven red, then restored; #3147's are in its PR's table): `main.ts`'s three
+ * `PRISM3_NETWORK` guards on the token replaced with `true` → `[bridge-token]` fails on `release-offline/main.js` (#3218);
+ * `PRISM3_NETWORK` dropped from `build.mjs`'s main-entry define → the same (the harness fallback reads it as the network
+ * build); the relay's `if (PRISM3_NETWORK)`
  * changed to `if (true)` → `[bridge-relay-url]` and `[bridge-relay]` fail on `release-offline/ui.html`; changed back to
  * `if (PRISM3_DEV)` → both fail as absent from `release/ui.html`; the dispatcher's `PRISM3_DEV &&` guard on `run-code`
  * removed → `[dev-command-name]` fails on both releases. Before #3147: the dispatcher's `PRISM3_DEV &&` guards removed (#2530 PR 2) →
@@ -108,6 +114,15 @@ const NETWORK_ONLY: readonly Marker[] = [
     positive: 'relay = createBridgeRelay({',
     negative: 'relay = createBridgeRelayed({',
     what: "the relay's factory (`agent-bridge-relay.ts`)",
+  },
+  {
+    // #3218: the main thread keeps the relay's pairing token in clientStorage. The offline build has no relay, so it reads none.
+    name: 'bridge-token',
+    re: /prism3:bridge-token/,
+    in: ['main.js'],
+    positive: 'BRIDGE_TOKEN_KEY = "prism3:bridge-token"',
+    negative: 'THEME_PREF_KEY = "prism3:theme-pref"',
+    what: "the main thread's clientStorage key for the bridge's pairing token (`main.ts`, `sendBridgeToken` and the paired/unpaired handlers)",
   },
 ];
 

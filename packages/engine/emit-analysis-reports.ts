@@ -103,7 +103,43 @@ const nodeRefs = (n: FigmaNodePlan): string[] => {
 // 1. TOKEN USAGE
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════
 type PartUse = { members: number; where: Record<string, string[]> };
-type CompUse = { keys: string[]; parts: Record<string, PartUse> };
+type CompUse = { keys: string[]; keysNotDrawn?: string[]; parts: Record<string, PartUse> };
+
+/** Every token name a plan node binds, its children's included, as the plan writes it (no mapping to the emission). */
+const planNames = (n: FigmaNodePlan, out: Set<string>): Set<string> => {
+  for (const v of [
+    ...Object.values(n.bound ?? {}), n.paints?.fills, n.paints?.strokes, n.descendantFills,
+    ...(n.gradientFill?.stops ?? []).map((s) => s.variable), n.absoluteInset, n.absoluteStrokeInset, n.cornerInset,
+    n.textStyle, n.effectStyle,
+  ]) if (v) out.add(v);
+  n.children.forEach((c) => planNames(c, out));
+  return out;
+};
+
+/**
+ * THE KEYS NO PLAN WRITES (#3157). A token's row lists every key that names it, and its parts are where the token
+ * lands, so a key sharing its token with a key the plans DO draw reads as drawn too: Divider's `horizontal.line.width`
+ * names the hairline, the grow rule drops it (#3143), and `horizontal.line.height` draws the same hairline. Only a
+ * key that shares its token can be hidden this way (a key alone on its token is drawn exactly when the token is), so
+ * each such key is probed on its own: the def projected again with that one key pointed at a name nothing else binds,
+ * and the key is drawn when some member binds that name. Read from the projection, never from the part's binding
+ * fields, so a key dropped by any rule (the grow rule, a hug, a size override) reads as dropped.
+ */
+const keysNotDrawn = (def: ComponentDef): Set<string> => {
+  const byRef = new Map<string, string[]>();
+  for (const [k, r] of Object.entries(def.tokens ?? {})) byRef.set(r, [...(byRef.get(r) ?? []), k]);
+  const dropped = new Set<string>();
+  for (const ks of byRef.values()) {
+    if (ks.length < 2) continue;
+    for (const k of ks) {
+      const probe = `zz-report-probe.${k}`;
+      const names = new Set<string>();
+      for (const plan of figmaAnatomySet({ ...def, tokens: { ...def.tokens, [k]: probe } })) planNames(plan.root, names);
+      if (![...names].some((n) => n.replace(/\//g, '.') === probe)) dropped.add(k);
+    }
+  }
+  return dropped;
+};
 
 const tokenUsage = () => {
   // ref → component → { declared keys, part → coordinate values seen }
@@ -119,10 +155,12 @@ const tokenUsage = () => {
     members: number; axes: Record<string, string[]>; tokens: string[];
     declaredNotDrawn: string[]; drawnNotDeclared: string[];
   }> = {};
+  const notDrawnKeys = new Map<string, Set<string>>();
 
   for (const def of defs) {
     for (const [key, ref] of Object.entries(def.tokens ?? {})) at(ref, def.id).keys.add(key);
     const plans = def.anatomy && def.figmaProperties ? figmaAnatomySet(def) : [];
+    if (plans.length) notDrawnKeys.set(def.id, keysNotDrawn(def));
     const axes = new Map<string, Set<string>>();
     const drawn = new Set<string>();
     for (const plan of plans) {
@@ -170,7 +208,8 @@ const tokenUsage = () => {
           if (!sameSet([...vals], all[axis] ?? [])) where[axis] = [...vals].sort();
         parts[part] = { members: p.members, where };
       }
-      components[id] = { keys: [...u.keys].sort(), parts };
+      const dropped = [...u.keys].filter((k) => notDrawnKeys.get(id)?.has(k)).sort();
+      components[id] = { keys: [...u.keys].sort(), ...(dropped.length && u.parts.size ? { keysNotDrawn: dropped } : {}), parts };
     }
     tokens[ref] = { type: universe.get(ref) ?? '', components };
   }
@@ -437,14 +476,14 @@ const renderTokenUsage = (t: ReturnType<typeof tokenUsage>) => {
   const used = Object.keys(t.tokens).length;
   const data = {
     $schema: 'prism3-report/token-usage/1', generated: true, sources: SOURCES,
-    note: 'tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.',
+    note: 'tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; keysNotDrawn lists those of them no member draws, when another key draws the same token; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.',
     summary: { emitted: t.universe, used, unusedSemantic: t.unused.semantic.length, unusedPrimitive: t.unused.primitive.length, components: Object.keys(t.perComponent).length },
     tokens: t.tokens, byComponent: t.perComponent, unused: t.unused,
   };
   const md: string[] = header('Token usage', [
     `Where each token is bound: by which component, on which part, and at which variants and states. ${used} of ${t.universe} emitted tokens are bound by at least one component.`,
     '',
-    'Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.',
+    'Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members. A key marked "not drawn" names the token but no member draws it; another key on the row does.',
   ], 'token-usage.json');
   md.push('## Contents', '', '- [By token](#by-token)', '- [By component](#by-component)', '- [Tokens no component binds](#tokens-no-component-binds)', '');
   md.push('## By token', '');
@@ -452,7 +491,7 @@ const renderTokenUsage = (t: ReturnType<typeof tokenUsage>) => {
     md.push(`### ${code(ref)}`, '', `Type: ${e.type || 'not emitted'}. Bound by ${Object.keys(e.components).length} component(s).`, '', '| Component | Keys | Part | Where |', '|---|---|---|---|');
     for (const [id, c] of Object.entries(e.components)) {
       const parts = Object.entries(c.parts);
-      const keys = c.keys.length ? c.keys.map(code).join(', ') : '(projection only)';
+      const keys = c.keys.length ? c.keys.map((k) => (c.keysNotDrawn?.includes(k) ? `${code(k)} (not drawn)` : code(k))).join(', ') : '(projection only)';
       if (!parts.length) md.push(`| ${id} | ${cell(keys)} | (not drawn) | — |`);
       else parts.forEach(([p, u], i) => md.push(`| ${i ? '' : id} | ${i ? '' : cell(keys)} | ${p} | ${cell(whereText(u, t.perComponent[id].members))} |`));
     }

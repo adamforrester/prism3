@@ -17,6 +17,8 @@ export interface TypographyValue {
   letterSpacing: DTCGDimension | string | DTCGAlias;
   lineHeight: number | DTCGDimension | string | DTCGAlias;
   textDecoration?: string;
+  textDecorationThickness?: DTCGDimension | string;
+  textDecorationOffset?: DTCGDimension | string;
   fontStyle?: string;
 }
 

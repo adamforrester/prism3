@@ -43,7 +43,7 @@ import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
 import { awaitingRead, badgeParts, defaultTicks, dueSetsOf, newSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
-import { armEnter, entering, focusables, glyph, h, hook, pendingLabel, setBusy, trapTab } from './dom';
+import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
 
 export type UpdateFileLend = {
   readonly read: () => {
@@ -430,11 +430,12 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (n) button.setAttribute('aria-label', UPDATE_COPY.badgeName(parts)); else button.removeAttribute('aria-label');
     // Busy, it still opens the overlay (the step running, and Stop), so it is not announced as unavailable.
     button.removeAttribute('aria-disabled');
-    if (!open) { shown = false; waited = false; pendingLines = new Set(); if (layer.firstChild) layer.replaceChildren(); return; }
+    // #3207: closed, the dialog leaves through its exit (`leave`), its scrim fading and the dialog scaling down.
+    if (!open) { shown = false; waited = false; pendingLines = new Set(); for (const n of [...layer.children]) leave(n as HTMLElement); return; }
     const focused = refocus ?? (document.activeElement instanceof HTMLElement && layer.contains(document.activeElement) ? document.activeElement.dataset.key ?? null : null);
     refocus = null;
     // #3082: a repaint (a tick, a host answer) keeps where the body was scrolled, on the same tab; a new tab starts at the top.
-    const was = layer.querySelector<HTMLElement>('[data-p3="update-body"]');
+    const was = layer.querySelector<HTMLElement>(':scope > :not([data-leaving="true"]) [data-p3="update-body"]');
     const scrolled = was && was.dataset.tab === tab ? was.scrollTop : 0;
     const scrim = h('div', 'p3-bardlg-scrim');
     if (shown) scrim.dataset.still = 'true';
