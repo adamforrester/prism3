@@ -495,7 +495,7 @@ Every checkout of this repo builds a `dist/` under the **same plugin id** (`pris
 Figma lists them all as one dev plugin and gives you no way to tell which one it launched. With worktrees
 in normal use, that regularly means several importable entries and no visible difference between them.
 
-`build.mjs` stamps `<ISO seconds> <absolute source tree>` into **both** bundles, and it shows up in three
+`build.mjs` stamps `<ISO seconds> <source tree token> <commit>` into **both** bundles (the tree is a hash since #1117, the commit since #3239), and it shows up in three
 places — **listed in the order they actually detect a mismatch, which is not the order you would guess:**
 
 | Where | Reads | What it catches |
@@ -527,3 +527,18 @@ section above is about, now visible from inside the panel instead of only in thi
 Not a commit SHA: two worktrees on the same commit is a normal state here and a SHA cannot separate
 them. The path makes the commit derivable (`git -C <tree> log -1`); the commit does not make the path
 derivable, and the path is the half you can act on.
+
+**The commit, beside the tree (#3239).** The tree alone cannot show a checkout that is stale: on
+2026-10-31 a `git pull` failed silently, the rebuilt plugin still had the fixed bug, and the stamp read
+the same `tree-…` as every build before it. So every build (`build`, `fresh`, `build:release`) now stamps
+`<ISO seconds> tree-<8 hex> <commit>`, where the commit is the short sha, `<sha>-dirty` when the tree has
+uncommitted or untracked changes, or `git-unavailable` when git cannot run. The chip, the verdict note, the
+console line and the agent link's `link` record (its `build` field) all carry it. The build also prints:
+
+- `⚠ This checkout is N commits behind origin/main. Pull, then rebuild, to get the latest fixes.` when a
+  `git fetch` works and the checkout is behind. The build still succeeds.
+- `⚠ git did not run, so this build cannot say which commit it came from: <git's own words>` when git
+  cannot run, which is what a pending license prompt on the build machine looks like.
+
+The wording is DRAFT for the owner. The git calls live in `git-stamp.mjs`, and `test-git-stamp.ts` drives
+them with a stubbed git.
