@@ -889,7 +889,6 @@ export const relayOldGrid = (
  * characters, and a revision is an integer. A JSON blob would be the general answer and buys nothing at 26 bytes.
  */
 export const STAMP_KEY = 'memberStamp';
-
 export const memberStamp = (plan: AnatomyPlan): string => `${ENGINE_VERSION}|${planStamp(plan)}|${EXECUTOR_REVISION}`;
 
 /** The plan-stamp half — the only half the staleness decision reads. `''` for an unstamped member, which

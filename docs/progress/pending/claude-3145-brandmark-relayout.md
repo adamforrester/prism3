@@ -24,8 +24,9 @@ call within the hand-edit rules.
   resized: it is a fixed-width instance a designer may have edited, and the block grows right and down, clear of it.
 - **Tests.** `test-update-apply.ts`, `relay marks/…`: the provider logos at the old pitch, stamped at revision 45 (so
   only reach entry 46 makes them due, and the dry run must read all 86 due), a designer's own mark on the grid's offset
-  clear of the block, then Updated; and an icon block at the old pitch beside a wider hand-made icon, which measures the
+  clear of the block, then Updated; a Prism3 mark moved off the grid where a neighbor would land; and an icon block at the old pitch beside a wider hand-made icon, which measures the
   pitch past 48. Mutations, each failing by name: the writes dropped → `relay marks/no overlap`, `relay marks/spacing`;
   every Prism3 mark taken as on the grid → `relay marks/hand moved`; the obstacle check dropped → `relay marks/blocked`;
   the obstacles not widened by the gap → `relay marks/gap`; the ownership filter dropped → `relay marks/theirs`; entry
-  46 emptied → `relay marks/due`; the overlap guard dropped → `relay marks/icons kept`.
+  46 emptied → `relay marks/due`; the overlap guard dropped → `relay marks/icons kept`; the hand-moved marks left out
+  of the re-lay's check → `relay marks/hand blocks`.
