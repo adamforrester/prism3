@@ -19,7 +19,7 @@ export type WriteCmd = 'apply-theme' | 'build-components' | 'file-setup' | 'styl
 /** Each operation's title, as the Activity drawer shows it (`apps/studio/src/shell/activity.ts` `OP_TITLE`). Two copies, because the
  *  plugin's main thread does not bundle the shell; `test-agent-link.ts`'s `busy/titles` keeps them equal (#1995). */
 export const TITLE: Readonly<Record<WriteCmd, string>> = {
-  'apply-theme': 'Apply Theme', 'build-components': 'Build set', 'file-setup': 'Set up file', 'style-guide': 'Style guides', prune: 'Prune stale',
+  'apply-theme': 'Theme', 'build-components': 'Build set', 'file-setup': 'Set up file', 'style-guide': 'Style guides', prune: 'Prune stale',
 };
 
 export const isWriteCmd = (cmd: string): cmd is WriteCmd => Object.prototype.hasOwnProperty.call(TITLE, cmd);
@@ -37,8 +37,10 @@ export const guardFor = (cmd: string): WriteCmd | null =>
 /** Whether this call of `cmd` writes: every call does, except a prune preview. */
 export const writes = (cmd: WriteCmd, confirm?: boolean): boolean => cmd !== 'prune' || confirm === true;
 
-/** The refusal's words (the owner's copy). */
-export const busyMessage = (cmd: WriteCmd): string => `${TITLE[cmd]} is already running. Try again when it finishes.`;
+/** The refusal's words. Since IA v2 every panel write goes through Update file, so the refusal names it rather than
+ *  the operation (#3264 decision 2, DRAFT wording). `cmd` stays in the signature: the refusal's `cmd` field still
+ *  names the held operation, for the Activity row it belongs to. */
+export const busyMessage = (_cmd: WriteCmd): string => 'Update file is already running. Try again when it finishes.';
 
 export const createRunGuard = () => {
   /** Each held operation, by the hold that holds it, so a run's own end never releases a later run's hold. */
