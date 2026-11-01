@@ -51,7 +51,7 @@ Options appear only for the kinds you picked. <!-- src: apps/studio/src/state/st
 
 ## Where the tables go
 
-Primitive collections, such as the palette ramps, go on `↳ Primitive tokens`. Semantic ones, such as color roles, space and radius, go on `↳ Semantic tokens`. Grid styles go on `↳ Grids & layouts`. If the page is missing, the table is skipped and the result says so, and the plugin never creates the page itself. <!-- src: apps/plugin/src/style-guide.ts:21-22 --> <!-- src: apps/plugin/src/file-taxonomy.ts:82-88 -->
+Primitive collections, such as the palette ramps, go on `↳ Primitive tokens`. Semantic ones, such as color roles, space and radius, go on `↳ Semantic tokens`. Grid styles go on `↳ Grids & layouts`. If the page is missing, the table is skipped and the result says so, and the plugin never creates the page itself. <!-- src: apps/plugin/src/style-guide.ts:136-139 --> <!-- src: apps/plugin/src/file-taxonomy.ts:82-88 -->
 
 Each mode gets its own column, side by side, and each swatch stays bound to its variable, so it updates with the file. <!-- src: apps/plugin/src/style-guide.ts:23-25 -->
 

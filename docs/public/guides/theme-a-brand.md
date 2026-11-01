@@ -62,7 +62,7 @@ If a stored brand can't be opened, the web studio offers it as a `design.md` dow
 ## Import and export a design.md brief
 
 A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:329 -->
-The studio reads both the Prism3 form and the standard design.md form, which lists colors as a flat `colors:` map. <!-- src: apps/studio/src/state/start-input.ts:162-184 -->
+The studio reads both the Prism3 form and the standard design.md form, <!-- src: apps/studio/src/state/start-input.ts:162-184 --> which lists colors as a flat `colors:` map. <!-- src: packages/engine/standard-design-md.ts:109-110 -->
 
 - Import: **↑ Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **↑ Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:234-290 -->
 - Export: open **Export** in the rail, choose **Brand brief**, then **↓ Download brief**. The file is named `<brand>.design.md`. The brief has no settings: "Nothing to set — the brief is written one way." <!-- src: apps/studio/src/export-settings.ts:113 --> <!-- src: apps/studio/src/main.ts:1463-1484 -->
