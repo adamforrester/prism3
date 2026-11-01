@@ -550,6 +550,7 @@ Plugin API directly — which the helper generates.
 ```bash
 npx tsx packages/engine/emit-figma.ts                                       # regen out/figma/
 npx tsx packages/engine/materialise-to-figma.ts <brand>                     # manifest: byte sizes
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass migrate     # 0: renames land before any lookup by name (#1024)
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette      # 1
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create --chunk 1  # 2 (see below)
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass dims-create  # before 3: a tinted wash aliases an opacity/<n> variable (#1672)
@@ -557,6 +558,10 @@ npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases --c
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 ```
 
+0. **`migrate`** — the plugin's rename pass (#1013, shared since #1024): renames a
+   collection or variable an older engine wrote under a since-renamed name, in place, so its
+   id and every binding survive. Paste it first; on a fresh file it moves nothing. Chunked like
+   `color-create` if it outgrows one payload.
 1. **`palette`** — creates `core-palette` (primitives, one mode, all
    `hiddenFromPublishing: true`). Must run first: pass 3 aliases target these var IDs.
 2. **`color-create`** — creates the `color` collection with all N modes (`light`, `dark`,
