@@ -24,7 +24,7 @@
           ],
           "parts": {
             "surface": {
-              "members": 40,
+              "members": 50,
               "where": {}
             }
           }
@@ -794,11 +794,11 @@
       "components": {
         "badge": {
           "keys": [
-            "danger.status.surface.fill",
-            "info.status.surface.fill",
-            "neutral.status.surface.fill",
-            "success.status.surface.fill",
-            "warning.status.surface.fill"
+            "danger.status.contained.surface.fill",
+            "info.status.contained.surface.fill",
+            "neutral.status.contained.surface.fill",
+            "success.status.contained.surface.fill",
+            "warning.status.contained.surface.fill"
           ],
           "parts": {
             "surface": {
@@ -806,6 +806,9 @@
               "where": {
                 "emphasis": [
                   "surface"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "type": [
                   "status"
@@ -931,7 +934,7 @@
       "components": {
         "badge": {
           "keys": [
-            "danger.status.subtle.border"
+            "danger.status.contained.subtle.border"
           ],
           "parts": {
             "surface": {
@@ -939,6 +942,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "danger"
@@ -1490,7 +1496,7 @@
       "components": {
         "badge": {
           "keys": [
-            "info.status.subtle.border"
+            "info.status.contained.subtle.border"
           ],
           "parts": {
             "surface": {
@@ -1498,6 +1504,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "info"
@@ -1761,7 +1770,7 @@
       "components": {
         "badge": {
           "keys": [
-            "success.status.subtle.border"
+            "success.status.contained.subtle.border"
           ],
           "parts": {
             "surface": {
@@ -1769,6 +1778,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "success"
@@ -1976,7 +1988,7 @@
       "components": {
         "badge": {
           "keys": [
-            "neutral.status.subtle.border"
+            "neutral.status.contained.subtle.border"
           ],
           "parts": {
             "surface": {
@@ -1984,6 +1996,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "neutral"
@@ -2037,7 +2052,7 @@
       "components": {
         "badge": {
           "keys": [
-            "warning.status.subtle.border"
+            "warning.status.contained.subtle.border"
           ],
           "parts": {
             "surface": {
@@ -2045,6 +2060,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "warning"
@@ -4656,9 +4674,9 @@
       "components": {
         "badge": {
           "keys": [
-            "danger.count.bold.fill",
-            "danger.dot.bold.fill",
-            "danger.status.bold.fill"
+            "danger.count.contained.bold.fill",
+            "danger.dot.contained.bold.fill",
+            "danger.status.contained.bold.fill"
           ],
           "parts": {
             "surface": {
@@ -4666,6 +4684,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "danger"
@@ -4681,7 +4702,7 @@
       "components": {
         "badge": {
           "keys": [
-            "danger.status.subtle.fill"
+            "danger.status.contained.subtle.fill"
           ],
           "parts": {
             "surface": {
@@ -4689,6 +4710,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "danger"
@@ -4722,9 +4746,9 @@
       "components": {
         "badge": {
           "keys": [
-            "info.count.bold.fill",
-            "info.dot.bold.fill",
-            "info.status.bold.fill"
+            "info.count.contained.bold.fill",
+            "info.dot.contained.bold.fill",
+            "info.status.contained.bold.fill"
           ],
           "parts": {
             "surface": {
@@ -4732,6 +4756,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "info"
@@ -4747,7 +4774,7 @@
       "components": {
         "badge": {
           "keys": [
-            "info.status.subtle.fill"
+            "info.status.contained.subtle.fill"
           ],
           "parts": {
             "surface": {
@@ -4755,6 +4782,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "info"
@@ -4804,7 +4834,7 @@
       "components": {
         "badge": {
           "keys": [
-            "neutral.status.subtle.fill"
+            "neutral.status.contained.subtle.fill"
           ],
           "parts": {
             "surface": {
@@ -4812,6 +4842,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "neutral"
@@ -4830,9 +4863,9 @@
       "components": {
         "badge": {
           "keys": [
-            "success.count.bold.fill",
-            "success.dot.bold.fill",
-            "success.status.bold.fill"
+            "success.count.contained.bold.fill",
+            "success.dot.contained.bold.fill",
+            "success.status.contained.bold.fill"
           ],
           "parts": {
             "surface": {
@@ -4840,6 +4873,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "success"
@@ -4855,7 +4891,7 @@
       "components": {
         "badge": {
           "keys": [
-            "success.status.subtle.fill"
+            "success.status.contained.subtle.fill"
           ],
           "parts": {
             "surface": {
@@ -4863,6 +4899,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "success"
@@ -4896,9 +4935,9 @@
       "components": {
         "badge": {
           "keys": [
-            "warning.count.bold.fill",
-            "warning.dot.bold.fill",
-            "warning.status.bold.fill"
+            "warning.count.contained.bold.fill",
+            "warning.dot.contained.bold.fill",
+            "warning.status.contained.bold.fill"
           ],
           "parts": {
             "surface": {
@@ -4906,6 +4945,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "warning"
@@ -4921,7 +4963,7 @@
       "components": {
         "badge": {
           "keys": [
-            "warning.status.subtle.fill"
+            "warning.status.contained.subtle.fill"
           ],
           "parts": {
             "surface": {
@@ -4929,6 +4971,9 @@
               "where": {
                 "emphasis": [
                   "subtle"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "warning"
@@ -5021,6 +5066,30 @@
     "color.icon.danger": {
       "type": "color",
       "components": {
+        "badge": {
+          "keys": [
+            "danger.status.inline.subtle.indicator"
+          ],
+          "parts": {
+            "statusDot": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "tone": [
+                  "danger"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "banner": {
           "keys": [
             "danger.icon"
@@ -5118,6 +5187,30 @@
     "color.icon.info": {
       "type": "color",
       "components": {
+        "badge": {
+          "keys": [
+            "info.status.inline.subtle.indicator"
+          ],
+          "parts": {
+            "statusDot": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "tone": [
+                  "info"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "banner": {
           "keys": [
             "info.icon"
@@ -5579,6 +5672,30 @@
             }
           }
         },
+        "badge": {
+          "keys": [
+            "neutral.status.inline.subtle.indicator"
+          ],
+          "parts": {
+            "statusDot": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "tone": [
+                  "neutral"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "default.icon"
@@ -5616,6 +5733,30 @@
     "color.icon.success": {
       "type": "color",
       "components": {
+        "badge": {
+          "keys": [
+            "success.status.inline.subtle.indicator"
+          ],
+          "parts": {
+            "statusDot": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "tone": [
+                  "success"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "banner": {
           "keys": [
             "success.icon"
@@ -5735,6 +5876,30 @@
     "color.icon.warning": {
       "type": "color",
       "components": {
+        "badge": {
+          "keys": [
+            "warning.status.inline.subtle.indicator"
+          ],
+          "parts": {
+            "statusDot": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "tone": [
+                  "warning"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "banner": {
           "keys": [
             "warning.icon"
@@ -11459,9 +11624,9 @@
       "components": {
         "badge": {
           "keys": [
-            "neutral.count.bold.fill",
-            "neutral.dot.bold.fill",
-            "neutral.status.bold.fill"
+            "neutral.count.contained.bold.fill",
+            "neutral.dot.contained.bold.fill",
+            "neutral.status.contained.bold.fill"
           ],
           "parts": {
             "surface": {
@@ -11469,6 +11634,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "neutral"
@@ -14467,8 +14635,8 @@
       "components": {
         "badge": {
           "keys": [
-            "neutral.count.bold.label",
-            "neutral.status.bold.label"
+            "neutral.count.contained.bold.label",
+            "neutral.status.contained.bold.label"
           ],
           "parts": {
             "count": {
@@ -14479,6 +14647,9 @@
                 ],
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "neutral"
@@ -14493,6 +14664,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "neutral"
@@ -14522,8 +14696,8 @@
       "components": {
         "badge": {
           "keys": [
-            "danger.status.subtle.label",
-            "danger.status.surface.label"
+            "danger.status.contained.subtle.label",
+            "danger.status.contained.surface.label"
           ],
           "parts": {
             "label": {
@@ -14532,6 +14706,9 @@
                 "emphasis": [
                   "subtle",
                   "surface"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "danger"
@@ -14565,8 +14742,8 @@
       "components": {
         "badge": {
           "keys": [
-            "info.status.subtle.label",
-            "info.status.surface.label"
+            "info.status.contained.subtle.label",
+            "info.status.contained.surface.label"
           ],
           "parts": {
             "label": {
@@ -14575,6 +14752,9 @@
                 "emphasis": [
                   "subtle",
                   "surface"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "info"
@@ -14685,8 +14865,8 @@
       "components": {
         "badge": {
           "keys": [
-            "danger.count.bold.label",
-            "danger.status.bold.label"
+            "danger.count.contained.bold.label",
+            "danger.status.contained.bold.label"
           ],
           "parts": {
             "count": {
@@ -14697,6 +14877,9 @@
                 ],
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "danger"
@@ -14711,6 +14894,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "danger"
@@ -14729,8 +14915,8 @@
       "components": {
         "badge": {
           "keys": [
-            "info.count.bold.label",
-            "info.status.bold.label"
+            "info.count.contained.bold.label",
+            "info.status.contained.bold.label"
           ],
           "parts": {
             "count": {
@@ -14741,6 +14927,9 @@
                 ],
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "info"
@@ -14755,6 +14944,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "info"
@@ -14773,8 +14965,8 @@
       "components": {
         "badge": {
           "keys": [
-            "success.count.bold.label",
-            "success.status.bold.label"
+            "success.count.contained.bold.label",
+            "success.status.contained.bold.label"
           ],
           "parts": {
             "count": {
@@ -14785,6 +14977,9 @@
                 ],
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "success"
@@ -14799,6 +14994,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "success"
@@ -14817,8 +15015,8 @@
       "components": {
         "badge": {
           "keys": [
-            "warning.count.bold.label",
-            "warning.status.bold.label"
+            "warning.count.contained.bold.label",
+            "warning.status.contained.bold.label"
           ],
           "parts": {
             "count": {
@@ -14829,6 +15027,9 @@
                 ],
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "warning"
@@ -14843,6 +15044,9 @@
               "where": {
                 "emphasis": [
                   "bold"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "warning"
@@ -14876,19 +15080,21 @@
         },
         "badge": {
           "keys": [
-            "neutral.status.subtle.label",
-            "neutral.status.surface.label"
+            "danger.status.inline.subtle.label",
+            "info.status.inline.subtle.label",
+            "neutral.status.contained.subtle.label",
+            "neutral.status.contained.surface.label",
+            "neutral.status.inline.subtle.label",
+            "success.status.inline.subtle.label",
+            "warning.status.inline.subtle.label"
           ],
           "parts": {
             "label": {
-              "members": 4,
+              "members": 14,
               "where": {
                 "emphasis": [
                   "subtle",
                   "surface"
-                ],
-                "tone": [
-                  "neutral"
                 ],
                 "type": [
                   "status"
@@ -15679,8 +15885,8 @@
       "components": {
         "badge": {
           "keys": [
-            "success.status.subtle.label",
-            "success.status.surface.label"
+            "success.status.contained.subtle.label",
+            "success.status.contained.surface.label"
           ],
           "parts": {
             "label": {
@@ -15689,6 +15895,9 @@
                 "emphasis": [
                   "subtle",
                   "surface"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "success"
@@ -15722,8 +15931,8 @@
       "components": {
         "badge": {
           "keys": [
-            "warning.status.subtle.label",
-            "warning.status.surface.label"
+            "warning.status.contained.subtle.label",
+            "warning.status.contained.surface.label"
           ],
           "parts": {
             "label": {
@@ -15732,6 +15941,9 @@
                 "emphasis": [
                   "subtle",
                   "surface"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "tone": [
                   "warning"
@@ -16831,6 +17043,9 @@
                 ],
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "type": [
                   "dot"
@@ -20789,6 +21004,29 @@
     "radius.none": {
       "type": "dimension",
       "components": {
+        "badge": {
+          "keys": [
+            "inline.count.radius",
+            "inline.dot.radius",
+            "inline.status.radius"
+          ],
+          "parts": {
+            "surface": {
+              "members": 10,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "banner": {
           "keys": [
             "width.full.radius"
@@ -20903,10 +21141,25 @@
         },
         "badge": {
           "keys": [
-            "count.radius",
-            "dot.radius"
+            "contained.count.radius",
+            "contained.dot.radius",
+            "status-dot.radius"
           ],
           "parts": {
+            "statusDot": {
+              "members": 10,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            },
             "surface": {
               "members": 10,
               "where": {
@@ -20915,6 +21168,9 @@
                 ],
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "type": [
                   "count",
@@ -21092,12 +21348,15 @@
       "components": {
         "badge": {
           "keys": [
-            "status.radius"
+            "contained.status.radius"
           ],
           "parts": {
             "surface": {
               "members": 30,
               "where": {
+                "style": [
+                  "contained"
+                ],
                 "type": [
                   "status"
                 ]
@@ -22617,25 +22876,29 @@
         },
         "badge": {
           "keys": [
-            "size.medium.dot.pad-x",
-            "size.medium.dot.pad-y",
-            "size.small.dot.pad-x",
-            "size.small.dot.pad-y"
+            "size.medium.contained.dot.pad-x",
+            "size.medium.contained.dot.pad-y",
+            "size.medium.contained.gap",
+            "size.medium.inline.count.pad-x",
+            "size.medium.inline.count.pad-y",
+            "size.medium.inline.dot.pad-x",
+            "size.medium.inline.dot.pad-y",
+            "size.medium.inline.status.pad-x",
+            "size.medium.inline.status.pad-y",
+            "size.small.contained.dot.pad-x",
+            "size.small.contained.dot.pad-y",
+            "size.small.contained.gap",
+            "size.small.inline.count.pad-x",
+            "size.small.inline.count.pad-y",
+            "size.small.inline.dot.pad-x",
+            "size.small.inline.dot.pad-y",
+            "size.small.inline.status.pad-x",
+            "size.small.inline.status.pad-y"
           ],
           "parts": {
             "surface": {
-              "members": 5,
-              "where": {
-                "emphasis": [
-                  "bold"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "type": [
-                  "dot"
-                ]
-              }
+              "members": 50,
+              "where": {}
             }
           }
         },
@@ -23043,14 +23306,17 @@
         },
         "badge": {
           "keys": [
-            "size.medium.count.pad-y",
-            "size.small.count.pad-y",
-            "size.small.status.pad-y"
+            "size.medium.contained.count.pad-y",
+            "size.small.contained.count.pad-y",
+            "size.small.contained.status.pad-y"
           ],
           "parts": {
             "surface": {
               "members": 20,
               "where": {
+                "style": [
+                  "contained"
+                ],
                 "type": [
                   "count",
                   "status"
@@ -23330,21 +23596,21 @@
       "components": {
         "badge": {
           "keys": [
-            "size.medium.count.pad-x",
-            "size.small.count.pad-x"
+            "size.medium.contained.count.pad-x",
+            "size.small.contained.count.pad-x",
+            "size.small.inline.gap"
           ],
           "parts": {
             "surface": {
-              "members": 5,
+              "members": 10,
               "where": {
                 "emphasis": [
-                  "bold"
-                ],
-                "size": [
-                  "medium"
+                  "bold",
+                  "subtle"
                 ],
                 "type": [
-                  "count"
+                  "count",
+                  "status"
                 ]
               }
             }
@@ -23677,12 +23943,28 @@
         },
         "badge": {
           "keys": [
-            "size.medium.status.pad-y",
-            "size.small.status.pad-x"
+            "size.medium.contained.status.pad-y",
+            "size.medium.inline.gap",
+            "size.small.contained.status.pad-x",
+            "status-dot-size"
           ],
           "parts": {
+            "statusDot": {
+              "members": 10,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            },
             "surface": {
-              "members": 30,
+              "members": 35,
               "where": {
                 "type": [
                   "status"
@@ -24342,7 +24624,7 @@
         },
         "badge": {
           "keys": [
-            "size.medium.status.pad-x"
+            "size.medium.contained.status.pad-x"
           ],
           "parts": {
             "surface": {
@@ -24350,6 +24632,9 @@
               "where": {
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "type": [
                   "status"
@@ -25922,6 +26207,30 @@
             }
           }
         },
+        "badge": {
+          "keys": [
+            "size.medium.inline.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "banner": {
           "keys": [
             "body-type"
@@ -26360,6 +26669,30 @@
     "type.body.md.line-box": {
       "type": "dimension",
       "components": {
+        "badge": {
+          "keys": [
+            "size.medium.dot-cell"
+          ],
+          "parts": {
+            "dotCell": {
+              "members": 5,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-row": {
           "keys": [
             "size.large.control-box"
@@ -26503,6 +26836,30 @@
                 ],
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "badge": {
+          "keys": [
+            "size.small.inline.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "type": [
+                  "status"
                 ]
               }
             }
@@ -27037,6 +27394,30 @@
     "type.body.sm.line-box": {
       "type": "dimension",
       "components": {
+        "badge": {
+          "keys": [
+            "size.small.dot-cell"
+          ],
+          "parts": {
+            "dotCell": {
+              "members": 5,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "inline"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-row": {
           "keys": [
             "size.medium.control-box"
@@ -27552,7 +27933,7 @@
       "components": {
         "badge": {
           "keys": [
-            "size.small.type"
+            "size.small.contained.type"
           ],
           "parts": {
             "label": {
@@ -27560,6 +27941,9 @@
               "where": {
                 "size": [
                   "small"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "type": [
                   "status"
@@ -28704,7 +29088,7 @@
       "components": {
         "badge": {
           "keys": [
-            "size.medium.type"
+            "size.medium.contained.type"
           ],
           "parts": {
             "count": {
@@ -28716,6 +29100,9 @@
                 "size": [
                   "medium"
                 ],
+                "style": [
+                  "contained"
+                ],
                 "type": [
                   "count"
                 ]
@@ -28726,6 +29113,9 @@
               "where": {
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "contained"
                 ],
                 "type": [
                   "status"
@@ -29232,7 +29622,7 @@
       "drawnNotDeclared": []
     },
     "badge": {
-      "members": 40,
+      "members": 50,
       "axes": {
         "emphasis": [
           "bold",
@@ -29242,6 +29632,10 @@
         "size": [
           "medium",
           "small"
+        ],
+        "style": [
+          "contained",
+          "inline"
         ],
         "tone": [
           "danger",
@@ -29273,6 +29667,11 @@
         "color.foreground.success-subtle",
         "color.foreground.warning",
         "color.foreground.warning-subtle",
+        "color.icon.danger",
+        "color.icon.info",
+        "color.icon.secondary",
+        "color.icon.success",
+        "color.icon.warning",
         "color.inverse.foreground.tertiary",
         "color.inverse.text.primary",
         "color.text.danger",
@@ -29285,6 +29684,7 @@
         "color.text.success",
         "color.text.warning",
         "control.size.sm.dot",
+        "radius.none",
         "radius.round",
         "radius.sm",
         "space.0",
@@ -29292,6 +29692,10 @@
         "space.075",
         "space.100",
         "space.150",
+        "type.body.md.default",
+        "type.body.md.line-box",
+        "type.body.sm.default",
+        "type.body.sm.line-box",
         "type.caption.md.strong",
         "type.label.sm.emphasis"
       ],

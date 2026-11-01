@@ -1215,6 +1215,56 @@ for (const [def, errOld, errNew, n, add] of [
   ok(post?.counts.current === n + add, `status/${def} current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
+/* ── badge style ─────────────────────────────────────────────────────────────────────────────────────── */
+// #3199 (owner decisions Q2 A): Badge gained an authoring `style` axis, `contained | inline`, contained first. A file
+// built before holds the 40 members with no `style` segment. The update must give every one of them `style=contained`
+// IN PLACE, each keeping its id and key, so every instance placed in another file keeps pointing at it, and keep a
+// designer's hand edit on a member it renames; then it builds the 10 inline members beside them. Nothing left the
+// projection, so no ledger entry is involved: an added axis lands at the plan's first value (`update-plan.ts`). The
+// counts, the names and the edited text are the test's own literals.
+//
+// Mutation: `inline` led the axis (`style: ['inline', 'contained']`) → `badge style/dry run` (the 40 land on
+// style=inline, where only 10 members exist, so they are not all renamed and some are dropped).
+section('badge style — the 40 contained members gain style=contained in place, ids and a hand edit kept, and the 10 inline members are built (#3199)');
+{
+  const w = await world('badge');
+  const set = w.set();
+  const OLD = 'type=status, emphasis=subtle, tone=success, size=medium';
+  const NEW = 'type=status, style=contained, emphasis=subtle, tone=success, size=medium';
+  // The file as main built it before #3199: the contained members only, and no `style` segment in any name.
+  (set as { children: Node[] }).children = membersOf(set).filter((m) => !/style=inline/.test(String(m.name)));
+  for (const m of membersOf(set)) m.name = String(m.name).split(', ').filter((x) => !x.startsWith('style=')).join(', ');
+  const names = membersOf(set).map((m) => String(m.name));
+  ok(names.length === 40 && names.includes(OLD) && !names.some((x) => x.includes('style=')),
+    `premise: badge holds the 40 members of the old set, ${OLD} among them, none with a style (${names.length})`);
+  // A designer's hand edit on a member the update renames: the label's bound ink replaced by a red typed by hand. (Not the
+  // text itself: the label's characters are bound to the set's `label` property, which every member shares.)
+  const edited = membersOf(set).find((m) => String(m.name) === OLD)!;
+  const editedId = String(edited.id), editedKey = String(edited.key);
+  const RED = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 0, b: 0 } }];
+  childNamed(edited, 'label').fills = JSON.parse(JSON.stringify(RED));
+  const before = identityOf(set);
+  const { pre, res } = await confirm(w, [{ def: 'badge', plans: w.plans }]);
+  const p = pre.sets[0];
+  const moved = p?.renames.find((r) => r.from === OLD);
+  ok(!!p && !p.blockers.length && p.counts.rename === 40 && p.counts.add === 10 && p.counts.drop === 0 && moved?.to === NEW,
+    `badge style/dry run: all 40 renamed in place (${OLD} → ${NEW}), 10 added, none dropped or blocked (${p ? `${p.counts.rename} renamed, ${p.counts.add} added, ${p.counts.drop} dropped; ${moved ? `${moved.from} → ${moved.to}` : 'the edited member not renamed'}; ${p.blockers.join('; ') || 'no blockers'}` : 'no set'})`);
+  ok(applyVerdict(res).ok && res.outcomes[0]?.renamed === 40 && res.outcomes[0]?.added === 10,
+    `badge style/apply: ${applyVerdict(res).headline} (${res.outcomes[0]?.renamed} renamed, ${res.outcomes[0]?.added} added${res.outcomes[0]?.refused ? `; ${res.outcomes[0].refused}` : ''})`);
+  const now = membersOf(w.set()).find((m) => String(m.id) === editedId);
+  const nowInk = now ? JSON.stringify(childNamed(now, 'label').fills) : 'gone';
+  ok(!!now && now === edited && String(now.name) === NEW && String(now.key) === editedKey && nowInk === JSON.stringify(RED),
+    `badge style/hand edit: the edited member is still in the set, its id and key kept, now ${NEW}, and its label keeps the red typed by hand (${now ? `${String(now.name)}, ${nowInk}` : 'gone'})`);
+  const after = identityOf(w.set());
+  const lost = [...before.members].filter(([, b]) => ![...after.members.values()].some((a) => a.key === b.key && a.id === b.id)).map(([nm]) => nm);
+  const allNames = membersOf(w.set()).map((m) => String(m.name));
+  ok(lost.length === 0 && after.members.size === 50 && allNames.filter((x) => x.includes('style=contained')).length === 40 && allNames.filter((x) => x.includes('style=inline')).length === 10,
+    `badge style/keys: every member the file held keeps its key and id, and the set holds 40 contained and 10 inline (${after.members.size}; lost ${lost.join(', ') || 'none'})`);
+  const defs = w.set().componentPropertyDefinitions as Record<string, { type: string; variantOptions?: string[] }>;
+  ok(JSON.stringify(defs.style?.variantOptions) === JSON.stringify(['contained', 'inline']),
+    `badge style/properties: the set offers style [contained, inline] (${JSON.stringify(defs.style?.variantOptions)})`);
+}
+
 section('list marker column — a file built at the old 24/32/40 column updates in place to 20/24/32 for bullet and number (#2727, Q340 A)');
 {
   // The file as main built it before Q340: every type's marker column at space/300, 400, 500 (24/32/40px). The

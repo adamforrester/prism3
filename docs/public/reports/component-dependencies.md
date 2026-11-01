@@ -227,7 +227,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | slider | thumbMin | nest | _slider-thumb | nest-fixed | size=medium, state=rest | size | — |
 | switch-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | switch-row | control | nest | switch-control | nest-exposed | selection=off, state=rest, status=default | size, status | selection, state, showStateLabel |
-| tab-item | count | nest | badge | nest-fixed | type=count, size=medium, emphasis=bold, tone=neutral | — | — |
+| tab-item | count | nest | badge | nest-fixed | type=count, style=contained, size=medium, emphasis=bold, tone=neutral | — | — |
 | tab-item | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | tabs | tab1 | nest | tab-item | nest-fixed | selection=selected, size=medium, state=rest | size | — |
 | tabs | tab2 | nest | tab-item | nest-fixed | selection=unselected, size=medium, state=rest | size | — |
