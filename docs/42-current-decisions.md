@@ -108,6 +108,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | the effect-style and gradient-style tables each sit in a group frame of their own, Effect styles and Gradient styles, stacked last on the semantic page; an effect specimen sits at its header's x in every row, its shadow overflowing the cell | 2026-10-28 | `docs/45-style-guide-generator.md` | #3135 |
 | a brand's own glass roles are brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3073 |
 | the opaque outline hover fill is brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3071 |
+| the reference brand's secondary text is fitted on the page (Q-TXT1 A: `secondaryTextGround: page`, light and dark only) | 2026-10-31 | `docs/06-surface-and-content-color-model.md` | #3221 |
 
 ## Known gaps, named rather than silent
 

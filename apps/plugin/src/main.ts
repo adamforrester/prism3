@@ -265,9 +265,9 @@ void (async (): Promise<void> => {
  * #3170 PART 2: WHAT THE PANEL HEARS WHILE A WRITE RUNS (owner decisions Q3170.1–6, all A). The panel learns something
  * only when this thread posts to it, and this thread can post only when the write hands it back. So each write the
  * panel starts posts `run-progress` at every boundary it has (a page of the read after open, a set of the update, a
- * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set (Q3170.5 A)
- * or every `COLOR_YIELD_EVERY` color variables, posting the same reading again so the panel can tell a long set from a
- * stalled panel. Never through an agent's sink, which collects every post as a verdict: an agent's update and Apply
+ * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set or a stage
+ * (Q3170.5 A; #3208 brought every Apply Theme stage onto the same clock), posting the same reading again so the panel can
+ * tell a long set from a stalled panel. Never through an agent's sink, which collects every post as a verdict: an agent's update and Apply
  * Theme post no readings, and its Capture baseline and Adopt (#3189) post theirs to the panel directly (`postProgress`),
  * a reading at each def, for the status strip.
  */
@@ -284,16 +284,19 @@ const paced = (again: () => void): ((ms?: number) => Promise<void>) => {
     last = Date.now();
   };
 };
-/** Apply Theme's pacing: a reading and a hand-back before each of its seven stages and every `COLOR_YIELD_EVERY` color
- *  variables. The thread is handed back for an agent's apply too; only the panel's posts. */
+/** Apply Theme's pacing: a reading and a hand-back before each of its seven stages, and inside every stage the cadence a
+ *  component write keeps (#3208): the executors offer a `tick` after each variable or style, and it hands the thread back
+ *  once about `PACE_MS` of work has run since the last hand-back. The thread is handed back for an agent's apply too; only
+ *  the panel's posts. */
 const themePace = (sink: ActionSink): ThemePace => {
   const panel = sink === uiSink;
   let at: { stage: ApplyStage; done: number } | null = null;
   const say = (): void => { if (panel && at) postProgress('apply-theme', { phase: 'work', item: at.stage, done: at.done, total: APPLY_STAGES.length }); };
+  let last = Date.now();
   return {
     check: () => { if (panel) postProgress('apply-theme', { phase: 'check', item: null, done: 0, total: APPLY_STAGES.length }); },
-    stage: async (stage, done) => { at = { stage, done }; say(); await breathe(); },
-    tick: async () => { say(); await breathe(); },
+    stage: async (stage, done) => { at = { stage, done }; say(); await breathe(); last = Date.now(); },
+    tick: async () => { if (Date.now() - last < PACE_MS) return; say(); await breathe(); last = Date.now(); },
   };
 };
 /** #3170 Q3170.4 A: the panel's "Stop after <set>" (`update-stop`), read by its running update at each set boundary. */

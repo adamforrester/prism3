@@ -242,6 +242,10 @@
           "count",
           "dot"
         ],
+        "style": [
+          "contained",
+          "inline"
+        ],
         "size": [
           "medium",
           "small"
@@ -267,6 +271,14 @@
             "status",
             "count",
             "dot"
+          ]
+        },
+        {
+          "name": "style",
+          "default": "contained",
+          "values": [
+            "contained",
+            "inline"
           ]
         },
         {
@@ -6182,6 +6194,15 @@
       },
       {
         "values": [
+          "contained",
+          "inline"
+        ],
+        "components": [
+          "badge"
+        ]
+      },
+      {
+        "values": [
           "inline",
           "standalone"
         ],
@@ -8934,6 +8955,14 @@
     ],
     "style": [
       {
+        "id": "badge",
+        "default": "contained",
+        "values": [
+          "contained",
+          "inline"
+        ]
+      },
+      {
         "id": "link",
         "default": "standalone",
         "values": [
@@ -9987,6 +10016,7 @@
       "kind": "axis values",
       "subject": "axis style",
       "components": [
+        "badge",
         "card-number-field",
         "link",
         "pagination",
@@ -9998,7 +10028,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the style axis takes 5 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [inline, standalone] in link"
+      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
     },
     {
       "kind": "axis values",

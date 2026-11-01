@@ -18436,7 +18436,9 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 //   LIVE arm); a transition added to an unlisted rule → `#3150 DECLARED: … is not a listed surface`; the panel duration
 //   mapped to `duration.fast` → `#3150 LIVE … the drawer slides up on 200ms`; the reduced block's `animation: none` dropped
 //   → `#3150 REDUCED … no transform moves`; `data-still` not set on a repaint → `#3150 LIVE … a repaint of the open dialog
-//   does not scale in again`; the fold-out's focus gate dropped → `#3150 LIVE … a page change does not replay`.
+//   does not scale in again`; the fold-out's focus gate dropped → `#3150 LIVE … a page change does not replay`; the
+//   drawer's exit unscoped from `data-closing` (#3217) → `#3150 LIVE … at boot the closed drawer plays no exit` and
+//   `… a narrow → wide resize under the closed drawer plays no exit`.
 // =============================================================================================
 if (runs('3150')) {
 console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n${'='.repeat(78)}`);
@@ -18452,8 +18454,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['rule', ':is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin, :is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin::before'],
     ['reduced', '.p3-spin::before'], ['rule', '.p3-switch-knob'], ['reduced', '.p3-switch-knob'],
     // Slide up: the Activity drawer at every width, its body held through the exit, its chevron turning with it.
-    ['rule', '.p3-drawer[data-open="true"]'], ['rule', '.p3-frame:not([data-w="narrow"]) .p3-drawer[data-open="false"]'],
-    ['rule', '.p3-frame[data-w="narrow"] .p3-drawer[data-open="false"]'], ['rule', '.p3-drawer-body'],
+    ['rule', '.p3-drawer[data-open="true"]'], ['rule', '.p3-frame:not([data-w="narrow"]) .p3-drawer[data-closing="true"]'],
+    ['rule', '.p3-frame[data-w="narrow"] .p3-drawer[data-closing="true"]'], ['rule', '.p3-drawer-body'],
     ['rule', '.p3-drawer-bar > .p3-ico:last-of-type'], ['rule', '.p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type'],
     // Shift: the 380 strip.
     ['rule', '.p3-frame[data-w="narrow"] .p3-drawer'], ['start', '.p3-frame[data-w="narrow"] .p3-drawer'],
@@ -18570,6 +18572,29 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
         ok(!!list && list.some((a) => a.props.includes('opacity')) && list.every((a) => a.dur === REDUCED), `${where}: ${what}: it crossfades on ${REDUCED}ms (read ${fmt(list)})`);
       };
 
+      // #3217: the closed drawer plays no exit at boot, nor when the width changes under it (narrow → wide). Read as the
+      // closed drawer's own animation name (a 100ms move is long gone by the time the page is ready, but the rule that
+      // matches it still names its animation), and as what runs on it the moment the width changes back.
+      step = 'the closed drawer at boot';
+      const exitAt = (p) => p.evaluate(() => {
+        const d = document.querySelector('[data-p3="activity-drawer"]');
+        return { name: getComputedStyle(d).animationName, running: d.getAnimations().map((a) => a.animationName ?? a.transitionProperty), closing: d.dataset.closing ?? null };
+      });
+      const atBoot = await exitAt(page);
+      ok(atBoot.name === 'none' && atBoot.running.length === 0 && atBoot.closing === null,
+        `${where}: at boot the closed drawer plays no exit (animation ${atBoot.name}; running ${fmt(atBoot.running)}; data-closing ${atBoot.closing})`);
+      step = 'the closed drawer across a resize';
+      await page.setViewportSize({ width: 380, height: 900 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 });
+      await settleAll(page, cdp);
+      await slow();
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w !== 'narrow', null, { timeout: 5000 });
+      const atWide = await exitAt(page);
+      ok(atWide.name === 'none' && atWide.running.length === 0,
+        `${where}: a narrow → wide resize under the closed drawer plays no exit (animation ${atWide.name}; running ${fmt(atWide.running)})`);
+      await settleAll(page, cdp);
+
       // The drawer: Slide up at 1280, the chevron turning with it; the exit keeps the body drawn while it sinks.
       step = 'the drawer opens';
       await slow();
@@ -18607,6 +18632,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       const cRest = await restOf(page, '[data-p3="activity-drawer"]');
       const cBody = await restOf(page, '[data-p3="activity-body"]');
       ok(atRest(cRest) && cBody?.display === 'none', `${where}: settled, the closed drawer sits at rest and its body is undrawn (drawer ${fmt(cRest)}, body ${fmt(cBody)})`);
+      const afterClose = await exitAt(page);
+      ok(afterClose.name === 'none' && afterClose.closing === null, `${where}: once the exit ends, the close's mark goes with it (animation ${afterClose.name}; data-closing ${afterClose.closing})`);
 
       // The error strip: Fade in and out, the notices row holding through the exit.
       step = 'the error strip';
@@ -18710,10 +18737,11 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="activity-drawer"]')).display !== 'none', null, { timeout: 5000 });
       const sIn = await movesOf(page, '[data-p3="activity-drawer"]');
-      const sNoDown = (sIn ?? []).filter((a) => a.kind === 'CSSTransition');
-      if (!reduced) ok(one(sNoDown, 'opacity')?.dur === SMALL && one(sNoDown, 'translate')?.dur === SMALL && one(sNoDown, 'translate')?.ease === ENTER,
+      // #3217: a strip appearing closed plays no exit (it used to sink 0px as it appeared).
+      ok(!one(sIn, 'p3-strip-down'), `${where}: the strip appearing closed plays no exit (read ${fmt(sIn)})`);
+      if (!reduced) ok(one(sIn, 'opacity')?.dur === SMALL && one(sIn, 'translate')?.dur === SMALL && one(sIn, 'translate')?.ease === ENTER,
         `${where}: the strip shifts in, opacity and a short rise on ${SMALL}ms, the enter curve (read ${fmt(sIn)})`);
-      else ok((sIn ?? []).every((a) => a.moves.length === 0 || a.name === 'p3-strip-down') && (sIn ?? []).every((a) => a.kind === 'CSSTransition') && one(sIn, 'opacity')?.dur === REDUCED,
+      else ok((sIn ?? []).every((a) => a.moves.length === 0) && (sIn ?? []).every((a) => a.kind === 'CSSTransition') && one(sIn, 'opacity')?.dur === REDUCED,
         `${where}: the strip crossfades in on ${REDUCED}ms and moves no transform (read ${fmt(sIn)})`);
       await settleAll(page, cdp);
       ok(atRest(await restOf(page, '[data-p3="activity-drawer"]')), `${where}: settled, the strip sits at rest (${fmt(await restOf(page, '[data-p3="activity-drawer"]'))})`);
@@ -18827,6 +18855,99 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
   }
 }
 } // 3150
+if (runs('3199')) {
+console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot on the first line, the box one line tall\n${'='.repeat(78)}`);
+// WHAT THIS HOLDS (owner decisions on #3199, Q4 A and Q6 A). An inline badge is a dot and plain text on a text line, as
+// tall as the line: 24px at medium and 21px at small. A wrapping label keeps the dot on its FIRST line. Figma cannot show
+// a wrap, so the browser lays it out: each projected `style=inline` member's plan, as the engine emits it, becomes boxes
+// whose CSS follows the plan's own layout fields, with every bound value resolved from the committed emission (the
+// default brand and the reference brand). The expectations are the issue's literals, not read from the plan or the
+// tokens: the box is 24 / 21px tall on one line, and at 210px wide a label that wraps keeps the dot's
+// center within 0.5px of the first line's center (12 / 10.5px). The label's line height comes from its text style
+// (font size × line height), independently of the `line-box` the dot cell binds, so the two have to agree.
+//
+// Mutations: the root's cross axis back to `align: 'center'` in badge.ts → `3199 <brand> <member>: wrapped`, the dot
+// floats to the middle of the two lines; `size.medium.dot-cell` bound to `type.body.lg.line-box` → `… one line` (the
+// box grows past 24px) and `… wrapped`.
+{
+  const esbuild = await import('esbuild');
+  const eng = await esbuild.build({ stdin: { contents: "export { figmaAnatomySet, planComponentName } from '@prism3/engine/anatomy-figma'; export { componentDefs } from '@prism3/engine/components/index';", resolveDir: join(HERE, 'src'), loader: 'ts' },
+    bundle: true, platform: 'node', format: 'esm', write: false });
+  const { figmaAnatomySet, planComponentName, componentDefs } = await import(`data:text/javascript;base64,${Buffer.from(eng.outputFiles[0].text).toString('base64')}`);
+  const badge = componentDefs.find((d) => d.id === 'badge');
+  const inline = figmaAnatomySet(badge, {}).filter((p) => /style=inline/.test(planComponentName(p)));
+  // The issue's literals.
+  const LINE = { medium: 24, small: 21 };
+  const WRAP_WIDTH = 210;
+  // The docs' own example, lengthened: in the runner's fallback face "Out of stock at this location" is 192px, which
+  // fits the 194px beside the dot, so it would not wrap here though it does in the brands' faces. The premise arm
+  // below proves the wrap, whatever the face.
+  const WRAP_TEXT = 'Out of stock at this location until Friday';
+  ok(inline.length === 10, `3199: the badge set projects 10 inline members (${inline.length})`);
+  for (const brand of ['prism3', 'nb']) {
+    const tree = JSON.parse(readFileSync(join(REPO, 'packages/engine/out', `${brand}.tokens.json`), 'utf8'));
+    const ns = Object.keys(tree).find((k) => !k.startsWith('$'));
+    const node = (path) => path.split('.').reduce((o, k) => o?.[k], tree);
+    const deref = (v) => { let x = v; for (let i = 0; i < 20 && typeof x === 'string' && /^\{.+\}$/.test(x); i++) x = node(x.slice(1, -1))?.$value; return x; };
+    const px = (v) => { const x = deref(v); return typeof x === 'number' ? x : parseFloat(String(x)); };
+    // A plan variable `space/100` names the token `<ns>.space.100`; a text style `body/md/default` names `<ns>.type.body.md.default`.
+    const varPx = (name) => px(node(`${ns}.${name.replace(/\//g, '.')}`)?.$value);
+    // The text style's own size and line height, as emitted (`1rem`, `1.5`), handed to CSS as they are: the browser does
+    // the arithmetic, so nothing here can agree with the `line-box` token by construction.
+    const textStyle = (name) => {
+      const v = node(`${ns}.type.${name.replace(/\//g, '.')}`)?.$value ?? {};
+      return { size: String(deref(v.fontSize)), lineHeight: String(deref(v.lineHeight)) };
+    };
+    const ALIGN = { MIN: 'flex-start', CENTER: 'center', MAX: 'flex-end' };
+    // The plan as boxes: each field the plan carries becomes the CSS property that means the same thing. Nothing here
+    // knows it is drawing a badge.
+    const html = (n) => {
+      const b = n.bound ?? {};
+      const css = [];
+      if (n.type === 'TEXT') {
+        const t = textStyle(n.textStyle);
+        css.push(`font-size:${t.size}`, `line-height:${t.lineHeight}`, 'min-width:0', 'overflow-wrap:break-word', 'margin:0');
+        return `<span data-part="${n.name}" style="${css.join(';')}">${WRAP_TEXT}</span>`;
+      }
+      css.push('display:flex', 'flex-direction:row', 'box-sizing:border-box', 'flex-shrink:0');
+      css.push(`align-items:${ALIGN[n.counterAxisAlignItems] ?? 'stretch'}`, `justify-content:${ALIGN[n.primaryAxisAlignItems] ?? 'flex-start'}`);
+      if (b.itemSpacing) css.push(`gap:${varPx(b.itemSpacing)}px`);
+      for (const [f, c] of [['paddingTop', 'padding-top'], ['paddingBottom', 'padding-bottom'], ['paddingLeft', 'padding-left'], ['paddingRight', 'padding-right']]) if (b[f]) css.push(`${c}:${varPx(b[f])}px`);
+      if (b.width) css.push(`width:${varPx(b.width)}px`);
+      if (b.height) css.push(`height:${varPx(b.height)}px`);
+      if (b.topLeftRadius) css.push(`border-radius:${varPx(b.topLeftRadius)}px`);
+      if (n.paints?.fills) css.push('background:#888');
+      return `<div data-part="${n.name}" style="${css.join(';')}">${(n.children ?? []).map(html).join('')}</div>`;
+    };
+    const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } });
+    const page = await ctx.newPage();
+    try {
+      for (const plan of inline) {
+        const name = planComponentName(plan);
+        const size = /size=(\w+)/.exec(name)?.[1];
+        const where = `3199 ${brand} ${name}`;
+        // The root hugs (`inline-flex`, a badge in a line); the frame around it is the column.
+        const root = html(plan.root).replace('display:flex', 'display:inline-flex').replace('flex-shrink:0', 'max-width:100%');
+        await page.setContent(`<!doctype html><body style="margin:0;font-family:sans-serif"><div id="one">${root}</div><div id="col" style="width:${WRAP_WIDTH}px">${root}</div></body>`);
+        const m = await page.evaluate(() => {
+          const r = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { top: b.top, height: b.height, width: b.width }; };
+          const lh = (sel) => parseFloat(getComputedStyle(document.querySelector(sel)).lineHeight);
+          return { oneRoot: r('#one > [data-part]'), oneLabel: r('#one [data-part="label"]'), colRoot: r('#col > [data-part]'), colLabel: r('#col [data-part="label"]'), colDot: r('#col [data-part="statusDot"]'), colLine: lh('#col [data-part="label"]') };
+        });
+        // One line: the label sits on one line in a wide frame, and the box is that line's height, the issue's figure.
+        ok(!!m.oneRoot && Math.abs(m.oneRoot.height - LINE[size]) < 0.5 && Math.abs(m.oneLabel.height - LINE[size]) < 0.5,
+          `${where}: one line: the badge is ${LINE[size]}px tall, the label's own line box (box ${m.oneRoot?.height}px, label ${m.oneLabel?.height}px)`);
+        // Wrapped: the premise first (the label really wraps at 210px), then the dot's center against the first line's.
+        const lines = m.colLabel ? Math.round(m.colLabel.height / m.colLine) : 0;
+        ok(lines >= 2, `${where}: premise: at ${WRAP_WIDTH}px "${WRAP_TEXT}" wraps (${lines} lines, label ${m.colLabel?.height}px)`);
+        const dotCenter = m.colDot ? m.colDot.top + m.colDot.height / 2 - m.colRoot.top : NaN;
+        ok(Math.abs(dotCenter - LINE[size] / 2) <= 0.5 && Math.abs(m.colLabel.top - m.colRoot.top) < 0.5,
+          `${where}: wrapped: the dot's center is on the first line's, ${LINE[size] / 2}px from the top within 0.5px, and the label starts at the top (dot center ${dotCenter}px, label top ${m.colLabel ? m.colLabel.top - m.colRoot.top : 'none'}px, ${lines} lines)`);
+      }
+    } finally { await ctx.close(); }
+  }
+}
+} // 3199
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

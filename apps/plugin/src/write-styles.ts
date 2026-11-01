@@ -139,7 +139,9 @@ export const bindGradientStops = <V extends StyleVariable>(
  * Materialise the styles plan into Figma Effect + Paint Styles. Idempotent find-by-name for each:
  * reuse an existing style with the same name (overwrite its props), else create one.
  */
-export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Promise<StylesApplyResult> => {
+export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi, tick?: () => Promise<void>): Promise<StylesApplyResult> => {
+  // `tick` (#3208): offered after every style written, for the plugin's Apply Theme to hand the thread back at its cadence
+  // (`Tick` in `write-figma.ts`). A caller with none writes in one turn.
   // Unfiltered fetch, for the #146 reason `resolveCollection` documents: a type-filtered call returns
   // only that type, and nothing here guarantees the filter matches. Indexing every local variable by name is
   // what both the FLOAT and Text Style executors already do. Read once: the effect binding (FLOAT) and the
@@ -169,6 +171,7 @@ export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Prom
       effectsBound++;
       return styles.variables.setBoundVariableForEffect(plain as never, 'radius', v as never);
     });
+    await tick?.();
   }
 
   // ---- Paint Styles (gradients — one GradientPaint per style, stops bound to palette/* where traced) ----
@@ -187,6 +190,7 @@ export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Prom
     const res = bindGradientStops(row.stops, varByName, (v) => styles.variables.createVariableAlias(v), (name) => misses.push(name));
     bound += res.bound;
     s.paints = [{ type: row.paintType, gradientTransform: row.gradientTransform, gradientStops: res.stops }];
+    await tick?.();
   }
 
   return {
