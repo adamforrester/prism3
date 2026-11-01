@@ -1891,6 +1891,25 @@ const documentationLend: DocumentationLend = {
       commit.postDrawSpecs();
     },
   },
+  // #3137 Q3137.6 A, Q3137.7 A: the sets with no usage panel (the live recount's, else the read's), and the panels drawn.
+  panels: {
+    missing: () => {
+      const f = (liveShown() && host.liveDue && !host.liveDue.error ? host.liveDue : null) ?? (host.fileSets && !host.fileSets.error ? host.fileSets : null);
+      return f?.unpanelled ? { n: f.unpanelled.length, all: f.unpanelled.length > 0 && f.unpanelled.length >= (f.panelLeads ?? Infinity) } : null;
+    },
+    drawn: () => host.panelsClean.count?.drawn ?? null,
+    count: () => panelsClean(false),
+    openUpdate: () => document.querySelector<HTMLButtonElement>('[data-p3="update-file"]')?.click(),
+  },
+};
+/** #3137 Q3137.7 A: count the drawn usage panels, or remove the unedited ones (`panels-clean`). A removal waits while a
+ *  write is out or after a failed restore; a count is a read. */
+const panelsClean = (confirm: boolean): void => {
+  if (!commit.isFigma || host.panelsClean.busy) return;
+  if (confirm && (updateRun || restoreFailure)) return;
+  setHost({ panelsClean: { ...host.panelsClean, busy: confirm ? 'remove' : 'count' } });
+  invalidate('host:update');
+  commit.postPanelsClean(confirm);
 };
 
 // ---- Update file (#2909 IA v2 phase 1) ------------------------------------------------------------------
@@ -2007,7 +2026,8 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
  *  the brand on screen is the demo's: the badge then keeps the read at load (`liveShown`). */
 let dueSeq = 0;
 let dueTimer: ReturnType<typeof setTimeout> | null = null;
-const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished']);
+// #3137: and Documentation's answer (the panels switch moves the Usage panels item) and Clean up's panels removal.
+const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished', 'doc-settings', 'panels-clean-result']);
 /** Whether the panel holds a brand of its own to count against: one is chosen, and it resolved. */
 const liveShown = (): boolean => !restoreFailure && !firstRun() && provenance !== bootProvenance;
 const recountDue = (): void => {
@@ -2072,7 +2092,9 @@ const updateFileLend: UpdateFileLend = {
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck, queue: host.addQueue,
     rowState: (id) => rowState(stripRun, id), stopLabel: () => { const v = statusLend.read(); return v.kind === 'running' ? v.stop.label : null; },
+    panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean,
   }),
+  panelsClean: (confirm) => panelsClean(confirm),
   queueSets,
   check: (theme) => commit.requestFileSets(panelBrand(theme)),
   checkSets: (defs, theme) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand(theme)); },

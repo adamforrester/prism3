@@ -1857,6 +1857,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-docs-card > p { margin: 0; }
 .p3-docs-card > [hidden] { display: none; }
 .p3-docs-card > .p3-btn { justify-self: start; }
+/* #3137 Q3137.6 A: with panels on, the count of sets with no usage panel, and the button to Update file under it. */
+.p3-docs-missing { display: grid; gap: var(--p3-space-075); }
+.p3-docs-missing > .p3-btn { justify-self: start; }
 
 /* ── Export as an area (#2909): the export dialog's parts as a page, never modal ─────────────────────── */
 .p3-export-host { display: contents; }
@@ -1890,6 +1893,11 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-where { flex: none; font-size: var(--p3-fs-12); }
 .p3-btn.p3-btn-icon.p3-upd-remove { flex: none; min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); }
 .p3-upd-addall { justify-self: start; margin-left: var(--p3-space-300); }
+/* #3137 Q3137.5 A: the Usage panels group's names past six, under a ghost disclosure whose chevron turns as Components'
+   folds do; the list under it is hidden while it is closed. */
+.p3-btn.p3-upd-disclose { justify-self: start; margin-left: var(--p3-space-300); min-height: var(--p3-ctl-h-xs); max-width: 100%; justify-content: flex-start; }
+.p3-upd-disclose[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
+.p3-upd-sets[hidden] { display: none; }
 .p3-upd-line, .p3-upd-summary { color: var(--p3-text); }
 .p3-btn.p3-upd-btn { flex: none; }
 /* #2909 Q2909.8 A: the number of due sets on Update file, in the button's own inverse ink with a ring of it, so it needs

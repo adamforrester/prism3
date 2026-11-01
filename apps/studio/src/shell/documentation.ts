@@ -8,7 +8,10 @@
  * Its tabs (`DOC_TABS`, `pages.ts`), a select at the narrow tier as Theme's pages are:
  *   · Style guides: every setting the old Build style guides page had, mounted from `shell/style-guides.ts` in its
  *     settings-only mode;
- *   · Usage panels: one switch, on unless the file says off: a panel beside each set a build or an update writes (#846);
+ *   · Usage panels: one switch, on unless the file says off: a panel beside each set a build or an update writes (#846).
+ *     On, with sets in the file that have no panel, it says how many and offers "Draw them with Update file", which opens
+ *     Update file's checklist (#3137 Q3137.6 A). Off, with panels drawn, its off line says how many stay and that Update
+ *     file › Clean up can remove them (Q3137.7 A);
  *   · Cover: one switch, on unless the file says off: the library cover and the file thumbnail (#2977);
  *   · Specs: Draw specs (#2830 Q2830.3 A), the spec panel beside each usage panel for the sets on the current page,
  *     through the agent's `draw-specs` action, with its result line under it.
@@ -39,13 +42,28 @@ export type DocumentationLend = {
     readonly read: () => { readonly state: ActionState; readonly busy: boolean; readonly off: string | null };
     readonly draw: () => void;
   };
+  /** #3137: Usage panels' reads. `missing`: with panels on, how many sets in the file have no usage panel, and whether
+   *  that is every set that leads one (null before the host has said, or with panels off). `drawn`: with panels off, how
+   *  many live panels the file holds (null before the count has answered). `count` asks for that count; `openUpdate`
+   *  opens Update file's checklist. */
+  readonly panels: {
+    readonly missing: () => { readonly n: number; readonly all: boolean } | null;
+    readonly drawn: () => number | null;
+    readonly count: () => void;
+    readonly openUpdate: () => void;
+  };
 };
 
 export const DOCS_COPY = {
   heading: 'Documentation',
   panels: 'Usage panels',
-  panelsDesc: 'A panel beside each component set, with its overview, anatomy, usage and accessibility notes. Update file draws one beside each set it adds. A panel edited by hand keeps its edits.',
+  panelsDesc: 'A panel beside each component set, with its overview, anatomy, usage and accessibility notes. Update file draws one beside each set in this file that has none. A panel edited by hand keeps its edits.',
   panelsOff: 'Off: Update file draws no new panels. Panels already in the file stay.',
+  /** #3137 (Q3137.6 A, Q3137.7 A). DRAFT, the wireframe's words. */
+  panelsMissing: (n: number): string => `${n} set${n === 1 ? ' in this file has' : 's in this file have'} no usage panel yet.`,
+  panelsMissingAll: 'No set in this file has its usage panel yet.',
+  panelsDraw: 'Draw them with Update file',
+  panelsOffDrawn: (n: number): string => `Off: Update file draws no new panels. The ${n} already drawn stay. Update file › Clean up can remove them.`,
   cover: 'Cover',
   coverDesc: 'The library cover, with the brand’s name and the Prism3 version, on the Cover page. Update file draws it and keeps it current, and sets it as the file thumbnail while Figma’s default is in place.',
   coverOff: 'Off: Update file leaves the Cover page and the file thumbnail alone.',
@@ -123,14 +141,14 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
   };
 
   /** A switch card: its title and switch on one row, its description, and the line for off. */
-  const switchCard = (role: string, title: string, desc: string, offLine: string, on: () => boolean, set: (on: boolean) => void): (() => void) => {
+  const switchCard = (role: string, title: string, desc: string, offLine: string | (() => string), on: () => boolean, set: (on: boolean) => void, more?: { readonly el: HTMLElement; readonly paint: () => void }): (() => void) => {
     const card = hook(h('section', 'p3-docs-card'), `docs-${role}`);
     const row = h('div', 'p3-docs-cardrow');
     const sw = switchEl(`docs-${role}-switch`, title, (v) => set(v));
     row.append(h('h2', 'p3-docs-cardtitle', title), sw.el);
-    const off = hook(h('p', 'p3-sub', offLine), `docs-${role}-off`);
+    const off = hook(h('p', 'p3-sub', typeof offLine === 'string' ? offLine : offLine()), `docs-${role}-off`);
     const err = hook(h('p', 'p3-sg-error', ''), `docs-${role}-error`);
-    card.append(row, h('p', 'p3-sub', desc), off, err);
+    card.append(row, h('p', 'p3-sub', desc), off, ...(more ? [more.el] : []), err);
     body.append(card);
     const paint = (): void => {
       const d = lend.read();
@@ -140,6 +158,8 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
       sw.el.disabled = d === null || why !== null;
       if (why) sw.el.title = why; else sw.el.removeAttribute('title');
       off.hidden = on();
+      if (typeof offLine !== 'string') off.textContent = offLine();
+      more?.paint();
       err.textContent = d?.error ? DOCS_COPY.saveError : '';
       err.hidden = !d?.error;
     };
@@ -154,8 +174,26 @@ export const mountDocumentation = (root: HTMLElement, lend: DocumentationLend, n
       return;
     }
     if (id === 'panels') {
-      const paint = switchCard('panels', DOCS_COPY.panels, DOCS_COPY.panelsDesc, DOCS_COPY.panelsOff, () => known().panels, (v) => saveWith({ panels: v }));
-      tabCleanups.push(subscribe('host:docs', paint), subscribe('host:run', paint));
+      // #3137 Q3137.6 A: on, with sets that have no panel, the count and a way to Update file; Q3137.7 A: off, how many
+      // stay drawn, counted as the tab opens (and again after a switch is turned off).
+      const missing = hook(h('div', 'p3-docs-missing'), 'docs-panels-missing');
+      const line = hook(h('p', 'p3-sub', ''), 'docs-panels-missing-line');
+      const go = hook(h('button', 'p3-btn p3-btn-page'), 'docs-panels-draw');
+      go.type = 'button';
+      go.textContent = DOCS_COPY.panelsDraw;
+      go.onclick = () => lend.panels.openUpdate();
+      missing.append(line, go);
+      let counted = false;
+      const paintMissing = (): void => {
+        const m = known().panels ? lend.panels.missing() : null;
+        missing.hidden = !m || m.n === 0;
+        if (m && m.n) line.textContent = m.all ? DOCS_COPY.panelsMissingAll : DOCS_COPY.panelsMissing(m.n);
+        if (known().panels) counted = false;
+        else if (!counted) { counted = true; lend.panels.count(); }
+      };
+      const offLine = (): string => { const n = lend.panels.drawn(); return n ? DOCS_COPY.panelsOffDrawn(n) : DOCS_COPY.panelsOff; };
+      const paint = switchCard('panels', DOCS_COPY.panels, DOCS_COPY.panelsDesc, offLine, () => known().panels, (v) => saveWith({ panels: v }), { el: missing, paint: paintMissing });
+      tabCleanups.push(subscribe('host:docs', paint), subscribe('host:run', paint), subscribe('host:update', paint));
       return;
     }
     if (id === 'cover') {
