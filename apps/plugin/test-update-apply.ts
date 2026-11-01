@@ -2130,6 +2130,88 @@ section('single, place — a mark Update adds lands in its block, clear of the p
   ok(iconRun.misses.length === 0 && kin.length >= 2 && res.outcomes[0]?.added === 1 && !!a && (besideKind || inSlot) && hits.length === 0 && moved.length === 0,
     `#3192 update add: the mark Update adds lands ${besideKind ? 'beside its kind\'s row' : inSlot ? 'in a free slot of its block' : 'outside its block'} at ${a ? `${a.x},${a.y}` : 'nowhere'}, overlapping ${hits.length ? hits.slice(0, 3).join(', ') : 'nothing'}; ${moved.length} existing component(s) moved or re-keyed${moved.length ? ` (${moved.slice(0, 3).join(', ')})` : ''}`);
 }
+section('single, marks — an update re-lays a block still on the old 48px grid (#3145)');
+{
+  // THE TEMPLATE FILE'S CASE: the provider logos laid out at the fixed 48px pitch the executor used before #3142, so
+  // the wide marks sit over their neighbors, and stamped by an earlier executor revision, so Update takes them. One
+  // mark a designer dragged off the grid, and a designer's own component under the def's prefix, must stay exactly.
+  // Mutation: the re-lay call dropped from the emit branch → `relay marks/no overlap`, `relay marks/spacing`.
+  const plans = plansOf('provider-logo');
+  const w = await singleWorld(plans);
+  const marks = w.comps();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(marks.length)));
+  marks.forEach((c, i) => {
+    c.x = 400 + (i % cols) * 48;
+    c.y = 96 + Math.floor(i / cols) * 48;
+    putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|41'));
+  });
+  const moved = marks[1];
+  moved.x = -517; moved.y = -333;
+  const f = (w.api.createFrame as () => Node)();
+  const theirs = (w.api.createComponentFromNode as (n: Node) => Node)(f);
+  theirs.name = 'provider-logo/payment/zz-own';
+  if (!w.page.children.includes(theirs)) w.page.children.push(theirs);
+  theirs.x = -900; theirs.y = -900;
+  const where = (n: Node): string => `${n.x},${n.y}`;
+  const keep = { moved: where(moved), theirs: where(theirs), ids: marks.map((c) => String(c.id)).join() };
+  const grid = marks.filter((c) => c !== moved);
+  const box = (n: Node) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const overlaps = (ns: Node[]): string[] => ns.flatMap((a, i) => ns.slice(i + 1).filter((b) => {
+    const p = box(a), q = box(b);
+    return p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h;
+  }).map((b) => `${a.name} over ${b.name}`));
+  ok(overlaps(grid).length > 0, `premise: at the old 48px pitch the wide marks overlap (${overlaps(grid).slice(0, 2).join('; ')})`);
+  const t = { def: 'provider-logo', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok((pre.sets[0]?.counts.update ?? 0) > 0, `premise: under an earlier executor revision the marks are due (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const cell = (n: Node, ox: number, oy: number): string => `${Math.round((Number(n.x) - ox) / 48)},${Math.round((Number(n.y) - oy) / 48)}`;
+  const cellsBefore = grid.map((c) => cell(c, 400, 96));
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const left = overlaps(grid);
+  ok(left.length === 0, `relay marks/no overlap: after the update no mark Prism3 laid out sits over another (${left.length}: ${left.slice(0, 3).join('; ') || 'none'})`);
+  const pitchX = Math.max(...marks.concat(theirs).map((c) => Number(c.width))) + 24;
+  const pitchY = Math.max(...marks.concat(theirs).map((c) => Number(c.height))) + 24;
+  const off = grid.filter((c, i) => {
+    const [col, row] = cellsBefore[i].split(',').map(Number);
+    return Number(c.x) !== 400 + col * pitchX || Number(c.y) !== 96 + row * pitchY;
+  });
+  ok(off.length === 0, `relay marks/spacing: each mark keeps its row and column, at the measured pitch ${pitchX}×${pitchY} from the block's corner (${off.length} off: ${off.slice(0, 2).map((c) => `${c.name}@${where(c)}`).join(', ') || 'none'})`);
+  ok(where(moved) === keep.moved, `relay marks/hand moved: the mark a designer dragged off the grid stays where they put it (${where(moved)}, was ${keep.moved})`);
+  ok(where(theirs) === keep.theirs && theirs.name === 'provider-logo/payment/zz-own', `relay marks/theirs: the component Prism3 did not build is not moved (${where(theirs)})`);
+  ok(w.comps().filter((c) => c !== theirs).map((c) => String(c.id)).join() === keep.ids, 'relay marks/kept: every mark is the node it was, moved in place');
+  const blockedMiss = (res.outcomes[0]?.misses ?? []).filter((m) => m.includes('NOT RE-LAID'));
+  ok(blockedMiss.length === 0, `relay marks/clear: nothing blocks the new spacing, so nothing is reported kept (${blockedMiss[0] ?? 'none'})`);
+  // Once re-laid, a second update moves nothing: the block no longer overlaps.
+  const at = w.comps().map(where).join();
+  const pre2 = await previewUpdate(w.host, [t]);
+  await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre2));
+  ok(w.comps().map(where).join() === at, 'relay marks/settled: a second update leaves every mark where the first put it');
+}
+{
+  // A NOTE IN THE WAY: a designer's frame sits where the re-laid block would reach, so nothing moves and the outcome
+  // names the mark whose place is taken. Mutation: the obstacle check dropped → `relay marks/blocked`.
+  const plans = plansOf('provider-logo');
+  const w = await singleWorld(plans);
+  const marks = w.comps();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(marks.length)));
+  marks.forEach((c, i) => {
+    c.x = (i % cols) * 48;
+    c.y = Math.floor(i / cols) * 48;
+    putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|41'));
+  });
+  const note = (w.api.createFrame as () => Node)();
+  if (!w.page.children.includes(note)) w.page.children.push(note);
+  note.x = cols * 48 + 8; note.y = 0;
+  (note.resize as (a: number, b: number) => void)?.(40, 2000);
+  if (Number(note.width) !== 40) { note.width = 40; note.height = 2000; }
+  const before = w.comps().map((c) => `${c.x},${c.y}`).join();
+  const t = { def: 'provider-logo', plans, single: true };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+  const miss = (res.outcomes[0]?.misses ?? []).find((m) => m.includes('NOT RE-LAID'));
+  ok(w.comps().map((c) => `${c.x},${c.y}`).join() === before && !!miss,
+    `relay marks/blocked: with a designer's frame where the new spacing reaches, no mark moves and the outcome says so (${miss ?? 'no line'})`);
+}
+
 section('single, marks — a mark built under its former kind is renamed in place (#2343 PR 3)');
 {
   // Typed from the decision: each new name and the name it had. One of each kind is renamed, picked among those the

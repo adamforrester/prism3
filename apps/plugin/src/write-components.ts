@@ -838,7 +838,59 @@ export type RefBackoffPass = { afterMs: number; retried: number; repaired: numbe
  * characters, and a revision is an integer. A JSON blob would be the general answer and buys nothing at 26 bytes.
  */
 export const STAMP_KEY = 'memberStamp';
-export const memberStamp = (plan: AnatomyPlan): string => `${ENGINE_VERSION}|${planStamp(plan)}|${EXECUTOR_REVISION}`;
+
+/** The fixed pitch every single-component block was laid out at before #3142 measured it (#3145). */
+export const OLD_SINGLE_PITCH = 48;
+
+/** A box on the page, by its top-left corner and size. */
+export type PageBox = { x: number; y: number; w: number; h: number };
+
+/**
+ * AN UPDATE RE-LAYS A BLOCK STILL ON THE OLD 48PX GRID (#3145). Before #3142 a single-component block was laid out at a
+ * fixed 48px pitch from its top-left corner, so a provider logo wider than 24px sat over its neighbor; the measured
+ * pitch only placed components a plan gained. This answers where an update moves the existing ones, and writes nothing.
+ *
+ * WHAT MOVES: only `own`, the components Prism3 built (the caller filters by stamp and record), and of those only the
+ * ones still where the old grid put them. Nothing records a component's position (`member-baseline.ts` leaves x and y
+ * out), so the grid itself is the evidence: the old executor placed every component at the block's corner plus whole
+ * steps of 48 on both axes, and a page move carried the block whole (`relocateSets`), so its components keep one shared
+ * offset modulo 48. The largest group sharing one offset is the plugin's grid; a component off it was moved by hand
+ * and stays where it is. Each grid component keeps its row and column, read off the old grid, at the new pitch, so a
+ * designer's rearrangement within the grid is kept as an arrangement, and only the spacing changes.
+ *
+ * WHEN: only while two grid components overlap. A block the old pitch fits (the 24px icons) is left exactly as it is.
+ *
+ * WHAT STOPS IT: a new place that would land on anything else (`obstacles`: a component moved by hand, one Prism3 did not
+ * build, another def's block, a note). Then nothing moves, and `blocked` names the component, so no hand edit is ever
+ * pushed aside to make room. Returns the moves by index into `own`.
+ */
+export const relayOldGrid = (
+  own: readonly (PageBox & { name: string })[],
+  pitch: { x: number; y: number },
+  obstacles: readonly PageBox[],
+): { moves: { i: number; x: number; y: number }[]; blocked?: string } => {
+  const P = OLD_SINGLE_PITCH;
+  const mod = (v: number): number => ((Math.round(v) % P) + P) % P;
+  const groups = new Map<string, number[]>();
+  own.forEach((c, i) => { const k = `${mod(c.x)},${mod(c.y)}`; groups.set(k, [...(groups.get(k) ?? []), i]); });
+  const grid = [...groups.values()].reduce<number[]>((a, b) => (b.length > a.length ? b : a), []);
+  const meets = (a: PageBox, b: PageBox): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  if (!grid.some((a, n) => grid.some((b, m) => n < m && meets(own[a], own[b])))) return { moves: [] };
+  const ox = Math.min(...grid.map((i) => Math.round(own[i].x))), oy = Math.min(...grid.map((i) => Math.round(own[i].y)));
+  const hand = own.filter((_, i) => !grid.includes(i));
+  const moves = grid.map((i) => ({
+    i,
+    x: ox + Math.round((Math.round(own[i].x) - ox) / P) * pitch.x,
+    y: oy + Math.round((Math.round(own[i].y) - oy) / P) * pitch.y,
+  }));
+  for (const m of moves) {
+    const box = { x: m.x, y: m.y, w: own[m.i].w, h: own[m.i].h };
+    if ([...hand, ...obstacles].some((o) => meets(box, o))) return { moves: [], blocked: own[m.i].name };
+  }
+  return { moves: moves.filter((m) => m.x !== Math.round(own[m.i].x) || m.y !== Math.round(own[m.i].y)) };
+};
+
+export const memberStamp =(plan: AnatomyPlan): string => `${ENGINE_VERSION}|${planStamp(plan)}|${EXECUTOR_REVISION}`;
 
 /** The plan-stamp half — the only half the staleness decision reads. `''` for an unstamped member, which
  *  is what an empty `getSharedPluginData` and a host with no plugin-data surface both produce, and which
@@ -3190,8 +3242,22 @@ const writeComponentSet = async (
     //     (`icon/arrow-down`), the first free slot of the block's own grid, read row by row from its top-left corner with the
     //     block's own column count. A spot is free when the component, widened by `GAP` on every side, meets no node on the
     //     page: another def's block, the header, a designer's note, a component this run already placed.
+    // AN UPDATE FIRST RE-LAYS A BLOCK STILL ON THE OLD 48PX GRID (#3145, `relayOldGrid`): the components Prism3 built, read
+    // by stamp and record as the page move reads them, before the new ones are placed beside them. Positions only: every
+    // node, id and key stays, and a component moved by hand or not built by Prism3 is never moved.
+    if (opts.update) {
+      const prior = ((dest.children ?? []) as CompNode[]).filter((c) => c.type === 'COMPONENT' && String(c.name ?? '').startsWith(`${component}/`) && !fresh.includes(c));
+      const reads: OwnershipRead[] = prior.map((m) => ({ id: m.id === undefined ? undefined : String(m.id), stamp: m.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(m as never)?.id }));
+      const owned = builtByPrism3(reads);
+      const built = prior.filter((_, i) => owned(reads[i]));
+      const box = (c: CompNode) => ({ name: String(c.name ?? ''), x: Number(c.x) || 0, y: Number(c.y) || 0, w: Number(c.width) || 0, h: Number(c.height) || 0 });
+      const obstacles = ((dest.children ?? []) as CompNode[]).filter((c) => !fresh.includes(c) && !built.includes(c)).map(box);
+      const relay = relayOldGrid(built.map(box), { x: pitchX, y: pitchY }, obstacles);
+      for (const m of relay.moves) { wr(built[m.i]).x = m.x; wr(built[m.i]).y = m.y; }
+      if (relay.blocked) misses.push(`${relay.blocked}.position -> NOT RE-LAID (its place at the new spacing is taken, so the old grid is kept)`);
+    }
     // The page is read here, after the build loop, with this run's components left out: they are what is being placed.
-    const others = ((dest.children ?? []) as CompNode[]).filter((c) => !fresh.includes(c));
+    const others =((dest.children ?? []) as CompNode[]).filter((c) => !fresh.includes(c));
     const ownPrior = own.filter((c) => !fresh.includes(c));
     const boxOf = (c: CompNode) => ({ x: Number(c.x) || 0, y: Number(c.y) || 0, w: Number(c.width) || 0, h: Number(c.height) || 0 });
     const ownBoxes = ownPrior.map((c) => ({ name: String(c.name ?? ''), ...boxOf(c) }));
