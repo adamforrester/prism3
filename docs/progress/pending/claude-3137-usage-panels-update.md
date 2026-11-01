@@ -5,9 +5,10 @@ built before Set up file had no usage panel, and turning Documentation's panels 
 was a missing panel never read Due, so Update file never offered it. This builds the approved design. Every new string is
 DRAFT.
 
-- **The census (Q3137.3 A).** `apps/plugin/src/panel-census.ts`: one indexed document search for panel tags, the search
-  `allPanels` runs. A family has its panel when a live tag names its lead and a set id that is still a component set in
-  the file. It runs inside `readPresent`, after every page is loaded, and is kept as `panelCache` beside `presentCache`,
+- **The census (Q3137.3 A).** `apps/plugin/src/panel-census.ts`: an indexed search for panel tags, the criteria
+  `allPanels` uses. A family has its panel when a live tag names its lead and a set id that is still a component set in
+  the file. It runs inside `readPresent`, a page per turn beside the read's own search (`searchPagesYielding`), and is
+  kept as `panelCache` beside `presentCache`,
   cleared by `guarded` the same way, so the badge's recount loads no page. `file-sets` and `file-due` carry `unpanelled`
   (and `panelLeads`, the count it is out of) only while Documentation has panels on. The switch is read on every
   recount, so turning it on recounts with no page load.
@@ -26,12 +27,15 @@ DRAFT.
   gets it as `panels-clean` (`commands.json` regenerated).
 - **Components page (Q3137.8 A).** No status, as decided.
 - **Deliberate deviations.** The census search runs with every full read, not only while panels are on: that is what
-  lets turning the switch on recount with no page load. Only the list is gated on the switch. The panels removal saves
+  lets turning the switch on recount with no page load. Only the list is gated on the switch. And it is a search per
+  page, not the wireframe's one document search: the first verify run caught a document-wide search here breaking
+  #3170's rule (no turn searches more than one page, `test-open-large-file.ts` `open/no-walk`). Each page is now searched
+  once per criterion per read, which that gate now counts per criterion. The panels removal saves
   no version, mirroring Prune stale, rather than adding a version-title kind.
 - **Trap for re-verifiers.** The badge has two sums: `badgeCount` in the model and the shell's own `paint`. The first
   chrome run caught the shell's sum leaving the group out. Both are now under a mutation.
 - **Tests.** `test-doc-panel.ts` `census/…`, `clean/…` (the in-place update over a blocked, missing panel draws it, and
   the census then lists nothing); `test-build-completed.ts` `q3137/…` through the real `main.ts` (0 page loads on the
   recount, the switch read each time); `test-update-file.ts` Q3137 arms; `test-host-session.ts`; `test-agent-link.ts`
-  parity for `panels-clean`; `test:chrome` section `3137` at 380 and 1280, light and dark. Twelve mutations, each failing
-  by name.
+  parity for `panels-clean`; `test-open-large-file.ts` (the census a page per turn); `test:chrome` section `3137` at 380
+  and 1280, light and dark. Thirteen mutations, each failing by name.
