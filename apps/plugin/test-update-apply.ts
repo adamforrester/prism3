@@ -138,6 +138,13 @@
  *                  finished (record, stamp last, marker off) as a set member is; an added glyph placed in a free
  *                  slot, never over another; the owner's hand-made icon untouched. Mutations: the emit branch's
  *                  finish skipped → `single/finished`; adds laid out from the origin → `single/add`.
+ *   relay marks/…  the provider logos laid out at the old fixed 48px pitch (before #3142) and stamped by an earlier
+ *                  executor revision: the update re-lays the marks Prism3 placed at the measured pitch, each keeping its
+ *                  row and column, so none overlaps; a mark dragged off the grid and a component Prism3 did not build stay
+ *                  exactly; a designer's frame where the new spacing reaches stops the re-lay and is named (#3145).
+ *                  Mutations: the re-lay's writes dropped → `relay marks/no overlap`, `relay marks/spacing`; every
+ *                  Prism3 mark taken as on the grid → `relay marks/hand moved`; the obstacle check dropped →
+ *                  `relay marks/blocked`.
  *   recordfail/…   a member whose as-built record the host refuses after the update (an icon, and a set member) keeps
  *                  the stamp it had and its marker, reads out of date in the next dry run, and is named among the
  *                  outcome's misses (#2373). Mutation: the stamp written before the record → `recordfail/unstamped`,
