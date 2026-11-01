@@ -62,7 +62,7 @@ import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { BASELINE_KEY, UPDATING_KEY, baselineOf, builtByPrism3, mainOf, readBaseline, snapshotMember, writeBaseline, type OwnershipRead } from './member-baseline';
-import { REACTIONS_PATH, plannedRead, reactionMap, reactionToWrite, reactionVerdict, reactionsText, readReactions } from './reactions';
+import { REACTIONS_PATH, writeSetReactions } from './reactions';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
 import { bindGradientStops } from './write-styles';
 import type { VariableAlias, Rgba } from './write-styles';
@@ -4197,33 +4197,13 @@ const writeComponentSet = async (
   // was replaced left these pointing at an orphan (docs/18 §3). A member whose reactions already read as planned is
   // not written (a write costs ~12.5ms on the host, measured), nor is one whose reactions an update keeps as a
   // hand edit. Read back, as everything here is. Yields on the chunk boundary, as the loops above do.
-  const reactionMiss: string[] = [];
-  const plannedReactions = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
-  if (plannedReactions.size) {
-    const kids = (liveSet().children ?? []) as CompNode[];
-    const byMember = new Map(kids.map((c) => [String(c.name), c] as const));
-    let writes = 0;
-    for (const mName of builtParts.keys()) {
-      const want = plannedReactions.get(mName);
-      const m = byMember.get(mName);
-      if (!want || !m || typeof m.setReactionsAsync !== 'function') continue;
-      if (updated.get(mName)?.keep.has(REACTIONS_PATH)) continue;
-      const wantRead = want.map((r) => plannedRead(mName, r));
-      const had = await readReactions(m);
-      if (had && !reactionVerdict(wantRead, had).differs) continue;
-      const write: unknown[] = [];
-      for (const r of want) {
-        const id = byMember.get(r.to)?.id;
-        if (id) write.push(reactionToWrite(r.trigger, String(id)));
-        else reactionMiss.push(`${mName}.reactions -> ${r.trigger} NOT WRITTEN (${r.to} is not in the set)`);
-      }
-      try { await m.setReactionsAsync(write); }
-      catch (err) { reactionMiss.push(`${mName}.reactions -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
-      const back = await readReactions(m);
-      if (back && reactionVerdict(wantRead, back).differs) reactionMiss.push(`${mName}.reactions -> NOT HELD (wrote ${reactionsText(wantRead)}, reads ${reactionsText(back)})`);
-      if (++writes % chunkSize === 0) await yieldTo();
-    }
-  }
+  // The loop itself is `writeSetReactions` (`reactions.ts`), shared with the MCP paste path since #2564.
+  const reactionMiss = await writeSetReactions(
+    () => (liveSet().children ?? []) as CompNode[],
+    plans.map((p) => planComponentName(p)),
+    plans[0]?.pressState,
+    { only: builtParts.keys(), keep: (m) => !!updated.get(m)?.keep.has(REACTIONS_PATH), every: chunkSize, yieldTo },
+  );
 
   // THE "AS BUILT" BASELINE (#2265), last, once every write and repair above has landed: the record is of
   // the member as the host now holds it, which is what a later dry run reads it against. Only on members

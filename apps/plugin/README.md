@@ -337,7 +337,11 @@ member names; the executor writes them from that plan on every build and every i
 write, because a reaction names its destination by node id and a member an update re-adds comes back under a new one
 (docs/18 §3). They are in the as-built record, so the dry run reads a reaction a designer removed or changed as a hand
 edit, a missing or extra one as "to update", and one pointing at a member no longer in the set as dangling. Gated by
-`test-reactions.ts`. The `use_figma` paste path writes none (#2564).
+`test-reactions.ts`. The `use_figma` paste path writes the same reactions through the same pass (`writeSetReactions`),
+in a script of its own right after a set's last chunk, from the planned member names that script carries (#2564,
+`runComponentReactions`, `test-paste-reactions.ts`).
+They are not recorded there: the paste path writes no as-built record, so an in-place update cannot repair them, the
+same as everything else on a paste build.
 
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
 placement, and the message contract + main-thread handler are complete and ready for it.

@@ -44,7 +44,8 @@ import { themePlans } from './src/apply-theme';
 import type { ThemePlans } from './src/apply-theme';
 import { preflightPlanOf } from './src/preflight';
 import type { PreflightPlan } from './src/preflight';
-import { pack } from './src/mcp-steps';
+import { pack, packNames } from './src/mcp-steps';
+import { reactionMap } from './src/reactions';
 import type { Ledger, StepReport } from './src/mcp-steps';
 import { orphansOf, strandedCollections } from './src/write-figma';
 import { emitCoordValue } from './src/write-components';
@@ -120,7 +121,7 @@ const liftPlugin: Plugin = {
 export const STEP_EXPORTS = [
   'runPreflight', 'runColor', 'runFloat', 'runStyles', 'runGrid', 'runFont', 'runMotion', 'runText', 'runPersist',
   'runReadbackVars', 'runReadbackStyles', 'runCleanupTheme',
-  'runComponentChunk', 'runComponentEmit', 'runReadbackComponents', 'runCleanupPage',
+  'runComponentChunk', 'runComponentReactions', 'runComponentEmit', 'runReadbackComponents', 'runCleanupPage',
 ] as const;
 
 /** Built ONCE, when this module loads (esbuild's synchronous API refuses plugins, and the lift above is
@@ -424,6 +425,19 @@ export const componentScripts = (input: BrandInput, requested: 'all' | string[])
         purpose: `Builds ${c.variants.length} of ${plans.length} '${names[0]}' variants${c.index === c.total - 1 ? ', then declares the set\'s properties and wires every member' : ''} (skips members already in the set).`,
         expect: '{ ok: true, misses: [] } — `result.misses` is the payload\'s own read-back.',
         js: assemble('runComponentChunk', wrapper(c.index, c.total), [c.js]),
+      });
+    }
+    // INTERACTIVE COMPONENTS (#2564): a set in scope gets its prototype reactions in one more script, after its last
+    // chunk, when every member a reaction names exists. Its planned member names travel packed (`packNames`): the
+    // button family's 576 are 68KB as plain JSON.
+    const memberNames = plans.map((p) => planComponentName(p));
+    const pressTo = plans[0]?.pressState;
+    if (reactionMap(memberNames, pressTo).size) {
+      out.push({
+        phase: 'components', kind: 'component-reactions', label: `${def.id} reactions`, def: def.id, names,
+        purpose: `Writes the prototype reactions of '${names[0]}' (Rest → Hover while hovering, Rest and Hover → ${pressTo ?? 'Pressed'} while pressing); skips members that already have them.`,
+        expect: '{ ok: true, misses: [] }',
+        js: assemble('runComponentReactions', { step: 0, of: 0, label: `${def.id} reactions`, def: def.id, set: names[0], names: packNames(memberNames), ...(pressTo ? { pressTo } : {}) }),
       });
     }
   }

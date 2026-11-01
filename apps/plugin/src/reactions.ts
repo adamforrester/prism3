@@ -203,3 +203,53 @@ export const reactionVerdict = (planned: readonly ReadReaction[], read: readonly
   differs: reactionsSignature(planned) !== reactionsSignature(read),
   dangling: read.some((r) => r.dangling),
 });
+
+// ---- writing ---------------------------------------------------------------------------------------------------
+
+/** A set member as the reaction pass reads and writes it: the slice of a `ComponentNode` it touches. */
+export type ReactionNode = { id?: unknown; name?: unknown; readonly reactions?: readonly unknown[]; setReactionsAsync?(reactions: unknown[]): Promise<void> };
+
+/**
+ * WRITE ONE SET'S REACTIONS FROM ITS PLAN — the one pass both component write paths run (#2466; the MCP paste path
+ * since #2564). The plugin executor calls it after every other write to a set; the MCP paste runtime calls it once
+ * after a set's LAST chunk, when every sibling a reaction can name exists.
+ *
+ * Planned from `planned` (the plan's member names, never the file's), resolved by name to the `members` the set holds
+ * now, read back after the write. A member whose reactions already read as planned is not written (a write costs
+ * ~12.5ms on the host, measured), so a re-run writes nothing. `only` limits the members written (the plugin passes
+ * the ones its run built or configured); `keep` skips a member whose reactions an update keeps as a hand edit.
+ * Returns the misses: a destination not in the set, a write the host refused, a write that did not hold.
+ */
+export const writeSetReactions = async (
+  members: () => readonly ReactionNode[],
+  planned: readonly string[],
+  pressTo: string | undefined,
+  opts: { only?: Iterable<string>; keep?: (name: string) => boolean; every?: number; yieldTo?: () => Promise<void> } = {},
+): Promise<string[]> => {
+  const misses: string[] = [];
+  const map = reactionMap(planned, pressTo);
+  if (!map.size) return misses;
+  const byMember = new Map(members().map((c) => [String(c.name), c] as const));
+  let writes = 0;
+  for (const mName of opts.only ?? map.keys()) {
+    const want = map.get(mName);
+    const m = byMember.get(mName);
+    if (!want || !m || typeof m.setReactionsAsync !== 'function') continue;
+    if (opts.keep?.(mName)) continue;
+    const wantRead = want.map((r) => plannedRead(mName, r));
+    const had = await readReactions(m);
+    if (had && !reactionVerdict(wantRead, had).differs) continue;
+    const write: unknown[] = [];
+    for (const r of want) {
+      const id = byMember.get(r.to)?.id;
+      if (id) write.push(reactionToWrite(r.trigger, String(id)));
+      else misses.push(`${mName}.reactions -> ${r.trigger} NOT WRITTEN (${r.to} is not in the set)`);
+    }
+    try { await m.setReactionsAsync(write); }
+    catch (err) { misses.push(`${mName}.reactions -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+    const back = await readReactions(m);
+    if (back && reactionVerdict(wantRead, back).differs) misses.push(`${mName}.reactions -> NOT HELD (wrote ${reactionsText(wantRead)}, reads ${reactionsText(back)})`);
+    if (opts.every && opts.yieldTo && ++writes % opts.every === 0) await opts.yieldTo();
+  }
+  return misses;
+};
