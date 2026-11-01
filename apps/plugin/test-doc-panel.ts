@@ -36,6 +36,12 @@
  *                   `room/panel follows`.
  *   orphan/…        before a def is built again, its deleted set's unedited panel is removed and an edited one kept.
  *                   Mutation: `clearOrphanPanels` without its `panelUnedited` check (M4) → `orphan/edited kept`.
+ *   census/…        the sets with no usage panel (#3137, Q3137.3 A): one search for panel tags; a lead whose live panel
+ *                   names a set no longer in the file counts as missing; a def with no furniture never does. Mutation:
+ *                   the set-id check dropped from `panelledOf` → `census/missing`.
+ *   clean/…         Clean up's panels (#3137, Q3137.7 A): the unedited live panels are counted and removed, an edited one
+ *                   stays with its edit, and no set is touched. Mutation: the `panelUnedited` check dropped from
+ *                   `removeUneditedPanels` → `clean/edited stays`.
  *   seat/…          a new set is seated with room for its panel. Mutation: `seatNewSet` ignoring `panelReach` →
  *                   `seat/room for the panel`.
  *   template/…      `_Doc-block` as Set up file builds it: nothing without Badge, Tag, List.Item, Divider and a theme,
@@ -104,6 +110,7 @@ import { ensureDocBlock, type DocBlockApi } from './src/doc-block';
 import { drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { pageSetMoves, previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, previewHashOf } from './src/update-apply';
+import { livePanels, panelledOf, panelsCleanCount, removeUneditedPanels, unpanelledOf } from './src/panel-census';
 import { COLOR_COLUMNS, COLOR_GAP, clearOrphanSpecPanels, drawSpecPanel, hexFor, planSpecPanel, specItems, type SpecApi } from './src/spec-panel';
 
 let failed = 0;
@@ -1733,6 +1740,47 @@ const specPage = async (name: string) => {
   const pb2 = livePanel(b);
   ok(rs.drawn && !!pb2 && Number(sp.x) - Number(b.x) === before.dx && Number(sp.y) - Number(b.y) === before.dy && Number(sp.x) === Number(pb2.x) + Number(pb2.width) + 40 && Number(sp.y) === Number(pb2.y),
     `specs/follows set: Update moves Divider to ${b.x}, and its spec panel with it, still beside its usage panel (${sp.x} vs ${Number(pb2?.x) + Number(pb2?.width) + 40})`);
+}
+
+/* ── census: which present leads have no live panel (#3137) ─────────────────────────────────────────────── */
+section('census/… — the sets with no usage panel, from one search for panel tags (#3137, Q3137.3 A)');
+{
+  // Badge and Tag lead their own families; Divider too. Badge's panel is drawn; Tag's set has none; Divider's panel names
+  // a set id no longer in the file (its set was deleted and built again), so it counts as missing. The icons draw no panel.
+  const p = page('↳ Census');
+  const badge = fakeSet(p, 'badge', 0, 0);
+  const tagSet = fakeSet(p, 'tag', 0, 8000);
+  const divider = fakeSet(p, 'divider', 0, 16000);
+  const api = host([p]);
+  await drawDocPanel(api, badge, componentDefs.find((d) => d.id === 'badge')!, { names });
+  await drawDocPanel(api, divider, componentDefs.find((d) => d.id === 'divider')!, { names });
+  const divPanel = panelsOn(p).find((n) => tagOf(n).def === 'divider')!;
+  divPanel.setSharedPluginData!('prism3', 'docPanel', JSON.stringify({ ...tagOf(divPanel), set: 'gone:1' }));
+  const setIds = new Set((api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).map((n) => String(n.id)));
+  const live = livePanels(api.root);
+  const panelled = panelledOf(live.map((x) => x.tag), setIds);
+  const missing = unpanelledOf(['badge', 'tag', 'divider', 'icon'], panelled);
+  ok(JSON.stringify(missing) === JSON.stringify(['tag', 'divider']) && String(tagSet.id) !== '',
+    `census/missing: Tag (no panel) and Divider (its panel names a set no longer in the file) lack a panel; Badge has one; the icons draw none (${JSON.stringify(missing)})`);
+  ok(live.length === 2 && panelled.includes('badge') && !panelled.includes('divider'), `census/live: two live panels found by their tag, one still on its set (${live.length}; ${JSON.stringify(panelled)})`);
+}
+/* ── clean: Clean up removes the panels that still hold what was drawn, never an edited one (#3137, Q3137.7 A) ── */
+section('clean/… — panels off: Clean up removes unedited panels, and an edited one stays (#3137)');
+{
+  const p = page('↳ Clean');
+  const api = host([p]);
+  const sets = ['badge', 'tag', 'divider'].map((id, i) => fakeSet(p, id, 0, i * 8000));
+  for (const [i, id] of ['badge', 'tag', 'divider'].entries()) await drawDocPanel(api, sets[i], componentDefs.find((d) => d.id === id)!, { names });
+  const tagPanel = panelsOn(p).find((n) => tagOf(n).def === 'tag')!;
+  const line = walk(tagPanel).find((c) => c.type === 'TEXT' && String(c.characters).length > 20)!;
+  line.characters = 'Our team uses tags for filters only.';
+  const count = await panelsCleanCount(api);
+  ok(count.drawn === 3 && count.removable === 2, `clean/count: three panels drawn, two still as drawn (${JSON.stringify(count)})`);
+  const r = await removeUneditedPanels(api);
+  const left = panelsOn(p).filter((n) => !n.removed);
+  ok(r.removed === 2 && r.kept === 1 && left.length === 1 && left[0] === tagPanel && String(line.characters) === 'Our team uses tags for filters only.',
+    `clean/edited stays: the two unedited panels are removed and the edited one stays, its edit intact (${JSON.stringify(r)}; ${left.map((n) => tagOf(n).def).join(', ')})`);
+  ok(sets.every((s) => !s.removed), 'clean/sets: no set is touched');
 }
 
 if (failed) { console.error(`\n✗ ${failed} doc panel check(s) failed`); process.exit(1); }
