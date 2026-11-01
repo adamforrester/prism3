@@ -60,7 +60,7 @@ import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot 
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { livePanels, panelLeadsOf, panelledOf, panelsCleanCount, removeUneditedPanels, unpanelledOf, type CensusRoot } from './panel-census';
-import { clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -1079,12 +1079,13 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
   if (presentRead) return presentRead;
   const gen = presentGen;
   const read = (async (): Promise<FileRead> => {
-    const nodes = await timed('page reads', () => searchPagesYielding(['COMPONENT', 'COMPONENT_SET'], onPage));
+    const frames: SearchNode[] = [];
+    const nodes = await timed('page reads', () => searchPagesYielding(['COMPONENT', 'COMPONENT_SET'], onPage, frames));
     const names = presentNames({ root: rootOver(nodes) } as unknown as Parameters<typeof presentNames>[0]);
     const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
     // #3137 Q3137.3 A: with every page loaded, the panels census, one search, kept beside the sets so a recount reads
     // both with no page load, whichever way Documentation's switch is turned meanwhile.
-    const panelled = panelCensus(nodes);
+    const panelled = panelCensus(nodes, frames);
     if (gen === presentGen) { presentCache = ids; panelCache = panelled; }
     watchSets();
     return { ids, nodes, panelled };
@@ -1106,10 +1107,14 @@ let presentGen = 0;
  * Each page is loaded and then searched in its own turn, so no turn holds the thread for more than one page. A host
  * whose pages cannot be searched one at a time (a Node shim) is searched in one go, as before.
  */
-const searchPagesYielding = async (types: string[], onPage?: (done: number, total: number) => void): Promise<SearchNode[]> => {
-  const pages = figma.root.children as readonly { loadAsync?(): Promise<void>; findAllWithCriteria?(c: { types: string[] }): readonly SearchNode[] }[];
+const searchPagesYielding = async (types: string[], onPage?: (done: number, total: number) => void, panels?: SearchNode[]): Promise<SearchNode[]> => {
+  // #3137 Q3137.3 A: `panels`, when given, collects the usage panels too: the frames tagged with the panel key, by an indexed
+  // search of the same page in its own turn, so the census never searches the whole file in one turn either.
+  const PANEL_CRITERIA = { types: ['FRAME'], sharedPluginData: { namespace: DOC_PANEL_NS, keys: [DOC_PANEL_KEY] } };
+  const pages = figma.root.children as readonly { loadAsync?(): Promise<void>; findAllWithCriteria?(c: { types: string[]; sharedPluginData?: { namespace: string; keys: string[] } }): readonly SearchNode[] }[];
   if (!pages.every((p) => typeof p.findAllWithCriteria === 'function')) {
     await loadPagesYielding(onPage);
+    if (panels) panels.push(...(figma.root.findAllWithCriteria(PANEL_CRITERIA as never) as readonly SearchNode[]));
     return [...(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[])];
   }
   const out: SearchNode[] = [];
@@ -1117,6 +1122,7 @@ const searchPagesYielding = async (types: string[], onPage?: (done: number, tota
   for (const [i, p] of pages.entries()) {
     if (typeof p.loadAsync === 'function') { await p.loadAsync(); await breathe(); }
     out.push(...p.findAllWithCriteria!({ types }));
+    if (panels) { await breathe(); panels.push(...p.findAllWithCriteria!(PANEL_CRITERIA)); }
     onPage?.(i + 1, pages.length);
     await breathe();
   }
@@ -1144,12 +1150,12 @@ let presentCache: string[] | null = null;
 /** #3137 Q3137.3 A: the leads whose usage panel the last census found drawn (`panel-census.ts`), beside `presentCache` and
  *  cleared with it, so the badge's recount reads the panels with no page load. Null until a read has run the census. */
 let panelCache: string[] | null = null;
-/** #3137: the census, after a read has loaded every page: one document search for panel tags, read against the set ids
- *  that read found (`readPresent` keeps it as `panelCache`). Never throws: an unreadable search reads as no panel. */
-const panelCensus = (nodes: readonly SearchNode[]): string[] => {
+/** #3137: the census, from a read's own searches: the panel frames it collected a page at a time, read against the set ids
+ *  it found (`readPresent` keeps it as `panelCache`). Never throws: an unreadable frame reads as no panel. */
+const panelCensus = (nodes: readonly SearchNode[], frames: readonly SearchNode[]): string[] => {
   try {
     const setIds = new Set(nodes.filter((n) => n.type === 'COMPONENT_SET').map((n) => String((n as { id?: string }).id ?? '')));
-    return panelledOf(livePanels(figma.root as unknown as CensusRoot).map((x) => x.tag), setIds);
+    return panelledOf(livePanels({ findAllWithCriteria: () => frames } as unknown as CensusRoot).map((x) => x.tag), setIds);
   } catch { return []; }
 };
 /** #3137 Q3137.3 A: the sets Update file offers a usage panel for, sent only while Documentation has panels on. */
