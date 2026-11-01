@@ -378,6 +378,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   // Q2: the preview's title row shares one header height with the tab row, so the two dividers meet at
   // one y across the split. So the title, the mode control and Inspect sit on ONE row (S1.3): concept v6
   // put the modes on a second row, which is what offset the two dividers.
+  // Components shows neither the mode control (#3129 R4) nor Inspect (#3149), so there the row is empty: it stays at
+  // wide widths for the divider, and collapses at the narrow tier (`chrome.css`).
   const previewHead = hook(h('div', 'p3-preview-head'), 'preview-head');
   const previewTitle = hook(h('h2', 'p3-preview-title'), 'preview-title');
   previewTitle.id = 'p3-preview-title';

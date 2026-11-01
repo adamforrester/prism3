@@ -874,8 +874,9 @@ const expectFor = (column, place, state = 'page') => {
   // #2909: on the rail (both hosts since Q2909.9 A), Components has no tab and, at 380, no domain select (its tab row
   // keeps the page's title and the search, #3129 R3), and Contrast sits in the preview header of Theme's pages, never on Components.
   const base = EXPECT_CONTROLS[column].filter((h) => (place.startsWith('color-') || !COLOR_SUBS.includes(h)) && !(place === 'components' && (FIGMA_TABS.includes(h) || h === '[data-p3="tab-select"]')));
-  // #3129 R4 (the owner, 2026-10-28): Components shows no mode control, so its preview header holds Inspect alone.
-  const PREVIEW_HEAD = place !== 'components' ? [...PREVIEW_HEAD_ALL, '[data-p3="verdict"]'] : ['[data-p3="inspect-open"]'];
+  // #3129 R4 (the owner, 2026-10-28): Components shows no mode control, and since #3149 (Q3149.2 A) no Inspect, so its
+  // preview header holds nothing (section 3149 holds the absence).
+  const PREVIEW_HEAD = place !== 'components' ? [...PREVIEW_HEAD_ALL, '[data-p3="verdict"]'] : [];
   const levers = LEVERS_CONTROLS[place];
   if (!levers) return base;
   // A moved place. Narrow, on the Preview pane (Inspect opens there), the tab row and the levers are hidden.
@@ -19316,6 +19317,70 @@ console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot 
   }
 }
 } // 3199
+
+// =============================================================================================
+// #3149 — Components' preview header: no Inspect, the empty row kept at wide widths and collapsed at 380
+// (Q3149.1–.4, all A, the owner, 2026-11-01)
+// =============================================================================================
+// WHAT THIS HOLDS. Inspect comes off the Components page's preview header on both hosts (Q3149.2 A, Q3149.4 A), and only
+// there: a Theme page keeps it, with the build stamp and the privacy note at its foot (Q3149.3 A). Since #3129 R3 and R4
+// Inspect was all that header held, so the row is now empty: at 1280 it stays, its bottom edge on the levers header's, so
+// the two dividers still meet at one y (Q2); at 380, on the Preview pane, it collapses (Q3149.1 A).
+// INDEPENDENCE (docs/34): the expectations are the decision's, typed here. Each absence reads against a Theme page's
+// header measured in the same run (`hooks.absent`), and the 1280 row's edge against the levers header, not against itself.
+//
+// Mutations, each after a `wip:` commit, each failing by name:
+//   · Inspect restored on Components (the `.p3-popwrap` rule in `chrome.css` dropped) → `3149 <host> 1280: Q3149.2 A:
+//     Components shows no Inspect` and `… 380: …` on both hosts;
+//   · the row kept at 380 (the narrow collapse rule dropped) → `3149 <host> 380: Q3149.1 A: the empty header row collapses`;
+//   · the row collapsed at every width (the collapse rule unscoped from the narrow tier) → `3149 <host> 1280: Q3149.1 A:
+//     the empty header row stays`.
+if (runs('3149')) {
+console.log(`\n#3149 — Components' preview header: no Inspect; the row kept at 1280, collapsed at 380\n${'='.repeat(78)}`);
+/** The preview header and its Inspect, read where they are drawn, beside the levers header's bottom edge. */
+const headNow = (page) => page.evaluate(() => {
+  const head = document.querySelector('[data-p3="preview-head"]');
+  const nav = document.querySelector('[data-p3="tab-row"]');
+  const inspect = document.querySelector('[data-p3="inspect-open"]');
+  const r = head?.getBoundingClientRect();
+  return { headShown: !!head?.checkVisibility(), headH: Math.round(r?.height ?? 0), headBottom: Math.round(r?.bottom ?? -1),
+    navBottom: Math.round(nav?.getBoundingClientRect().bottom ?? -2), inspect: !!inspect?.checkVisibility(),
+    body: !!document.querySelector('[data-p3="preview-body"]')?.checkVisibility() };
+});
+for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
+  const where = `3149 ${host} ${w}`;
+  const narrow = w === 380;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w, h: narrow ? 760 : 900 });
+  let step = 'a Theme page';
+  try {
+    // The oracle: a Theme page (Brand) keeps Inspect in its preview header. At 380 that header is on the Preview pane.
+    await goPlace(page, 'brand');
+    if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    await settle(page);
+    const theme = await headNow(page);
+    ok(theme.headShown && theme.inspect, `${where}: Q3149.2 A: a Theme page (Brand) keeps Inspect in its preview header (${JSON.stringify(theme)})`);
+    if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+    step = 'Components';
+    await goPlace(page, 'components');
+    await hooks.need(page, '[data-p3="components-levers"]');
+    if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    await settle(page);
+    const comp = await headNow(page);
+    hooks.absent(ok, { seen: theme.inspect && comp.body, state: 'a Theme page\'s Inspect, shown, and Components\' preview' }, !comp.inspect,
+      `${where}: Q3149.2 A: Components shows no Inspect (${JSON.stringify(comp)})`);
+    if (!narrow) {
+      ok(comp.headShown && comp.headH > 0 && Math.abs(comp.headBottom - comp.navBottom) <= 1,
+        `${where}: Q3149.1 A: the empty header row stays, its bottom edge on the levers header's, so the dividers meet (${JSON.stringify(comp)})`);
+    } else {
+      hooks.absent(ok, { seen: theme.headShown && comp.body, state: 'a Theme page\'s preview header, and Components\' Preview pane' }, !comp.headShown && comp.headH === 0,
+        `${where}: Q3149.1 A: the empty header row collapses on the Preview pane (${JSON.stringify(comp)})`);
+    }
+    ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  } catch (e) {
+    ok(false, `${where}: ${step}: ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+} // 3149
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
