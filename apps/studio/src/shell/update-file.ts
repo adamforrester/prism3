@@ -464,7 +464,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       foot.push(del);
     } else if (p.verdict) body.push(hook(h('p', 'p3-upd-summary', p.verdict.count === 0 && !p.verdict.applied ? UPDATE_COPY.cleanNone : p.verdict.summary), 'clean-prune-result'));
     // #3137 Q3137.7 A: while Documentation has panels off, the panels drawn while it had them on; edited ones stay.
-    if (r.panelsOff && !panelsAsked && !r.panelsClean.busy) { panelsAsked = true; lend.panelsClean(false); }
+    // A count already out (Documentation asks when panels turn off) is this opening's: its answer is the one drawn.
+    if (r.panelsOff && !panelsAsked) { panelsAsked = true; if (!r.panelsClean.busy) lend.panelsClean(false); }
     const pc = lend.read().panelsClean;
     if (r.panelsOff && pc.count && pc.count.drawn > 0) {
       const box = hook(h('div', 'p3-upd-item'), 'clean-panels');
@@ -495,7 +496,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const r = lend.read();
     setBusy(button, !!r.run);
     const parts = badgeParts(r.catalog, r.fileSets, r.liveDue, r.queue);
-    const n = parts.add + parts.due + (parts.theme ? 1 : 0);
+    const n = parts.add + parts.due + (parts.theme ? 1 : 0) + (parts.panels ? 1 : 0);
     badge.textContent = n ? String(n) : '';
     badge.hidden = !n;
     if (n) button.setAttribute('aria-label', UPDATE_COPY.badgeName(parts)); else button.removeAttribute('aria-label');
