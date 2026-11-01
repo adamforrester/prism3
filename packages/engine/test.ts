@@ -27908,6 +27908,49 @@ arm: {
       `#2711 codeOnly admissions: the admissions found are exactly the ${EXPECTED_ADMISSIONS.length} listed (got ${found.length}: ${[...found].sort().join(', ')})`);
   }
 
+  // ---- #2757: every prop-backed state has its prop, unless admitted ---------------------------
+  // #2708 pinned the Rows' and Textarea's new props against a literal; nothing stopped the NEXT def
+  // from declaring `disabled` (or `read-only`, `pending`, `inactive`) in `states` with no prop a code
+  // consumer can set. A state with no knob is reachable in Figma and unreachable in code.
+  //
+  // INDEPENDENCE (docs/34 shape 1): `STATE_PROP` is a hand-written literal. It is NOT derived from the
+  // defs, from `figmaProperties`, or from any naming rule (`read-only`→`readOnly` is camel-casing,
+  // `pending`→`isPending` is not), so a def that renames its prop fails here rather than moving the
+  // oracle with it. Do not "simplify" it into a derivation.
+  //
+  // ADMISSIONS, in the `ZERO_OK` / `RESERVED_ROOT_OK` shape: `def:state` → the reason, which cites the
+  // decision. An admission must be LIVE — the def declares the state and lacks the prop — or it is
+  // stale and fails, so it cannot outlive the gap it excuses.
+  //
+  // SCOPE (docs/34 Q3): each mapped state must be declared, with its prop, by at least one def, so a
+  // map entry no def ever reaches is a dead arm, not a pass.
+  {
+    const STATE_PROP: Record<string, string> = { disabled: 'disabled', 'read-only': 'readOnly', pending: 'isPending', inactive: 'isInactive' };
+    const STATE_PROP_OK: Record<string, string> = {
+      'field-label:disabled': '#1339: the label dims from its FIELD\'s disabled context (the field\'s native disabled is the source of truth); the old `disabled` prop that duplicated the state was removed.',
+      'pagination-item:disabled': 'Call 9 A / Q414 A: previous and next at an end stay focusable with aria-disabled, driven by `isInactive`; native disabled is not used, and Figma draws that as the `disabled` state.',
+    };
+    const missing: string[] = []; const admitted: string[] = []; const covered = new Set<string>();
+    for (const d of componentDefs) {
+      const props = new Set((d.props ?? []).map((p) => p.name));
+      for (const s of d.states) {
+        const want = STATE_PROP[s];
+        if (!want) continue;
+        if (props.has(want)) { covered.add(s); continue; }
+        if (STATE_PROP_OK[`${d.id}:${s}`]) admitted.push(`${d.id}:${s}`);
+        else missing.push(`${d.id}: declares the '${s}' state with no '${want}' prop`);
+      }
+    }
+    ok(missing.length === 0,
+      `#2757 every prop-backed state has its prop (disabled→disabled, read-only→readOnly, pending→isPending, inactive→isInactive) unless admitted in STATE_PROP_OK${missing.length ? ` — ${missing.join(' | ')}` : ''}`);
+    const stale = Object.keys(STATE_PROP_OK).filter((k) => !admitted.includes(k));
+    ok(stale.length === 0,
+      `#2757 STATE_PROP_OK holds only live admissions — the def declares the state and lacks the prop${stale.length ? ` — STALE: ${stale.join(', ')}` : ''}`);
+    const unreached = Object.keys(STATE_PROP).filter((s) => !covered.has(s));
+    ok(unreached.length === 0,
+      `#2757 each mapped state is declared with its prop by at least one def${unreached.length ? ` — UNREACHED: ${unreached.join(', ')}` : ''}`);
+  }
+
   // ---- the Figma COMPONENT-PROPERTY projection (#487 §5) ------------------------------------
   // Step 1 of #487, and the reason it comes first: this is the whole design decision, and it is
   // gateable with no Figma file. Every rule below is a cross-reference — a name in the projection
