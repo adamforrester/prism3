@@ -58,7 +58,8 @@ export const APPLY_STAGES = ['float', 'color', 'styles', 'grid', 'type-vars', 't
 export type ApplyStage = (typeof APPLY_STAGES)[number];
 /** How an apply reports and hands the thread back (#3170, the plugin's alone: the paste harness passes none). `check`
  *  before the first read; `stage` before each write stage, `done` of 7 finished, awaited so the thread is handed back
- *  between stages; `tick` inside the color stage, every `COLOR_YIELD_EVERY` variables (`write-figma.ts`). */
+ *  between stages; `tick` inside every stage, offered after each variable or style written (#3208, `Tick` in
+ *  `write-figma.ts`), which the plugin turns into a hand-back once about `PACE_MS` of work has run. */
 export type ThemePace = { check: () => void; stage: (stage: ApplyStage, done: number) => Promise<void>; tick: () => Promise<void> };
 
 /**
@@ -108,7 +109,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // variable, so the opacity collection must exist before the color pass binds it. Nothing in the FLOAT
       // axes reads a color variable, so nothing depends on the old order.
       await pace?.stage('float', 0);
-      const f = await applyFloatPlan(floatPlan, host.variables, mig);
+      const f = await applyFloatPlan(floatPlan, host.variables, mig, pace?.tick);
       // Colour axis (#108): the `core` palette slice + the one `color` collection, per-mode alias-bound.
       // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
       // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
@@ -117,25 +118,25 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
       await pace?.stage('styles', 2);
-      const s = await applyStylesPlan(stylesPlan, host);
+      const s = await applyStylesPlan(stylesPlan, host, pace?.tick);
       // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`sm`, …; renamed in place from `Grid / sm`, #2467), sourced from
       // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
       // off a variable — so N breakpoints = N styles, coexisting with the variables (the responsive source
       // of truth). The global `figma` structurally satisfies the GridStylesApi port (createGridStyle +
       // getLocalGridStylesAsync). No binding, so nothing here can miss.
       await pace?.stage('grid', 3);
-      const gs = await applyGridStylePlan(gridPlan, host);
+      const gs = await applyGridStylePlan(gridPlan, host, pace?.tick);
       // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
       // Styles.
       await pace?.stage('type-vars', 4);
-      const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig);
+      const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig, pace?.tick);
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
       await pace?.stage('text-styles', 5);
-      const ts = await applyTextStylePlan(textPlan, textApiOf(host));
+      const ts = await applyTextStylePlan(textPlan, textApiOf(host), pace?.tick);
       // MOTION (#2412): TIMING durations + EASING curves, roles and springs, through the same mixed-type
       // executor. Independent of every other axis: nothing aliases into or out of `motion`.
       await pace?.stage('motion', 6);
-      const mv = await applyVarCollectionPlan(motionPlan, host.variables, mig);
+      const mv = await applyVarCollectionPlan(motionPlan, host.variables, mig, pace?.tick);
       // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
       // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
       persistInput(host.root, input);

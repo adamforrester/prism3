@@ -93,7 +93,8 @@ export const gridSkippedNote = (skipped: readonly string[]): string =>
  * never read as a match, whatever its name, and never written. No variable binding — a grid
  * style holds baked geometry, so there is no alias graph and nothing to miss.
  */
-export const applyGridStylePlan = async (plan: GridStylePlan, api: GridStylesApi): Promise<GridStyleApplyResult> => {
+export const applyGridStylePlan = async (plan: GridStylePlan, api: GridStylesApi, tick?: () => Promise<void>): Promise<GridStyleApplyResult> => {
+  // `tick` (#3208): offered after every style written, as in every Apply Theme executor (`Tick` in `write-figma.ts`).
   // A copy: a created style is added to it, and the host (or a shim) may hand back its own live list.
   const live = [...(await api.getLocalGridStylesAsync())];
   const ours = (name: string): GridStyleNode | undefined => live.find((s) => s.name === name && isPrism3GridStyle(s));
@@ -112,6 +113,7 @@ export const applyGridStylePlan = async (plan: GridStylePlan, api: GridStylesApi
     markOwned(s);   // the ownership mark (#1884), created, renamed or reused — see `provenance.ts`
     s.description = row.description;
     s.layoutGrids = row.layoutGrids;
+    await tick?.();
   }
   return { total: plan.length, created, renamed, skipped };
 };

@@ -181,8 +181,8 @@ export const tab: ComponentDef = {
         nests: 'badge',
         optional: true,
         // `size: 'medium'` since badge gained a size axis (#2983): the count exists at medium only, and the coordinate
-        // must name one badge member.
-        nesting: { kind: 'nest-fixed', variant: { type: 'count', size: 'medium', emphasis: 'bold', tone: 'neutral' } },
+        // must name one badge member. `style: 'contained'` since badge gained a style axis (#3199), for the same reason.
+        nesting: { kind: 'nest-fixed', variant: { type: 'count', style: 'contained', size: 'medium', emphasis: 'bold', tone: 'neutral' } },
         note: 'An optional count after the label, the shared count badge.',
       },
       indicator: {

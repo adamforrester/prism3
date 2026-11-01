@@ -107,6 +107,20 @@ const sendThemePref = async (): Promise<void> => {
     /* storage unavailable: Match Figma */
   }
 };
+/** The desktop bridge's pairing token (#3204, the owner's Q3204.1 A): per person and per machine in `clientStorage`, the
+ *  only place it is kept. Never written to the file, its plugin data or shared plugin data, which travel with the file. */
+const BRIDGE_TOKEN_KEY = 'prism3:bridge-token';
+/** Send the kept token, or null: the relay waits for this answer before it connects, so it never asks for a code it has. */
+const sendBridgeToken = async (): Promise<void> => {
+  let token: string | null = null;
+  try {
+    const v: unknown = await figma.clientStorage.getAsync(BRIDGE_TOKEN_KEY);
+    if (typeof v === 'string' && v) token = v;
+  } catch {
+    /* storage unavailable: no token, so the panel asks for a code */
+  }
+  postToUi({ type: 'agent-bridge-token', token });
+};
 /** The open Activity drawer's height, as the person dragged it (#2176, the owner's AD1): kept like the Theme choice. */
 const ACTIVITY_HEIGHT_KEY = 'prism3:activity-height';
 /** Where the bar's Docs opens (#2637, owner decision Q384 A): the docs landing page on the studio's web address, which
@@ -244,9 +258,9 @@ void (async (): Promise<void> => {
  * #3170 PART 2: WHAT THE PANEL HEARS WHILE A WRITE RUNS (owner decisions Q3170.1–6, all A). The panel learns something
  * only when this thread posts to it, and this thread can post only when the write hands it back. So each write the
  * panel starts posts `run-progress` at every boundary it has (a page of the read after open, a set of the update, a
- * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set (Q3170.5 A)
- * or every `COLOR_YIELD_EVERY` color variables, posting the same reading again so the panel can tell a long set from a
- * stalled panel. Never through an agent's sink, which collects every post as a verdict: an agent's update and Apply
+ * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set or a stage
+ * (Q3170.5 A; #3208 brought every Apply Theme stage onto the same clock), posting the same reading again so the panel can
+ * tell a long set from a stalled panel. Never through an agent's sink, which collects every post as a verdict: an agent's update and Apply
  * Theme post no readings, and its Capture baseline and Adopt (#3189) post theirs to the panel directly (`postProgress`),
  * a reading at each def, for the status strip.
  */
@@ -263,16 +277,19 @@ const paced = (again: () => void): ((ms?: number) => Promise<void>) => {
     last = Date.now();
   };
 };
-/** Apply Theme's pacing: a reading and a hand-back before each of its seven stages and every `COLOR_YIELD_EVERY` color
- *  variables. The thread is handed back for an agent's apply too; only the panel's posts. */
+/** Apply Theme's pacing: a reading and a hand-back before each of its seven stages, and inside every stage the cadence a
+ *  component write keeps (#3208): the executors offer a `tick` after each variable or style, and it hands the thread back
+ *  once about `PACE_MS` of work has run since the last hand-back. The thread is handed back for an agent's apply too; only
+ *  the panel's posts. */
 const themePace = (sink: ActionSink): ThemePace => {
   const panel = sink === uiSink;
   let at: { stage: ApplyStage; done: number } | null = null;
   const say = (): void => { if (panel && at) postProgress('apply-theme', { phase: 'work', item: at.stage, done: at.done, total: APPLY_STAGES.length }); };
+  let last = Date.now();
   return {
     check: () => { if (panel) postProgress('apply-theme', { phase: 'check', item: null, done: 0, total: APPLY_STAGES.length }); },
-    stage: async (stage, done) => { at = { stage, done }; say(); await breathe(); },
-    tick: async () => { say(); await breathe(); },
+    stage: async (stage, done) => { at = { stage, done }; say(); await breathe(); last = Date.now(); },
+    tick: async () => { if (Date.now() - last < PACE_MS) return; say(); await breathe(); last = Date.now(); },
   };
 };
 /** #3170 Q3170.4 A: the panel's "Stop after <set>" (`update-stop`), read by its running update at each set boundary. */
@@ -1922,6 +1939,7 @@ onUiMessage((msg: UiToMain) => {
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
       void sendThemePref();
       void sendActivityHeight();
+      void sendBridgeToken();
       postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });
       // #3170: the panel paints first. This turn posts only what one root read answers; the reads below each start in a
       // turn of their own, so the panel has its brand and settings before any of them holds the thread.
@@ -2045,6 +2063,12 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'agent-bridge':
       agentLink.setBridge(msg.connected);
+      return;
+    case 'agent-bridge-paired':
+      if (typeof msg.token === 'string' && msg.token) void figma.clientStorage.setAsync(BRIDGE_TOKEN_KEY, msg.token).catch(() => {/* best-effort: asked again next time */});
+      return;
+    case 'agent-bridge-unpaired':
+      void Promise.resolve().then(() => figma.clientStorage.deleteAsync(BRIDGE_TOKEN_KEY)).catch(() => {/* best-effort */});
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the

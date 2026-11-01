@@ -88,6 +88,10 @@
         "medium",
         "small"
       ],
+      "style": [
+        "contained",
+        "inline"
+      ],
       "tone": [
         "danger",
         "info",
@@ -101,7 +105,7 @@
         "status"
       ]
     },
-    "members": 40,
+    "members": 50,
     "properties": {
       "label": "TEXT",
       "value": "TEXT"
