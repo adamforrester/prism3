@@ -1917,7 +1917,7 @@
         "kind": "component set",
         "page": "↳ Badge",
         "section": "Components",
-        "members": 40,
+        "members": 50,
         "variantProperties": [
           {
             "name": "type",
@@ -1925,6 +1925,13 @@
               "status",
               "count",
               "dot"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "contained",
+              "inline"
             ]
           },
           {
