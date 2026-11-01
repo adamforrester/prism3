@@ -1345,34 +1345,95 @@ const PROBE = (opt) => {
 };
 
 /** The fonts every probed text element drew, by CDP — leaf text elements only (a container reports its
- *  descendants' faces, the S1.1 trap). */
+ *  descendants' faces, the S1.1 trap).
+ *
+ *  #3255: READ AGAINST A LAID-OUT TREE. `CSS.getPlatformFontsForNode` counts the glyphs of the element's laid-out text and
+ *  does not run layout itself: an element whose text node the page replaced since the last layout has no laid-out text
+ *  yet, and reads as drawing no font at all, while its node, its attributes and its markup all read whole (so #3069's
+ *  "the node went" guard below never sees it). The status strip replaces the text of its words, its count and its Stop
+ *  once a second while a run is out (`shell/status-strip.ts`), so a font read that a tick landed in reported them "drew
+ *  nothing" on a slow CI runner (section 3170, "updating"). So the read starts on a laid-out tree, and a mutation
+ *  observer, installed in the same task, notes every probed element whose text changes from then until the read ends;
+ *  each noted element is read again from a tree laid out afresh (a forced layout, `offsetHeight`, in the task that
+ *  takes the notes), until a read of it lands with no change under it.
+ *  Bounded: past `AGAIN` rounds the read is the page re-rendering under it, and returns null as #3069's does. An element
+ *  whose text did not change under its read is reported as read, so a real "drew nothing" still fails by name. */
 const fontsDrawn = async (page) => {
+  const AGAIN = 6;
+  // Each probed element numbered, the observer on and the tree laid out, all in one task: nothing lands between them.
+  await page.evaluate(() => {
+    [...document.querySelectorAll('[data-cprobe]')].forEach((n, i) => n.setAttribute('data-cprobe-at', String(i)));
+    const moved = new Set();
+    const mo = new MutationObserver((recs) => { for (const r of recs) { const el = (r.target.nodeType === 1 ? r.target : r.target.parentElement)?.closest('[data-cprobe]'); if (el) moved.add(el); } });
+    mo.observe(document, { subtree: true, childList: true, characterData: true });
+    window.__cprobeMoved = { mo, moved };
+    void document.documentElement.offsetHeight;
+  });
+  // The numbers of the probed elements whose text changed since the last call; then, in the same task, the tree laid
+  // out afresh, so a read of them that sees no change under it reads laid-out text.
+  const takeMoved = () => page.evaluate(() => {
+    const w = window.__cprobeMoved;
+    for (const r of w.mo.takeRecords()) { const el = (r.target.nodeType === 1 ? r.target : r.target.parentElement)?.closest('[data-cprobe]'); if (el) w.moved.add(el); }
+    const at = [...w.moved].map((n) => Number(n.getAttribute('data-cprobe-at')));
+    w.moved.clear();
+    void document.documentElement.offsetHeight;
+    return at;
+  });
+  const clear = () => page.evaluate(() => {
+    window.__cprobeMoved?.mo.disconnect();
+    delete window.__cprobeMoved;
+    for (const a of ['data-cprobe', 'data-cprobe-at']) for (const n of document.querySelectorAll(`[${a}]`)) n.removeAttribute(a);
+  });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
-  const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
-  // Every probed text node: `text` (the UI face) or `mono` (the mono face, S2).
-  const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe]' });
-  const out = [];
   // A node the page re-rendered between the probe and any of its three reads is gone (#3069: the page can re-render it
   // after the font read, before its attributes or its markup): the caller reads the whole state again. Only that one
   // error; any other still throws, and a node read whole is measured as before.
   const read = (method, nodeId) => cdp.send(method, { nodeId }).catch((e) => (/Could not find node/.test(String(e)) ? null : Promise.reject(e)));
-  for (const nodeId of nodeIds) {
-    const got = await read('CSS.getPlatformFontsForNode', nodeId);
-    const attrs = got && await read('DOM.getAttributes', nodeId);
-    const html = attrs && await read('DOM.getOuterHTML', nodeId);
-    if (!html) { await cdp.detach(); await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); }); return null; }
-    const { fonts } = got;
-    const { attributes } = attrs;
-    const want = attributes[attributes.indexOf('data-cprobe') + 1] === 'mono' ? MONO_FONT : UI_FONT;
-    const { outerHTML } = html;
-    out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
-      gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0) });
+  // Every probed text node: `text` (the UI face) or `mono` (the mono face, S2), by its number.
+  const out = [];
+  const fontsOf = ({ fonts }, want) => ({ fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
+    gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0) });
+  const readAll = async () => {
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe]' });
+    for (const nodeId of nodeIds) {
+      const got = await read('CSS.getPlatformFontsForNode', nodeId);
+      const attrs = got && await read('DOM.getAttributes', nodeId);
+      const html = attrs && await read('DOM.getOuterHTML', nodeId);
+      if (!html) return false;
+      const { attributes } = attrs;
+      const attr = (a) => attributes[attributes.indexOf(a) + 1];
+      const want = attr('data-cprobe') === 'mono' ? MONO_FONT : UI_FONT;
+      out[Number(attr('data-cprobe-at'))] = { nodeId, want, el: html.outerHTML.replace(/ data-cprobe-at="[^"]*"/, '').slice(0, 60), ...fontsOf(got, want) };
+    }
+    return true;
+  };
+  // Only the fonts again, of the elements numbered `at`, by the node each was read as (the element stays when its text
+  // is replaced; a node that went is #3069's re-render).
+  const readAgain = async (at) => {
+    for (const i of at) {
+      const x = out[i];
+      const got = x && await read('CSS.getPlatformFontsForNode', x.nodeId);
+      if (!got) return false;
+      Object.assign(x, fontsOf(got, x.want));
+    }
+    return true;
+  };
+  let whole = await readAll();
+  let still = true;
+  for (let i = 0; whole && i <= AGAIN; i++) {
+    const at = await takeMoved();
+    if (!at.length) { still = false; break; }
+    if (i < AGAIN) whole = await readAgain(at);
   }
+  // Past `AGAIN` rounds with a change under every one, no read stands: the caller reads the whole state again, as for a
+  // node that went, rather than report as drawing nothing an element whose text it never read laid out.
+  if (still) whole = false;
   await cdp.detach();
-  await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); });
-  return out;
+  await clear();
+  return whole ? out.filter(Boolean).map(({ el, fonts, gapFonts }) => ({ el, fonts, gapFonts })) : null;
 };
 
 /** The focused control's ring, read in the page: `focusRings`' reader, named so a sweep that moves focus by other keys
