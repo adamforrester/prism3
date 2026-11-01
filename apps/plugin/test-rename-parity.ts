@@ -9,8 +9,9 @@
  *
  * WHAT THIS RUNS. One old-names file — a fixture written by hand below — is materialized twice into the
  * shared file model (`file-shim.ts`): once by the plugin's `beginMigration` + `applyWritePlan`, once by the
- * paste path's real payloads (`migrate`, `palette`, `color-create`), executed as `figma_execute` runs them.
- * Both read the same plan: the reference brand's committed `out/figma/nb/` tree.
+ * paste path's real payloads (`migrate`, `palette`, `color-create`, `dims-create`, `font-vars`, `motion-vars`),
+ * executed as `figma_execute` runs them. Both read the same plans (`variablePlans`, from the reference brand's
+ * committed `out/figma/nb/` tree), so every axis the rename pass covers is written on both sides.
  *
  * THE EXPECTED SIDE IS LITERAL (`docs/34`). Every expected name below is typed out, and each is a target the
  * rename map states — a `COLLECTION_RENAMES` entry, a `DEPRECATIONS`-derived row, or a materialization rule —
@@ -22,12 +23,10 @@
  * MOVED: a path that created the new name and left the old one would produce the right name set and fail
  * here, on the id.
  */
-import { readFileSync } from 'node:fs';
-import { buildWritePlan } from '@prism3/engine/write-plan';
 import { renameMap, COLLECTION_RENAMES } from '@prism3/engine/rename-map';
 import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
-import { passPayloads } from '@prism3/engine/materialise-to-figma';
-import { beginMigration, applyWritePlan } from './src/write-figma';
+import { passPayloads, variablePlans } from '@prism3/engine/materialise-to-figma';
+import { beginMigration, applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './src/write-figma';
 import { FileShim } from './file-shim';
 
 let pass = 0, fail = 0;
@@ -36,16 +35,14 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 const BRAND = 'nb';
-const TREE = new URL(`../../packages/engine/out/figma/${BRAND}/`, import.meta.url);
-const read = (f: string) => JSON.parse(readFileSync(new URL(f, TREE), 'utf8'));
-const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
-const plan = buildWritePlan({ palette: read('core.palette.json'), color: MODES.map((m) => read(`color.${m}.json`)) });
+// The plans the paste path reads (the committed tree), handed to the plugin's executors too: one plan, two writers.
+const { plan, floats, fonts, motion } = variablePlans(BRAND);
 
 /**
  * THE FIXTURE: what a file written by an older engine holds. `from` is seeded; `to` is what both paths must
  * leave it as. `why` names the register entry that states the target, which the first arm checks.
  */
-type Row = { collection: string; from: string; to: string; why: string };
+type Row = { collection: string; from: string; to: string; why: string; type?: 'FLOAT' | 'STRING' };
 const OLD_COLOR = 'color.appearance';
 const ROWS: Row[] = [
   // #1148's materialization rule: the value tier's variables gave up the `appearance/` segment.
@@ -60,6 +57,12 @@ const ROWS: Row[] = [
   { collection: OLD_COLOR, from: 'prism/color/background/secondary', to: 'nbds/color/background/secondary', why: 'rule brand-roots-1283' },
   // #1283 inside `core`: exercises the owned-slice scoping (`core/palette`) both paths apply before renaming.
   { collection: 'core', from: 'prism/core/palette/white', to: 'nbds/core/palette/white', why: 'rule brand-roots-1283' },
+  // The other two `core` slices, each written by a different executor: with all three seeded, a write that stops
+  // scoping `core` to its owned group sees the other slices' names and refuses them as un-planned.
+  { collection: 'core', from: 'prism/core/dimension/1', to: 'nbds/core/dimension/1', why: 'rule brand-roots-1283', type: 'FLOAT' },
+  { collection: 'core', from: 'prism/core/font/family/display', to: 'nbds/core/font/family/display', why: 'rule brand-roots-1283', type: 'STRING' },
+  // A float collection (`space`), written by the float executor and the `dims-create` pass.
+  { collection: 'space', from: 'space/0', to: 'nbds/space/0', why: 'rule namespace-and-core-tier-1097', type: 'FLOAT' },
 ];
 const EXPECTED_COLLECTION = { from: OLD_COLOR, to: 'color' };
 
@@ -83,7 +86,7 @@ const seed = (f: FileShim): Map<string, string> => {
   const cols = new Map<string, any>();
   const col = (name: string) => cols.get(name) ?? cols.set(name, f.createVariableCollection(name)).get(name);
   const ids = new Map<string, string>();
-  for (const r of ROWS) ids.set(r.from, f.createVariable(r.from, col(r.collection), 'COLOR').id);
+  for (const r of ROWS) ids.set(r.from, f.createVariable(r.from, col(r.collection), r.type ?? 'COLOR').id);
   return ids;
 };
 
@@ -120,16 +123,20 @@ const pasteIds = seed(paste);
 const main = async () => {
   console.log('#1024 — the plugin path');
   const mig = await beginMigration(plugin.variables);
+  // Apply Theme's variable order (`apply-theme.ts`): colour, floats, font, motion — one migration across all four.
   await applyWritePlan(plan, plugin.variables, mig);
+  await applyFloatPlan(floats, plugin.variables, mig);
+  await applyVarCollectionPlan(fonts, plugin.variables, mig);
+  await applyVarCollectionPlan(motion, plugin.variables, mig);
   const pp = judge(plugin, pluginIds);
   ok(pp.length === 0, `#1024 plugin path: every old name in the fixture is MOVED (same id) to the rename map's literal target, and the collection to '${EXPECTED_COLLECTION.to}' (${pp.length ? pp.join('; ') : `${ROWS.length} variables + 1 collection`})`);
 
   console.log('#1024 — the CLI paste path');
   let results: unknown[] = [];
   try {
-    results = await runPaste(paste, ['migrate', 'palette', 'color-create']);
+    results = await runPaste(paste, ['migrate', 'palette', 'color-create', 'dims-create', 'font-vars', 'motion-vars']);
   } catch (e) {
-    ok(false, `#1024 paste path: the migrate, palette and color-create payloads run — a payload THREW: ${(e as Error).message}`);
+    ok(false, `#1024 paste path: the migrate, palette, color-create, dims-create, font-vars and motion-vars payloads run — a payload THREW: ${(e as Error).message}`);
   }
   const pq = judge(paste, pasteIds);
   ok(pq.length === 0, `#1024 paste path: every old name in the fixture is MOVED (same id) to the rename map's literal target, and the collection to '${EXPECTED_COLLECTION.to}' (${pq.length ? pq.join('; ') : `${ROWS.length} variables + 1 collection`})`);
@@ -146,9 +153,10 @@ const main = async () => {
     const a = new Set(namesIn(plugin, col)), b = new Set(namesIn(paste, col));
     return [...[...a].filter((n) => !b.has(n)).map((n) => `plugin only: ${n}`), ...[...b].filter((n) => !a.has(n)).map((n) => `paste only: ${n}`)];
   };
-  const d = [...diff('color'), ...diff('core')];
-  ok(d.length === 0 && namesIn(plugin, 'color').length === plan.color.create.length,
-    `#1024 both paths leave the same variable names in 'color' and 'core' (${namesIn(plugin, 'color').length} + ${namesIn(plugin, 'core').length} names${d.length ? ` — ${d.slice(0, 4).join('; ')}` : ''})`);
+  const all = [...new Set([...plugin.collections, ...paste.collections].map((c) => c.name))].sort();
+  const d = all.flatMap(diff);
+  ok(d.length === 0 && namesIn(plugin, 'color').length === plan.color.create.length && all.includes('space'),
+    `#1024 both paths leave the same variable names in every collection (${all.length} collections: ${all.join(', ')}${d.length ? ` — ${d.slice(0, 4).join('; ')}` : ''})`);
 
   console.log('#1024 — a second paste is a no-op');
   let again: { migrated: string[]; refused: string[] } | undefined;

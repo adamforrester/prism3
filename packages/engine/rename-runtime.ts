@@ -21,6 +21,11 @@
  * `__name` is defined because `tsx` keeps function names by wrapping a nested named function in a call
  * to a helper it injects at module scope (`__name(fn, "closesLoop")`); the payload has no such helper,
  * and the wrapper only sets `.name`, so an identity function is a faithful stand-in.
+ *
+ * DO NOT RUN THIS UNDER A MINIFIER. The shipped functions call each other BY NAME, and the payload defines them
+ * under the names written in `plannerSources`. A minifier renames the call sites inside each body and not those
+ * definitions, and the payload then throws in the file. `tsx` and an esbuild build that keeps names (the
+ * `__name` above) are both safe; nothing bundles `materialise-to-figma.ts` today.
  */
 import { plannerSources } from './rename-map';
 import { rootOf, coreGroupOfSrc } from './figma-names';

@@ -805,7 +805,7 @@ export const recollectAll = (
 ): Set<VarKey> => new Set([...before].map((k) => recollect(k, renames)));
 
 /**
- * `MATERIALIZATION_RENAMES` AS SOURCE, for the paste path's rename pass (#1024, `rename-apply.ts`).
+ * `MATERIALIZATION_RENAMES` AS SOURCE, for the paste path's rename pass (#1024, `rename-runtime.ts`).
  *
  * The rules are closures, so a paste payload cannot receive them as JSON. Each rule's `domain` and `map`
  * ship as their own source, and the three module constants they close over ship as DATA, serialized from

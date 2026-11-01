@@ -357,6 +357,11 @@ const migrateAxes = (brand: string): MigrateAxis[] => {
   return axes.filter((a) => a.planned.length > 0).map((a) => ({ ...a, owns: ownedCoreGroup(a.planned) }));
 };
 
+/** The variable plans every pass here reads, for the reference brand's tree on disk: exported so the plugin
+ *  suite can run the plugin's executors over EXACTLY the plans this path pastes (#1024's parity gate). */
+export const variablePlans = (brand: string): { plan: WritePlan; floats: FloatCollectionPlan[]; fonts: VarCollectionPlan[]; motion: VarCollectionPlan[] } =>
+  ({ plan: planFor(brand), floats: floatPlans(brand), fonts: fontVarPlans(brand), motion: motionVarPlans(brand) });
+
 /** The payload for a slice of axes. Planned names travel as TAILS under one root per axis (the root is
  *  every planned name's first segment, #1097), and contract rows as `[from, to, since]` under their
  *  collection — a lossless transport encoding, rebuilt into the planners' own shapes in the file. */
