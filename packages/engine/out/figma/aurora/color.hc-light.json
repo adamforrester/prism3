@@ -2719,14 +2719,14 @@
       ],
       "description": "Form field placeholder — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.30980393290519714,
-        "b": 0.3294117748737335,
+        "r": 0.26274511218070984,
+        "g": 0.26274511218070984,
+        "b": 0.27843138575553894,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/650"
+        "name": "ads/core/palette/neutral/700"
       }
     },
     {

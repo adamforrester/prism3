@@ -1911,6 +1911,16 @@ for (const brand of BRANDS) {
     const fieldsPaint = new Set(got.paint.filter((n) => n.section === 'Fields').map((n) => n.role));
     const unpaintedFields = MUST_PAINT_FIELDS.filter((r) => !fieldsPaint.has(r));
     ok(unpaintedFields.length === 0, `${where}: the Fields section draws each field role as a field, page and inverse${unpaintedFields.length ? ` — not drawn: ${unpaintedFields.join(', ')}` : ''}`);
+    // #3220 (owner Q3212.5 A): the Fields section's placeholder draws text.secondary's emitted value, page and inverse,
+    // so the style guide shows the one placeholder ink the field hosts bind. The twin is named here, not read off the
+    // node, and the hex is the emission's, so a placeholder that keeps its own fit fails by name.
+    const phNodes = got.paint.filter((n) => n.section === 'Fields' && /^(inverse\.)?field\.placeholder$/.test(n.role));
+    const offPh = phNodes.flatMap((n) => {
+      const twin = n.role.replace('field.placeholder', 'text.secondary');
+      const want = emission?.role(twin, mode)?.hex, drawn = rgbHex(n.css);
+      return want && drawn === want ? [] : [`${n.role} is drawn ${drawn ?? n.css}, ${twin} is ${want ?? '(not emitted)'}`];
+    });
+    ok(phNodes.length > 0 && offPh.length === 0, `${where}: the Fields section's placeholder is drawn in text.secondary's emitted value, page and inverse (${phNodes.length} drawn)${offPh.length ? ` — ${offPh.slice(0, 3).join(' | ')}` : ''}`);
     // Q23: each levers section's description is the preview section's it is paired with, both read as rendered.
     const q23 = await page.evaluate(() => ({
       levers: Object.fromEntries([...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec')].map((n) => [n.querySelector('.p3-lsec-title')?.textContent, n.querySelector('.p3-lsec-desc')?.textContent ?? null])),
