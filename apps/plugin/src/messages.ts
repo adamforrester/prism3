@@ -116,6 +116,11 @@ export type UiToMain =
   | { type: 'agent-command'; command: unknown }
   /** Whether the panel's socket to the desktop bridge is open — shown on the link state. */
   | { type: 'agent-bridge'; connected: boolean }
+  /** The desktop bridge paired (#3204): the token its server gave for the code the person entered. The main thread keeps it
+   *  in `figma.clientStorage` (per person, per machine), never in the file or its plugin data. */
+  | { type: 'agent-bridge-paired'; token: string }
+  /** The bridge refused the kept token (its secret was rotated): the main thread forgets it. */
+  | { type: 'agent-bridge-unpaired' }
   /** Designer is dragging the UI's resize grip (#144). Sent continuously during the drag so the
    *  window tracks the pointer; `commit` is true only on pointer-up, which is when the main thread
    *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
@@ -500,6 +505,9 @@ export type MainToUi =
    *  after every command, so the panel's control always shows what the link is doing. The shared UI body
    *  never reads it — the agent-link control (`agent-link-ui.ts`) is its only consumer. */
   | { type: 'agent-link-state'; state: AgentLinkState }
+  /** The desktop bridge's pairing token from `figma.clientStorage`, or null when none is kept (#3204). Sent on `ui-ready`;
+   *  the relay connects only after it arrives. Read by the relay (`agent-bridge-relay.ts`) alone. */
+  | { type: 'agent-bridge-token'; token: string | null }
   /** Whether the window is the link strip (#2949), after each `minimize-ui` and when turning the link off restores it.
    *  The main thread is the authority, as for the link itself; read by the agent-link control (`agent-link-ui.ts`). */
   | { type: 'ui-minimized'; minimized: boolean }

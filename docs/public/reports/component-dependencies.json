@@ -1679,6 +1679,7 @@
       "relation": "nest-fixed",
       "variant": {
         "type": "count",
+        "style": "contained",
         "size": "medium",
         "emphasis": "bold",
         "tone": "neutral"

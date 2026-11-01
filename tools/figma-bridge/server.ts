@@ -6,7 +6,7 @@
  * adds nothing to it: it builds the command envelope, hands it to the plugin, and returns the plugin's
  * result envelope unchanged.
  *
- *   npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS)
+ *   npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000] [--config <file>] [--rotate] [--pair]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS, PRISM3_BRIDGE_CONFIG)
  *
  * TWO SIDES, ONE PROCESS:
  *   · stdio MCP (newline-delimited JSON-RPC, hand-rolled like `packages/engine/mcp.ts`, whose protocol
@@ -17,15 +17,25 @@
  *     relays each command to the main thread's dispatcher (`apps/plugin/src/agent-bridge-relay.ts`).
  *
  * The plugin connects to the DEFAULT port only: the manifest names `ws://localhost:17331` in
- * `devAllowedDomains`, and Figma refuses any origin it does not list. `--port` exists for the test suite
+ * `allowedDomains` (the network build, "Prism3 Studio", since #3147), and Figma refuses any origin it does not list. `--port` exists for the test suite
  * and for a collision; using another port with the real plugin needs that manifest entry changed too.
  *
  * WIRE between this server and the plugin (JSON text frames):
  *   server → plugin   { type: 'command', command: AgentCommand }
- *   plugin → server   { type: 'hello', state, held? } · { type: 'state', state } · { type: 'result', result }
+ *   server → plugin   { type: 'challenge', v: 1, nonce } (first, on every connection) · { type: 'paired', token } · { type: 'welcome' }
+ *   plugin → server   { type: 'pair', proof } · { type: 'hello', state, held?, proof } · { type: 'state', state } · { type: 'result', result }
  *                     { type: 'progress', id, progress } · { type: 'log', id, line }
  *
- * One plugin connection at a time (a newer one replaces the older), one command in flight at a time.
+ * PAIRING (#3204, the owner's Q3204.1 A; the flow and the hash: `apps/plugin/src/bridge-auth.ts`). A connection is not
+ * the plugin until it proves the pairing token against the challenge's nonce. Until then it is sent no command, and it
+ * replaces no one; a connection that sends anything else first, or a wrong proof, is closed. The token is derived from a
+ * random secret kept in a user-only file (mode 0600, `bridgeConfigPath`), so pairing survives restarts; `--rotate`
+ * makes a new secret, and every paired plugin then asks for a code again. A one-time pairing code is issued only on
+ * demand, from a `figma_status` call while no plugin is connected or a `--pair` start, and lives 10 minutes (Q3204.5 A,
+ * `createPairing`). It is printed on stderr and `figma_status` names it, since an MCP host may not show stderr. The
+ * plugin asks for it the first time it connects on a machine and keeps the token it is given in `figma.clientStorage`.
+ *
+ * One plugin connection at a time (a newer PAIRED one replaces the older), one command in flight at a time.
  *
  * A RECONNECT KEEPS A COMMAND IN FLIGHT (#2497). The plugin's socket can drop while a long command runs (a
  * ~6-minute update-components did). The waiting call is not failed: it waits `graceMs` for the plugin to come
@@ -36,21 +46,27 @@
  * end of the grace. The wire gains only the optional `held`; the command and result envelopes are
  * unchanged, so `AGENT_PROTOCOL_VERSION` stays 1.
  * Bound to the loopback addresses only — 127.0.0.1, and ::1 where the host has it, because `localhost`
- * resolves to either depending on the machine. stdout is the MCP channel; everything human-readable goes to stderr.
+ * resolves to either depending on the machine. An upgrade whose `Origin` is not `null` is refused with 403 (#3147). That
+ * keeps out an ordinary web page's own script, but not a page's sandboxed iframe, whose origin is `null` too (the review
+ * of #3204 showed one connecting): the pairing proof above is what tells the plugin apart. The bind and the origin check
+ * stay as defense in depth. stdout is the MCP channel; everything human-readable goes to stderr.
  */
 import { createServer } from 'node:http';
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
-import { createHash } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { PROTOCOL_VERSIONS, META, negotiateHandshakeVersion } from '../../packages/engine/mcp';
 import { AGENT_PROTOCOL_VERSION, AGENT_COMMANDS } from '../../apps/plugin/src/agent-protocol';
 import { BRIDGE_PORT } from '../../apps/plugin/src/agent-bridge-relay';
+import { CODE_ALPHABET, CODE_LENGTH, CLOSE, HELLO_LABEL, PAIR_LABEL, TOKEN_LABEL, formatCode } from '../../apps/plugin/src/bridge-auth';
 import type { AgentCommand, AgentResult, AgentLinkState, AgentProgress } from '../../apps/plugin/src/agent-protocol';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 
-/** The plugin connects here — read from the relay, which the manifest's `devAllowedDomains` matches. */
+/** The plugin connects here — read from the relay, which the manifest's `allowedDomains` entry matches (#3147). */
 export const DEFAULT_PORT = BRIDGE_PORT;
 export const SERVER_INFO = { name: 'prism3-figma-bridge', version: ENGINE_VERSION };
 
@@ -138,9 +154,105 @@ export const createDecoder = (on: {
   };
 };
 
+/* ── pairing (#3204) ───────────────────────────────────────────────────────────────────────────────── */
+
+/** Where the secret lives: `$PRISM3_BRIDGE_CONFIG`, else the user's config directory (`%APPDATA%` on Windows,
+ *  `$XDG_CONFIG_HOME` or `~/.config` elsewhere), under `prism3/`. */
+export const bridgeConfigPath = (env: NodeJS.ProcessEnv = process.env): string => {
+  if (env.PRISM3_BRIDGE_CONFIG) return resolve(env.PRISM3_BRIDGE_CONFIG);
+  const base = process.platform === 'win32' && env.APPDATA ? env.APPDATA : env.XDG_CONFIG_HOME || join(homedir(), '.config');
+  return join(base, 'prism3', 'figma-bridge.json');
+};
+
+/** Read the secret, or make one (`rotate` always makes a new one). The file is written user-only (0600) in a user-only
+ *  directory (0700); a file found readable by others is narrowed back to 0600 and named on stderr. */
+export const loadSecret = (path: string, opts: { rotate?: boolean; say?: (s: string) => void } = {}): { secret: Buffer; created: boolean } => {
+  const say = opts.say ?? (() => undefined);
+  if (!opts.rotate && existsSync(path)) {
+    const raw = JSON.parse(readFileSync(path, 'utf8')) as { secret?: unknown };
+    if (typeof raw.secret === 'string' && /^[0-9a-f]{64}$/.test(raw.secret)) {
+      if (process.platform !== 'win32' && (statSync(path).mode & 0o077) !== 0) { chmodSync(path, 0o600); say(`narrowed ${path} to mode 0600: it was readable by others`); }
+      return { secret: Buffer.from(raw.secret, 'hex'), created: false };
+    }
+    say(`${path} holds no usable secret: making a new one`);
+  }
+  const secret = randomBytes(32);
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  writeFileSync(path, JSON.stringify({ v: 1, secret: secret.toString('hex') }) + '\n', { mode: 0o600 });
+  // `mode` applies only when the file is created; a rotated file keeps its old mode unless it is set again.
+  if (process.platform !== 'win32') chmodSync(path, 0o600);
+  return { secret, created: true };
+};
+
+/** Wrong codes allowed before the code is retired and a new one printed. */
+export const MAX_PAIR_FAILS = 5;
+/** How long a code is live after it is issued (the owner's Q3204.5 A). */
+export const CODE_TTL_MS = 10 * 60_000;
+/** Codes retired by wrong guesses before pairing closes until the next request (Q3204.5 A). */
+export const MAX_RETIREMENTS = 3;
+/** How long a connection may take to pair or prove itself before it is closed. */
+export const AUTH_MS = 120_000;
+
+const hmac = (key: string | Buffer, msg: string): Buffer => createHmac('sha256', key).update(msg, 'utf8').digest();
+const sameHex = (want: Buffer, got: unknown): boolean => {
+  if (typeof got !== 'string' || !/^[0-9a-f]{64}$/.test(got)) return false;
+  return timingSafeEqual(want, Buffer.from(got, 'hex'));
+};
+const newCode = (): string => Array.from({ length: CODE_LENGTH }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('');
+
+/** The server's half of the pairing: the token the secret gives, the open code, and the two checks.
+ *
+ *  A CODE IS LIVE ONLY FOR A WINDOW (the owner's Q3204.5 A). None is issued at start: `request()` issues one on demand
+ *  (`figma_status` while no plugin is connected, or a `--pair` start), and keeps a live one rather than replacing it. A
+ *  code expires `CODE_TTL_MS` after it is issued. `MAX_PAIR_FAILS` wrong codes retire it for a new one, and after
+ *  `MAX_RETIREMENTS` retirements pairing closes until the next request. A paired plugin proving its token (`settle()`)
+ *  leaves no code live, so a paired machine has none. `now` is injected so the tests move the clock instead of sleeping. */
+export const createPairing = (secret: Buffer, say: (s: string) => void = () => undefined, now: () => number = Date.now) => {
+  const token = hmac(secret, TOKEN_LABEL).toString('hex');
+  let code: string | null = null;
+  let issuedAt = 0;
+  let fails = 0;
+  let retired = 0;
+  const issue = () => {
+    code = newCode(); issuedAt = now(); fails = 0;
+    say(`pairing code: ${formatCode(code)} (live for ${CODE_TTL_MS / 60_000} minutes) — the Prism3 plugin asks for it the first time it connects on this machine`);
+  };
+  /** The live code, after dropping one that has expired. */
+  const live = (): string | null => {
+    if (code !== null && now() - issuedAt >= CODE_TTL_MS) { code = null; say('the pairing code expired'); }
+    return code;
+  };
+  return {
+    token,
+    code: (): string | null => { const c = live(); return c ? formatCode(c) : null; },
+    /** On demand: keep the live code, or open a new window with a new one. */
+    request: (): string => { if (live() === null) { retired = 0; issue(); } return formatCode(code!); },
+    /** A paired plugin proved its token: no code stays live. */
+    settle: (): void => { code = null; },
+    nonce: (): string => randomBytes(32).toString('hex'),
+    helloOk: (nonce: string, proof: unknown): boolean => sameHex(hmac(token, HELLO_LABEL + nonce), proof),
+    /** A pairing attempt. A right code is spent; after `MAX_PAIR_FAILS` wrong ones the code is retired for a new one,
+     *  and after `MAX_RETIREMENTS` retirements for none. */
+    pairOk: (nonce: string, proof: unknown): boolean => {
+      const c = live();
+      if (c === null) return false;
+      if (sameHex(hmac(c, PAIR_LABEL + nonce), proof)) { code = null; say('paired: the code is spent'); return true; }
+      if (++fails >= MAX_PAIR_FAILS) {
+        say(`${MAX_PAIR_FAILS} wrong pairing codes: that code is retired`);
+        if (++retired >= MAX_RETIREMENTS) { code = null; say(`${MAX_RETIREMENTS} codes retired: pairing is closed until figma_status asks for a code or the bridge starts with --pair`); }
+        else issue();
+      }
+      return false;
+    },
+  };
+};
+export type Pairing = ReturnType<typeof createPairing>;
+
 /* ── the bridge (plugin connection + command state) ─────────────────────────────────────────────────── */
 
-type Conn = { socket: Duplex; send(obj: unknown): void; close(code: number, why: string): void; connectedAt: string };
+type Conn = { socket: Duplex; send(obj: unknown): void; close(code: number, why: string): void; connectedAt: string;
+  /** Set by the bridge: the challenge's nonce, whether the token was proved, and the timer that closes a silent one. */
+  nonce?: string; authed?: boolean; authTimer?: NodeJS.Timeout };
 type LogEntry = { seq: number; at: string; id: string | null; kind: 'log' | 'progress' | 'bridge'; line: string };
 const LOG_KEEP = 5000;
 /** How long a command in flight waits for a dropped plugin to reconnect before it fails (#2497). */
@@ -148,10 +260,12 @@ export const DEFAULT_GRACE_MS = 120_000;
 /** Ids whose result was already delivered, so a re-sent copy is named a repeat rather than a stranger. */
 const DELIVERED_KEEP = 200;
 
-export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void; graceMs?: number } = {}) => {
+export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (s: string) => void; graceMs?: number; authMs?: number }) => {
   const now = opts.now ?? (() => new Date());
   const say = opts.log ?? ((s: string) => process.stderr.write(`[figma-bridge] ${s}\n`));
   const graceMs = opts.graceMs ?? DEFAULT_GRACE_MS;
+  const pairing = opts.pairing;
+  const authMs = opts.authMs ?? AUTH_MS;
   let plugin: Conn | null = null;
   let pluginState: AgentLinkState | null = null;
   /** `conn` is the connection the command was sent on, or the later one whose hello said it holds it. */
@@ -179,7 +293,15 @@ export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void
   /** Commands sent on a connection that is no longer the plugin's, still waiting for it to come back. */
   const orphans = () => [...pending].filter(([, p]) => p.conn !== plugin).map(([id]) => id);
 
-  /** A new plugin connection (after the handshake). Replaces any earlier one; its commands wait for the hello. */
+  /** A new connection, after the handshake: challenge it. It is not the plugin until its hello proves the token. */
+  const open = (conn: Conn) => {
+    conn.nonce = pairing.nonce();
+    conn.authed = false;
+    conn.authTimer = setTimeout(() => conn.close(CLOSE.timedOut, 'not paired in time'), authMs);
+    conn.send({ type: 'challenge', v: 1, nonce: conn.nonce });
+  };
+  /** A PAIRED connection (its hello proved the token). Replaces any earlier one; its commands wait for the hello. An
+   *  unpaired connection never reaches here, so it can never evict the plugin (#3204). */
   const attach = (conn: Conn) => {
     if (plugin) plugin.close(1000, 'replaced by a newer connection');
     plugin = conn;
@@ -188,6 +310,7 @@ export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void
     say('plugin connected');
   };
   const detach = (conn: Conn) => {
+    if (conn.authTimer) { clearTimeout(conn.authTimer); conn.authTimer = undefined; }
     if (plugin !== conn) return;
     plugin = null;
     record(null, 'bridge', 'plugin disconnected');
@@ -208,10 +331,35 @@ export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void
     }
     if (grace && !orphans().length) { clearTimeout(grace); grace = null; }
   };
-  /** One text message from the plugin. */
-  const onPluginMessage = (text: string) => {
-    let m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string };
-    try { m = JSON.parse(text); } catch { record(null, 'bridge', 'unparseable message from the plugin'); return; }
+  /** One text message from a connection. Before its hello proves the token, only `pair` and `hello` are heard; anything
+   *  else, or a wrong proof, closes it (#3204). */
+  const onMessage = (conn: Conn, text: string) => {
+    let m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string; proof?: unknown };
+    try { m = JSON.parse(text); } catch { m = {}; }
+    if (!conn.authed) {
+      if (m.type === 'pair') {
+        if (!pairing.pairOk(conn.nonce!, m.proof)) { record(null, 'bridge', 'a wrong pairing code: refused'); conn.close(CLOSE.wrongCode, 'wrong pairing code'); return; }
+        record(null, 'bridge', 'a plugin paired');
+        conn.send({ type: 'paired', token: pairing.token });
+        return;
+      }
+      if (m.type === 'hello' && pairing.helloOk(conn.nonce!, m.proof)) {
+        pairing.settle();
+        conn.authed = true;
+        if (conn.authTimer) { clearTimeout(conn.authTimer); conn.authTimer = undefined; }
+        attach(conn);
+        conn.send({ type: 'welcome' });
+      } else {
+        record(null, 'bridge', 'a connection without the pairing token: refused');
+        conn.close(CLOSE.notPaired, 'not paired');
+        return;
+      }
+    }
+    onPluginMessage(m);
+  };
+  /** One message from the plugin, parsed. */
+  const onPluginMessage = (m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string }) => {
+    if (!m.type) { record(null, 'bridge', 'unparseable message from the plugin'); return; }
     if (m.type === 'hello' || m.type === 'state') {
       if (m.state) pluginState = m.state;
       if (m.type === 'hello') onHello(m.held);
@@ -264,9 +412,9 @@ export const createBridge = (opts: { now?: () => Date; log?: (s: string) => void
   };
 
   return {
-    attach, detach, onPluginMessage, run,
+    open, detach, onMessage, run,
     status: () => ({
-      connected: !!plugin, connectedAt: plugin?.connectedAt ?? null, plugin: pluginState,
+      connected: !!plugin, connectedAt: plugin?.connectedAt ?? null, plugin: pluginState, pairingCode: plugin ? pairing.code() : pairing.request(),
       running: [...pending.keys()], awaitingReconnect: orphans(), bridge: SERVER_INFO, protocol: AGENT_PROTOCOL_VERSION, commands: [...AGENT_COMMANDS],
     }),
     logs: (since = 0, limit = 200) => {
@@ -279,12 +427,26 @@ export type Bridge = ReturnType<typeof createBridge>;
 
 /* ── the WebSocket listener ─────────────────────────────────────────────────────────────────────────── */
 
+/** The one `Origin` the bridge accepts (#3147): a sandboxed iframe's opaque origin, which is how a Figma plugin's UI
+ *  connects. Anything else, a missing header included, is refused. Any page's sandboxed iframe sends it too, so this is
+ *  defense in depth, not the gate: the pairing proof is (#3204). */
+export const PLUGIN_ORIGIN = 'null';
+export const originAllowed = (origin: string | string[] | undefined): boolean => origin === PLUGIN_ORIGIN;
+
 /** Start the listener on loopback (127.0.0.1, plus ::1 when available); `port` 0 picks a free one. */
 export const listen = async (bridge: Bridge, port: number): Promise<{ port: number; close(): Promise<void> }> => {
   const onUpgrade = (req: IncomingMessage, socket: Duplex) => {
     const key = req.headers['sec-websocket-key'];
     if (String(req.headers.upgrade).toLowerCase() !== 'websocket' || typeof key !== 'string' || req.headers['sec-websocket-version'] !== '13') {
       socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+      return;
+    }
+    // THE ORIGIN CHECK (#3147): Figma serves a plugin's UI from a sandboxed iframe, whose origin is opaque, so its browser
+    // sends `Origin: null`. A page's own script sends the page's origin and is refused here, before the handshake; so is a
+    // request with no Origin at all. A page's SANDBOXED iframe sends `null` as well and passes: the pairing proof that
+    // follows the handshake is what keeps it out (#3204, `createBridge` `onMessage`).
+    if (!originAllowed(req.headers.origin)) {
+      socket.end('HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nprism3 figma-bridge: only the Prism3 plugin may connect\n');
       return;
     }
     socket.write(['HTTP/1.1 101 Switching Protocols', 'Upgrade: websocket', 'Connection: Upgrade', `Sec-WebSocket-Accept: ${acceptKey(key)}`, '', ''].join('\r\n'));
@@ -302,7 +464,7 @@ export const listen = async (bridge: Bridge, port: number): Promise<{ port: numb
       },
     };
     const decode = createDecoder({
-      message: (t) => bridge.onPluginMessage(t),
+      message: (t) => bridge.onMessage(conn, t),
       ping: (p) => { if (!closed) socket.write(encodeFrame(OP.pong, p)); },
       close: (code) => conn.close(code === 1005 ? 1000 : code, ''),
       error: (code, why) => conn.close(code, why),
@@ -314,7 +476,7 @@ export const listen = async (bridge: Bridge, port: number): Promise<{ port: numb
     socket.on('end', () => { closed = true; socket.destroy(); });
     socket.on('close', () => { closed = true; bridge.detach(conn); });
     socket.on('error', () => { closed = true; bridge.detach(conn); });
-    bridge.attach(conn);
+    bridge.open(conn);
   };
   const make = () => {
     const server = createServer((_req, res) => { res.writeHead(426, { 'content-type': 'text/plain' }).end('prism3 figma-bridge: WebSocket only\n'); });
@@ -345,7 +507,7 @@ type RpcOut = { jsonrpc: '2.0'; id: number | string | null; result?: unknown; er
 export const TOOLS = [
   {
     name: 'figma_status',
-    description: 'Whether the Prism3 plugin in the owner\'s Figma is connected to this bridge, the link state it last reported, and any command in flight. Call first. For the file\'s own state, run the `status` command with figma_run.',
+    description: 'Whether the Prism3 plugin in the owner\'s Figma is connected to this bridge, the link state it last reported, and any command in flight. Call first. While no plugin is connected, this call issues a pairing code (`pairingCode`) if none is live: the owner enters it in the plugin once per machine, within 10 minutes. For the file\'s own state, run the `status` command with figma_run.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
   {
@@ -458,7 +620,18 @@ if (isMain) {
   const g = argv.indexOf('--grace-ms');
   const graceMs = g >= 0 ? Number(argv[g + 1]) : process.env.PRISM3_BRIDGE_GRACE_MS ? Number(process.env.PRISM3_BRIDGE_GRACE_MS) : DEFAULT_GRACE_MS;
   if (!Number.isInteger(graceMs) || graceMs < 0) { process.stderr.write(`[figma-bridge] bad grace ${argv[g + 1]}\n`); process.exit(2); }
-  const bridge = createBridge({ graceMs });
+  const c = argv.indexOf('--config');
+  const configPath = c >= 0 ? resolve(argv[c + 1]) : bridgeConfigPath();
+  const say = (s: string) => process.stderr.write(`[figma-bridge] ${s}\n`);
+  let loaded: { secret: Buffer; created: boolean };
+  try { loaded = loadSecret(configPath, { rotate: argv.includes('--rotate'), say }); } catch (e) {
+    say(`cannot read or write the pairing secret at ${configPath} — ${(e as Error).message}`);
+    process.exit(1);
+  }
+  if (loaded.created) say(`a new pairing secret is in ${configPath}${argv.includes('--rotate') ? ': every paired plugin asks for a code again' : ''}`);
+  const pairing = createPairing(loaded.secret, say);
+  if (argv.includes('--pair')) pairing.request();
+  const bridge = createBridge({ graceMs, pairing });
   const send = (msg: unknown) => process.stdout.write(JSON.stringify(msg) + '\n');
   const notify = (method: string, params: unknown) => send({ jsonrpc: '2.0', method, params });
   const bound = await listen(bridge, port).catch((e: Error) => {

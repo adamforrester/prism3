@@ -103,7 +103,7 @@ const PLUGIN_UI_ENTRY = 'apps/plugin/src/ui/entry.ts';
 
 /** `UiToMain` types that are plumbing or panel chrome, not a feature a lane offers. Authored here, never read
  *  from the data: a new message fails until it is claimed by a feature or added to this list on purpose. */
-const PLUMBING = ['ui-ready', 'agent-command', 'agent-bridge', 'style-guide-catalog-request', 'file-sets-request', 'style-guide-cancel', 'resize-ui', 'set-theme-pref', 'set-activity-height', 'open-docs'];
+const PLUMBING = ['ui-ready', 'agent-command', 'agent-bridge', 'agent-bridge-paired', 'agent-bridge-unpaired', 'style-guide-catalog-request', 'file-sets-request', 'style-guide-cancel', 'resize-ui', 'set-theme-pref', 'set-activity-height', 'open-docs'];
 
 const LANES = ['web', 'figma', 'agent'] as const;
 type LaneId = (typeof LANES)[number];

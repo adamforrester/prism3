@@ -18,7 +18,8 @@
  *   - `name` back to "Prism3" → "the plugin is named \"Prism3 Studio\"" fails;
  *   - `id` changed → "the plugin keeps its id" fails;
  *   - `permissions` dropped → "the plugin asks for the teamlibrary permission and no other" fails;
- *   - a third domain in `allowedDomains` → "the plugin allows the two Google Fonts hosts and no other domain" fails;
+ *   - a fourth domain in `allowedDomains` → "the plugin allows the two Google Fonts hosts and the local desktop bridge, and
+ *     no other domain" fails (#3147: the bridge's `ws://localhost:17331` is the third);
  *   - `manifest-offline.json`'s `allowedDomains` → `["*"]` → "the offline plugin allows no network" fails.
  */
 import { readFileSync } from 'node:fs';
@@ -42,10 +43,15 @@ ok(JSON.stringify(manifest.permissions) === '["teamlibrary"]',
 
 // #3138 (the owner's network model): the dev and "Prism3 Studio" manifest lists the two Google Fonts hosts and no other
 // domain; the offline overlay names the second plugin, gives it its own id, and allows no network.
-ok(JSON.stringify(manifest.networkAccess?.allowedDomains) === '["https://fonts.googleapis.com","https://fonts.gstatic.com"]',
-  `the plugin allows the two Google Fonts hosts and no other domain (#3138; allowedDomains: ${JSON.stringify(manifest.networkAccess?.allowedDomains)})`);
-ok(JSON.stringify(manifest.networkAccess?.devAllowedDomains) === '["ws://localhost:17331"]',
-  `the dev build still reaches the agent link's desktop bridge (devAllowedDomains: ${JSON.stringify(manifest.networkAccess?.devAllowedDomains)})`);
+// #3147 (the owner's Q3147.3 A): exactly the two Google Fonts hosts and the agent link's local desktop bridge. The bridge's
+// origin moved from `devAllowedDomains` (dev imports only) to `allowedDomains`, so nothing is left under the dev list.
+ok(JSON.stringify(manifest.networkAccess?.allowedDomains) === '["https://fonts.googleapis.com","https://fonts.gstatic.com","ws://localhost:17331"]',
+  `the plugin allows the two Google Fonts hosts and the local desktop bridge, and no other domain (#3138, #3147; allowedDomains: ${JSON.stringify(manifest.networkAccess?.allowedDomains)})`);
+ok(manifest.networkAccess?.devAllowedDomains === undefined,
+  `the plugin lists no dev-only domain: the bridge ships in the network build (#3147; devAllowedDomains: ${JSON.stringify(manifest.networkAccess?.devAllowedDomains)})`);
+// Figma requires a `reasoning` when `allowedDomains` lists a local server, and the reasoning is what an org admin reads.
+ok(typeof (manifest.networkAccess as { reasoning?: unknown })?.reasoning === 'string' && /\blocalhost\b/.test((manifest.networkAccess as { reasoning: string }).reasoning),
+  'the network reasoning names the local connection (Figma requires a reasoning for a localhost domain; #3147)');
 ok(offline.name === 'Prism3 Studio Offline', `the offline plugin is named "Prism3 Studio Offline" (manifest-offline name: ${JSON.stringify(offline.name)})`);
 ok(offline.id === 'prism3-theming-plugin-offline', `the offline plugin has its own id (manifest-offline id: ${JSON.stringify(offline.id)})`);
 ok(JSON.stringify(offline.networkAccess?.allowedDomains) === '["none"]',
