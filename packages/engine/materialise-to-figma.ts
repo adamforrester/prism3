@@ -54,6 +54,7 @@
  * here — the emitter lane pastes the output into `figma_execute`.
  *
  *   npx tsx packages/engine/materialise-to-figma.ts <brand>            # manifest: passes + byte sizes
+ *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass migrate   # first: the #1013 rename pass (#1024)
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases
@@ -73,7 +74,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import type { FigmaCollectionFile } from './emit-figma';
 import { CORE_COLLECTION } from './emit-figma-color';
-import { ownedCoreGroup } from './figma-names';
+import { ownedCoreGroup, rootOf } from './figma-names';
+import { renameMap } from './rename-map';
+import type { RenameMap } from './rename-map';
+import { renameRuntimeSrc } from './rename-runtime';
 import { buildWritePlan, floatPlanFor, fontVarPlanFrom, motionVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, TextStylePlan } from './write-plan';
 import type { FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
@@ -315,6 +319,100 @@ const textStylePlan = (brand: string): TextStylePlan => {
   const { font } = fontFiles(brand);
   if (!font.length) return [];
   return textStylePlanFromFiles(load(brand, 'text-styles.json') as unknown as FigmaTextStylesFile, font[0]);
+};
+
+// ---- pass: migrate (the #1013 rename pass, run by the paste path since #1024) -----------
+//
+// Create-or-update-by-name is blind to a rename: the new name is created and the old one is never
+// touched again, so every binding a designer made against it is orphaned. The plugin executor has
+// migrated renames since #1013 (`apps/plugin/src/write-figma.ts`); this path did not, so one rename had
+// two outcomes depending on the surface a designer used. This pass is the same migration, not a second
+// one: the payload carries the source of `rename-map.ts`'s planners and apply functions
+// (`rename-runtime.ts`) and calls them exactly as `beginMigration` and `upsertCollection` do — collections
+// first, atomically, then each axis's variables against the names that axis is about to write.
+//
+// FIRST IN `ORDER`, and that is the whole ordering requirement: a collection rename has to land before any
+// pass's find-by-name looks the collection up, or that pass creates a fresh empty collection beside the old
+// one. Every later pass then finds a migrated variable under its new name and updates it in place.
+//
+// CHUNKED BY AXIS, packed by bytes like `color-create`, because the map (~21KB) plus the colour axis's
+// planned names do not fit beside every other axis in one payload. Every chunk re-runs the collection
+// pre-pass; after the first it is a `source-absent` no-op (the MCP bundle does the same per step), so the
+// chunks are order-free among themselves.
+
+/** One axis the rename pass covers: the collection, the `core` group it owns (or null for the whole
+ *  collection), and the names it is about to write. The same three facts `upsertCollection` is handed. */
+type MigrateAxis = { collection: string; owns: string | null; planned: string[] };
+
+/** Every axis a variable executor writes, in the plugin's order: palette, colour, floats, font, motion. */
+const migrateAxes = (brand: string): MigrateAxis[] => {
+  const plan = planFor(brand);
+  const axes: { collection: string; planned: string[] }[] = [
+    { collection: CORE_COLLECTION, planned: plan.palette.map((r) => r.name) },
+    { collection: 'color', planned: plan.color.create.map((r) => r.name) },
+    ...floatPlans(brand).map((p) => ({ collection: p.name, planned: p.create.map((r) => r.name) })),
+    ...fontVarPlans(brand).map((p) => ({ collection: p.name, planned: p.rows.map((r) => r.name) })),
+    ...motionVarPlans(brand).map((p) => ({ collection: p.name, planned: p.rows.map((r) => r.name) })),
+  ];
+  return axes.filter((a) => a.planned.length > 0).map((a) => ({ ...a, owns: ownedCoreGroup(a.planned) }));
+};
+
+/** The payload for a slice of axes. Planned names travel as TAILS under one root per axis (the root is
+ *  every planned name's first segment, #1097), and contract rows as `[from, to, since]` under their
+ *  collection — a lossless transport encoding, rebuilt into the planners' own shapes in the file. */
+const migrateJs = (map: RenameMap, slice: MigrateAxis[]): string => {
+  const inSlice = new Set(slice.map((a) => a.collection));
+  const V: Record<string, [string, string, string][]> = {};
+  for (const r of map.variables) if (inSlice.has(r.collection)) (V[r.collection] ??= []).push([r.from, r.to, r.since]);
+  const AXES = slice.map((a) => {
+    const root = rootOf(a.planned[0]);
+    const tails = a.planned.map((n) => {
+      if (!n.startsWith(`${root}/`)) throw new Error(`migrate: '${n}' does not share its axis's root '${root}'`);
+      return n.slice(root.length + 1);
+    });
+    return [a.collection, a.owns, root, tails];
+  });
+  return `${renameRuntimeSrc()}
+const V=${JSON.stringify(V)};
+const MAP={collections:${JSON.stringify(map.collections)},variables:Object.entries(V).flatMap(([c,rows])=>rows.map(([from,to,since])=>({collection:c,from:from,to:to,since:since})))};
+const AXES=${JSON.stringify(AXES)};
+const mig=openMigration(MAP,RULES);
+renameCollections(mig,await figma.variables.getLocalVariableCollectionsAsync());
+const cols=await figma.variables.getLocalVariableCollectionsAsync();
+const all=await figma.variables.getLocalVariablesAsync();
+for(const [cname,owns,root,tails] of AXES){
+  const col=cols.find(c=>c.name===cname);
+  const planned=tails.map(t=>root+'/'+t);
+  const byName=new Map(col?all.filter(v=>v.variableCollectionId===col.id&&(owns===null||coreGroupOf(v.name)===owns)).map(v=>[v.name,v]):[]);
+  renameVariables(mig,cname,byName,planned,rootOf(planned[0]));
+}
+return {axes:AXES.map(a=>a[0]+(a[1]?'/'+a[1]:'')),migrated:mig.outcomes.filter(o=>o.status==='migrated').map(o=>o.from+' -> '+o.to),refused:mig.outcomes.filter(o=>isRefusal(o.status)).map(o=>o.from+' -> '+o.to+': '+o.status),refusals:mig.refusals};
+`;
+};
+
+/** `migrate` -> N payloads, one or more axes each, packed against the FINISHED payload's bytes. An axis
+ *  is indivisible: its variables are planned against each other (fan-in, occupied targets). */
+export const migrateChunks = (
+  brand: string,
+  budgetBytes: number = COLOR_CHUNK_BYTES,
+  map: RenameMap = renameMap(),
+): { index: number; total: number; js: string; bytes: number; axes: number }[] => {
+  const slices: MigrateAxis[][] = [];
+  let cur: MigrateAxis[] = [];
+  for (const axis of migrateAxes(brand)) {
+    const next = [...cur, axis];
+    if (cur.length && Buffer.byteLength(migrateJs(map, next), 'utf8') > budgetBytes) {
+      slices.push(cur);
+      cur = [axis];
+    } else {
+      cur = next;
+    }
+  }
+  if (cur.length) slices.push(cur);
+  return slices.map((slice, i) => {
+    const js = migrateJs(map, slice);
+    return { index: i, total: slices.length, js, bytes: Buffer.byteLength(js, 'utf8'), axes: slice.length };
+  });
 };
 
 // ---- the SC decode map + shared helpers, injected into every plugin payload -----------
@@ -977,11 +1075,12 @@ return {
 };
 
 // ---- CLI --------------------------------------------------------------------------------
-// Every pass returns a LIST of payloads. All but `color-create` and `color-aliases` return exactly one, and the list is
+// Every pass returns a LIST of payloads. All but `migrate`, `color-create` and `color-aliases` return exactly one, and the list is
 // the point: a pass that outgrows the transport becomes N payloads without changing what it is
 // called, so `ORDER` stays the paste order a human follows rather than growing a name each time a
 // lane fills up.
 const PASSES: Record<string, (b: string) => string[]> = {
+  migrate: (b) => migrateChunks(b).map((c) => c.js),
   palette: (b) => [palettePass(b)],
   'color-create': (b) => colorCreateChunks(b).map((c) => c.js),
   'color-aliases': (b) => colorAliasesChunks(b).map((c) => c.js),
@@ -990,13 +1089,14 @@ const PASSES: Record<string, (b: string) => string[]> = {
   'motion-vars': (b) => [motionVarsPass(b)],
   styles: (b) => [stylesPass(b)], verify: (b) => [verifyJs(planFor(b), colourModes(b))],
 };
-// Colour, then floats, then typography, then styles — WITHIN each lane create-before-alias is a hard
+// `migrate` first (#1024): a collection rename must land before any pass looks a collection up by name.
+// Then colour, then floats, then typography, then styles — WITHIN each lane create-before-alias is a hard
 // requirement. Two cross-lane constraints are real: `text-styles` after `font-vars`, because a Text
 // Style's `setBoundVariable` resolves `font/family/*`, `font/weight-role/*` and `font-fluid/*` by name;
 // and `dims-create` before `color-aliases` (#1672), because a tinted wash's alias is laid at an
 // `opacity/<n>` variable that `dims-create` writes.
 const ORDER = [
-  'palette', 'color-create', 'dims-create', 'color-aliases', 'dims-aliases',
+  'migrate', 'palette', 'color-create', 'dims-create', 'color-aliases', 'dims-aliases',
   'font-vars', 'text-styles', 'motion-vars', 'styles', 'verify',
 ];
 
@@ -1045,7 +1145,7 @@ const runCli = (): void => {
     // manifest: byte size per payload + the paste order + the number that means something.
     const BUDGET = 45_000;
     console.log(`materialise-to-figma — brand '${brand}', colour modes: ${colourModes(brand).join(', ')}`);
-    console.log('Paste each pass into figma_execute IN ORDER (palette first — the color aliases target it):\n');
+    console.log('Paste each pass into figma_execute IN ORDER (migrate first — renames land before any lookup by name; then palette — the color aliases target it):\n');
     for (const name of ORDER) {
       const all = PASSES[name](brand);
       if (all.length === 1) {

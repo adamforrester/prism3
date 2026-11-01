@@ -11191,36 +11191,36 @@
         },
         "placeholder": {
           "$type": "color",
-          "$value": "{nbds.core.palette.neutral.500}",
-          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on background.primary, the same ink as text.secondary (not a sub-AA placeholder)",
+          "$value": "{nbds.core.palette.neutral.550}",
+          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.core.palette.neutral.500",
-              "contrast": 4.59,
-              "against": "background.primary",
+              "aliasOf": "nbds.core.palette.neutral.550",
+              "contrast": 4.52,
+              "against": "background.secondary",
               "min": 4.5,
               "modes": {
                 "dark": {
                   "$value": "{nbds.core.palette.neutral.450}",
                   "aliasOf": "nbds.core.palette.neutral.450",
-                  "contrast": 5.06,
-                  "against": "background.primary",
+                  "contrast": 4.68,
+                  "against": "background.secondary",
                   "min": 4.5
                 },
                 "hc-light": {
-                  "$value": "{nbds.core.palette.neutral.700}",
-                  "aliasOf": "nbds.core.palette.neutral.700",
-                  "contrast": 8.09,
-                  "against": "neutral.050",
+                  "$value": "{nbds.core.palette.neutral.650}",
+                  "aliasOf": "nbds.core.palette.neutral.650",
+                  "contrast": 8.15,
+                  "against": "background.secondary",
                   "min": 7,
                   "description": "Form field placeholder ink — a readable hint, 7:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
                 },
                 "hc-dark": {
-                  "$value": "{nbds.core.palette.neutral.300}",
-                  "aliasOf": "nbds.core.palette.neutral.300",
+                  "$value": "{nbds.core.palette.neutral.350}",
+                  "aliasOf": "nbds.core.palette.neutral.350",
                   "contrast": 7.49,
-                  "against": "neutral.900",
+                  "against": "background.secondary",
                   "min": 7,
                   "description": "Form field placeholder ink — a readable hint, 7:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
                 }

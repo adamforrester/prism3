@@ -11673,29 +11673,29 @@
               "role": "semantic",
               "aliasOf": "pds3.core.palette.neutral.550",
               "contrast": 4.54,
-              "against": "neutral.050",
+              "against": "background.secondary",
               "min": 4.5,
               "modes": {
                 "dark": {
                   "$value": "{pds3.core.palette.neutral.450}",
                   "aliasOf": "pds3.core.palette.neutral.450",
                   "contrast": 4.64,
-                  "against": "neutral.900",
+                  "against": "background.secondary",
                   "min": 4.5
                 },
                 "hc-light": {
-                  "$value": "{pds3.core.palette.neutral.700}",
-                  "aliasOf": "pds3.core.palette.neutral.700",
-                  "contrast": 8.15,
-                  "against": "neutral.050",
+                  "$value": "{pds3.core.palette.neutral.650}",
+                  "aliasOf": "pds3.core.palette.neutral.650",
+                  "contrast": 8.1,
+                  "against": "background.secondary",
                   "min": 7,
                   "description": "Form field placeholder ink — a readable hint, 7:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
                 },
                 "hc-dark": {
-                  "$value": "{pds3.core.palette.neutral.300}",
-                  "aliasOf": "pds3.core.palette.neutral.300",
-                  "contrast": 7.44,
-                  "against": "neutral.900",
+                  "$value": "{pds3.core.palette.neutral.350}",
+                  "aliasOf": "pds3.core.palette.neutral.350",
+                  "contrast": 7.46,
+                  "against": "background.secondary",
                   "min": 7,
                   "description": "Form field placeholder ink — a readable hint, 7:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
                 }

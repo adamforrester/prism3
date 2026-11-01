@@ -2099,8 +2099,8 @@
         },
         "placeholder": {
           "$type": "color",
-          "$value": "{nbds.core.palette.neutral.500}",
-          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on background.primary, the same ink as text.secondary (not a sub-AA placeholder)"
+          "$value": "{nbds.core.palette.neutral.550}",
+          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
         }
       },
       "inverse": {

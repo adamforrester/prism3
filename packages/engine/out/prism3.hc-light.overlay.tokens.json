@@ -487,7 +487,7 @@
         },
         "placeholder": {
           "$type": "color",
-          "$value": "{pds3.core.palette.neutral.700}",
+          "$value": "{pds3.core.palette.neutral.650}",
           "$description": "Form field placeholder ink — a readable hint, 7:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
         }
       },

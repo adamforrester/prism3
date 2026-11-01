@@ -2719,14 +2719,14 @@
       ],
       "description": "Form field placeholder — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.6509804129600525,
-        "g": 0.6549019813537598,
-        "b": 0.658823549747467,
+        "r": 0.6000000238418579,
+        "g": 0.6039215922355652,
+        "b": 0.6117647290229797,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/300"
+        "name": "wds/core/palette/neutral/350"
       }
     },
     {

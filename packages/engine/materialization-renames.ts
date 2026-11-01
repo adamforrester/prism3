@@ -803,3 +803,20 @@ export const recollectAll = (
   before: ReadonlySet<VarKey>,
   renames: readonly CollectionMove[],
 ): Set<VarKey> => new Set([...before].map((k) => recollect(k, renames)));
+
+/**
+ * `MATERIALIZATION_RENAMES` AS SOURCE, for the paste path's rename pass (#1024, `rename-apply.ts`).
+ *
+ * The rules are closures, so a paste payload cannot receive them as JSON. Each rule's `domain` and `map`
+ * ship as their own source, and the three module constants they close over ship as DATA, serialized from
+ * the constants themselves — so the payload runs these rules, not a restatement of them. `why` is left
+ * behind: it is prose for a reader of this file, and nothing at apply time reads it.
+ */
+export const materializationRulesSrc = (): string =>
+  '(()=>{const CORE_TIER=' + JSON.stringify(CORE_TIER)
+  + ';const RETIRED_ROOT_PREFIXES=' + JSON.stringify(RETIRED_ROOT_PREFIXES)
+  + ';const CORE_GROUPS=' + JSON.stringify(CORE_GROUPS)
+  + ';return [' + MATERIALIZATION_RENAMES.map((r) => {
+    const { id, since } = r;
+    return 'Object.assign(' + JSON.stringify({ id, since }) + ',{domain:' + r.domain.toString() + ',map:' + r.map.toString() + '})';
+  }).join(',') + '];})()';

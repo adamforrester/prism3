@@ -178,7 +178,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.450 | 3.16 | 3 | ✅ |
 | field.border.hover | neutral.650 | 6.70 | 3 | ✅ |
-| field.placeholder | neutral.500 | 4.59 | 4.5 | ✅ |
+| field.placeholder | neutral.550 | 4.52 | 4.5 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.550 | 3.27 | 3 | ✅ |
 | inverse.field.border.hover | neutral.350 | 6.41 | 3 | ✅ |
@@ -466,7 +466,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.550 | 3.27 | 3 | ✅ |
 | field.border.hover | neutral.350 | 6.41 | 3 | ✅ |
-| field.placeholder | neutral.450 | 5.06 | 4.5 | ✅ |
+| field.placeholder | neutral.450 | 4.68 | 4.5 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.450 | 3.16 | 3 | ✅ |
 | inverse.field.border.hover | neutral.650 | 6.70 | 3 | ✅ |
@@ -754,7 +754,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.500 | 4.59 | 4.5 | ✅ |
 | field.border.hover | neutral.700 | 9.84 | 4.5 | ✅ |
-| field.placeholder | neutral.700 | 8.09 | 7 | ✅ |
+| field.placeholder | neutral.650 | 8.15 | 7 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.500 | 4.57 | 4.5 | ✅ |
 | inverse.field.border.hover | neutral.300 | 8.75 | 4.5 | ✅ |
@@ -1042,7 +1042,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.500 | 4.57 | 4.5 | ✅ |
 | field.border.hover | neutral.300 | 8.75 | 4.5 | ✅ |
-| field.placeholder | neutral.300 | 7.49 | 7 | ✅ |
+| field.placeholder | neutral.350 | 7.49 | 7 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.500 | 4.59 | 4.5 | ✅ |
 | inverse.field.border.hover | neutral.700 | 9.84 | 4.5 | ✅ |
@@ -1955,7 +1955,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.500 | 4.56 | 4.5 | ✅ |
 | field.border.hover | neutral.700 | 9.89 | 4.5 | ✅ |
-| field.placeholder | neutral.700 | 8.15 | 7 | ✅ |
+| field.placeholder | neutral.650 | 8.10 | 7 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.500 | 4.61 | 4.5 | ✅ |
 | inverse.field.border.hover | neutral.300 | 8.72 | 4.5 | ✅ |
@@ -2230,7 +2230,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.500 | 4.61 | 4.5 | ✅ |
 | field.border.hover | neutral.300 | 8.72 | 4.5 | ✅ |
-| field.placeholder | neutral.300 | 7.44 | 7 | ✅ |
+| field.placeholder | neutral.350 | 7.46 | 7 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.500 | 4.56 | 4.5 | ✅ |
 | inverse.field.border.hover | neutral.700 | 9.89 | 4.5 | ✅ |
@@ -3132,7 +3132,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.500 | 4.54 | 4.5 | ✅ |
 | field.border.hover | neutral.700 | 9.85 | 4.5 | ✅ |
-| field.placeholder | neutral.700 | 8.12 | 7 | ✅ |
+| field.placeholder | neutral.650 | 8.14 | 7 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.500 | 4.63 | 4.5 | ✅ |
 | inverse.field.border.hover | neutral.300 | 8.75 | 4.5 | ✅ |
@@ -3407,7 +3407,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.500 | 4.63 | 4.5 | ✅ |
 | field.border.hover | neutral.300 | 8.75 | 4.5 | ✅ |
-| field.placeholder | neutral.300 | 7.46 | 7 | ✅ |
+| field.placeholder | neutral.350 | 7.49 | 7 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.500 | 4.54 | 4.5 | ✅ |
 | inverse.field.border.hover | neutral.700 | 9.85 | 4.5 | ✅ |
@@ -4308,7 +4308,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.500 | 4.59 | 4.5 | ✅ |
 | field.border.hover | neutral.700 | 9.85 | 4.5 | ✅ |
-| field.placeholder | neutral.700 | 7.13 | 7 | ✅ |
+| field.placeholder | neutral.650 | 8.16 | 7 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.500 | 4.57 | 4.5 | ✅ |
 | inverse.field.border.hover | neutral.300 | 8.66 | 4.5 | ✅ |
@@ -4583,7 +4583,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | field.fill | transparent | — | — | · |
 | field.border.rest | neutral.500 | 4.57 | 4.5 | ✅ |
 | field.border.hover | neutral.300 | 8.66 | 4.5 | ✅ |
-| field.placeholder | neutral.300 | 7.39 | 7 | ✅ |
+| field.placeholder | neutral.350 | 7.49 | 7 | ✅ |
 | inverse.field.fill | transparent | — | — | · |
 | inverse.field.border.rest | neutral.500 | 4.59 | 4.5 | ✅ |
 | inverse.field.border.hover | neutral.700 | 9.85 | 4.5 | ✅ |
