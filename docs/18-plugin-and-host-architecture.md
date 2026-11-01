@@ -62,18 +62,20 @@ Key fields (developers.figma.com/docs/plugins/manifest):
   unlisted request gets a CSP error. **Theming needs none of this at runtime** — the engine is bundled
   in, no server call. **Two plugins since #3138** (the owner's network model): "Prism3 Studio" lists exactly
   `https://fonts.googleapis.com` and `https://fonts.gstatic.com`, so the preview can load a brand's face from Google
-  Fonts, and "Prism3 Studio Offline" (`build.mjs --release --offline`, `release-offline/`) ships
+  Fonts, plus (#3147) `ws://localhost:17331`, the agent link's local desktop bridge, and "Prism3 Studio Offline" (`build.mjs --release --offline`, `release-offline/`) ships
   `allowedDomains: ["none"]`, a real trust/reliability win for client files. Distinct names and ids, so both load at
   once; `PRISM3_NETWORK` false drops every network branch from the offline UI. `apps/plugin/lint-network-reach.ts`
   holds each build to its reach.
-  The one exception is dev-only: the dev manifest also lists `devAllowedDomains: ["ws://localhost:17331"]`,
-  the agent link's local desktop-bridge socket (`apps/plugin/src/agent-bridge-relay.ts`), which Figma
-  honours only for a development import.
+  Until #3147 the bridge's socket (`apps/plugin/src/agent-bridge-relay.ts`) was dev-only, listed under
+  `devAllowedDomains`, which Figma honours only for a development import. Since #3147 Phase 1 it sits behind
+  `PRISM3_NETWORK`, ships in "Prism3 Studio" and is absent from the offline build; the manifest lists no
+  `devAllowedDomains`.
 - **Dev build vs release build (#2530).** `npm run -w @prism3/plugin build` writes `dist/` with
   `PRISM3_DEV` true; `build:release` writes `release/` with `PRISM3_DEV` false, so esbuild drops every
-  dev-only branch (the bridge relay, the dev-only agent-link command), and writes a `manifest.json` beside
+  dev-only branch (the dev-only `run-code` agent-link command; the bridge relay was here until #3147), and writes a `manifest.json` beside
   the bundles with `devAllowedDomains` removed (`apps/plugin/build.mjs`, `writeReleaseManifest`).
-  `apps/plugin/lint-release-bundle.ts` checks that each dev-only marker is in `dist/` and absent from `release/`.
+  `apps/plugin/lint-release-bundle.ts` checks that each dev-only marker is in `dist/` and absent from both releases,
+  and that each network-only marker (the relay) is in `dist/` and `release/` and absent from `release-offline/`.
 - **`permissions`** — `currentuser` / `activeusers` / `fileusers` / `payments` / `teamlibrary`. The plugin asks for
   `teamlibrary` alone (#2879, the owner's Q613 1 A): read-only, the one way to read an enabled library's name, which the
   library home shows (`apps/plugin/src/file-kind.ts`). The Community listing shows it. `test-manifest.ts` and
