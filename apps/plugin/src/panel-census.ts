@@ -35,6 +35,9 @@ export const panelledOf = (tags: readonly PanelTag[], setIds: ReadonlySet<string
 export const unpanelledOf = (present: readonly string[], panelled: readonly string[]): string[] =>
   present.filter((id) => leadsPanel(id) && !panelled.includes(id));
 
+/** How many present sets lead a panel family: the count `unpanelledOf` is out of. */
+export const panelLeadsOf = (present: readonly string[]): number => present.filter((id) => leadsPanel(id)).length;
+
 /** What Clean up's panels item reads (Q3137.7 A): how many live panels the file holds, and how many of them still hold
  *  what was drawn, so a removal would take them. */
 export type PanelsCleanCount = { drawn: number; removable: number };

@@ -38,7 +38,7 @@ export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'panels-clean'] as const;
 /** #2530: the dev-only commands (`dev-commands.ts`). Named here for the TYPES only: `parseCommand` answers them
  *  `unknown-command`, and the dispatcher accepts one only in a `PRISM3_DEV &&` branch, so a release build neither
  *  lists nor runs one, and the Node-side tools that import this file see no dev code. */
@@ -74,6 +74,9 @@ export type AgentArgs = {
   /** #2830 phase 2: draw the spec panel beside each family's usage panel. No `def` means every family whose lead's set
    *  is in the file; a `def` draws that def's family. */
   'draw-specs': { def?: string };
+  /** #3137 Q3137.7 A: the usage panels Update file › Clean up offers while Documentation has panels off. `confirm: false`
+   *  (or absent) counts them; `confirm: true` removes each live panel that still holds what was drawn, never an edited one. */
+  'panels-clean': { confirm?: boolean };
   /** #2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`). */
   'run-code': RunCodeArgs;
 };
@@ -288,6 +291,11 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
         return fail('bad-args', 'draw-specs takes args.def: a component def id, or no def for every family in the file');
       }
       return { ok: true, command: { ...base, cmd: 'draw-specs', args: args.def === undefined ? {} : { def: args.def } } };
+    case 'panels-clean':
+      if (args.confirm !== undefined && typeof args.confirm !== 'boolean') {
+        return fail('bad-args', 'panels-clean takes args.confirm: false (or none) to count, true to remove the unedited panels');
+      }
+      return { ok: true, command: { ...base, cmd: 'panels-clean', args: args.confirm === undefined ? {} : { confirm: args.confirm } } };
     case 'status':
     case 'file-setup':
     case 'readback':

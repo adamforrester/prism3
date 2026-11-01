@@ -126,6 +126,7 @@ export const WRITES: Record<string, string> = {
   'capture-baseline': 'Plugin data only: the as-built record on members built before it existed.',
   'adopt-members': 'Plugin data only: records and stamps members Prism3 did not build, so an update can bring them to the plan.',
   'draw-specs': 'Canvas frames only: a spec panel beside each family\'s usage panel, replacing its earlier unedited one and keeping an edited one aside as "(edited)". Never a component set, a variable or a style.',
+  'panels-clean': 'With confirm: false (or none), nothing: a count of the live usage panels and how many still hold what was drawn. With confirm: true, removes each of those, re-read now; a panel edited by hand is never removed.',
   'run-code': 'Whatever the code writes. Dev builds only; a release build answers unknown-command.',
 };
 
