@@ -110,6 +110,13 @@ const sendThemePref = async (): Promise<void> => {
 /** The desktop bridge's pairing token (#3204, the owner's Q3204.1 A): per person and per machine in `clientStorage`, the
  *  only place it is kept. Never written to the file, its plugin data or shared plugin data, which travel with the file. */
 const BRIDGE_TOKEN_KEY = 'prism3:bridge-token';
+/* Whether this build carries the desktop bridge (#3218): `PRISM3_NETWORK`, false only in "Prism3 Studio Offline"
+   (`build.mjs --release --offline`), whose UI has no relay. Each use of the token below is guarded by
+   `(typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK)`, written out at the site: under the offline define it folds to
+   `false` and esbuild drops the branch, then the key and `sendBridgeToken` as unused (a guard read from a `const` is NOT
+   dropped: esbuild folds the `typeof` but does not inline the const). `lint-release-bundle.ts` checks `release-offline/main.js`
+   holds no `prism3:bridge-token`. A tsx harness that imports this file without setting `globalThis.PRISM3_NETWORK` gets the
+   network build's answer. */
 /** Send the kept token, or null: the relay waits for this answer before it connects, so it never asks for a code it has. */
 const sendBridgeToken = async (): Promise<void> => {
   let token: string | null = null;
@@ -1936,7 +1943,7 @@ onUiMessage((msg: UiToMain) => {
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
       void sendThemePref();
       void sendActivityHeight();
-      void sendBridgeToken();
+      if (typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK) void sendBridgeToken();
       postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });
       // #3170: the panel paints first. This turn posts only what one root read answers; the reads below each start in a
       // turn of their own, so the panel has its brand and settings before any of them holds the thread.
@@ -2062,10 +2069,10 @@ onUiMessage((msg: UiToMain) => {
       agentLink.setBridge(msg.connected);
       return;
     case 'agent-bridge-paired':
-      if (typeof msg.token === 'string' && msg.token) void figma.clientStorage.setAsync(BRIDGE_TOKEN_KEY, msg.token).catch(() => {/* best-effort: asked again next time */});
+      if ((typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK) && typeof msg.token === 'string' && msg.token) void figma.clientStorage.setAsync(BRIDGE_TOKEN_KEY, msg.token).catch(() => {/* best-effort: asked again next time */});
       return;
     case 'agent-bridge-unpaired':
-      void Promise.resolve().then(() => figma.clientStorage.deleteAsync(BRIDGE_TOKEN_KEY)).catch(() => {/* best-effort */});
+      if (typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK) void Promise.resolve().then(() => figma.clientStorage.deleteAsync(BRIDGE_TOKEN_KEY)).catch(() => {/* best-effort */});
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the
