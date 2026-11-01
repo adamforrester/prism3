@@ -528,10 +528,11 @@ section('pairing — the secret file, a wrong code, and no eviction by an unpair
     const results = [];
     for (let i = 0; i < 3; i++) results.push(await tryPair(wrongBut(last)));
     results.push(await tryPair(last));
+    { const g = await openClient(); await g.nonce(); g.sendJson({ type: 'hello', proof: 'ab'.repeat(32), held: [] }); await until(() => g.closeCode() !== null); g.sock.destroy(); }
     await until(() => false, 200);
     const issued = printed().length - before;
     ok(issued === 0 && !results.some(Boolean),
-      `pair/no-request: ${label}, pair messages on the socket issue no code and pair no one (${issued} printed, ${results.filter(Boolean).length} paired)`);
+      `pair/no-request: ${label}, messages on the socket issue no code and pair no one (${issued} printed, ${results.filter(Boolean).length} paired)`);
     const asked = (await call('figma_status')).value?.pairingCode;
     ok(typeof asked === 'string' && asked !== last && printed().length === before + 1 && printed()[printed().length - 1] === asked,
       `pair/no-request: ${label}, figma_status then issues the next code (${asked === last ? 'the old one' : asked ? 'a new one' : 'none'})`);
