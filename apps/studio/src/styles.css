@@ -452,7 +452,7 @@ label.cset-head{cursor:pointer}
 .ctable{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
 .ctable th,.ctable td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
 .ctable .mcol{text-align:center}
-/* Token list: value columns read best flush-left (swatch+hex / px), overriding the shared centring. */
+/* Token list: value columns read best flush-left (swatch+hex / px), overriding the shared centering. */
 .toktable .mcol{text-align:left}
 .pair{color:var(--ink2)}
 .pair-path{display:block;color:var(--ink2)}
