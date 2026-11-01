@@ -750,6 +750,26 @@ export const retiredMentions = (places: { label: string; lines: string[] }[], re
   places.flatMap((pl) => pl.lines.flatMap((l, i) => retired.filter((r) => l.includes(r.token))
     .map((r) => ({ place: pl.label, line: i + 1, token: r.token, retired: r.retired }))));
 
+/**
+ * ARM 8 (#3240) — THE ESCAPE REVIEW, IN STEP ACROSS THE THREE PLACES THAT CARRY IT. Owner decision Q-SI1 A:
+ * a PR that closes a `type:bug` issue answers two questions in its body (which check should have caught the
+ * bug, and what now stops it escaping that way), the reviewer checks the answers, and CONTRIBUTING says
+ * why. Each place is useless without the others: a template section nobody is told to fill, or a review
+ * step with no section to read, reads as a process while doing nothing. So each place must still carry
+ * its own marker. The markers are authored literals here, never read from one document to check another
+ * (`docs/34` shape 2): the template's is its HEADING, because the heading is what a PR body inherits.
+ * Not a gate on PR bodies: a PR body is not in the tree, so whether a given bug fix filled it in is the
+ * reviewer's to check.
+ */
+export const ESCAPE_REVIEW_PLACES: readonly { label: string; path: string; marker: RegExp }[] = [
+  { label: '.github/pull_request_template.md', path: resolve(repo, '.github/pull_request_template.md'), marker: /^## Escape review$/m },
+  { label: 'CONTRIBUTING.md', path: resolve(repo, 'CONTRIBUTING.md'), marker: /\*\*Escape review\*\* section/ },
+  { label: '.claude/commands/review-pr.md', path: resolve(repo, '.claude/commands/review-pr.md'), marker: /\*\*Escape review\*\* section/ },
+];
+/** The labels of the places whose text no longer carries their escape-review marker. */
+export const escapeReviewGaps = (places: readonly { label: string; text: string; marker: RegExp }[]): string[] =>
+  places.filter((pl) => !pl.marker.test(pl.text)).map((pl) => pl.label);
+
 // ---- SELF-CHECK: can the gate still see what it claims to, and can it still fail? ------------------
 // Every sample below drives `parseSteps`/`gateTokensOf`/`findGaps` directly — the functions the real
 // run below also calls — never a reimplementation of the parsing or matching logic. Each sample is
@@ -1107,6 +1127,19 @@ if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: ha
   if (retiredMentions([{ label: 'sample §3', lines: ['npm run test -w @prism3/sample'] }], R).length) selfFails.push('arm 6 flags a checklist that names no retired gate (false positive)');
 }
 
+// 8. ARM 8 — a place that lost its marker is named, and a place that keeps it is clean.
+{
+  const P = [
+    { label: 'sample template', text: '## Summary\n\n## Escape review\n\n## Gates', marker: /^## Escape review$/m },
+    { label: 'sample guide', text: 'fills the template\'s **Escape review** section.', marker: /\*\*Escape review\*\* section/ },
+  ];
+  if (escapeReviewGaps(P).length) selfFails.push('arm 8 flags places that carry their escape-review marker (false positive)');
+  const lost = escapeReviewGaps([{ ...P[0], text: '## Summary\n\n## Gates' }, P[1]]);
+  if (lost.length !== 1 || lost[0] !== 'sample template') selfFails.push('arm 8 does not name a place that lost its escape-review marker (it cannot fail)');
+  const demoted = escapeReviewGaps([{ ...P[0], text: '### Escape review — see below' }]);
+  if (demoted.length !== 1) selfFails.push('arm 8 accepts a template whose Escape review is no longer its own section');
+}
+
 if (selfFails.length) {
   console.error("\n❌ the doc/CI gate-sync check's own detection is broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -1326,6 +1359,22 @@ if (retiredFound.length) {
   console.error('\n  A deleted gate leaves every other arm green (it names no ci.yml step to compare). Remove the line,');
   console.error('  or, if the gate came back, delete its row from RETIRED_GATES in the same PR.');
   process.exit(1);
+}
+// ARM 8, on the real files (#3240).
+{
+  const missing = ESCAPE_REVIEW_PLACES.filter((pl) => !existsSync(pl.path)).map((pl) => pl.label);
+  const lost = escapeReviewGaps(ESCAPE_REVIEW_PLACES.filter((pl) => existsSync(pl.path))
+    .map((pl) => ({ label: pl.label, text: readFileSync(pl.path, 'utf8'), marker: pl.marker })));
+  console.log(`    escape review: ${ESCAPE_REVIEW_PLACES.length} place(s) checked for their marker`);
+  if (missing.length || lost.length) {
+    console.error(`\n❌ the escape review (#3240) is no longer carried by all ${ESCAPE_REVIEW_PLACES.length} places that hold it in step:\n`);
+    for (const l of missing) console.error(`    ${l} — file not found, so it could not be checked`);
+    for (const l of lost) console.error(`    ${l} — no longer carries its escape-review marker`);
+    console.error('\n  The PR template asks a bug fix the two questions, CONTRIBUTING.md §4 says when they are owed, and');
+    console.error('  review-pr.md has the reviewer check the answers. Restore the missing one, or retire all three in one PR');
+    console.error('  together with ESCAPE_REVIEW_PLACES.');
+    process.exit(1);
+  }
 }
 if (findings.length) {
   console.error(`\n❌ ${findings.length} gate(s) undocumented:\n`);

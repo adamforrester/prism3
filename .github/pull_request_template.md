@@ -24,6 +24,14 @@
 - [ ] Engine bump: `packages/engine/changes/…md` declaring `engine: …` — or none owed, because …
 - [ ] Reuse: the existing mechanism this reused — or, for a new gate, script or helper, why nothing fit
 
+## Escape review
+
+<!-- Required when this PR closes a `type:bug` issue whose bug reached the owner or real Figma
+     (#3240, CONTRIBUTING.md §4 "Running a lane"). Otherwise write "Not a bug fix." -->
+
+- **Which check should have caught it, and why didn't it?**
+- **What was added, or filed, so it can't escape that way again?**
+
 ## Gates
 
 <!-- Run these and report the results. Not a formality — a PR isn't done until they're
