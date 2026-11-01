@@ -8,9 +8,10 @@
  *
  * SECTIONS AND SHARDS (#2898). The suite is one top-level script in numbered sections, and each section's statements
  * run under `if (runs('<id>'))` (the guards are not indented, so the sections read as before). With no `CHROME_SHARD`
- * every section runs, in order, then the end-of-run checks: `npm run verify` and a local run are the whole suite. CI
- * runs it as parallel shards, each running the sections `chrome-shards.mjs` gives it and leaving the end-of-run
- * checks, which read the whole sweep, to `test:chrome-shards`, which also holds every section to exactly one shard.
+ * every section runs, in order, then the end-of-run checks: a bare local run and `npm run verify -- --unsharded` are
+ * the whole suite. CI, and `npm run verify` by default since #3216, run it as parallel shards, each running the
+ * sections `chrome-shards.mjs` gives it and leaving the end-of-run checks, which read the whole sweep, to
+ * `test:chrome-shards`, which also holds every section to exactly one shard.
  * A new section needs a new id in its guards and a place in `chrome-shards.mjs`; `test:chrome-shards` fails by name
  * until it has one. A declaration a later section reads stays outside every guard and must stay free of side effects,
  * so a section skipped leaves the others as they were; state that crosses sections (the check-box counts, the hooks
@@ -512,9 +513,11 @@ let executed = 0;
 // Each numbered section's statements run under `if (runs('<id>'))`; the declarations a later section reads stay at
 // the top level, unguarded and side-effect free, so a skipped section leaves every other one as it was. The guards are
 // not indented, so the sections read as they did. Three modes:
-//   · the whole suite (the default, `npm run verify`, and CI before #2898): every section, then the end-of-run checks;
-//   · one shard (`CHROME_SHARD=<n>`, CI): the sections `chrome-shards.mjs` gives shard n, and no end-of-run checks,
-//     which read the whole sweep: the shard writes what they read to its record, and `--merge` runs them once;
+//   · the whole suite (the default with no `CHROME_SHARD`, `npm run verify -- --unsharded`, and CI before #2898):
+//     every section, then the end-of-run checks;
+//   · one shard (`CHROME_SHARD=<n>`, CI, and `npm run verify` by default since #3216): the sections
+//     `chrome-shards.mjs` gives shard n, and no end-of-run checks, which read the whole sweep: the shard writes what
+//     they read to its record, and `--merge` runs them once;
 //   · `--list` and `--merge`, with no browser: every section is reached and none runs. `--list` prints the section ids
 //     (the expected list `test-chrome-shards.mjs` holds the shards to), `--merge` runs the end-of-run checks over the
 //     shards' records.
