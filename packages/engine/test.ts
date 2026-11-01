@@ -9768,6 +9768,12 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // Row 45: the anchor is gated at the non-text floor against background.secondary and tertiary, not AA on the page.
   ok(notesOf('rv-anch', { brandColors: acc, actionPalette: 'accent' }).includes("action: anchored at 'accent' step 450, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary."),
     '#1883 review row 45: the action-anchor note names the 3:1 / 7:1 bar and both grounds');
+  // #1894: a pinned actionAnchorStep is applied exactly, so the note names the PIN (300, not the auto 450) and
+  // carries no auto-move clause. The resolved rest fill is read back from modes.ts, which applies the pin.
+  const pinned = brandTheme({ id: 'rv-anch-pin', ...B, brandColors: acc, actionPalette: 'accent', actionAnchorStep: 300 } as unknown as BrandInput);
+  ok(pinned.notes.includes("action: pinned at 'accent' step 300 by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.")
+    && !pinned.notes.some((n) => /step 450|moved only if/.test(n)),
+    '#1894: a pinned actionAnchorStep is reported as the pinned step, with no auto-move clause');
   // Row 14: with roleColors.success set and status.success unset, the brand DID set a success color.
   ok(notesOf('rv-stdef', { brandColors: acc, roleColors: { success: 'accent' } }).includes('success: default hue 145 — status.success is not set.'),
     '#1883 review row 14: the default-status note claims only that status.<k> is unset');
