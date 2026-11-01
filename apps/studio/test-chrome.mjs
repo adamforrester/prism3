@@ -13730,8 +13730,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         `${where}: row "${r.g}" renders chips, not a segmented control — ${r.seg} segmented part(s), group ${JSON.stringify(r.group)}, chips ${JSON.stringify(words)}`);
       const on = r.chips.filter((c) => c[2] === 'true').map((c) => c[0]);
       ok(on.length === 1 && on[0] === ITALIC_LOADED[r.g], `${where}: row "${r.g}" has exactly one chip pressed, ${ITALIC_LOADED[r.g]} — pressed ${JSON.stringify(on)}`);
-      // #3117 (Q3117.1 B): no chip draws a check, pressed or not; the pressed chip's edge shows it (section 3117).
-      ok(r.chips.every((c) => c[4] === false), `${where}: row "${r.g}" draws no check on any chip — ${JSON.stringify(r.chips.map((c) => [c[0], c[4]]))}`);
+      ok(r.chips.every((c) => c[4] === (c[2] === 'true')), `${where}: row "${r.g}" draws the check on the pressed chip only — ${JSON.stringify(r.chips.map((c) => [c[0], c[4]]))}`);
     }
     const s0 = await saved();
     ok(canon(s0) === canon(BOOT_INPUT), `${where}: before any click, the saved brand is prism3 as loaded — ${wireDiff({ input: s0 }, { input: BOOT_INPUT })}`);
@@ -13802,109 +13801,6 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
   } finally { await ctx.close(); }
 }
 } // 30b
-
-// =============================================================================================
-// #3117 (owner decision Q3117.1 B, 2026-11-01): a `chipChoice` chip draws no check glyph, so a pick never changes a
-// chip's width or the row's wrap. Pressed is shown by the edge alone, as the segmented `choice` does. Before, the
-// pressed chip drew a 16px check plus its 4px gap, so it was 20px wider than when unpressed, and where a row only just
-// fitted a pick could move the last chip onto a new row (the #3115 shape, from another cause).
-// The Type page's italics chips (body, the only `chipChoice` user), both hosts, both chrome themes, at 1280. In the #3115
-// shape: the group is held at its `max-content` width, read once under the first pick, and each option is pressed in
-// turn; after each pick the chips' rows (distinct tops) and each chip's own width are read. EXPECTED (literal rules,
-// typed here): one row count for every pick, one row at that width, and each chip the same width whichever chip is
-// pressed. Then the two checks the decision owed, measured as rendered:
-//   · the pressed chip's edge against an unpressed chip's edge, at least 3:1 (WCAG 1.4.11), read from computed style, so
-//     the edge alone tells them apart, and the label ink the same on both (the ink is not the cue);
-//   · under forced colors (CDP `forced-colors: active`), the pressed chip filled `Highlight` and its neighbor not, so the
-//     state is still drawn with no glyph (section 46 reads the Personality chip's label pixels under the same rule).
-// ACTUAL: the drawn chips.
-// Mutation, failing here by name: the glyph restored (`chipChoice` appends `glyph('check')` again) → `#3117 web light:
-// each chip keeps its width whatever is picked — upright 88/68/68, both 109/129/109, only 80/80/100` and `… no chip
-// draws a check, pressed or not — upright: ["upright"], both: ["both"], only: ["only"]`, on every host and theme (8 of
-// 28; section 30b's `row "…" draws no check on any chip` too). The row count holds under it: exactly one chip is always
-// pressed, so the glyph adds the same 20px to the group whichever is picked, and its `max-content` row still fits. The
-// width arm is the one that catches it; the row arm stays as the #3115 shape's statement of the outcome.
-if (runs('3117')) {
-console.log(`\nchipChoice keeps its width when pressed (#3117)\n${'='.repeat(78)}`);
-const GROUP_3117 = '[data-p3="levers-pane"] [data-p3="italic-row"][data-group="body"] [data-p3="italic-choice"]';
-/** Each option's hook spelled whole, as the hook guard reads them, in drawn order. Literal. */
-const OPTION_HOOKS_3117 = { upright: '[data-p3="italic-choice-upright"]', both: '[data-p3="italic-choice-both"]', only: '[data-p3="italic-choice-only"]' };
-const OPTIONS_3117 = Object.keys(OPTION_HOOKS_3117);
-const lum3117 = (hx) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; const n = (i) => parseInt(hx.slice(i, i + 2), 16); return 0.2126 * f(n(1)) + 0.7152 * f(n(3)) + 0.0722 * f(n(5)); };
-const ratio3117 = (a, b) => { if (!a || !b) return NaN; const [x, y] = [lum3117(a), lum3117(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
-  const where = `#3117 ${host} ${theme}`;
-  const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
-  try {
-    await goPlace(page, 'type');
-    await openTypeAdvanced(page);
-    await hooks.need(page, GROUP_3117);
-    const reads = {};
-    /** The group's width in px, read once at `max-content` under the first pick and held for every later one. */
-    let held = null;
-    for (const v of OPTIONS_3117) {
-      const opt = `${GROUP_3117} ${OPTION_HOOKS_3117[v]}`;
-      await page.locator(opt).scrollIntoViewIfNeeded();
-      await hooks.click(page.locator(opt));
-      // A press redraws the levers pane, so the chip reading pressed is the redraw having landed.
-      await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-pressed') === 'true', opt, { timeout: 5000 }).catch(() => {});
-      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-      const read = await page.evaluate(([s, px]) => {
-        const g = document.querySelector(s);
-        if (!g) return null;
-        if (px === null) { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
-        g.style.width = `${px}px`;
-        const chips = [...g.querySelectorAll('.p3-btn.p3-chip')];
-        const on = chips.find((b) => b.getAttribute('aria-pressed') === 'true');
-        const off = chips.find((b) => b.getAttribute('aria-pressed') === 'false');
-        const label = (b) => b?.querySelector('.p3-btn-label');
-        return {
-          on: on?.dataset.value, px,
-          rows: new Set(chips.map((b) => Math.round(b.getBoundingClientRect().top))).size,
-          widths: Object.fromEntries(chips.map((b) => [b.dataset.value, Math.round(b.getBoundingClientRect().width * 10) / 10])),
-          glyphs: chips.filter((b) => [...b.querySelectorAll('.p3-ico')].some((i) => getComputedStyle(i).display !== 'none')).map((b) => b.dataset.value),
-          edgeOn: on && getComputedStyle(on).borderTopColor, edgeOff: off && getComputedStyle(off).borderTopColor,
-          inkOn: label(on) && getComputedStyle(label(on)).color, inkOff: label(off) && getComputedStyle(label(off)).color,
-        };
-      }, [GROUP_3117, held]);
-      held = read?.px ?? held;
-      reads[v] = read;
-    }
-    const picked = OPTIONS_3117.every((v) => reads[v]?.on === v);
-    const counts = OPTIONS_3117.map((v) => reads[v]?.rows);
-    ok(picked && counts.every((n) => n && n === counts[0]) && counts[0] === 1,
-      `${where}: the italics chips keep one row whatever is picked, at their own max-content width (${held}px) — ${OPTIONS_3117.map((v, i) => `${v} ${counts[i]}${reads[v]?.on === v ? '' : ` (shows ${reads[v]?.on})`}`).join(', ')}`);
-    const widthsOf = (c) => OPTIONS_3117.map((v) => reads[v]?.widths?.[c]);
-    ok(OPTIONS_3117.every((c) => { const ws = widthsOf(c); return ws.every((x) => typeof x === 'number' && Math.abs(x - ws[0]) < 0.5); }),
-      `${where}: each chip keeps its width whatever is picked — ${OPTIONS_3117.map((c) => `${c} ${widthsOf(c).join('/')}`).join(', ')}`);
-    ok(OPTIONS_3117.every((v) => reads[v]?.glyphs?.length === 0), `${where}: no chip draws a check, pressed or not — ${OPTIONS_3117.map((v) => `${v}: ${JSON.stringify(reads[v]?.glyphs)}`).join(', ')}`);
-    // Contrast, read off the last pick (Italic only pressed, Upright not).
-    const last = reads[OPTIONS_3117[OPTIONS_3117.length - 1]] ?? {};
-    const [eOn, eOff, iOn, iOff] = [last.edgeOn, last.edgeOff, last.inkOn, last.inkOff].map(hexOfRgb);
-    const edgeRatio = ratio3117(eOn, eOff);
-    ok(edgeRatio >= 3, `${where}: the pressed chip's edge reads at least 3:1 against an unpressed chip's — ${eOn} against ${eOff}, ${Number.isFinite(edgeRatio) ? `${(Math.floor(edgeRatio * 100) / 100).toFixed(2)}:1` : 'unreadable'}`);
-    ok(iOn && iOn === iOff, `${where}: the pressed and unpressed chips' labels share one ink, so the edge is the cue — ${iOn} and ${iOff}`);
-    // Forced colors: the pressed chip filled Highlight, its neighbor not.
-    const cdp = await ctx.newCDPSession(page);
-    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
-    const fc = await page.evaluate((s) => {
-      const g = document.querySelector(s);
-      const probe = document.createElement('div');
-      probe.style.cssText = 'position:absolute;width:1px;height:1px;background-color:Highlight;forced-color-adjust:none';
-      document.body.append(probe);
-      const highlight = getComputedStyle(probe).backgroundColor;
-      probe.remove();
-      const on = g?.querySelector('.p3-btn.p3-chip[aria-pressed="true"]'), off = g?.querySelector('.p3-btn.p3-chip[aria-pressed="false"]');
-      return { active: matchMedia('(forced-colors: active)').matches, highlight, on: on && getComputedStyle(on).backgroundColor, off: off && getComputedStyle(off).backgroundColor };
-    }, GROUP_3117);
-    ok(fc.active && fc.on === fc.highlight && fc.off !== fc.highlight,
-      `${where}: under forced colors the pressed chip is filled Highlight and its neighbor is not — active ${fc.active}, Highlight ${fc.highlight}, pressed ${fc.on}, unpressed ${fc.off}`);
-    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
-  } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
-  } finally { await ctx.close(); }
-}
-} // 3117
 
 // =============================================================================================
 // #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay

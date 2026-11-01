@@ -15,8 +15,14 @@
  *
  * BY-NAME MUTATION (proven red, then restored): `composeBuildId` returning `${builtAt} ${treeToken}` (the stamp drops
  * the commit) → "stamp/commit" fails, with "stamp/dirty", "stamp/no-git", "stamp/no-binary" and "link/commit".
+ * `behindCheck` without its `NO_GIT` test → "skip/no-git" and "skip/stand-in" fail; without its `watch` test →
+ * "skip/watch" fails (#3261).
  */
-import { behindStamp, commitStamp, composeBuildId, NO_GIT } from './git-stamp.mjs';
+import { behindCheck, behindStamp, commitStamp, composeBuildId, NO_GIT } from './git-stamp.mjs';
+import { spawnSync } from 'node:child_process';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parseBuildId } from '../studio/src/build-identity';
 import { createAgentLink } from './src/agent-link';
 import { MAILBOX } from './src/agent-protocol';
@@ -111,6 +117,48 @@ console.log('\n3. behind origin/main: a warning, never a failure');
   const r = behindStamp(stubGit({ fetch: { status: 128, stderr: 'fatal: unable to access remote\n' } }).run);
   ok(r.behind === null && r.warnings.length === 1 && r.warnings[0].includes('Could not fetch origin/main') && r.warnings[0].includes('unable to access remote'),
     'behind/no-fetch: a fetch that cannot run is one plain note, and the build goes on');
+}
+
+console.log('\n3b. the build skips the fetch when git cannot run, and under --watch (#3261)');
+{
+  // Stubbed: the stamp says git could not run, so the check runs no git at all, and prints nothing more.
+  const g = stubGit({ fetch: { status: 128, stderr: 'fatal: license\n' }, 'rev-list': { status: 0, stdout: '0\n' } });
+  const r = behindCheck(`${AT} ${TREE} ${NO_GIT}`, { watch: false }, g.run);
+  ok(r.behind === null && r.warnings.length === 0 && g.calls.length === 0,
+    `skip/no-git: a stamp of "git-unavailable" runs no fetch and adds no note (calls ${JSON.stringify(g.calls)}; ${JSON.stringify(r.warnings)})`);
+}
+{
+  const g = stubGit({ fetch: { status: 0 }, 'rev-list': { status: 0, stdout: '3\n' } });
+  const r = behindCheck(`${AT} ${TREE} 76a1636b`, { watch: true }, g.run);
+  ok(r.warnings.length === 0 && g.calls.length === 0, `skip/watch: under --watch nothing is fetched (calls ${JSON.stringify(g.calls)})`);
+}
+{
+  const g = stubGit({ fetch: { status: 0 }, 'rev-list': { status: 0, stdout: '3\n' } });
+  const r = behindCheck(`${AT} ${TREE} 76a1636b-dirty`, {}, g.run);
+  ok(r.behind === 3 && g.calls[0]?.join(' ') === 'fetch --quiet origin main',
+    `skip/one-shot: a build that runs once with a commit in its stamp still fetches and counts (calls ${JSON.stringify(g.calls)})`);
+}
+{
+  // A STAND-IN GIT THAT FAILS: a real executable named `git`, first on PATH, that logs each call and refuses every
+  // one as the license prompt did on 2026-10-31. The build's sequence (stamp, then the behind check) runs against it
+  // through a real process, so the arm holds what reaches git, not what a stub was told.
+  const dir = mkdtempSync(join(tmpdir(), 'p3-standin-git-'));
+  const log = join(dir, 'calls.log');
+  writeFileSync(join(dir, 'git'), `#!/bin/sh\necho "$*" >> "${log}"\necho "You have not agreed to the license agreements." >&2\nexit 69\n`);
+  chmodSync(join(dir, 'git'), 0o755);
+  const run = (args: string[]) => {
+    const r = spawnSync('git', args, { encoding: 'utf8', timeout: 5000, env: { ...process.env, PATH: `${dir}:${process.env.PATH ?? ''}` } });
+    return { status: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '', error: r.error };
+  };
+  const lines: string[] = [];
+  const id = composeBuildId(AT, TREE, run, (w) => lines.push(w));
+  for (const w of behindCheck(id, { watch: false }, run).warnings) lines.push(w);
+  let calls: string[] = [];
+  try { calls = readFileSync(log, 'utf8').trim().split('\n'); } catch { calls = []; }
+  rmSync(dir, { recursive: true, force: true });
+  ok(id.endsWith(` ${NO_GIT}`) && calls.length > 0 && !calls.some((c) => c.startsWith('fetch')) && !lines.some((l) => l.includes('Could not fetch'))
+    && lines.length === 2 && lines[0].startsWith('⚠ git did not run'),
+    `skip/stand-in: with a git that fails, the build prints the one warning pair and never runs a fetch (git saw ${JSON.stringify(calls)}; printed ${lines.length} line(s))`);
 }
 
 console.log('\n4. the agent link\'s `link` record carries the stamp, so an agent reads the commit from the file');

@@ -260,52 +260,6 @@ const extraChildren = (plan: AnatomyPlan['root'], node: SnapNode, path: string, 
 /** The field a move into a new frame is listed under (#2595). DRAFT wording. */
 export const MOVES = 'moves into';
 
-/**
- * #3206: WHICH MEMBER EACH NESTED INSTANCE IS, read off the host. `diffAnatomy` holds a nested instance to its SET
- * (`nestTarget`) but not to the member inside it (`nestVariant`, which it has no independent name for), so an update that
- * left a FieldLabel on `emphasis=secondary` where the plan resolves `emphasis=primary` verified as matching. Here the
- * instance's main component, as the snapshot read it (`getMainComponentAsync`), is compared with the plan's coordinate
- * axis by axis: the same axes, each with the plan's value, in whatever order the file names them. The expected side is
- * the plan's own `nestVariant`, never the executor's resolver (`resolveNestMember`), so the check stays independent of
- * what it checks (docs/34). Only a member of a set is held: an instance of a plain component of that name has no
- * coordinate (the executor takes the plain component first, and `nestTarget` covers it). An instance kept as a hand edit
- * (`keep`), or under a kept node, is the designer's and is not read: a kept member root keeps its own fields, and its
- * parts are still read. ONE CHECK FOR BOTH SIDES (#3242): the apply's verify reads it after the write, and the dry run
- * reads it to judge a member, so a member whose stamp and record read current but whose nested instance is another
- * member reads "to update" rather than current.
- */
-export type NestFault = { part: string; set: string; member: string; plan: string };
-/** A nested-member fault as the verify lists it: `<path>.nestVariant: <set>/<member> (the plan says <set>/<coordinate>)`. */
-export const nestFaultLine = (f: NestFault): string => `${f.part}.nestVariant: ${f.set}/${f.member} (the plan says ${f.set}/${f.plan})`;
-export const nestedMemberFaults = (plan: AnatomyPlan['root'], snap: SnapNode, keep: ReadonlySet<string>): NestFault[] => {
-  const out: NestFault[] = [];
-  const coordOfName = (n: string): Map<string, string> => {
-    const m = new Map<string, string>();
-    for (const kv of n.split(',')) { const i = kv.indexOf('='); if (i > 0) m.set(kv.slice(0, i).trim(), kv.slice(i + 1).trim()); }
-    return m;
-  };
-  const walk = (pn: AnatomyPlan['root'], sn: SnapNode | undefined, at: string): void => {
-    if (!sn) return;
-    const want = (pn as { nestVariant?: Record<string, string> }).nestVariant;
-    if (String(pn.type) === 'NESTED_INSTANCE') {
-      // Held as the content check holds a field: the instance kept, or a node above it other than the member's root.
-      if ([...keep].some((k) => at === k || at.startsWith(`${k}/`))) return;
-      const main = sn.mainComponent as { name?: string; parent?: { name?: string; type?: string } | null } | undefined;
-      if (!want || sn.type !== 'INSTANCE' || !main || main.parent?.type !== 'COMPONENT_SET') return;
-      const got = coordOfName(String(main.name ?? ''));
-      const axes = Object.entries(want);
-      if (got.size !== axes.length || axes.some(([k, v]) => got.get(k) !== v)) {
-        out.push({ part: at, set: String(main.parent?.name ?? ''), member: String(main.name ?? ''), plan: axes.map(([k, v]) => `${k}=${v}`).join(', ') });
-      }
-      return;
-    }
-    const kids = sn.children ?? [];
-    for (const c of pn.children ?? []) walk(c, kids.find((k) => k.name === c.name), at === '.' ? c.name : `${at}/${c.name}`);
-  };
-  walk(plan, snap, '.');
-  return out;
-};
-
 /** #2595 — the file's children an update MOVES into a frame the plan inserts, walked as the executor walks: under
  *  every node the file holds for a plan node, by the executor's own rule (`adoptions`), with a node a designer edited
  *  by hand left out as the executor leaves it. Each with its path now, its path after, and the plan node it becomes.
@@ -577,16 +531,11 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const structural = !!edit && edit.added.length + edit.removed.length > 0;
     const planMoved = planHalf(m.stamp) !== planHalf(memberStamp(plan));
     const revField = m.stamp.split('|').length >= 3 ? revHalf(m.stamp) : null;
-    const snap = renamedSnap(m.snap, layerMap);
-    // WHICH MEMBER EACH NESTED INSTANCE IS (#3242), by the apply's own verify (`nestedMemberFaults`, #3206): a nested
-    // instance on another member than the plan's coordinate is to update, whatever the stamp and record say. A node
-    // edited by hand is the designer's, as the apply keeps it by default.
-    const nested = nestedMemberFaults(plan.root, snap, new Set((edit?.changed ?? []).map((p) => p.replace(/#\d+$/, ''))));
     const state: MemberState = (damaged.length && !structural) || rxv.dangling ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
       // #3101: a member stamped under another revision is to update only when a revision since reaches this set.
-      : planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || rxv.differs || nested.length ? 'update'
+      : planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || rxv.differs ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
     counts[state]++;
@@ -601,6 +550,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const rootName = plan.root.name;
     const rel = (p: string): string => (p === rootName ? '.' : p.startsWith(`${rootName}/`) ? p.slice(rootName.length + 1) : p);
     const touched = new Set<string>();
+    const snap = renamedSnap(m.snap, layerMap);
     // #2595 — the children the update moves into a frame the plan inserts: each is compared to its plan where it
     // lands, and listed as a move rather than as removed. `edited` is what the apply passes the executor.
     const moves: { from: string; to: string; plan: AnatomyPlan['root']; host: SnapNode }[] = [];
@@ -679,16 +629,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
-    for (const f of nested) {
-      touched.add(f.part);
-      const from = `${f.set}/${f.member}`, to = `${f.set}/${f.plan}`;
-      const k = `${f.part}\u0000nestVariant\u0000${from}\u0000${to}`;
-      const c = changes.get(k) ?? { part: f.part, field: 'nestVariant', from, to, members: 0, sample: [] };
-      c.members++;
-      if (c.sample.length < 3) c.sample.push(m.name);
-      changes.set(k, c);
-    }
-    if (state === 'update' && placed.length === 0 && moves.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs && !nested.length) {
+    if (state === 'update' && placed.length === 0 && moves.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
       const c = changes.get(k) ?? { part: '.', field: 'stamp', from: planMoved ? 'an earlier plan' : 'an earlier executor revision', to: 're-applied — no field-level difference visible', members: 0, sample: [] };

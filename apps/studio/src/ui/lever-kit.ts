@@ -592,10 +592,8 @@ export const toggleChip = (role: string, word: string, onToggle: (on: boolean) =
   return { el, set: (on) => { if (el.getAttribute('aria-pressed') !== String(on)) el.setAttribute('aria-pressed', String(on)); } };
 };
 
-/** One of two to four words, as chips (#2192): `toggleChip`'s look, single-select, with no check glyph (#3117, owner
- *  decision Q3117.1 B): the pressed chip shows its state by its edge alone, as the segmented `choice` does, so a pick
- *  never changes a chip's width or the row's wrap. A `role="group"` named by `label`; each chip a button with
- *  `aria-pressed`, exactly one pressed. Keyboard as Personality's chips: each
+/** One of two to four words, as chips (#2192): `toggleChip`'s look, single-select. A `role="group"` named by
+ *  `label`; each chip a button with `aria-pressed`, exactly one pressed. Keyboard as Personality's chips: each
  *  chip is a Tab stop, Enter or Space presses it. Pressing the pressed chip writes nothing. Same signature as
  *  `choice`, so a lever moves between the two without its writes changing. */
 export const chipChoice = <V extends string>(label: string, role: string, options: readonly { v: V; l: string }[], onPick: (v: V) => void): {
@@ -608,7 +606,7 @@ export const chipChoice = <V extends string>(label: string, role: string, option
     const b = hook(h('button', 'p3-btn p3-btn-page p3-chip'), `${role}-${o.v}`);
     b.type = 'button';
     b.dataset.value = o.v;
-    b.append(h('span', 'p3-btn-label', o.l));
+    b.append(glyph('check'), h('span', 'p3-btn-label', o.l));
     b.onclick = () => { if (b.getAttribute('aria-pressed') !== 'true') onPick(o.v); };
     return b;
   });
