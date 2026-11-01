@@ -1082,6 +1082,7 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
     const names = presentNames({ root: rootOver(nodes) } as unknown as Parameters<typeof presentNames>[0]);
     const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
     if (gen === presentGen) presentCache = ids;
+    watchSets();
     return { ids, nodes };
   })();
   presentRead = read;
@@ -1136,6 +1137,42 @@ const hostApi = () => ({
  *  in the panel never loads every page or walks the file: that is the costly part on a large file. A write starting and
  *  ending clears them (`guarded`), so the next recount reads the file again. */
 let presentCache: string[] | null = null;
+/**
+ * #3091: A SET ADDED, DELETED OR RENAMED BY HAND DROPS THE CACHED SETS, so the badge's next recount reads the file again
+ * instead of counting a set the file no longer holds, or missing one it now does. Figma's `documentchange` reports every
+ * edit, by hand, by a collaborator or by a plugin. Under `dynamic-page` it can only be listened to once every page is
+ * loaded, so it is registered after the first read of the file's sets, which loads them all (`searchPagesYielding`).
+ * The listener costs nothing while no sets are cached (a write clears them, `guarded`). Otherwise it drops them on:
+ *   · a component or set created, or a node created that holds one (a frame pasted with sets in it);
+ *   · a component or set deleted, or a node deleted that could have held one (a removed node's children cannot be read);
+ *   · a component or set renamed: the build finds its sets by name (`presentNames`).
+ * Any other edit keeps them, so drawing on the canvas never makes the recount read the file again.
+ */
+const SET_TYPES: ReadonlySet<string> = new Set(['COMPONENT', 'COMPONENT_SET']);
+const HOLDER_TYPES: ReadonlySet<string> = new Set(['COMPONENT', 'COMPONENT_SET', 'FRAME', 'GROUP', 'SECTION', 'PAGE']);
+type SetChangeNode = { readonly type?: string; readonly removed?: boolean; findAllWithCriteria?(c: { types: string[] }): readonly unknown[] };
+type SetChange = { readonly type: string; readonly node?: SetChangeNode; readonly properties?: readonly string[] };
+const movesSets = (changes: readonly SetChange[]): boolean => changes.some((c) => {
+  const t = c.node?.type ?? '';
+  if (c.type === 'DELETE') return HOLDER_TYPES.has(t);
+  if (c.type === 'PROPERTY_CHANGE') return SET_TYPES.has(t) && !!c.properties?.includes('name');
+  if (c.type !== 'CREATE' || !HOLDER_TYPES.has(t)) return false;
+  if (SET_TYPES.has(t)) return true;
+  const n = c.node!;
+  if (n.removed || typeof n.findAllWithCriteria !== 'function') return true;
+  try { return n.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).length > 0; } catch { return true; }
+});
+let watchingSets = false;
+const watchSets = (): void => {
+  if (watchingSets) return;
+  try {
+    figma.on('documentchange', (e) => {
+      if (presentCache === null || !movesSets(e.documentChanges as readonly SetChange[])) return;
+      presentCache = null; presentRead = null; presentGen++;
+    });
+    watchingSets = true;
+  } catch { /* a host that refuses the listener: the sets are read again after each write, as before #3091 */ }
+};
 /**
  * #3110: EVERY PAGE LOADED, ONE AT A TIME, THE THREAD HANDED BACK BETWEEN THEM. Figma loads a page on the main thread
  * and the file freezes while it does: `loadAllPagesAsync` alone on a file of 60 pages held it for about 20 s, the first

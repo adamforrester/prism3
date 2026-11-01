@@ -58,6 +58,8 @@
  * Theme unticked → `q701/update writes A`, `q701/next load`. The hand-edit pass (section 7): `stale()` cut to
  * `mine !== handPass`, so a write starting no longer ends it → `hand-edits/guard`. `panelFor` drawing the spec panel
  * after the usage panel (Q2830.3 A: specs are drawn on request only) → `specs/never on build`, `specs/never on update`.
+ * #3091 (section 6d): `watchSets`' listener a no-op, so a set deleted or added by hand stays miscounted until the next
+ * read → `hand/delete` and `hand/add`.
  * The panel's Draw specs (section 8) scoped to the file, not the current page (`main.ts`'s `draw-specs` case passing
  * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`. #3081 Q810 A (section 6c): the live recount
  * (`fileDue`) reading the stored brand whatever the panel sends → `q810/rises`; it reading the file's sets again each time
@@ -164,11 +166,13 @@ root.findAllWithCriteria = (c?: { types?: string[]; sharedPluginData?: { namespa
   ...(c?.types?.includes('COMPONENT') ? pages.flatMap((p) => p.children).flatMap((n) => n.type === 'COMPONENT' ? [n] : n.type === 'COMPONENT_SET' ? (n.children as Node[]) : []).map(instanceable) : []),
   ...(c?.types?.includes('FRAME') && c.sharedPluginData ? pages.flatMap((p) => p.children).filter((n) => n.type === 'FRAME' && c.sharedPluginData!.keys.some((k) => (n as any).getSharedPluginData?.(c.sharedPluginData!.namespace, k))) : [])];
 const empty = async () => [];
+const listeners: Record<string, ((e: unknown) => void)[]> = {};
 Object.assign(shim, {
   showUI: () => undefined,
   ui: { postMessage: (m: unknown) => { posted.push(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
   clientStorage: { getAsync: async () => undefined, setAsync: async () => undefined },
-  on: () => undefined,
+  // #3091: the listeners `main.ts` registers, kept so an arm can fire Figma's `documentchange` as a hand edit does.
+  on: (ev: string, fn: (e: unknown) => void) => { (listeners[ev] ??= []).push(fn); },
   createPage: () => mkPage(false),
   createPageDivider: () => mkPage(true),
   setCurrentPageAsync: async () => undefined,
@@ -654,6 +658,48 @@ const fullAns = openSets.find((m) => m.partial !== true);
 ok(atOpen.length > 0 && ledgerAns?.due?.[LEVER_DEF]?.state === 'due' && ledgerAns.due[LEVER_DEF].reason === 'engine' && JSON.stringify(ledgerAns.due[LEVER_DEF]) === JSON.stringify(fullAns?.due?.[LEVER_DEF]),
   `q810/engine at open: the ledger's answer at open prints the engine-moved set as the full read does, due for the engine in both (${JSON.stringify({ ledger: ledgerAns?.due?.[LEVER_DEF], full: fullAns?.due?.[LEVER_DEF] })})`);
 pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pluginData.get('prism3:asBuilt')!).sets, [LEVER_DEF]: asA } }));
+
+// 6d. #3091: a set deleted or added BY HAND, with no write of the plugin's in between. Figma reports it as a
+//     `documentchange` (fired here as Figma fires it: the change's type, its node, and for a deleted node `removed`). The
+//     next recount must count the file as it now is: the deleted set is not present and not due, the set put back is
+//     present again. An edit that moves no set (a rectangle drawn) keeps the cached sets: the recount loads no page.
+//     The set is taken off its page and put back on the host, as a hand edit does; the expected states are literals.
+//     Mutation: the listener's body a no-op (`main.ts`, `watchSets`) → `hand/delete` and `hand/add`.
+const fire = (changes: unknown[]): void => { for (const fn of listeners.documentchange ?? []) fn({ documentChanges: changes }); };
+ok((listeners.documentchange ?? []).length === 1, `hand/listens: after a read of the file's sets, main.ts listens for documentchange once (${(listeners.documentchange ?? []).length})`);
+const handBrand = JSON.parse(sharedData.get('prism3:brandInput') ?? 'null') ?? brandB;
+await ask({ type: 'file-sets-request' }, 'file-sets');
+const dBefore = (await ask({ type: 'due-request', input: handBrand, seq: 20 }, 'file-due'))[0];
+ok(dBefore?.present?.includes(LEVER_DEF) && !!dBefore.due?.[LEVER_DEF], `hand/control: before the edit the recount counts ${LEVER_DEF} present (${JSON.stringify(dBefore?.present)})`);
+// The build names a set by its def's id, and finds it by that name (`presentNames`).
+const handPage = pages.find((p) => p.children.some((c) => c.type === 'COMPONENT_SET' && c.name === LEVER_DEF));
+const handSet = handPage?.children.find((c) => c.type === 'COMPONENT_SET' && c.name === LEVER_DEF);
+ok(!!handSet, `hand/fixture: ${LEVER_DEF}'s set is on the host`);
+let handLoads = 0;
+const loadAllH = shim.loadAllPagesAsync;
+shim.loadAllPagesAsync = async () => { handLoads++; return loadAllH?.(); };
+fire([{ type: 'CREATE', node: { type: 'RECTANGLE', id: 'r:1' }, origin: 'LOCAL' }, { type: 'PROPERTY_CHANGE', node: { type: 'FRAME', id: 'f:1' }, properties: ['name'], origin: 'LOCAL' }]);
+handLoads = 0;
+const dOther = (await ask({ type: 'due-request', input: handBrand, seq: 21 }, 'file-due'))[0];
+ok(handLoads === 0 && dOther?.present?.includes(LEVER_DEF), `hand/other edit: an edit that moves no set keeps the cached sets, so the recount loads no page (${handLoads} page loads)`);
+if (handPage && handSet) {
+  const pg = handPage, node = handSet;
+  const at = pg.children.indexOf(node);
+  pg.children.splice(at, 1);
+  fire([{ type: 'DELETE', node: { type: 'COMPONENT_SET', id: node.id, removed: true }, origin: 'LOCAL' }]);
+  const dDel = (await ask({ type: 'due-request', input: handBrand, seq: 22 }, 'file-due'))[0];
+  ok(dDel?.seq === 22 && !dDel.present?.includes(LEVER_DEF) && !dDel.due?.[LEVER_DEF],
+    `hand/delete: a set deleted by hand is neither present nor due in the next recount, with no file-sets read between (${JSON.stringify({ present: dDel?.present, due: dDel?.due?.[LEVER_DEF] ?? null })})`);
+  // The file read afresh without the set, so the cache does not hold it: the add is then read from the file or missed.
+  const fsGone = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+  ok(!fsGone?.present?.includes(LEVER_DEF), `hand/fixture: a read with the set deleted does not find it (${JSON.stringify(fsGone?.present)})`);
+  pg.children.splice(at, 0, node);
+  fire([{ type: 'CREATE', node, origin: 'LOCAL' }]);
+  const dAdd = (await ask({ type: 'due-request', input: handBrand, seq: 23 }, 'file-due'))[0];
+  ok(dAdd?.seq === 23 && dAdd.present?.includes(LEVER_DEF) && !!dAdd.due?.[LEVER_DEF],
+    `hand/add: a set added by hand is present in the next recount, with no file-sets read between (${JSON.stringify({ present: dAdd?.present, due: dAdd?.due?.[LEVER_DEF] ?? null })})`);
+}
+shim.loadAllPagesAsync = loadAllH;
 
 // 7. #2909 S2: the background hand-edit pass stops when a write starts (`handEditsPass`'s `stale()`, the run guard). A
 //    build is held mid-run (its page switch waits on a promise this test releases), the pass is asked for, and no set's
