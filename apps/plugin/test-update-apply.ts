@@ -153,7 +153,8 @@
  *                  Prism3 mark taken as on the grid → `relay marks/hand moved`; the obstacle check dropped →
  *                  `relay marks/blocked`; the obstacles not widened by the 24px gap → `relay marks/gap`; the ownership filter
  *                  dropped → `relay marks/theirs`; reach entry 46 emptied →
- *                  `relay marks/due`; the overlap guard dropped → `relay marks/icons kept`.
+ *                  `relay marks/due`; the overlap guard dropped → `relay marks/icons kept`; the hand-moved marks left
+ *                  out of the re-lay's check → `relay marks/hand blocks`.
  *   recordfail/…   a member whose as-built record the host refuses after the update (an icon, and a set member) keeps
  *                  the stamp it had and its marker, reads out of date in the next dry run, and is named among the
  *                  outcome's misses (#2373). Mutation: the stamp written before the record → `recordfail/unstamped`,
@@ -2274,6 +2275,36 @@ section('single, marks — an update re-lays a block still on the old 48px grid 
   const miss = (res.outcomes[0]?.misses ?? []).find((m) => m.includes('NOT RE-LAID'));
   ok(w.comps().map((c) => `${c.x},${c.y}`).join() === before && !!miss,
     `relay marks/gap: a frame 10px below where the re-laid block would end, nearer than the 24px gap, stops the re-lay too (${miss ?? 'no line'})`);
+}
+{
+  // A HAND-MOVED MARK IN THE WAY: a designer already pulled one of Prism3's marks apart from the overlap and dropped it
+  // off the grid, right where a neighbor would land at the new spacing. It is Prism3's, so it is not an obstacle at
+  // the call site; only the hand-moved list inside the re-lay protects it. Nothing moves and the outcome names the
+  // mark whose place is taken. Mutation: the hand-moved marks left out of the re-lay's check → `relay marks/hand blocks`.
+  const plans = plansOf('provider-logo');
+  const w = await singleWorld(plans);
+  const marks = w.comps();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(marks.length)));
+  marks.forEach((c, i) => {
+    c.x = (i % cols) * 48;
+    c.y = Math.floor(i / cols) * 48;
+    putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|45'));
+  });
+  const pitchX = Math.max(...marks.map((c) => Number(c.width))) + 24;
+  const oldRight = Math.max(...marks.map((c) => Number(c.x) + Number(c.width)));
+  const oldBottom = Math.max(...marks.map((c) => Number(c.y) + Number(c.height)));
+  // The first row-0 slot whose new place starts clear of the old block; the hand-moved mark goes 3px into it, at
+  // y 5, so it is off the grid's offset on both axes and clear of the block as it stands.
+  const col = marks.findIndex((_, i) => i > 1 && i < cols && i * pitchX > oldRight);
+  const hand = marks[1];
+  hand.x = col * pitchX + 3; hand.y = 5;
+  const clearOfOld = hand.x >= oldRight || hand.y >= oldBottom;
+  const before = w.comps().map((c) => `${c.x},${c.y}`).join();
+  const t = { def: 'provider-logo', plans, single: true };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+  const miss = (res.outcomes[0]?.misses ?? []).find((m) => m.includes('NOT RE-LAID'));
+  ok(col > 1 && clearOfOld && w.comps().map((c) => `${c.x},${c.y}`).join() === before && !!miss && miss.startsWith(String(marks[col].name)),
+    `relay marks/hand blocks: a mark a designer moved off the grid, where a neighbor would land at the new spacing, stops the re-lay and the outcome names that neighbor (slot ${col}, ${miss ?? 'no line'})`);
 }
 {
   // THE ICONS NEVER MOVE: an icon block at the old 48px pitch, stamped by an earlier revision so Update takes it, and a
