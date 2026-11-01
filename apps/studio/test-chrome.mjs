@@ -18132,6 +18132,69 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 }
 } // 3129
 // =============================================================================================
+// §3133 — A DUE SET'S TAG STAYS INSIDE UPDATE FILE (#3133)
+// =============================================================================================
+// At 380 the due rows drew each set's name and its why-tag on one line that could not wrap: a long tag ran past the
+// dialog's body and was clipped ("Du", "Due · it"), and squeezed the name to a letter or two. The plugin at 380 and 1280,
+// light and dark: three due sets, one per reason, planted as the main thread posts them, Update file opened and its
+// check answered. EXPECTED (literal rules typed here): at every width each tag is drawn whole, inside the body's content
+// box and inside its own row, and each name is drawn whole; at 1280 each tag stays on its name's line (the wide layout
+// is unchanged). ACTUAL: the drawn rects.
+// Mutation, failing here by name: the name and tag back on the box's own unwrapping line (`check(…, label, …)` handed
+// the two spans, not the `.p3-upd-checktext` wrapper) → `#3133 figma light 380: each due set's tag is drawn whole,
+// inside the Update dialog's body …` (and dark).
+if (runs('3133')) {
+console.log(`\n#3133 — a due set's tag stays inside Update file\n${'='.repeat(78)}`);
+const DUE_3133 = { 'password-field': { state: 'due', reason: 'definition' }, 'text-field': { state: 'due', reason: 'engine' }, 'search-field': { state: 'due', reason: 'executor' } };
+const FILE_3133 = { type: 'file-sets', present: Object.keys(DUE_3133), setUp: true, due: DUE_3133 };
+const CHECK_3133 = { type: 'update-check', previewHash: 'H-3133', missing: [], refused: [], sets: Object.keys(DUE_3133).map((def) =>
+  ({ def, hash: def, members: 96, update: 24, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false })) };
+for (const w of [380, 1280]) for (const theme of ['light', 'dark']) {
+  const where = `#3133 figma ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: 900 });
+  try {
+    await page.evaluate(() => { window.__3133 = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type) window.__3133.push(m.type); }); });
+    await postMsg(page, FILE_3133);
+    await hooks.click(page.locator('[data-p3="update-file"]'));
+    await hooks.need(page, '[data-p3="update-dialog"]');
+    await page.waitForFunction(() => window.__3133.includes('file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+    await postMsg(page, FILE_3133);
+    await page.waitForFunction(() => window.__3133.includes('update-check-request'), null, { timeout: 5000 }).catch(() => {});
+    await postMsg(page, CHECK_3133);
+    await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+    await settle(page);
+    const rows = await page.evaluate(() => {
+      const body = document.querySelector('[data-p3="update-dialog"] [data-p3="update-body"]');
+      const br = body?.getBoundingClientRect(), bs = body ? getComputedStyle(body) : null;
+      const inner = br ? { left: br.left + parseFloat(bs.paddingLeft), right: br.right - parseFloat(bs.paddingRight) } : null;
+      const r1 = (x) => Math.round(x * 10) / 10;
+      return { inner: inner && [r1(inner.left), r1(inner.right)], scrolls: body ? body.scrollWidth > body.clientWidth : null,
+        rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => {
+          const tag = b.querySelector('[data-p3="update-set-due"]'), name = b.querySelector('.p3-upd-setname');
+          const t = tag?.getBoundingClientRect(), n = name?.getBoundingClientRect(), row = b.getBoundingClientRect();
+          return { id: b.dataset.id, tag: tag?.textContent ?? null, l: t && r1(t.left), r: t && r1(t.right), rowR: r1(row.right),
+            tagWhole: !!tag && tag.scrollWidth <= tag.clientWidth + 0.5, nameWhole: !!name && name.scrollWidth <= name.clientWidth + 0.5,
+            sameLine: !!t && !!n && Math.abs((t.top + t.bottom) / 2 - (n.top + n.bottom) / 2) <= 2 };
+        }) };
+    });
+    const ids = rows.rows.map((r) => r.id).sort();
+    ok(JSON.stringify(ids) === JSON.stringify(Object.keys(DUE_3133).sort()) && rows.rows.every((r) => r.tag), `${where}: the three due sets are listed, each with its tag (${JSON.stringify(rows.rows.map((r) => [r.id, r.tag]))})`);
+    const out = rows.rows.filter((r) => !r.tag || !rows.inner || r.l < rows.inner[0] - 0.5 || r.r > rows.inner[1] + 0.5 || r.r > r.rowR + 0.5 || !r.tagWhole);
+    ok(rows.inner && out.length === 0 && rows.scrolls === false,
+      `${where}: each due set's tag is drawn whole, inside the Update dialog's body and its own row (body content ${JSON.stringify(rows.inner)}, scrolls sideways ${rows.scrolls}${out.length ? `; ${out.map((r) => `${r.id} "${r.tag}" ${r.l}–${r.r}, row to ${r.rowR}${r.tagWhole ? '' : ', clipped'}`).join('; ')}` : ''})`);
+    const cut = rows.rows.filter((r) => !r.nameWhole).map((r) => r.id);
+    ok(cut.length === 0, `${where}: each due set's name is drawn whole beside or above its tag (${cut.length ? `cut: ${cut.join(', ')}` : 'none cut'})`);
+    if (w === 1280) {
+      const off = rows.rows.filter((r) => !r.sameLine).map((r) => r.id);
+      ok(off.length === 0, `${where}: at 1280 each tag stays on its name's line (${off.length ? `off it: ${off.join(', ')}` : 'all on it'})`);
+    }
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3133
+// =============================================================================================
 // §3138 — A BRAND FACE THE PREVIEW CAN'T SHOW, SAID (#3138, owner decisions Q1, Q3, Q4, Q5 A)
 // =============================================================================================
 // The type sample sets each line in its brand face. The example brand's display and title face, Playfair Display, is

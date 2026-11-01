@@ -1871,6 +1871,11 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-title { padding-left: var(--p3-space-100); }
 .p3-upd-sets { display: grid; gap: var(--p3-space-025); padding-left: var(--p3-space-300); }
 .p3-upd-setname { flex: 1 1 auto; min-width: 0; }
+/* #3133: a due row's name and tag, on one line where they fit (the tag at the line's end, the gap the row had) and on two
+   where they do not; a tag wider than the line shrinks and wraps its words inside its fill. */
+.p3-upd-checktext { flex: 1 1 auto; column-gap: var(--p3-space-150); }
+.p3-upd-checktext > .p3-upd-setname { flex: 1 0 auto; max-width: 100%; }
+.p3-upd-checktext > .p3-sg-tag { flex: 0 1 auto; min-width: 0; }
 /* #3129: To add, its head (the title, and Remove all from two rows up) and its rows (a name, where it lands, Remove).
    R6: To add and Due are subtitles inside the Components section, a step in from its title, in the title's ink. */
 .p3-upd-group { display: grid; gap: var(--p3-space-050); padding-top: var(--p3-space-100); }
