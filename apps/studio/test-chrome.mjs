@@ -19331,7 +19331,7 @@ console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot 
 //
 // Mutations, each after a `wip:` commit, each failing by name:
 //   · Inspect restored on Components (the `.p3-popwrap` rule in `chrome.css` dropped) → `3149 <host> 1280: Q3149.2 A:
-//     Components shows no Inspect` and `… 380: …` on both hosts;
+//     Components shows no Inspect` on both hosts (at 380 the collapsed row hides it all the same);
 //   · the row kept at 380 (the narrow collapse rule dropped) → `3149 <host> 380: Q3149.1 A: the empty header row collapses`;
 //   · the row collapsed at every width (the collapse rule unscoped from the narrow tier) → `3149 <host> 1280: Q3149.1 A:
 //     the empty header row stays`.

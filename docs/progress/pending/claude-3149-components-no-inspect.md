@@ -20,6 +20,7 @@ committed artifact, emission or component surface moves.
   stays with its bottom edge on the levers header's; at 380, on the Preview pane, it collapses. `expectFor`'s Components
   preview header now expects nothing.
 - Mutations, each after a `wip:` commit, each failing by name: Inspect restored on Components (the `.p3-popwrap` rule
-  dropped) → `3149 <host> 1280` and `… 380: Q3149.2 A: Components shows no Inspect`; the 380 collapse dropped →
+  dropped) → `3149 <host> 1280: Q3149.2 A: Components shows no Inspect` on both hosts (at 380 the collapsed row hides
+  it all the same); the 380 collapse dropped →
   `3149 <host> 380: Q3149.1 A: the empty header row collapses`; the collapse unscoped from the narrow tier →
   `3149 <host> 1280: Q3149.1 A: the empty header row stays`.
