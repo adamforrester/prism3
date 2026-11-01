@@ -1942,15 +1942,15 @@ const panelsClean = async (confirm: boolean, sink: ActionSink): Promise<void> =>
     await figma.loadAllPagesAsync();
     if (!confirm) {
       const c = await panelsCleanCount(api);
-      sink.post({ type: 'panels-clean-result', applied: false, drawn: c.drawn, removable: c.removable, removed: 0, kept: 0 });
+      sink.post({ type: 'panels-clean-result', ok: true, applied: false, drawn: c.drawn, removable: c.removable, removed: 0, kept: 0 });
       return;
     }
     const r = await removeUneditedPanels(api);
     sink.data({ panelsClean: r });
     const c = await panelsCleanCount(api);
-    sink.post({ type: 'panels-clean-result', applied: true, drawn: c.drawn, removable: c.removable, removed: r.removed, kept: r.kept, ...(r.misses.length ? { error: r.misses.join('; ') } : {}) });
+    sink.post({ type: 'panels-clean-result', ok: r.misses.length === 0, applied: true, drawn: c.drawn, removable: c.removable, removed: r.removed, kept: r.kept, ...(r.misses.length ? { error: r.misses.join('; ') } : {}) });
   } catch (e) {
-    sink.post({ type: 'panels-clean-result', applied: confirm, drawn: 0, removable: 0, removed: 0, kept: 0, error: (e as Error)?.message ?? String(e) });
+    sink.post({ type: 'panels-clean-result', ok: false, applied: confirm, drawn: 0, removable: 0, removed: 0, kept: 0, error: (e as Error)?.message ?? String(e) });
   }
 };
 

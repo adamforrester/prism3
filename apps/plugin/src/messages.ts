@@ -556,8 +556,8 @@ export type MainToUi =
       panelLeads?: number }
   /** #3137 Q3137.7 A: the answer to `panels-clean`. A preview (`applied` false) gives `drawn`, the live panels, and
    *  `removable`, those still as drawn; a removal gives `removed` and `kept`, the edited panels left. `error` when the
-   *  file could not be read or the host refused a removal. */
-  | { type: 'panels-clean-result'; applied: boolean; drawn: number; removable: number; removed: number; kept: number; error?: string }
+   *  file could not be read or the host refused a removal, and then `ok` is false. */
+  | { type: 'panels-clean-result'; ok: boolean; applied: boolean; drawn: number; removable: number; removed: number; kept: number; error?: string }
   /** #3129 Q833 A: the answer to `add-queue`: the queue after the write, read as `file-sets`' `queued` is. `error` when the
    *  write was refused; `queued` is then the queue as the file holds it. */
   | { type: 'add-queue'; queued: string[]; error?: string }
