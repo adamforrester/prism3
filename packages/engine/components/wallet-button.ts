@@ -43,7 +43,8 @@
  *     SDK draws nothing under 40, so it has none either (Q3195.3 A); PayPal's ceiling is 55, so it has no large member
  *     (Q-W2 A, kept by Q3174.4 A). Apple Pay's 30 and PayPal's 25 floors sit under every rung.
  *   - width: a 120px floor, Shop Pay's logo-button minimum and the largest any of the four states (Apple Pay plain:
- *     100). The button fills its column in use.
+ *     100). The button fills its column in use. PayPal's script holds its frame at 150 or wider; that is a code-only
+ *     note in `codeOnly` (Q3175 A), and the Figma floor stays 120.
  *   - radius: the brand's `radius.md`. Apple Pay, PayPal and Shop Pay allow any radius; Google Pay at most half the
  *     height. Harbor's `radius.md` is inside that at every density, and the gate measures it there; a soft brand's
  *     can pass it (`baseMd` 12 × `radiusScale` 2 is 24px against a 28px compact small), so the code clamps Google
@@ -178,7 +179,7 @@ export const walletButton: ComponentDef = {
       'the style — passed to the provider under its own option name: Apple Pay\'s buttonstyle, Google Pay\'s buttonColor, PayPal\'s style.color and Shop Pay\'s one color. any passes nothing, so the provider draws its default. The design file\'s fill and edge for each style are the provider\'s own paint as its script draws it, so a style picked in the design file is the button the customer sees.',
       'the height limits — Google Pay\'s and Shop Pay\'s 40px floor and PayPal\'s 55px ceiling: a small Google Pay or Shop Pay button is drawn at 40 and a large PayPal button at 55, and the design file has no member for any of them.',
       'the corner — Google Pay allows a radius of at most half the button\'s height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand\'s radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is.',
-      'the width — the container fills its column, with a 120px floor. Apple Pay\'s titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay\'s "Buy with" button needs 193. PayPal\'s script holds its own frame at 150 or wider, so a PayPal button under 150 overflows its slot.',
+      'the width — the container fills its column, with a 120px floor. Apple Pay\'s titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay\'s "Buy with" button needs 193. PayPal\'s script holds its own frame at 150 or wider (the SDK\'s CSS, not a documented rule), so give a PayPal button a slot of 150 or more: under 150 its frame overflows the slot. The design file\'s floor stays 120 for every provider.',
       'the provider\'s own states — the provider\'s element owns hover, pressed and disabled and draws them itself, and the design file does not show them. The component adds only the focus ring, outside the provider\'s element, at focus-visible.',
       'the accessible name — the provider\'s element names itself ("Apple Pay", "Buy with Google Pay"). The component adds no label, so nothing is announced twice.',
       'loading — the slot keeps its height before the provider\'s script has drawn the button, so the page does not move when it arrives.',
@@ -260,7 +261,7 @@ export const walletButton: ComponentDef = {
     contested: [
       'Q-W3 (the shared factory, Q-B4 A): SignInButton is PR 5, so the factory lands with its second component rather than as an abstraction with one user.',
       'Q-W5 (shape): built as A, no shape axis, the brand\'s radius.md. The proposal\'s §2.3 gave a shape axis, rectangle or pill. B, a shape axis whose pill binds radius.capsule, clamped to half the height for Google Pay.',
-      '#3175 (PayPal\'s width): PayPal\'s script holds its frame at 150px or wider, above the component\'s 120 floor. The floor is one number for every provider today (minWidth is keyed by size only), so a PayPal member is drawn from 120; the code admits the 150 in codeOnly. A per-provider floor is the follow-up.',
+      'Q3175 A (PayPal\'s width, #3175): PayPal\'s script holds its frame at 150px or wider, above the component\'s 120 floor. Built as A: the design file\'s floor stays 120 for every provider (minWidth is keyed by size only) and the 150 is a code-only provider note in codeOnly, with no per-provider minWidth machinery for one provider. B was a typed minW 150 for PayPal in the gate and a raised PayPal floor in the def.',
     ],
     unverified: [
       'The provider limits typed in the gate are the proposal\'s reading of each provider\'s guidelines on 2026-10-25.',
