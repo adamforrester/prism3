@@ -265,20 +265,21 @@ const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: stri
       issue: '#731',
     },
   ],
-  // #2942 — the link underline (the TokenPress gap is #3085). Figma has no variable for text decoration (neither field takes one, so the value is a
-  // literal PERCENT written into each `-link` text style), and TokenPress's text-style reader exports `textDecoration`
-  // only, not its thickness or offset. So the token prism3 emits has no Figma variable for TokenPress to read back. Only
-  // the reference brand sets it; every other brand emits neither path.
+  // #2942 — the link underline. Figma has no variable for text decoration (neither field takes one, so the value is a
+  // literal PERCENT written into each `-link` text style). Since #3085 TokenPress's text-style reader keeps that literal,
+  // as `textDecorationThickness` / `textDecorationOffset` inside each style's typography composite, but prism3's
+  // brand-wide path has no Figma counterpart for it to read back, and the gate pairs by path. Only the reference brand
+  // sets it; every other brand emits neither path.
   nb: [
     {
       path: 'core.font.underline.thickness',
-      why: 'a literal PERCENT inside each -link TEXT style (Figma has no variable for text decoration); TokenPress\'s text-style reader exports textDecoration only, not its thickness',
+      why: 'a per-style literal PERCENT inside each -link TEXT style (Figma has no variable for text decoration); TokenPress reads it into each composite as textDecorationThickness, and prism3\'s brand-wide path has no Figma counterpart',
       owner: 'tokenpress',
       issue: '#3085',
     },
     {
       path: 'core.font.underline.offset',
-      why: 'a literal PERCENT inside each -link TEXT style (Figma has no variable for text decoration); TokenPress\'s text-style reader exports textDecoration only, not its offset',
+      why: 'a per-style literal PERCENT inside each -link TEXT style (Figma has no variable for text decoration); TokenPress reads it into each composite as textDecorationOffset, and prism3\'s brand-wide path has no Figma counterpart',
       owner: 'tokenpress',
       issue: '#3085',
     },
