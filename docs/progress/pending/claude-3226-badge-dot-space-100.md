@@ -14,6 +14,12 @@ moves in `out/components/` and the component surface. No token is added or renam
 - The def header and the `dot-size` comment now say "8px, `space.100`, the inline dot's size, density-free", and the
   `notes.unverified` line about borrowing a control token is gone, because it no longer does.
 
+- **Mechanical fallout, flagged on the PR:** the Radio dot size lever's description ended "Badge dots follow it.", and
+  the two skills' `radioDot` rows said the same. That is false now, so the sentence is gone from the lever (and the lever
+  manifest), and both skill rows say the badge dot has a size of its own. `prism3-build-component`'s row also named
+  List's bullet, stale since #3155; the rewritten clause names Radio's dot alone. `test-component-groups.ts` now holds
+  that Radio.Control is the one def binding `control.size.*.dot`.
+
 ### Verification
 
 - `test.ts`: the `badge dot` arm reads `space.100`. A new arm, `#3226 badge dot`, reads the emitted px through whatever
