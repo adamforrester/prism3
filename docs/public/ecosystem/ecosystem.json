@@ -846,7 +846,8 @@
           "update-components",
           "capture-baseline",
           "adopt-members",
-          "draw-specs"
+          "draw-specs",
+          "panels-clean"
         ]
       }
     },
@@ -1586,6 +1587,38 @@
           ],
           "agentCommands": [
             "prune"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "panels-clean",
+      "label": "Remove usage panels while panels are off",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Update file, Clean up tab, while Documentation has panels off: a count, then Remove; a panel edited by hand stays",
+          "sources": [
+            "apps/plugin/src/panel-census.ts",
+            "apps/studio/src/shell/update-file.ts"
+          ],
+          "messages": [
+            "panels-clean"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "panels-clean: confirm false counts, true removes the panels that still hold what was drawn",
+          "sources": [
+            "apps/plugin/src/agent-protocol.ts"
+          ],
+          "agentCommands": [
+            "panels-clean"
           ],
           "connections": [
             "agent-link",

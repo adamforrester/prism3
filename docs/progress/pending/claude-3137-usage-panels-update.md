@@ -24,7 +24,7 @@ DRAFT.
 - **Clean up (Q3137.7 A).** While panels are off, Clean up counts the live panels as it opens (`panels-clean`, confirm
   false) and offers "Remove {n} panels". The removal re-reads the file and removes only the panels `panelUnedited`
   passes, so an edited panel stays. It runs under the prune's guard and, like Prune stale, saves no version. The agent
-  gets it as `panels-clean` (`commands.json` regenerated).
+  gets it as `panels-clean` (`commands.json` regenerated; the ecosystem map gains its feature and the command).
 - **Components page (Q3137.8 A).** No status, as decided.
 - **Deliberate deviations.** The census search runs with every full read, not only while panels are on: that is what
   lets turning the switch on recount with no page load. Only the list is gated on the switch. And it is a search per
