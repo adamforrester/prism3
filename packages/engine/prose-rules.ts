@@ -127,6 +127,12 @@ const YSE = /\b[A-Za-z]*lys(?:e|ed|es|ing|er|ers)\b/gi;
 // are not listed.
 const SINGLE_L = /\b(?:[A-Za-z]*(?:skil|wil)ful(?:ly|ness)?|fulfil(?:s|ment|ments)?|enrol(?:s|ment|ments)?|instil(?:s|ment|ments)?|instal(?:s|ment|ments)?|distil(?:s)?)\b/gi;
 const RE_ENDINGS = /\b[A-Za-z]*(?:centre|metre|litre|theatre|fibre|calibre|lustre|sabre|spectre|meagre|manoeuvre|sepulchre)[A-Za-z]*\b/gi;
+// …and their `-ring` forms (#3186). en-GB drops the stem's `e` before `-ing` (`centre` → `centring`,
+// `manoeuvre` → `manoeuvring`), so the word no longer CONTAINS `centre` and RE_ENDINGS cannot see it by
+// construction: `centring` sat in shipped component prose (`out/components/toast.md`) through a green gate.
+// en-US is `centering`/`maneuvering`, which this cannot reach (`-ter`/`-ver` before `-ing`, never `-tr`/`-vr`).
+// The stems are RE_ENDINGS' own list, kept in step by hand: one that joins there joins here.
+const RE_RING = /\b[A-Za-z]*(?:centr|metr|litr|theatr|fibr|calibr|lustr|sabr|spectr|meagr|manoeuvr|sepulchr)ing[A-Za-z]*\b/gi;
 // Ordinary English that merely ENDS in those letters. Subtracting these is what makes a pattern scan
 // usable; adding to this list is the correct fix for a false positive, never narrowing the pattern.
 const NOT_EN_GB = new Set([
@@ -172,7 +178,7 @@ const maskFileNames = (txt: string): string =>
 export const enGb = (raw: string): { word: string; index: number }[] => {
   const txt = maskFileNames(raw);
   const found: { word: string; index: number }[] = [];
-  for (const re of [PATTERN, STEMS, DOUBLE_L, RE_ENDINGS, EN_GB_WORDS, YSE, SINGLE_L]) {
+  for (const re of [PATTERN, STEMS, DOUBLE_L, RE_ENDINGS, RE_RING, EN_GB_WORDS, YSE, SINGLE_L]) {
     for (const m of txt.matchAll(re)) {
       if (NOT_EN_GB.has(m[0].toLowerCase())) continue;
       found.push({ word: m[0], index: m.index ?? 0 });
