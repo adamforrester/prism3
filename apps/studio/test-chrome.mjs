@@ -18249,8 +18249,9 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 //   · Panels off: Clean up counts the drawn panels as it opens, names how many, and Remove posts the removal; the
 //     Documentation off line names how many stay.
 // Mutations, failing here by name: the disclosure dropped (every name inline) → `… Q3137.5 A: past six …`; the panel
-// sets left out of the scoped check → `… Q3137.2 A: the scoped check reads …`; the Clean up item drawn while panels are
-// on → `… Q3137.7 A: with panels on, Clean up offers no panels`.
+// sets left out of the scoped check → `… Q3137.2 A: the scoped check reads …`; the Clean up item drawn and counted while
+// panels are on → `… Q3137.7 A: with panels on, Clean up offers no panels`; the shell's badge sum leaving the group out →
+// `… Q3137.4 A: the badge counts the group as one item …`.
 if (runs('3137')) {
 console.log(`\n#3137 — usage panels: Update file's group, Clean up, Documentation\n${'='.repeat(78)}`);
 const P_SETS = ['button', 'select', 'checkbox-control', 'badge', 'tag', 'divider', 'text-field', 'list'];

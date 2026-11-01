@@ -67,7 +67,7 @@
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
  * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7); its `catch` posting
  * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`; #3137's panels census
- * (Q3137.3 A): the search dropped from `readPresent` → `q3137/census`; `fileDue` reading the file again for it → `q3137/cheap`;
+ * (Q3137.3 A): the search dropped from `readPresent` → `q3137/premise`; `fileDue` reading the file again for it → `q3137/cheap`;
  * the switch not read on the recount → `q3137/off`; `fileDue` calling
  * `dueOf` without `printNow(input)`, so an engine-moved set reads `unrecorded` → `q810/engine`; `ledgerSets` the same → `q810/engine at open`; `printNow` projecting on every call (`printMemo` unused) → `q810/memo`
  * (#3096 into #3090).
@@ -613,7 +613,7 @@ ok(pageLoads === 0, `q810/cheap again: the recount after that reuses the sets re
 // #3137 Q3137.3 A: THE PANELS CENSUS, through the real `main.ts`. Badge was built with Documentation's panels on, so it has
 // its live panel. A designer deletes it: the next full read lists Badge among the sets with no usage panel, the recount
 // after it says the same with no page load, panels off sends no list (still no page load: the switch is read each time),
-// and panels back on lists it again. Mutations: the census search dropped from `readPresent` → `q3137/census`; `fileDue`
+// and panels back on lists it again. Mutations: the census search dropped from `readPresent` → `q3137/premise`; `fileDue`
 // reading the file again for the census → `q3137/cheap`; the switch not read on the recount → `q3137/off`.
 {
   const livePanel = (): { remove(): void } | undefined => ((root.findAllWithCriteria as (c: unknown) => unknown[])({ types: ['FRAME'], sharedPluginData: { namespace: 'prism3', keys: ['docPanel'] } }) as { getSharedPluginData?(n: string, k: string): string; removed?: boolean; remove(): void }[])
