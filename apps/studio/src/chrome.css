@@ -2003,10 +2003,12 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 
 /* Slide up. The drawer rises from the bottom edge with its bar row leading, and sinks back on close. Its body stays
    drawn through the exit (`allow-discrete`), so the drawer keeps its height while it leaves. At rest the offset is
-   none: a closed drawer is its bar row, so the exit's end is where it already sits. */
+   none: a closed drawer is its bar row, so the exit's end is where it already sits. The exit plays only on a real
+   close (`data-closing`, set by the drawer when it goes from open to closed and cleared when the exit ends), never at
+   boot or when the width changes under a drawer that was already closed (#3217). */
 .p3-drawer[data-open="true"] { animation: p3-drawer-up var(--p3-motion-panel) var(--p3-ease-enter); }
-.p3-frame:not([data-w="narrow"]) .p3-drawer[data-open="false"] { animation: p3-drawer-down var(--p3-motion-fast) var(--p3-ease-exit); }
-.p3-frame[data-w="narrow"] .p3-drawer[data-open="false"] { animation: p3-strip-down var(--p3-motion-fast) var(--p3-ease-exit); }
+.p3-frame:not([data-w="narrow"]) .p3-drawer[data-closing="true"] { animation: p3-drawer-down var(--p3-motion-fast) var(--p3-ease-exit); }
+.p3-frame[data-w="narrow"] .p3-drawer[data-closing="true"] { animation: p3-strip-down var(--p3-motion-fast) var(--p3-ease-exit); }
 @keyframes p3-drawer-up { from { transform: translateY(calc(100% - var(--p3-bar-h) - var(--p3-bw-hairline))); } }
 @keyframes p3-drawer-down { to { transform: translateY(calc(100% - var(--p3-bar-h) - var(--p3-bw-hairline))); } }
 @keyframes p3-strip-down { to { transform: translateY(calc(100% - var(--p3-ctl-h-sm) - var(--p3-bw-hairline))); } }

@@ -189,6 +189,25 @@ const ORIGIN = `http://127.0.0.1:${server.address().port}`;
 const browser = await launchWithoutWebFonts(chromium);
 
 /** Post a main-thread → UI message in the wire shape `bridge-main.ts` puts on the bus. */
+/** Wait for every finite running animation to finish: what stays on screen, never a frame mid-move (#3150). CAPPED, and a
+ *  cap that trips is a FAILURE naming what was still moving (#3217; the same capped wait as `test-smoke.mjs` and
+ *  `test-start-screen.mjs`, review of #1777): a wait that timed out silently measured a frame mid-move and said nothing. */
+const SETTLE_CAP_MS = 5000;
+const settleMotion = async (page, where) => {
+  const stuck = await page.evaluate((cap) => {
+    const live = document.getAnimations()
+      .filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming?.().endTime));
+    const label = (a) => {
+      const t = a.effect?.target;
+      return `${a.animationName ?? a.transitionProperty ?? 'animation'} on ${t ? `${t.tagName.toLowerCase()}.${String(t.getAttribute?.('class') ?? '').trim().replace(/\s+/g, '.') || '-'}` : '?'}`;
+    };
+    const done = Promise.all(live.map((a) => a.finished.catch(() => null))).then(() => []);
+    const capped = new Promise((r) => setTimeout(() => r(live.filter((a) => a.playState === 'running').map(label)), cap));
+    return Promise.race([done, capped]);
+  }, SETTLE_CAP_MS);
+  ok(stuck.length === 0, `${where}: every finite animation settles within ${SETTLE_CAP_MS}ms before measuring${
+    stuck.length ? ` — still running: ${stuck.slice(0, 3).join(' | ')}` : ''}`);
+};
 const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
 
 /** Update file's labels (#2909 IA v2 phase 1, owner decisions Q668 A and Q2909.5 A; DRAFT words, Q2909.10 A). Typed here,
@@ -1578,10 +1597,7 @@ for (const how of ['pointer', 'focus']) {
     }, op, { timeout: 5000 }).catch(() => {});
     // #3150: the drawer slides up as it opens (the chrome's motion), so where it sits is read once every finite animation
     // has finished, bounded: the end state, never a frame mid-move.
-    await page.evaluate(() => Promise.race([
-      Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))),
-      new Promise((r) => setTimeout(r, 3000)),
-    ]));
+    await settleMotion(page, `#1890 ${v.type}`);
     const seen = await page.evaluate((k) => {
       const row = document.querySelector(`[data-p3="activity-op"][data-op="${k}"]`);
       const detail = row?.querySelector('[data-p3="op-body"]') ?? null;
