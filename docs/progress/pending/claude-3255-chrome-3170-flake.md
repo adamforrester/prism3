@@ -16,6 +16,6 @@ A first version waited two frames between rounds and counted changes during the 
 
 ### Verification
 
-- **The race, made deterministic** (a `wip:` mutation, `TICK_MS` 1000 → 25, section 3170 alone): `main`'s reader failed every run with the CI message (`… / updating: … p3-status-what … drew nothing | … p3-status-n … drew nothing`). The new reader passed 2/2 unthrottled and 5/5 under `Emulation.setCPUThrottlingRate` 4. Before the "null past `AGAIN`" change, 1 of 4 throttled runs exhausted the rounds and printed a false "drew nothing". Now it re-probes instead.
+- **The race, made deterministic** (a `wip:` mutation, `TICK_MS` 1000 → 25, section 3170 alone): `main`'s reader failed every run with the CI message (`… / updating: … p3-status-what … drew nothing | … p3-status-n … drew nothing`). The new reader passed 2/2 unthrottled and 3/3 under `Emulation.setCPUThrottlingRate` 4. Before the "null past `AGAIN`" change, 3 of 7 throttled runs exhausted the rounds and printed a false "drew nothing". Now it re-probes instead.
 - **A real absence still fails by name** (a `wip:` mutation, `.p3-status-n { content-visibility: hidden; contain-intrinsic-size: … }`: the element keeps its box, its text draws nothing): `✗ 3170 figma {light,dark} 1280 / {reading,updating}` and `light 380` all fail with `<span class="p3-status-n" … drew nothing`, 6 of 465. "Updating" is the arm where `n` changes every tick and goes through the re-read path.
 - Section 3170 alone at the real tick: 465/465, repeatedly, unthrottled and at 6× throttle.
