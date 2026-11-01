@@ -31297,6 +31297,23 @@ arm: {
     ok(seen === 4 && wrong.length === 0,
       `#3143 divider build check 1: each line binds the hairline across its root and nothing along it, where it grows — a row binds height only, a column width only (${seen} lines over the two labeled members${wrong.length ? `; WRONG: ${wrong.join('; ')}` : ''})`);
   }
+  // #3157 item 3: the token-usage report no longer lists a key as drawn when no plan writes it. The grow rule drops
+  // `horizontal.line.width` and `vertical.line.height` (build check 1, above), and the labeled column's hug drops
+  // `vertical.true.width`; the keys still drawn on the same tokens stay unmarked. The keys are typed here from #3157,
+  // and ACTUAL is the committed report (regen.ts --check holds it to the emitter), page and JSON both.
+  {
+    const usage = JSON.parse(readFileSync(new URL('../../docs/public/reports/token-usage.json', import.meta.url), 'utf8'));
+    const page = readFileSync(new URL('../../docs/public/reports/token-usage.md', import.meta.url), 'utf8');
+    const notDrawn = (ref: string): string[] => usage.tokens?.[ref]?.components?.divider?.keysNotDrawn ?? [];
+    const hair = notDrawn('border-width.hairline');
+    const box = notDrawn('type.label.md.line-box');
+    const marked = (k: string): boolean => page.includes(`\`${k}\` (not drawn)`);
+    ok(JSON.stringify(hair) === JSON.stringify(['horizontal.line.width', 'vertical.line.height'])
+      && JSON.stringify(box) === JSON.stringify(['vertical.true.width'])
+      && ['horizontal.line.width', 'vertical.line.height', 'vertical.true.width'].every(marked)
+      && !['horizontal.line.height', 'vertical.line.width', 'horizontal.true.height'].some(marked),
+      `#3157 divider token-usage: the report marks the keys no plan writes as not drawn, and only those (hairline ${JSON.stringify(hair)}, line box ${JSON.stringify(box)})`);
+  }
 
   // ---- `positionWhen`: variant-keyed POSITION, and why it needed its own mechanism (#990) ---------
   // #990's rejected option was two mutually-exclusive parts (`thumb-off`/`thumb-on`) gated by
@@ -37128,6 +37145,8 @@ arm: {
   ok(errs(withRoot({ sizingWhen: { when: {}, x: 'hug' } })).some((m) => /sizingWhen names no axis in 'when'/.test(m)), '#3143 sizingWhen with no condition is refused');
   ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] } } })).some((m) => /sizingWhen gives neither 'x' nor 'y'/.test(m)), '#3143 sizingWhen naming no axis is refused');
   ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] }, x: 'fill' } })).some((m) => /sizingWhen.x is 'fill' — only 'hug' is per member/.test(m)), '#3143 sizingWhen with a mode other than hug is refused');
+  // #3157 item 2: the refusal beside `size` (a square binds both axes), its own case, so dropping it fails by name.
+  ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] }, x: 'hug' }, size: 'size.medium.height' })).some((m) => /declares 'sizingWhen' beside 'size' — a square binds both axes at once/.test(m)), '#3157 sizingWhen beside size is refused');
   ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] }, x: 'hug' }, placementWidth: 320 })).some((m) => /declares 'sizingWhen' beside builtSize, center or a placement size/.test(m)), '#3143 sizingWhen beside another sizing rule is refused');
   const rule = divider.anatomy!.parts.rule;
   ok(validateComponentDef({ ...divider, anatomy: { ...divider.anatomy!, parts: { ...divider.anatomy!.parts, rule: { ...rule, sizingWhen: { when: { labeled: ['false'] }, x: 'hug' } } as PartDef } } }).errors
