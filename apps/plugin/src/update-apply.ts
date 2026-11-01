@@ -53,7 +53,7 @@ import { partRenames, type ComponentRename } from '@prism3/engine/component-rena
 import { applyComponentPlan, emitCoordValue, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { planTargets } from './build-deps';
 import { NS } from './persist-figma';
-import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead } from './member-baseline';
+import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, relocateTables, type PageMove, type TableMove } from './page-moves';
@@ -379,6 +379,46 @@ const restampMembers = async (live: LiveSet, names: readonly string[], plans: Re
   }
 };
 
+/**
+ * #3206: WHICH MEMBER EACH NESTED INSTANCE IS, read off the host. `diffAnatomy` holds a nested instance to its SET
+ * (`nestTarget`) but not to the member inside it (`nestVariant`, which it has no independent name for), so an update that
+ * left a FieldLabel on `emphasis=secondary` where the plan resolves `emphasis=primary` verified as matching. Here the
+ * instance's main component, as the snapshot read it (`getMainComponentAsync`), is compared with the plan's coordinate
+ * axis by axis: the same axes, each with the plan's value, in whatever order the file names them. Only a member of a
+ * set is held: an instance of a plain component of that name has no coordinate (the executor takes the plain component
+ * first, and `nestTarget` covers it). An instance kept as a hand edit (`keep`), or under a kept node, is the designer's
+ * and is not read, by the rule the content check above uses: a kept member root keeps its own fields, and its parts are
+ * still read. Each fault reads `<path>.nestVariant: <set>/<member> (the plan says <set>/<coordinate>)`.
+ */
+export const nestedMemberFaults = (plan: AnatomyPlan['root'], snap: SnapNode, keep: ReadonlySet<string>): string[] => {
+  const out: string[] = [];
+  const coordOfName = (n: string): Map<string, string> => {
+    const m = new Map<string, string>();
+    for (const kv of n.split(',')) { const i = kv.indexOf('='); if (i > 0) m.set(kv.slice(0, i).trim(), kv.slice(i + 1).trim()); }
+    return m;
+  };
+  const walk = (pn: AnatomyPlan['root'], sn: SnapNode | undefined, at: string): void => {
+    if (!sn) return;
+    const want = (pn as { nestVariant?: Record<string, string> }).nestVariant;
+    if (String(pn.type) === 'NESTED_INSTANCE') {
+      // Held as the content check holds a field: the instance kept, or a node above it other than the member's root.
+      if ([...keep].some((k) => at === k || at.startsWith(`${k}/`))) return;
+      const main = sn.mainComponent as { name?: string; parent?: { name?: string; type?: string } | null } | undefined;
+      if (!want || sn.type !== 'INSTANCE' || !main || main.parent?.type !== 'COMPONENT_SET') return;
+      const got = coordOfName(String(main.name ?? ''));
+      const axes = Object.entries(want);
+      if (got.size !== axes.length || axes.some(([k, v]) => got.get(k) !== v)) {
+        out.push(`${at}.nestVariant: ${String(main.parent?.name ?? '')}/${String(main.name ?? '')} (the plan says ${String(main.parent?.name ?? '')}/${axes.map(([k, v]) => `${k}=${v}`).join(', ')})`);
+      }
+      return;
+    }
+    const kids = sn.children ?? [];
+    for (const c of pn.children ?? []) walk(c, kids.find((k) => k.name === c.name), at === '.' ? c.name : `${at}/${c.name}`);
+  };
+  walk(plan, snap, '.');
+  return out;
+};
+
 /** One set: renames, property changes, deprecations, then the build's own pass in update mode, then verify. */
 /** Does a build miss name `member` as a WHOLE member name (#2477 review)? A substring test is not enough: members are
  *  named `name=<glyph>`, and the shipped icon set has prefix pairs (`name=check` / `name=check-circle`, `name=eye` /
@@ -617,6 +657,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
       for (const c of pn.children ?? []) unpainted(c, kids.find((k) => String(k.name ?? '') === c.name), at === '.' ? c.name : `${at}/${c.name}`);
     };
     unpainted(pl.root, a as LiveNode & { fills?: unknown; strokes?: unknown }, '.');
+    for (const f of nestedMemberFaults(pl.root, snap, keep)) out.content.push(`${name}/${f}`);
     // WHAT THE HOST DRAWS (#2379): the paint's stored color and alpha, and a glyph's vectors where they sit, which
     // `diffAnatomy` does not read. The dry run judges a member by the same check (`drawn.ts`).
     for (const f of drawnFaults(a, varById, (part) => [...keep].some((k) => part === k || part.startsWith(`${k}/`)))) out.content.push(faultLine(name, f));

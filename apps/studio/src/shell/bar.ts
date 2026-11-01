@@ -28,7 +28,7 @@
  * had focus is found again by its hook and its place among the controls with that hook, and focused again.
  */
 import { subscribe } from '../state/store';
-import { glyph, h, hook } from './dom';
+import { glyph, h, hook, isLeaving, leave, unleave } from './dom';
 
 /** The brand menu's state, read from `main.ts` on every repaint. */
 export type BarView = {
@@ -160,7 +160,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
 
     paintBrand(v);
     sel.setAttribute('aria-expanded', String(v.menuOpen));
-    brandWrap.querySelector(':scope > [data-p3="brand-menu"]')?.remove();
+    // #3207: open, the menu is drawn afresh (a leaving one goes at once); closed, the one drawn leaves through its exit.
+    for (const m of brandWrap.querySelectorAll<HTMLElement>(':scope > [data-p3="brand-menu"]')) if (v.menuOpen) { unleave(m); m.remove(); } else leave(m);
     if (v.menuOpen) brandWrap.append(brandMenu(v));
 
     if (v.home) {
@@ -197,10 +198,10 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     if (justOpened) {
       const items = menuItems(brandWrap);
       (items.find((i) => i.getAttribute('aria-current') === 'true') ?? items[0] ?? sel).focus();
-    } else if (focused && !focused.isConnected) {
-      // Redrawn: the same control again, or, when the menu closed under it, the switcher that opened it.
+    } else if (focused && (!focused.isConnected || isLeaving(focused))) {
+      // Redrawn: the same control again, or, when the menu closed under it (gone, or leaving: #3207), the switcher that opened it.
       const back = again?.() ?? null;
-      if (back) back.focus({ preventScroll: true });
+      if (back && !isLeaving(back)) back.focus({ preventScroll: true });
       else if (!v.menuOpen) sel.focus({ preventScroll: true });
     } else if (focused && document.activeElement !== focused) focused.focus({ preventScroll: true });
   };

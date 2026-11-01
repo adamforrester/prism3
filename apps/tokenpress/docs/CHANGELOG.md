@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Underline thickness and offset are exported.** A text style's
+  `textDecorationThickness` and `textDecorationOffset` now export inside its
+  typography composite, beside `textDecoration`: a PERCENT value as a `%`
+  dimension (5% → `{ "value": 5, "unit": "%" }`), a PIXELS value as `px` (or
+  `rem` with rem units on). AUTO is left out, and neither field is written when
+  the style draws no decoration. Before, only `textDecoration` was exported,
+  so the underline came back at its default. The CSS export writes them as
+  `text-decoration-thickness` and `text-underline-offset`.
 - **Font variables without a font scope are typed by path.** A font family or
   weight variable with no font scope is now typed by its path. That includes
   an unscoped variable and one left on Figma's default, All scopes:

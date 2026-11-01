@@ -7,7 +7,7 @@ A Figma plugin that exports Variables, Text Styles, and Effect Styles to DTCG/W3
 - **DTCG Compliance**: Exports tokens using W3C Design Tokens Community Group format ($type, $value, $description, $extensions)
 - **Multi-mode Support**: Separate files per collection/mode for multi-theme workflows
 - **Composite Tokens**: Typography and shadow tokens with proper sub-property mapping
-- **Text Decoration Support**: Automatically includes textDecoration property for typography tokens
+- **Text Decoration Support**: Includes textDecoration, and the underline's textDecorationThickness and textDecorationOffset, in typography tokens
 - **Alias Resolution**: Preserves variable references as DTCG aliases with validation
 - **Style Dictionary Ready**: Output tested with Style Dictionary build pipeline
 - **Comprehensive Validation**: Error detection for broken aliases, cycles, type mismatches

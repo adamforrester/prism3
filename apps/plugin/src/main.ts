@@ -107,6 +107,27 @@ const sendThemePref = async (): Promise<void> => {
     /* storage unavailable: Match Figma */
   }
 };
+/** The desktop bridge's pairing token (#3204, the owner's Q3204.1 A): per person and per machine in `clientStorage`, the
+ *  only place it is kept. Never written to the file, its plugin data or shared plugin data, which travel with the file. */
+const BRIDGE_TOKEN_KEY = 'prism3:bridge-token';
+/* Whether this build carries the desktop bridge (#3218): `PRISM3_NETWORK`, false only in "Prism3 Studio Offline"
+   (`build.mjs --release --offline`), whose UI has no relay. Each use of the token below is guarded by
+   `(typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK)`, written out at the site: under the offline define it folds to
+   `false` and esbuild drops the branch, then the key and `sendBridgeToken` as unused (a guard read from a `const` is NOT
+   dropped: esbuild folds the `typeof` but does not inline the const). `lint-release-bundle.ts` checks `release-offline/main.js`
+   holds no `prism3:bridge-token`. A tsx harness that imports this file without setting `globalThis.PRISM3_NETWORK` gets the
+   network build's answer. */
+/** Send the kept token, or null: the relay waits for this answer before it connects, so it never asks for a code it has. */
+const sendBridgeToken = async (): Promise<void> => {
+  let token: string | null = null;
+  try {
+    const v: unknown = await figma.clientStorage.getAsync(BRIDGE_TOKEN_KEY);
+    if (typeof v === 'string' && v) token = v;
+  } catch {
+    /* storage unavailable: no token, so the panel asks for a code */
+  }
+  postToUi({ type: 'agent-bridge-token', token });
+};
 /** The open Activity drawer's height, as the person dragged it (#2176, the owner's AD1): kept like the Theme choice. */
 const ACTIVITY_HEIGHT_KEY = 'prism3:activity-height';
 /** Where the bar's Docs opens (#2637, owner decision Q384 A): the docs landing page on the studio's web address, which
@@ -244,9 +265,9 @@ void (async (): Promise<void> => {
  * #3170 PART 2: WHAT THE PANEL HEARS WHILE A WRITE RUNS (owner decisions Q3170.1–6, all A). The panel learns something
  * only when this thread posts to it, and this thread can post only when the write hands it back. So each write the
  * panel starts posts `run-progress` at every boundary it has (a page of the read after open, a set of the update, a
- * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set (Q3170.5 A)
- * or every `COLOR_YIELD_EVERY` color variables, posting the same reading again so the panel can tell a long set from a
- * stalled panel. Never through an agent's sink, which collects every post as a verdict: an agent's update and Apply
+ * stage of Apply Theme) and hands the thread back there, and again after about `PACE_MS` of work inside a set or a stage
+ * (Q3170.5 A; #3208 brought every Apply Theme stage onto the same clock), posting the same reading again so the panel can
+ * tell a long set from a stalled panel. Never through an agent's sink, which collects every post as a verdict: an agent's update and Apply
  * Theme post no readings, and its Capture baseline and Adopt (#3189) post theirs to the panel directly (`postProgress`),
  * a reading at each def, for the status strip.
  */
@@ -263,16 +284,19 @@ const paced = (again: () => void): ((ms?: number) => Promise<void>) => {
     last = Date.now();
   };
 };
-/** Apply Theme's pacing: a reading and a hand-back before each of its seven stages and every `COLOR_YIELD_EVERY` color
- *  variables. The thread is handed back for an agent's apply too; only the panel's posts. */
+/** Apply Theme's pacing: a reading and a hand-back before each of its seven stages, and inside every stage the cadence a
+ *  component write keeps (#3208): the executors offer a `tick` after each variable or style, and it hands the thread back
+ *  once about `PACE_MS` of work has run since the last hand-back. The thread is handed back for an agent's apply too; only
+ *  the panel's posts. */
 const themePace = (sink: ActionSink): ThemePace => {
   const panel = sink === uiSink;
   let at: { stage: ApplyStage; done: number } | null = null;
   const say = (): void => { if (panel && at) postProgress('apply-theme', { phase: 'work', item: at.stage, done: at.done, total: APPLY_STAGES.length }); };
+  let last = Date.now();
   return {
     check: () => { if (panel) postProgress('apply-theme', { phase: 'check', item: null, done: 0, total: APPLY_STAGES.length }); },
-    stage: async (stage, done) => { at = { stage, done }; say(); await breathe(); },
-    tick: async () => { say(); await breathe(); },
+    stage: async (stage, done) => { at = { stage, done }; say(); await breathe(); last = Date.now(); },
+    tick: async () => { if (Date.now() - last < PACE_MS) return; say(); await breathe(); last = Date.now(); },
   };
 };
 /** #3170 Q3170.4 A: the panel's "Stop after <set>" (`update-stop`), read by its running update at each set boundary. */
@@ -1058,6 +1082,7 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
     const names = presentNames({ root: rootOver(nodes) } as unknown as Parameters<typeof presentNames>[0]);
     const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
     if (gen === presentGen) presentCache = ids;
+    watchSets();
     return { ids, nodes };
   })();
   presentRead = read;
@@ -1112,6 +1137,42 @@ const hostApi = () => ({
  *  in the panel never loads every page or walks the file: that is the costly part on a large file. A write starting and
  *  ending clears them (`guarded`), so the next recount reads the file again. */
 let presentCache: string[] | null = null;
+/**
+ * #3091: A SET ADDED, DELETED OR RENAMED BY HAND DROPS THE CACHED SETS, so the badge's next recount reads the file again
+ * instead of counting a set the file no longer holds, or missing one it now does. Figma's `documentchange` reports every
+ * edit, by hand, by a collaborator or by a plugin. Under `dynamic-page` it can only be listened to once every page is
+ * loaded, so it is registered after the first read of the file's sets, which loads them all (`searchPagesYielding`).
+ * The listener costs nothing while no sets are cached (a write clears them, `guarded`). Otherwise it drops them on:
+ *   · a component or set created, or a node created that holds one (a frame pasted with sets in it);
+ *   · a component or set deleted, or a node deleted that could have held one (a removed node's children cannot be read);
+ *   · a component or set renamed: the build finds its sets by name (`presentNames`).
+ * Any other edit keeps them, so drawing on the canvas never makes the recount read the file again.
+ */
+const SET_TYPES: ReadonlySet<string> = new Set(['COMPONENT', 'COMPONENT_SET']);
+const HOLDER_TYPES: ReadonlySet<string> = new Set(['COMPONENT', 'COMPONENT_SET', 'FRAME', 'GROUP', 'SECTION', 'PAGE']);
+type SetChangeNode = { readonly type?: string; readonly removed?: boolean; findAllWithCriteria?(c: { types: string[] }): readonly unknown[] };
+type SetChange = { readonly type: string; readonly node?: SetChangeNode; readonly properties?: readonly string[] };
+const movesSets = (changes: readonly SetChange[]): boolean => changes.some((c) => {
+  const t = c.node?.type ?? '';
+  if (c.type === 'DELETE') return HOLDER_TYPES.has(t);
+  if (c.type === 'PROPERTY_CHANGE') return SET_TYPES.has(t) && !!c.properties?.includes('name');
+  if (c.type !== 'CREATE' || !HOLDER_TYPES.has(t)) return false;
+  if (SET_TYPES.has(t)) return true;
+  const n = c.node!;
+  if (n.removed || typeof n.findAllWithCriteria !== 'function') return true;
+  try { return n.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).length > 0; } catch { return true; }
+});
+let watchingSets = false;
+const watchSets = (): void => {
+  if (watchingSets) return;
+  try {
+    figma.on('documentchange', (e) => {
+      if (presentCache === null || !movesSets(e.documentChanges as readonly SetChange[])) return;
+      presentCache = null; presentRead = null; presentGen++;
+    });
+    watchingSets = true;
+  } catch { /* a host that refuses the listener: the sets are read again after each write, as before #3091 */ }
+};
 /**
  * #3110: EVERY PAGE LOADED, ONE AT A TIME, THE THREAD HANDED BACK BETWEEN THEM. Figma loads a page on the main thread
  * and the file freezes while it does: `loadAllPagesAsync` alone on a file of 60 pages held it for about 20 s, the first
@@ -1922,6 +1983,7 @@ onUiMessage((msg: UiToMain) => {
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
       void sendThemePref();
       void sendActivityHeight();
+      if (typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK) void sendBridgeToken();
       postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });
       // #3170: the panel paints first. This turn posts only what one root read answers; the reads below each start in a
       // turn of their own, so the panel has its brand and settings before any of them holds the thread.
@@ -2045,6 +2107,12 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'agent-bridge':
       agentLink.setBridge(msg.connected);
+      return;
+    case 'agent-bridge-paired':
+      if ((typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK) && typeof msg.token === 'string' && msg.token) void figma.clientStorage.setAsync(BRIDGE_TOKEN_KEY, msg.token).catch(() => {/* best-effort: asked again next time */});
+      return;
+    case 'agent-bridge-unpaired':
+      if (typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK) void Promise.resolve().then(() => figma.clientStorage.deleteAsync(BRIDGE_TOKEN_KEY)).catch(() => {/* best-effort */});
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the

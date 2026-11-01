@@ -123,7 +123,8 @@ const openPanel = async (viewport = { width: 1280, height: 900 }) => {
 /** Everything about the start moment a designer can read, from the rendered DOM only. */
 const readStart = (page) => page.evaluate(() => {
   const q = (s) => document.querySelector(s);
-  const startview = q('[data-p3="start-screen"]');
+  // #3207: a window leaving through its exit reads as closed.
+  const startview = q('[data-p3="start-screen"]:not([data-leaving="true"] *)');
   return {
     start: !!startview,
     heading: startview ? (q('[data-p3="start-heading"]')?.textContent ?? null) : null,
@@ -138,7 +139,7 @@ const readStart = (page) => page.evaluate(() => {
 });
 
 const waitStart = (page, want) =>
-  page.waitForFunction((w) => !!document.querySelector('[data-p3="start-screen"]') === w, want, { timeout: 4000 })
+  page.waitForFunction((w) => !!document.querySelector('[data-p3="start-screen"]:not([data-leaving="true"] *)') === w, want, { timeout: 4000 })
     .then(() => true, () => false);
 
 const NB_BRAND = { id: 'restored-brand', root: 'rb', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
@@ -538,7 +539,7 @@ console.log('\n5b. a late file read loads nothing once its window has closed (A1
     const held = await heldOne(page);
     await page.focus('[data-p3="brand-menu-import"]');
     await page.keyboard.press('Escape');
-    const closed = await page.locator('[data-p3="import-file"]').count() === 0;
+    const closed = await page.evaluate(() => !document.querySelector('[data-p3="import-file"]:not([data-leaving="true"] *)'));   // #3207: a leaving menu reads as closed
     await release(page);
     const b = await brandNow(page);
     ok(held && closed && b.includes('restored-brand') && !/harbor/i.test(b),
@@ -552,7 +553,7 @@ console.log('\n5b. a late file read loads nothing once its window has closed (A1
     await page.setInputFiles('[data-p3="import-file"]', MD);
     const held = await heldOne(page);
     await hooks.click(page.locator('[data-p3="levers-pane"]'), { position: { x: 2, y: 2 } });
-    const closed = await page.locator('[data-p3="import-file"]').count() === 0;
+    const closed = await page.evaluate(() => !document.querySelector('[data-p3="import-file"]:not([data-leaving="true"] *)'));   // #3207: a leaving menu reads as closed
     await release(page);
     const b = await brandNow(page);
     ok(held && closed && b.includes('restored-brand') && !/harbor/i.test(b),
@@ -1200,7 +1201,7 @@ const readHome = (page) => page.evaluate(() => {
   return {
     layout: q('[data-p3="frame"]')?.dataset.layout ?? null,
     kind: q('[data-p3="home"]')?.dataset.kind ?? null,
-    start: !!q('[data-p3="start-screen"]'),
+    start: !!q('[data-p3="start-screen"]:not([data-leaving="true"] *)'),   // #3207: a leaving window reads as closed
     editorTabs: [...document.querySelectorAll('[data-p3="tab-row"] [role="tab"]')].filter((t) => t.getClientRects().length > 0).length,
     brandSel: q('[data-p3="brand-switcher"]')?.isConnected ? q('[data-p3="brand-switcher"]').textContent : null,
     // #2909: the plugin's one write is Update file (it replaced Apply Theme on the bar).

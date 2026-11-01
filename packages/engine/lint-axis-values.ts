@@ -716,6 +716,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'style',
+    values: ['contained', 'inline'],
+    defs: ['badge'],
+    relation: 'disjoint',
+    reason:
+      'How a status label is drawn (#3199, owner decisions Q1 A and Q2 A): `contained` is the filled label with padding, '
+      + '`inline` a status dot and plain text on the text line, as tall as the line. The value is `inline`, not `dot`, so '
+      + 'the panel keeps one "dot" (the aria-hidden `type=dot`). It shares `inline` with Link\'s `style` in the same sense, '
+      + 'content that sits in a line of body copy, and the two never meet on one def. DISJOINT from the field\'s canonical '
+      + '`outline`. `contained` LEADS: the code default, Figma\'s default member, and the coordinate every member built '
+      + 'before #3199 takes in place.',
+  },
+  {
+    axis: 'style',
     values: ['border', 'underline'],
     defs: ['pagination-item', 'pagination'],
     relation: 'disjoint',

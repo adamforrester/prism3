@@ -6525,10 +6525,13 @@ arm: {
   // fill + label, count fill + label, dot fill). The page surface `background.primary` is admitted for the
   // surface-emphasis fill keys ONLY (#2983): it is the ground that label brings with it, and no other key binds it.
   const BADGE_COLOR_FAMILIES = ['color.foreground.', 'color.text.', 'color.border.', 'color.inverse.foreground.', 'color.inverse.text.'];
-  const isSurfaceFill = (k: string, r: string) => /^[a-z]+\.status\.surface\.fill$/.test(k) && r === 'color.background.primary';
-  const offFamily = colorRefs.filter(([k, r]) => !BADGE_COLOR_FAMILIES.some((f) => r.startsWith(f)) && !isSurfaceFill(k, r));
-  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 50,
-    `badge binds no interactive role: all ${colorRefs.length} of 50 color refs are foreground.*, text.* or border.*, or their inverse twins, or the surface emphasis's page fill${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+  const isSurfaceFill = (k: string, r: string) => /^[a-z]+\.status\.contained\.surface\.fill$/.test(k) && r === 'color.background.primary';
+  // The inline style's dot (#3199, owner Q5 A) is a graphic, so it binds the tone's ICON role, and only that key does.
+  const isInlineDot = (k: string, r: string) => /^[a-z]+\.status\.inline\.subtle\.indicator$/.test(k) && r.startsWith('color.icon.');
+  const offFamily = colorRefs.filter(([k, r]) => !BADGE_COLOR_FAMILIES.some((f) => r.startsWith(f)) && !isSurfaceFill(k, r) && !isInlineDot(k, r));
+  // 60 since #3199: the 50 contained refs, and the inline label and dot in each of the 5 tones.
+  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 60,
+    `badge binds no interactive role: all ${colorRefs.length} of 60 color refs are foreground.*, text.* or border.*, or their inverse twins, or the surface emphasis's page fill, or the inline dot's icon role${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
 
   // THE PAINT TABLE (owner decisions, 2026-09-28), member by member. SUBTLE status: the tone's tint under the
   // tone's text ink, edged in the tone's border role; neutral is the second surface under the primary text,
@@ -6551,15 +6554,36 @@ arm: {
       [`${t}.dot.bold`, { fill: `foreground.${t}` }],
     ])),
   };
+  // PAINT's member names stay `tone.type.emphasis`; since #3199 every contained key carries the style segment, so a key
+  // is read at `tone.type.contained.emphasis.slot`.
   const bound = (k: string): string | undefined => badgeDef.tokens[k]?.replace(/^color\./, '');
+  const at = (m: string, slot: string): string => { const [t, g, e] = m.split('.'); return `${t}.${g}.contained.${e}.${slot}`; };
   const wrongPaint = Object.entries(PAINT).flatMap(([m, want]) => (['fill', 'label', 'border'] as const)
-    .filter((slot) => bound(`${m}.${slot}`) !== want[slot]).map((slot) => `${m}.${slot} → ${bound(`${m}.${slot}`) ?? 'unbound'} (want ${want[slot] ?? 'unbound'})`));
+    .filter((slot) => bound(at(m, slot)) !== want[slot]).map((slot) => `${at(m, slot)} → ${bound(at(m, slot)) ?? 'unbound'} (want ${want[slot] ?? 'unbound'})`));
   ok(Object.keys(PAINT).length === 25 && wrongPaint.length === 0,
     `badge: each of the 25 paint members paints its own fill, ink and edge, and a bold member binds no edge${wrongPaint.length ? ` — ${wrongPaint.join('; ')}` : ''}`);
+  // THE INLINE PAINT TABLE (#3199, owner decisions Q3 A and Q5 A), written from the issue: the label is `text.primary`
+  // in every tone, and the dot is the tone's icon role, neutral `icon.secondary`. No fill and no edge: an inline member
+  // that resolved a fill or border key would paint a container the style does not have.
+  const INLINE_PAINT: Record<string, { label: string; indicator: string }> = {
+    neutral: { label: 'text.primary', indicator: 'icon.secondary' },
+    info: { label: 'text.primary', indicator: 'icon.info' },
+    success: { label: 'text.primary', indicator: 'icon.success' },
+    warning: { label: 'text.primary', indicator: 'icon.warning' },
+    danger: { label: 'text.primary', indicator: 'icon.danger' },
+  };
+  const inlineKey = (t: string, slot: string) => `${t}.status.inline.subtle.${slot}`;
+  const wrongInline = TONES.flatMap((t) => [
+    ...(['label', 'indicator'] as const).filter((slot) => bound(inlineKey(t, slot)) !== INLINE_PAINT[t][slot]).map((slot) => `${inlineKey(t, slot)} → ${bound(inlineKey(t, slot)) ?? 'unbound'} (want ${INLINE_PAINT[t][slot]})`),
+    ...['fill', 'border'].filter((slot) => bound(inlineKey(t, slot)) !== undefined).map((slot) => `${inlineKey(t, slot)} → ${bound(inlineKey(t, slot))} (want unbound)`),
+  ]);
+  ok(Object.keys(INLINE_PAINT).length === 5 && wrongInline.length === 0,
+    `badge inline paint (#3199): each of the 5 tones inks its label text.primary and its dot the tone's icon role (neutral icon.secondary), and binds no fill or edge${wrongInline.length ? ` — ${wrongInline.join('; ')}` : ''}`);
   const surfacePart: any = badgeDef.anatomy!.parts['surface'];
   const slots = Object.values(badgeDef.anatomy!.parts).flatMap((p: any) => p.paintSlots ?? []);
-  ok(JSON.stringify(slots) === JSON.stringify(['fill', 'border']) && badgeDef.tokens[surfacePart?.strokeWidth] === 'border-width.hairline',
-    `badge paints a fill and a 1px edge, and no overlay — the edge weight is the tier's 1px border width (${JSON.stringify(slots)}, ${surfacePart?.strokeWidth} → ${badgeDef.tokens[surfacePart?.strokeWidth]})`);
+  // The inline dot paints through `indicator` (#3199), its own slot, so it never shares the root's `fill`.
+  ok(JSON.stringify(slots) === JSON.stringify(['fill', 'border', 'indicator']) && badgeDef.tokens[surfacePart?.strokeWidth] === 'border-width.hairline',
+    `badge paints a fill and a 1px edge, the inline dot an indicator, and no overlay — the edge weight is the tier's 1px border width (${JSON.stringify(slots)}, ${surfacePart?.strokeWidth} → ${badgeDef.tokens[surfacePart?.strokeWidth]})`);
   ok(JSON.stringify(badgeDef.states) === '[]',
     `badge is static: no states (${JSON.stringify(badgeDef.states)})`);
   const kind = badgeDef.props.find((p) => p.name === 'type');
@@ -6576,15 +6600,39 @@ arm: {
   ok(JSON.stringify(sizeProp?.values) === JSON.stringify(['small', 'medium']) && sizeProp?.default === 'medium'
     && JSON.stringify(badgeDef.variants?.size) === JSON.stringify(['medium', 'small']) && badgeDef.axisKinds?.size === 'authoring',
     `badge size: the prop is small | medium, default medium, the axis leads with medium, and it is authoring (${JSON.stringify(sizeProp?.values)}, ${sizeProp?.default}, ${JSON.stringify(badgeDef.variants?.size)}, ${badgeDef.axisKinds?.size})`);
+  // THE STYLE AXIS (#3199, owner decisions Q1 A and Q2 A): contained | inline, default contained, contained LEADS so
+  // Figma's default member is the code default, and it is authoring (its own footprint cohort).
+  const styleProp = badgeDef.props.find((p) => p.name === 'style');
+  ok(JSON.stringify(styleProp?.values) === JSON.stringify(['contained', 'inline']) && styleProp?.default === 'contained'
+    && JSON.stringify(badgeDef.variants?.style) === JSON.stringify(['contained', 'inline']) && badgeDef.axisKinds?.style === 'authoring'
+    && JSON.stringify(badgeDef.figmaProperties?.variantAxes) === JSON.stringify(['type', 'style', 'size', 'emphasis', 'tone']),
+    `badge style (#3199): the prop and the axis are contained | inline, default contained, the axis leads with contained, it is authoring, and Figma shows it second (${JSON.stringify(styleProp?.values)}, ${styleProp?.default}, ${JSON.stringify(badgeDef.variants?.style)}, ${badgeDef.axisKinds?.style}, ${JSON.stringify(badgeDef.figmaProperties?.variantAxes)})`);
   const aria = badgeDef.accessibility.aria;
   ok(/Status label: not aria-hidden/.test(aria) && /Count and dot: aria-hidden="true"/.test(aria) && /host composes the meaning into its accessible name/.test(aria),
     'badge aria: a status label announces itself; a count or dot is aria-hidden and its meaning is in the host name');
+  // THE INLINE MARKUP CONTRACT (#3199, the issue's accessibility rules). The dot is decorative: aria-hidden, with no role
+  // and no name. The label is plain text that announces itself, never hidden and never role="status". Held three ways,
+  // each from a literal: the shipped aria line, the code guidance, and the anatomy (the dot and its cell are
+  // presentation parts, the label carries no hiding and no role of its own).
+  const inlineAria = /Inline style: the dot is aria-hidden="true", with no role and no accessible name, and the label reads as plain text in place, with no role="status"\./.test(aria);
+  const inlineCode = badgeDef.anatomy?.codeOnly?.find((l) => /^the inline style in code —/.test(l)) ?? '';
+  const codeArms = /The dot is aria-hidden="true" with no role and no accessible name/.test(inlineCode) && /the label is not hidden and takes no role="status"/.test(inlineCode);
+  const partsA: any = badgeDef.anatomy!.parts;
+  const anatomyArms = partsA.statusDot?.role === 'presentation' && partsA.dotCell?.role === 'presentation'
+    && partsA.label?.role === undefined && !/aria-hidden/.test(partsA.label?.note ?? '');
+  ok(inlineAria, `badge inline markup (#3199): the aria line says the inline dot is aria-hidden="true" with no role and no name, and the label is plain text with no role="status" (${aria.slice(0, 80)}…)`);
+  ok(codeArms, `badge inline markup (#3199): the code guidance hides the dot (aria-hidden="true", no role, no name) and leaves the label unhidden with no role="status" (${inlineCode.slice(0, 80) || 'no inline code line'})`);
+  ok(anatomyArms, `badge inline markup (#3199): the dot and its cell are presentation parts and the label takes no role of its own (statusDot ${partsA.statusDot?.role}, dotCell ${partsA.dotCell?.role}, label ${partsA.label?.role ?? 'none'})`);
   // FORCED COLORS (owner, 2026-09-28, #1747): the browser drops background fills there, so a fill-only bold badge
   // would read as bare text. Every emphasis carries the inset outline; bold's is transparent, which forced colors
   // paints. The code guidance is the only place this lives (Figma has no forced-colors mode), so it is held here.
-  const forcedLine = badgeDef.anatomy?.codeOnly?.find((l) => /forced-colors mode/.test(l)) ?? '';
+  const forcedLine = badgeDef.anatomy?.codeOnly?.find((l) => /forced-colors mode/.test(l) && /outline-offset: -1px/.test(l)) ?? '';
   ok(/outline-offset: -1px/.test(forcedLine) && /bold badge \(status, count or dot\) carries the same inset outline in transparent/.test(forcedLine),
     `badge forced colors: the subtle edge is an inset outline and a bold badge carries it transparent (#1747) (${forcedLine.slice(0, 120) || 'no forced-colors line'})`);
+  // The inline dot (#3199) has no edge of its own, so in forced colors it would vanish with its fill: it carries the
+  // bold badge's transparent inset outline, which the browser draws in the system color.
+  ok(/The dot carries a transparent 1px inset outline, so it draws as a circle in the system color in forced-colors mode/.test(inlineCode),
+    `badge forced colors (#3199): the inline dot carries a transparent 1px inset outline (${inlineCode.slice(0, 80) || 'no inline code line'})`);
 
   // THE FIGMA SET (owner decisions, 2026-09-28). Read off the PROJECTED members, not the def's declarations:
   // 20 members — the status label at both emphases (10), the count and the dot bold only (5 each) — and NO
@@ -6597,27 +6645,31 @@ arm: {
   const members = (badgeSet as any[]).map((m) => {
     const name = planComponentName(m);
     return {
-      name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)', size: /size=(\w+)/.exec(name)?.[1] ?? '(none)',
+      name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', style: /style=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)', size: /size=(\w+)/.exec(name)?.[1] ?? '(none)',
       texts: texts(m.root), parts: partNames(m.root), stroke: m.root.paints?.strokes as string | undefined, weight: m.root.bound?.strokeWeight as string | undefined,
     };
   });
-  // #2983: 40 members — the status label at both sizes and all three emphases (2 × 3 × 5 = 30), and the count and
-  // the dot at medium and bold only (5 each).
-  const cell = (g: string, e: string, z = 'medium') => members.filter((m) => m.type === g && m.emphasis === e && m.size === z);
-  const badSubtle = members.filter((m) => (m.type === 'count' || m.type === 'dot') && (m.emphasis !== 'bold' || m.size !== 'medium'));
-  ok(badgeSet.length === 40 && badSubtle.length === 0
+  // #2983: 40 contained members — the status label at both sizes and all three emphases (2 × 3 × 5 = 30), and the
+  // count and the dot at medium and bold only (5 each). #3199: 10 inline members — the status label at both sizes,
+  // subtle only (its one remaining emphasis coordinate), 5 tones each — so 50.
+  const cell = (g: string, e: string, z = 'medium', st = 'contained') => members.filter((m) => m.type === g && m.emphasis === e && m.size === z && m.style === st);
+  const badSubtle = members.filter((m) => (m.type === 'count' || m.type === 'dot') && (m.emphasis !== 'bold' || m.size !== 'medium' || m.style !== 'contained'));
+  const badInline = members.filter((m) => m.style === 'inline' && (m.type !== 'status' || m.emphasis !== 'subtle'));
+  ok(badgeSet.length === 50 && badSubtle.length === 0 && badInline.length === 0 && members.every((m) => m.style === 'contained' || m.style === 'inline')
     && ['medium', 'small'].every((z) => ['subtle', 'bold', 'surface'].every((e) => cell('status', e, z).length === 5))
+    && ['medium', 'small'].every((z) => cell('status', 'subtle', z, 'inline').length === 5)
     && cell('count', 'bold').length === 5 && cell('dot', 'bold').length === 5,
-    `badge projects to Figma: exactly 40 members — status at both sizes and every emphasis, count and dot at medium and bold only (got ${badgeSet.length}: ${['medium', 'small'].flatMap((z) => ['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold', 'surface'].map((e) => `${z}/${g}/${e} ${cell(g, e, z).length}`))).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
+    `badge projects to Figma: exactly 50 members — contained status at both sizes and every emphasis, inline status at both sizes and subtle only, count and dot contained at medium and bold only (got ${badgeSet.length}: ${['medium', 'small'].flatMap((z) => ['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold', 'surface'].map((e) => `${z}/${g}/${e} ${cell(g, e, z).length}`))).join(', ')}, inline ${['medium', 'small'].map((z) => `${z} ${cell('status', 'subtle', z, 'inline').length}`).join(', ')}${badSubtle.length + badInline.length ? `; excluded members present: ${[...badSubtle, ...badInline].map((m) => m.name).join(' | ')}` : ''})`);
   const wrongContent = members.filter((m) => !(
     m.type === 'status' ? JSON.stringify(m.texts) === '["Status"]' && !m.parts.includes('count') && !m.parts.includes('dot')
+      && (m.style === 'inline') === (m.parts.includes('dotCell') && m.parts.includes('statusDot'))
       : m.type === 'count' ? m.texts.length === 1 && /^[0-9]+\+?$/.test(m.texts[0]) && !m.parts.includes('text') && !m.parts.includes('dot')
         : m.texts.length === 0 && m.parts.includes('dot')));
   ok(wrongContent.length === 0,
     `badge type content: each member carries its type's own content${wrongContent.length ? ` — ${wrongContent.map((m) => `${m.name} [${m.texts.join('|') || '-'}]`).join('; ')}` : ''}`);
-  const wrongEdge = members.filter((m) => (m.emphasis === 'subtle') !== (m.stroke !== undefined) || (m.stroke !== undefined && m.weight !== 'border-width/hairline'));
+  const wrongEdge = members.filter((m) => (m.emphasis === 'subtle' && m.style === 'contained') !== (m.stroke !== undefined) || (m.stroke !== undefined && m.weight !== 'border-width/hairline'));
   ok(wrongEdge.length === 0,
-    `badge edge: every subtle member strokes at border-width/hairline and no bold or surface member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
+    `badge edge: every contained subtle member strokes at border-width/hairline and no bold, surface or inline member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
   // THE RENAME (owner, 2026-09-28): the Figma variant property is `type`, the name Tag's axis carries, and no member
   // is still keyed `genre=`. Read off the projected member names, which are what a designer's panel shows.
   const stillGenre = members.filter((m) => /genre=/.test(m.name) || !/(^|, )type=(status|count|dot)(,|$)/.test(m.name));
@@ -6625,13 +6677,15 @@ arm: {
     `badge type rename: every member is keyed type=status|count|dot and none genre= (the name Tag uses)${stillGenre.length ? ` — ${stillGenre.slice(0, 3).map((m) => m.name).join(' | ')}` : ''}`);
   // THE CORNER PER TYPE (owner decision, 2026-09-28): the status label takes the small radius, which scales per
   // brand; the count and the dot stay fully round. Read off every projected member's bound corner.
+  // The inline style has no corner (#3199): `radius/none`, since it has no ground to round.
   const CORNER: Record<string, string> = { status: 'radius/sm', count: 'radius/round', dot: 'radius/round' };
   const wrongCorner = (badgeSet as any[]).filter((m) => {
     const g = /type=(\w+)/.exec(planComponentName(m))?.[1] ?? '(none)';
-    return ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].some((c) => m.root.bound?.[c] !== CORNER[g]);
+    const want = /style=inline/.test(planComponentName(m)) ? 'radius/none' : CORNER[g];
+    return ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].some((c) => m.root.bound?.[c] !== want);
   });
   ok(wrongCorner.length === 0,
-    `badge corner: every status member binds radius/sm and every count and dot member radius/round${wrongCorner.length ? ` — wrong: ${wrongCorner.map((m) => `${planComponentName(m)} ${m.root.bound?.topLeftRadius}`).join('; ')}` : ''}`);
+    `badge corner: every contained status member binds radius/sm, every count and dot member radius/round, and every inline member radius/none${wrongCorner.length ? ` — wrong: ${wrongCorner.map((m) => `${planComponentName(m)} ${m.root.bound?.topLeftRadius}`).join('; ')}` : ''}`);
   // The token behind radius/sm scales per brand: 2px in nb and prism3, 4px in aurora (the owner's figures).
   const smPx = (['nb', 'prism3', 'aurora'] as const).map((b) => {
     const th = b === 'nb' ? nbTheme() : exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput));
@@ -6672,8 +6726,8 @@ arm: {
   const TEXT_MEMBERS = Object.keys(PAINT).filter((m) => PAINT[m].label);
   ok(TEXT_MEMBERS.length === 20, `badge contrast covers 20 text-bearing members (got ${TEXT_MEMBERS.length})`);
   for (const m of TEXT_MEMBERS) {
-    const ink = bound(`${m}.label`) ?? '(unbound)';
-    const fill = bound(`${m}.fill`) ?? '(unbound)';
+    const ink = bound(at(m, 'label')) ?? '(unbound)';
+    const fill = bound(at(m, 'fill')) ?? '(unbound)';
     const { measured, low } = measure(ink, fill, 4.5);
     ok(measured === CELLS && low.length === 0,
       `badge contrast (${m}): ${ink} on ${fill} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
@@ -6685,7 +6739,7 @@ arm: {
   const SUBTLE = Object.keys(PAINT).filter((m) => m.endsWith('.subtle'));
   ok(SUBTLE.length === 5, `badge subtle edge covers the 5 subtle status members (got ${SUBTLE.length})`);
   for (const m of SUBTLE) {
-    const edge = bound(`${m}.border`) ?? '(unbound)';
+    const edge = bound(at(m, 'border')) ?? '(unbound)';
     const { measured, low } = measure(edge, 'background.primary', 3);
     ok(measured === CELLS && low.length === 0,
       `badge subtle edge separates from the page (${m}): ${edge} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
@@ -6696,7 +6750,7 @@ arm: {
   const BOLD = Object.keys(PAINT).filter((m) => m.endsWith('.bold'));
   ok(BOLD.length === 15, `badge bold fill covers 15 bold members (got ${BOLD.length})`);
   for (const m of BOLD) {
-    const fill = bound(`${m}.fill`) ?? '(unbound)';
+    const fill = bound(at(m, 'fill')) ?? '(unbound)';
     const { measured, low } = measure(fill, 'background.primary', 3);
     ok(measured === CELLS && low.length === 0,
       `badge bold fill separates from the page (${m}): ${fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
@@ -6720,7 +6774,7 @@ arm: {
     medium: { pad: 'space/100 space/100 space/150 space/150', style: 'label/sm/emphasis' },
     small: { pad: 'space/025 space/025 space/100 space/100', style: 'caption/md/strong' },
   };
-  const statusPlans = (badgeSet as any[]).filter((m) => /type=status/.test(planComponentName(m)));
+  const statusPlans = (badgeSet as any[]).filter((m) => /type=status/.test(planComponentName(m)) && /style=contained/.test(planComponentName(m)));
   const wrongStatus = statusPlans.flatMap((m) => {
     const name = planComponentName(m);
     const tone = /tone=(\w+)/.exec(name)?.[1] ?? '(none)', size = /size=(\w+)/.exec(name)?.[1] ?? '(none)';
@@ -6736,7 +6790,7 @@ arm: {
     return bad;
   });
   ok(statusPlans.length === 30 && wrongStatus.length === 0,
-    `badge status members by size: all 30 pad and set text at their size's rungs, and the 10 surface members paint ${figVar(SURFACE_FILL)} under their tone's text ink with no edge (got ${statusPlans.length}${wrongStatus.length ? ` — ${wrongStatus.slice(0, 4).join(' | ')}` : ''})`);
+    `badge contained status members by size: all 30 pad and set text at their size's rungs, and the 10 surface members paint ${figVar(SURFACE_FILL)} under their tone's text ink with no edge (got ${statusPlans.length}${wrongStatus.length ? ` — ${wrongStatus.slice(0, 4).join(' | ')}` : ''})`);
   // NEUTRAL + BOLD (owner direction, 2026-10-24: "near-black badges = tone=neutral + emphasis=bold"). Measured, it is
   // the page's INVERSE: near-black on the light and hc-light pages, near-white on dark and hc-dark (owner decision
   // Q2983.6 A, 2026-10-24, keeps it). Held per mode from literal luminance bands, so a fill that stopped inverting, or a near-black
@@ -6754,6 +6808,101 @@ arm: {
   }
   ok(neutralCells === CELLS && offNeutral.length === 0,
     `badge neutral bold is the page's inverse: near-black (Y ≤ 0.05) on light and hc-light, near-white (Y ≥ 0.5) on dark and hc-dark, in all ${neutralCells} of ${CELLS} cells${offNeutral.length ? ` — ${offNeutral.join('; ')}` : ''}`);
+
+  // ── THE INLINE STYLE (#3199, owner decisions Q1–Q8 A, 2026-10-31), held with literals from the issue ──────────────
+  //
+  // CONTRAST against the FOUR page and card tiers the inline style sits on (owner Q7 A): the label at 4.5:1 (SC 1.4.3),
+  // the dot at 3:1. The dot's floor is gated design intent, NOT an SC 1.4.11 requirement: the label carries the same
+  // meaning, and 1.4.11 excludes a graphic whose information is in visible text. Measured on what the DEF binds, so a
+  // rebinding fails the INLINE_PAINT pin above AND the floor it breaks, by name; a tone whose key went missing reads as
+  // unbound in every cell. The tiers are a literal list, and 5 brands × 4 modes × 4 tiers is a literal count.
+  const INLINE_TIERS = ['background.primary', 'background.secondary', 'foreground.primary', 'foreground.raised'];
+  const INLINE_CELLS = CELLS * INLINE_TIERS.length;
+  const lowest = { label: Infinity, dot: Infinity };
+  const measureTiers = (ink: string, floor: number, which: 'label' | 'dot'): { measured: number; low: string[] } => {
+    const low: string[] = [];
+    let measured = 0;
+    for (const [brand, th] of themes) for (const m of resolveAllModes(th)) for (const tier of INLINE_TIERS) {
+      const x = m.roles[ink], y = m.roles[tier];
+      if (!x?.hex || !y?.hex) { low.push(`${brand}/${m.mode}/${tier}: missing ${!x?.hex ? ink : tier}`); continue; }
+      const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+      measured++;
+      lowest[which] = Math.min(lowest[which], r);
+      if (r < floor) low.push(`${brand}/${m.mode} on ${tier} ${r.toFixed(2)}`);
+    }
+    return { measured, low };
+  };
+  for (const t of TONES) {
+    const ink = bound(inlineKey(t, 'label')) ?? '(unbound)';
+    const lab = measureTiers(ink, 4.5, 'label');
+    ok(lab.measured === INLINE_CELLS && lab.low.length === 0,
+      `badge inline label contrast (${t}): ${ink} clears 4.5:1 against background.primary, background.secondary, foreground.primary and foreground.raised in all ${lab.measured} of ${INLINE_CELLS} brand × mode × tier cells${lab.low.length ? ` — ${lab.low.slice(0, 6).join('; ')}` : ''}`);
+    const dotInk = bound(inlineKey(t, 'indicator')) ?? '(unbound)';
+    const dot = measureTiers(dotInk, 3, 'dot');
+    ok(dot.measured === INLINE_CELLS && dot.low.length === 0,
+      `badge inline dot contrast (${t}): ${dotInk} clears 3:1 against background.primary, background.secondary, foreground.primary and foreground.raised in all ${dot.measured} of ${INLINE_CELLS} brand × mode × tier cells, as design intent (not required by 1.4.11)${dot.low.length ? ` — ${dot.low.slice(0, 6).join('; ')}` : ''}`);
+  }
+  console.log(`  · badge inline (#3199): lowest label ${lowest.label.toFixed(2)}:1, lowest dot ${lowest.dot.toFixed(2)}:1 across ${INLINE_CELLS} brand × mode × tier cells`);
+
+  // PROJECTION: every inline member, read off the projected plan against the issue's literal geometry. No padding, no
+  // corner, no fill, no edge on the root; the gap per size; a dot cell one LINE BOX tall (fixed) leading the label and
+  // centering an 8px round dot in the tone's icon role; the label in the size's body role and text.primary. A key that
+  // fell through to the contained member's (its padding, its corner, its subtle tint) fails here by member name.
+  const INLINE_BOX: Record<string, { gap: string; lineBox: string; style: string }> = {
+    medium: { gap: 'space/100', lineBox: 'type/body/md/line-box', style: 'body/md/default' },
+    small: { gap: 'space/075', lineBox: 'type/body/sm/line-box', style: 'body/sm/default' },
+  };
+  const inlinePlans = (badgeSet as any[]).filter((m) => /style=inline/.test(planComponentName(m)));
+  const wrongInlinePlan = inlinePlans.flatMap((m) => {
+    const name = planComponentName(m);
+    const tone = /tone=(\w+)/.exec(name)?.[1] ?? '(none)', size = /size=(\w+)/.exec(name)?.[1] ?? '(none)';
+    const want = INLINE_BOX[size];
+    const kids = (m.root.children ?? []) as any[];
+    const cellN = kids[0], label = kids[1], dot = cellN?.children?.[0];
+    const got = {
+      order: kids.map((c) => c.name).join(','), align: m.root.counterAxisAlignItems, gap: m.root.bound?.itemSpacing,
+      pad: [m.root.bound?.paddingTop, m.root.bound?.paddingBottom, m.root.bound?.paddingLeft, m.root.bound?.paddingRight].join(' '),
+      radius: m.root.bound?.topLeftRadius, fill: m.root.paints?.fills, stroke: m.root.paints?.strokes,
+      cellHeight: cellN?.bound?.height, cellSizing: cellN?.counterAxisSizingMode, cellAlign: `${cellN?.counterAxisAlignItems}/${cellN?.primaryAxisAlignItems}`,
+      dot: `${dot?.name} ${dot?.bound?.width}×${dot?.bound?.height} ${dot?.bound?.topLeftRadius}`, dotFill: dot?.paints?.fills,
+      style: label?.textStyle, ink: label?.paints?.fills,
+    };
+    const exp = {
+      order: 'dotCell,label', align: 'MIN', gap: want?.gap, pad: 'space/0 space/0 space/0 space/0', radius: 'radius/none', fill: undefined, stroke: undefined,
+      cellHeight: want?.lineBox, cellSizing: 'FIXED', cellAlign: 'CENTER/CENTER',
+      dot: 'statusDot space/100×space/100 radius/round', dotFill: INLINE_PAINT[tone] && figVar(INLINE_PAINT[tone].indicator),
+      style: want?.style, ink: figVar('text.primary'),
+    };
+    return JSON.stringify(got) === JSON.stringify(exp) ? [] : [`${name}: ${Object.keys(exp).filter((k) => (got as any)[k] !== (exp as any)[k]).map((k) => `${k} ${(got as any)[k]} (want ${(exp as any)[k]})`).join(', ')}`];
+  });
+  ok(inlinePlans.length === 10 && wrongInlinePlan.length === 0,
+    `badge inline members (#3199): all 10 lead with a fixed dot cell one line box tall centering an 8px space/100 dot in the tone's icon role, set the label in the size's body role and text.primary, and have no padding, corner, fill or edge (got ${inlinePlans.length}${wrongInlinePlan.length ? ` — ${wrongInlinePlan.slice(0, 3).join(' | ')}` : ''})`);
+  // The line box behind the cell is the label's own: 24px for body.md and 21px for body.sm in every example brand, the
+  // issue's figures. A cell bound to another rung, or a body role whose line height moved, fails here.
+  const lineBoxPx = themes.map(([b, th]) => {
+    const built = buildTree(th).tree as any;
+    const root = built[Object.keys(built)[0]];
+    return `${b} ${root?.type?.body?.md?.['line-box']?.$extensions?.prism3?.px ?? root?.type?.body?.md?.['line-box']?.$value}/${root?.type?.body?.sm?.['line-box']?.$extensions?.prism3?.px ?? root?.type?.body?.sm?.['line-box']?.$value}`;
+  });
+  ok(lineBoxPx.every((s) => /\s(24|24px)\/(21|21px)$/.test(s)),
+    `badge inline height (#3199): the line box is 24px at medium and 21px at small in every example brand (${lineBoxPx.join(', ')})`);
+
+  // THE FOOTPRINT COHORTS (#1611, #3199). `style` is authoring, so the cohort holds it: inline members are compared only
+  // with each other, one cohort per size, the 5 tones in each; the contained cohorts are unchanged, so a subtle status
+  // label and its bold twin are still held to one box. A literal list of six cohorts and their sizes.
+  const cohorts = new Map<string, number>();
+  for (const c of planSetLayout(badgeSet as any, 'test').cells) cohorts.set(c.group, (cohorts.get(c.group) ?? 0) + 1);
+  const COHORTS: Record<string, number> = {
+    'size=medium, type=status, style=contained': 15,
+    'size=small, type=status, style=contained': 15,
+    'size=medium, type=status, style=inline': 5,
+    'size=small, type=status, style=inline': 5,
+    'size=medium, type=count, style=contained': 5,
+    'size=medium, type=dot, style=contained': 5,
+  };
+  const gotCohorts = Object.fromEntries([...cohorts.entries()].sort());
+  ok(JSON.stringify(gotCohorts) === JSON.stringify(Object.fromEntries(Object.entries(COHORTS).sort())),
+    `badge footprint cohorts (#3199): six, the inline style in its own cohort per size with its 5 tones, the contained ones unchanged (got ${JSON.stringify(gotCohorts)})`);
 }
 
 // ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
@@ -7357,7 +7506,7 @@ arm: {
   // Caught, not thrown: a badge whose axis is no longer `type` (the 2026-09-28 rename reverted) makes the projector
   // refuse this coordinate, and a throw here would end the suite with no summary instead of failing the arms below.
   const badgeAt = (emphasis: string, tone: string) => {
-    try { return paintsOf(figmaAnatomyPlan(badgeDef, 'medium', { type: 'status', emphasis, tone } as never)); }
+    try { return paintsOf(figmaAnatomyPlan(badgeDef, 'medium', { type: 'status', style: 'contained', emphasis, tone } as never)); }
     catch (e) { return { fill: `(refused: ${(e as Error).message.slice(0, 80)})`, stroke: undefined, radius: undefined, refs: [] as string[], names: [] as string[] }; }
   };
   const TAG_KINDS: [string, string][] = [['select', 'unselected'], ['select', 'selected'], ['dismissible', 'unselected']];
@@ -11483,14 +11632,16 @@ arm: {
     `Q-TXT1 A: nb.ai.json text.secondary is contracted on background.primary and says it falls below 4.5:1 on background.secondary (contrast_with ${cw.map((c) => c.token).join(',') || 'none'}; when_to_use "${String(ai.when_to_use ?? '').slice(0, 160)}")`);
 
   // Arm 2: no other brand moved. origin/main's values, before the setting existed: text.secondary, icon.secondary,
-  // inverse.text.secondary per mode.
+  // inverse.text.secondary per mode. One row is not main's: the redesign seed sets `secondaryTextGround: page` too
+  // (#3219, owner Q3212.4 A), so its light text and icon secondary are pinned at the page fit, #767576 (4.6:1 on
+  // white; main's floor fit was #696869). Its inverse ink stays on the band's floor and does not move.
   const BEFORE: Record<string, Record<string, string>> = {
     prism3: { light: '#67696b #67696b #808284', dark: '#808284 #808284 #67696b', 'hc-light': '#424346 #424346 #999a9c', 'hc-dark': '#a6a7a9 #a6a7a9 #4e5052' },
     aurora: { light: '#68686d #818286 #818286', dark: '#818286 #68686d #68686d', 'hc-light': '#434347 #68686d #9a9a9e', 'hc-dark': '#a7a7aa #818286 #4f4f54' },
     harbor: { light: '#5e5b58 #5e5b58 #83817e', dark: '#83817e #83817e #6b6865', 'hc-light': '#454341 #454341 #9c9a98', 'hc-dark': '#a8a6a5 #a8a6a5 #514f4c' },
     wendys: { light: '#67696a #67696a #808283', dark: '#808283 #808283 #67696a', 'hc-light': '#424345 #424345 #999a9c', 'hc-dark': '#a6a7a8 #a6a7a8 #4e5051' },
     minimal: { light: '#66696d #66696d #7f8285', dark: '#7f8285 #7f8285 #66696d', 'hc-light': '#424347 #424347 #999a9d', 'hc-dark': '#a5a7aa #a5a7aa #4d5053' },
-    'nb-redesign': { light: '#696869 #696869 #828282' },
+    'nb-redesign': { light: '#767576 #767576 #828282' },
   };
   const others: Array<[string, Theme | undefined]> = [
     ...contractCorpus().filter(({ id }) => id.split(' ')[0] !== 'nb').map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
@@ -11519,7 +11670,7 @@ arm: {
   ok(viaInput['text.secondary'].hex.toLowerCase() !== BEFORE.minimal.light.split(' ')[0] && minimalPage >= 4.5 - 1e-9 && minimalPage <= 4.8 + 1e-9,
     `Q-TXT1 A: secondaryTextGround 'page' on a BrandInput fits text.secondary on the page (minimal light ${BEFORE.minimal.light.split(' ')[0]} → ${viaInput['text.secondary'].hex}, ${minimalPage.toFixed(2)}:1 on background.primary)`);
   ok(compared >= 41 && moved.length === 0,
-    `Q-TXT1 A: no other brand's secondary ink moved — text, icon and inverse text match origin/main in every corpus brand, prism3 and the redesign seed (${compared} brand × mode cells${moved.length ? `; MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
+    `Q-TXT1 A: no other brand's secondary ink moved — text, icon and inverse text match origin/main in every corpus brand and prism3, and the redesign seed holds its page fit (#3219) (${compared} brand × mode cells${moved.length ? `; MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
 }
 
 // ── Q3212.5 A — ONE PLACEHOLDER INK: `field.placeholder` IS `text.secondary`, IN EVERY MODE (#3220) ──────────────────
@@ -11925,7 +12076,7 @@ arm: {
 
   const tokOf = (def: any, k: string) => def.tokens?.[k];
   const BIND_2569: [string, any, string, string][] = [
-    ['badge subtle neutral edge', componentDefs.find((d) => d.id === 'badge'), 'neutral.status.subtle.border', 'color.border.tertiary'],
+    ['badge subtle neutral edge', componentDefs.find((d) => d.id === 'badge'), 'neutral.status.contained.subtle.border', 'color.border.tertiary'],
     ['divider separator (decorative=false)', divider, 'separator.fill', 'color.border.tertiary'],
     ['divider decorative default', divider, 'fill', 'color.border.secondary'],
     ['tab hover bar', tab, 'unselected.fill.hover', 'color.border.secondary'],
@@ -16997,7 +17148,7 @@ arm: {
           `#2945 Control label weight: a ${style} tag at Emphasis (${content}) is the same def back`);
       }
       const OTHERS: [ComponentDef, [string, string][]][] = [
-        [badge, [['size.medium.type', 'type.label.sm.emphasis'], ['size.small.type', 'type.caption.md.strong']]],
+        [badge, [['size.medium.contained.type', 'type.label.sm.emphasis'], ['size.small.contained.type', 'type.caption.md.strong'], ['size.medium.inline.type', 'type.body.md.default'], ['size.small.inline.type', 'type.body.sm.default']]],
         [select, Object.entries(select.tokens).filter(([, r]) => r.startsWith('type.'))],
       ];
       const moved = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, () => 44))
@@ -19064,6 +19215,14 @@ arm: {
     // Width: the floor clears the provider's minimum.
     const narrow = plans.filter((p) => { const w = typeof p.root.minWidth === 'number' ? p.root.minWidth : NaN; return !(w >= (RULES[String(p.coord.provider)]?.minW ?? 0)); });
     ok(narrow.length === 0, `#2343 PR 4 provider rules WIDTH: every member's width floor clears its provider's minimum (${narrow.map((p) => `${planComponentName(p)}: ${p.root.minWidth}`).join('; ') || 'clean'})`);
+    // Q3175 A (#3175): PayPal's SDK frame holds 150px, above the 120 floor. The Figma floor stays 120 (no PayPal minW
+    // above), and the 150 is a code-only note, held on both places the decision is written: codeOnly and contested.
+    const paypalWidthNote = (wb.anatomy.codeOnly ?? []).find((c) => c.startsWith('the width — ')) ?? '';
+    const paypalContested = (wb.notes?.contested ?? []).find((c) => c.startsWith('Q3175 A')) ?? '';
+    ok(/PayPal's script holds its own frame at 150 or wider/.test(paypalWidthNote) && /design file's floor stays 120/.test(paypalWidthNote)
+      && /150px/.test(paypalContested) && /floor stays 120/.test(paypalContested) && /code-only provider note in codeOnly/.test(paypalContested)
+      && plans.filter((p) => p.coord.provider === 'paypal').every((p) => p.root.minWidth === 120),
+      `#3175 PAYPAL WIDTH NOTE: PayPal's 150px SDK minimum is a code-only note in codeOnly and contested, and the PayPal members keep the 120 floor (codeOnly '${paypalWidthNote || 'missing'}'; contested '${paypalContested || 'missing'}')`);
     // Radius: Google Pay's at most half the height, at every density.
     const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
     const overHalf = (bs: typeof builds) => plans.filter((p) => RULES[String(p.coord.provider)]?.halfHeightRadius).flatMap((p) => bs.flatMap((b) => {
@@ -21774,9 +21933,9 @@ arm: {
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'previousText', axes: { size: 3 }, at: { type: 'previous', labeled: 'true' } },
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'nextText', axes: { size: 3 }, at: { type: 'next', labeled: 'true' } },
       { def: componentDefs.find((d) => d.id === 'pagination')!, part: 'status', axes: { size: 3 }, at: { type: 'compact' } },
-      // BADGE (#2983): the status label binds one rung per size, 12px label at medium and the 11px caption at small. The
-      // count is medium only, so its key is fixed and not in this grid.
-      { def: componentDefs.find((d) => d.id === 'badge')!, part: 'label', axes: { size: 2 } },
+      // BADGE (#2983): the status label binds one rung per size, 12px label at medium and the 11px caption at small; since
+      // #3199 per style too, the body roles at inline. The count is medium and contained only, so its key is fixed and not in this grid.
+      { def: componentDefs.find((d) => d.id === 'badge')!, part: 'label', axes: { size: 2, style: 2 } },
       // CODE INPUT (#2428, Q330 A): the cell's character binds four rungs, 16 / 20 / 24 / 40. It exists only where the
       // cell holds a character.
       { def: componentDefs.find((d) => d.id === 'code-input-cell')!, part: 'digit', axes: { size: 4 }, at: { state: 'filled' } },
@@ -31185,6 +31344,23 @@ arm: {
     ok(seen === 4 && wrong.length === 0,
       `#3143 divider build check 1: each line binds the hairline across its root and nothing along it, where it grows — a row binds height only, a column width only (${seen} lines over the two labeled members${wrong.length ? `; WRONG: ${wrong.join('; ')}` : ''})`);
   }
+  // #3157 item 3: the token-usage report no longer lists a key as drawn when no plan writes it. The grow rule drops
+  // `horizontal.line.width` and `vertical.line.height` (build check 1, above), and the labeled column's hug drops
+  // `vertical.true.width`; the keys still drawn on the same tokens stay unmarked. The keys are typed here from #3157,
+  // and ACTUAL is the committed report (regen.ts --check holds it to the emitter), page and JSON both.
+  {
+    const usage = JSON.parse(readFileSync(new URL('../../docs/public/reports/token-usage.json', import.meta.url), 'utf8'));
+    const page = readFileSync(new URL('../../docs/public/reports/token-usage.md', import.meta.url), 'utf8');
+    const notDrawn = (ref: string): string[] => usage.tokens?.[ref]?.components?.divider?.keysNotDrawn ?? [];
+    const hair = notDrawn('border-width.hairline');
+    const box = notDrawn('type.label.md.line-box');
+    const marked = (k: string): boolean => page.includes(`\`${k}\` (not drawn)`);
+    ok(JSON.stringify(hair) === JSON.stringify(['horizontal.line.width', 'vertical.line.height'])
+      && JSON.stringify(box) === JSON.stringify(['vertical.true.width'])
+      && ['horizontal.line.width', 'vertical.line.height', 'vertical.true.width'].every(marked)
+      && !['horizontal.line.height', 'vertical.line.width', 'horizontal.true.height'].some(marked),
+      `#3157 divider token-usage: the report marks the keys no plan writes as not drawn, and only those (hairline ${JSON.stringify(hair)}, line box ${JSON.stringify(box)})`);
+  }
 
   // ---- `positionWhen`: variant-keyed POSITION, and why it needed its own mechanism (#990) ---------
   // #990's rejected option was two mutually-exclusive parts (`thumb-off`/`thumb-on`) gated by
@@ -32479,12 +32655,8 @@ arm: {
     // #2343 PR 4: the Card number field's entry row is TextField's too.
     'card-number-field.entry':
       "the Card number field's entry row is text-field's, from the shared field factory: the single-line placeholder or grouped number does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
-    // `badge`'s surface (the type axis, 2026-09-27, first named `genre`) lists a text part and the sized `dot` box as children,
-    // but `presentWhen` on `type` puts exactly one of them in any member: no member pairs the dot with a
-    // label, so there is no line for the dot to float against. The status label is one or two words and the
-    // count a capped number, so neither wraps either.
-    'badge.surface':
-      "the dot and the two text parts are gated on type and never present together, so no member pairs a sized box with a label; and the status label (one or two words) and the capped count do not wrap, so the first line IS the block.",
+    // `badge.surface` left this list with the inline style (#3199): the root is top-aligned now, so an inline label that
+    // wraps keeps its dot on the first line, and the dot centers inside `dotCell`, one line box tall (the #1201 construction).
     // `tag` (2026-09-28): the container pairs the label row with the dismissible tag's square × slot, and the
     // label row pairs the leading icon and the trailing check mark with the label. Since #1758 the label WRAPS
     // in code, so "it never wraps" is no longer the reason. The reason is the Figma projection, which is what
@@ -37020,6 +37192,8 @@ arm: {
   ok(errs(withRoot({ sizingWhen: { when: {}, x: 'hug' } })).some((m) => /sizingWhen names no axis in 'when'/.test(m)), '#3143 sizingWhen with no condition is refused');
   ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] } } })).some((m) => /sizingWhen gives neither 'x' nor 'y'/.test(m)), '#3143 sizingWhen naming no axis is refused');
   ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] }, x: 'fill' } })).some((m) => /sizingWhen.x is 'fill' — only 'hug' is per member/.test(m)), '#3143 sizingWhen with a mode other than hug is refused');
+  // #3157 item 2: the refusal beside `size` (a square binds both axes), its own case, so dropping it fails by name.
+  ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] }, x: 'hug' }, size: 'size.medium.height' })).some((m) => /declares 'sizingWhen' beside 'size' — a square binds both axes at once/.test(m)), '#3157 sizingWhen beside size is refused');
   ok(errs(withRoot({ sizingWhen: { when: { labeled: ['true'] }, x: 'hug' }, placementWidth: 320 })).some((m) => /declares 'sizingWhen' beside builtSize, center or a placement size/.test(m)), '#3143 sizingWhen beside another sizing rule is refused');
   const rule = divider.anatomy!.parts.rule;
   ok(validateComponentDef({ ...divider, anatomy: { ...divider.anatomy!, parts: { ...divider.anatomy!.parts, rule: { ...rule, sizingWhen: { when: { labeled: ['false'] }, x: 'hug' } } as PartDef } } }).errors

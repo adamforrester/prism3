@@ -357,6 +357,10 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'a controlled, compelled caller', expect: false }, // en-US doubles these too — must NOT trip
   { sample: 'cancellation, totally, equally', expect: false }, // suffixes DOUBLE_L must NOT reach
   { sample: 'the diameter parameter is centered', expect: false }, // `meter`, not `metre`; en-US `-er`
+  // #3186 — the `-ring` form drops the stem's `e`, so it never contains `centre`: `centring` shipped in `out/**`.
+  { sample: 'the centring box', expect: true },          // RE_RING
+  { sample: 'manoeuvring the thumb', expect: true },     // …another listed stem
+  { sample: 'centering and maneuvering it', expect: false }, // en-US `-er-ing` must NOT trip
   // #1623 — two en-GB words the four shapes above could not see; both sat in shipped def prose.
   { sample: 'use recognisable icons', expect: true },    // PATTERN's `-isable` branch
   { sample: 'a judgement call', expect: true },          // EN_GB_WORDS — no suffix to match

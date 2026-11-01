@@ -491,6 +491,7 @@
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { launchWithoutWebFonts } from './test-web-fonts-stub.mjs';
@@ -966,6 +967,27 @@ if (MODE === 'run') assertBundleFresh({ repo: REPO, bundle: 'apps/studio/dist/ma
 const TABLER_SET = new Map([...readFileSync(join(STUDIO, 'src/shell/icons/tabler.ts'), 'utf8').matchAll(/^  '([a-z0-9-]+)': \[(.*)\],$/gm)]
   .map(([, name, list]) => [name, [...list.matchAll(/'([^']*)'/g)].map((m) => m[1])]));
 if (MODE === 'run' && TABLER_SET.size < 20) { console.error(`✗ src/shell/icons/tabler.ts parsed to ${TABLER_SET.size} icons; the glyph arms need the vendored set`); process.exit(1); }
+// #3167: THE ORACLE HELD TO TABLER. `TABLER_SET` is parsed from the file the bundles draw from, so a path edited there by
+// hand reaches the oracle and the drawing alike, and the glyph arm passes (docs/34: the oracle derived from its
+// subject). `chrome/tabler-digest.json` is the other side: each icon's sha256 taken from the PACKAGE's path data by
+// `vendor-icons.mjs` at vendoring time, never from `tabler.ts`. Every parsed icon must match its digest, both ways, and
+// the version must be the digest's. The formula (sha256 of `JSON.stringify` of the `d` strings, in order) is restated
+// here, not imported, so the two sides share no code. Checked before any arm reads the set.
+// MUTATION: `'M3 3l18 18'` appended to `color-swatch` in `tabler.ts` → `tabler digest: … color-swatch …`, by name.
+if (MODE === 'run') {
+  const dg = JSON.parse(readFileSync(join(STUDIO, 'chrome/tabler-digest.json'), 'utf8'));
+  const ver = /^export const TABLER_VERSION = '([^']+)';$/m.exec(readFileSync(join(STUDIO, 'src/shell/icons/tabler.ts'), 'utf8'))?.[1];
+  const sha = (ds) => createHash('sha256').update(JSON.stringify(ds)).digest('hex');
+  const off = [...TABLER_SET].filter(([name, ds]) => dg.icons?.[name] !== sha(ds)).map(([name]) => name);
+  const lost = Object.keys(dg.icons ?? {}).filter((name) => !TABLER_SET.has(name));
+  if (ver !== dg.version || off.length || lost.length) {
+    console.error(`✗ tabler digest: src/shell/icons/tabler.ts is not the set vendored from @tabler/icons@${dg.version} (chrome/tabler-digest.json)`
+      + `${ver !== dg.version ? `; TABLER_VERSION is ${ver}` : ''}${off.length ? `; paths differ: ${off.join(', ')}` : ''}${lost.length ? `; missing: ${lost.join(', ')}` : ''}.`
+      + ' Re-run chrome/vendor-icons.mjs from the package; never edit the set by hand.');
+    process.exit(1);
+  }
+  console.log(`  ✓ tabler digest: all ${TABLER_SET.size} vendored icons match @tabler/icons@${dg.version} (chrome/tabler-digest.json)`);
+}
 const FIGMA = {
   light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
   dark: { cls: 'figma-dark', vars: { '--figma-color-bg': '#2c2c2c', '--figma-color-text': '#ffffff' } },
@@ -13102,6 +13124,7 @@ const LINK_TEXT = await (async () => {
 const LINK_STATES = {
   off: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false } },
   listening: { ...AGENT_ON, lastCommand: { id: 'c1', cmd: 'status', ok: true, finishedAt: '2026-10-06T16:35:12.000Z', headline: '✓ done' } },
+  listeningBridge: { ...AGENT_ON, transports: { mailbox: true, bridge: true }, lastCommand: { id: 'c1', cmd: 'status', ok: true, finishedAt: '2026-10-06T16:35:12.000Z', headline: '✓ done' } },
   notListening: { ...AGENT_ON, transports: { mailbox: false, bridge: false } },
   error: { ...AGENT_ON, inboxError: 'the inbox is not a JSON array' },
   offStale: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false }, inboxError: 'the inbox is not a JSON array' },
@@ -13109,11 +13132,15 @@ const LINK_STATES = {
 /** What each state must draw, typed from the owner's AS1 A and Q3113.7 A: the closed row's word, its ink and its dot's
  *  ink (the chrome tokens' roles, resolved below from the committed emission, never the stylesheet), or none; and
  *  whether the open drawer's first line shows the full line (while the link is on, or while it holds an inbox error).
- *  Literals. MUTATION: `agentLinkWord`'s "Listening" changed in `agent-link-ui.ts` → the listening arm, by name. */
+ *  Literals. MUTATION: `agentLinkWord`'s "Listening" changed in `agent-link-ui.ts` → the listening arm, by name.
+ *  #3147 Phase 1: the word names the transport (approved, Q3204.3 A): "Listening · mailbox", and "Listening · bridge"
+ *  while the desktop bridge is connected (the review's nit on #3204). MUTATION: the word's transport suffix fixed to
+ *  "mailbox" → `… listeningBridge: the bar row's agent status is the link's glyph, a dot and "Listening · bridge"`. */
 if (runs('31')) {
 const LINK_WANT = {
   off: { short: null, full: false },
-  listening: { short: 'Listening', ink: 'color.text.secondary', dot: 'color.icon.success', full: true },
+  listening: { short: 'Listening · mailbox', ink: 'color.text.secondary', dot: 'color.icon.success', full: true },
+  listeningBridge: { short: 'Listening · bridge', ink: 'color.text.secondary', dot: 'color.icon.success', full: true },
   notListening: { short: 'Not listening', ink: 'color.text.danger', dot: 'color.icon.danger', full: true },
   error: { short: 'Error', ink: 'color.text.danger', dot: 'color.icon.danger', full: true },
   offStale: { short: null, full: true },
@@ -18417,6 +18444,10 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 //     then the page waits for every animation to finish and the surface sits on its end state (no transform, full
 //     opacity; a closed drawer's body undrawn). What must not move does not: a repaint of an open dialog (`data-still`),
 //     a fold-out drawn again by a page change, and a fold-out's collapse.
+//   · EXITS (#3207): a surface the shell removes (the Inspect menu, the brand menu, the Update file dialog, the start window,
+//     the bar row's unread dot) stays drawn through its exit, marked `data-leaving` and inert, with focus outside it and its
+//     control reading closed; it leaves on 100ms, the exit curve; and it is removed once the exit ends. Every other section
+//     runs with the durations at 0s, where nothing runs and the removal is at once, so "gone after Escape" holds there.
 //   · REDUCED: under `prefers-reduced-motion: reduce` the same changes animate no transform, translate or scale, and every
 //     surface's crossfade lasts 100ms.
 //   · SETTLED: every other section's pages read the three motion durations as 0s, and nothing else moved: the spinner's
@@ -18431,7 +18462,11 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 //   LIVE arm); a transition added to an unlisted rule → `#3150 DECLARED: … is not a listed surface`; the panel duration
 //   mapped to `duration.fast` → `#3150 LIVE … the drawer slides up on 200ms`; the reduced block's `animation: none` dropped
 //   → `#3150 REDUCED … no transform moves`; `data-still` not set on a repaint → `#3150 LIVE … a repaint of the open dialog
-//   does not scale in again`; the fold-out's focus gate dropped → `#3150 LIVE … a page change does not replay`.
+//   does not scale in again`; the fold-out's focus gate dropped → `#3150 LIVE … a page change does not replay`; the
+//   menu's `leave` back to `menu.remove()` → `#3150 LIVE … the Inspect menu, closed by Escape, stays drawn through its exit`;
+//   `isOpen` reading a leaving menu as open → `… reads as closed`; an exit rule dropped → `#3150 DECLARED: … declares no
+//   motion` and its LIVE exit arm; the drawer's exit unscoped from `data-closing` (#3217) → `#3150 LIVE … at boot the closed drawer plays no exit` and
+//   `… a narrow → wide resize under the closed drawer plays no exit`.
 // =============================================================================================
 if (runs('3150')) {
 console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n${'='.repeat(78)}`);
@@ -18447,15 +18482,16 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['rule', ':is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin, :is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin::before'],
     ['reduced', '.p3-spin::before'], ['rule', '.p3-switch-knob'], ['reduced', '.p3-switch-knob'],
     // Slide up: the Activity drawer at every width, its body held through the exit, its chevron turning with it.
-    ['rule', '.p3-drawer[data-open="true"]'], ['rule', '.p3-frame:not([data-w="narrow"]) .p3-drawer[data-open="false"]'],
-    ['rule', '.p3-frame[data-w="narrow"] .p3-drawer[data-open="false"]'], ['rule', '.p3-drawer-body'],
+    ['rule', '.p3-drawer[data-open="true"]'], ['rule', '.p3-frame:not([data-w="narrow"]) .p3-drawer[data-closing="true"]'],
+    ['rule', '.p3-frame[data-w="narrow"] .p3-drawer[data-closing="true"]'], ['rule', '.p3-drawer-body'],
     ['rule', '.p3-drawer-bar > .p3-ico:last-of-type'], ['rule', '.p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type'],
     // Shift: the 380 strip.
     ['rule', '.p3-frame[data-w="narrow"] .p3-drawer'], ['start', '.p3-frame[data-w="narrow"] .p3-drawer'],
     // Pop: the status dot on the drawer's bar row (a result nobody has opened).
     ['rule', '.p3-drawer-bar .p3-status-dot[data-state="unread"]'], ['start', '.p3-drawer-bar .p3-status-dot[data-enter="true"]'],
+    ['rule', '.p3-drawer-bar .p3-status-dot[data-leaving="true"]'],
     // Shift: a menu.
-    ['rule', '.p3-menu'], ['start', '.p3-menu'],
+    ['rule', '.p3-menu'], ['start', '.p3-menu'], ['rule', '.p3-menu[data-leaving="true"]'],
     // Fade: a tooltip; the error strip and the notices row it sits in; the Update file rows that land.
     ['rule', '.p3-tile-tip'], ['start', '.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip'],
     ['rule', '.p3-notices'], ['rule', '.p3-errstrip'], ['rule', '.p3-errstrip[hidden]'], ['start', '.p3-errstrip'],
@@ -18463,6 +18499,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     // Scale in: a dialog and its scrim.
     ['rule', ':is(.p3-bardlg-scrim, .p3-scrim)'], ['rule', ':is(.p3-bardlg-scrim, .p3-scrim) > :is(.p3-bardlg, .p3-dialog)'],
     ['start', ':is(.p3-bardlg-scrim, .p3-scrim):not([data-still="true"])'], ['start', ':is(.p3-bardlg-scrim, .p3-scrim):not([data-still="true"]) > :is(.p3-bardlg, .p3-dialog)'],
+    // The exits of the surfaces the shell removes (#3207): a menu, a dialog and its scrim, the unread dot.
+    ['rule', ':is(.p3-bardlg-scrim, .p3-scrim)[data-leaving="true"]'], ['rule', ':is(.p3-bardlg-scrim, .p3-scrim)[data-leaving="true"] > :is(.p3-bardlg, .p3-dialog)'],
     // Expand: fold-out content, moving only in the frame its toggle opened it.
     ['rule', ':is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)'],
     ['start', ':is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)[data-enter="true"]'],
@@ -18533,6 +18571,16 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
   const atRest = (r) => !!r && r.transform === 'none' && r.translate === 'none' && r.scale === 'none' && r.opacity === '1' && r.moving === 0;
   const one = (list, name) => (list ?? []).find((a) => a.name === name);
   const fmt = (x) => JSON.stringify(x);
+  /** #3207: a surface the shell removes, read the moment it closes: marked leaving, inert, focus outside it, and the control
+   *  that opened it (when it has one) reading closed. */
+  const leavingOf = (page, sel, btnSel) => page.evaluate(([s, b]) => {
+    const el = document.querySelector(s);
+    const btn = b ? document.querySelector(b) : null;
+    return { drawn: !!el, leaving: el?.dataset.leaving ?? null, inert: el?.inert ?? null, focusInside: !!el && el.contains(document.activeElement),
+      focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName.toLowerCase() ?? null, expanded: btn?.getAttribute('aria-expanded') ?? null };
+  }, [sel, btnSel]);
+  const closedWhileLeaving = (g, focus, expanded) => g.drawn && g.leaving === 'true' && g.inert === true && !g.focusInside && g.focus === focus && (expanded === undefined || g.expanded === expanded);
+  const goneNow = (page, sel) => page.evaluate((s) => !document.querySelector(s), sel);
 
   // ── DECLARED ──
   {
@@ -18564,6 +18612,29 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
         ok(!!list && list.every((a) => a.moves.length === 0 && a.kind !== 'CSSAnimation'), `${where}: ${what}: no transform moves under reduced motion (read ${fmt(list)})`);
         ok(!!list && list.some((a) => a.props.includes('opacity')) && list.every((a) => a.dur === REDUCED), `${where}: ${what}: it crossfades on ${REDUCED}ms (read ${fmt(list)})`);
       };
+
+      // #3217: the closed drawer plays no exit at boot, nor when the width changes under it (narrow → wide). Read as the
+      // closed drawer's own animation name (a 100ms move is long gone by the time the page is ready, but the rule that
+      // matches it still names its animation), and as what runs on it the moment the width changes back.
+      step = 'the closed drawer at boot';
+      const exitAt = (p) => p.evaluate(() => {
+        const d = document.querySelector('[data-p3="activity-drawer"]');
+        return { name: getComputedStyle(d).animationName, running: d.getAnimations().map((a) => a.animationName ?? a.transitionProperty), closing: d.dataset.closing ?? null };
+      });
+      const atBoot = await exitAt(page);
+      ok(atBoot.name === 'none' && atBoot.running.length === 0 && atBoot.closing === null,
+        `${where}: at boot the closed drawer plays no exit (animation ${atBoot.name}; running ${fmt(atBoot.running)}; data-closing ${atBoot.closing})`);
+      step = 'the closed drawer across a resize';
+      await page.setViewportSize({ width: 380, height: 900 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 });
+      await settleAll(page, cdp);
+      await slow();
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w !== 'narrow', null, { timeout: 5000 });
+      const atWide = await exitAt(page);
+      ok(atWide.name === 'none' && atWide.running.length === 0,
+        `${where}: a narrow → wide resize under the closed drawer plays no exit (animation ${atWide.name}; running ${fmt(atWide.running)})`);
+      await settleAll(page, cdp);
 
       // The drawer: Slide up at 1280, the chevron turning with it; the exit keeps the body drawn while it sinks.
       step = 'the drawer opens';
@@ -18602,6 +18673,32 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       const cRest = await restOf(page, '[data-p3="activity-drawer"]');
       const cBody = await restOf(page, '[data-p3="activity-body"]');
       ok(atRest(cRest) && cBody?.display === 'none', `${where}: settled, the closed drawer sits at rest and its body is undrawn (drawer ${fmt(cRest)}, body ${fmt(cBody)})`);
+      const afterClose = await exitAt(page);
+      ok(afterClose.name === 'none' && afterClose.closing === null, `${where}: once the exit ends, the close's mark goes with it (animation ${afterClose.name}; data-closing ${afterClose.closing})`);
+
+      // #3207: the bar row's unread dot. A result lands while the drawer is closed; opening the drawer reads it, and the dot
+      // shrinks away where it stood (the bar row stays at 1280), unhooked and inert, then is removed.
+      step = 'the status dot leaves';
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await hooks.need(page, '[data-p3="activity-unread"]');
+      await settleAll(page, cdp);
+      await slow();
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+      const goingSel = '[data-p3="activity-toggle"] > .p3-status-dot[data-leaving="true"]';
+      const dGo = await page.evaluate((sel) => { const d = document.querySelector(sel); return { drawn: !!d, inert: d?.inert ?? null, hook: d?.dataset.p3 ?? null, unread: !!document.querySelector('[data-p3="activity-unread"]') }; }, goingSel);
+      const dOut = await movesOf(page, goingSel);
+      ok(dGo.drawn && dGo.inert === true && dGo.hook === null && !dGo.unread, `${where}: opening the drawer reads the result: the dot stays drawn through its exit, inert and no longer the unread mark (read ${fmt(dGo)})`);
+      if (!reduced) ok(one(dOut, 'scale')?.dur === OUT && one(dOut, 'scale')?.ease === EXIT && one(dOut, 'opacity')?.dur === OUT,
+        `${where}: the status dot shrinks away, scale and opacity on ${OUT}ms, the exit curve (read ${fmt(dOut)})`);
+      else {
+        const dScale = await page.evaluate((sel) => { const d = document.querySelector(sel); return d ? getComputedStyle(d).scale : null; }, goingSel);
+        ok(!!dOut && dOut.every((a) => a.moves.length === 0) && one(dOut, 'opacity')?.dur === REDUCED && dScale === 'none',
+          `${where}: the status dot crossfades out on ${REDUCED}ms and scales nothing, not even a snap (read ${fmt(dOut)}; scale ${dScale})`);
+      }
+      await settleAll(page, cdp);
+      ok(await goneNow(page, '[data-p3="activity-toggle"] > .p3-status-dot[data-state="unread"]'), `${where}: settled, the status dot is removed once its exit ends`);
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+      await settleAll(page, cdp);
 
       // The error strip: Fade in and out, the notices row holding through the exit.
       step = 'the error strip';
@@ -18631,7 +18728,26 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       } else reducedOk(mIn, 'the Inspect menu opening');
       await settleAll(page, cdp);
       ok(atRest(await restOf(page, '[data-p3="inspect-menu"]')), `${where}: settled, the Inspect menu sits at rest (${fmt(await restOf(page, '[data-p3="inspect-menu"]'))})`);
+      // #3207: it leaves as a fade, and reads as closed from the moment it closes.
+      step = 'the Inspect menu closes';
+      await slow();
       await page.keyboard.press('Escape');
+      const mGo = await leavingOf(page, '[data-p3="inspect-menu"]', '[data-p3="inspect-open"]');
+      const mOut = await movesOf(page, '[data-p3="inspect-menu"]');
+      ok(closedWhileLeaving(mGo, 'inspect-open', 'false'), `${where}: the Inspect menu, closed by Escape, stays drawn through its exit and reads as closed: marked leaving, inert, focus back on its button, the button not expanded (read ${fmt(mGo)})`);
+      if (!reduced) ok(!!mOut && one(mOut, 'opacity')?.dur === OUT && one(mOut, 'opacity')?.ease === EXIT && mOut.every((a) => a.moves.length === 0),
+        `${where}: the Inspect menu leaves as a fade, opacity on ${OUT}ms, the exit curve, moving nothing (read ${fmt(mOut)})`);
+      else reducedOk(mOut, 'the Inspect menu closing');
+      // Opened again mid-exit: its button reads it as closed, so the click opens it, and the menu that comes back is not leaving.
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      const mBack = await page.evaluate(() => { const m = document.querySelector('[data-p3="inspect-menu"]'); return { n: document.querySelectorAll('[data-p3="inspect-menu"]').length, leaving: m?.dataset.leaving ?? null, inert: m?.inert ?? null, expanded: document.querySelector('[data-p3="inspect-open"]')?.getAttribute('aria-expanded') }; });
+      ok(mBack.n === 1 && mBack.leaving === null && mBack.inert === false && mBack.expanded === 'true',
+        `${where}: a click on Inspect during the menu's exit opens it again, one menu, not leaving (read ${fmt(mBack)})`);
+      await settleAll(page, cdp);
+      ok(atRest(await restOf(page, '[data-p3="inspect-menu"]')), `${where}: settled, the reopened Inspect menu sits at rest and was not removed by the earlier exit (${fmt(await restOf(page, '[data-p3="inspect-menu"]'))})`);
+      await page.keyboard.press('Escape');
+      await settleAll(page, cdp);
+      ok(await goneNow(page, '[data-p3="inspect-menu"]'), `${where}: settled, the Inspect menu is removed once its exit ends`);
 
       // A dialog: Scale in; a repaint of the open dialog does not scale it again; the checklist fades in when it lands.
       step = 'the Update file dialog';
@@ -18660,7 +18776,24 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       ok(landed.rows.length > 0 && landed.rows.every((r) => r.land === 'true' && r.fades.some(([p, d]) => p === 'opacity' && d === rowFade)),
         `${where}: once the file is read the checklist lands, each row fading in on ${rowFade}ms (read ${fmt(landed.rows)})`);
       await settleAll(page, cdp);
+      // #3207: the scrim fades and the dialog shrinks back, and the dialog reads as closed while it leaves.
+      step = 'the Update file dialog closes';
+      await slow();
       await page.keyboard.press('Escape');
+      const uGo = await leavingOf(page, '[data-p3="update-layer"] > .p3-bardlg-scrim', null);
+      const sOut = await movesOf(page, '[data-p3="update-layer"] > .p3-bardlg-scrim');
+      const gOut = await movesOf(page, '[data-p3="update-dialog"]');
+      ok(closedWhileLeaving(uGo, 'update-file'), `${where}: the Update file dialog, closed by Escape, stays drawn through its exit and reads as closed: marked leaving, inert, focus back on Update file (read ${fmt(uGo)})`);
+      if (!reduced) {
+        ok(one(sOut, 'opacity')?.dur === OUT && one(sOut, 'opacity')?.ease === EXIT, `${where}: the dialog's scrim fades out on ${OUT}ms, the exit curve (read ${fmt(sOut)})`);
+        ok(one(gOut, 'scale')?.dur === OUT && one(gOut, 'scale')?.ease === EXIT, `${where}: the Update file dialog scales down on ${OUT}ms, the exit curve (read ${fmt(gOut)})`);
+      } else {
+        reducedOk([...(sOut ?? []), ...(gOut ?? [])], 'the Update file dialog closing');
+        const gScale = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="update-dialog"]')).scale);
+        ok(gScale === 'none', `${where}: the leaving dialog keeps its size under reduced motion, no snap to its exit scale (scale ${gScale})`);
+      }
+      await settleAll(page, cdp);
+      ok(await page.evaluate(() => document.querySelector('[data-p3="update-layer"]')?.children.length === 0), `${where}: settled, the dialog is removed once its exit ends`);
 
       // Fold-out content: Expand, gated on its toggle; a page change that draws it again does not replay it; collapse at once.
       step = 'the advanced fold-out';
@@ -18705,10 +18838,11 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="activity-drawer"]')).display !== 'none', null, { timeout: 5000 });
       const sIn = await movesOf(page, '[data-p3="activity-drawer"]');
-      const sNoDown = (sIn ?? []).filter((a) => a.kind === 'CSSTransition');
-      if (!reduced) ok(one(sNoDown, 'opacity')?.dur === SMALL && one(sNoDown, 'translate')?.dur === SMALL && one(sNoDown, 'translate')?.ease === ENTER,
+      // #3217: a strip appearing closed plays no exit (it used to sink 0px as it appeared).
+      ok(!one(sIn, 'p3-strip-down'), `${where}: the strip appearing closed plays no exit (read ${fmt(sIn)})`);
+      if (!reduced) ok(one(sIn, 'opacity')?.dur === SMALL && one(sIn, 'translate')?.dur === SMALL && one(sIn, 'translate')?.ease === ENTER,
         `${where}: the strip shifts in, opacity and a short rise on ${SMALL}ms, the enter curve (read ${fmt(sIn)})`);
-      else ok((sIn ?? []).every((a) => a.moves.length === 0 || a.name === 'p3-strip-down') && (sIn ?? []).every((a) => a.kind === 'CSSTransition') && one(sIn, 'opacity')?.dur === REDUCED,
+      else ok((sIn ?? []).every((a) => a.moves.length === 0) && (sIn ?? []).every((a) => a.kind === 'CSSTransition') && one(sIn, 'opacity')?.dur === REDUCED,
         `${where}: the strip crossfades in on ${REDUCED}ms and moves no transform (read ${fmt(sIn)})`);
       await settleAll(page, cdp);
       ok(atRest(await restOf(page, '[data-p3="activity-drawer"]')), `${where}: settled, the strip sits at rest (${fmt(await restOf(page, '[data-p3="activity-drawer"]'))})`);
@@ -18737,6 +18871,10 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await slow();
       await hooks.click(page.locator('[data-p3="activity-toggle"]'));
       const up = await movesOf(page, '[data-p3="activity-drawer"]');
+      // #3207: opening the sheet reads the result. At 380 the open sheet hides the bar row the dot sits on, so there is no exit
+      // to see and the dot goes at once (the exit is held at 1280, where the bar row stays).
+      const dGo = await page.evaluate(() => ({ leaving: !!document.querySelector('[data-p3="activity-toggle"] > .p3-status-dot[data-leaving="true"]'), unread: !!document.querySelector('[data-p3="activity-unread"]') }));
+      ok(!dGo.leaving && !dGo.unread, `${where}: opening the sheet reads the result, and the dot goes at once with the bar row the sheet hides (read ${fmt(dGo)})`);
       if (!reduced) ok(one(up, 'p3-drawer-up')?.dur === IN && one(up, 'p3-drawer-up')?.ease === ENTER, `${where}: the sheet slides up on ${IN}ms, the enter curve (read ${fmt(up)})`);
       else ok((up ?? []).every((a) => a.moves.length === 0 && a.kind !== 'CSSAnimation'), `${where}: the sheet moves no transform under reduced motion (read ${fmt(up)})`);
       await settleAll(page, cdp);
@@ -18780,7 +18918,7 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     } finally { await ctx.close(); }
   }
 
-  // ── a tooltip (Fade), on the web at 1280 ──
+  // ── a tooltip (Fade), the brand menu's and the start window's exits (#3207), on the web at 1280 ──
   for (const reduced of [false, true]) {
     const where = `#3150 ${reduced ? 'REDUCED' : 'LIVE'} web light 1280`;
     const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900, liveMotion: true });
@@ -18802,6 +18940,41 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await page.mouse.move(640, 600);
       const tOut = await page.evaluate(() => [...document.querySelectorAll('.p3-tile-tip')].filter((t) => getComputedStyle(t).display !== 'none').length);
       ok(tOut === 0, `${where}: the tooltip goes at once (${tOut} still drawn)`);
+
+      // #3207: the brand menu (drawn by the bar, not the shared menu button) leaves as a fade, reading closed.
+      step = 'the brand menu';
+      await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+      await hooks.need(page, '[data-p3="brand-menu"]');
+      await settleAll(page, cdp);
+      await slow();
+      await page.keyboard.press('Escape');
+      const bGo = await leavingOf(page, '[data-p3="brand-menu"]', '[data-p3="brand-switcher"]');
+      const bOut = await movesOf(page, '[data-p3="brand-menu"]');
+      ok(closedWhileLeaving(bGo, 'brand-switcher', 'false'), `${where}: the brand menu, closed by Escape, stays drawn through its exit and reads as closed: marked leaving, inert, focus back on the switcher, not expanded (read ${fmt(bGo)})`);
+      if (!reduced) ok(!!bOut && one(bOut, 'opacity')?.dur === OUT && one(bOut, 'opacity')?.ease === EXIT && bOut.every((a) => a.moves.length === 0),
+        `${where}: the brand menu leaves as a fade, opacity on ${OUT}ms, the exit curve, moving nothing (read ${fmt(bOut)})`);
+      else ok(!!bOut && bOut.every((a) => a.moves.length === 0) && one(bOut, 'opacity')?.dur === REDUCED, `${where}: the brand menu crossfades out on ${REDUCED}ms and moves nothing (read ${fmt(bOut)})`);
+      await settleAll(page, cdp);
+      ok(await goneNow(page, '[data-p3="brand-menu"]'), `${where}: settled, the brand menu is removed once its exit ends`);
+
+      // #3207: the start window, reopened from the brand menu and closed by its X: the scrim fades, the window shrinks back.
+      step = 'the start window';
+      await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      await hooks.need(page, '[data-p3="start-screen"]');
+      await settleAll(page, cdp);
+      await slow();
+      await hooks.click(page.locator('[data-p3="start-close"]'));
+      const wGo = await leavingOf(page, '[data-p3="start-screen-scrim"]', null);
+      const wsOut = await movesOf(page, '[data-p3="start-screen-scrim"]');
+      const wdOut = await movesOf(page, '[data-p3="start-screen"]');
+      ok(wGo.drawn && wGo.leaving === 'true' && wGo.inert === true && !wGo.focusInside, `${where}: the start window, closed by its X, stays drawn through its exit and reads as closed: marked leaving, inert, focus outside it (read ${fmt(wGo)})`);
+      if (!reduced) ok(one(wsOut, 'opacity')?.dur === OUT && one(wsOut, 'opacity')?.ease === EXIT && one(wdOut, 'scale')?.dur === OUT && one(wdOut, 'scale')?.ease === EXIT,
+        `${where}: the start window's scrim fades and the window scales down, on ${OUT}ms, the exit curve (scrim ${fmt(wsOut)}; window ${fmt(wdOut)})`);
+      else ok([...(wsOut ?? []), ...(wdOut ?? [])].every((a) => a.moves.length === 0) && one(wsOut, 'opacity')?.dur === REDUCED,
+        `${where}: the start window crossfades out on ${REDUCED}ms and scales nothing (scrim ${fmt(wsOut)}; window ${fmt(wdOut)})`);
+      await settleAll(page, cdp);
+      ok(await goneNow(page, '[data-p3="start-screen-scrim"]'), `${where}: settled, the start window is removed once its exit ends`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
@@ -18822,6 +18995,99 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
   }
 }
 } // 3150
+if (runs('3199')) {
+console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot on the first line, the box one line tall\n${'='.repeat(78)}`);
+// WHAT THIS HOLDS (owner decisions on #3199, Q4 A and Q6 A). An inline badge is a dot and plain text on a text line, as
+// tall as the line: 24px at medium and 21px at small. A wrapping label keeps the dot on its FIRST line. Figma cannot show
+// a wrap, so the browser lays it out: each projected `style=inline` member's plan, as the engine emits it, becomes boxes
+// whose CSS follows the plan's own layout fields, with every bound value resolved from the committed emission (the
+// default brand and the reference brand). The expectations are the issue's literals, not read from the plan or the
+// tokens: the box is 24 / 21px tall on one line, and at 210px wide a label that wraps keeps the dot's
+// center within 0.5px of the first line's center (12 / 10.5px). The label's line height comes from its text style
+// (font size × line height), independently of the `line-box` the dot cell binds, so the two have to agree.
+//
+// Mutations: the root's cross axis back to `align: 'center'` in badge.ts → `3199 <brand> <member>: wrapped`, the dot
+// floats to the middle of the two lines; `size.medium.dot-cell` bound to `type.body.lg.line-box` → `… one line` (the
+// box grows past 24px) and `… wrapped`.
+{
+  const esbuild = await import('esbuild');
+  const eng = await esbuild.build({ stdin: { contents: "export { figmaAnatomySet, planComponentName } from '@prism3/engine/anatomy-figma'; export { componentDefs } from '@prism3/engine/components/index';", resolveDir: join(HERE, 'src'), loader: 'ts' },
+    bundle: true, platform: 'node', format: 'esm', write: false });
+  const { figmaAnatomySet, planComponentName, componentDefs } = await import(`data:text/javascript;base64,${Buffer.from(eng.outputFiles[0].text).toString('base64')}`);
+  const badge = componentDefs.find((d) => d.id === 'badge');
+  const inline = figmaAnatomySet(badge, {}).filter((p) => /style=inline/.test(planComponentName(p)));
+  // The issue's literals.
+  const LINE = { medium: 24, small: 21 };
+  const WRAP_WIDTH = 210;
+  // The docs' own example, lengthened: in the runner's fallback face "Out of stock at this location" is 192px, which
+  // fits the 194px beside the dot, so it would not wrap here though it does in the brands' faces. The premise arm
+  // below proves the wrap, whatever the face.
+  const WRAP_TEXT = 'Out of stock at this location until Friday';
+  ok(inline.length === 10, `3199: the badge set projects 10 inline members (${inline.length})`);
+  for (const brand of ['prism3', 'nb']) {
+    const tree = JSON.parse(readFileSync(join(REPO, 'packages/engine/out', `${brand}.tokens.json`), 'utf8'));
+    const ns = Object.keys(tree).find((k) => !k.startsWith('$'));
+    const node = (path) => path.split('.').reduce((o, k) => o?.[k], tree);
+    const deref = (v) => { let x = v; for (let i = 0; i < 20 && typeof x === 'string' && /^\{.+\}$/.test(x); i++) x = node(x.slice(1, -1))?.$value; return x; };
+    const px = (v) => { const x = deref(v); return typeof x === 'number' ? x : parseFloat(String(x)); };
+    // A plan variable `space/100` names the token `<ns>.space.100`; a text style `body/md/default` names `<ns>.type.body.md.default`.
+    const varPx = (name) => px(node(`${ns}.${name.replace(/\//g, '.')}`)?.$value);
+    // The text style's own size and line height, as emitted (`1rem`, `1.5`), handed to CSS as they are: the browser does
+    // the arithmetic, so nothing here can agree with the `line-box` token by construction.
+    const textStyle = (name) => {
+      const v = node(`${ns}.type.${name.replace(/\//g, '.')}`)?.$value ?? {};
+      return { size: String(deref(v.fontSize)), lineHeight: String(deref(v.lineHeight)) };
+    };
+    const ALIGN = { MIN: 'flex-start', CENTER: 'center', MAX: 'flex-end' };
+    // The plan as boxes: each field the plan carries becomes the CSS property that means the same thing. Nothing here
+    // knows it is drawing a badge.
+    const html = (n) => {
+      const b = n.bound ?? {};
+      const css = [];
+      if (n.type === 'TEXT') {
+        const t = textStyle(n.textStyle);
+        css.push(`font-size:${t.size}`, `line-height:${t.lineHeight}`, 'min-width:0', 'overflow-wrap:break-word', 'margin:0');
+        return `<span data-part="${n.name}" style="${css.join(';')}">${WRAP_TEXT}</span>`;
+      }
+      css.push('display:flex', 'flex-direction:row', 'box-sizing:border-box', 'flex-shrink:0');
+      css.push(`align-items:${ALIGN[n.counterAxisAlignItems] ?? 'stretch'}`, `justify-content:${ALIGN[n.primaryAxisAlignItems] ?? 'flex-start'}`);
+      if (b.itemSpacing) css.push(`gap:${varPx(b.itemSpacing)}px`);
+      for (const [f, c] of [['paddingTop', 'padding-top'], ['paddingBottom', 'padding-bottom'], ['paddingLeft', 'padding-left'], ['paddingRight', 'padding-right']]) if (b[f]) css.push(`${c}:${varPx(b[f])}px`);
+      if (b.width) css.push(`width:${varPx(b.width)}px`);
+      if (b.height) css.push(`height:${varPx(b.height)}px`);
+      if (b.topLeftRadius) css.push(`border-radius:${varPx(b.topLeftRadius)}px`);
+      if (n.paints?.fills) css.push('background:#888');
+      return `<div data-part="${n.name}" style="${css.join(';')}">${(n.children ?? []).map(html).join('')}</div>`;
+    };
+    const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } });
+    const page = await ctx.newPage();
+    try {
+      for (const plan of inline) {
+        const name = planComponentName(plan);
+        const size = /size=(\w+)/.exec(name)?.[1];
+        const where = `3199 ${brand} ${name}`;
+        // The root hugs (`inline-flex`, a badge in a line); the frame around it is the column.
+        const root = html(plan.root).replace('display:flex', 'display:inline-flex').replace('flex-shrink:0', 'max-width:100%');
+        await page.setContent(`<!doctype html><body style="margin:0;font-family:sans-serif"><div id="one">${root}</div><div id="col" style="width:${WRAP_WIDTH}px">${root}</div></body>`);
+        const m = await page.evaluate(() => {
+          const r = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { top: b.top, height: b.height, width: b.width }; };
+          const lh = (sel) => parseFloat(getComputedStyle(document.querySelector(sel)).lineHeight);
+          return { oneRoot: r('#one > [data-part]'), oneLabel: r('#one [data-part="label"]'), colRoot: r('#col > [data-part]'), colLabel: r('#col [data-part="label"]'), colDot: r('#col [data-part="statusDot"]'), colLine: lh('#col [data-part="label"]') };
+        });
+        // One line: the label sits on one line in a wide frame, and the box is that line's height, the issue's figure.
+        ok(!!m.oneRoot && Math.abs(m.oneRoot.height - LINE[size]) < 0.5 && Math.abs(m.oneLabel.height - LINE[size]) < 0.5,
+          `${where}: one line: the badge is ${LINE[size]}px tall, the label's own line box (box ${m.oneRoot?.height}px, label ${m.oneLabel?.height}px)`);
+        // Wrapped: the premise first (the label really wraps at 210px), then the dot's center against the first line's.
+        const lines = m.colLabel ? Math.round(m.colLabel.height / m.colLine) : 0;
+        ok(lines >= 2, `${where}: premise: at ${WRAP_WIDTH}px "${WRAP_TEXT}" wraps (${lines} lines, label ${m.colLabel?.height}px)`);
+        const dotCenter = m.colDot ? m.colDot.top + m.colDot.height / 2 - m.colRoot.top : NaN;
+        ok(Math.abs(dotCenter - LINE[size] / 2) <= 0.5 && Math.abs(m.colLabel.top - m.colRoot.top) < 0.5,
+          `${where}: wrapped: the dot's center is on the first line's, ${LINE[size] / 2}px from the top within 0.5px, and the label starts at the top (dot center ${dotCenter}px, label top ${m.colLabel ? m.colLabel.top - m.colRoot.top : 'none'}px, ${lines} lines)`);
+      }
+    } finally { await ctx.close(); }
+  }
+}
+} // 3199
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

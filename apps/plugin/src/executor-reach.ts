@@ -18,7 +18,10 @@
  * at or below the base's revision may not change: a record a later PR could narrow would be no record.
  *
  * WHAT IT CANNOT SEE, and the answer to each: a write the shim does not model (its header's limit: it records what
- * it was taught) and a lever combination no brand in the gate's corpus draws. An author who knows a change reaches
+ * it was taught) and a lever combination no brand in the gate's corpus draws. A call to a host API the shim lacks,
+ * made through optional chaining (`node.setExplicitVariableModeForCollection?.(…)`, the executor's `?.()` style), is a
+ * no-op in the shim; since #3160 the gate still sees it, because every node records each property it is asked for and
+ * lacks, so such a call reads as a drawing change. A method the shim implements as a no-op it still cannot see. An author who knows a change reaches
  * further than the gate can measure declares the sets, or `"all"`. A revision with no entry, or at or below
  * `floor`, reaches every set, as every revision did before this record existed.
  *

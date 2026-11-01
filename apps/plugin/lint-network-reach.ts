@@ -4,7 +4,8 @@
  *   npx tsx apps/plugin/lint-network-reach.ts      (after `build:release`, which builds both)
  *
  * One codebase builds two plugins. "Prism3 Studio" (`release/`) may reach the domains its manifest lists, today the
- * two Google Fonts hosts the preview loads a brand's face from. "Prism3 Studio Offline" (`release-offline/`,
+ * two Google Fonts hosts the preview loads a brand's face from and the agent link's local desktop bridge,
+ * `ws://localhost:17331` (#3147). "Prism3 Studio Offline" (`release-offline/`,
  * `build.mjs --release --offline`) reaches none: `allowedDomains: ["none"]`, for client files and locked-down setups.
  * Figma enforces a manifest's list with a CSP, but nothing in Figma says the list is the one we meant, or that the
  * offline build degrades rather than tries. This gate does, by reading the bytes each build hands Figma.
@@ -30,10 +31,12 @@
  *
  * BY-NAME MUTATIONS (each proven red, then restored; the PR's table records them): a `fetch` outside the
  * `PRISM3_NETWORK` gate in `web-fonts.ts` → `[fetch] is absent from release-offline/ui.html`; the offline manifest's
- * `allowedDomains` set to `["*"]` → `release-offline/manifest.json allows no network`; a third domain added to
- * `manifest.json` → `release/manifest.json allows exactly the listed domains`; a request to an unlisted host in the
+ * `allowedDomains` set to `["*"]` → `release-offline/manifest.json allows no network`; a fourth domain added to
+ * `manifest.json` → `release/manifest.json allows exactly the listed domains`; the relay's `if (PRISM3_NETWORK)` in
+ * `agent-link-ui.ts` turned off → `release/ui.html carries the desktop bridge relay's socket` (#3147); a request to an unlisted host in the
  * loader → `[host example.com] in release/ui.html is allowed or reference-only`; an offline-only `new Image().src` to an
- * unlisted host → `[host tracker.example.net] in release-offline/ui.html is reference-only`.
+ * unlisted host → `[host tracker.example.net] in release-offline/ui.html is reference-only`; the same request written
+ * protocol-relative, `'//tracker.example.net/p.gif'` (#3188, the N2 mutation) → the same name.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -47,8 +50,10 @@ const BUILDS = {
   offline: { dir: resolve(HERE, 'release-offline'), name: 'release-offline', label: 'Prism3 Studio Offline', id: 'prism3-theming-plugin-offline' },
 } as const;
 
-/** The network build's domains (#3138, owner decision: explicit domains, no `*`, starting with the Google Fonts hosts). */
-const ALLOWED = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'] as const;
+/** The network build's domains (#3138, owner decision: explicit domains, no `*`, starting with the Google Fonts hosts),
+ *  plus the agent link's local desktop bridge (#3147, the owner's Q3147.3 A). An authored literal, never read from the
+ *  manifest: a domain added to the manifest and not here fails `release/manifest.json allows exactly the listed domains`. */
+const ALLOWED = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com', 'ws://localhost:17331'] as const;
 const ALLOWED_HOSTS = ALLOWED.map((d) => new URL(d).host);
 
 /** Hosts a bundle names without requesting them, each with its reason. A new one is added here with its reason. */
@@ -73,6 +78,15 @@ const PRIMITIVES: readonly Pattern[] = [
   { name: 'css-import', re: /@import\s/, positive: '@import url(x.css);', negative: '@importance' },
 ];
 const URL_HOST = /\b(?:https?|wss?):\/\/([a-z0-9.-]+\.[a-z]{2,})/gi;
+/** A protocol-relative URL (#3188): `'//tracker.example.net/p.gif'` takes the page's scheme and requests the host as
+ *  surely as `https://` does, and URL_HOST, which needs a scheme, never saw it. Matched after a quote, `(`, `=` or
+ *  whitespace, the places a URL starts in a string, a CSS `url(`, an attribute or markup. A `// comment` has a space
+ *  after the slashes, so it is not a host; a scheme's `://` is preceded by `:`, so URL_HOST keeps those. An ADDITION:
+ *  every host either reads is held to the same lists, and URL_HOST is not narrowed. */
+const PROTO_REL_HOST = /(?:["'`(=]|\s)\/\/([a-z0-9.-]+\.[a-z]{2,})/gi;
+/** Every host a bundle names, through either shape. The one place the two are applied, so neither build can miss one. */
+const hostsIn = (text: string): string[] =>
+  [...new Set([...text.matchAll(URL_HOST), ...text.matchAll(PROTO_REL_HOST)].map((m) => m[1].toLowerCase()))].sort();
 
 let failed = 0;
 const ok = (cond: boolean, label: string, detail = ''): void => {
@@ -94,6 +108,11 @@ console.log('\nNetwork reach — Prism3 Studio reaches only its listed domains; 
 // The detector first: a pattern that cannot match, or matches everything, makes every other check meaningless.
 for (const p of PRIMITIVES) ok(p.re.test(p.positive) && !p.re.test(p.negative), `detector [${p.name}]: matches its positive control and not its negative`);
 ok([...'x https://fonts.gstatic.com/s/a.woff2 y'.matchAll(URL_HOST)].map((m) => m[1]).join() === 'fonts.gstatic.com', 'detector [host]: reads the host of a URL');
+// The protocol-relative shape, after each lead it claims, and never a comment, a path or a scheme's `://` (#3188).
+ok(hostsIn(`a='//q.example.net/p.gif' b="//r.example.net" c=\`//s.example.net\` url(//t.example.net/x) src=//u.example.net v //w.example.net`).join()
+  === 'q.example.net,r.example.net,s.example.net,t.example.net,u.example.net,w.example.net',
+  'detector [host]: reads the host of a protocol-relative URL after a quote, `(`, `=` or whitespace');
+ok(hostsIn('x // see the notes.md y; a/b//c.example.net; z:////k').join() === '', 'detector [host]: a `// comment`, a path and an empty scheme read no host');
 
 const bundles = (dir: string) => ({ 'main.js': read(dir, 'main.js'), 'ui.html': read(dir, 'ui.html') });
 const net = bundles(BUILDS.network.dir);
@@ -110,7 +129,7 @@ for (const [f, text] of Object.entries(off)) {
   for (const h of ALLOWED_HOSTS) ok(text.length > 0 && !text.includes(h), `[host ${h}] is absent from release-offline/${f}`, near(text, new RegExp(h.replace(/\./g, '\\.'))));
   // A primitive list is never complete (`new Image().src`, `<script src>`, `new Worker(url)`…), so the hosts the bundle
   // names are held too: offline, only a reference-only host may appear, whatever would request it.
-  for (const h of [...new Set([...text.matchAll(URL_HOST)].map((m) => m[1].toLowerCase()))].sort()) {
+  for (const h of hostsIn(text)) {
     ok(h in REFERENCE_ONLY, `[host ${h}] in release-offline/${f} is reference-only`,
       `${h} is not in REFERENCE_ONLY: the offline build names no host it could request, and a reference needs its reason here`);
   }
@@ -131,10 +150,14 @@ ok(!!netM && !JSON.stringify(netM.networkAccess ?? {}).includes('*'), 'release/m
 ok(/\bfetch\s*\(/.test(net['ui.html']) && net['ui.html'].includes('fonts.googleapis.com'),
   "release/ui.html carries the web-font loader's request (`fetch(` and the Google Fonts host), so the offline absence means something",
   'the loader (apps/studio/src/ui/web-fonts.ts) moved or was renamed: update this gate with it');
+// Vacuity for the socket (#3147): the desktop bridge relay ships in the network build, so `new WebSocket` and the bridge's
+// origin are in `release/ui.html`, and their absence from the offline build (above) means something.
+ok(/\bnew\s+WebSocket\b/.test(net['ui.html']) && net['ui.html'].includes('localhost:17331'),
+  "release/ui.html carries the desktop bridge relay's socket (`new WebSocket` and `localhost:17331`), so the offline absence means something",
+  'the relay (apps/plugin/src/agent-bridge-relay.ts) is not in the network build: it ships there since #3147');
 for (const p of PRIMITIVES) ok(!p.re.test(net['main.js']), `[${p.name}] is absent from release/main.js (the main thread makes no request)`, near(net['main.js'], p.re));
 for (const [f, text] of Object.entries(net)) {
-  const hosts = new Set([...text.matchAll(URL_HOST)].map((m) => m[1].toLowerCase()));
-  for (const h of [...hosts].sort()) {
+  for (const h of hostsIn(text)) {
     ok(ALLOWED_HOSTS.includes(h) || h in REFERENCE_ONLY, `[host ${h}] in release/${f} is allowed or reference-only`,
       `${h} is in neither ALLOWED nor REFERENCE_ONLY: a request there is refused by Figma's CSP, and a reference needs its reason here`);
   }

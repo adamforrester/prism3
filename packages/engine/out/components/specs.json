@@ -27563,7 +27563,7 @@
     "badge": {
       "id": "badge",
       "name": "Badge",
-      "members": 40,
+      "members": 50,
       "axes": [
         {
           "name": "type",
@@ -27572,6 +27572,15 @@
             "status",
             "count",
             "dot"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "style",
+          "figmaName": "style",
+          "values": [
+            "contained",
+            "inline"
           ],
           "kind": "variant"
         },
@@ -27612,15 +27621,35 @@
         {
           "part": "surface",
           "kind": "frame",
-          "members": 40
+          "members": 50
         },
         {
           "part": "surface/label",
           "kind": "text",
-          "members": 30,
+          "members": 40,
           "when": {
             "type": [
               "status"
+            ]
+          }
+        },
+        {
+          "part": "surface/dotCell",
+          "kind": "frame",
+          "members": 10,
+          "when": {
+            "style": [
+              "inline"
+            ]
+          }
+        },
+        {
+          "part": "surface/dotCell/statusDot",
+          "kind": "frame",
+          "members": 10,
+          "when": {
+            "style": [
+              "inline"
             ]
           }
         },
@@ -27647,12 +27676,14 @@
       ],
       "redlineKey": [
         "size",
+        "style",
         "type"
       ],
       "redlines": [
         {
           "where": {
             "size": "medium",
+            "style": "contained",
             "type": "status"
           },
           "parts": [
@@ -27670,6 +27701,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }
@@ -27678,6 +27712,7 @@
         {
           "where": {
             "size": "small",
+            "style": "contained",
             "type": "status"
           },
           "parts": [
@@ -27695,6 +27730,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.100"
+                },
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }
@@ -27703,6 +27741,103 @@
         {
           "where": {
             "size": "medium",
+            "style": "inline",
+            "type": "status"
+          },
+          "parts": [
+            {
+              "part": "surface",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "surface/dotCell",
+              "values": {
+                "height": {
+                  "token": "type.body.md.line-box"
+                }
+              }
+            },
+            {
+              "part": "surface/dotCell/statusDot",
+              "values": {
+                "height": {
+                  "token": "space.100"
+                },
+                "width": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "inline",
+            "type": "status"
+          },
+          "parts": [
+            {
+              "part": "surface",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.075"
+                }
+              }
+            },
+            {
+              "part": "surface/dotCell",
+              "values": {
+                "height": {
+                  "token": "type.body.sm.line-box"
+                }
+              }
+            },
+            {
+              "part": "surface/dotCell/statusDot",
+              "values": {
+                "height": {
+                  "token": "space.100"
+                },
+                "width": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "contained",
             "type": "count"
           },
           "parts": [
@@ -27720,6 +27855,9 @@
                 },
                 "paddingLeft": {
                   "token": "space.075"
+                },
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }
@@ -27728,6 +27866,7 @@
         {
           "where": {
             "size": "medium",
+            "style": "contained",
             "type": "dot"
           },
           "parts": [
@@ -27744,6 +27883,9 @@
                   "token": "space.0"
                 },
                 "paddingLeft": {
+                  "token": "space.0"
+                },
+                "gap": {
                   "token": "space.0"
                 }
               }
@@ -27763,12 +27905,14 @@
         }
       ],
       "typeKey": [
-        "size"
+        "size",
+        "style"
       ],
       "type": [
         {
           "where": {
-            "size": "medium"
+            "size": "medium",
+            "style": "contained"
           },
           "parts": [
             {
@@ -27783,7 +27927,8 @@
         },
         {
           "where": {
-            "size": "small"
+            "size": "small",
+            "style": "contained"
           },
           "parts": [
             {
@@ -27791,10 +27936,35 @@
               "textStyle": "type.caption.md.strong"
             }
           ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "inline"
+          },
+          "parts": [
+            {
+              "part": "surface/label",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "inline"
+          },
+          "parts": [
+            {
+              "part": "surface/label",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
         }
       ],
       "colorKey": [
         "type",
+        "style",
         "emphasis",
         "tone"
       ],
@@ -27802,6 +27972,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "subtle",
             "tone": "neutral"
           },
@@ -27820,6 +27991,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "subtle",
             "tone": "info"
           },
@@ -27838,6 +28010,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "subtle",
             "tone": "success"
           },
@@ -27856,6 +28029,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "subtle",
             "tone": "warning"
           },
@@ -27874,6 +28048,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "subtle",
             "tone": "danger"
           },
@@ -27892,6 +28067,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "neutral"
           },
@@ -27909,6 +28085,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "info"
           },
@@ -27926,6 +28103,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "success"
           },
@@ -27943,6 +28121,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "warning"
           },
@@ -27960,6 +28139,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "danger"
           },
@@ -27977,6 +28157,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "surface",
             "tone": "neutral"
           },
@@ -27994,6 +28175,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "surface",
             "tone": "info"
           },
@@ -28011,6 +28193,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "surface",
             "tone": "success"
           },
@@ -28028,6 +28211,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "surface",
             "tone": "warning"
           },
@@ -28045,6 +28229,7 @@
         {
           "where": {
             "type": "status",
+            "style": "contained",
             "emphasis": "surface",
             "tone": "danger"
           },
@@ -28061,7 +28246,98 @@
         },
         {
           "where": {
+            "type": "status",
+            "style": "inline",
+            "emphasis": "subtle",
+            "tone": "neutral"
+          },
+          "parts": [
+            {
+              "part": "surface/dotCell/statusDot",
+              "fill": "color.icon.secondary"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "style": "inline",
+            "emphasis": "subtle",
+            "tone": "info"
+          },
+          "parts": [
+            {
+              "part": "surface/dotCell/statusDot",
+              "fill": "color.icon.info"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "style": "inline",
+            "emphasis": "subtle",
+            "tone": "success"
+          },
+          "parts": [
+            {
+              "part": "surface/dotCell/statusDot",
+              "fill": "color.icon.success"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "style": "inline",
+            "emphasis": "subtle",
+            "tone": "warning"
+          },
+          "parts": [
+            {
+              "part": "surface/dotCell/statusDot",
+              "fill": "color.icon.warning"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "status",
+            "style": "inline",
+            "emphasis": "subtle",
+            "tone": "danger"
+          },
+          "parts": [
+            {
+              "part": "surface/dotCell/statusDot",
+              "fill": "color.icon.danger"
+            },
+            {
+              "part": "surface/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
             "type": "count",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "neutral"
           },
@@ -28079,6 +28355,7 @@
         {
           "where": {
             "type": "count",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "info"
           },
@@ -28096,6 +28373,7 @@
         {
           "where": {
             "type": "count",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "success"
           },
@@ -28113,6 +28391,7 @@
         {
           "where": {
             "type": "count",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "warning"
           },
@@ -28130,6 +28409,7 @@
         {
           "where": {
             "type": "count",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "danger"
           },
@@ -28147,6 +28427,7 @@
         {
           "where": {
             "type": "dot",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "neutral"
           },
@@ -28160,6 +28441,7 @@
         {
           "where": {
             "type": "dot",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "info"
           },
@@ -28173,6 +28455,7 @@
         {
           "where": {
             "type": "dot",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "success"
           },
@@ -28186,6 +28469,7 @@
         {
           "where": {
             "type": "dot",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "warning"
           },
@@ -28199,6 +28483,7 @@
         {
           "where": {
             "type": "dot",
+            "style": "contained",
             "emphasis": "bold",
             "tone": "danger"
           },
@@ -30012,6 +30297,7 @@
           "component": "badge",
           "variant": {
             "type": "count",
+            "style": "contained",
             "size": "medium",
             "emphasis": "bold",
             "tone": "neutral"

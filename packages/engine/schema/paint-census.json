@@ -363,14 +363,14 @@
     },
     "badge": {
       "set": {
-        "members": 40,
-        "assignments": 85,
-        "sha256": "6957d0bc223f9151bb0e7db17f5e58df690cc77b438da68888471988461fc0fb"
+        "members": 50,
+        "assignments": 105,
+        "sha256": "191cae962c2b6f863139e2cd0ea24aa9d477a058c6823bd3ba64692e6dbe0e36"
       },
       "grid": {
-        "members": 40,
-        "assignments": 85,
-        "sha256": "9db525653243141ca300386ee83510d3d61d3e21b048f07f8b3e315a7a184d1a"
+        "members": 50,
+        "assignments": 105,
+        "sha256": "fe9301df5b770b1aedc6438bfac413ce0b26b53c5232c62847de7b573113ee4b"
       }
     },
     "tag": {

@@ -21,9 +21,10 @@ import { chromeCss } from '../studio/chrome/esbuild-plugin.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 /** THE RELEASE BUILD (#2530, owner Q239 A). `--release` writes `release/` instead of `dist/`: the same two bundles
- *  with `PRISM3_DEV` false, so esbuild drops every dev-only branch (the agent link's desktop bridge relay, and any
- *  dev command), and a `manifest.json` beside them with no `devAllowedDomains`. A dev build (`dist/`, the one every
- *  lane imports) keeps both. `lint-release-bundle.ts` checks the release output holds none of the dev-only code. */
+ *  with `PRISM3_DEV` false, so esbuild drops every dev-only branch (any dev command, `run-code`), and a `manifest.json`
+ *  beside them with no `devAllowedDomains`. A dev build (`dist/`, the one every lane imports) keeps the dev code. The
+ *  agent link's desktop bridge relay was dev-only too until #3147; it now sits behind `PRISM3_NETWORK` (below), so it
+ *  ships in "Prism3 Studio" and drops from the offline variant. `lint-release-bundle.ts` checks the release output holds none of the dev-only code. */
 const release = process.argv.includes('--release');
 /** THE OFFLINE VARIANT (#3138, the owner's network model). One codebase, two plugins: "Prism3 Studio" may reach the
  *  domains its manifest lists (the Google Fonts hosts, for the preview's brand faces), and "Prism3 Studio Offline"
@@ -217,7 +218,9 @@ const mainOpts = (id) => ({
   // deliberately NOT defined here — this entry never references it, and defining an identifier no code
   // reads would make `assertIdentity` the only thing proving either define does anything.
   // `PRISM3_DEV` (#2530): true in `dist/`, false in `release/`, where every `if (PRISM3_DEV)` branch is dropped.
-  define: { PRISM3_BUILD: JSON.stringify(id), PRISM3_DEV: String(!release) },
+  // `PRISM3_NETWORK` (#3218): false only in the offline variant, as the UI's (#3138), so the main thread's bridge-token
+  // plumbing drops with the relay it serves.
+  define: { PRISM3_BUILD: JSON.stringify(id), PRISM3_DEV: String(!release), PRISM3_NETWORK: String(!offline) },
   // The release build folds `if (false)` away (#2530). Without minification esbuild keeps a dead branch's TEXT, and
   // a branch's text keeps its imports alive, so the dev code would ship unreachable instead of absent. Syntax only:
   // no renaming, no whitespace change, so a release stack trace still reads like the dev build's.
