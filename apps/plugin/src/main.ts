@@ -59,7 +59,7 @@ import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
-import { livePanels, panelLeadsOf, panelledOf, panelsCleanCount, removeUneditedPanels, unpanelledOf, type CensusRoot } from './panel-census';
+import { livePanels, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
 import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -1085,17 +1085,17 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
     const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
     // #3137 Q3137.3 A: with every page loaded, the panels census, one search, kept beside the sets so a recount reads
     // both with no page load, whichever way Documentation's switch is turned meanwhile.
-    const panelled = panelCensus(nodes, frames);
-    if (gen === presentGen) { presentCache = ids; panelCache = panelled; }
+    const paneled = panelCensus(nodes, frames);
+    if (gen === presentGen) { presentCache = ids; panelCache = paneled; }
     watchSets();
-    return { ids, nodes, panelled };
+    return { ids, nodes, paneled };
   })();
   presentRead = read;
   const clear = (): void => { if (presentRead === read) presentRead = null; };
   read.then(clear, clear);
   return read;
 };
-type FileRead = { ids: string[]; nodes: readonly SearchNode[]; panelled: string[] };
+type FileRead = { ids: string[]; nodes: readonly SearchNode[]; paneled: string[] };
 type SearchNode = { readonly type?: string; readonly name?: string };
 let presentRead: Promise<FileRead> | null = null;
 /** Moved by each write's start and end (`guarded`): a read begun before it does not leave its answer as the cache. */
@@ -1155,12 +1155,12 @@ let panelCache: string[] | null = null;
 const panelCensus = (nodes: readonly SearchNode[], frames: readonly SearchNode[]): string[] => {
   try {
     const setIds = new Set(nodes.filter((n) => n.type === 'COMPONENT_SET').map((n) => String((n as { id?: string }).id ?? '')));
-    return panelledOf(livePanels({ findAllWithCriteria: () => frames } as unknown as CensusRoot).map((x) => x.tag), setIds);
+    return paneledOf(livePanels({ findAllWithCriteria: () => frames } as unknown as CensusRoot).map((x) => x.tag), setIds);
   } catch { return []; }
 };
 /** #3137 Q3137.3 A: the sets Update file offers a usage panel for, sent only while Documentation has panels on. */
-const unpanelledNow = (present: readonly string[], panelled: readonly string[]): { unpanelled: string[]; panelLeads: number } | Record<string, never> =>
-  readDocSettings(figma.root).panels ? { unpanelled: unpanelledOf(present, panelled), panelLeads: panelLeadsOf(present) } : {};
+const unpaneledNow = (present: readonly string[], paneled: readonly string[]): { unpaneled: string[]; panelLeads: number } | Record<string, never> =>
+  readDocSettings(figma.root).panels ? { unpaneled: unpaneledOf(present, paneled), panelLeads: panelLeadsOf(present) } : {};
 /**
  * #3091: A SET ADDED, DELETED OR RENAMED BY HAND DROPS THE CACHED SETS, so the badge's next recount reads the file again
  * instead of counting a set the file no longer holds, or missing one it now does. Figma's `documentchange` reports every
@@ -1331,9 +1331,9 @@ const thenRestamp = <A extends unknown[]>(fn: (...a: A) => Promise<void>) => asy
  *  a request asked meanwhile can be answered first; the panel tells the two apart by this. */
 const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
   try {
-    const { ids: present, nodes, panelled } = await readPresent(atOpen ? (done, total) => postProgress('read', { phase: 'work', item: null, done, total }) : undefined);
+    const { ids: present, nodes, paneled } = await readPresent(atOpen ? (done, total) => postProgress('read', { phase: 'work', item: null, done, total }) : undefined);
     // #3137 Q3137.3 A: the sets with no usage panel, from the read's one search for panel tags.
-    const unpanelled = unpanelledNow(present, panelled);
+    const unpaneled = unpaneledNow(present, paneled);
     // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
     // #3082 Q811 A: a set whose engine moved is printed, a set at a time with the thread handed back, and is due only
     // when its plans moved.
@@ -1342,7 +1342,7 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const print = printNow(input);
     await printYielding(print, needsPrint(ledger, present, now));
     const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...unpanelled, ...(atOpen ? { atOpen: true as const } : {}) });
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...unpaneled, ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
   }
@@ -1380,18 +1380,18 @@ const ledgerSets = async (): Promise<void> => {
  *  replaced. */
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
-    const cached = presentCache !== null && panelCache !== null ? { ids: presentCache, panelled: panelCache } : null;
-    const { ids: present, panelled } = cached ?? await readPresent();
+    const cached = presentCache !== null && panelCache !== null ? { ids: presentCache, paneled: panelCache } : null;
+    const { ids: present, paneled } = cached ?? await readPresent();
     // #3137 Q3137.3 A: the panels switch is read each time (one root read), so turning it on recounts with no page load;
     // the census is the last read's (`panelCache`), kept beside its sets.
-    const unpanelled = unpanelledNow(present, panelled);
+    const unpaneled = unpaneledNow(present, paneled);
     // #3096 into #3090: printed as `fileSets` prints, against the panel's brand, or an engine-moved set whose drawing
     // changed would read `unrecorded` and the badge would not count it while the checklist lists it as Due.
     const ledger = readLedger(figma.root);
     const now = ledgerNow(input);
     const print = printNow(input);
     await printYielding(print, needsPrint(ledger, present, now));
-    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpanelled });
+    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }

@@ -18239,7 +18239,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 // §3137 — USAGE PANELS IN UPDATE FILE, CLEAN UP AND DOCUMENTATION (#3137, owner decisions Q3137.1–8, all A)
 // =============================================================================================
 // The plugin at 380 and 1280, light and dark. Each file state is planted as the main thread posts it (`doc-settings`,
-// `file-sets` with `unpanelled` and `panelLeads`, `update-check`, `panels-clean-result`). EXPECTED: literals typed from
+// `file-sets` with `unpaneled` and `panelLeads`, `update-check`, `panels-clean-result`). EXPECTED: literals typed from
 // the approved wireframe's DRAFT strings and rules. ACTUAL: the drawn DOM and the messages the panel posts.
 //   · The template file (eight sets, none with a panel): Usage panels is Components' last subtitle, its one tick on,
 //     "Draw 8 usage panels", the all-missing line, the names under a closed "Show the 8 sets"; opened, the eight names in
@@ -18256,10 +18256,10 @@ if (runs('3137')) {
 console.log(`\n#3137 — usage panels: Update file's group, Clean up, Documentation\n${'='.repeat(78)}`);
 const P_SETS = ['button', 'select', 'checkbox-control', 'badge', 'tag', 'divider', 'text-field', 'list'];
 const P_DOCS = (panels) => ({ type: 'doc-settings', settings: { panels, cover: true, styleGuide: null } });
-const P_TEMPLATE = { type: 'file-sets', present: P_SETS, setUp: true, queued: [], due: Object.fromEntries(P_SETS.map((id) => [id, { state: 'current' }])), unpanelled: P_SETS, panelLeads: P_SETS.length };
+const P_TEMPLATE = { type: 'file-sets', present: P_SETS, setUp: true, queued: [], due: Object.fromEntries(P_SETS.map((id) => [id, { state: 'current' }])), unpaneled: P_SETS, panelLeads: P_SETS.length };
 const W_SETS = ['button', 'select', 'checkbox-control', 'badge', 'tag', 'divider', 'text-field', 'list', 'banner', 'toast'];
 const P_WORKING = { type: 'file-sets', present: W_SETS, setUp: true, queued: [], due: { ...Object.fromEntries(W_SETS.map((id) => [id, { state: 'current' }])), button: { state: 'due', reason: 'definition' } },
-  unpanelled: ['badge', 'button', 'tag'], panelLeads: W_SETS.length };
+  unpaneled: ['badge', 'button', 'tag'], panelLeads: W_SETS.length };
 const checkOf = (defs) => ({ type: 'update-check', previewHash: 'H-3137', missing: [], refused: [],
   sets: defs.map((def) => ({ def, hash: def, members: 12, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false })) });
 for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dark', 380]]) {
@@ -18367,7 +18367,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dar
     await postMsg(page, P_DOCS(false));
     await settle(page);
     await hooks.click(page.locator('[data-p3="update-file"]'));
-    await postMsg(page, { ...P_TEMPLATE, unpanelled: undefined, panelLeads: undefined });
+    await postMsg(page, { ...P_TEMPLATE, unpaneled: undefined, panelLeads: undefined });
     await hooks.click(page.locator('[data-p3="update-tab-clean"]'));
     await page.waitForFunction(() => window.__q.some((m) => m.type === 'panels-clean'), null, { timeout: 5000 }).catch(() => {});
     const count = await lastOf('panels-clean');

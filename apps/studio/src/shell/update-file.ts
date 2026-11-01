@@ -374,7 +374,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         // The scoped check reads the panel sets only while ticked, so a toggle asks it again over the new scope.
         checkedFor = null;
       }));
-      const all = (f.unpanelled?.length ?? 0) >= (f.panelLeads ?? Infinity);
+      const all = (f.unpaneled?.length ?? 0) >= (f.panelLeads ?? Infinity);
       grp.append(hook(h('p', 'p3-sub p3-upd-sub', all ? UPDATE_COPY.panelsAll : UPDATE_COPY.panelsSome(panelSets.length)), 'update-panels-line'));
       const list = hook(h('div', 'p3-upd-sets'), 'update-panels-sets');
       for (const id of panelSets) {

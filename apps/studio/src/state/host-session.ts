@@ -224,15 +224,15 @@ export interface HostSession {
     readonly atOpen?: boolean;
     /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a family and have no live usage
      *  panel. Absent while panels are off, and on the ledger's read at open (the group waits for the full read). */
-    readonly unpanelled?: readonly string[];
-    /** #3137: beside `unpanelled`, how many present sets lead a panel family. */
+    readonly unpaneled?: readonly string[];
+    /** #3137: beside `unpaneled`, how many present sets lead a panel family. */
     readonly panelLeads?: number } | null;
   /** #3081 Q810 A: the badge's live recount, the newest answer by `seq`: what is due against the panel's brand, and
    *  whether Apply Theme would change the file (`theme`). `null` until the first answer. */
   readonly liveDue: { readonly seq: number; readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null;
     readonly due: Readonly<Record<string, SetDueView>>;
-    /** #3137: as `fileSets`' `unpanelled` and `panelLeads`, from the last full read's census. */
-    readonly unpanelled?: readonly string[]; readonly panelLeads?: number } | null;
+    /** #3137: as `fileSets`' `unpaneled` and `panelLeads`, from the last full read's census. */
+    readonly unpaneled?: readonly string[]; readonly panelLeads?: number } | null;
   /** #3137 Q3137.7 A: Clean up's usage panels. `busy` while a count or a removal is out (set by the panel as it asks);
    *  `count`, the last count (the live panels and how many still hold what was drawn); `verdict`, the last removal's
    *  outcome. `null`s before the first answer. */
@@ -446,11 +446,11 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // the ledger's a full one. Before, the read after open always landed first; now it yields, so a request can win.
       if (m.atOpen && s.fileSets && !s.fileSets.atOpen) return s;
       if (m.partial && s.fileSets && !s.fileSets.partial) return s;
-      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}), ...(m.unpanelled ? { unpanelled: m.unpanelled, panelLeads: m.panelLeads } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass,
+      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}), ...(m.unpaneled ? { unpaneled: m.unpaneled, panelLeads: m.panelLeads } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass,
         addQueue: m.error ? s.addQueue : m.queued };
     case 'file-due':
       // An answer older than the one held was overtaken by a newer request: the newer answer is the brand on screen.
-      return s.liveDue && m.seq < s.liveDue.seq ? s : { ...s, liveDue: { seq: m.seq, present: m.present, theme: m.theme, error: m.error, due: m.due, ...(m.unpanelled ? { unpanelled: m.unpanelled, panelLeads: m.panelLeads } : {}) }, addQueue: m.error ? s.addQueue : m.queued };
+      return s.liveDue && m.seq < s.liveDue.seq ? s : { ...s, liveDue: { seq: m.seq, present: m.present, theme: m.theme, error: m.error, due: m.due, ...(m.unpaneled ? { unpaneled: m.unpaneled, panelLeads: m.panelLeads } : {}) }, addQueue: m.error ? s.addQueue : m.queued };
     case 'add-queue':
       // #3129: the queue after the panel's write, the teammates' writes since included.
       return { ...s, addQueue: m.queued };

@@ -443,12 +443,12 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const lq2 = step(lq.next, { kind: 'file-due', seq: 10, present: ['button'], theme: false, error: null, due: {}, queued: ['badge'] });
   ok(same(lq2.topics, ['host:update']), '#3129 control: a recount that leaves the queue as it was moves only the overlay');
   // #3137 Q3137.3 A: the census lands with the read and with the recount; Clean up's panels with its answer.
-  const up = step(aq.next, { kind: 'file-sets', present: ['badge', 'tag'], setUp: true, error: null, due: {}, queued: [], unpanelled: ['tag'], panelLeads: 2 });
-  ok(same(up.next.fileSets?.unpanelled, ['tag']) && up.next.fileSets?.panelLeads === 2, `#3137 file-sets: the sets with no usage panel land with the read (${JSON.stringify(up.next.fileSets?.unpanelled)})`);
-  const lp = step(up.next, { kind: 'file-due', seq: 11, present: ['badge', 'tag'], theme: false, error: null, due: {}, queued: [], unpanelled: [], panelLeads: 2 });
-  ok(same(lp.next.liveDue?.unpanelled, []) && same(lp.topics, ['host:update']), `#3137 file-due: the recount's census lands in liveDue (${JSON.stringify(lp.next.liveDue?.unpanelled)}; ${JSON.stringify(lp.topics)})`);
+  const up = step(aq.next, { kind: 'file-sets', present: ['badge', 'tag'], setUp: true, error: null, due: {}, queued: [], unpaneled: ['tag'], panelLeads: 2 });
+  ok(same(up.next.fileSets?.unpaneled, ['tag']) && up.next.fileSets?.panelLeads === 2, `#3137 file-sets: the sets with no usage panel land with the read (${JSON.stringify(up.next.fileSets?.unpaneled)})`);
+  const lp = step(up.next, { kind: 'file-due', seq: 11, present: ['badge', 'tag'], theme: false, error: null, due: {}, queued: [], unpaneled: [], panelLeads: 2 });
+  ok(same(lp.next.liveDue?.unpaneled, []) && same(lp.topics, ['host:update']), `#3137 file-due: the recount's census lands in liveDue (${JSON.stringify(lp.next.liveDue?.unpaneled)}; ${JSON.stringify(lp.topics)})`);
   const off = step(up.next, { kind: 'file-sets', present: ['badge', 'tag'], setUp: true, error: null, due: {}, queued: [] });
-  ok(off.next.fileSets !== null && !('unpanelled' in off.next.fileSets), '#3137 file-sets: with panels off the host sends no list, and none is held');
+  ok(off.next.fileSets !== null && !('unpaneled' in off.next.fileSets), '#3137 file-sets: with panels off the host sends no list, and none is held');
   const pc = step(up.next, { kind: 'panels-clean-result', applied: false, drawn: 32, removable: 30, removed: 0, kept: 0, error: null });
   ok(same(pc.next.panelsClean, { busy: false, count: { drawn: 32, removable: 30 }, verdict: null }) && same(pc.topics, ['host:update', 'host:docs']),
     `#3137 panels-clean-result: a count lands, and Clean up and Documentation repaint (${JSON.stringify(pc.next.panelsClean)})`);

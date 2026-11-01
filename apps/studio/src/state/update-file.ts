@@ -50,7 +50,7 @@ export type FileSets = { readonly present: readonly string[]; readonly setUp: bo
   readonly atOpen?: boolean;
   /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a family and have no live usage
    *  panel, and how many present sets lead one (`panelLeads`). Absent while panels are off, and on the ledger's read. */
-  readonly unpanelled?: readonly string[];
+  readonly unpaneled?: readonly string[];
   readonly panelLeads?: number };
 
 export type HandEditChoice = 'keep' | 'overwrite' | 'accept';
@@ -83,10 +83,10 @@ export const awaitingRead = (f: FileSets | null, asked: FileSets | null | undefi
 /** #3137 Q3137.1 A: the sets the Usage panels group lists, in catalog order: the file's sets with no usage panel, less
  *  the Due sets (`furnishUpdate` draws a Due set's panel) and the queue (its build draws the panel). Empty while
  *  Documentation has panels off, which the host says by sending no list. */
-export const panelSetsOf = (catalog: Catalog, f: (Pick<FileSets, 'present' | 'unpanelled'> & Partial<Pick<FileSets, 'due'>>) | null, queue: readonly string[] | null = null): string[] => {
-  if (!f?.unpanelled?.length) return [];
+export const panelSetsOf = (catalog: Catalog, f: (Pick<FileSets, 'present' | 'unpaneled'> & Partial<Pick<FileSets, 'due'>>) | null, queue: readonly string[] | null = null): string[] => {
+  if (!f?.unpaneled?.length) return [];
   const due = new Set(Object.entries(f.due ?? {}).filter(([, d]) => d.state === 'due').map(([id]) => id));
-  return catalog.filter((e) => f.unpanelled!.includes(e.id) && f.present.includes(e.id) && !due.has(e.id) && !queue?.includes(e.id)).map((e) => e.id);
+  return catalog.filter((e) => f.unpaneled!.includes(e.id) && f.present.includes(e.id) && !due.has(e.id) && !queue?.includes(e.id)).map((e) => e.id);
 };
 /** How many due sets a ledger read finds (Q2909.8 A). */
 export const dueCount = (catalog: Catalog, f: FileSets | null): number => (f && !f.error ? dueSetsOf(catalog, f).length : 0);
@@ -95,7 +95,7 @@ export const dueCount = (catalog: Catalog, f: FileSets | null): number => (f && 
  *  the file does not hold that brand, so Apply Theme would change it. */
 export type LiveDue = { readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null; readonly due: FileSets['due'];
   /** #3137: as `FileSets`' own, from the last full read's census. */
-  readonly unpanelled?: readonly string[]; readonly panelLeads?: number };
+  readonly unpaneled?: readonly string[]; readonly panelLeads?: number };
 /** What the badge on Update file counts (#3081 Q810 A, #3129): everything Update file would change. That is the add
  *  queue (the queued sets the file lacks), each due set, and one item for unapplied Theme changes. It reads the live
  *  recount once one has answered, so a changed setting moves it before the checklist opens. Before that, or when the

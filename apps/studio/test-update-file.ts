@@ -188,14 +188,14 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
   const CATP = [entry('button'), entry('tag'), entry('badge'), entry('divider'), entry('icon')] as unknown as Catalog;
   const FP = { present: ['button', 'tag', 'badge', 'divider', 'icon'], setUp: true, error: null,
     due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'current' }, badge: { state: 'current' }, divider: { state: 'current' } },
-    unpanelled: ['divider', 'button', 'badge'], panelLeads: 4 } as const;
+    unpaneled: ['divider', 'button', 'badge'], panelLeads: 4 } as const;
   ok(same(panelSetsOf(CATP, FP), ['badge', 'divider']),
     `Q3137.1 A panels: a Due set is left out (its update draws the panel), and the rest are listed in catalog order (${JSON.stringify(panelSetsOf(CATP, FP))})`);
   ok(same(panelSetsOf(CATP, FP, ['badge']), ['divider']), 'Q3137.1 A panels: a queued set is left out too: its build draws the panel');
-  ok(same(panelSetsOf(CATP, { ...FP, unpanelled: undefined }), []) && same(panelSetsOf(CATP, null), []), 'Q3137.1 A panels: with panels off (no list from the host), or before any read, the group is empty');
+  ok(same(panelSetsOf(CATP, { ...FP, unpaneled: undefined }), []) && same(panelSetsOf(CATP, null), []), 'Q3137.1 A panels: with panels off (no list from the host), or before any read, the group is empty');
   const tp = defaultTicks(CATP, FP);
   ok(tp.panels === true && same([...tp.update], ['button']), `Q3137.1 A ticks: the group's one tick is on by default, beside the due sets (${tp.panels})`);
-  ok(defaultTicks(CATP, { ...FP, unpanelled: ['button'] }).panels === false, 'Q3137.1 A ticks: with nothing to list (only a Due set lacks its panel), no tick is on');
+  ok(defaultTicks(CATP, { ...FP, unpaneled: ['button'] }).panels === false, 'Q3137.1 A ticks: with nothing to list (only a Due set lacks its panel), no tick is on');
   ok(same(checkScopeOf(['button'], tp, panelSetsOf(CATP, FP)), ['button', 'badge', 'divider']) && same(checkScopeOf(['button'], { panels: false }, ['badge']), ['button']),
     'Q3137.2 A check: the scoped check reads the panel sets with Due while ticked, and Due alone when not');
   const check = { sets: [{ def: 'button', blocked: false }, { def: 'badge', blocked: false }, { def: 'divider', blocked: true }] as never };
@@ -207,7 +207,7 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
   const bp = badgeParts(CATP, FP, null, null);
   ok(same(bp, { add: 0, due: 1, theme: false, panels: true }) && badgeCount(CATP, FP, null, null) === 2,
     `Q3137.4 A badge: the group counts as one item however many sets it lists (${JSON.stringify(bp)}: ${badgeCount(CATP, FP, null, null)})`);
-  const live = { present: FP.present, theme: false, error: null, due: FP.due, unpanelled: [] as string[] };
+  const live = { present: FP.present, theme: false, error: null, due: FP.due, unpaneled: [] as string[] };
   ok(badgeParts(CATP, FP, live, null).panels === false, 'Q3137.4 A badge: the live recount\'s census replaces the read\'s, so a group it finds empty does not count');
   ok(UPDATE_COPY.badgeName({ add: 2, due: 2, theme: false, panels: true }) === 'Update file, 2 to add, 2 due, usage panels'
     && UPDATE_COPY.badgeName({ add: 0, due: 0, theme: false, panels: true }) === 'Update file, usage panels',

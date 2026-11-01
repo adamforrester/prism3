@@ -543,16 +543,16 @@ export type MainToUi =
       /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a panel family and have no live
        *  panel (`panel-census.ts`), from one search for panel tags in the read that loaded every page. Absent on the
        *  ledger's read at open, which loads no page, and while panels are off. */
-      unpanelled?: string[];
-      /** #3137: beside `unpanelled`, how many present sets lead a panel family, the count it is out of. */
+      unpaneled?: string[];
+      /** #3137: beside `unpaneled`, how many present sets lead a panel family, the count it is out of. */
       panelLeads?: number }
   /** #3081 Q810 A: the answer to `due-request`, by its `seq`: the sets the file holds (as the last `file-sets` read found
    *  them, or read again after a write), each read against the ledger under the panel's brand, and `theme`: the file does
    *  not hold that brand, so Apply Theme would change it. `error` when the file could not be read. */
   | { type: 'file-due'; seq: number; present: string[]; theme: boolean; due: Record<string, SetDue>; error?: string; queued: string[];
-      /** #3137: as `file-sets`' `unpanelled`, from the census the last full read made (no page load), and absent while
+      /** #3137: as `file-sets`' `unpaneled`, from the census the last full read made (no page load), and absent while
        *  Documentation has panels off. */
-      unpanelled?: string[];
+      unpaneled?: string[];
       panelLeads?: number }
   /** #3137 Q3137.7 A: the answer to `panels-clean`. A preview (`applied` false) gives `drawn`, the live panels, and
    *  `removable`, those still as drawn; a removal gives `removed` and `kept`, the edited panels left. `error` when the

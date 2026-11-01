@@ -619,21 +619,21 @@ ok(pageLoads === 0, `q810/cheap again: the recount after that reuses the sets re
   const livePanel = (): { remove(): void } | undefined => ((root.findAllWithCriteria as (c: unknown) => unknown[])({ types: ['FRAME'], sharedPluginData: { namespace: 'prism3', keys: ['docPanel'] } }) as { getSharedPluginData?(n: string, k: string): string; removed?: boolean; remove(): void }[])
     .find((n) => !n.removed && (() => { try { const t = JSON.parse(n.getSharedPluginData?.('prism3', 'docPanel') || 'null'); return t?.def === 'badge' && t.state === 'live'; } catch { return false; } })());
   const before = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
-  ok(!!livePanel() && !(before?.unpanelled ?? []).includes('badge') && Array.isArray(before?.unpanelled),
-    `q3137/premise: Badge's live panel is drawn, so the read does not list it (${JSON.stringify(before?.unpanelled)})`);
+  ok(!!livePanel() && !(before?.unpaneled ?? []).includes('badge') && Array.isArray(before?.unpaneled),
+    `q3137/premise: Badge's live panel is drawn, so the read does not list it (${JSON.stringify(before?.unpaneled)})`);
   livePanel()!.remove();
   const after = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
-  ok((after?.unpanelled ?? []).includes('badge') && typeof after?.panelLeads === 'number' && after.panelLeads >= after.unpanelled!.length,
-    `q3137/census: with its panel deleted, the read lists Badge among the sets with no usage panel (${JSON.stringify(after?.unpanelled)} of ${after?.panelLeads})`);
+  ok((after?.unpaneled ?? []).includes('badge') && typeof after?.panelLeads === 'number' && after.panelLeads >= after.unpaneled!.length,
+    `q3137/census: with its panel deleted, the read lists Badge among the sets with no usage panel (${JSON.stringify(after?.unpaneled)} of ${after?.panelLeads})`);
   pageLoads = 0;
   const live = (await ask({ type: 'due-request', input: brandB, seq: 30 }, 'file-due'))[0];
-  ok(pageLoads === 0 && (live?.unpanelled ?? []).includes('badge'), `q3137/cheap: the recount lists it too, from the read's census, with no page load (${pageLoads} page loads; ${JSON.stringify(live?.unpanelled)})`);
+  ok(pageLoads === 0 && (live?.unpaneled ?? []).includes('badge'), `q3137/cheap: the recount lists it too, from the read's census, with no page load (${pageLoads} page loads; ${JSON.stringify(live?.unpaneled)})`);
   pluginData.set('prism3:docSettings', '{"panels":false}');
   const offD = (await ask({ type: 'due-request', input: brandB, seq: 31 }, 'file-due'))[0];
   pluginData.delete('prism3:docSettings');
   const onD = (await ask({ type: 'due-request', input: brandB, seq: 32 }, 'file-due'))[0];
-  ok(pageLoads === 0 && offD?.unpanelled === undefined && (onD?.unpanelled ?? []).includes('badge'),
-    `q3137/off: with panels off the recount sends no list, and turned back on it lists Badge again, both with no page load (${pageLoads} page loads; off ${JSON.stringify(offD?.unpanelled)}, on ${JSON.stringify(onD?.unpanelled)})`);
+  ok(pageLoads === 0 && offD?.unpaneled === undefined && (onD?.unpaneled ?? []).includes('badge'),
+    `q3137/off: with panels off the recount sends no list, and turned back on it lists Badge again, both with no page load (${pageLoads} page loads; off ${JSON.stringify(offD?.unpaneled)}, on ${JSON.stringify(onD?.unpaneled)})`);
 }
 // A recount that cannot read the file says so (`error`), so the panel falls back to the load's read instead of drawing
 // an answer with nothing due. Another write clears the cached sets, and the read after it is refused.

@@ -1895,7 +1895,7 @@ const documentationLend: DocumentationLend = {
   panels: {
     missing: () => {
       const f = (liveShown() && host.liveDue && !host.liveDue.error ? host.liveDue : null) ?? (host.fileSets && !host.fileSets.error ? host.fileSets : null);
-      return f?.unpanelled ? { n: f.unpanelled.length, all: f.unpanelled.length > 0 && f.unpanelled.length >= (f.panelLeads ?? Infinity) } : null;
+      return f?.unpaneled ? { n: f.unpaneled.length, all: f.unpaneled.length > 0 && f.unpaneled.length >= (f.panelLeads ?? Infinity) } : null;
     },
     drawn: () => host.panelsClean.count?.drawn ?? null,
     count: () => panelsClean(false),

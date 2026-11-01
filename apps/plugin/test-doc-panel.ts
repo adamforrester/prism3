@@ -38,7 +38,7 @@
  *                   Mutation: `clearOrphanPanels` without its `panelUnedited` check (M4) → `orphan/edited kept`.
  *   census/…        the sets with no usage panel (#3137, Q3137.3 A): one search for panel tags; a lead whose live panel
  *                   names a set no longer in the file counts as missing; a def with no furniture never does. Mutation:
- *                   the set-id check dropped from `panelledOf` → `census/missing`.
+ *                   the set-id check dropped from `paneledOf` → `census/missing`.
  *   clean/…         Clean up's panels (#3137, Q3137.7 A): the unedited live panels are counted and removed, an edited one
  *                   stays with its edit, and no set is touched. Mutation: the `panelUnedited` check dropped from
  *                   `removeUneditedPanels` → `clean/edited stays`.
@@ -110,7 +110,7 @@ import { ensureDocBlock, type DocBlockApi } from './src/doc-block';
 import { drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { pageSetMoves, previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, previewHashOf } from './src/update-apply';
-import { livePanels, panelledOf, panelsCleanCount, removeUneditedPanels, unpanelledOf } from './src/panel-census';
+import { livePanels, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf } from './src/panel-census';
 import { COLOR_COLUMNS, COLOR_GAP, clearOrphanSpecPanels, drawSpecPanel, hexFor, planSpecPanel, specItems, type SpecApi } from './src/spec-panel';
 
 let failed = 0;
@@ -1758,18 +1758,18 @@ section('census/… — the sets with no usage panel, from one search for panel 
   divPanel.setSharedPluginData!('prism3', 'docPanel', JSON.stringify({ ...tagOf(divPanel), set: 'gone:1' }));
   const setIds = new Set((api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).map((n) => String(n.id)));
   const live = livePanels(api.root);
-  const panelled = panelledOf(live.map((x) => x.tag), setIds);
-  const missing = unpanelledOf(['badge', 'tag', 'divider', 'icon'], panelled);
+  const paneled = paneledOf(live.map((x) => x.tag), setIds);
+  const missing = unpaneledOf(['badge', 'tag', 'divider', 'icon'], paneled);
   ok(JSON.stringify(missing) === JSON.stringify(['tag', 'divider']) && String(tagSet.id) !== '',
     `census/missing: Tag (no panel) and Divider (its panel names a set no longer in the file) lack a panel; Badge has one; the icons draw none (${JSON.stringify(missing)})`);
-  ok(live.length === 2 && panelled.includes('badge') && !panelled.includes('divider'), `census/live: two live panels found by their tag, one still on its set (${live.length}; ${JSON.stringify(panelled)})`);
+  ok(live.length === 2 && paneled.includes('badge') && !paneled.includes('divider'), `census/live: two live panels found by their tag, one still on its set (${live.length}; ${JSON.stringify(paneled)})`);
 }
 {
   // Q3137.2 A, THE TEMPLATE FILE'S CASE: Badge seated with no room, its panel blocked by Divider. The census lists it; the
   // one in-place update over both sets (Badge's only work is its panel) makes room and draws it; the census then doesn't.
   const { p, a, uh, targets, livePanel } = await roomPage('↳ Census update');
   const setIds = () => new Set((uh.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).map((n) => String(n.id)));
-  const missing = () => unpanelledOf(['badge', 'divider'], panelledOf(livePanels(uh.root).map((x) => x.tag), setIds()));
+  const missing = () => unpaneledOf(['badge', 'divider'], paneledOf(livePanels(uh.root).map((x) => x.tag), setIds()));
   const before = missing();
   const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (set, id) => drawDocPanel(uh, set as unknown as PNode, componentDefs.find((d) => d.id === id)!, { names })); };
   await applyUpdate(uh as never, uh as never, targets, previewHashOf(await previewUpdate(uh, targets)), { furnish });

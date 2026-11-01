@@ -28,14 +28,14 @@ export const livePanels = (root: CensusRoot): { node: PNode; tag: PanelTag }[] =
     .flatMap((node) => { const tag = readPanelTag(node); return tag && tag.state === 'live' && !node.removed ? [{ node, tag }] : []; });
 
 /** The leads whose panel is drawn: a live tag names the lead and a set id that is still a component set in the file. */
-export const panelledOf = (tags: readonly PanelTag[], setIds: ReadonlySet<string>): string[] =>
+export const paneledOf = (tags: readonly PanelTag[], setIds: ReadonlySet<string>): string[] =>
   [...new Set(tags.filter((t) => t.state === 'live' && setIds.has(t.set)).map((t) => t.def))];
 
 /** The present sets that lead a panel family and have no live panel, in `present`'s order. */
-export const unpanelledOf = (present: readonly string[], panelled: readonly string[]): string[] =>
-  present.filter((id) => leadsPanel(id) && !panelled.includes(id));
+export const unpaneledOf = (present: readonly string[], paneled: readonly string[]): string[] =>
+  present.filter((id) => leadsPanel(id) && !paneled.includes(id));
 
-/** How many present sets lead a panel family: the count `unpanelledOf` is out of. */
+/** How many present sets lead a panel family: the count `unpaneledOf` is out of. */
 export const panelLeadsOf = (present: readonly string[]): number => present.filter((id) => leadsPanel(id)).length;
 
 /** What Clean up's panels item reads (Q3137.7 A): how many live panels the file holds, and how many of them still hold

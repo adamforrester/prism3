@@ -9,7 +9,7 @@ DRAFT.
   `allPanels` uses. A family has its panel when a live tag names its lead and a set id that is still a component set in
   the file. It runs inside `readPresent`, a page per turn beside the read's own search (`searchPagesYielding`), and is
   kept as `panelCache` beside `presentCache`,
-  cleared by `guarded` the same way, so the badge's recount loads no page. `file-sets` and `file-due` carry `unpanelled`
+  cleared by `guarded` the same way, so the badge's recount loads no page. `file-sets` and `file-due` carry `unpaneled`
   (and `panelLeads`, the count it is out of) only while Documentation has panels on. The switch is read on every
   recount, so turning it on recounts with no page load.
 - **Update file (Q3137.1 A, Q3137.2 A, Q3137.4 A, Q3137.5 A).** Usage panels is Components' third subtitle. It lists the
