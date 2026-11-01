@@ -136,10 +136,28 @@ deeper carries a text promise, by design.
   every corpus brand and mode: each floor-gated ink clears its bar on the floor and on every
   surface nearer the page, and with the floor one step deeper (`floorStep`, and
   `inverseSecondary` on the band) every ink re-derives to clear the new floor.
-- **One exception: `secondaryTextGround: page`** (owner Q-TXT1 A, Q3212.3 B). A brand that sets it fits the page's
-  `text.secondary` and `icon.secondary` on `background.primary` instead, in light and dark only; HC and the inverse
-  band keep the floor. Those two inks are then promised on `background.primary` only (their `sits_on`), and the
-  `.ai.json` per-surface wording moves from `avoid_when` to `when_to_use` ("Below 4.5:1 on …").
+- **One exception: `secondaryTextGround: page`**, recorded in the next section.
+
+#### Decided (2026-10-31, #3221): the reference brand's secondary text is fitted on the page
+
+Owner decision Q-TXT1 A, with its refinements on #3212.
+
+- **The decision.** The reference brand's `color.text.secondary` is the lightest neutral step that still clears
+  the 4.5:1 body bar on `background.primary` (white in light), about 4.6:1, instead of the floor. The brand's
+  designs run placeholders and secondary copy lighter (their `#999` fails at 2.85:1).
+- **The mechanism.** The optional brand input `secondaryTextGround: floor | page`, default `floor` (#3212). A
+  brand that sets `page` fits the page's `text.secondary` and `icon.secondary` on `background.primary`.
+  Placeholders stay on `text.secondary`, and `text.tertiary` stays at 3:1.
+- **Light and dark only** (Q3212.3 B). HC and the inverse band keep the floor fit.
+- **The accepted shortfall** (Q3212.1 A). Secondary text no longer clears 4.5:1 on `background.secondary` or on
+  the card in this brand (3.78:1 in light). Those two inks are promised on `background.primary` only (their
+  `sits_on`), and the `.ai.json` per-surface wording moves from `avoid_when` to `when_to_use` ("Below 4.5:1 on
+  …").
+- **The test** (Q3212.2 A) pins "the lightest neutral step clearing the mode's body bar on the page". The
+  4.5–4.8:1 band applies in light only.
+- **Around it.** Divider's label stays `text.secondary`, its 1.4.3 line qualified to the surfaces its color's
+  metadata lists (Q3212.6 A). `secondaryTextGround` is not a lever (Q3212.7 A). The `prism3-consume` skill states
+  the exception generally: read `sits_on` (Q3212.8 A).
 
 ### `interactive.<color>.*` — interactive
 
