@@ -160,11 +160,12 @@ export const leverManifest: Lever[] = [
     options: enumOpts(['tinted', 'Tinted'], ['outlined', 'Outlined']),
     description: 'The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1.' },
   // #3086 (owner Q816 A, no new token) — label, option labels and description are a DRAFT for the owner. It moves token
-  // values, not a binding: Radio binds `control.size.{sm,md,lg}.dot`, and this sets what those hold. The badge dot binds
-  // the same tokens, so it follows; List bullets no longer do (#3155, Q3155.1 A: sized to the text). Its home in the Studio is Components › Radio (Q578).
+  // values, not a binding: Radio binds `control.size.{sm,md,lg}.dot`, and this sets what those hold. Nothing else follows
+  // it: List bullets were sized to the text (#3155, Q3155.1 A) and Badge's presence dot to `space.100` (#3226, Q3226.1 A).
+  // Its home in the Studio is Components › Radio (Q578).
   { key: 'radioDot', group: 'form', kind: 'value', label: 'Radio dot size', control: 'enum', default: 50,
     options: enumOpts([50, 'Default'], [60, '60%'], [70, '70%'], [80, '80%']),
-    description: 'How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring. Badge dots follow it.' },
+    description: 'How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', kind: 'structural', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),

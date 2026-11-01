@@ -423,7 +423,7 @@
           "label": "80%"
         }
       ],
-      "description": "How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring. Badge dots follow it."
+      "description": "How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring."
     },
     {
       "key": "buttonIcons",
