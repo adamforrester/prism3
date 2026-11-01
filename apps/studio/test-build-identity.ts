@@ -126,6 +126,23 @@ eq(buildNote(COMMIT_ID), null, 'and none for a deploy: the web has no run report
 eq(buildNote(TREE_ID), 'Built from /tmp/p3-buildid at 2026-08-26T14:03:07Z.', 'the plugin note names the tree and the build time');
 ok(buildNote(TREE_ID)!.endsWith('.'), 'the note is a sentence — it lands after prose that ends in one');
 
+// THE COMMIT FIELD (#3239). Written out, like the fixtures above. Wording is DRAFT for the owner.
+const WITH_COMMIT = '2026-11-01T04:10:00Z tree-7a00f94d 76a1636b';
+const WITH_DIRTY = '2026-11-01T04:10:00Z tree-7a00f94d 76a1636b-dirty';
+const WITH_NOGIT = '2026-11-01T04:10:00Z tree-7a00f94d git-unavailable';
+const wc = parseBuildId(WITH_COMMIT);
+eq(wc.kind === 'tree' ? wc.tree : null, 'tree-7a00f94d', 'commit/parse: the tree token is the tree, without the commit');
+eq(wc.kind === 'tree' ? wc.commit : null, '76a1636b', 'commit/parse: the commit is its own field');
+eq(tree.kind === 'tree' ? tree.commit : 'x', null, 'commit/parse: an older stamp with no commit field parses with commit null');
+eq(spacey.kind === 'tree' ? spacey.commit : 'x', null, 'commit/parse: a path with spaces is still a tree with no commit, not a commit');
+eq(buildChip(WITH_COMMIT), 'tree-7a00f94d 76a1636b 11-01 04:10Z', 'commit/chip: the chip shows the tree, the commit and the time');
+eq(buildChip(WITH_DIRTY), 'tree-7a00f94d 76a1636b-dirty 11-01 04:10Z', 'commit/chip: and marks a dirty tree');
+eq(buildChip(WITH_NOGIT), 'tree-7a00f94d git-unavailable 11-01 04:10Z', 'commit/chip: and says when git could not run');
+eq(buildNote(WITH_COMMIT), 'Built from tree-7a00f94d (commit 76a1636b) at 2026-11-01T04:10:00Z.', 'commit/note: the run report names the commit');
+eq(buildNote(WITH_DIRTY), 'Built from tree-7a00f94d (commit 76a1636b, with uncommitted changes) at 2026-11-01T04:10:00Z.', 'commit/note: and the uncommitted changes');
+eq(buildNote(WITH_NOGIT), 'Built from tree-7a00f94d (commit unknown: git could not run) at 2026-11-01T04:10:00Z.', 'commit/note: and says plainly when git could not run');
+ok(buildTitle(WITH_COMMIT).startsWith('Built from tree-7a00f94d (commit 76a1636b) at 2026-11-01T04:10:00Z. '), 'commit/title: the title names the commit too');
+
 // =============================================================================================
 console.log('4. the append rule — the separator');
 
@@ -254,8 +271,8 @@ ok(stripComments('keep(1);\nkeep(2);').includes('keep(1);\nkeep(2);'),
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const buildMjs = stripComments(readFileSync(resolve(HERE, '../plugin/build.mjs'), 'utf8'));
-ok(buildMjs.includes('`${BUILT_AT} ${treeToken(TREE)}`'),
-  'apps/plugin/build.mjs composes the identity as timestamp-then-space-then-token, the order parsed above');
+ok(buildMjs.includes('composeBuildId(BUILT_AT, treeToken(TREE), git)'),
+  'apps/plugin/build.mjs composes the identity as timestamp, tree token, commit (#3239), the order parsed above');
 // #1117 instance 2 — the token is DERIVED from the tree path, never the path. `dist/` is imported into
 // Figma, so an absolute path there ships a developer's directory layout (and usually a username) and
 // makes the build non-reproducible: two checkouts of one commit emit different bytes.

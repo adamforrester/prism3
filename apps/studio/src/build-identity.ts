@@ -8,7 +8,7 @@
  *
  *   • `'local'`                                  — `apps/studio` dev/build, not built by the deploy
  *   • a commit SHA                               — `build-site.mjs`, the Vercel deploy
- *   • `'<ISO seconds> tree-<8 hex>'`             — `apps/plugin/build.mjs` (#836, hashed by #1117)
+ *   • `'<ISO seconds> tree-<8 hex> <commit>'`    — `apps/plugin/build.mjs` (#836, hashed by #1117, commit #3239)
  *
  * WHY THE PLUGIN STAMPS A PATH AND NOT A COMMIT. #836 offered a short SHA + dirty flag as the cheap
  * option and answered it in its own body: two worktrees on the same commit is a normal state here, and
@@ -18,7 +18,13 @@
  * while three trees each declared plugin id `prism3-theming-plugin`. The path is both the discriminator
  * a SHA cannot be and the actionable half: the remedy is to re-import or rebuild a specific tree.
  * The path also makes the commit derivable (`git -C <tree> log -1`); the commit does not make the path
- * derivable. That asymmetry is the whole argument, and it is why there is no SHA field here.
+ * derivable. That asymmetry is the whole argument for the TREE field.
+ *
+ * **#3239 ADDED A COMMIT FIELD BESIDE IT, without retracting that.** On 2026-10-31 a checkout whose `git pull` had
+ * silently failed rebuilt the plugin and stamped the same `tree-…` it always had, so nothing showed it was stale.
+ * The tree answers "which checkout"; only a commit answers "how current". The stamp is now
+ * `<ISO> tree-<8 hex> <commit>`, where the commit is a short sha, `<sha>-dirty`, or `git-unavailable`
+ * (`apps/plugin/git-stamp.mjs`), and an older stamp without the field still parses (`commit: null`).
  *
  * **#1117 KEPT THAT ARGUMENT AND HASHED THE PATH ANYWAY.** Everything above still holds — the tree,
  * not the commit, is the discriminator — but `apps/plugin/dist` is imported into Figma, so shipping
@@ -71,7 +77,7 @@
 
 /** The parsed forms. `tree` is the plugin's; the other two are the web's and are unchanged by #836. */
 export type BuildIdentity =
-  | { kind: 'tree'; builtAt: string; tree: string }
+  | { kind: 'tree'; builtAt: string; tree: string; commit: string | null }
   | { kind: 'commit'; commit: string }
   | { kind: 'local' };
 
@@ -87,9 +93,21 @@ export type BuildIdentity =
  * (`vercel-ignore-check.mjs`) reads as a commit and never renders — that entry has no output path and
  * exists only to answer whether a deploy is needed.
  */
+/**
+ * THE COMMIT FIELD (#3239): `build.mjs` now stamps `<ISO> tree-<8 hex> <commit>`, where the commit is a short sha,
+ * a short sha with `-dirty`, or `git-unavailable`. Recognized only in exactly that shape, so an older stamp whose
+ * tail is a path with spaces in it still parses as a tree with no commit (`commit: null`).
+ */
+const TREE_WITH_COMMIT = /^(tree-[0-9a-f]{8}) ([0-9a-f]{7,40}(?:-dirty)?|git-unavailable)$/;
+
 export const parseBuildId = (raw: string): BuildIdentity => {
   const sp = raw.indexOf(' ');
-  if (sp > 0) return { kind: 'tree', builtAt: raw.slice(0, sp), tree: raw.slice(sp + 1) };
+  if (sp > 0) {
+    const builtAt = raw.slice(0, sp);
+    const tail = raw.slice(sp + 1);
+    const m = TREE_WITH_COMMIT.exec(tail);
+    return m ? { kind: 'tree', builtAt, tree: m[1], commit: m[2] } : { kind: 'tree', builtAt, tree: tail, commit: null };
+  }
   if (raw === 'local') return { kind: 'local' };
   return { kind: 'commit', commit: raw };
 };
@@ -122,7 +140,16 @@ const treeName = (tree: string): string => tree.split('/').filter(Boolean).pop()
 export const buildChip = (raw: string): string => {
   const id = parseBuildId(raw);
   if (id.kind !== 'tree') return raw;
-  return `${treeName(id.tree)} ${id.builtAt.slice(5, 16).replace('T', ' ')}Z`;
+  const commit = id.commit === null ? '' : ` ${id.commit}`;
+  return `${treeName(id.tree)}${commit} ${id.builtAt.slice(5, 16).replace('T', ' ')}Z`;
+};
+
+/** The commit, as a clause (#3239; DRAFT wording for the owner). Empty for an older stamp with no commit field. */
+const commitClause = (commit: string | null): string => {
+  if (commit === null) return '';
+  if (commit === 'git-unavailable') return ' (commit unknown: git could not run)';
+  if (commit.endsWith('-dirty')) return ` (commit ${commit.slice(0, -'-dirty'.length)}, with uncommitted changes)`;
+  return ` (commit ${commit})`;
 };
 
 /**
@@ -134,7 +161,7 @@ export const buildTitle = (raw: string): string => {
   if (id.kind === 'local') return 'Built outside the deploy — no commit to report.';
   if (id.kind === 'commit') return `Deployed from commit ${id.commit}.`;
   return (
-    `Built from ${id.tree} at ${id.builtAt}. ` +
+    `Built from ${id.tree}${commitClause(id.commit)} at ${id.builtAt}. ` +
     'Every checkout carries its own dist/ under the same plugin id, so this names the one Figma loaded.'
   );
 };
@@ -147,7 +174,7 @@ export const buildTitle = (raw: string): string => {
  */
 export const buildNote = (raw: string): string | null => {
   const id = parseBuildId(raw);
-  return id.kind === 'tree' ? `Built from ${id.tree} at ${id.builtAt}.` : null;
+  return id.kind === 'tree' ? `Built from ${id.tree}${commitClause(id.commit)} at ${id.builtAt}.` : null;
 };
 
 /**

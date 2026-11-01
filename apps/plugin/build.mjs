@@ -14,10 +14,12 @@ import { build } from 'esbuild';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { maintainerProsePlugin } from './strip-maintainer-prose.mjs';
 import { chromeCss } from '../studio/chrome/esbuild-plugin.mjs';
+import { behindStamp, composeBuildId } from './git-stamp.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 /** THE RELEASE BUILD (#2530, owner Q239 A). `--release` writes `release/` instead of `dist/`: the same two bundles
@@ -121,9 +123,20 @@ const TREE = resolve(root, '../..');
  * "no absolute path" scan and still ship the path, which is why this is a hash and not base64.
  */
 const treeToken = (abs) => `tree-${createHash('sha256').update(abs).digest('hex').slice(0, 8)}`;
+/**
+ * THE COMMIT, BESIDE THE TREE (#3239): `<ISO seconds> tree-<8 hex> <commit field>`. The tree says which checkout
+ * Figma loaded (#836); the commit says how current that checkout is, which the tree cannot (2026-10-31: a stale
+ * checkout stamped the same `tree-…` on every build). The field is `<short sha>`, `<short sha>-dirty`, or
+ * `git-unavailable` when git cannot run (`git-stamp.mjs`). Read per rebuild, like the time, so a watcher's later
+ * rebuilds stamp the commit they were built from. Git runs in the tree with a timeout, never a shell.
+ */
+const git = (args, timeout = 5000) => {
+  const r = spawnSync('git', ['-C', TREE, ...args], { encoding: 'utf8', timeout });
+  return { status: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '', error: r.error };
+};
 const buildId = () => {
   const BUILT_AT = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-  return `${BUILT_AT} ${treeToken(TREE)}`;
+  return composeBuildId(BUILT_AT, treeToken(TREE), git);
 };
 
 /**
@@ -377,3 +390,6 @@ if (watch) {
   // that says which tree that token is. Local build output, never a shipped artifact.
   console.log(`  ${treeToken(TREE)} = ${TREE}`);
 }
+// BEHIND origin/main? (#3239). Once per run, after the build, so the warning is the last thing printed and a
+// fetch that cannot run never stops a build. The fetch gets a longer timeout than the local reads.
+for (const w of behindStamp((args) => git(args, args[0] === 'fetch' ? 20000 : 5000)).warnings) console.warn(w);

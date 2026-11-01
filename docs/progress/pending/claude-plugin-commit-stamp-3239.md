@@ -1,0 +1,11 @@
+## (2026-11-01) — The plugin build stamps the git commit, and warns when the checkout is behind main (#3239)
+
+From owner decision Q-SI1 A. On 2026-10-31 the owner rebuilt the plugin after #3214 merged, and the rebuilt plugin still had the bug: a license prompt on the build machine had silently blocked `git pull`, so the checkout was stale. The stamp, `tree-<8 hex>`, hashes the folder path (#836, #1117), so it read the same on every build and could not show it.
+
+- **The stamp.** `build.mjs` now stamps `<ISO seconds> tree-<8 hex> <commit>` into both bundles, on every build (`build`, `fresh`, `build:release`). The commit is the short sha, `<sha>-dirty` when the tree has uncommitted or untracked changes, or `git-unavailable`. The tree stays: #836's argument holds, since two worktrees on one commit are normal and only the tree separates them. The commit answers the other question, how current the checkout is.
+- **Where it shows.** Every surface already reads `PRISM3_BUILD` through `apps/studio/src/build-identity.ts`, so the parse gained a `commit` field and the renderings carry it: the menu stamp (`tree-7a00f94d 76a1636b 11-01 04:10Z`), the verdict note and console line (`Built from tree-7a00f94d (commit 76a1636b) at …`), and the title. The agent link's `link` record carries the whole stamp in its `build` field, so an agent reads the commit from the file. An older stamp without the field still parses, with `commit: null`.
+- **Behind main.** After the build, `git fetch origin main` and `git rev-list --count HEAD..origin/main`; a checkout behind prints a warning naming the count. The build never fails on it, and a fetch that cannot run is one plain note.
+- **Git cannot run.** The stamp says `git-unavailable` and the build prints a warning carrying git's own first line, rather than stamping nothing.
+- **Tests.** The git calls live in `apps/plugin/git-stamp.mjs`; `test-git-stamp.ts` (in the plugin's `test`) drives them with a stubbed git, so nothing depends on the machine. Mutation: `composeBuildId` dropping the commit fails `stamp/commit`, `stamp/dirty`, `stamp/no-git`, `stamp/no-binary` and `link/commit` by name. `test-build-identity.ts` pins each rendering, and its source scan now names the new composition.
+
+**Wording is DRAFT for the owner**, listed verbatim in the PR.
