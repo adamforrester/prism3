@@ -24,13 +24,24 @@ moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, `EXECUTOR_REVISION` unchang
   the "…" text inside it (so dots spilling out of their cell count), and the words' text box (a Range over the label's
   text nodes), and returns their shared area. Expected: the literal `BUSY_OVERLAP_MAX = 0`. Nothing is read from the
   stylesheet. A control that isn't busy, or has no cell or no words, returns `null`, which fails by name.
+- **The arc too.** The visible spinner after about 300 ms is `.p3-spin::before`, absolutely positioned with
+  `inset: 0`, which has no rect of its own and stays in the cell only while the cell is its containing block. So the
+  probe also reads the arc's used box from `getComputedStyle(spin, '::before')` (width and height plus its border) and
+  requires it no larger than the cell, and requires the cell not `position: static`. Measured: 16×16 in the 16px cell.
 - **Two arms in section 10, on the figma host**, at every width the section sweeps (1280, 640, 380) and both themes:
   Update file while its run is out ("Updating…"), and Draw specs while it draws ("Drawing specs…"). That's 12
   assertions. The web host draws no busy control: its only writes are the plugin's.
 
-### Mutation
+### Mutations
 
-After a `wip:` commit: `.p3-spin`'s `position: relative` changed to `position: absolute` in `chrome.css`, so the cell
-leaves the label's flow and draws over its first letters. Result: `#2908 figma light 1280: the busy spinner sits beside
-"Updating…", not over it (shared area 405px², at most 0; …)` and its Draw specs twin, all 12 arms, with no other
-failure.
+Each after a `wip:` commit, both bundles rebuilt, section 10 run alone:
+
+- **M1:** `.p3-spin`'s `position: relative` changed to `position: absolute` in `chrome.css`, so the cell leaves the
+  label's flow and draws over its first letters. Result: `#2908 figma light 1280: the busy spinner sits beside
+  "Updating…", not over it (shared area 405px², at most 0; …)` and its Draw specs twin, all 12 arms, with no other
+  failure.
+- **M2:** `position: relative` changed to `position: static`, so the arc's containing block becomes an ancestor and
+  the arc draws across the control while the cell and its dots stay put. Result: all 12 arms fail by name, reading the
+  shared area 0 but the arc's box larger than the cell (`arc 1164×32 in a 16px cell, cell position static`). Section
+  10's four `S1.4 … locator.click: Timeout` arms also fail under M2 (the stray arc intercepts a click); that is a crash
+  shape, not the catch.

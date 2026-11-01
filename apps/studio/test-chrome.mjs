@@ -2977,9 +2977,17 @@ const UPDATE_RUNNING = '\u2026 Updating\u2026';
  *  dots and the words by a Range over their text nodes, so a cell drawn over the words, or dots spilling out of their
  *  cell onto the words, both read as an overlap. EXPECTED is the literal 0 below (no shared pixel), not anything read
  *  from the stylesheet. `null` when the control, its cell or its words are not drawn, which the arm fails by name.
- *  MUTATION (#2908, after a `wip:` commit): `.p3-spin`'s `position: relative` to `position: absolute` in `chrome.css`,
+ *  The arc itself is `.p3-spin::before` (absolutely positioned, `inset: 0`), which has no rect of its own, and it stays in
+ *  the cell only while the cell is its containing block. So the probe also reads the arc's used box from
+ *  `getComputedStyle(spin, '::before')` (width and height plus border and padding, unless `border-box`) and requires it
+ *  no larger than the cell, and requires the cell not `position: static`: an arc drawn across the button, over the
+ *  words, while the cell and its dots stay put, fails too.
+ *  MUTATION M1 (#2908, after a `wip:` commit): `.p3-spin`'s `position: relative` to `position: absolute` in `chrome.css`,
  *  so the cell leaves the label's flow and draws over the first letters, as the owner saw it \u2192 `#2908 figma \u2026 : the busy
- *  spinner sits beside "Updating\u2026", not over it`, every theme and width. */
+ *  spinner sits beside "Updating\u2026", not over it`, every theme and width.
+ *  MUTATION M2 (#2908, after a `wip:` commit): `.p3-spin`'s `position: relative` to `position: static`, so the arc's
+ *  containing block becomes the button and the arc draws over the words while the cell and dots don't move \u2192 the same
+ *  arms, by name, now reading the arc's box larger than the cell and the cell `static`. */
 const BUSY_OVERLAP = (sel) => {
   const b = document.querySelector(sel);
   const on = b?.querySelector('[data-p3="label-busy"]');
@@ -2993,8 +3001,15 @@ const BUSY_OVERLAP = (sel) => {
   const dots = spin.firstChild ? textBox(spin.firstChild) : cell;
   const label = words.map(textBox).reduce((a, c) => ({ l: Math.min(a.l, c.l), r: Math.max(a.r, c.r), t: Math.min(a.t, c.t), b: Math.max(a.b, c.b) }));
   const round = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v * 10) / 10]));
+  const a = getComputedStyle(spin, '::before');
+  const px = (k) => parseFloat(a[k]) || 0;
+  const edge = (x, y) => a.boxSizing === 'border-box' ? 0 : px(`border${x}Width`) + px(`border${y}Width`) + px(`padding${x}`) + px(`padding${y}`);
+  const arc = { w: px('width') + edge('Left', 'Right'), h: px('height') + edge('Top', 'Bottom') };
+  const position = getComputedStyle(spin).position;
+  const arcFits = a.content !== 'none' && a.width !== 'auto' && arc.w <= cell.r - cell.l + 0.5 && arc.h <= cell.b - cell.t + 0.5;
   return { area: Math.round((meet(cell, label) + meet(dots, label)) * 100) / 100, words: words.map((n) => n.textContent.trim()).join(' '),
-    cell: round(cell), dots: round(dots), label: round(label), visible: getComputedStyle(on).visibility === 'visible' };
+    cell: round(cell), dots: round(dots), label: round(label), arc: round(arc), arcFits, position,
+    visible: getComputedStyle(on).visibility === 'visible' };
 };
 const BUSY_OVERLAP_MAX = 0;
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
@@ -3444,8 +3459,8 @@ for (const host of ['web', 'figma']) {
           `${where}: while the run is out, Update file reads "${UPDATE_RUNNING}", busy and not natively disabled (owner decision #4; read ${JSON.stringify(busyU)})`);
         ok(busyU.width === idleU.width, `${where}: Update file keeps its width while busy (${idleU.width} idle, ${busyU.width} busy)`);
         const ovU = await page.evaluate(BUSY_OVERLAP, '[data-p3="top-bar"] [data-p3="update-file"]');
-        ok(!!ovU && ovU.visible && ovU.words === 'Updating…' && ovU.area <= BUSY_OVERLAP_MAX,
-          `#2908 ${where}: the busy spinner sits beside "Updating…", not over it (shared area ${ovU?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; ${JSON.stringify(ovU)})`);
+        ok(!!ovU && ovU.visible && ovU.words === 'Updating…' && ovU.area <= BUSY_OVERLAP_MAX && ovU.arcFits && ovU.position !== 'static',
+          `#2908 ${where}: the busy spinner sits beside "Updating…", not over it (shared area ${ovU?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovU?.arc?.w}×${ovU?.arc?.h} in a ${ovU ? Math.round((ovU.cell.r - ovU.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovU?.position}; ${JSON.stringify(ovU)})`);
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
         const t0 = Date.now();
@@ -3673,8 +3688,8 @@ for (const host of ['web', 'figma']) {
         ok(spW.length === 1 && canon(spW[0]) === canon({ type: 'draw-specs' }) && spBusy === 'true',
           `${where}: #2830 Q2830.3 A: Draw specs posts draw-specs alone and reads as drawing (${JSON.stringify(spW)}, busy ${spBusy})`);
         const ovS = await page.evaluate(BUSY_OVERLAP, '[data-p3="docs-specs-draw"]');
-        ok(!!ovS && ovS.visible && ovS.words === 'Drawing specs…' && ovS.area <= BUSY_OVERLAP_MAX,
-          `#2908 ${where}: the busy spinner sits beside "Drawing specs…", not over it (shared area ${ovS?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; ${JSON.stringify(ovS)})`);
+        ok(!!ovS && ovS.visible && ovS.words === 'Drawing specs…' && ovS.area <= BUSY_OVERLAP_MAX && ovS.arcFits && ovS.position !== 'static',
+          `#2908 ${where}: the busy spinner sits beside "Drawing specs…", not over it (shared area ${ovS?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovS?.arc?.w}×${ovS?.arc?.h} in a ${ovS ? Math.round((ovS.cell.r - ovS.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovS?.position}; ${JSON.stringify(ovS)})`);
         // Q713 A: Draw specs has its own Specs row in Activity, like Style guides: it runs, reading "Drawing specs…"
         // (literal), while the Build set row neither runs nor carries the words. Its verdict lands on the Specs row below.
         await settle(page);
