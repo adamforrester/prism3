@@ -779,6 +779,21 @@
 /* Minimize (#2949, the owner's Q600 A): a tile at the rail's foot (Q731; on the top bar under #2909), drawn whether the
    agent link is on or off. */
 .p3-btn.p3-tile.p3-agent-min[hidden] { display: none; }
+/* #3204 (Q3204.1 A): the desktop bridge's pairing prompt, under the Agent switch while the bridge asks for a code. The
+   theme menu's surface (`.p3-menu`), its parts in one column: the title, one line, the code field with Pair and Not now,
+   and the field's error line. It hangs from the bar's right edge, not the switch's: the switch sits near the right of
+   the bar, and at 380 a box anchored to it would leave the window. */
+.p3-agent-slot > .p3-popwrap { position: static; }
+.p3-menu.p3-agent-pair {
+  gap: var(--p3-space-100); padding: var(--p3-space-200); min-width: 0;
+  width: calc(var(--p3-l-col) * 4);
+}
+.p3-menu.p3-agent-pair[hidden] { display: none; }
+.p3-agent-pair-title { color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); }
+.p3-agent-pair-line { color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
+.p3-agent-pair-row { display: flex; gap: var(--p3-space-100); align-items: center; }
+.p3-agent-pair-row > .p3-text-input { flex: 1 1 auto; }
+.p3-agent-pair .p3-field-err:empty { display: none; }
 /* The strip (#2949, the owner's Q1 A): while minimized the window is one row, the strip, on the top bar's ground.
    Everything else in the document stays mounted, only not drawn, so Restore returns to the same page and state. The
    live region (`p3-sr`) stays in the tree, so an error still announces. The line takes the room the buttons leave, and an

@@ -15,9 +15,32 @@
  *      then travels MCP → server → socket → relay → main thread → the `ACTIONS` table → back, and the
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
- * Arms, by name: mcp · no-plugin · handshake · fragmented · ping · run · stream · progress · big-frame · timeout ·
- * unmasked · disconnect · reconnect · resend/hand · e2e/routes · e2e/parity · resend/e2e · resend/running · e2e/link-off ·
- * e2e/switch-off
+ * Arms, by name: mcp · relay/url · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
+ * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
+ * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
+ * e2e/link-off · e2e/switch-off
+ *
+ * #3147: the server refuses an upgrade whose `Origin` is not `null`. `origin/refused` sends a web page's origin, a
+ * localhost page's and none, and each must get 403 and never become the plugin.
+ *
+ * #3204 (the owner's Q3204.1 A): `null` is not Figma's alone. Any web page's sandboxed iframe sends it, and the review of
+ * #3204 drove the bridge from one. So `origin/refused` also opens such a page in Chromium (an ordinary page on
+ * 127.0.0.1 that embeds a `sandbox="allow-scripts"` `srcdoc` iframe, as the review's reproduction did) and a bare
+ * `Origin: null` client: each passes the origin check, is challenged, sends a hello with no valid proof, and must be closed
+ * with 4401, never become the plugin and never receive a command. The server runs on a pairing secret this test writes
+ * itself (`--config`), so the token the hand-rolled clients prove is derived HERE with `node:crypto` from literals, not
+ * read from the server or the plugin's own hash (docs/34 shape 1). The real relay pairs with the code the server prints
+ * (`pair/relay`), and its token must equal that independent one.
+ * MUTATIONS, each failing by name: `createBridge`'s hello check accepting any proof → `origin/refused: … a sandboxed
+ * iframe on a web page …` and `… an Origin: null client with no token …`; `attach` called before the proof → `pair/no-evict`;
+ * `pairOk` accepting any code → `pair/wrong-code`; the main thread keeping the token with `setSharedPluginData` →
+ * `pair/not-in-file`; one nonce for every connection (`nonce: () => 'ab'.repeat(32)`) → `pair/replay`; the wrong-code
+ * count reset on every attempt (`fails = 0` before the check) → `pair/limit` (both from the #3204 delta review, B2).
+ * The code's window (the owner's Q3204.5 A): no expiry → `pair/expiry`; a code issued at start → `pair/on-demand`; no
+ * cap on retirements → `pair/cap`; `request()` not resetting the retirement count, so a reopened window closes after
+ * its first retirement → `pair/cap` (review S3). The window arms drive `createPairing` in process on an injected clock.
+ * Only the stdio agent opens a window (review B3): a `pair` message on the socket issuing a code when none is live
+ * (`if (pairing.code() === null) pairing.request();` before `pairOk`) → `pair/no-request`, against the spawned server.
  *
  * #2497: the server runs with a short `--grace-ms`, so a dropped plugin's command fails in seconds here. `resend/e2e`
  * drops the real relay's socket while a command runs in the real main.ts, keeps it down until the result is
@@ -27,14 +50,18 @@
 import { spawn } from 'node:child_process';
 import { connect } from 'node:net';
 import type { Socket } from 'node:net';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
+import { mkdtempSync, writeFileSync, statSync, readFileSync, chmodSync } from 'node:fs';
+import { createServer as createHttpServer } from 'node:http';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, join } from 'node:path';
+import { chromium } from 'playwright';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
-import { createBridgeRelay } from './src/agent-bridge-relay';
+import { createBridgeRelay, BRIDGE_PORT, BRIDGE_URL } from './src/agent-bridge-relay';
 import type { WsLike } from './src/agent-bridge-relay';
-import { createProgressCounter } from '../../tools/figma-bridge/server';
+import { createPairing, createProgressCounter, loadSecret } from '../../tools/figma-bridge/server';
 import { HANDSHAKE_PROBES } from '../../packages/engine/mcp-handshake-probes';
 
 let failed = 0;
@@ -63,7 +90,17 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 /* ── the server, over stdio ─────────────────────────────────────────────────────────────────────────── */
 
 const GRACE_MS = 3000;
-const child = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--grace-ms', String(GRACE_MS)], { stdio: ['pipe', 'pipe', 'pipe'] });
+/** THE PAIRING SECRET, written by this test (#3204). The token and the proofs below are computed from it here with
+ *  `node:crypto` and literal labels, independently of `server.ts` and of the plugin's `bridge-auth.ts`. */
+const TMP = mkdtempSync(join(tmpdir(), 'p3-bridge-'));
+const SECRET = randomBytes(32);
+const CONFIG = join(TMP, 'figma-bridge.json');
+writeFileSync(CONFIG, JSON.stringify({ v: 1, secret: SECRET.toString('hex') }), { mode: 0o600 });
+const hmacHex = (key: string | Buffer, msg: string) => createHmac('sha256', key).update(msg, 'utf8').digest('hex');
+const TOKEN = hmacHex(SECRET, 'prism3-bridge-token-v1');
+const proveHello = (nonce: string, token = TOKEN) => hmacHex(token, `prism3-bridge-hello-v1:${nonce}`);
+const provePair = (code: string, nonce: string) => hmacHex(code.replace(/-/g, ''), `prism3-bridge-pair-v1:${nonce}`);
+const child = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--grace-ms', String(GRACE_MS), '--config', CONFIG], { stdio: ['pipe', 'pipe', 'pipe'] });
 let stderr = '';
 child.stderr.on('data', (d) => { stderr += d; });
 const replies = new Map<number, any>();
@@ -112,6 +149,9 @@ if (!(await until(() => /listening on localhost:(\d+)/.test(stderr), 60000))) {
   process.exit(1);
 }
 const PORT = Number(/listening on localhost:(\d+)/.exec(stderr)![1]);
+/** The live pairing code. None is issued at start (Q3204.5 A): `pair/on-demand` asks `figma_status` for it, and the
+ *  arms that settle or retire it read the next one the same way. */
+let CODE = '';
 
 /* ── a hand-rolled WebSocket client ─────────────────────────────────────────────────────────────────── */
 
@@ -130,16 +170,23 @@ const frame = (op: number, payload: Buffer, fin = true, unmasked = false): Buffe
   for (let i = 0; i < body.length; i++) body[i] ^= key[i % 4];
   return Buffer.concat([Buffer.from(head), key, body]);
 };
-const openClient = async () => {
+/** The `Origin` a Figma plugin's UI iframe sends: a sandboxed iframe's origin is opaque, serialized `null` (#3147,
+ *  Q3147.2 A revised). Written here, not imported from the server, so the origin arms compare two independent things. */
+const IFRAME_ORIGIN = 'null';
+/** `origin` is the header the client sends; `null` sends none. */
+const openClient = async (origin: string | null = IFRAME_ORIGIN) => {
   const sock: Socket = connect(PORT, '127.0.0.1');
   await new Promise((r) => sock.once('connect', r));
   const key = randomBytes(16).toString('base64');
-  sock.write(`GET / HTTP/1.1\r\nHost: localhost:${PORT}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`);
+  const originLine = origin === null ? '' : `Origin: ${origin}\r\n`;
+  sock.write(`GET / HTTP/1.1\r\nHost: localhost:${PORT}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n${originLine}Sec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`);
   let raw = Buffer.alloc(0);
   let head: string | null = null;
   const frames: Frame[] = [];
   let closed = false;
   sock.on('close', () => { closed = true; });
+  // A refused upgrade (#3147) ends the socket; a write after that is an EPIPE, not a crash of the suite.
+  sock.on('error', () => { closed = true; });
   sock.on('data', (d: Buffer) => {
     raw = Buffer.concat([raw, d]);
     if (head === null) {
@@ -161,11 +208,17 @@ const openClient = async () => {
   });
   await until(() => head !== null);
   const expected = createHash('sha1').update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+  const texts = () => frames.filter((f) => f.op === 0x1).map((f) => JSON.parse(f.payload.toString('utf8')));
+  /** The challenge's nonce (#3204), once it has arrived. */
+  const nonce = async (): Promise<string> => { await until(() => texts().some((m) => m.type === 'challenge')); return texts().find((m) => m.type === 'challenge')?.nonce ?? ''; };
+  const sendJson = (o: unknown) => sock.write(frame(0x1, Buffer.from(JSON.stringify(o))));
   return {
-    head: head ?? '', expected, frames, sock,
+    head: head ?? '', expected, frames, sock, texts, nonce, sendJson,
     closed: () => closed,
-    sendJson: (o: unknown) => sock.write(frame(0x1, Buffer.from(JSON.stringify(o)))),
-    texts: () => frames.filter((f) => f.op === 0x1).map((f) => JSON.parse(f.payload.toString('utf8'))),
+    /** The close code the server sent, or null. */
+    closeCode: (): number | null => { const f = frames.find((x) => x.op === 0x8); return f && f.payload.length >= 2 ? f.payload.readUInt16BE(0) : null; },
+    /** A hello proving the token against this connection's challenge, as the paired plugin sends it. */
+    hello: async (extra: Record<string, unknown> = {}) => sendJson({ type: 'hello', state: state(), ...extra, proof: proveHello(await nonce()) }),
   };
 };
 
@@ -191,6 +244,49 @@ section('mcp — the stdio loop');
   ok(bad.error?.code === -32602, 'an unknown tool is a protocol error');
 }
 
+section('relay url');
+ok(BRIDGE_URL === `ws://localhost:${BRIDGE_PORT}` && BRIDGE_PORT === 17331, `relay/url: the relay's written-out URL is the bridge's port (${BRIDGE_URL}, port ${BRIDGE_PORT})`);
+
+/* ── a code only on demand (#3204, the owner's Q3204.5 A) ───────────────────────────────────────────────── */
+section('pair/on-demand — a code is issued only when asked for');
+{
+  // Before any figma_status: the start printed no code. A plugin with the kept token pairs without one, and while it is
+  // connected figma_status issues none. Only once no plugin is connected does figma_status ask for one.
+  ok(createPairing(SECRET).code() === null, 'pair/on-demand: a new pairing holds no live code until one is requested');
+  ok(!/pairing code: /.test(stderr), 'pair/on-demand: a start without --pair prints no pairing code');
+  const live = await openClient();
+  await live.hello();
+  ok(await until(() => live.texts().some((m) => m.type === 'welcome')), 'pair/on-demand: a plugin with the kept token is welcomed with no code live');
+  const st = (await call('figma_status')).value;
+  ok(st?.connected === true && st?.pairingCode === null && !/pairing code: /.test(stderr),
+    `pair/on-demand: with a paired plugin connected, no code is live and figma_status issues none (pairingCode ${st?.pairingCode}, ${/pairing code: /.test(stderr) ? 'one printed' : 'none printed'})`);
+  live.sock.destroy();
+  await untilAsync(async () => (await call('figma_status')).value?.connected === false);
+  const asked = (await call('figma_status')).value?.pairingCode;
+  ok(typeof asked === 'string' && /^[2-9A-Z]{4}-[2-9A-Z]{4}$/.test(asked) && stderr.includes(`pairing code: ${asked} `),
+    `pair/on-demand: with no plugin connected, figma_status issues a code, prints it and names it (${asked})`);
+  // A plugin proving its kept token leaves no code live: the one just issued is dropped, not kept for 10 minutes.
+  const back = await openClient();
+  await back.hello();
+  await until(() => back.texts().some((m) => m.type === 'welcome'));
+  const settled = (await call('figma_status')).value;
+  ok(settled?.connected === true && settled?.pairingCode === null, `pair/on-demand: a paired plugin's welcome leaves no code live (pairingCode ${settled?.pairingCode})`);
+  back.sock.destroy();
+  await untilAsync(async () => (await call('figma_status')).value?.connected === false);
+  CODE = (await call('figma_status')).value?.pairingCode ?? '';
+  ok(CODE !== asked && /^[2-9A-Z]{4}-[2-9A-Z]{4}$/.test(CODE), 'pair/on-demand: and the next figma_status with no plugin connected issues a new one');
+  // A --pair start issues one at once, for a host where the owner reads stderr.
+  const cfg = join(TMP, 'pair-start.json');
+  writeFileSync(cfg, JSON.stringify({ v: 1, secret: SECRET.toString('hex') }), { mode: 0o600 });
+  const other = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--config', cfg, '--pair'], { stdio: ['pipe', 'pipe', 'pipe'] });
+  let otherErr = '';
+  other.stderr.setEncoding('utf8');
+  other.stderr.on('data', (d) => { otherErr += d; });
+  await until(() => /listening on localhost:/.test(otherErr), 60000);
+  ok(/pairing code: [2-9A-Z]{4}-[2-9A-Z]{4} /.test(otherErr), 'pair/on-demand: a --pair start prints a code at once');
+  other.kill();
+}
+
 section('no-plugin');
 {
   const s = await call('figma_status');
@@ -199,13 +295,292 @@ section('no-plugin');
   ok(r.isError && /no plugin is connected/.test(r.value?.error), `figma_run with no plugin → isError (${r.value?.error?.slice(0, 40)})`);
 }
 
+/* ── the origin check (#3147) ───────────────────────────────────────────────────────────────────────── */
+section('origin — only the plugin iframe may connect (#3147, Q3147.2 A revised)');
+{
+  // A web page open in a browser on this machine sends its own origin; a bare local client may send none. Both are
+  // refused before the handshake, and neither becomes "the plugin". The accepted case is `handshake` below.
+  for (const [label, origin] of [['a web page', 'https://example.com'], ['a localhost page', 'http://localhost:3000'], ['no Origin header', null]] as const) {
+    const c = await openClient(origin);
+    ok(/^HTTP\/1\.1 403/.test(c.head) && !c.head.includes('Sec-WebSocket-Accept'),
+      `origin/refused: ${label} (${origin ?? 'none'}) is refused with 403 and no handshake (${c.head.split('\r\n')[0]})`);
+    c.sendJson({ type: 'hello', state: state() });
+    await sleep(100);
+    ok((await call('figma_status')).value?.connected === false, `origin/refused: ${label} never becomes the plugin`);
+    c.sock.destroy();
+  }
+
+  // #3204: `Origin: null` with no pairing token. First a bare client, then the review's page: an ordinary page on
+  // 127.0.0.1 embedding a sandboxed iframe, in Chromium. Both pass the origin check (that is the review's finding) and
+  // both must be refused by the pairing proof: closed with 4401, never the plugin, never sent a command.
+  {
+    const c = await openClient(IFRAME_ORIGIN);
+    const n = await c.nonce();
+    ok(/^HTTP\/1\.1 101/.test(c.head) && /^[0-9a-f]{64}$/.test(n), `pair/challenge: an Origin: null client is let through the origin check and challenged first (${c.head.split('\r\n')[0]}, nonce ${n.length} hex)`);
+    c.sendJson({ type: 'hello', state: state(), proof: '0'.repeat(64) });
+    const run = await call('figma_run', { cmd: 'status', timeoutMs: 500 });
+    ok(await until(() => c.closeCode() === 4401) && run.isError && /no plugin is connected/.test(run.value?.error ?? ''),
+      `origin/refused: an Origin: null client with no token is closed with 4401 and the agent's command finds no plugin (close ${c.closeCode()}, run: ${run.value?.error?.slice(0, 40)})`);
+    ok(!c.texts().some((m) => m.type === 'command') && (await call('figma_status')).value?.connected === false,
+      'origin/refused: an Origin: null client with no token never becomes the plugin and never receives a command');
+    c.sock.destroy();
+  }
+  {
+    const iframe = `<script>
+      const say = (k, v) => parent.postMessage({ k, v }, '*');
+      const ws = new WebSocket('ws://localhost:${PORT}');
+      ws.onopen = () => say('open');
+      ws.onmessage = (e) => {
+        say('got', e.data);
+        const m = JSON.parse(e.data);
+        if (m.type === 'challenge') ws.send(JSON.stringify({ type: 'hello', state: null, proof: '0'.repeat(64) }));
+        if (m.type === 'command') ws.send(JSON.stringify({ type: 'result', result: { v: 1, id: m.command.id, cmd: m.command.cmd, ok: true, result: { verdict: 'FORGED BY A WEB PAGE' } } }));
+      };
+      ws.onclose = (e) => say('close', e.code);
+    <\/script>`;
+    const page = `<!doctype html><title>a web page</title><script>window.__seen = []; addEventListener('message', (e) => window.__seen.push(e.data));<\/script>
+      <iframe sandbox="allow-scripts" srcdoc="${iframe.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"></iframe>`;
+    const web = createHttpServer((_q, r) => { r.writeHead(200, { 'content-type': 'text/html' }).end(page); });
+    await new Promise<void>((r) => web.listen(0, '127.0.0.1', () => r()));
+    const webPort = (web.address() as { port: number }).port;
+    const browser = await chromium.launch();
+    try {
+      const tab = await browser.newPage();
+      await tab.goto(`http://127.0.0.1:${webPort}/`);
+      const seen = async (): Promise<{ k: string; v?: unknown }[]> => tab.evaluate(() => (window as unknown as { __seen: { k: string; v?: unknown }[] }).__seen);
+      let opened = false;
+      for (let i = 0; i < 400 && !opened; i++) { opened = (await seen()).some((e) => e.k === 'close'); if (!opened) await sleep(25); }
+      const got = await seen();
+      const challenged = got.some((e) => e.k === 'got' && typeof e.v === 'string' && JSON.parse(e.v).type === 'challenge');
+      ok(opened && got.some((e) => e.k === 'open') && challenged,
+        `origin/refused: a sandboxed iframe on a web page passes the origin check, as the review showed, and is challenged (${JSON.stringify(got.map((e) => e.k))})`);
+      ok(got.some((e) => e.k === 'close' && e.v === 4401) && !got.some((e) => e.k === 'got' && typeof e.v === 'string' && JSON.parse(e.v).type === 'command'),
+        `origin/refused: a sandboxed iframe on a web page with no token is closed with 4401 and never receives a command (${JSON.stringify(got.filter((e) => e.k === 'close'))})`);
+      ok((await call('figma_status')).value?.connected === false, 'origin/refused: a sandboxed iframe on a web page never becomes the plugin');
+    } finally {
+      await browser.close();
+      web.close();
+    }
+  }
+}
+
+/* ── pairing (#3204) ────────────────────────────────────────────────────────────────────────────────── */
+section('pairing — the secret file, a wrong code, and no eviction by an unpaired client (#3204, Q3204.1 A)');
+{
+  // The secret file: made user-only, kept across loads, replaced by a rotation, narrowed when found readable by others.
+  const dir = join(TMP, 'cfg', 'prism3');
+  const path = join(dir, 'figma-bridge.json');
+  const a = loadSecret(path);
+  const mode = (p: string) => statSync(p).mode & 0o777;
+  ok(a.created && mode(path) === 0o600 && mode(dir) === 0o700 && JSON.parse(readFileSync(path, 'utf8')).secret === a.secret.toString('hex'),
+    `pair/secret-file: a new secret is written user-only (file ${mode(path).toString(8)}, directory ${mode(dir).toString(8)})`);
+  const b = loadSecret(path);
+  ok(!b.created && b.secret.equals(a.secret), 'pair/secret-file: the next start reads the same secret, so pairing survives a restart');
+  const r = loadSecret(path, { rotate: true });
+  ok(r.created && !r.secret.equals(a.secret) && mode(path) === 0o600, `pair/secret-file: --rotate writes a new secret, still user-only (${mode(path).toString(8)})`);
+  chmodSync(path, 0o644);
+  loadSecret(path);
+  ok(mode(path) === 0o600, `pair/secret-file: a secret file readable by others is narrowed to 0600 (${mode(path).toString(8)})`);
+}
+{
+  // THE CODE'S WINDOW (Q3204.5 A), on an injected clock: the pairing core is driven in process, so nothing sleeps.
+  // The numbers are written here, not imported: the owner's decision is 10 minutes, 5 wrong tries, 3 retirements.
+  const TTL_MS = 10 * 60_000;
+  const FAILS = 5;
+  const RETIREMENTS = 3;
+  const n = () => randomBytes(32).toString('hex');
+  const wrongFor = (c: string | null) => (c === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'ZZZZ-ZZZZ');
+  let t = 1_000_000;
+  const p = createPairing(SECRET, () => undefined, () => t);
+  const c1 = p.request();
+  t += TTL_MS - 1;
+  let nonce = n();
+  ok(p.pairOk(nonce, provePair(c1, nonce)), 'pair/expiry: a code 1 ms short of 10 minutes old still pairs');
+  const c2 = p.request();
+  t += TTL_MS;
+  nonce = n();
+  ok(!p.pairOk(nonce, provePair(c2, nonce)) && p.code() === null,
+    `pair/expiry: a code 10 minutes old on the injected clock does not pair, and no code is live (code ${p.code()})`);
+
+  const said: string[] = [];
+  const q = createPairing(SECRET, (s) => said.push(s), () => t);
+  const issued = () => said.filter((s) => s.startsWith('pairing code: ')).length;
+  const first = q.request();
+  const seen = new Set<string>([first]);
+  for (let i = 0; i < FAILS * RETIREMENTS; i++) {
+    nonce = n();
+    q.pairOk(nonce, provePair(wrongFor(q.code()), nonce));
+    const c = q.code();
+    if (c) seen.add(c);
+  }
+  ok(q.code() === null && seen.size === RETIREMENTS,
+    `pair/cap: after ${RETIREMENTS} codes are retired by wrong guesses, pairing is closed (code ${q.code()}, ${seen.size} codes issued)`);
+  const before = issued();
+  for (let i = 0; i < FAILS; i++) { nonce = n(); q.pairOk(nonce, provePair(wrongFor(null), nonce)); }
+  nonce = n();
+  ok(q.code() === null && issued() === before && !q.pairOk(nonce, provePair([...seen][RETIREMENTS - 1], nonce)),
+    `pair/cap: while closed, more guesses issue no new code (${issued() - before} issued)`);
+  const next = q.request();
+  // The new window has the full allowance again (review S3): its first retirement issues a new code, it does not close.
+  const atOpen = issued();
+  const saidAtOpen = said.length;
+  for (let i = 0; i < FAILS; i++) { nonce = n(); q.pairOk(nonce, provePair(wrongFor(q.code()), nonce)); }
+  const renewed = q.code();
+  ok(!seen.has(next) && renewed !== null && renewed !== next && issued() === atOpen + 1 && !said.slice(saidAtOpen).some((s) => /pairing is closed/.test(s)),
+    `pair/cap: the next request opens a new window, and its first ${FAILS} wrong guesses issue a new code rather than close pairing (code ${renewed}, ${issued() - atOpen} issued)`);
+  nonce = n();
+  ok(renewed !== null && q.pairOk(nonce, provePair(renewed, nonce)), 'pair/cap: and the new window\'s code pairs');
+}
+{
+  ok(CODE.length === 9 && (await call('figma_status')).value?.pairingCode === CODE, `pair: figma_status keeps the live code rather than replacing it (${CODE ? 'named' : 'missing'})`);
+  // A WRONG code: closed with 4403, never paired, and the code stays open (one miss, under the limit).
+  let wrong = 'ZZZZ-ZZZZ';
+  if (wrong === CODE) wrong = 'YYYY-YYYY';
+  const w = await openClient();
+  w.sendJson({ type: 'pair', proof: provePair(wrong, await w.nonce()) });
+  ok(await until(() => w.closeCode() === 4403) && !w.texts().some((m) => m.type === 'paired'),
+    `pair/wrong-code: a wrong code is refused with 4403 and given no token (close ${w.closeCode()})`);
+  ok((await call('figma_status')).value?.connected === false, 'pair/wrong-code: a wrong code never becomes the plugin');
+  w.sock.destroy();
+}
+{
+  // REPLAY (#3204 review B2 a): a proof is bound to the nonce of the connection it was made on. A hello proof captured on
+  // connection 1 (which it pairs: it becomes the plugin) is refused on connection 2, and the plugin keeps the slot.
+  const first = await openClient();
+  const captured = proveHello(await first.nonce());
+  first.sendJson({ type: 'hello', state: state(), proof: captured });
+  ok(await until(() => first.texts().some((m) => m.type === 'welcome')), 'pair/replay: the hello proof is welcomed on the connection it was made for');
+  const second = await openClient();
+  await second.nonce();
+  second.sendJson({ type: 'hello', state: state(), proof: captured });
+  ok(await until(() => second.closeCode() === 4401) && !second.texts().some((m) => m.type === 'welcome'),
+    `pair/replay: a hello proof captured on one connection is closed with 4401 on the next (close ${second.closeCode()})`);
+  ok(!first.closed() && first.closeCode() === null && (await call('figma_status')).value?.connected === true,
+    'pair/replay: the replayed hello never becomes the plugin: the first connection keeps the slot');
+  second.sock.destroy();
+  first.sock.destroy();
+  ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'pair/replay: closed');
+  // The welcome left no code live (Q3204.5 A); with no plugin connected, figma_status asks for a new one.
+  CODE = (await call('figma_status')).value?.pairingCode ?? '';
+  // A pair proof made with the RIGHT code on connection 1's nonce, sent on connection 2: refused with 4403, no token,
+  // and the code stays open. (Sending it on connection 1 would spend the code, so a later replay could fail for that
+  // reason alone; this way only the nonce binding refuses it.)
+  const p1 = await openClient();
+  const pairProof = provePair(CODE, await p1.nonce());
+  const p2 = await openClient();
+  await p2.nonce();
+  p2.sendJson({ type: 'pair', proof: pairProof });
+  ok(await until(() => p2.closeCode() === 4403) && !p2.texts().some((m) => m.type === 'paired'),
+    `pair/replay: a pair proof made on another connection's nonce is refused with 4403 and given no token (close ${p2.closeCode()})`);
+  ok((await call('figma_status')).value?.pairingCode === CODE, 'pair/replay: and the code is not spent by it');
+  p1.sock.destroy();
+  p2.sock.destroy();
+}
+{
+  // THE WRONG-CODE LIMIT (#3204 review B2 b): the count is the server's, not the connection's. MAX_PAIR_FAILS wrong
+  // codes, each on its own connection, retire the code: figma_status and stderr name a new one, and the old one no
+  // longer pairs. (The arms above spent some of the count already, so the retirement lands inside this run.)
+  // Written here, not imported: the README's promise is "5 wrong codes" (docs/34 shape 1).
+  const MAX_PAIR_FAILS = 5;
+  const old = CODE;
+  const before = (stderr.match(/pairing code: /g) ?? []).length;
+  for (let i = 0; i < MAX_PAIR_FAILS; i++) {
+    const current = (await call('figma_status')).value?.pairingCode;
+    const wrong = current === 'ZZZZ-ZZZZ' || old === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'ZZZZ-ZZZZ';
+    const g = await openClient();
+    g.sendJson({ type: 'pair', proof: provePair(wrong, await g.nonce()) });
+    await until(() => g.closeCode() !== null);
+    g.sock.destroy();
+  }
+  const now = (await call('figma_status')).value?.pairingCode;
+  const printed = [...stderr.matchAll(/pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/g)].map((m) => m[1]);
+  ok(typeof now === 'string' && now !== old && /wrong pairing codes: that code is retired/.test(stderr),
+    `pair/limit: ${MAX_PAIR_FAILS} wrong codes, each on its own connection, retire the code (figma_status ${now === old ? 'unchanged' : 'changed'})`);
+  ok(printed.length > before && printed[printed.length - 1] === now, 'pair/limit: stderr prints the new code, the one figma_status names');
+  const stale = await openClient();
+  stale.sendJson({ type: 'pair', proof: provePair(old, await stale.nonce()) });
+  ok(await until(() => stale.closeCode() === 4403) && !stale.texts().some((m) => m.type === 'paired'),
+    `pair/limit: the retired code no longer pairs (close ${stale.closeCode()})`);
+  stale.sock.destroy();
+  CODE = typeof now === 'string' ? now : CODE;
+}
+{
+  // ONLY THE STDIO AGENT OPENS A WINDOW (#3204 delta review, B3). With no code live, `pair` messages on the socket issue
+  // none, so a page cannot reopen pairing on a paired machine, or after the cap has closed it. figma_status is NOT called
+  // between the steps, since it issues a code itself; it is called once at the end of each, and must issue the next one.
+  // Written here, not imported (docs/34 shape 1): 5 wrong codes retire a code, 3 retirements close pairing.
+  const MAX_PAIR_FAILS = 5;
+  const MAX_RETIREMENTS = 3;
+  const printed = () => [...stderr.matchAll(/pairing code: ([2-9A-Z]{4}-[2-9A-Z]{4})/g)].map((m) => m[1]);
+  const wrongBut = (...avoid: string[]) => ['ZZZZ-ZZZZ', 'YYYY-YYYY', 'XXXX-XXXX'].find((w) => !avoid.includes(w))!;
+  /** One `pair` attempt on a fresh connection: whether it was given a token. */
+  const tryPair = async (code: string): Promise<boolean> => {
+    const g = await openClient();
+    g.sendJson({ type: 'pair', proof: provePair(code, await g.nonce()) });
+    await until(() => g.closeCode() !== null || g.texts().some((m) => m.type === 'paired'));
+    const paired = g.texts().some((m) => m.type === 'paired');
+    g.sock.destroy();
+    return paired;
+  };
+  /** A few wrong codes and the last code, with no code live: no new code is printed and no one is paired. */
+  const probe = async (label: string, last: string) => {
+    const before = printed().length;
+    const results = [];
+    for (let i = 0; i < 3; i++) results.push(await tryPair(wrongBut(last)));
+    results.push(await tryPair(last));
+    { const g = await openClient(); await g.nonce(); g.sendJson({ type: 'hello', proof: 'ab'.repeat(32), held: [] }); await until(() => g.closeCode() !== null); g.sock.destroy(); }
+    await until(() => false, 200);
+    const issued = printed().length - before;
+    ok(issued === 0 && !results.some(Boolean),
+      `pair/no-request: ${label}, messages on the socket issue no code and pair no one (${issued} printed, ${results.filter(Boolean).length} paired)`);
+    const asked = (await call('figma_status')).value?.pairingCode;
+    ok(typeof asked === 'string' && asked !== last && printed().length === before + 1 && printed()[printed().length - 1] === asked,
+      `pair/no-request: ${label}, figma_status then issues the next code (${asked === last ? 'the old one' : asked ? 'a new one' : 'none'})`);
+    return asked as string;
+  };
+
+  // 1. A pair spends the live code, so none is live.
+  ok(await tryPair(CODE), 'pair/no-request: the live code pairs, and is spent');
+  CODE = await probe('after a pair has spent the code', CODE);
+
+  // 2. MAX_RETIREMENTS codes retired by wrong guesses close pairing, so none is live.
+  const closings = () => (stderr.match(/codes retired: pairing is closed/g) ?? []).length;
+  const closedBefore = closings();
+  for (let i = 0; i < MAX_PAIR_FAILS * MAX_RETIREMENTS; i++) await tryPair(wrongBut(printed()[printed().length - 1]));
+  const lastCode = printed()[printed().length - 1];
+  ok(await until(() => closings() === closedBefore + 1), `pair/no-request: ${MAX_PAIR_FAILS * MAX_RETIREMENTS} wrong codes on the socket close pairing`);
+  CODE = await probe('after the cap has closed pairing', lastCode);
+}
+{
+  // A live, PAIRED plugin and an unpaired newcomer: the newcomer is closed and the plugin keeps the slot and its commands.
+  const live = await openClient();
+  await live.hello();
+  ok(await until(() => live.texts().some((m) => m.type === 'welcome')) && await untilAsync(async () => (await call('figma_status')).value?.connected === true),
+    'pair/no-evict: a hello proving the token is welcomed and becomes the plugin');
+  for (const [label, msg] of [['a hello with a wrong proof', (n: string) => ({ type: 'hello', state: state(), proof: proveHello(n, 'f'.repeat(64)) })],
+    ['a hello with no proof', () => ({ type: 'hello', state: state() })], ['a result before any hello', () => ({ type: 'result', result: { id: 'x' } })]] as const) {
+    const intruder = await openClient();
+    intruder.sendJson(msg(await intruder.nonce()));
+    ok(await until(() => intruder.closeCode() === 4401), `pair/no-evict: ${label} is closed with 4401 (${intruder.closeCode()})`);
+    intruder.sock.destroy();
+  }
+  const done = callLater('figma_run', { cmd: 'status', timeoutMs: 5000 });
+  ok(await until(() => live.texts().some((m) => m.type === 'command')) && !live.closed() && live.closeCode() === null,
+    'pair/no-evict: the paired plugin is never evicted by an unpaired one: still open, and the next command reaches it');
+  const cmd = live.texts().find((m) => m.type === 'command')?.command;
+  live.sendJson({ type: 'result', result: { v: 1, id: cmd?.id, cmd: 'status', ok: true, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(), engineVersion: ENGINE_VERSION, transport: 'bridge', result: { verdict: null, data: {}, logs: [] } } });
+  ok(!(await done()).isError, 'pair/no-evict: and its answer is the call\'s');
+  live.sock.destroy();
+  ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'pair/no-evict: closed');
+}
+
 /* ── the hand-rolled client ─────────────────────────────────────────────────────────────────────────── */
 section('handshake + framing (hand-rolled client)');
 const c1 = await openClient();
 {
   ok(/^HTTP\/1\.1 101/.test(c1.head) && c1.head.includes(`Sec-WebSocket-Accept: ${c1.expected}`), 'handshake: 101 with the RFC 6455 accept key');
-  // A FRAGMENTED hello: text frame (FIN=0) + continuation (FIN=1).
-  const hello = Buffer.from(JSON.stringify({ type: 'hello', state: state() }));
+  // A FRAGMENTED hello: text frame (FIN=0) + continuation (FIN=1). It carries the pairing proof (#3204).
+  const hello = Buffer.from(JSON.stringify({ type: 'hello', state: state(), proof: proveHello(await c1.nonce()) }));
   const cut = 17;
   c1.sock.write(frame(0x1, hello.subarray(0, cut), false));
   c1.sock.write(frame(0x0, hello.subarray(cut), true));
@@ -307,12 +682,12 @@ section('reconnect — a newer plugin connection replaces the older one');
   // look like "the plugin", and a command sent to the old one must fail with the reason, not wait out its
   // timeout. A pattern the Figma Console MCP bridge also uses (MIT; "Replaced by same file reconnection").
   const old = await openClient();
-  old.sendJson({ type: 'hello', state: state() });
+  await old.hello();
   ok(await untilAsync(async () => (await call('figma_status')).value?.connected === true), 'reconnect: the first connection is the plugin');
   const done = callLater('figma_run', { cmd: 'readback', timeoutMs: 15000 });
   ok(await until(() => old.texts().some((m) => m.type === 'command')), 'reconnect: a command is in flight on the first connection');
   const fresh = await openClient();
-  fresh.sendJson({ type: 'hello', state: state() });
+  await fresh.hello();
   ok(await until(() => old.frames.some((f) => f.op === 0x8 && f.payload.readUInt16BE(0) === 1000)), 'reconnect: the older connection is closed (1000)');
   const r = await done();
   ok(r.isError && /reconnected/.test(r.value?.error ?? ''), `reconnect: the in-flight run fails with the reason, not a timeout (${String(r.value?.error ?? '').slice(0, 60)})`);
@@ -325,7 +700,7 @@ section('reconnect — a newer plugin connection replaces the older one');
 section('resend/hand — a result re-sent after a reconnect is delivered once (#2497)');
 {
   const a = await openClient();
-  a.sendJson({ type: 'hello', state: state() });
+  await a.hello();
   ok(await untilAsync(async () => (await call('figma_status')).value?.connected === true), 'resend/hand: the plugin is connected');
   const done = callLater('figma_run', { cmd: 'update-components', timeoutMs: 15000 });
   ok(await until(() => a.texts().some((m) => m.type === 'command')), 'resend/hand: a command is in flight');
@@ -336,7 +711,7 @@ section('resend/hand — a result re-sent after a reconnect is delivered once (#
     return s?.connected === false && s?.awaitingReconnect?.includes(cmd.id);
   }), 'resend/hand: after the drop the command is awaiting the reconnect, not failed');
   const b = await openClient();
-  b.sendJson({ type: 'hello', state: state(), held: [cmd.id] });
+  await b.hello({ held: [cmd.id] });
   const result: AgentResult = {
     v: 1, id: cmd.id, cmd: 'update-components', ok: true, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(),
     engineVersion: ENGINE_VERSION, transport: 'bridge', result: { verdict: { headline: '✓ updated in place' }, data: {}, logs: [] },
@@ -360,11 +735,17 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
   const posted: any[] = [];
   let relay: ReturnType<typeof createBridgeRelay> | null = null;
   const empty = async () => [];
-  const root = { name: 'bridge test file', type: 'DOCUMENT', children: [] as unknown[], getSharedPluginData: () => '', setSharedPluginData: () => undefined };
+  /** Every write to the file's plugin data and shared plugin data, by any node (#3204: the token must never be one). */
+  const fileWrites: string[] = [];
+  const root = { name: 'bridge test file', type: 'DOCUMENT', children: [] as unknown[], getSharedPluginData: () => '', getPluginData: () => '',
+    setSharedPluginData: (ns: string, k: string, v: string) => { fileWrites.push(`${ns}/${k}=${v}`); },
+    setPluginData: (k: string, v: string) => { fileWrites.push(`${k}=${v}`); } };
+  /** `figma.clientStorage`: per person, per machine. The token's one home (#3204). */
+  const kept = new Map<string, unknown>();
   const host: Record<string, unknown> = {
     showUI: () => undefined,
     ui: { postMessage: (m: any) => { posted.push(m); relay?.fromMain(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
-    clientStorage: { getAsync: async () => undefined, setAsync: async () => undefined },
+    clientStorage: { getAsync: async (k: string) => kept.get(k), setAsync: async (k: string, v: unknown) => { kept.set(k, v); }, deleteAsync: async (k: string) => { kept.delete(k); } },
     on: () => undefined,
     root,
     currentPage: { name: 'Page 1', children: [] },
@@ -381,13 +762,16 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
   // the relay off the bridge until the main thread has answered.
   let sock: WebSocket | null = null;
   let refuse = false;
+  const pairings: string[] = [];
+  // Node's WebSocket sends no `Origin`, which the server refuses (#3147); Figma's iframe sends `null`, so this does too.
   relay = createBridgeRelay({
-    open: (url) => { if (refuse) throw new Error('refused by the test'); sock = new WebSocket(url); return sock as unknown as WsLike; },
+    open: (url) => { if (refuse) throw new Error('refused by the test'); sock = new (WebSocket as unknown as new (u: string, o: unknown) => WebSocket)(url, { headers: { origin: IFRAME_ORIGIN } }); return sock as unknown as WsLike; },
     post: (m) => toMain(m),
     schedule: (fn, ms) => setTimeout(fn, ms),
     cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
     url: `ws://localhost:${PORT}`,
     retryMs: 100,
+    onPairing: (p) => { pairings.push(p); },
   });
   const calls: string[] = [];
   const actions = main.ACTIONS as unknown as Record<string, (...a: unknown[]) => Promise<void>>;
@@ -400,7 +784,47 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
   await sleep(50);
   ok(relay.connected() === false, 'the relay does not connect while the link is off');
   toMain({ type: 'agent-link', on: true });
-  ok(await until(() => relay!.connected()), 'switching the link on connects the relay to the bridge');
+  // #3204: no token is kept yet, so the relay asks for the code and does not connect. A wrong code first, then the one
+  // the server printed. The token it keeps must be the one this test derived from the secret it wrote.
+  ok(await until(() => relay!.pairing() === 'needed') && !relay.connected() && posted.some((m) => m.type === 'agent-bridge-token' && m.token === null),
+    `pair/relay: with no token kept, the relay asks for the code and stays unconnected (${pairings.join(' → ')})`);
+  await sleep(300);
+  ok(relay.pairing() === 'needed' && !relay.connected(), 'pair/relay: and it does not retry while it waits for the code');
+  // The arms above settled the last code (a welcome leaves none live, Q3204.5 A). The relay is unconnected, so
+  // figma_status asks for a new one, as the owner's agent would.
+  CODE = (await call('figma_status')).value?.pairingCode ?? '';
+  relay.pair(CODE === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'zzzz zzzz');
+  ok(await until(() => relay!.pairing() === 'wrong-code') && !relay.connected(), `pair/relay: a wrong code comes back as wrong-code (${pairings.join(' → ')})`);
+  relay.pair(CODE.toLowerCase());
+  ok(await until(() => relay!.connected()), `pair/relay: the printed code, typed in lower case, pairs and connects (${pairings.join(' → ')})`);
+  await sleep(50);
+  ok(kept.get('prism3:bridge-token') === TOKEN, 'pair/relay: the main thread keeps the token in clientStorage, and it is the token the secret gives');
+  ok(!fileWrites.some((w) => w.includes(TOKEN)) && !JSON.stringify(posted.filter((m) => m.type !== 'agent-bridge-token')).includes(TOKEN),
+    `pair/not-in-file: the token is never written to the file's plugin data or shared plugin data (${fileWrites.length} writes checked)`);
+  ok((await call('figma_status')).value?.pairingCode === null, 'pair/relay: the code is spent once used');
+  {
+    const again = await openClient();
+    again.sendJson({ type: 'pair', proof: provePair(CODE, await again.nonce()) });
+    ok(await until(() => again.closeCode() === 4403) && relay.connected(), `pair/relay: a spent code pairs no one else, and the plugin stays connected (close ${again.closeCode()})`);
+    again.sock.destroy();
+  }
+  {
+    // A token this server does not know (its secret was rotated): refused, forgotten, and the code asked for again.
+    const told: unknown[] = [];
+    const states: string[] = [];
+    const stale = createBridgeRelay({
+      open: (url) => new (WebSocket as unknown as new (u: string, o: unknown) => WebSocket)(url, { headers: { origin: IFRAME_ORIGIN } }) as unknown as WsLike,
+      post: (m) => told.push(m), schedule: (fn, ms) => setTimeout(fn, ms), cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
+      url: `ws://localhost:${PORT}`, retryMs: 100, onPairing: (p) => states.push(p),
+    });
+    stale.fromMain({ type: 'agent-bridge-token', token: 'f'.repeat(64) });
+    stale.fromMain({ type: 'agent-link-state', state: state() });
+    ok(await until(() => stale.pairing() === 'refused') && told.some((m) => (m as { type: string }).type === 'agent-bridge-unpaired') && !stale.connected(),
+      `pair/refused: a token the bridge does not know is refused, dropped and the code asked for (${states.join(' → ')})`);
+    ok(relay.connected(), 'pair/refused: and the paired plugin stays connected');
+    stale.fromMain({ type: 'agent-link-state', state: state(false) });
+  }
+  ok(relay.connected(), 'switching the link on connects the relay to the bridge');
   const lastState = () => posted.filter((m) => m.type === 'agent-link-state').pop()?.state as AgentLinkState;
   ok(await until(() => lastState()?.transports.bridge === true), 'and the link state reports the bridge transport');
   const st = await call('figma_status');
