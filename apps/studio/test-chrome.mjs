@@ -491,6 +491,7 @@
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { launchWithoutWebFonts } from './test-web-fonts-stub.mjs';
@@ -966,6 +967,27 @@ if (MODE === 'run') assertBundleFresh({ repo: REPO, bundle: 'apps/studio/dist/ma
 const TABLER_SET = new Map([...readFileSync(join(STUDIO, 'src/shell/icons/tabler.ts'), 'utf8').matchAll(/^  '([a-z0-9-]+)': \[(.*)\],$/gm)]
   .map(([, name, list]) => [name, [...list.matchAll(/'([^']*)'/g)].map((m) => m[1])]));
 if (MODE === 'run' && TABLER_SET.size < 20) { console.error(`✗ src/shell/icons/tabler.ts parsed to ${TABLER_SET.size} icons; the glyph arms need the vendored set`); process.exit(1); }
+// #3167: THE ORACLE HELD TO TABLER. `TABLER_SET` is parsed from the file the bundles draw from, so a path edited there by
+// hand reaches the oracle and the drawing alike, and the glyph arm passes (docs/34: the oracle derived from its
+// subject). `chrome/tabler-digest.json` is the other side: each icon's sha256 taken from the PACKAGE's path data by
+// `vendor-icons.mjs` at vendoring time, never from `tabler.ts`. Every parsed icon must match its digest, both ways, and
+// the version must be the digest's. The formula (sha256 of `JSON.stringify` of the `d` strings, in order) is restated
+// here, not imported, so the two sides share no code. Checked before any arm reads the set.
+// MUTATION: `'M3 3l18 18'` appended to `color-swatch` in `tabler.ts` → `tabler digest: … color-swatch …`, by name.
+if (MODE === 'run') {
+  const dg = JSON.parse(readFileSync(join(STUDIO, 'chrome/tabler-digest.json'), 'utf8'));
+  const ver = /^export const TABLER_VERSION = '([^']+)';$/m.exec(readFileSync(join(STUDIO, 'src/shell/icons/tabler.ts'), 'utf8'))?.[1];
+  const sha = (ds) => createHash('sha256').update(JSON.stringify(ds)).digest('hex');
+  const off = [...TABLER_SET].filter(([name, ds]) => dg.icons?.[name] !== sha(ds)).map(([name]) => name);
+  const lost = Object.keys(dg.icons ?? {}).filter((name) => !TABLER_SET.has(name));
+  if (ver !== dg.version || off.length || lost.length) {
+    console.error(`✗ tabler digest: src/shell/icons/tabler.ts is not the set vendored from @tabler/icons@${dg.version} (chrome/tabler-digest.json)`
+      + `${ver !== dg.version ? `; TABLER_VERSION is ${ver}` : ''}${off.length ? `; paths differ: ${off.join(', ')}` : ''}${lost.length ? `; missing: ${lost.join(', ')}` : ''}.`
+      + ' Re-run chrome/vendor-icons.mjs from the package; never edit the set by hand.');
+    process.exit(1);
+  }
+  console.log(`  ✓ tabler digest: all ${TABLER_SET.size} vendored icons match @tabler/icons@${dg.version} (chrome/tabler-digest.json)`);
+}
 const FIGMA = {
   light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
   dark: { cls: 'figma-dark', vars: { '--figma-color-bg': '#2c2c2c', '--figma-color-text': '#ffffff' } },
