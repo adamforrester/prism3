@@ -433,7 +433,7 @@ One codebase builds two plugins, with distinct names and ids so both can be load
 
 | Build | Folder | Name and id | Network |
 |---|---|---|---|
-| Network | `release/` | Prism3 Studio, `prism3-theming-plugin` | `fonts.googleapis.com` and `fonts.gstatic.com` only, no `*` |
+| Network | `release/` | Prism3 Studio, `prism3-theming-plugin` | `fonts.googleapis.com`, `fonts.gstatic.com` and `ws://localhost:17331` (the desktop bridge, #3147) only, no `*` |
 | Offline | `release-offline/` | Prism3 Studio Offline, `prism3-theming-plugin-offline` | `["none"]`, for client files and locked-down setups |
 
 `npm run build:release -w @prism3/plugin` builds both (`build.mjs --release`, then `--release --offline`). The offline
@@ -444,7 +444,9 @@ dev domain.
 
 **Privacy.** The network build sends a brand face's family name to Google Fonts when the preview can't paint that face,
 and Google receives the user's IP address with it. Nothing from the file is sent. The offline build makes no network
-calls. The panel says which at the foot of the Inspect menu, and each manifest's `reasoning` says it to Figma.
+calls. The panel says which at the foot of the Inspect menu, and each manifest's `reasoning` says it to Figma. The
+network build's note is the owner's approved wording (#3147, Q3147.7 A and Q3147.17 A), and `lint-network-reach.ts`
+holds each build's bundle to its own note.
 
 **The gates.** `lint-network-reach.ts`: the offline bundles carry no request primitive and no allowed host, and the
 network build's every named host is one of its listed domains or reference-only. `lint-release-bundle.ts` holds both
@@ -460,6 +462,44 @@ system — `core-palette` + `color`, the ten FLOAT collections (`core-dimension`
 `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`), shadow/gradient Styles, and font variables +
 Text Styles (#237, see above) — into the current file; the panel reports any existing Prism3 theme
 found on boot.
+
+## Releasing to the organization (#3147, the owner's Q3147.15 to Q3147.21, all A)
+
+Only the owner publishes. Nothing in this repository publishes, tags or pushes a release.
+
+- **When.** On demand, by the owner, and only after `npm run verify` is green on that commit. At most one publish a day.
+  Nothing publishes on a schedule (Q3147.19).
+- **Both plugins.** "Prism3 Studio Offline" is published org-private too, from the same commit and at the same time, for
+  teams whose admins don't allow plugins with network access (Q3147.20).
+- **The id.** Keep `prism3-theming-plugin` (Q3147.15). If Figma's publish refuses it and issues its own id, use the issued
+  id, and bring that back to #3147 first: it revises Q3138.7 A, and every machine pairs the bridge again.
+- **If Figma refuses `ws://localhost:17331`** in a published plugin's `allowedDomains`, publish without it (the fonts
+  hosts only). The bridge stays in the owner's dev import until Figma allows it. Record what Figma said on #3147
+  (Q3147.21).
+- **A clean, current build only** (Q3147.16). `build:release` refuses to build when the build stamp's commit is
+  `-dirty` or `git-unavailable`, when the checkout is behind `origin/main`, or when it cannot tell (`git-stamp.mjs`,
+  `releaseCheck`; tested in `test-git-stamp.ts` with stand-in git). It writes nothing when it refuses. A dev build keeps
+  #3239's warning. Under `CI` (GitHub Actions, and every gate `verify.ts` runs) the release build is a gate, never
+  published, so it warns with the same reasons and builds.
+- **The privacy note** (Q3147.17) is in the plugin at the foot of the Inspect menu. Paste the same text into the publish
+  page's description: it is printed in the release note below.
+
+**Each publish:**
+1. On an up-to-date `main`: `npm ci`, then `npm run verify` is green.
+2. `npm run -w @prism3/plugin build:release`. It refuses a dirty or stale checkout. Then run
+   `npx tsx apps/plugin/lint-release-bundle.ts` and `npx tsx apps/plugin/lint-network-reach.ts`.
+3. In Figma desktop: **Plugins → Development → Import plugin from manifest…** → `apps/plugin/release/manifest.json` (the
+   release folder, not `dist/`). Run it once in a scratch file and check the menu stamp's commit.
+4. **Plugins → Development → Manage plugins in development → Prism3 Studio → Publish.** Choose the organization
+   (private), not Community. Add the privacy note to the description.
+5. If the organization's admins restrict plugins, ask them to approve it. Their screen shows the domains and `reasoning`.
+6. Repeat steps 3 to 5 for `apps/plugin/release-offline/manifest.json` (Prism3 Studio Offline).
+7. Record it (Q3147.18): `npx tsx tools/release/prepare.ts --figma-version <N>`, where N is Figma's version number. It
+   checks the checkout and both builds, writes the two zips and a draft release note, and prints the `git tag`,
+   `git push` and `gh release create --draft` commands for you to run (`tools/release/README.md`).
+
+**Rollback:** import the previous record's zip and publish it as a new version, with a note that says "rollback to
+r<N>". Users get it the next time they open the plugin.
 
 ## ⚠️ The plugin does NOT auto-update when the web UI changes
 

@@ -216,8 +216,9 @@ export const verdictButton = (open: (opener: HTMLElement) => void, cleanups: (()
   return b;
 };
 
-/** The privacy note at the foot of the Inspect menu (#3138). DRAFT under `docs/voice-standard.md` (Q3138.8). */
-export const PRIVACY_NETWORK = 'Brand fonts load from Google Fonts, which receives the font name and your IP address.';
+/** The privacy note at the foot of the Inspect menu (#3138). The network build's is the owner's approved wording
+ *  (#3147: Q3147.7 A approved it, Q3147.17 A put it here); the same text goes on the publish page. */
+export const PRIVACY_NETWORK = 'Prism3 loads Google Fonts families for previews: the family name and your IP address go to Google. When you turn on the agent link and pair a local agent, Prism3 connects to it on this computer only (localhost). Theming itself runs in the plugin; nothing else is sent.';
 export const PRIVACY_OFFLINE = 'Offline: makes no network calls.';
 
 // ── the Inspect menu, in the preview header ────────────────────────────────────────────────────────

@@ -303,3 +303,12 @@ parent's executor against the commit's, over the commit's own plans and shim, th
 were written from. **Its gate sibling is `apps/plugin/lint-executor-reach.ts`**, which runs the same `reach-draw.ts`
 for the one revision a PR raises and fails an entry that names fewer sets than moved; the tool answers for the
 revisions before the gate existed and exits 0. Minutes per revision; `--jobs` runs revisions side by side.
+
+## `tools/release/`
+
+`prepare.ts` prepares the record of one org-private publish (#3147, Q3147.18 A): it checks the checkout and both release
+builds, writes the two zips and a draft release note under `tools/release/out/` (git-ignored), and prints the `git tag`,
+`git push` and `gh release create --draft` commands. **It never publishes, tags or pushes; only the owner does.** Like
+`figma-bridge/`, it is a tool the owner runs, not a measurement, and it refuses (exit 1) rather than answering 0 when the
+checkout or a build is not the one to record. Its gate lives in the plugin: the clean-and-current check it shares with
+`build:release` (`releaseCheck`, `apps/plugin/git-stamp.mjs`) is tested in `apps/plugin/test-git-stamp.ts`.

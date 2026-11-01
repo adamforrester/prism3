@@ -1107,6 +1107,30 @@
       ]
     },
     {
+      "file": "tools/release/prepare.ts",
+      "summary": "PREPARE A RELEASE RECORD for \"Prism3 Studio\" (#3147, the owner's Q3147.18 A).",
+      "usage": [
+        {
+          "text": "npx tsx tools/release/prepare.ts --figma-version <N>            # after publishing version N in Figma",
+          "source": "tools/release/prepare.ts#header"
+        },
+        {
+          "text": "npx tsx tools/release/prepare.ts --figma-version <N> --out <dir>",
+          "source": "tools/release/prepare.ts#header"
+        }
+      ],
+      "flags": [
+        {
+          "flag": "--figma-version",
+          "source": "tools/release/prepare.ts#header"
+        },
+        {
+          "flag": "--out",
+          "source": "tools/release/prepare.ts#header"
+        }
+      ]
+    },
+    {
       "file": "packages/engine/emit-agent-reference.ts",
       "summary": "Prism3 — THE AGENT REFERENCE (#2637, owner Q300 A).",
       "usage": [

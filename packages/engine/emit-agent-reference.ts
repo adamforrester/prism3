@@ -253,6 +253,7 @@ export const CLI = [
   'tools/figma-mcp/agent-link.ts',
   'tools/figma-mcp/plan.ts',
   'tools/figma-mcp/report.ts',
+  'tools/release/prepare.ts',
   'packages/engine/emit-agent-reference.ts',
   'packages/engine/emit-figma-conventions.ts',
 ];
@@ -271,7 +272,7 @@ export const CLI_EXCLUDED: Record<string, string> = {
 const GATE = /^packages\/engine\/lint-[a-z0-9-]+\.ts$/;
 
 /** Where entry points can live. A file under one of these that reads `process.argv` must be listed or excluded. */
-const CLI_DIRS = ['', 'packages/engine', 'tools/figma-bridge', 'tools/figma-mcp'];
+const CLI_DIRS = ['', 'packages/engine', 'tools/figma-bridge', 'tools/figma-mcp', 'tools/release'];
 
 const readsArgv = (p: string): boolean => /process\.argv/.test(read(p));
 

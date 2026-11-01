@@ -37,6 +37,10 @@
  * loader → `[host example.com] in release/ui.html is allowed or reference-only`; an offline-only `new Image().src` to an
  * unlisted host → `[host tracker.example.net] in release-offline/ui.html is reference-only`; the same request written
  * protocol-relative, `'//tracker.example.net/p.gif'` (#3188, the N2 mutation) → the same name.
+ *
+ * #3147 (Q3147.17 A): each build's privacy note is the one for its reach: the owner's approved wording (Q3147.7 A) in
+ * `release/ui.html`, the offline line in `release-offline/ui.html`. MUTATION: `PRIVACY_NETWORK` back to the fonts-only
+ * line → `release/ui.html shows the approved privacy note`.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -162,6 +166,17 @@ for (const [f, text] of Object.entries(net)) {
       `${h} is in neither ALLOWED nor REFERENCE_ONLY: a request there is refused by Figma's CSP, and a reference needs its reason here`);
   }
 }
+
+// ── What each build tells the user it sends (#3147, Q3147.17 A) ───────────────────────────────────────
+// The Inspect menu's privacy note says what the build reaches, so it is held beside the reach itself. EXPECTED is the
+// owner's approved wording (Q3147.7 A), typed here from #3147, never read from the source.
+const PRIVACY_APPROVED = 'Prism3 loads Google Fonts families for previews: the family name and your IP address go to Google. When you turn on the agent link and pair a local agent, Prism3 connects to it on this computer only (localhost). Theming itself runs in the plugin; nothing else is sent.';
+const PRIVACY_OFFLINE = 'Offline: makes no network calls.';
+ok(net['ui.html'].includes(PRIVACY_APPROVED) && !net['ui.html'].includes(PRIVACY_OFFLINE),
+  'release/ui.html shows the approved privacy note (Q3147.7 A), and not the offline one',
+  'the note is PRIVACY_NETWORK in apps/studio/src/shell/preview.ts');
+ok(off['ui.html'].includes(PRIVACY_OFFLINE) && !off['ui.html'].includes(PRIVACY_APPROVED),
+  'release-offline/ui.html shows "Offline: makes no network calls.", and not the network note');
 
 // ── Two plugins, loadable at once ───────────────────────────────────────────────────────────────────
 for (const [key, m] of [['network', netM], ['offline', offM]] as const) {

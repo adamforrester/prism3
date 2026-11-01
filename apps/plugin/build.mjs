@@ -19,7 +19,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { maintainerProsePlugin } from './strip-maintainer-prose.mjs';
 import { chromeCss } from '../studio/chrome/esbuild-plugin.mjs';
-import { behindStamp, composeBuildId } from './git-stamp.mjs';
+import { behindStamp, commitStamp, composeBuildId, releaseCheck } from './git-stamp.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 /** THE RELEASE BUILD (#2530, owner Q239 A). `--release` writes `release/` instead of `dist/`: the same two bundles
@@ -134,6 +134,8 @@ const git = (args, timeout = 5000) => {
   const r = spawnSync('git', ['-C', TREE, ...args], { encoding: 'utf8', timeout });
   return { status: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '', error: r.error };
 };
+/** `git`, with the longer timeout a fetch needs. */
+const gitWithFetch = (args) => git(args, args[0] === 'fetch' ? 20000 : 5000);
 const buildId = () => {
   const BUILT_AT = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   return composeBuildId(BUILT_AT, treeToken(TREE), git);
@@ -383,6 +385,13 @@ if (watch) {
   fsWatch(resolve(root, '../studio/src'), { recursive: true }, go);
   console.log('watching apps/plugin/src + studio/src …');
 } else {
+  // A RELEASE FROM A CLEAN, CURRENT COMMIT ONLY (#3147, Q3147.16 A; `releaseCheck` in `git-stamp.mjs`). Checked before
+  // anything is written, so a refused release leaves no bundle behind to import by mistake. Strict unless under `CI`.
+  if (release) {
+    const check = releaseCheck(commitStamp(git).field, behindStamp(gitWithFetch).behind, !process.env.CI);
+    for (const l of check.lines) console.error(l);
+    if (check.refuse) process.exit(1);
+  }
   const id = await rebuild();
   // The identity, printed where the person who just ran the build is looking. The 2026-08-26 incident
   // was diagnosed by three lanes reading build output, and none of them could see which tree Figma had.
@@ -394,4 +403,5 @@ if (watch) {
 }
 // BEHIND origin/main? (#3239). Once per run, after the build, so the warning is the last thing printed and a
 // fetch that cannot run never stops a build. The fetch gets a longer timeout than the local reads.
-for (const w of behindStamp((args) => git(args, args[0] === 'fetch' ? 20000 : 5000)).warnings) console.warn(w);
+// A release has already been held to `releaseCheck` above, so it does not fetch a second time.
+if (!release) for (const w of behindStamp(gitWithFetch).warnings) console.warn(w);

@@ -86,3 +86,36 @@ export const composeBuildId = (builtAt, treeToken, run, warn = console.warn) => 
   for (const w of commit.warnings) warn(w);
   return `${builtAt} ${treeToken} ${commit.field}`;
 };
+
+/**
+ * A RELEASE IS BUILT ONLY FROM A CLEAN, CURRENT COMMIT (#3147, the owner's Q3147.16 A). A dev build keeps #3239's
+ * warnings; `--release` refuses to build when the commit field is `-dirty` or `NO_GIT`, or when the checkout is behind
+ * `origin/main`, or when it cannot tell whether it is behind (`behind` null: no fetch, no count). A warning in a
+ * terminal is easy to miss when publishing to an org, and on 2026-10-31 a stale checkout shipped a fixed bug back.
+ *
+ * `strict` is false only under `CI` (GitHub Actions sets it, and `verify.ts` sets it for every gate). There the release
+ * build is a gate, never published, and `main` moving under a running check would turn it red for nothing; so it warns
+ * with the same reasons and builds. The owner's own `npm run -w @prism3/plugin build:release` runs without `CI`, so a
+ * build made for publishing is always held to this.
+ *
+ * Returns the problems, the lines to print, and whether to stop before writing anything.
+ */
+export const releaseCheck = (commitField, behind, strict) => {
+  const problems = [];
+  if (commitField === NO_GIT) problems.push('git could not say which commit this is');
+  else if (commitField.endsWith('-dirty')) problems.push(`the working tree has changes not committed (${commitField})`);
+  if (behind === null) problems.push('it cannot tell whether the checkout is behind origin/main');
+  else if (behind > 0) problems.push(`the checkout is ${behind} commit${behind === 1 ? '' : 's'} behind origin/main`);
+  if (!problems.length) return { problems, refuse: false, lines: [] };
+  if (!strict) {
+    return { problems, refuse: false, lines: [`⚠ This release build is not one to publish (CI, so it builds anyway): ${problems.join('; ')}.`] };
+  }
+  return {
+    problems,
+    refuse: true,
+    lines: [
+      `✗ Release build refused: ${problems.join('; ')}.`,
+      '  A release is built only from a clean checkout at the tip of origin/main. Commit or stash, pull, then rebuild.',
+    ],
+  };
+};

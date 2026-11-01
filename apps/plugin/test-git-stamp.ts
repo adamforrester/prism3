@@ -15,8 +15,20 @@
  *
  * BY-NAME MUTATION (proven red, then restored): `composeBuildId` returning `${builtAt} ${treeToken}` (the stamp drops
  * the commit) → "stamp/commit" fails, with "stamp/dirty", "stamp/no-git", "stamp/no-binary" and "link/commit".
+ *
+ * #3147 (the owner's Q3147.16 A): a release build REFUSES a dirty, unknown or behind checkout; a dev build, and a
+ * release under `CI`, only warn. Section 5 drives `releaseCheck` with stubbed answers, then runs the REAL
+ * `build.mjs --release` with a stand-in `git` first on `PATH` (a shell script answering from literals) and `CI` unset,
+ * and requires it to exit 1 before writing a bundle. MUTATION: `releaseCheck` returning `refuse: false` when strict
+ * (warn only) → "release/refuses-dirty", "release/refuses-no-git", "release/refuses-behind",
+ * "release/refuses-unknown" and "release/build-refuses" fail, by name.
  */
-import { behindStamp, commitStamp, composeBuildId, NO_GIT } from './git-stamp.mjs';
+import { behindStamp, commitStamp, composeBuildId, releaseCheck, NO_GIT } from './git-stamp.mjs';
+import { spawnSync } from 'node:child_process';
+import { chmodSync, existsSync, mkdtempSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseBuildId } from '../studio/src/build-identity';
 import { createAgentLink } from './src/agent-link';
 import { MAILBOX } from './src/agent-protocol';
@@ -134,6 +146,53 @@ console.log('\n4. the agent link\'s `link` record carries the stamp, so an agent
   ok(p !== null && p.kind === 'tree' && p.commit === '76a1636b',
     `link/commit: the link record written to the file carries the commit (read ${JSON.stringify(record.build)})`);
   link.setOn(false);
+}
+
+console.log('\n5. a release build refuses a dirty, unknown or behind checkout (#3147, Q3147.16 A)');
+{
+  const strict = true;
+  const clean = releaseCheck('76a1636b', 0, strict);
+  ok(!clean.refuse && clean.lines.length === 0, 'release/clean: a clean commit at the tip of origin/main builds, and prints nothing');
+  const dirty = releaseCheck('76a1636b-dirty', 0, strict);
+  ok(dirty.refuse && dirty.lines[0] === '✗ Release build refused: the working tree has changes not committed (76a1636b-dirty).',
+    `release/refuses-dirty: a dirty tree is refused, naming the stamp (${JSON.stringify(dirty.lines[0])})`);
+  const nogit = releaseCheck(NO_GIT, 0, strict);
+  ok(nogit.refuse && nogit.lines[0] === '✗ Release build refused: git could not say which commit this is.', `release/refuses-no-git: a commit git cannot name is refused (${JSON.stringify(nogit.lines[0])})`);
+  const behind = releaseCheck('76a1636b', 2, strict);
+  ok(behind.refuse && behind.lines[0] === '✗ Release build refused: the checkout is 2 commits behind origin/main.', `release/refuses-behind: a checkout behind origin/main is refused (${JSON.stringify(behind.lines[0])})`);
+  const unknown = releaseCheck('76a1636b', null, strict);
+  ok(unknown.refuse && unknown.lines[0] === '✗ Release build refused: it cannot tell whether the checkout is behind origin/main.', `release/refuses-unknown: a checkout it cannot compare with origin/main is refused (${JSON.stringify(unknown.lines[0])})`);
+  const both = releaseCheck('76a1636b-dirty', 1, strict);
+  ok(both.refuse && both.problems.length === 2, 'release/every-reason: a dirty tree that is also behind names both reasons');
+  const ci = releaseCheck('76a1636b-dirty', 1, false);
+  ok(!ci.refuse && ci.lines[0] === '⚠ This release build is not one to publish (CI, so it builds anyway): the working tree has changes not committed (76a1636b-dirty); the checkout is 1 commit behind origin/main.',
+    `release/ci-warns: under CI the same reasons are a warning and the build goes on (${JSON.stringify(ci.lines[0])})`);
+}
+{
+  // The REAL build.mjs, with a stand-in git first on PATH. Answers are literals: a dirty tree at the tip of origin/main.
+  const here = dirname(fileURLToPath(import.meta.url));
+  const bin = mkdtempSync(join(tmpdir(), 'p3-fake-git-'));
+  writeFileSync(join(bin, 'git'), [
+    '#!/bin/sh',
+    'while [ "$1" = "-C" ]; do shift 2; done',
+    'case "$1" in',
+    '  rev-parse) echo 76a1636b ;;',
+    '  status) echo " M apps/plugin/build.mjs" ;;',
+    '  fetch) exit 0 ;;',
+    '  rev-list) echo 0 ;;',
+    '  *) echo "stand-in git: unexpected $*" >&2; exit 2 ;;',
+    'esac',
+    '',
+  ].join('\n'));
+  chmodSync(join(bin, 'git'), 0o755);
+  const outMain = join(here, 'release', 'main.js');
+  const before = existsSync(outMain) ? statSync(outMain).mtimeMs : null;
+  const env: NodeJS.ProcessEnv = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+  delete env.CI;
+  const r = spawnSync(process.execPath, [join(here, 'build.mjs'), '--release'], { cwd: here, env, encoding: 'utf8', timeout: 60000 });
+  const after = existsSync(outMain) ? statSync(outMain).mtimeMs : null;
+  ok(r.status === 1 && r.stderr.includes('✗ Release build refused: the working tree has changes not committed (76a1636b-dirty).') && before === after,
+    `release/build-refuses: the real build.mjs --release exits 1 on a dirty tree and writes no bundle (exit ${r.status}, release/main.js ${before === after ? 'untouched' : 'rewritten'}; ${JSON.stringify((r.stderr || r.stdout).trim().split('\n').slice(-2))})`);
 }
 
 console.log(failures ? `\n❌ ${failures} FAILED — ${executed} assertions executed` : `\n✅ ALL PASS — ${executed} assertions executed`);
