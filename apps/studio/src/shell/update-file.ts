@@ -303,9 +303,12 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         const on = t.update.has(id);
         const d = f.due[id];
         const c = checkOf(id);
-        const label: Node[] = [h('span', 'p3-upd-setname', nameOf(id))];
-        if (d?.state === 'due') label.push(hook(h('span', 'p3-sg-tag', UPDATE_COPY.dueWhy(d)), 'update-set-due'));
-        const box = check('update-due-set', `due=${id}`, on, label, () => {
+        // #3133: the name and its tag share one wrapping line (`.p3-check-text`), so where they do not fit beside each other
+        // the tag drops under the name, and a tag wider than the line wraps inside it, never past the dialog's edge.
+        const text = h('span', 'p3-check-text p3-upd-checktext');
+        text.append(h('span', 'p3-upd-setname', nameOf(id)));
+        if (d?.state === 'due') text.append(hook(h('span', 'p3-sg-tag', UPDATE_COPY.dueWhy(d)), 'update-set-due'));
+        const box = check('update-due-set', `due=${id}`, on, [text], () => {
           const next = new Set(t.update);
           if (on) next.delete(id); else next.add(id);
           ticks = { ...t, update: next };
