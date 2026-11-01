@@ -3826,28 +3826,30 @@
       ]
     },
     "field.placeholder": {
-      "$description": "Form field placeholder ink — a readable hint, 4.5:1 on background.primary, the same ink as text.secondary (not a sub-AA placeholder)",
+      "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
       "meaning": "Form input / field chrome",
-      "when_to_use": "Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: clears 4.5:1 in every mode on `background.primary`. Below 4.5:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use as a label (a11y anti-pattern) or for the entered value (use `text.primary`).",
       "mode_overrides": {
-        "light": "{nbds.core.palette.neutral.500}",
+        "light": "{nbds.core.palette.neutral.550}",
         "dark": "{nbds.core.palette.neutral.450}",
-        "hc-light": "{nbds.core.palette.neutral.700}",
-        "hc-dark": "{nbds.core.palette.neutral.300}"
+        "hc-light": "{nbds.core.palette.neutral.650}",
+        "hc-dark": "{nbds.core.palette.neutral.350}"
       },
       "sits_on": [
-        "background.primary"
+        "background.primary",
+        "background.secondary",
+        "foreground.primary"
       ],
       "tracks": [
         "field.border.rest"
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.59,
-          "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
+          "ratio": 4.52,
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
     },
@@ -10063,7 +10065,6 @@
       "aliased_by": [
         "color.disabled.on-fill",
         "color.field.border.hover",
-        "color.field.placeholder",
         "color.icon.secondary",
         "color.inverse.field.border.hover",
         "color.text.secondary"
@@ -10077,6 +10078,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.field.border.hover",
+        "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
@@ -10129,7 +10131,6 @@
         "color.border.primary",
         "color.border.tertiary",
         "color.field.border.rest",
-        "color.field.placeholder",
         "color.icon.secondary",
         "color.inverse.border.primary",
         "color.inverse.border.secondary",
@@ -10154,6 +10155,7 @@
         "color.disabled.on-fill",
         "color.disabled.text",
         "color.field.border.rest",
+        "color.field.placeholder",
         "color.icon.tertiary",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
@@ -10187,6 +10189,7 @@
         "color.border.secondary",
         "color.disabled.on-fill",
         "color.field.border.hover",
+        "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
         "color.inverse.field.border.hover",
         "color.inverse.field.placeholder",
@@ -10203,7 +10206,6 @@
       "aliased_by": [
         "color.border.secondary",
         "color.field.border.hover",
-        "color.field.placeholder",
         "color.icon.secondary",
         "color.inverse.border.secondary",
         "color.inverse.border.tertiary",

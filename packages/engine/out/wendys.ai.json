@@ -3689,8 +3689,8 @@
       "mode_overrides": {
         "light": "{wds.core.palette.neutral.550}",
         "dark": "{wds.core.palette.neutral.450}",
-        "hc-light": "{wds.core.palette.neutral.700}",
-        "hc-dark": "{wds.core.palette.neutral.300}"
+        "hc-light": "{wds.core.palette.neutral.650}",
+        "hc-dark": "{wds.core.palette.neutral.350}"
       },
       "sits_on": [
         "background.primary",
@@ -8996,7 +8996,6 @@
       "aliased_by": [
         "color.disabled.on-fill",
         "color.field.border.hover",
-        "color.field.placeholder",
         "color.icon.secondary",
         "color.inverse.field.border.hover",
         "color.text.secondary"
@@ -9010,6 +9009,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.field.border.hover",
+        "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
@@ -9119,6 +9119,7 @@
       "aliased_by": [
         "color.border.secondary",
         "color.field.border.hover",
+        "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
         "color.inverse.field.border.hover",
         "color.inverse.field.placeholder",
@@ -9136,7 +9137,6 @@
         "color.border.secondary",
         "color.disabled.on-fill",
         "color.field.border.hover",
-        "color.field.placeholder",
         "color.icon.secondary",
         "color.inverse.border.secondary",
         "color.inverse.border.tertiary",

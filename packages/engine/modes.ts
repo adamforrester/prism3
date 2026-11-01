@@ -1998,25 +1998,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const FIELD_HOVER_STEPS = 4;
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
   put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'background.secondary', cfg.nonTextMin);
-  // `secondaryTextGround: 'page'` (owner Q-TXT1 A) fits the page's secondary ink on `background.primary`, the same
-  // ground `text.primary` names, so it is the lightest secondary that still clears its bar on the page. Light and
-  // dark only (owner Q3212.3 B): high contrast keeps its floor fit, because HC is for maximum legibility and the
-  // floor there is also the hover wash and the subtle tints.
-  const pageSecondary = theme.secondaryTextGround === 'page' && cfg.kind !== 'hc'
-    ? { rgb: baseRgb, name: 'background.primary', label: 'background.primary' }
-    : { rgb: floorRgb, name: cfg.floorName, label: cfg.floorLabel };
-  // The placeholder ink sits on the field, whose transparent fill lets the ground behind it through, so it is gated
-  // there, not against the (paint-less) fill. It takes `text.secondary`'s own fit: the same candidates, the same bar
-  // and the same ground (`pageSecondary`), so the field hosts, which bind `text.secondary` for the placeholder, and
-  // this token can never show two placeholder inks (#3220, owner Q3212.5 A). By default that ground is the floor,
-  // `background.secondary`, the darkest permissible ground behind the fill; under `secondaryTextGround: 'page'` it is
-  // `background.primary`, in light and dark only.
-  const placeholderOnPage = pageSecondary.name === 'background.primary';
-  put('field.placeholder', pickMinPass(textCands, pageSecondary.rgb, cfg.secondaryMin),
-    placeholderOnPage
-      ? `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on background.primary, the same ink as text.secondary (not a sub-AA placeholder)`
-      : `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)`,
-    pageSecondary.name, cfg.secondaryMin);
+  // The placeholder ink sits on the field, whose transparent fill lets the darkest permissible ground
+  // (`background.secondary`) through — so it is gated there, not against the (now paint-less) fill. Same
+  // rgb the fill used to be, so the pick is byte-identical; only the recorded ground moves off `field.fill`.
+  put('field.placeholder', pickMinPass(textCands, asGround('background.secondary', cfg.bg.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)`, 'background.secondary', cfg.secondaryMin);
 
   // The same four, for a field sitting on a dark hero / inverse band (#892). GENERATED against the
   // inverse ground and contrast-verified there — NOT a hand-mirrored twin, which is the technique the
@@ -2243,7 +2228,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //
   // Both passes run for every brand. The second used to be gated by the `inverse` lever; #895 removed
   // it, so the inverse content set is now as unconditional as the page one.
-  // `pageSecondary` (the ground `text.secondary` is fitted on) is defined above `field.placeholder`, which shares it.
+  // `secondaryTextGround: 'page'` (owner Q-TXT1 A) fits the page's secondary ink on `background.primary`, the same
+  // ground `text.primary` names, so it is the lightest secondary that still clears its bar on the page. Light and
+  // dark only (owner Q3212.3 B): high contrast keeps its floor fit, because HC is for maximum legibility and the
+  // floor there is also the hover wash and the subtle tints.
+  const pageSecondary = theme.secondaryTextGround === 'page' && cfg.kind !== 'hc'
+    ? { rgb: baseRgb, name: 'background.primary', label: 'background.primary' }
+    : { rgb: floorRgb, name: cfg.floorName, label: cfg.floorLabel };
   const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, floorLabel: cfg.floorLabel, secondary: pageSecondary, dir, tint: subtleTint, mutedStep, page: true };
   const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', floorLabel: 'inverse.background.secondary', secondary: { rgb: invFloorRgb, name: 'inverse.background.secondary', label: 'inverse.background.secondary' }, dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
 

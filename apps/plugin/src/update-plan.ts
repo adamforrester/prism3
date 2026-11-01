@@ -1586,7 +1586,7 @@ export const previewLine = (p: SetPreview): string => {
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
   parts.push(...furnitureParts(p.furniture, 'to draw', 'to clear'));
   // DRAFT (#2464): the members not built by Prism3 stay counted on a set that reads up to date, as on any other.
-  const own = c.unstamped ? ` ${c.unstamped} not built by Prism3, left as they are.` : '';
+  const own = c.unstamped ? ` ${c.unstamped} not built by Prism3, left as ${c.unstamped === 1 ? 'it is' : 'they are'}.` : '';
   // DRAFT (#2476, owner decision Q191 2B): on a set with no changes, the members Adopt could claim are named as such.
   const k = p.adoptable.length;
   const adopt = k ? ` Adopt can claim ${k === c.unstamped ? (k === 1 ? 'it' : 'them') : `${k} of them`}.` : '';

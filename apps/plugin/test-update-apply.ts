@@ -64,6 +64,8 @@
  *                  Mutations: the in-place swap skipped → `<host> leads/primary` and `<host> leads/verdict` (the
  *                  apply's verify reads each nested instance's member, #3206); the `kept` check dropped from the
  *                  nested path → `<host> leads/hand edit kept`.
+ *   verb/…         a count's verb and pronoun agree with it in the Update verdict (#3243): "1 field still differs",
+ *                  "1 left as it is", and the plural for two. Mutations: each form reverted → the `verb/…` arm it names.
  *   reach/…        a member stamped under a revision that did not redraw its set reads current; below the record's
  *                  floor it is to update (#3101). Mutation: `update-plan.ts` without `reaches` → `reach/dry run 42`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
@@ -1956,7 +1958,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const o = res.outcomes[0];
   const v = applyVerdict(res);
   ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
-    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place, 1 left as they are.'
+    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place, 1 left as it is.'
     && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
     `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
 }
@@ -1990,6 +1992,21 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
     `misses/other: any other miss leaves the set not verified, quoted, the updated count as it was (${JSON.stringify(v)})`);
 }
 {
+  // A COUNT'S VERB AGREES WITH IT (#3243): "1 field still differs", "2 fields still differ"; "1 left as it is", "2 left
+  // as they are". Outcomes written out by hand, so the expected lines are typed here, not built. Mutations: the verb
+  // left plural → `verb/differs 1`; left singular → `verb/differ 2`; the pronoun left plural → `verb/left 1`.
+  const base = { def: 'x', set: 'x', updated: ['a=1', 'a=2'], added: 0, renamed: 0, deprecated: [], skipped: [] as { member: string; reason: string }[], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [] as string[], misses: [] };
+  const lineOf = (o: typeof base, re: RegExp): string => applyVerdict({ outcomes: [o], refused: [], missing: [] } as any).lines.find((l) => re.test(l)) ?? '(none)';
+  const one = lineOf({ ...base, content: ['a=1/label.nestVariant: f/emphasis=secondary (the plan says f/emphasis=primary)'] }, /from the plan/);
+  ok(one === 'x: 1 field still differs from the plan — a=1/label.nestVariant: f/emphasis=secondary (the plan says f/emphasis=primary).', `verb/differs 1: one field reads "still differs" (${one})`);
+  const two = lineOf({ ...base, content: ['a=1/.opacity: 0.5 (the plan says 1)', 'a=2/.opacity: 0.5 (the plan says 1)'] }, /from the plan/);
+  ok(two === 'x: 2 fields still differ from the plan — a=1/.opacity: 0.5 (the plan says 1); a=2/.opacity: 0.5 (the plan says 1).', `verb/differ 2: two fields read "still differ" (${two})`);
+  const left1 = lineOf({ ...base, skipped: [{ member: 'a=3', reason: 'not built by Prism3' }] }, /left as/);
+  ok(left1 === 'x: 2 updated in place, 1 left as it is.', `verb/left 1: one member left reads "left as it is" (${left1})`);
+  const left2 = lineOf({ ...base, skipped: [{ member: 'a=3', reason: 'not built by Prism3' }, { member: 'a=4', reason: 'not built by Prism3' }] }, /left as/);
+  ok(left2 === 'x: 2 updated in place, 2 left as they are.', `verb/left 2: two members left read "left as they are" (${left2})`);
+}
+{
   // FURNITURE DRAWN FOR A SET WHOSE MEMBERS WERE ALL LEFT (#2803 review): every member skipped (`noBaseline: 'skip'`
   // here) while the dry run also listed furniture. The furniture is drawn and named, but the members still hold what
   // the dry run listed, so the set is NOT UPDATED (#2364's rule), never a ✓. An outcome written out by hand, so the
@@ -1997,7 +2014,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const o = { def: 'button', set: 'button', updated: [], added: 0, renamed: 0, deprecated: [], skipped: [{ member: 'size=md', reason: 'no as-built record' }], kept: [], unrecorded: [], handEdits: 'keep' as const,
     identity: [], content: [], misses: [], furniture: { labels: 3, backdrops: 0, clear: 0 } };
   const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
-  ok(!v.ok && v.headline === '✗ 1 set not updated' && v.lines[0] === 'button: 3 canvas labels drawn, 1 left as they are.',
+  ok(!v.ok && v.headline === '✗ 1 set not updated' && v.lines[0] === 'button: 3 canvas labels drawn, 1 left as it is.',
     `idle/furniture: a set whose members were all left is not updated, though its furniture was drawn (${JSON.stringify(v)})`);
 }
 {
