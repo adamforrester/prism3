@@ -2850,16 +2850,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Form field placeholder — 4.5:1 on background/secondary",
+      "description": "Form field placeholder — 4.5:1 on background/primary",
       "value": {
-        "r": 0.38823530077934265,
-        "g": 0.4156862795352936,
-        "b": 0.43529412150382996,
+        "r": 0.43921568989753723,
+        "g": 0.4627451002597809,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/550"
+        "name": "nbds/core/palette/neutral/500"
       }
     },
     {
