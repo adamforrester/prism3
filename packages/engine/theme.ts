@@ -3456,7 +3456,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const actionAnchorStep = actionPalette === 'primary' ? anchorStep
     : actionBrandColor ? autoPlaceStep(actionBrandColor.oklch.l)
     : 500;
-  if (actionBrandColor) notes.push(`action: anchored at '${actionPalette}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
+  // A pinned `actionAnchorStep` is applied exactly (`modes.ts` `restFill`, `exact`, #331) and never moved, so
+  // the note reports the pin, not the auto-placed step, and drops the auto-move clause (#1894). Its floor miss
+  // is reported as the role's own ratio. Wording: DRAFT for the owner (#1894 Q-block).
+  if (actionBrandColor) notes.push(input.actionAnchorStep !== undefined
+    ? `action: pinned at '${actionPalette}' step ${input.actionAnchorStep} by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.`
+    : `action: anchored at '${actionPalette}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
 
   // ---- link palette (#1496) ----
   // Links DEFAULT to following the action colour: an unset `linkPalette` resolves to the palette the action
