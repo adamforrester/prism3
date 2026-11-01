@@ -28,11 +28,14 @@
  *   · `apply/panel`, `apply/agent`: the panel's Apply Theme posts its check reading; an agent's posts none.
  *
  * OVER THE FILE SHIM (`runApplyTheme`, as `test-mcp-paste.ts` runs it): Apply Theme's seven stages, in order, each
- * announced before it writes (`apply/stages`), and inside the color stage a hand-back every 200 variables written
- * (`apply/color ticks`: the count is the plan's own rows, palette, values and aliases, over 200); and a paced apply
- * writes exactly what an unpaced one does (`apply/same`).
+ * announced before it writes (`apply/stages`); a paced apply writes exactly what an unpaced one does (`apply/same`); and
+ * THE CADENCE (#3208, `apply/cadence <stage>`): the shim counts every host call (`FileShim.calls`), the pace reads the
+ * count at each stage and each tick, and no stage of any example brand's apply, into an empty file or again over its own,
+ * makes more than `CADENCE` (32) calls between two chances to hand the thread back. Through `main.ts`, the panel's Apply
+ * Theme is heard from inside its stages once about `PACE_MS` of work has run (`apply/inside`), and not with a clock that
+ * stands still (`apply/paced`).
  *
- * INDEPENDENCE (docs/34): the sets, the stage order, the 200 and the 50 ms are literals typed here; the written state is
+ * INDEPENDENCE (docs/34): the sets, the stage order, the 32 and the 50 ms are literals typed here; the written state is
  * read off the shims' own nodes and variables, never off the run's report.
  *
  * MUTATIONS, each failing by name: the work reading not posted (`opts.progress?.(work)` dropped in `update-apply.ts`)
@@ -40,8 +43,10 @@
  * budget test dropped) → `progress/paced`; `paced` never saying `again` → `progress/inside`; the reading posted for an
  * agent's run (`panel` true) → `progress/agent`; the boundary stop read dropped → `stop/boundary`; the stop before the
  * version dropped → `stop/before`; `update-stop` setting the flag with nothing running → `stop/idle`; a stage not
- * announced → `apply/stages`; the color tick dropped → `apply/color ticks`; the check reading moved after `runHost`
- * → `progress/check-first`.
+ * announced → `apply/stages`; the check reading moved after `runHost` → `progress/check-first`; #3208: a stage's
+ * per-row tick dropped (the float pass A tick, the color alias tick, the text-style tick, each in its executor) →
+ * `apply/cadence <that stage>`; `themePace`'s tick never handing back → `apply/inside`; handing back at every tick (the
+ * `PACE_MS` test dropped) → `apply/paced`.
  */
 import { makeShim } from './component-shim';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
@@ -62,13 +67,21 @@ const J = JSON.stringify;
 
 /* ── Apply Theme over the file shim ─────────────────────────────────────────────────────────────────────────────── */
 
-console.log('Apply Theme\'s stages and its color hand-backs (#3170), over the file shim');
+console.log('Apply Theme\'s stages, and a chance to hand back inside each (#3170, #3208), over the file shim');
 const BRAND = (exampleBrands as Record<string, BrandInput>)[Object.keys(exampleBrands)[0]];
 const STAGES = ['float', 'color', 'styles', 'grid', 'type-vars', 'text-styles', 'motion'];
+/** #3208: the most host calls any stage may make between two chances to hand the thread back. A component write offers
+ *  one after every member; Apply Theme offers one after every variable or style, and the heaviest is a variable written
+ *  across every mode of its collection (25 calls measured on the example brands, the `layout` breakpoints). A stage that
+ *  writes a whole collection, or its aliases, in one turn is hundreds over: 1,571 in the color stage, measured before. */
+const CADENCE = 32;
+/** Every face each brand's text styles ask for, so the text-style stage writes its rows rather than skipping them. */
+const facesOf = (b: BrandInput) => [...new Map(themePlans(b).textPlan.map((r) => [`${r.fontFamilyPrimary}|${r.fontStyle}`, { family: r.fontFamilyPrimary, style: r.fontStyle }])).values()];
 {
   const events: (string | [string, string, number])[] = [];
   let stage = '';
   const paced = new FileShim();
+  paced.faces = facesOf(BRAND);
   const r = await runApplyTheme(BRAND, paced as any, undefined, {
     check: () => { events.push('check'); },
     stage: async (s, done) => { stage = s; events.push(['stage', s, done]); },
@@ -78,15 +91,38 @@ const STAGES = ['float', 'color', 'styles', 'grid', 'type-vars', 'text-styles', 
   const stages = events.filter((e): e is [string, string, number] => Array.isArray(e) && e[0] === 'stage');
   ok(events[0] === 'check' && J(stages.map((e) => e[1])) === J(STAGES) && J(stages.map((e) => e[2])) === J([0, 1, 2, 3, 4, 5, 6]),
     `apply/stages: the check first, then the seven stages in order, each with the stages done before it (${J(events.filter((e) => !Array.isArray(e) || e[0] === 'stage'))})`);
-  const c = themePlans(BRAND).colorPlan;
-  const rows = c.palette.length + c.color.create.length + c.color.aliases.length;
-  const ticks = events.filter((e) => Array.isArray(e) && e[0] === 'tick');
-  ok(ticks.length === Math.floor(rows / 200) && ticks.length >= 2 && ticks.every((e) => (e as string[])[1] === 'color'),
-    `apply/color ticks: inside the color stage, one hand-back per 200 variables written (${ticks.length} for ${rows} rows, in ${J([...new Set(ticks.map((e) => (e as string[])[1]))])})`);
   const plain = new FileShim();
+  plain.faces = facesOf(BRAND);
   await runApplyTheme(BRAND, plain as any);
   const state = (f: FileShim) => J({ c: f.collections.map((x) => [x.name, x.modes]), v: f.vars.map((x) => [x.name, x.valuesByMode, x.scopes]), s: f.styles });
   ok(state(paced) === state(plain), 'apply/same: a paced apply writes exactly what an unpaced one does');
+}
+// THE CADENCE (#3208). The shim counts every host call (`FileShim.calls`); the pace reads the count at each stage and at
+// each tick, so a gap is the calls one turn made. Every example brand, into an empty file and again over its own apply
+// (the second run renames nothing and creates nothing, so its rows are lighter, but its reads differ). The calls before
+// the first stage (the font preload and the pre-flight's reads) are the check, not a stage, and are not held here.
+for (const [name, brand] of Object.entries(exampleBrands as Record<string, BrandInput>)) {
+  for (const run of ['empty', 'again'] as const) {
+    const f = new FileShim();
+    f.faces = facesOf(brand);
+    if (run === 'again') await runApplyTheme(brand, f as any);
+    const worst = new Map<string, number>(STAGES.map((st) => [st, 0]));
+    const turns = new Map<string, number>(STAGES.map((st) => [st, 0]));
+    let stage = '';
+    let at = 0;
+    const turn = (): void => { if (stage) { worst.set(stage, Math.max(worst.get(stage)!, f.calls - at)); turns.set(stage, turns.get(stage)! + 1); } at = f.calls; };
+    const r = await runApplyTheme(brand, f as any, undefined, {
+      check: () => {},
+      stage: async (st) => { turn(); stage = st; },
+      tick: async () => { turn(); },
+    });
+    turn();
+    if (!r.guarded.ok) { ok(false, `apply/cadence ${name} ${run}: premise, the apply wrote cleanly`); continue; }
+    for (const st of STAGES) {
+      ok(worst.get(st)! <= CADENCE,
+        `apply/cadence ${st}: ${name}, ${run === 'empty' ? 'into an empty file' : 'again over its own apply'}, at most ${CADENCE} host calls between two chances to hand back (worst ${worst.get(st)}, over ${turns.get(st)} turns)`);
+    }
+  }
 }
 
 /* ── the host: the component shim, a page list, and the UI channel, through `main.ts` ──────────────────────────────── */
@@ -343,6 +379,42 @@ ok(J(SETS.map((id) => membersOf(id).length)) === J([7, 50, 45]), `premise: the t
   const v = await send({ type: 'apply-theme', input: BRAND }, ['apply-result']);
   const rs = posted.filter((m) => m?.type === 'run-progress' && m.run === 'apply-theme');
   ok(!!v && rs[0]?.phase === 'check' && rs[0].total === 7, `apply/panel: the panel's Apply Theme posts its check reading first, over 7 stages (${J(rs[0])})`);
+}
+// ── #3208: the panel's Apply Theme is heard from inside its stages, on the update's clock ──
+// With the test's clock stepping `STEP_MS` a call, a stage that runs past about 50 ms posts its own reading again; with a
+// clock that stands still, each stage posts once, at its boundary.
+{
+  // The component shim holds no variables: for these two runs the host's variable and style surface is a file shim's, as
+  // the apply over the file shim above writes it, and the component shim's own is put back after.
+  const API = ['getLocalEffectStylesAsync', 'getLocalPaintStylesAsync', 'getLocalGridStylesAsync', 'getLocalTextStylesAsync', 'createEffectStyle',
+    'createPaintStyle', 'createGridStyle', 'createTextStyle', 'loadFontAsync', 'listAvailableFontsAsync'];
+  const kept = new Map(['variables', ...API].map((k) => [k, Object.getOwnPropertyDescriptor(shim, k)] as const));
+  const graft = (): void => {
+    const f = new FileShim();
+    f.faces = facesOf(BRAND);
+    Object.defineProperty(shim, 'variables', { configurable: true, writable: true, value: f });
+    for (const k of API) Object.defineProperty(shim, k, { configurable: true, writable: true, value: (f as any)[k] });
+  };
+  const inside = async (step: number): Promise<{ v: any; extra: Record<string, number> }> => {
+    graft();
+    clockOn(step);
+    const v = await send({ type: 'apply-theme', input: BRAND }, ['apply-result']);
+    clockOff();
+    const extra: Record<string, number> = {};
+    for (const m of posted.filter((x) => x?.type === 'run-progress' && x.run === 'apply-theme' && x.phase === 'work')) extra[m.item] = (extra[m.item] ?? -1) + 1;
+    if (v?.ok === false) console.error(`    the apply refused: ${v.summary}`);
+    return { v, extra };
+  };
+  const on = await inside(STEP_MS);
+  const heard = STAGES.filter((st) => (on.extra[st] ?? 0) > 0);
+  ok(on.v?.type === 'apply-result' && ['float', 'color'].every((st) => heard.includes(st)),
+    `apply/inside: the panel's Apply Theme is heard from again inside its long stages, once about 50 ms of work has run (${J(on.extra)} at ${STEP_MS} ms a clock call)`);
+  const off = await inside(0);
+  ok(off.v?.type === 'apply-result' && STAGES.every((st) => off.extra[st] === 0),
+    `apply/paced: with a clock that stands still, each stage is heard from once, at its boundary (${J(off.extra)})`);
+  for (const [k, d] of kept) { if (d) Object.defineProperty(shim, k, d); else delete shim[k]; }
+}
+{
   posted.length = 0;
   const sunk: any[] = [];
   await (main.ACTIONS.applyTheme as (...a: unknown[]) => Promise<void>)(BRAND, { post: (m: unknown) => { sunk.push(m); }, data: () => undefined });
