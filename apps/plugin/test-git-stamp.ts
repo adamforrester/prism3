@@ -16,13 +16,15 @@
  * BY-NAME MUTATION (proven red, then restored): `composeBuildId` returning `${builtAt} ${treeToken}` (the stamp drops
  * the commit) → "stamp/commit" fails, with "stamp/dirty", "stamp/no-git", "stamp/no-binary" and "link/commit".
  * `behindCheck` without its `NO_GIT` test → "skip/no-git" and "skip/stand-in" fail; without its `watch` test →
- * "skip/watch" fails (#3261).
+ * "skip/watch" fails (#3261). `build.mjs` calling `behindStamp` again (its half of #3261 reverted) → "build/no-git"
+ * fails; `build.mjs` passing `{ watch: false }` → "build/watch" fails.
  */
 import { behindCheck, behindStamp, commitStamp, composeBuildId, NO_GIT } from './git-stamp.mjs';
-import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseBuildId } from '../studio/src/build-identity';
 import { createAgentLink } from './src/agent-link';
 import { MAILBOX } from './src/agent-protocol';
@@ -159,6 +161,78 @@ console.log('\n3b. the build skips the fetch when git cannot run, and under --wa
   ok(id.endsWith(` ${NO_GIT}`) && calls.length > 0 && !calls.some((c) => c.startsWith('fetch')) && !lines.some((l) => l.includes('Could not fetch'))
     && lines.length === 2 && lines[0].startsWith('⚠ git did not run'),
     `skip/stand-in: with a git that fails, the build prints the one warning pair and never runs a fetch (git saw ${JSON.stringify(calls)}; printed ${lines.length} line(s))`);
+}
+
+console.log('\n3c. the real `node build.mjs`, with a stand-in git first on PATH (#3261)');
+{
+  // The 3b arms drive `behindCheck` directly, so they cannot see what `build.mjs` passes it. These run the build
+  // itself, as a person does, and read back what reached git. The stand-in logs each call; `STANDIN_GIT_MODE=fail`
+  // refuses every one as the license prompt did, `work` answers as a clean checkout with no reachable remote.
+  // The build writes `dist/`, so the checkout's own `dist/` is moved aside first and put back after.
+  const here = dirname(fileURLToPath(import.meta.url));
+  const dist = join(here, 'dist');
+  const aside = join(here, `.dist-git-stamp-test-${process.pid}`);
+  const dir = mkdtempSync(join(tmpdir(), 'p3-standin-build-git-'));
+  const log = join(dir, 'calls.log');
+  writeFileSync(join(dir, 'git'), [
+    '#!/bin/sh',
+    `echo "$*" >> "${log}"`,
+    '[ "$1" = "-C" ] && shift 2',
+    'if [ "$STANDIN_GIT_MODE" = fail ]; then echo "You have not agreed to the license agreements." >&2; exit 69; fi',
+    'case "$1" in',
+    '  rev-parse) echo 76a1636b ;;',
+    '  status) ;;',
+    '  fetch) echo "fatal: the stand-in has no remote" >&2; exit 128 ;;',
+    '  rev-list) echo 0 ;;',
+    '  *) exit 1 ;;',
+    'esac',
+    '',
+  ].join('\n'));
+  chmodSync(join(dir, 'git'), 0o755);
+  type Run = { code: number | null; out: string; calls: string[] };
+  /** One build. Under `--watch` it is stopped 1 s after `watching …`: the behind check runs straight after that line. */
+  const build = (args: string[], mode: 'fail' | 'work'): Promise<Run> => new Promise((done) => {
+    rmSync(log, { force: true });
+    const child = spawn(process.execPath, [join(here, 'build.mjs'), ...args], {
+      cwd: here, stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH ?? ''}`, STANDIN_GIT_MODE: mode },
+    });
+    let out = '';
+    let stopping = false;
+    const cap = setTimeout(() => child.kill('SIGTERM'), 120000);
+    const read = (d: Buffer) => {
+      out += String(d);
+      if (args.includes('--watch') && !stopping && out.includes('watching ')) { stopping = true; setTimeout(() => child.kill('SIGTERM'), 1000); }
+    };
+    child.stdout.on('data', read);
+    child.stderr.on('data', read);
+    child.on('close', (code) => {
+      clearTimeout(cap);
+      let calls: string[] = [];
+      try { calls = readFileSync(log, 'utf8').trim().split('\n').filter(Boolean); } catch { calls = []; }
+      done({ code, out, calls });
+    });
+  });
+  const fetched = (r: Run) => r.calls.some((c) => c.includes('fetch --quiet origin main'));
+  const tail = (r: Run) => `exit ${r.code}; git saw ${JSON.stringify(r.calls.map((c) => c.replace(/^-C \S+ /, '')))}`;
+  const hadDist = existsSync(dist);
+  if (hadDist) renameSync(dist, aside);
+  try {
+    // The control: a build that runs once with a working git DOES fetch, so the stand-in's log can see a fetch.
+    const once = await build([], 'work');
+    ok(once.code === 0 && fetched(once) && once.out.includes('Could not fetch origin/main'),
+      `build/fetch-seen: a one-shot build with a working git fetches, and the stand-in sees it (${tail(once)})`);
+    const noGit = await build([], 'fail');
+    ok(noGit.code === 0 && noGit.out.includes(NO_GIT) && noGit.calls.length > 0 && !fetched(noGit) && !noGit.out.includes('Could not fetch'),
+      `build/no-git: a build where git cannot run never fetches and prints no "Could not fetch" note (${tail(noGit)})`);
+    const watched = await build(['--watch'], 'work');
+    ok(watched.out.includes('watching ') && watched.calls.some((c) => c.includes('rev-parse')) && !fetched(watched),
+      `build/watch: \`node build.mjs --watch\` stamps the commit and never fetches (${tail(watched)})`);
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+    if (hadDist) renameSync(aside, dist);
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 console.log('\n4. the agent link\'s `link` record carries the stamp, so an agent reads the commit from the file');

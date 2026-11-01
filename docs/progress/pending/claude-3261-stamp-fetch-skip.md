@@ -29,7 +29,18 @@ New `skip/…` arms in `test-git-stamp.ts`:
   prompt did. The build's stamp and behind check run against it through a real process, and the arm requires the one
   warning pair, no "Could not fetch" note, and no `fetch` in git's log.
 
-Mutations: without the `git-unavailable` test, `skip/no-git` and `skip/stand-in` fail (git saw a fetch, and three
+New `build/…` arms run the real `node build.mjs` with a stand-in git first on PATH, so `build.mjs`'s half of the fix
+is held too. The independent review found that reverting it passed every `skip/…` arm, because those drive
+`behindCheck` directly:
+
+- `build/fetch-seen`: the control. A one-shot build with a working git fetches, and the stand-in's log shows it.
+- `build/no-git`: with a git that refuses every call, the build never fetches and prints no "Could not fetch" note.
+- `build/watch`: `node build.mjs --watch`, stopped 1 s after `watching …`, stamps the commit and never fetches.
+
+The build writes `dist/`, so the test moves the checkout's `dist/` aside and puts it back after.
+
+Mutations: `build.mjs` calling `behindStamp` again fails `build/no-git`. `build.mjs` passing `{ watch: false }` fails
+`build/watch`. Without the `git-unavailable` test, `skip/no-git` and `skip/stand-in` fail (git saw a fetch, and three
 lines were printed). Without the watch test, `skip/watch` fails. By hand, a real `node build.mjs` with the failing
 stand-in on PATH ran only `rev-parse` and finished in 3 s. `--watch` with a pass-through git ran `rev-parse` and
 `status`, then no fetch.
