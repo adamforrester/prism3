@@ -2968,9 +2968,9 @@ const COLLAPSE_MS = 4000;
  *  the prune; the Figma menu that held them is gone. */
 const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'] };
 /** Update file's label, idle and while a run is out (#2909; DRAFT words, Q2909.10 A), drawn as `pendingLabel` draws a
- *  busy label (its "…" cell, then the words). Literal. */
+ *  busy label (its "…" cell, then the words, with no "…" of their own: #2908 Q2908.1 A). Literal. */
 const UPDATE_LABEL = 'Update file';
-const UPDATE_RUNNING = '\u2026 Updating\u2026';
+const UPDATE_RUNNING = '\u2026 Updating';
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
 if (runs('10')) {
 const DRAWER_NOTE = { figma: 'Results of Apply, Build and Prune appear here after they run.', web: 'Nothing has run in this session.' };

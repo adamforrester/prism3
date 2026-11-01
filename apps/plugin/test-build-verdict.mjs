@@ -213,9 +213,9 @@ const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMess
 /** Update file's labels (#2909 IA v2 phase 1, owner decisions Q668 A and Q2909.5 A; DRAFT words, Q2909.10 A). Typed here,
  *  never read from the source: they are the words a designer reads. Since #2909 the plugin's one write is Update file,
  *  the top bar's filled button, whose checklist lists the sets the file lacks (unticked) and builds the ticked ones; it
- *  is busy, not disabled, while a run is out (#1956 decision 4), and its label reads "Updating…" in the same cell. */
+ *  is busy, not disabled, while a run is out (#1956 decision 4), and its label reads "Updating" (#2908 Q2908.1 A: the spinner is the one busy signal, so the label carries no "…") in the same cell. */
 const BUILD_LABEL = 'Update file';
-const BUSY_LABEL = 'Updating…';
+const BUSY_LABEL = 'Updating';
 
 /** Everything a designer can read about a build, from the rendered DOM only.
  *
@@ -594,7 +594,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //
 // #483's division of labour, asserted rather than assumed: the build's STATUS lives in the chrome (the Activity
 // drawer) so it survives navigation. Since #2909 the control that started it (Update file) is chrome too, on the top
-// bar in every area, so returning to Components must show it free, not the "Updating…" it was left on.
+// bar in every area, so returning to Components must show it free, not the "Updating" it was left on.
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'a verdict arriving off-page');
@@ -624,7 +624,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 
   await gotoComponents(page);
   const back = await readSurfaces(page);
-  ok(back.button === BUILD_LABEL && back.busy === false, `returning to Components shows Update file free, not the "Updating…" it was left on — read "${back.button}", busy ${back.busy}`);
+  ok(back.button === BUILD_LABEL && back.busy === false, `returning to Components shows Update file free, not the "Updating" it was left on — read "${back.button}", busy ${back.busy}`);
   await page.close();
 }
 
