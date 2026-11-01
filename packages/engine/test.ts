@@ -19176,6 +19176,14 @@ arm: {
     // Width: the floor clears the provider's minimum.
     const narrow = plans.filter((p) => { const w = typeof p.root.minWidth === 'number' ? p.root.minWidth : NaN; return !(w >= (RULES[String(p.coord.provider)]?.minW ?? 0)); });
     ok(narrow.length === 0, `#2343 PR 4 provider rules WIDTH: every member's width floor clears its provider's minimum (${narrow.map((p) => `${planComponentName(p)}: ${p.root.minWidth}`).join('; ') || 'clean'})`);
+    // Q3175 A (#3175): PayPal's SDK frame holds 150px, above the 120 floor. The Figma floor stays 120 (no PayPal minW
+    // above), and the 150 is a code-only note, held on both places the decision is written: codeOnly and contested.
+    const paypalWidthNote = (wb.anatomy.codeOnly ?? []).find((c) => c.startsWith('the width — ')) ?? '';
+    const paypalContested = (wb.notes?.contested ?? []).find((c) => c.startsWith('Q3175 A')) ?? '';
+    ok(/PayPal's script holds its own frame at 150 or wider/.test(paypalWidthNote) && /design file's floor stays 120/.test(paypalWidthNote)
+      && /150px/.test(paypalContested) && /floor stays 120/.test(paypalContested) && /code-only provider note in codeOnly/.test(paypalContested)
+      && plans.filter((p) => p.coord.provider === 'paypal').every((p) => p.root.minWidth === 120),
+      `#3175 PAYPAL WIDTH NOTE: PayPal's 150px SDK minimum is a code-only note in codeOnly and contested, and the PayPal members keep the 120 floor (codeOnly '${paypalWidthNote || 'missing'}'; contested '${paypalContested || 'missing'}')`);
     // Radius: Google Pay's at most half the height, at every density.
     const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
     const overHalf = (bs: typeof builds) => plans.filter((p) => RULES[String(p.coord.provider)]?.halfHeightRadius).flatMap((p) => bs.flatMap((b) => {
