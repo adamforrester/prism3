@@ -923,6 +923,10 @@
           "source": "packages/engine/materialise-to-figma.ts#header"
         },
         {
+          "text": "npx tsx packages/engine/materialise-to-figma.ts <brand> --pass migrate   # first: the #1013 rename pass (#1024)",
+          "source": "packages/engine/materialise-to-figma.ts#header"
+        },
+        {
           "text": "npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette",
           "source": "packages/engine/materialise-to-figma.ts#header"
         },

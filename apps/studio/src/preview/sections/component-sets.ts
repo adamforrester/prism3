@@ -32,7 +32,6 @@ export const SETS_COPY = {
   buildSet: (name: string): string => `Build ${name}`,
   busy: 'Building…',
   buildHint: "Builds any set it contains first, then switches Figma to the set's page.",
-  orderHint: 'Apply Theme first, so the set can use your variables.',
   built: 'Built just now',
   problems: 'Built with problems',
   failed: 'Build failed',

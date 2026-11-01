@@ -39,8 +39,8 @@
  */
 import type { WritePlan, Rgba, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
 import {
-  renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, isRefusal,
-  type RenameMap, type RenameOutcome, type MaterializationStep,
+  renameMap, openMigration, renameCollections, renameVariables,
+  type RenameMap, type MaterializationStep, type Migration,
 } from '@prism3/engine/rename-map';
 import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
 import { CORE_COLLECTION, UNSCOPED_TYPES } from '@prism3/engine/emit-figma-color';
@@ -407,27 +407,11 @@ const axisLabel = (collection: string, planned: readonly string[]): string => {
 };
 
 /**
- * One rename pass, shared by every executor in a single apply (#1013).
- *
- * State, not just a map, for two reasons. The static validation must run **once, before any write**
- * and neuter the whole pass rather than per collection — so `beginMigration` is the only construction
- * point and an invalid map cannot reach `upsertCollection`. And `outcomes` accumulates across all
- * four executors, so `main.ts` reads one list instead of four result fields gaining a rename member.
+ * One rename pass, shared by every executor in a single apply (#1013). Defined in the engine since #1024,
+ * beside the functions that apply it, because the CLI paste path runs the same pass; re-exported so this
+ * module's callers keep one import.
  */
-export type Migration = {
-  /** Empty when `refusals` is non-empty: a statically-invalid map migrates NOTHING. */
-  map: RenameMap;
-  /** The MATERIALIZATION rules, carried on the pass rather than imported at the point of use — so that
-   *  emptying `map` on a refusal disarms them TOO. They are not part of the map (they are rules, not
-   *  rows) but they are part of the same migration, and a refusal that neutered only the rows would
-   *  leave 370 variables per brand renaming into collections that did not move. */
-  rules: readonly MaterializationStep[];
-  /** Every entry the pass considered, no-ops included — "checked, none" ≠ "never checked". */
-  outcomes: RenameOutcome[];
-  /** Static refusals. Non-empty means the rename pass was abandoned and the write proceeded
-   *  unmigrated — today's orphan-and-recreate behaviour, reported rather than silent. */
-  refusals: string[];
-};
+export type { Migration };
 
 /**
  * Validate once, up front — then rename every COLLECTION, once, before any executor runs (#1035).
@@ -453,15 +437,11 @@ export type Migration = {
  * the map holds. A future entry can reintroduce a chain without any change here, which is the property
  * worth having.
  *
- * **ATOMICITY IS THIS FUNCTION'S OBLIGATION, and it is what makes "refused, not half-applied" true
- * rather than aspirational.** `planCollectionRenames` is pure — it plans the whole ordered sequence
- * against a simulated name set and writes nothing — so every outcome is visible before the first
- * mutation. If ANY of them is a refusal, none are applied and the whole map is neutered, exactly as a
- * static refusal neuters it: the variable rows are keyed by their collection's NEW name, so a variable
- * rename that ran against a collection that did not move would find no rows and orphan the variable it
- * was there to migrate. The two halves stand or fall together. A future edit that applies outcomes as
- * it walks them, or that keeps `map.variables` alive past a collection refusal, has deleted the
- * guarantee while leaving this comment standing.
+ * **ATOMICITY IS `renameCollections`' OBLIGATION (engine `rename-map.ts`, since #1024), and it is what makes
+ * "refused, not half-applied" true rather than aspirational.** It plans the whole ordered sequence against a
+ * simulated name set and writes nothing until every outcome is known; on ANY refusal it applies none and
+ * neuters the whole map, variable rows and rules included. It moved to the engine so the CLI paste path runs
+ * the same guarantee rather than a restatement of it.
  *
  * Async, and taking `vars`, so that construction IS the pre-pass: there is no second call for a caller
  * to forget, which is the same reasoning that made `beginMigration` the only construction point.
@@ -471,33 +451,12 @@ export const beginMigration = async (
   map: RenameMap = renameMap(),
   rules: readonly MaterializationStep[] = MATERIALIZATION_RENAMES,
 ): Promise<Migration> => {
-  const refusals = validateRenameMap(map);
-  const mig: Migration = {
-    map: refusals.length ? { collections: [], variables: [] } : map,
-    rules: refusals.length ? [] : rules,
-    outcomes: [],
-    refusals,
-  };
+  // The validation, the atomic collection pre-pass and the refusal rule are the engine's (#1024), shared
+  // with the CLI paste path. What stays here is the one host fact: collections are fetched only when the
+  // map has a collection entry to plan.
+  const mig = openMigration(map, rules);
   if (!mig.map.collections.length) return mig;
-
-  const collections = await vars.getLocalVariableCollectionsAsync();
-  const planned = planCollectionRenames(collections.map((c) => c.name), mig.map.collections);
-  // Every outcome is reported either way — "checked, none" ≠ "never checked" — but only a clean plan
-  // is applied.
-  mig.outcomes.push(...planned);
-  const refused = planned.filter((o) => isRefusal(o.status));
-  if (refused.length) {
-    mig.refusals.push(...refused.map((o) => `collection ${o.from} -> ${o.to}: ${o.status}`));
-    mig.map = { collections: [], variables: [] };
-    mig.rules = [];
-    return mig;
-  }
-  // Renaming in place keeps the collection id, and therefore every variable in it and every binding to
-  // those variables. The executors re-fetch, and see the new names.
-  for (const o of planned) {
-    if (o.status !== 'migrated') continue;
-    collections.find((c) => c.name === o.from)!.name = o.to;
-  }
+  renameCollections(mig, await vars.getLocalVariableCollectionsAsync());
   return mig;
 };
 
@@ -563,20 +522,11 @@ const upsertCollection = async (
   // rather than run against a guess — the write itself is unaffected.
   const root = planned.length ? rootOf(planned[0]) : '';
   if (pass && root) {
-    // The CONTRACT rows and the MATERIALIZATION rules, composed into one list per live name, so a
-    // variable needing both moves in a single step rather than through an intermediate name no plan
-    // asks for. `composeVariableRenames` carries the reasoning and the fixed order.
-    const rows = composeVariableRenames(name, byName.keys(), pass.map.variables, pass.rules, root);
-    const outcomes = planVariableRenames(byName.keys(), planned, rows);
-    pass.outcomes.push(...outcomes);
-    for (const o of outcomes) {
-      if (o.status !== 'migrated') continue;
-      const v = byName.get(o.from)!;
-      v.name = o.to;                 // id preserved → every existing binding comes with it
-      byName.delete(o.from);
-      byName.set(o.to, v);           // so the caller's create loop finds it and UPDATES rather than creates
-      await tick?.();
-    }
+    // The variable half of the rename pass, shared with the CLI paste path (#1024): compose the CONTRACT
+    // rows with the MATERIALIZATION rules, plan, and apply — re-keying `byName` so the caller's create loop
+    // finds a migrated variable and UPDATES it rather than creating a duplicate.
+    const moved = renameVariables(pass, name, byName as Map<string, Variable>, planned, root);
+    for (let i = 0; i < moved.length; i++) await tick?.();
   }
   return { collection, byName };
 };
