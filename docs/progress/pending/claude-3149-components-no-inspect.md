@@ -19,6 +19,10 @@ committed artifact, emission or component surface moves.
   preview header (the oracle); Components shows no Inspect (`hooks.absent`, against that oracle); at 1280 the empty row
   stays with its bottom edge on the levers header's; at 380, on the Preview pane, it collapses. `expectFor`'s Components
   preview header now expects nothing.
+- Four existing arms opened Inspect on Components, and now open it on a Theme page (Brand), where Q3149.3 A keeps it:
+  C3's build stamp (section 26), and the Inspect › Token list steps of the #2144 and #2487 focus sweeps (sections 27 and
+  45), which ran it "over the last place", Components. The web's Components page measures 8 control edges now that the
+  header draws nothing, so Components takes its own edges floor of 7 (`COMPONENTS_EDGES`) in place of `PLACE_FLOOR`'s 10.
 - Mutations, each after a `wip:` commit, each failing by name: Inspect restored on Components (the `.p3-popwrap` rule
   dropped) → `3149 <host> 1280: Q3149.2 A: Components shows no Inspect` on both hosts (at 380 the collapsed row hides
   it all the same); the 380 collapse dropped →

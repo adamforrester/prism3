@@ -903,6 +903,9 @@ const FOCUS_STOPS = {
   'figma narrow': [...FIGMA_RAIL, '[data-p3="brand-switcher"]', '[data-p3="agent-toggle"]', '[data-p3="update-file"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
 };
 const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
+/** Components (#3149): its preview header draws nothing since Inspect left it, so the web's page measures 8 edges, at
+ *  every width and on the Preview pane at 380. */
+const COMPONENTS_EDGES = 7;
 /** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
 const INSPECT_NARROW_FLOOR = { text: 5, edges: 10, glyphs: 3, controls: 8, fonts: 5 };
 /** Every chrome control is one of these, by class. A control that is none fails as unclassified. */
@@ -2177,7 +2180,7 @@ for (const host of ['web', 'figma']) {
       hooks.absent(ok, { seen: !!(await page.locator('[data-p3="frame"]').count()), state: 'the frame' }, (await page.evaluate(LOCAL_SWITCHES)) === 0,
         `${where}: no place draws a local switch between legacy pages (D8's, retired in S9.2)`);
       const m = await measure(page, where, host, 1280);
-      check(m, where, columnOf(host, 1280), PLACE_FLOOR);
+      check(m, where, columnOf(host, 1280), place === 'components' ? { ...PLACE_FLOOR, edges: COMPONENTS_EDGES } : PLACE_FLOOR);
       if (place === 'layout') {
         // F1 A: Layout's first breakpoint field is disabled by design (D13), so this sweep must exempt it. A sweep that
         // exempts nothing here has stopped measuring the exemption, or the field, and fails by name.
@@ -10508,7 +10511,8 @@ for (const host of ['web', 'figma']) {
 // #2825 (the plugin's section-head boxes and Build all, centered on the title's first line): RETIRED with the boxes,
 // #2909 (Q2909.5 A): the Components page draws no box or Build all on either host.
 // C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
-// both hosts (the plugin showed it too). Oracle: the engine version read from `packages/engine/version.ts` here, as
+// both hosts (the plugin showed it too). Since #3149 (Q3149.3 A) Components shows no Inspect, so the stamp is read from a
+// Theme page, Brand. Oracle: the engine version read from `packages/engine/version.ts` here, as
 // text, never the bundle's import; the stamp's words are #474's, unchanged.
 //
 // Mutations this fails by name: the stamp block removed from `inspectMenu` → `C3: <host>: the Inspect menu ends with
@@ -10519,7 +10523,7 @@ ok(ENGINE_V !== null, `C3: the oracle reads the engine version from packages/eng
 for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   try {
-    await goPlace(page, 'components');
+    await goPlace(page, 'brand');
     await hooks.click(page.locator('[data-p3="inspect-open"]'));
     await hooks.need(page, '[data-p3="inspect-menu"]');
     const s = await page.evaluate(() => {
@@ -10560,12 +10564,12 @@ for (const { w, h } of WIDTHS) {
         const where = `${host} ${theme} ${w} / components`;
         const narrow = w <= 560;
         const m = await measure(page, where, host, w);
-        check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+        check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : { ...PLACE_FLOOR, edges: COMPONENTS_EDGES });
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s82-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
         if (narrow) {
           await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
           const mp = await measure(page, `${where} / preview`, host, w);
-          check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'preview' });
+          check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4, edges: COMPONENTS_EDGES }, { state: 'preview' });
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
@@ -11269,8 +11273,10 @@ for (const host of ['web', 'figma']) {
         hostTotal += rings.length;
         focusSwept += rings.length;
       }
-      // B2 (#2487): Inspect › Token list, on Semantics, over the last place: the lent token list's segments and selects.
+      // B2 (#2487): Inspect › Token list, on Semantics, over a Theme page (Brand: the last place, Components, shows no
+      // Inspect since #3149): the lent token list's segments and selects.
       {
+        await goPlace(page, 'brand');
         await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
         await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
         await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
@@ -16723,6 +16729,8 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
         }
         if (w === 1280) {
           step = 'Inspect › Token list';
+          // Over a Theme page: Components, the last place, shows no Inspect since #3149.
+          await goPlace(page, 'brand');
           await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
           await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
           await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
