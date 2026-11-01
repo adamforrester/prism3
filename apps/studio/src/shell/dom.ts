@@ -49,6 +49,36 @@ export const enterMark = <E extends HTMLElement>(el: E, key: string): E => {
 /** Whether `key` was armed this frame. */
 export const entering = (key: string): boolean => armed.has(key);
 
+/** #3207, THE EXIT OF A SURFACE THE SHELL REMOVES (a menu, a dialog's scrim, the bar row's unread dot). CSS cannot animate
+ *  a node once it is out of the DOM, so the removal is deferred: the node is marked `data-leaving`, which the stylesheet
+ *  gives its exit (`motion-fast`, the exit curve; under reduced motion a 100ms fade, Q3150.3 A), and it is removed once
+ *  the exit's own animations finish. While it leaves it is `inert`, so nothing in it holds or takes focus or a click, and
+ *  every reader of "is it open" reads it as closed (`isLeaving`). With no exit running (the motion durations at 0s, or a
+ *  node that is not drawn) it is removed at once, as before. Called again on a leaving node, it does nothing; `unleave`
+ *  takes the mark back, and an exit already under way then removes nothing. */
+const leaves = new WeakMap<HTMLElement, number>();
+let leaveSeq = 0;
+export const isLeaving = (n: Element | null | undefined): boolean => !!n && !!n.closest('[data-leaving="true"]');
+export const leave = (node: HTMLElement): void => {
+  if (!node.isConnected || node.dataset.leaving === 'true') return;
+  node.dataset.leaving = 'true';
+  node.inert = true;
+  const id = ++leaveSeq;
+  leaves.set(node, id);
+  const moving = typeof node.getAnimations === 'function'
+    ? node.getAnimations({ subtree: true }).filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming().endTime ?? Infinity))
+    : [];
+  const gone = (): void => { if (leaves.get(node) === id && node.dataset.leaving === 'true') node.remove(); };
+  if (!moving.length) { gone(); return; }
+  void Promise.all(moving.map((a) => a.finished.catch(() => undefined))).then(gone);
+};
+export const unleave = (node: HTMLElement): void => {
+  if (node.dataset.leaving !== 'true') return;
+  leaves.delete(node);
+  delete node.dataset.leaving;
+  node.inert = false;
+};
+
 /** THE CHROME'S ONE SWITCH (SG5 A, #2183; concept v6's track and knob): a button with `role="switch"` holding a track
  *  and a knob, named by `label`. Its state is `aria-checked` alone, with no state words (the owner, 2026-10-08), and its
  *  focus ring is its own outline (FR1 A). Disabled, it draws Prism3's own disabled switch roles (#2237, `chrome.css`).
@@ -235,10 +265,13 @@ export const menuButton = (o: {
   readonly before?: () => void; readonly cleanups: (() => void)[];
 }): { readonly isOpen: () => boolean; readonly open: () => void; readonly close: (refocus: boolean) => void } => {
   const { wrap, btn, menu, list, first } = o;
-  const isOpen = (): boolean => menu.isConnected;
+  // #3207: a closing menu stays in the DOM through its exit (`leave`), and reads as closed from the moment it closes.
+  const isOpen = (): boolean => menu.isConnected && menu.dataset.leaving !== 'true';
   const onDown = (e: MouseEvent): void => { if (!wrap.contains(e.target as Node)) close(false); };
   const open = (): void => {
     o.before?.();
+    // Opened again mid-exit: the leaving menu goes at once and enters afresh.
+    if (menu.dataset.leaving === 'true') { unleave(menu); menu.remove(); }
     wrap.append(menu);
     btn.setAttribute('aria-expanded', 'true');
     document.addEventListener('mousedown', onDown);
@@ -246,7 +279,7 @@ export const menuButton = (o: {
   };
   function close(refocus: boolean): void {
     if (!isOpen()) return;
-    menu.remove();
+    leave(menu);
     btn.setAttribute('aria-expanded', 'false');
     document.removeEventListener('mousedown', onDown);
     if (refocus) btn.focus();
