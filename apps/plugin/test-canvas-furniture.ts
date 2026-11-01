@@ -494,7 +494,7 @@ section('group / panel / backdrop — Button, built by the real executor');
     const v2 = applyVerdict(r2);
     ok(JSON.stringify([own.x, own.y]) === at && own.getSharedPluginData(NS, STAMP_KEY) === '',
       `unbuilt/left in place: the apply leaves its x and y exactly as they were, and its stamp empty (${at} → ${JSON.stringify([own.x, own.y])})`);
-    ok(!r2.outcomes[0]?.moved && !v2.lines.some((l) => /moved/.test(l) && /left as they are/.test(l)),
+    ok(!r2.outcomes[0]?.moved && !v2.lines.some((l) => /moved/.test(l) && /left as (it is|they are)/.test(l)),
       `unbuilt/verdict: no line counts the member as moved and as left (${v2.headline}; ${v2.lines[0]})`);
     // THE APPLY SAYS WHAT THE DRY RUN SAID (#2495, owner Q205 A): it entered the set with nothing to write, and the dry
     // run calls it "no changes", not up to date, since Adopt could claim a member. So its headline and set line are
@@ -533,7 +533,7 @@ section('group / panel / backdrop — Button, built by the real executor');
       `unbuilt/row height: a member Prism3 didn't build, taller than its row, moves every row below it, and is not itself a move (${hWas} → ${grew}px; ${previewLine(p3)})`);
     const r3 = await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(await previewUpdate(host, [{ def: 'button', plans }])));
     const v3 = applyVerdict(r3);
-    ok(v3.headline === '✓ moved 558' && v3.lines[0] === 'button: 558 moved, 1 left as they are.' && JSON.stringify([own.x, own.y]) === at,
+    ok(v3.headline === '✓ moved 558' && v3.lines[0] === 'button: 558 moved, 1 left as it is.' && JSON.stringify([own.x, own.y]) === at,
       `unbuilt/relay left: the apply moves the 558 and leaves the member Prism3 didn't build exactly where it is (${v3.headline}; ${v3.lines[0]}; ${at} → ${JSON.stringify([own.x, own.y])})`);
     own.setSharedPluginData(NS, STAMP_KEY, stampWas);
     Object.defineProperty(own, 'height', hDesc);
