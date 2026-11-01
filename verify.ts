@@ -1450,6 +1450,10 @@ if (driftCoverage(new Map([['drift', { gate: GATES[0], outcome: 'FAIL', output: 
   if (combineShards(g, [run('1', 'PASS'), run('2', 'PASS')]).output.includes('--unsharded')) {
     selfFails.push('combineShards prints the --unsharded hint under a sharded gate that passed (#3227)');
   }
+  // #3229: a sharded SKIP means a shard could not launch, where the CPU-contention hint points the wrong way.
+  if (combineShards(g, [run('1', 'PASS'), run('2', 'SKIP')]).output.includes('--unsharded')) {
+    selfFails.push('combineShards prints the --unsharded hint under a sharded gate that was skipped (#3227)');
+  }
   const ci = ['jobs:', '  sharded:', '    strategy:', '      matrix:', '        shard: [1, 2]', '    steps:', '  other:', '    strategy:', '      matrix:', '        shard: [9]'].join('\n');
   const maps = { sharded: { 1: [], 2: [] } };
   const probs = (ids: string[], text = ci, m: Record<string, Record<string, unknown>> = maps) => shardMapProblems([{ ...g, shards: { env: 'X_SHARD', ids } }], text, m);
