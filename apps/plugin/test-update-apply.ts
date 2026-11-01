@@ -2146,7 +2146,7 @@ section('single, marks — an update re-lays a block still on the old 48px grid 
     putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|41'));
   });
   const moved = marks[1];
-  moved.x = -517; moved.y = -333;
+  moved.x = 5003; moved.y = 3001;
   const f = (w.api.createFrame as () => Node)();
   const theirs = (w.api.createComponentFromNode as (n: Node) => Node)(f);
   theirs.name = 'provider-logo/payment/zz-own';
