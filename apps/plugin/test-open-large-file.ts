@@ -69,7 +69,9 @@
  * (both are agent commands): `capture/no-walk`, `adopt/no-walk` (no whole-file search, one page a turn at most),
  * `capture/one-read`, `adopt/one-read` (each page searched once per criterion, never once per set), `capture/answers`,
  * (#3137) the usage-panel census searched across the whole file instead of a page per turn → `open/no-walk`,
- * `open/search-yields`,
+ * `open/search-yields`; Clean up's usage panels (Q3137.7 A, `panels-clean`) counted or removed after
+ * `loadAllPagesAsync` and one document-wide search → `clean/count-no-walk`, `clean/remove-no-walk` (its answers:
+ * `clean/count-answers`, `clean/remove-answers`, `clean/edited stays`),
  * `adopt/answers` (the answer a whole-file search gives, as literals; its digest is printed, and matched the one before
  * #3189) and `capture/progress`, `adopt/progress` (check, a reading per def in order, finish). Mutations failing by name:
  * the capture without the run's read (`runHost`) → `capture/no-walk`, `capture/one-read`; Adopt without it →
@@ -422,6 +424,42 @@ await entry('check', { type: 'update-check-request', defs: setIds.slice(0, DUE),
 await entry('prune', { type: 'prune', input: exampleBrands['aurora'], confirm: false }, 'prune-result');
 await entry('style-guide', { type: 'style-guide', options: {} }, 'style-guide-result');
 await entry('style-guide-cleanup', { type: 'style-guide-cleanup', ids: [] }, 'style-guide-cleanup-result');
+
+/* ── #3137: Clean up's usage panels, a page per turn ───────────────────────────────────────────────── */
+
+// Q3137.7 A (the #3288 review): Clean up's count, asked as the tab opens while panels are off, and its removal read the
+// panels as the census does, each page loaded and searched in its own turn: never every page in one call, never one
+// document-wide search. Two panels: one still as drawn (its print matches), one with no print, which reads as edited.
+{
+  const { panelPrint } = await import('./src/doc-panel');
+  type Tagged = Node & { setSharedPluginData(ns: string, k: string, v: string): void };
+  const panel = (on: number, def: string): Tagged => {
+    const n = mkNode('FRAME', `${def} usage`) as Tagged;
+    n.setSharedPluginData('prism3', 'docPanel', JSON.stringify({ v: 1, def, set: `SET:${def}`, state: 'live' }));
+    pages[on].children.push(n);
+    n.parent = pages[on] as unknown as Node;
+    return n;
+  };
+  const asDrawn = panel(0, setIds[0]);
+  asDrawn.setSharedPluginData('prism3', 'docPanelPrint', await panelPrint(asDrawn as never));
+  const edited = panel(20, setIds[1]);
+  const want = { count: { drawn: 2, removable: 1, removed: 0, kept: 0 }, remove: { drawn: 1, removable: 0, removed: 1, kept: 1 } };
+  for (const [label, confirm] of [['count', false], ['remove', true]] as const) {
+    for (const p of pages) p.loaded = false;
+    allCalled = false; loads = 0; inTurn = 0; worstTurn = 0; searchedInTurn = 0; worstSearch = 0; docSearches = 0;
+    const from = posted.length;
+    send({ type: 'panels-clean', confirm });
+    for (let i = 0; i < 4000 && !reply('panels-clean-result', from); i++) await new Promise((res) => realTimeout(res, 5));
+    const r = reply('panels-clean-result', from)?.msg;
+    ok(r !== undefined && loads === PAGES && worstTurn <= 1 && docSearches === 0 && worstSearch <= 1,
+      `clean/${label}-no-walk: Clean up's ${label} loads every page one per turn and searches one page per turn, never the whole file (${loads} of ${PAGES} loaded, worst ${worstTurn} loads and ${worstSearch} searches in one turn, ${docSearches} document-wide searches${r ? '' : ', no answer'})`);
+    const got = r ? { drawn: r.drawn, removable: r.removable, removed: r.removed, kept: r.kept } : null;
+    ok(r?.ok === true && JSON.stringify(got) === JSON.stringify(want[label]),
+      `clean/${label}-answers: it finds both panels and takes only the one still as drawn (${JSON.stringify(got)}${r?.error ? `, ${r.error}` : ''})`);
+  }
+  ok(asDrawn.removed === true && edited.removed !== true, `clean/edited stays: the panel as drawn is removed, the edited one stays (${asDrawn.removed}, ${edited.removed})`);
+  (edited as { remove(): void }).remove();
+}
 
 /* ── a read after open that fails ──────────────────────────────────────────────────────────────────── */
 

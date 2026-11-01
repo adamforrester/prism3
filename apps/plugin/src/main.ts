@@ -1115,13 +1115,14 @@ const searchPagesYielding = async (types: string[], onPage?: (done: number, tota
   if (!pages.every((p) => typeof p.findAllWithCriteria === 'function')) {
     await loadPagesYielding(onPage);
     if (panels) panels.push(...(figma.root.findAllWithCriteria(PANEL_CRITERIA as never) as readonly SearchNode[]));
-    return [...(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[])];
+    return types.length ? [...(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[])] : [];
   }
   const out: SearchNode[] = [];
   onPage?.(0, pages.length);
   for (const [i, p] of pages.entries()) {
     if (typeof p.loadAsync === 'function') { await p.loadAsync(); await breathe(); }
-    out.push(...p.findAllWithCriteria!({ types }));
+    // No types: only the panels are asked for (Clean up, `panelRootYielding`).
+    if (types.length) out.push(...p.findAllWithCriteria!({ types }));
     if (panels) { await breathe(); panels.push(...p.findAllWithCriteria!(PANEL_CRITERIA)); }
     onPage?.(i + 1, pages.length);
     await breathe();
@@ -1157,6 +1158,13 @@ const panelCensus = (nodes: readonly SearchNode[], frames: readonly SearchNode[]
     const setIds = new Set(nodes.filter((n) => n.type === 'COMPONENT_SET').map((n) => String((n as { id?: string }).id ?? '')));
     return paneledOf(livePanels({ findAllWithCriteria: () => frames } as unknown as CensusRoot).map((x) => x.tag), setIds);
   } catch { return []; }
+};
+/** #3137 Q3137.7 A: the usage panels in the file, collected a page per turn by `searchPagesYielding`, as a root Clean up's
+ *  count and removal search (`panelsCleanCount`, `removeUneditedPanels`): it answers with those frames alone. */
+const panelRootYielding = async (): Promise<CensusRoot> => {
+  const frames: SearchNode[] = [];
+  await searchPagesYielding([], undefined, frames);
+  return { findAllWithCriteria: () => frames } as unknown as CensusRoot;
 };
 /** #3137 Q3137.3 A: the sets Update file offers a usage panel for, sent only while Documentation has panels on. */
 const unpaneledNow = (present: readonly string[], paneled: readonly string[]): { unpaneled: string[]; panelLeads: number } | Record<string, never> =>
@@ -1943,9 +1951,11 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
  * Activity: the Clean up tab shows its own line.
  */
 const panelsClean = async (confirm: boolean, sink: ActionSink): Promise<void> => {
-  const api = figma as unknown as PanelApi;
   try {
-    await figma.loadAllPagesAsync();
+    // Pages loaded and searched one per turn (#3110, #3170), as the census reads them: never `loadAllPagesAsync` alone,
+    // never one document-wide search. The removal reads the file afresh this way too; the count after it reads the same
+    // frames, a removed one left out (`livePanels`).
+    const api = { root: await panelRootYielding() };
     if (!confirm) {
       const c = await panelsCleanCount(api);
       sink.post({ type: 'panels-clean-result', ok: true, applied: false, drawn: c.drawn, removable: c.removable, removed: 0, kept: 0 });
