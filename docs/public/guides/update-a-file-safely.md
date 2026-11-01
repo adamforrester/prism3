@@ -67,7 +67,7 @@ When a ticked set carries hand edits, a **Hand edits** choice appears beside the
 
 Before its first write, the update saves a named version in the file's version history: "Saves a version first. If Figma refuses the save, nothing is written." <!-- src: apps/studio/src/state/update-file.ts:225 -->
 
-The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1038-1040 -->
+The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:998-1000 -->
 Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/update-file.ts:185 -->
 
 ### What an update keeps
@@ -114,6 +114,6 @@ After a style-guide run that found tables Prism3 no longer draws, **Clean up** l
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:228 --> | Rename or remove the named items, then run Update file again. |
 | "is already running. Try again when it finishes." | The same write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:38-42 --> | Wait for it to finish. |
 | "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1756 --> | Load the brand again, for example from its `design.md`. |
-| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:836 --> | Open Update file again and read the new check. |
-| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:911 --> | Try again. Nothing in the file changed. |
+| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:796 --> | Open Update file again and read the new check. |
+| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:871 --> | Try again. Nothing in the file changed. |
 | `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:901 --> | Rename or move the existing set. |
