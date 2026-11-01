@@ -251,6 +251,8 @@ const CASES: Case[] = [
   { cmd: 'style-guide', args: { collections: ['color'] }, ui: { type: 'style-guide', options: { collections: ['color'] } }, entry: 'styleGuide', verdictType: 'style-guide-result' },
   { cmd: 'prune', args: { input: brand, confirm: false }, ui: { type: 'prune', input: brand, confirm: false }, entry: 'prune', verdictType: 'prune-result' },
   { cmd: 'readback', args: {}, ui: { type: 'ui-ready' }, entry: 'seedFromFile', verdictType: 'seed-info' },
+  // #3137 Q3137.7 A: Clean up's usage panels, counted: the panel's message and the agent's command reach one entry.
+  { cmd: 'panels-clean', args: { confirm: false }, ui: { type: 'panels-clean', confirm: false }, entry: 'panelsClean', verdictType: 'panels-clean-result' },
 ];
 // The two update commands (#2265) have no panel twin yet (the panel's control is held for the owner), so they
 // have their own section below rather than a parity case. `draw-specs`' panel twin is scoped to the current page, so it
@@ -782,7 +784,7 @@ section('busy/sink, busy/titles — a refusal reaching the agent\'s sink fails t
   const d = createDispatcher({
     actions: {
       applyTheme: async (_input: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
-      buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop, updateComponents: noop, captureBaseline: noop, adoptMembers: noop, drawSpecs: noop,
+      buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop, updateComponents: noop, captureBaseline: noop, adoptMembers: noop, drawSpecs: noop, panelsClean: noop,
     } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
     status: async () => ({}),
     census: async () => null,
@@ -1102,7 +1104,7 @@ section('run-code — a dev build runs code in the main thread and reports in ou
   const d = createDispatcher({
     actions: {
       applyTheme: noop, buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop,
-      updateComponents: noop, captureBaseline: noop, adoptMembers: noop, drawSpecs: noop,
+      updateComponents: noop, captureBaseline: noop, adoptMembers: noop, drawSpecs: noop, panelsClean: noop,
     } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
     status: async () => ({}),
     census: async () => null,
