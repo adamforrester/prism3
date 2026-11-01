@@ -4293,10 +4293,13 @@ for (const b of brands) {
     // is asserted is "strictly stronger than rest", recomputed against the ground rather than trusted.
     const hoverVsGround = contrast(hexToRgb(bh.hex), hexToRgb(bgSec.hex));
     if (bh.against !== 'background.secondary' || bh.min < 3 || hoverVsGround < bh.min || bh.ratio <= b.ratio) fails.push(`${m.mode}:border.hover ${hoverVsGround.toFixed(2)}<${bh.min}@${bh.against}`);
-    // placeholder is readable on the darkest permissible ground behind the transparent fill — NOT a sub-AA hint.
-    if (p.against !== 'background.secondary' || p.min < 4.5 || p.ratio < p.min) fails.push(`${m.mode}:placeholder ${p.ratio.toFixed(2)}<${p.min}@${p.against}`);
+    // placeholder is readable — NOT a sub-AA hint — and is `text.secondary`'s own ink, on its ground (#3220, owner
+    // Q3212.5 A): the floor by default, the page under `secondaryTextGround: 'page'` (this brand, light and dark), the HC
+    // floor in HC. Its shortfall on `background.secondary` in light is the declared one (#63 below, Q-TXT1 A).
+    const ts = m.roles['text.secondary'];
+    if (p.against !== ts.against || p.hex !== ts.hex || p.min < 4.5 || p.ratio < p.min) fails.push(`${m.mode}:placeholder ${p.hex} ${p.ratio.toFixed(2)}<${p.min}@${p.against} (text.secondary ${ts.hex}@${ts.against})`);
   }
-  ok(fails.length === 0, 'field(#1341): rest+hover border ≥3:1 on the DARKEST permissible ground (background.secondary), hover stronger than rest, placeholder ≥4.5, every mode' + (fails.length ? ` — ${fails.join(',')}` : ''));
+  ok(fails.length === 0, 'field(#1341): rest+hover border ≥3:1 on the DARKEST permissible ground (background.secondary), hover stronger than rest, placeholder ≥4.5 as text.secondary\'s own ink on its ground (#3220), every mode' + (fails.length ? ` — ${fails.join(',')}` : ''));
 
   // ...and the delta is UNIFORM across modes, which is the whole point of an offset over a ratio.
   // Chasing an absolute ratio made the perceptual delta depend on wherever `rest` happened to land:
@@ -11670,6 +11673,39 @@ arm: {
     `Q-TXT1 A: no other brand's secondary ink moved — text, icon and inverse text match origin/main in every corpus brand and prism3, and the redesign seed holds its page fit (#3219) (${compared} brand × mode cells${moved.length ? `; MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
 }
 
+// ── Q3212.5 A — ONE PLACEHOLDER INK: `field.placeholder` IS `text.secondary`, IN EVERY MODE (#3220) ──────────────────
+// The field hosts bind `text.secondary` for the placeholder, and the style guide draws `field.placeholder`. They are one
+// ink: the placeholder takes `text.secondary`'s own fit, so under `secondaryTextGround: page` it moves with it, and in HC
+// it sits on the same floor. ORACLE: the two resolved hexes, compared per mode, page and inverse, over the brands that set
+// `page` (the reference brand, and the redesign seed since #3219) and every brand that does not (the contract corpus,
+// prism3). Each side is represented: an arm that read no `page` brand, or no `floor` brand, fails by name rather than
+// passing on half.
+// BY-NAME MUTATION: give `field.placeholder` back its own ground (`asGround('background.secondary', cfg.bg.secondary.rgb)`
+// in `modes.ts`) → this arm names the reference brand's light and dark, and every brand's HC.
+{
+  const brands: Array<[string, Theme | undefined]> = [
+    ['nb', nbTheme()],
+    ...contractCorpus().filter(({ id }) => id.split(' ')[0] !== 'nb').map(({ id, theme }) => [id, theme] as [string, Theme]),
+    ['prism3', exampleTheme('prism3 (Q3212.5)', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+    ['nb-redesign', exampleTheme('nb-redesign (Q3212.5)', () => brandTheme(readExampleBrand('./examples/nb-redesign.design.md')))],
+  ];
+  const off: string[] = []; const grounds = new Set<string>(); let cells = 0;
+  for (const [id, t] of brands) {
+    if (!t) { off.push(`${id}: no theme`); continue; }
+    grounds.add(t.secondaryTextGround ?? 'floor');
+    for (const m of resolveAllModes(t)) {
+      const R = m.roles as Record<string, { hex: string } | undefined>;
+      for (const [ph, ink] of [['field.placeholder', 'text.secondary'], ['inverse.field.placeholder', 'inverse.text.secondary']]) {
+        cells++;
+        const a = R[ph]?.hex?.toLowerCase(), b = R[ink]?.hex?.toLowerCase();
+        if (!a || !b || a !== b) off.push(`${id} ${m.mode}: ${ph} ${a ?? '(none)'} ≠ ${ink} ${b ?? '(none)'}`);
+      }
+    }
+  }
+  ok(grounds.has('page') && grounds.has('floor') && off.length === 0,
+    `Q3212.5 A: field.placeholder resolves to text.secondary (and the inverse pair to each other) in every mode, for a brand with secondaryTextGround: page and every brand without (${brands.length} brands, ${cells} cells; grounds read: ${[...grounds].sort().join(', ')}${off.length ? `; DISAGREE on ${off.length}: ${off.slice(0, 4).join('; ')}` : ''})`);
+}
+
 // (10b) #63 — CLOSED, by fixing the cause rather than accepting it. History, because the shape of the
 // mistake is the reusable part: nb's semantic text on the `-subtle` tint measured ~4.0–4.2:1 in LIGHT,
 // under AA 4.5 (the banner/badge pairing; a CR-02 sibling — contracted vs the mode FLOOR but USED on a
@@ -11695,8 +11731,10 @@ arm: {
   // ONE SHORTFALL IS DECLARED, and only one (owner Q-TXT1 A, 2026-10-31): the reference brand fits its secondary ink
   // on the page, so in light it no longer clears 4.5:1 on its card, which is the same neutral.050 as
   // `background.secondary`. The owner accepted that consequence; it is pinned here by label and mode, so any other
-  // shortfall, or this one in another mode, still fails by name.
-  const DECLARED: Record<string, string[]> = { light: ['body on card'] };
+  // shortfall, or this one in another mode, still fails by name. The placeholder on the field is the same shortfall, not
+  // a second one: `field.placeholder` is `text.secondary`'s own ink (#3220, owner Q3212.5 A; Q-TXT1 A kept placeholders
+  // on it), and the field's transparent fill shows that same neutral.050.
+  const DECLARED: Record<string, string[]> = { light: ['body on card', 'placeholder on field'] };
   const rp = resolvePreview(nbTheme());
   for (const mode of rp.modes) {
     const fails = rp.contracts.filter((c) => c.byMode[mode] && !c.byMode[mode]!.pass);
@@ -38557,7 +38595,8 @@ arm: {
         // A brand whose secondary ink is fitted on the page (`secondaryTextGround: 'page'`, owner Q-TXT1 A) promises
         // it only on a panel as light as the page. The reference brand's own value, `white`, is one; the sweep's
         // card values are not, and carry no promise for that ink alone. They are still measured and counted.
-        const pageFitted = ink === 'text.secondary' && th.secondaryTextGround === 'page' && !M.mode.startsWith('hc') && contrast(hexToRgb(raised.hex), hexToRgb(page.hex)) > 1 + 1e-9;
+        // `field.placeholder` is that same ink (#3220, owner Q3212.5 A), so it carries the same exemption.
+        const pageFitted = (ink === 'text.secondary' || ink === 'field.placeholder') && th.secondaryTextGround === 'page' && !M.mode.startsWith('hc') && contrast(hexToRgb(raised.hex), hexToRgb(page.hex)) > 1 + 1e-9;
         const r = contrast(hexToRgb(i.hex), hexToRgb(raised.hex));
         inkCells++;
         if (!pageFitted) low[ink] = Math.min(low[ink] ?? Infinity, r);
