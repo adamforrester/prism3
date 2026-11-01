@@ -39,3 +39,7 @@ DRAFT.
   recount, the switch read each time); `test-update-file.ts` Q3137 arms; `test-host-session.ts`; `test-agent-link.ts`
   parity for `panels-clean`; `test-open-large-file.ts` (the census a page per turn); `test:chrome` section `3137` at 380
   and 1280, light and dark. Thirteen mutations, each failing by name.
+- **Review fixes.** Clean up's count and removal first loaded every page in one call and searched the whole file in one
+  turn, on every opening with panels off. They now read the panels a page per turn, as the census does
+  (`test-open-large-file.ts` `clean/count-no-walk`, `clean/remove-no-walk`). The full read's switch gate gained its own
+  arm (`q3137/off read`): the studio trusts an absent list, so that gate was load-bearing and untested.
