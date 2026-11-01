@@ -4,7 +4,8 @@
  *   npm run -w @prism3/studio test:chrome-shards
  *
  * Run after `test:chrome`, which writes its record to `apps/studio/chrome-record/`: `all.json` for the whole suite (a
- * local run, `npm run verify`), `shard-<n>.json` for each CI shard (`CHROME_SHARD=<n>`, the `chrome` job's matrix).
+ * bare local run, `npm run verify -- --unsharded`), `shard-<n>.json` for each shard (`CHROME_SHARD=<n>`: the `chrome`
+ * job's matrix in CI, and `npm run verify` by default since #3216).
  *
  * WHY. Since #2898 CI runs the chrome suite as parallel shards, each running the sections `chrome-shards.mjs` gives it.
  * A section that map leaves out runs nowhere and fails nothing, and a section it gives two shards runs twice: both

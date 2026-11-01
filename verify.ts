@@ -359,6 +359,13 @@ export const rowOf = (r: Result, timedOut = false): string => {
   return `  ${mark} ${r.outcome.padEnd(8)} ${r.gate.id.padEnd(26)} ${(r.ms / 1000).toFixed(1)}s${timedOut ? '  timed out' : ''}`;
 };
 
+/** What a sharded gate's FAIL says after its shards' output (#3227, owner decision Q-CI2 A). Plain, per
+ *  `docs/voice-standard.md`: the mechanism, then the two ways out. */
+export const UNSHARDED_HINT = (id: string, n: number): string =>
+  `${id} runs its ${n} shards side by side, so on a machine with few CPUs they compete for them and a healthy shard ` +
+  `can fail or time out. To run it once, whole, rerun with \`npm run verify -- --unsharded\`. To give every gate ` +
+  `more time instead, set VERIFY_TIMEOUT_SCALE (see point 5 in verify.ts).`;
+
 /** One shard's run, classified (#3216). */
 export type ShardRun = { id: string; outcome: GateOutcome; output: string; ms: number; timedOut: boolean };
 
@@ -376,6 +383,9 @@ export const combineShards = (gate: Gate, runs: ShardRun[]): { outcome: GateOutc
   const output = runs.map((r) =>
     `── shard ${r.id} (${env}=${r.id}): ${r.outcome}${r.timedOut ? ', timed out' : ''}, ${(r.ms / 1000).toFixed(1)}s ──\n${r.output || '(no output)'}`,
   ).join('\n\n');
+  // Q-CI2 A (#3227): a shard's FAIL or time-out names the one-run alternative beside the time scale, since a machine
+  // with few CPUs (2, say) is better served by `--unsharded` than by longer limits on shards that compete for them.
+  if (outcome === 'FAIL') return { outcome, output: `${output}\n\n${UNSHARDED_HINT(gate.id, runs.length)}` };
   return { outcome, output };
 };
 
@@ -1427,6 +1437,18 @@ if (driftCoverage(new Map([['drift', { gate: GATES[0], outcome: 'FAIL', output: 
   if (combineShards(g, []).outcome !== 'FAIL') selfFails.push('combineShards passes a gate with no shards — an empty map runs nothing');
   if (!combineShards(g, [run('1', 'PASS'), run('2', 'FAIL')]).output.includes('── shard 2 (X_SHARD=2): FAIL, 1.0s ──\nout 2')) {
     selfFails.push('combineShards loses which shard printed what');
+  }
+  // #3227 (Q-CI2 A): a shard's FAIL or time-out names `--unsharded`; a PASS or SKIP row does not. A literal here,
+  // not `UNSHARDED_HINT`, so dropping or rewording the hint fails this by name.
+  const timedOutRun: ShardRun = { ...run('2', 'FAIL'), timedOut: true };
+  if (!combineShards(g, [run('1', 'PASS'), run('2', 'FAIL')]).output.includes('rerun with `npm run verify -- --unsharded`')) {
+    selfFails.push('combineShards drops the --unsharded hint from a sharded gate whose shard FAILED (#3227)');
+  }
+  if (!combineShards(g, [run('1', 'PASS'), timedOutRun]).output.includes('rerun with `npm run verify -- --unsharded`')) {
+    selfFails.push('combineShards drops the --unsharded hint from a sharded gate whose shard timed out (#3227)');
+  }
+  if (combineShards(g, [run('1', 'PASS'), run('2', 'PASS')]).output.includes('--unsharded')) {
+    selfFails.push('combineShards prints the --unsharded hint under a sharded gate that passed (#3227)');
   }
   const ci = ['jobs:', '  sharded:', '    strategy:', '      matrix:', '        shard: [1, 2]', '    steps:', '  other:', '    strategy:', '      matrix:', '        shard: [9]'].join('\n');
   const maps = { sharded: { 1: [], 2: [] } };

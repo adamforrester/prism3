@@ -1,8 +1,8 @@
 /**
- * THE CHROME SUITE'S CI SHARDS (#2898). `test-chrome.mjs` runs as one CI job per shard, side by side under the
+ * THE CHROME SUITE'S SHARDS (#2898, #3216). `test-chrome.mjs` runs as one CI job per shard, side by side under the
  * `gates` aggregator, with `CHROME_SHARD=<n>`: shard n runs the sections listed here, by the ids its guards carry
- * (`if (runs('<id>'))`). Every other way of running the suite (`npm run verify`, `npm run test:chrome`) runs the
- * whole of it and reads nothing here.
+ * (`if (runs('<id>'))`). `npm run verify` runs the same shards side by side by default, reading these keys (#3216).
+ * `npm run verify -- --unsharded` and a bare `npm run test:chrome` run the whole suite once and read nothing here.
  *
  * Every section in exactly one shard. This file cannot check that, and is not trusted to: `test-chrome-shards.mjs`
  * holds the shards' RECORDS, what each shard actually ran, to the section list the unsharded suite reports
