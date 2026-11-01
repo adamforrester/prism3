@@ -30,7 +30,8 @@
  * engine move current whatever the print → `q811/changed-plan`; `dueOf` reading a revision move by the print, as an
  * engine move → `q811/executor`; a print-less entry under a moved engine read `unrecorded` → `old entry`; the deciding
  * hash dropping `paints` (#3090 review M5) → `q811/facet color`; `dueOf` back to `was.rev !== is.rev` (#3101) →
- * `reach/ledger`, `reach/range`, `reach/engine`; `reaches` ignoring the record's lists → `reach/record`, `reach/ledger`;
+ * `reach/ledger`, `reach/range`, `reach/engine`; `reaches` ignoring the record's lists → `reach/record`, `reach/ledger`; `reaches` reading a
+ * missing entry as reaching nothing (`if (e === undefined) continue;`) → `reach/missing` (#3160);
  * `quietOf` without the revision → `reach/quiet`; `needsPrint` back to `was.rev === is.rev` → `reach/needs-print`.
  */
 import { componentDefs } from '@prism3/engine/components/index';
@@ -178,6 +179,9 @@ ok(!reaches('button', 10, 12, fixture) && reaches('tag', 10, 12, fixture) && rea
   'reach/record: from 10 to 12, Tag is reached (11 names it) and Button is not (11 and 12 do not)');
 ok(reaches('button', 9, 12, fixture), 'reach/floor: a set drawn at or below the floor is reached: the revision after it has no record');
 ok(reaches('button', 12, 13, fixture) && reaches('button', 12, 14, fixture), 'reach/all and missing: "all" reaches every set, and so does a revision with no entry');
+// The case above crosses 13's "all" on its way to 14, so it held only "all" (#3160 N3). This one crosses a gap alone.
+const gap: ReachTable = { floor: 10, reach: { 11: [] } };
+ok(!reaches('button', 10, 11, gap) && reaches('button', 11, 12, gap), 'reach/missing: a revision with no entry reaches every set, with no "all" on the way (11 → 12, no entry 12)');
 ok(reaches('tab-item', 24, 25) && !reaches('tab-item', 27, 43),
   'reach/renamed: entry 25 names Tab, measured before it was renamed Tab item (#2759), and still reaches a Tab item set; nothing after 27 does');
 ok(reaches('button', 12, 11, fixture), 'reach/back: a revision that moved back (an older plugin on a newer file) reaches every set');
