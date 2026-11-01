@@ -19,7 +19,7 @@ The rest of the checklist, and how a run works, is in [Update a Figma file](upda
 | Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:133-136 --> |
 | Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:85-140 --> |
 | Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:85-140 --> |
-| Grid styles | One per breakpoint, from the same layout values as the `layout` collection. A grid style can't switch modes, so each breakpoint gets its own. <!-- src: apps/plugin/src/write-grid-styles.ts:1-40 --> |
+| Grid styles | One per breakpoint, from the same layout values as the `layout` collection. A grid style can't switch modes, so each breakpoint gets its own. <!-- src: packages/engine/emit-figma-styles.ts:289-302 --> |
 | The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:140-142 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35 --> |
 
 Every collection and style Prism3 creates carries a small mark that says Prism3 made it. That mark is how later runs tell Prism3's content from yours. <!-- src: apps/plugin/src/provenance.ts:1-58 -->
