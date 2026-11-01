@@ -28,6 +28,7 @@
     "./figma-names": "./figma-names.ts",
     "./inverse-roles": "./inverse-roles.ts",
     "./levers": "./levers.ts",
+    "./materialise-to-figma": "./materialise-to-figma.ts",
     "./materialization-renames": "./materialization-renames.ts",
     "./modes": "./modes.ts",
     "./nb-fixture": "./nb-fixture.ts",
