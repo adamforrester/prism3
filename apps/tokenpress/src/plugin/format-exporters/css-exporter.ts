@@ -325,6 +325,8 @@ export class CSSFormatExporter extends BaseFormatExporter {
       lineHeight: 'line-height',
       fontStyle: 'font-style',
       textDecoration: 'text-decoration',
+      textDecorationThickness: 'text-decoration-thickness',
+      textDecorationOffset: 'text-underline-offset',
     };
 
     // Create a CSS variable for each property
