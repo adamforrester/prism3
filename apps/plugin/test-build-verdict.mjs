@@ -922,7 +922,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `S11 an agent's Apply Theme run opens the Activity drawer on the Apply Theme row — state ${running.state}, drawer open ${running.drawerOpen}`);
   ok(running.agent && running.verdict === 'Running' && running.phase.some((t) => (t ?? '').includes('Writing to Figma…')),
     `S11 the running row is tagged Agent, reads "Running", phase "Writing to Figma…" — agent ${running.agent}, verdict ${JSON.stringify(running.verdict)}, phase ${JSON.stringify(running.phase)}`);
-  ok(running.statusRole === 'status' && running.status === 'Apply Theme, Writing to Figma…',
+  ok(running.statusRole === 'status' && running.status === 'Theme, Writing to Figma…',
     `S11 the start is announced once through the drawer's polite status line — role ${running.statusRole}, read ${JSON.stringify(running.status)}`);
   // #2909: the panel's theme write is Update file's Theme step. Started while the agent's Apply runs, it posts nothing,
   // and the run ends rather than waiting on a verdict that is not coming.
@@ -1028,18 +1028,18 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   };
 
   const clean = await run('f1', { ok: true, headline: '✓ 42 roles written', summary: '42 roles written' }, 'ok');
-  ok(clean.started.text === 'Apply Theme, Writing to Figma…' && clean.done.text === 'Apply Theme finished.' && clean.done.role === 'status' && clean.done.live !== 'assertive',
+  ok(clean.started.text === 'Theme, Writing to Figma…' && clean.done.text === 'Theme finished.' && clean.done.role === 'status' && clean.done.live !== 'assertive',
     `Q194 a clean Apply Theme run is announced as finished, politely, on the status line that announced its start — start ${JSON.stringify(clean.started.text)}, finish ${JSON.stringify(clean.done.text)}, role ${clean.done.role}, aria-live ${clean.done.live}`);
-  ok(clean.after.text === 'Apply Theme finished.',
+  ok(clean.after.text === 'Theme finished.',
     `Q194 the finish stands after the run closes, until the next start — read ${JSON.stringify(clean.after.text)}`);
 
   const REASON = 'The variable collection is read-only in this file';
   const failed = await run('f2', { ok: false, headline: '✗ Apply failed', summary: `${REASON}.`, lines: [`${REASON}.`] }, 'bad');
-  ok(failed.started.text === 'Apply Theme, Writing to Figma…' && failed.done.text === `Apply Theme failed: ${REASON}.` && failed.done.role === 'status',
+  ok(failed.started.text === 'Theme, Writing to Figma…' && failed.done.text === `Theme failed: ${REASON}.` && failed.done.role === 'status',
     `Q194 a failed Apply Theme run is announced with its reason — start ${JSON.stringify(failed.started.text)}, finish ${JSON.stringify(failed.done.text)}, role ${failed.done.role}`);
 
   const warned = await run('f3', { ok: false, headline: '⚠ 40 of 42 roles written', summary: '2 roles were skipped', lines: ['2 roles were skipped'] }, 'bad');
-  ok(warned.done.text === 'Apply Theme finished with a warning: 2 roles were skipped.',
+  ok(warned.done.text === 'Theme finished with a warning: 2 roles were skipped.',
     `Q194 a run that finishes with a warning is announced with its reason, as finished — read ${JSON.stringify(warned.done.text)}`);
   ok(errors.length === 0, `Q194: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
@@ -1065,12 +1065,12 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.waitForFunction(() => !document.querySelector('[data-p3="activity-op"][data-op="apply"][data-state="running"]'), null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(100);
   const ended = await line();
-  ok(ran && started === 'Apply Theme, Writing to Figma…' && ended === '',
+  ok(ran && started === 'Theme, Writing to Figma…' && ended === '',
     `#2507 a run that ends with no verdict empties the status line, so it claims no run still going — start ${JSON.stringify(started)}, after ${JSON.stringify(ended)}`);
   await post(page, { type: 'agent-started', id: 'n2', cmd: 'apply-theme' });
   await applyIs('running');
   const again = await line();
-  ok(again === 'Apply Theme, Writing to Figma…', `#2507 the next start is announced again, a change from the empty line — read ${JSON.stringify(again)}`);
+  ok(again === 'Theme, Writing to Figma…', `#2507 the next start is announced again, a change from the empty line — read ${JSON.stringify(again)}`);
   await post(page, { type: 'agent-finished', id: 'n2', cmd: 'apply-theme' });
   ok(errors.length === 0, `#2507: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
@@ -1223,7 +1223,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //   · the refusal opening the drawer → `#1957 a declined request does not open the drawer …`.
 {
   const { page, errors } = await openPanel();
-  const BUSY = 'Apply Theme is already running. Try again when it finishes.';
+  const BUSY = 'Update file is already running. Try again when it finishes.';
   await post(page, { type: 'agent-started', id: 'r1', cmd: 'apply-theme' });
   await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
   // The start opened the drawer; close it by hand, so a refusal that opened it would show.
@@ -1250,7 +1250,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#1957 a declined second Apply goes into Earlier results as "Refused", with the busy message — ${JSON.stringify(read.history)}, ${JSON.stringify(read.items)}`);
   ok(!/attention/.test(read.count), `#1957 a declined request is not counted as needing attention — count ${JSON.stringify(read.count)}`);
   ok(read.open === 'false', `#1957 a declined request does not open the drawer — open ${read.open}`);
-  ok(read.status === 'Apply Theme already running; the second request was declined.',
+  ok(read.status === 'Theme already running; the second request was declined.',
     `#1957 the live line says the second request was declined — read ${JSON.stringify(read.status)}`);
   // The running write still lands as its own result, and the refusal stays in the history.
   await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });

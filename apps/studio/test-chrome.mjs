@@ -3399,7 +3399,7 @@ for (const host of ['web', 'figma']) {
         const r = await drawerState(page);
         const ra = r.ops['apply'];
         ok(ra?.state === 'running' && ra.phase === 'Writing to Figma…', `F2 ${where}: the running write sits on the drawer's Apply Theme row, reading "Writing to Figma…" (row ${JSON.stringify(ra)})`);
-        ok((r.last ?? '').includes('Apply Theme') && (r.last ?? '').includes('Writing to Figma…'), `F2 ${where}: the drawer's bar row names the running write and its phase (read "${r.last}")`);
+        ok((r.last ?? '').includes('Theme') && (r.last ?? '').includes('Writing to Figma…'), `F2 ${where}: the drawer's bar row names the running write and its phase (read "${r.last}")`);
         // Q3113.3 A: a lone run is the lead row's, so the bar counts no "1 running"; its mark is the running ring.
         // MUTATION: `running > 1 &&` back to `running &&` in `countEls` → this arm, by name.
         ok(r.counts.length === 0 && r.barMark === 'run' && ra?.mark === 'run', `Q3113.3 A ${where}: a lone run draws the running ring and no "1 running" count (counts ${JSON.stringify(r.counts)}, bar mark ${r.barMark}, row mark ${ra?.mark})`);
@@ -3619,7 +3619,7 @@ for (const host of ['web', 'figma']) {
         const rfW1 = (await takeWrites(page)).map(keyOf);
         await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 1', summary: 'built', lines: ['built'] });
         const rfW2 = (await takeWrites(page)).map(keyOf);
-        const REFUSED_WORDS = 'Build set is already running. Try again when it finishes.';
+        const REFUSED_WORDS = 'Update file is already running. Try again when it finishes.';
         await postMsg(page, { type: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: REFUSED_WORDS });
         await settle(page);
         const rfU = await updBtn();
@@ -9801,7 +9801,6 @@ const COMPONENTS_COPY = {
   intro: (n) => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
   build: 'Build', buildOne: 'Build 1 set', busy: 'Building 1 of 1…',
   nothing: 'Select sets to build them.',
-  orderHint: 'Apply Theme first, so the sets can use your variables.',
 };
 /** The families the list opens, in order, so every set is drawn: each family's fold. */
 const openAllFamilies = async (page) => {
