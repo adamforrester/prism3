@@ -11676,9 +11676,10 @@ arm: {
 // ── Q3212.5 A — ONE PLACEHOLDER INK: `field.placeholder` IS `text.secondary`, IN EVERY MODE (#3220) ──────────────────
 // The field hosts bind `text.secondary` for the placeholder, and the style guide draws `field.placeholder`. They are one
 // ink: the placeholder takes `text.secondary`'s own fit, so under `secondaryTextGround: page` it moves with it, and in HC
-// it sits on the same floor. ORACLE: the two resolved hexes, compared per mode, page and inverse, over a brand that sets
-// `page` (the reference brand) and every brand that does not (the contract corpus, prism3, the redesign seed). Each side
-// is represented: an arm that read no `page` brand, or no `floor` brand, fails by name rather than passing on half.
+// it sits on the same floor. ORACLE: the two resolved hexes, compared per mode, page and inverse, over the brands that set
+// `page` (the reference brand, and the redesign seed since #3219) and every brand that does not (the contract corpus,
+// prism3). Each side is represented: an arm that read no `page` brand, or no `floor` brand, fails by name rather than
+// passing on half.
 // BY-NAME MUTATION: give `field.placeholder` back its own ground (`asGround('background.secondary', cfg.bg.secondary.rgb)`
 // in `modes.ts`) → this arm names the reference brand's light and dark, and every brand's HC.
 {

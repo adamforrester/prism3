@@ -22,7 +22,10 @@ placeholder, and Studio's Fields section draws `field.placeholder`: two placehol
   shortfall as `body on card` (one ink, the same `neutral.050`). The `#3049` raised-surface sweep extends its
   page-fit exemption to `field.placeholder`.
 - **Gates.** A new engine arm, `Q3212.5 A: field.placeholder resolves to text.secondary …`. It covers page and inverse
-  pairs, every mode, over the reference brand (`page`) and the corpus, prism3 and the redesign seed (`floor`), and both
-  grounds must be represented. A Studio smoke arm checks that the Fields section's placeholder is drawn in
+  pairs, every mode, over the reference brand and the redesign seed (`page`, the seed since #3219) and the corpus and
+  prism3 (`floor`), and both grounds must be represented. On the seed, the placeholder moves with `text.secondary` to
+  `neutral.500` in light, and its light preview shortfalls are the same pair the reference brand declares (`body on
+  card`, `placeholder on field`, both 3.78:1). `body on card` is the consequence #3219 accepted; the placeholder is the
+  same ink on the same ground, so it is that shortfall, not a new one. No gate pins the seed's preview shortfalls. A Studio smoke arm checks that the Fields section's placeholder is drawn in
   `text.secondary`'s emitted value, page and inverse. Mutation: restore the placeholder's own ground (`asGround('background.secondary',
   cfg.bg.secondary.rgb)`), and the engine arm fails by name.
