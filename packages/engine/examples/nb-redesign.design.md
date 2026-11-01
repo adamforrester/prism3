@@ -73,6 +73,12 @@ outlineHoverFill: { light: { hover: neutral.050 } }
 # medium's dot is a plain 14px rather than a link to a dimension step; no token is added.
 radioDot: 70
 
+# Secondary text is fitted on the PAGE, not the floor (#3219, owner Q3212.4 A; the mechanism is Q-TXT1 A): the
+# redesign's designs run secondary copy and placeholders lighter, so `text.secondary` is the lightest neutral step
+# that clears 4.5:1 on `background.primary` (white). It no longer clears 4.5:1 on `background.secondary` or the card.
+# Light only, as this seed is, so the high-contrast carve-out (Q3212.3 B) has nothing to act on here.
+secondaryTextGround: page
+
 # ── GEOMETRY ─────────────────────────────────────────────────────────────────────────
 # Sharp corners — radius scale 0 collapses the soft rungs (only the pill survives).
 radiusScale: 0
