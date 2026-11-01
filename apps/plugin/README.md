@@ -341,7 +341,8 @@ edit, a missing or extra one as "to update", and one pointing at a member no lon
 in a script of its own right after a set's last chunk, from the planned member names that script carries (#2564,
 `runComponentReactions`, `test-paste-reactions.ts`).
 They are not recorded there: the paste path writes no as-built record, so an in-place update cannot repair them, the
-same as everything else on a paste build.
+same as everything else on a paste build. A member that already has reactions is left alone, so a re-paste keeps a
+designer's edit (owner Q on #3287).
 
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
 placement, and the message contract + main-thread handler are complete and ready for it.

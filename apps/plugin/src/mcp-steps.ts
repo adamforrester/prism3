@@ -573,8 +573,9 @@ export const runComponentChunk = async (raw: unknown, payloads: Payload[]): Prom
  * INTERACTIVE COMPONENTS (#2466, owner decision Q238 A; this path since #2564) — one set's prototype reactions, by the
  * plugin's own pass (`writeSetReactions`), from its planned member names. Its own script, run right after the set's
  * LAST chunk: a reaction names its destination by node id, so it cannot be written before every sibling exists, and a
- * step of its own keeps `reactions.ts` and the names out of every chunk script's budget. Idempotent: a member whose
- * reactions already read as planned is not written. Unrecorded, like everything on a paste build.
+ * step of its own keeps `reactions.ts` and the names out of every chunk script's budget. A member that already has
+ * reactions is left alone, so a re-run writes nothing and a designer's edit survives a re-paste. Unrecorded, like
+ * everything on a paste build.
  */
 export const runComponentReactions = async (raw: unknown): Promise<StepReport> => {
   const d = unpack(raw) as StepBase & { def: string; set: string; names: PackedNames; pressTo?: string };
@@ -584,10 +585,23 @@ export const runComponentReactions = async (raw: unknown): Promise<StepReport> =
   r.def = d.def;
   try {
     r.page = await placeOnPage(d.def, notes);
-    const set = figma.currentPage.children.find((n) => n.type === 'COMPONENT_SET' && n.name === d.set) as ComponentSetNode | undefined;
-    r.misses = set
-      ? await writeSetReactions(() => set.children as unknown as ReactionNode[], unpackNames(d.names), d.pressTo)
-      : [`${d.set}.reactions -> NOT WRITTEN (the set is not on ${r.page})`];
+    // `findOne`, the lookup the engine's chunk payload finds the set with: the whole page, so a set a designer moved
+    // into a section or frame is found here too, and is the same set the chunks added members to.
+    const set = figma.currentPage.findOne((n) => n.type === 'COMPONENT_SET' && n.name === d.set) as ComponentSetNode | null;
+    if (!set) r.misses = [`${d.set}.reactions -> NOT WRITTEN (the set is not on ${r.page})`];
+    else {
+      const names = unpackNames(d.names);
+      const members = set.children as unknown as ReactionNode[];
+      const have = new Set(members.map((m) => String(m.name)));
+      // A planned member the set does not hold (its chunk threw, or an older set has other axes) is a miss: a step that
+      // wrote nothing for it must not read as ok.
+      const absent = names.filter((n) => !have.has(n)).map((n) => `${n}.reactions -> NOT WRITTEN (${n} is not in the set)`);
+      // A member that already carries reactions is left as it is (owner Q on #3287, the conservative option built): the
+      // paste writes no as-built record, so it cannot tell a designer's edit from anything else, and the chunks leave a
+      // member already in the set alone for the same reason. A fresh member has none, and gets the plan's.
+      const hasAny = (name: string) => { const m = members.find((x) => String(x.name) === name); try { return ((m?.reactions ?? []) as unknown[]).length > 0; } catch { return false; } };
+      r.misses = [...absent, ...await writeSetReactions(() => members, names, d.pressTo, { keep: hasAny })];
+    }
   } catch (e) {
     r.threw = (e as Error)?.message ?? String(e);
   }
