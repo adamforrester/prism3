@@ -38,6 +38,10 @@ The **Activity** drawer shows the link's state: "Agent listening" while it waits
 | `update-components` | The [component update](update-a-file-safely.md#component-changes-check-read-then-confirm): a check first, then a confirm that carries the check's fingerprint. <!-- src: apps/plugin/src/agent-protocol.ts:68 --> <!-- src: apps/plugin/src/agent-protocol.ts:78-103 --> |
 | `capture-baseline` | Records how each variant looks now, so a later update can tell your edits apart. Plugin data only. <!-- src: apps/plugin/src/main.ts:959-972 --> |
 | `adopt-members` | Claims variants Prism3 did not build, so updates can reach them. Plugin data only. <!-- src: apps/plugin/src/main.ts:961-976 --> |
+| `inspect` | Reads the layers you name and the layers inside them: type, name, page, size, whether locked, the main component and its key for an instance, its properties, the variables it uses and its text style. Writes nothing. <!-- src: apps/plugin/src/agent-reads.ts --> |
+| `component-keys` | Lists the file's component sets and components with their keys, so another file can place them. Writes nothing. <!-- src: apps/plugin/src/agent-reads.ts --> |
+| `audit-frames` | Checks frames for what a rebuild should have replaced: old components, text with no style, colors bound to no variable, hand-drawn rules and unnamed frames. The agent supplies the old names. Writes nothing. <!-- src: apps/plugin/src/agent-reads.ts --> |
+| `snapshot` | Renders one layer as an image, as this session shows it. Writes nothing. <!-- src: apps/plugin/src/agent-reads.ts --> |
 
 Every write an agent asks for passes the same checks as the panel's button, and is refused for the same reasons. <!-- src: apps/plugin/src/main.ts:1199-1235 --> <!-- src: apps/plugin/src/run-guard.ts:21-39 -->
 
