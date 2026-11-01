@@ -18431,7 +18431,9 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 //   LIVE arm); a transition added to an unlisted rule → `#3150 DECLARED: … is not a listed surface`; the panel duration
 //   mapped to `duration.fast` → `#3150 LIVE … the drawer slides up on 200ms`; the reduced block's `animation: none` dropped
 //   → `#3150 REDUCED … no transform moves`; `data-still` not set on a repaint → `#3150 LIVE … a repaint of the open dialog
-//   does not scale in again`; the fold-out's focus gate dropped → `#3150 LIVE … a page change does not replay`.
+//   does not scale in again`; the fold-out's focus gate dropped → `#3150 LIVE … a page change does not replay`; the
+//   drawer's exit unscoped from `data-closing` (#3217) → `#3150 LIVE … at boot the closed drawer plays no exit` and
+//   `… a narrow → wide resize under the closed drawer plays no exit`.
 // =============================================================================================
 if (runs('3150')) {
 console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n${'='.repeat(78)}`);
@@ -18447,8 +18449,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
     ['rule', ':is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin, :is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin::before'],
     ['reduced', '.p3-spin::before'], ['rule', '.p3-switch-knob'], ['reduced', '.p3-switch-knob'],
     // Slide up: the Activity drawer at every width, its body held through the exit, its chevron turning with it.
-    ['rule', '.p3-drawer[data-open="true"]'], ['rule', '.p3-frame:not([data-w="narrow"]) .p3-drawer[data-open="false"]'],
-    ['rule', '.p3-frame[data-w="narrow"] .p3-drawer[data-open="false"]'], ['rule', '.p3-drawer-body'],
+    ['rule', '.p3-drawer[data-open="true"]'], ['rule', '.p3-frame:not([data-w="narrow"]) .p3-drawer[data-closing="true"]'],
+    ['rule', '.p3-frame[data-w="narrow"] .p3-drawer[data-closing="true"]'], ['rule', '.p3-drawer-body'],
     ['rule', '.p3-drawer-bar > .p3-ico:last-of-type'], ['rule', '.p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type'],
     // Shift: the 380 strip.
     ['rule', '.p3-frame[data-w="narrow"] .p3-drawer'], ['start', '.p3-frame[data-w="narrow"] .p3-drawer'],
@@ -18565,6 +18567,29 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
         ok(!!list && list.some((a) => a.props.includes('opacity')) && list.every((a) => a.dur === REDUCED), `${where}: ${what}: it crossfades on ${REDUCED}ms (read ${fmt(list)})`);
       };
 
+      // #3217: the closed drawer plays no exit at boot, nor when the width changes under it (narrow → wide). Read as the
+      // closed drawer's own animation name (a 100ms move is long gone by the time the page is ready, but the rule that
+      // matches it still names its animation), and as what runs on it the moment the width changes back.
+      step = 'the closed drawer at boot';
+      const exitAt = (p) => p.evaluate(() => {
+        const d = document.querySelector('[data-p3="activity-drawer"]');
+        return { name: getComputedStyle(d).animationName, running: d.getAnimations().map((a) => a.animationName ?? a.transitionProperty), closing: d.dataset.closing ?? null };
+      });
+      const atBoot = await exitAt(page);
+      ok(atBoot.name === 'none' && atBoot.running.length === 0 && atBoot.closing === null,
+        `${where}: at boot the closed drawer plays no exit (animation ${atBoot.name}; running ${fmt(atBoot.running)}; data-closing ${atBoot.closing})`);
+      step = 'the closed drawer across a resize';
+      await page.setViewportSize({ width: 380, height: 900 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 });
+      await settleAll(page, cdp);
+      await slow();
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w !== 'narrow', null, { timeout: 5000 });
+      const atWide = await exitAt(page);
+      ok(atWide.name === 'none' && atWide.running.length === 0,
+        `${where}: a narrow → wide resize under the closed drawer plays no exit (animation ${atWide.name}; running ${fmt(atWide.running)})`);
+      await settleAll(page, cdp);
+
       // The drawer: Slide up at 1280, the chevron turning with it; the exit keeps the body drawn while it sinks.
       step = 'the drawer opens';
       await slow();
@@ -18602,6 +18627,8 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       const cRest = await restOf(page, '[data-p3="activity-drawer"]');
       const cBody = await restOf(page, '[data-p3="activity-body"]');
       ok(atRest(cRest) && cBody?.display === 'none', `${where}: settled, the closed drawer sits at rest and its body is undrawn (drawer ${fmt(cRest)}, body ${fmt(cBody)})`);
+      const afterClose = await exitAt(page);
+      ok(afterClose.name === 'none' && afterClose.closing === null, `${where}: once the exit ends, the close's mark goes with it (animation ${afterClose.name}; data-closing ${afterClose.closing})`);
 
       // The error strip: Fade in and out, the notices row holding through the exit.
       step = 'the error strip';
@@ -18705,10 +18732,11 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="activity-drawer"]')).display !== 'none', null, { timeout: 5000 });
       const sIn = await movesOf(page, '[data-p3="activity-drawer"]');
-      const sNoDown = (sIn ?? []).filter((a) => a.kind === 'CSSTransition');
-      if (!reduced) ok(one(sNoDown, 'opacity')?.dur === SMALL && one(sNoDown, 'translate')?.dur === SMALL && one(sNoDown, 'translate')?.ease === ENTER,
+      // #3217: a strip appearing closed plays no exit (it used to sink 0px as it appeared).
+      ok(!one(sIn, 'p3-strip-down'), `${where}: the strip appearing closed plays no exit (read ${fmt(sIn)})`);
+      if (!reduced) ok(one(sIn, 'opacity')?.dur === SMALL && one(sIn, 'translate')?.dur === SMALL && one(sIn, 'translate')?.ease === ENTER,
         `${where}: the strip shifts in, opacity and a short rise on ${SMALL}ms, the enter curve (read ${fmt(sIn)})`);
-      else ok((sIn ?? []).every((a) => a.moves.length === 0 || a.name === 'p3-strip-down') && (sIn ?? []).every((a) => a.kind === 'CSSTransition') && one(sIn, 'opacity')?.dur === REDUCED,
+      else ok((sIn ?? []).every((a) => a.moves.length === 0) && (sIn ?? []).every((a) => a.kind === 'CSSTransition') && one(sIn, 'opacity')?.dur === REDUCED,
         `${where}: the strip crossfades in on ${REDUCED}ms and moves no transform (read ${fmt(sIn)})`);
       await settleAll(page, cdp);
       ok(atRest(await restOf(page, '[data-p3="activity-drawer"]')), `${where}: settled, the strip sits at rest (${fmt(await restOf(page, '[data-p3="activity-drawer"]'))})`);

@@ -200,9 +200,11 @@ const LEGIBILITY_PROBE = (rootSel) => {
    *
    *  NO OPACITY CARVE-OUT (#1069). This used to return 0 — "not drawn" — for any node whose opacity
    *  chain multiplied out under 0.02, on the theory that such a node was "a collapsed panel
-   *  mid-transition". The theory had no referent: the stylesheet transitions no opacity at all, and a
-   *  census over the whole sweep, taken when this landed, found no text node under 0.5 before or after
-   *  animations settle.
+   *  mid-transition". The theory had no referent when it was dropped: the stylesheet then transitioned
+   *  no opacity at all, and a census over the whole sweep found no text node under 0.5 before or after
+   *  animations settle. Since #3213 (the chrome's motion, #3150) the chrome does fade opacity — a menu,
+   *  a tooltip, the error strip, a dialog's scrim, fold-out content — and the answer is still not a
+   *  carve-out: those fades run to full opacity, and `settle()` (below) waits for them first.
    *  What the carve-out did do was excuse the extreme of the defect this probe exists for — every nav
    *  label at `opacity: .011`, invisible on screen, measured by nothing, while the summary printed
    *  "lowest rendered contrast anywhere: 3.04:1". A node at near-zero opacity composites to ~1:1 and
