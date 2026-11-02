@@ -1116,8 +1116,11 @@ npx tsx packages/engine/lint-glyph-geometry.ts      # a `vector` part submits an
                                                     # SUBTREE Figma returns. That is the executors'
                                                     # runtime NO VECTOR miss, which fails loudly rather
                                                     # than building a plausible empty frame.
-npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PROSE (description, prop
-                                                    # descriptions, part notes, codeOnly entries) may not
+npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PROSE (every field that
+                                                    # ships: summary, description, prop descriptions, part
+                                                    # notes, codeOnly, accessibility, content, docs, ai,
+                                                    # motion; #3062 holds that list to the emitted
+                                                    # components.ai.json entry) may not
                                                     # restate a glyph count that disagrees with the live
                                                     # vocabulary (#1293). EXPECTED is ICON_NAMES.length,
                                                     # read from icon-glyphs.ts — never a second hardcoded
