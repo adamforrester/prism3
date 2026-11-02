@@ -49,7 +49,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
-  'hand-edits', 'hand-edits-done', 'update-check', 'file-due', 'add-queue',
+  'hand-edits', 'hand-edits-done', 'update-check', 'update-check-progress', 'file-due', 'add-queue',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -71,7 +71,7 @@ ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, addQueue: null,
-  handEdits: [], handPass: 'idle', updateCheck: null,
+  handEdits: [], handPass: 'idle', updateCheck: null, updateProgress: null,
 }), 'initial session: every slot empty');
 
 // ---- the four verdict kinds ------------------------------------------------------------------------------
@@ -457,6 +457,16 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const c = step({ ...init, updateCheck: 'pending' }, { kind: 'update-check', previewHash: 'abc', sets: [set], missing: [], error: null });
   ok(same(c.next.updateCheck, { previewHash: 'abc', sets: [set], missing: [], error: null }), 'Q2909.8 A: update-check: the scoped check\'s answer replaces pending');
   ok(same(c.topics, ['host:update']), 'Q2909.8 A: update-check invalidates only host:update');
+  // #3302 Q3302.1–.3 A: while the check is out, each reading of its progress is kept, with each set checked so far.
+  const p0 = step({ ...init, updateCheck: 'pending' }, { kind: 'update-check-progress', done: 0, total: 2, next: 'button', set: null });
+  const p1 = step(p0.next, { kind: 'update-check-progress', done: 1, total: 2, next: 'tag', set });
+  ok(same(p0.next.updateProgress, { done: 0, total: 2, next: 'button', sets: [] }) && same(p1.next.updateProgress, { done: 1, total: 2, next: 'tag', sets: [set] }),
+    '#3302: update-check-progress: each reading replaces the last, and the sets checked so far accumulate');
+  ok(same(p1.topics, ['host:update']), '#3302: update-check-progress invalidates only host:update');
+  const pa = step(p1.next, { kind: 'update-check', previewHash: 'abc', sets: [set], missing: [], error: null });
+  ok(pa.next.updateProgress === null, '#3302: the check\'s answer ends its progress');
+  const after = step(pa.next, { kind: 'update-check-progress', done: 2, total: 2, next: null, set });
+  ok(after.next === pa.next, '#3302: a reading that lands after the answer changes nothing');
 }
 for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);
 
