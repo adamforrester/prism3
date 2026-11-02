@@ -183,7 +183,7 @@ export const engineWhy = (m: MovedView): string => {
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
   button: 'Update file',
-  busy: 'Updating…',
+  busy: 'Updating',
   title: 'Update file',
   tabUpdate: 'Update',
   tabClean: 'Clean up',
