@@ -19474,6 +19474,74 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
   } finally { await ctx.close(); }
 }
 } // 3149
+// 3013. THE MODE CONTROL KEEPS FOCUS WHEN IT SWITCHES (#3013, WCAG 2.4.3). The preview header's mode control shows its
+//     radios when they fit and the select otherwise (#2383), hiding the other with `display: none`. Focus in the one
+//     that gives way used to fall to the body. On both hosts, Depth & motion, light chrome: from 1600 px the checked
+//     radio is focused and the window narrows 100 px at a time until the select shows; focus must be on the select.
+//     Then the window widens back and focus must be on the checked radio. The control: focus on Inspect, beside it,
+//     through the same switch both ways, stays on Inspect, so a fit that pulls focus in from elsewhere fails too.
+//     Independence (docs/34): the widths are found by narrowing, never read from `preview.ts`; the controls are found
+//     by their hooks, the checked radio by its `aria-checked`, and focus read as `document.activeElement` after three
+//     frames, as #3013 reproduced it.
+//     Mutations this fails by name: `fit`'s focus move dropped (preview.ts) → `3013 <host>: narrowing to … focus moves
+//     from the checked radio to the select …` and `… widening … to the checked radio …`; the move made whatever held
+//     focus (its `had` test dropped) → `3013 <host>: … focus on Inspect stays there …`.
+if (runs('3013')) {
+console.log(`\nMode control focus (#3013)\n${'='.repeat(78)}`);
+const frames3 = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+const focusNow = (page) => page.evaluate(() => {
+  const a = document.activeElement;
+  const fit = document.querySelector('[data-p3="mode-select"]')?.checkVisibility() ? 'select' : 'radios';
+  return { fit, active: a?.getAttribute('data-p3') ?? a?.tagName ?? null, checked: a?.getAttribute('aria-checked') ?? null };
+});
+for (const host of ['figma', 'web']) {
+  const where = `3013 ${host}`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1600, h: 900 });
+  let step = 'Depth & motion';
+  try {
+    await goPlace(page, 'depth');
+    await frames3(page);
+    const wide = await focusNow(page);
+    ok(wide.fit === 'radios', `${where}: fixture: at 1600 px the mode control shows its radios (${JSON.stringify(wide)})`);
+    /** Narrow from 1600 by 100 px until the select shows; the width it first shows at, or 0 when it never does. */
+    const narrowToSelect = async () => {
+      for (let w = 1500; w >= 600; w -= 100) {
+        await page.setViewportSize({ width: w, height: 900 });
+        await frames3(page);
+        if ((await focusNow(page)).fit === 'select') return w;
+      }
+      return 0;
+    };
+    step = 'the checked radio focused';
+    await page.locator('[data-p3="mode-option"][aria-checked="true"]').focus();
+    const before = await focusNow(page);
+    ok(before.active === 'mode-option' && before.checked === 'true', `${where}: fixture: the checked radio holds focus at 1600 px (${JSON.stringify(before)})`);
+    step = 'narrowing';
+    const at = await narrowToSelect();
+    const narrowed = await focusNow(page);
+    ok(at > 0 && narrowed.active === 'mode-select',
+      `${where}: narrowing to ${at || 'no width'} px switches the radios to the select, and focus moves from the checked radio to the select, not the body (${JSON.stringify(narrowed)})`);
+    step = 'widening';
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await frames3(page);
+    const widened = await focusNow(page);
+    ok(widened.fit === 'radios' && widened.active === 'mode-option' && widened.checked === 'true',
+      `${where}: widening back to 1600 px switches the select to the radios, and focus moves to the checked radio, not the body (${JSON.stringify(widened)})`);
+    step = 'Inspect focused (control)';
+    await page.locator('[data-p3="inspect-open"]').focus();
+    const at2 = await narrowToSelect();
+    const ctlNarrow = await focusNow(page);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await frames3(page);
+    const ctlWide = await focusNow(page);
+    ok(at2 > 0 && ctlNarrow.active === 'inspect-open' && ctlWide.fit === 'radios' && ctlWide.active === 'inspect-open',
+      `${where}: through the same switch both ways, focus on Inspect stays there: the fit moves only the focus the control held (${JSON.stringify({ ctlNarrow, ctlWide })})`);
+    ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  } catch (e) {
+    ok(false, `${where}: ${step}: ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3013
 // 3044. THE SECTION WATCHDOG FIRES BY NAME (#3044). The suite runs itself as a child with `--stall-self-check`, whose one
 //     section awaits a promise that never settles, and a 1 s limit. Only the watchdog in `enter` can end that child,
 //     and it must end it with exit 1 and the named failure, within a bound held on this side (a child that hangs is
