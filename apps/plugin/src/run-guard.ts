@@ -29,9 +29,10 @@ export const isWriteCmd = (cmd: string): cmd is WriteCmd => Object.prototype.has
  *  set would describe a set half built, and a baseline capture writes the members a build writes. While
  *  either runs, a build is refused with the build's own words, which name the build rather than the check;
  *  a known imprecision, kept so the panel and the guard share one operation per Activity row. `draw-specs` (#2830)
- *  holds it too: its specimens read the members a build or an update writes. */
+ *  holds it too: its specimens read the members a build or an update writes. `panels-clean` (#3137) holds the prune's:
+ *  it only removes, and its count, like a prune preview, writes nothing. */
 export const guardFor = (cmd: string): WriteCmd | null =>
-  isWriteCmd(cmd) ? cmd : cmd === 'update-components' || cmd === 'capture-baseline' || cmd === 'adopt-members' || cmd === 'draw-specs' ? 'build-components' : null;
+  isWriteCmd(cmd) ? cmd : cmd === 'update-components' || cmd === 'capture-baseline' || cmd === 'adopt-members' || cmd === 'draw-specs' ? 'build-components' : cmd === 'panels-clean' ? 'prune' : null;
 
 /** Whether this call of `cmd` writes: every call does, except a prune preview. */
 export const writes = (cmd: WriteCmd, confirm?: boolean): boolean => cmd !== 'prune' || confirm === true;
