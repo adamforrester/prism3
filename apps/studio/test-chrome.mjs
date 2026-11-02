@@ -3709,6 +3709,54 @@ for (const host of ['web', 'figma']) {
         const rfC = (await drawerState(page)).ops['components'];
         ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
           `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
+        // #3308: the owner's first run, in small. Set up file, then two queued sets, each built with problems (completed,
+        // not ok), and Style guides ticked: the run goes on to the style guides (it asks for a fresh catalog) instead of stopping at To add,
+        // and Activity reads the queue's result as a warning, not a failure. The guides step is then refused, which ends the
+        // run. (mutation: `main.ts`'s sets step passing `warn` false → `#3308: … goes on`)
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+        // A fresh file, so Set up file and Style guides are ticked (Q2909.2 A); the theme is not.
+        await openUpdate({ present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 2 misses', summary: 'built', lines: ['built'] });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 1 miss', summary: 'built', lines: ['built'] });
+        await settle(page);
+        // Still running is the run gone on: it now waits on the style guides' catalog. Ended, it would be free again.
+        const pwU = await updBtn();
+        const pwC = (await drawerState(page)).ops['components'];
+        ok(pwU.busy && pwC?.kind === 'warn' && String(pwC?.verdict ?? '').includes('Built 2 sets · 2 with problems'),
+          `${where}: #3308: a queue that built every set with problems goes on to the style guides, and Activity reads it as a warning (Update file ${JSON.stringify(pwU)}, row ${JSON.stringify(pwC ?? null)})`);
+        await postMsg(page, { type: 'refused', code: 'busy', cmd: 'style-guide', agent: false, message: REFUSED_WORDS });
+        await settle(page);
+        ok(!(await updBtn()).busy, `${where}: #3308: the refused style guides end that run, and Update file is free again`);
+        // #3308 review (Blocking 2): a failed set still ends the run. The same fresh file and queue, but the second set
+        // fails (not completed): the sets step is not a warning, so the run stops at To add, Update file is free, the strip
+        // reads it, and Activity counts a failure. The failed set is the LAST one, so the queue has a result for every set
+        // and only the "none failed" test tells this run from the one above.
+        // (mutation R1: `results.every((x) => x.result !== 'failed')` → `true` in `main.ts`'s sets step → this arm, by name)
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+        await openUpdate({ present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 2 misses', summary: 'built', lines: ['built'] });
+        await postMsg(page, { type: 'component-result', ok: false, completed: false, headline: '✗ write failed', summary: 'write failed', lines: ['write failed'] });
+        await settle(page);
+        const pfU = await updBtn();
+        const pfC = (await drawerState(page)).ops['components'];
+        const pfS = await page.evaluate(() => {
+          const s = document.querySelector('[data-p3="status-strip"]');
+          return { tone: s?.dataset.tone ?? null, what: s?.querySelector('[data-p3="status-what"]')?.textContent ?? null };
+        });
+        ok(!pfU.busy && pfS.what === 'Stopped at To add' && pfS.tone === 'bad' && pfC?.kind === 'bad',
+          `${where}: #3308: a queue with a failed set ends the run at To add: Update file is free, the strip reads "Stopped at To add", and Activity reads a failure (Update file ${JSON.stringify(pfU)}, strip ${JSON.stringify(pfS)}, row ${JSON.stringify(pfC ?? null)})`);
         if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
@@ -17391,6 +17439,12 @@ for (const host of ['web', 'figma']) {
 // Mutations, each failing here by name: the button's ArrowDown removed → every `ArrowDown opens` arm; Escape's
 // `stopPropagation` removed → every `Escape … goes no further` arm; one menu back on its own copy without either → its
 // own two arms (Theme, the drift the review found).
+// The open Inspect menu also stays inside the viewport at 1280 with the approved privacy note in it (#3147, Q3147.17).
+// Mutation: `.p3-menu-privacy` without `width: 0; min-width: 100%; box-sizing: border-box` → `Inspect: the open menu,
+// privacy note and all, stays inside the … viewport`, on both hosts.
+// At 1280 the menu is also at least 320 px wide and the note at most 6 lines (#3147, O2 B). Mutation: the Inspect menu's
+// `width: calc(var(--p3-dlg-unit) * 2.5)` removed → `Inspect: the open menu is at least 320 px wide and its privacy note
+// at most 6 lines`, on web.
 // =============================================================================================
 if (runs('47-menu')) {
 console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
@@ -17411,6 +17465,33 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
         return { expanded: btn?.getAttribute('aria-expanded') ?? null, menu: !!menu, inside: !!menu && menu.contains(document.activeElement) };
       }, [btnHook, menuHook]);
       ok(opened.expanded === 'true' && opened.menu && opened.inside, `${where} ${name}: ArrowDown on the closed button opens the menu, focus inside it (${JSON.stringify(opened)})`);
+      if (name === 'Inspect') {
+        // #3147 (Q3147.17): the approved privacy note is long, and the menu sizes to `max-content`, so the note must wrap
+        // within the width the menu's items give it rather than set that width. ORACLE: the browser's own rects against
+        // the viewport, typed bounds here.
+        step = 'Inspect: the open menu, measured';
+        const box = await page.evaluate((m) => {
+          const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { left: Math.round(b.left), right: Math.round(b.right), width: Math.round(b.width) } : null; };
+          const menu = document.querySelector(`[data-p3="${m}"]`);
+          return { vw: window.innerWidth, menu: r(menu), note: r(menu?.querySelector('[data-p3="privacy-note"]')) };
+        }, menuHook);
+        ok(!!box.menu && !!box.note && box.menu.left >= 0 && box.menu.right <= box.vw && box.note.width <= box.menu.width,
+          `${where} Inspect: the open menu, privacy note and all, stays inside the ${box.vw} px viewport (${JSON.stringify(box)})`);
+        // #3147 (O2 B, owner, 2026-11-02): at 1280 the menu is at least 320px wide, so the note wraps to about five lines,
+        // not to the stamp's width (it was 17 on web). ORACLE: typed literals here, never the chrome's token; the note's
+        // lines are its content height over its computed line height, both read from the browser.
+        step = 'Inspect: the privacy note, measured';
+        const lines = await page.evaluate((m) => {
+          const n = document.querySelector(`[data-p3="${m}"] [data-p3="privacy-note"]`);
+          if (!n) return null;
+          const cs = getComputedStyle(n);
+          const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+          const h = n.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+          return { height: Math.round(h * 10) / 10, lineHeight: lh, lines: Math.round(h / lh) };
+        }, menuHook);
+        ok(!!box.menu && box.menu.width >= 320 && !!lines && lines.lines <= 6,
+          `${where} Inspect: the open menu is at least 320 px wide and its privacy note at most 6 lines (${JSON.stringify({ menu: box.menu, note: lines })})`);
+      }
       step = `${name}: Escape in the menu`;
       // Open by a click when ArrowDown did not, so this arm reads Escape alone, never the ArrowDown arm's failure.
       if (!opened.menu) await hooks.click(page.locator(`[data-p3="${btnHook}"]`));
