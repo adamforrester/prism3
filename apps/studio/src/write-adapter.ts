@@ -191,6 +191,9 @@ export interface HostCommit {
   /** #3129 Q833 A: queue `ids` in the file's add queue (`on`), or take them out (`add-queue`). Figma only; inert on the
    *  web. */
   postAddQueue(ids: readonly string[], on: boolean): void;
+  /** #3309: the panel's own summary of a run of several writes (`activity-note`), kept by the main thread for the agent
+   *  link's `activity` command. Figma only; inert on the web. */
+  noteActivity(op: 'components' | 'update', ok: boolean, headline: string, lines: readonly string[]): void;
   /** #2909 Q2909.8 A: start the background hand-edit pass (`hand-edits-request`). Figma only; inert on the web. */
   requestHandEdits(): void;
   /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the panel's brand `input`
@@ -605,6 +608,9 @@ const figmaCommit = (): HostCommit => ({
   postAddQueue(ids, on) {
     post({ type: 'add-queue', ids: [...ids], on });
   },
+  noteActivity(op, ok, headline, lines) {
+    post({ type: 'activity-note', op, ok, headline, lines: [...lines] });
+  },
   requestUpdateCheck(defs, input) {
     post({ type: 'update-check-request', defs: [...defs], input: input as ApplyTheme['input'] });
   },
@@ -652,6 +658,7 @@ const webCommit = (): HostCommit => ({
   requestDue() {/* no file on web (#3081) */},
   requestHandEdits() {/* no file on web (#2909) */},
   postAddQueue() {/* no file on web (#3129 Q3129.12 A) */},
+  noteActivity() {/* no main thread on web (#3309) */},
   requestUpdateCheck() {/* no file on web (#2909) */},
   postUpdateSets() {/* no file on web (#2909) */},
   postUpdateStop() {/* no file on web (#3170) */},

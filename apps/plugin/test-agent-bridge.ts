@@ -68,7 +68,8 @@ import type { WsLike } from './src/agent-bridge-relay';
 import { createPairing, createProgressCounter, loadSecret } from '../../tools/figma-bridge/server';
 import { HANDSHAKE_PROBES } from '../../packages/engine/mcp-handshake-probes';
 import { READ_COMMANDS } from './src/agent-protocol';
-import { readFixture, ARGS, EXPECTED, canon } from './agent-read-fixture';
+import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead } from './agent-read-fixture';
+import { ACTIVITY_KEEP } from './src/activity-log';
 
 let failed = 0;
 let executed = 0;
@@ -911,7 +912,7 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
     ok(g2.__midRuns === 1, `resend/running: the command ran once (${g2.__midRuns})`);
   }
 
-  // #3147 Phase 2a: the four read-only node commands over the bridge, against the same fixture and the same literal
+  // #3147 Phase 2a, #3309: the read-only commands over the bridge, against the same fixture and the same literal
   // expectations as the mailbox suite. Every write a command made would be in the shim's log or in `fileWrites`.
   {
     const fx = readFixture();
@@ -921,11 +922,15 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
     h.getNodeByIdAsync = (id: string) => fx.getNodeByIdAsync(id);
     h.getStyleByIdAsync = (id: string) => fx.getStyleByIdAsync(id);
     h.variables.getVariableByIdAsync = (id: string) => fx.getVariableByIdAsync(id);
+    // #3309: the panel's two run summaries, posted as the panel posts them; `activity` reads the runs after the probe's.
+    const probe = ((await call('figma_run', { cmd: 'activity', args: { limit: 1 }, timeoutMs: 8000 })).value as AgentResult).result?.data as { total: number; latest: number };
+    for (const n of ACTIVITY_NOTES) toMain(n);
     const ARMS: Array<[string, unknown, unknown]> = [
       ['inspect', ARGS.inspect, EXPECTED.inspect],
       ['component-keys', ARGS.keys, EXPECTED.keys],
       ['audit-frames', ARGS.audit, EXPECTED.audit],
       ['snapshot', ARGS.snapshot, EXPECTED.snapshot],
+      ['activity', { since: probe.latest }, activityExpected(probe.latest, Math.min(probe.total + 2, ACTIVITY_KEEP), g.PRISM3_BUILD as string)],
     ];
     ok(ARMS.map((a) => a[0]).join() === READ_COMMANDS.join(), `reads: every read command has a bridge arm (${READ_COMMANDS.join(', ')})`);
     for (const [cmd, args, want] of ARMS) {
@@ -939,7 +944,7 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
       const env = rr.value as AgentResult;
       ok(!rr.isError && env.ok === true && !env.error && env.cmd === cmd && env.transport === 'bridge' && env.v === 1 && env.engineVersion === ENGINE_VERSION && env.result?.verdict === null,
         `bridge/${cmd}: figma_run ${cmd} answers ok in a bridge envelope, with no verdict — ${JSON.stringify(env.error ?? null)}`);
-      ok(canon(env.result?.data) === canon(want), `envelope/${cmd}: result.data over the bridge is exactly the literal expectation — got ${canon(env.result?.data).slice(0, 300)}`);
+      ok(canon(atRead(env.result?.data)) === canon(want), `envelope/${cmd}: result.data over the bridge is exactly the literal expectation — got ${canon(env.result?.data).slice(0, 300)}`);
       ok(fx.writes.length === w0 && commandWrites().length === f0 && calls.length === 0,
         `no-write/${cmd}: over the bridge the shim logged no write (${fx.writes.slice(w0).join(', ') || 'none'}), no plugin data but the link record was written (${commandWrites().slice(f0).join(', ') || 'none'}), and no ACTIONS handler ran`);
     }
