@@ -48,8 +48,9 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { planTargets } from './build-deps';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
-import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
+import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, slotTextMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
 import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
+import { captureSlotText, holdsSlotText, slotTextLines, type SlotTextMigration, type TextMigNode } from './slot-text-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { reaches } from './executor-reach';
@@ -218,6 +219,10 @@ export type SetPreview = {
    *  instance's visible rows, in order, as they move into the slot, and what can't carry over (`slot-migration.ts`).
    *  In the set's `previewHash`, so an instance changed after the check refuses the confirm. Absent otherwise. */
   slotMigration?: SlotMigration;
+  /** #3225 — the set's slot still holds its plain text, and the plan moves it to a TEXT property beside the slot: every
+   *  placed instance whose body needs carrying, and what the update does with it (`slot-text-migration.ts`). In the
+   *  set's `previewHash`, as `slotMigration` is. Absent otherwise. */
+  slotTextMigration?: SlotTextMigration;
 };
 
 /** The field a reaction difference is named under (#2466). DRAFT wording. */
@@ -1383,6 +1388,9 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     if (!t.single) {
       const mig = await slotMigrationFor(t, v.set as MigNode, ledger, breathe);
       if (mig) { preview.slotMigration = mig.migration; preview.previewHash = fnv(JSON.stringify([preview.previewHash, mig.migration])); }
+      // #3225: a slot whose plain text moves out to a TEXT property lists every placed instance it carries.
+      const tmig = await slotTextMigrationFor(t, v.set as TextMigNode, ledger, breathe);
+      if (tmig) { preview.slotTextMigration = tmig.migration; preview.previewHash = fnv(JSON.stringify([preview.previewHash, tmig.migration])); }
     }
     out.sets.push(preview);
     if (!t.single) found.push({ preview, set: v.set, lead: !!t.doc });
@@ -1447,6 +1455,17 @@ export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: re
   const walk = (n: AnatomyPlan['root']): void => { parts.add(n.name); n.children.forEach(walk); };
   walk(plan.root);
   return captureSlotMigration(set, entry, rootPart, parts, breathe);
+};
+
+/**
+ * #3225 — the placed instances whose slot text a set's update carries into its new TEXT property, read with
+ * `captureSlotText`, or `null` when the def has no slot-text entry or the set no longer holds the old shape. Shared by
+ * the dry run and the apply, so both read the instances the one way.
+ */
+export const slotTextMigrationFor = async (t: UpdateTarget, set: TextMigNode, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, breathe?: () => Promise<void>): Promise<Awaited<ReturnType<typeof captureSlotText>> | null> => {
+  const entry = slotTextMigrationOf(t.def, ledger);
+  if (!entry || !holdsSlotText(set, entry)) return null;
+  return captureSlotText(set, entry, breathe);
 };
 
 /** The components the plans nest that no COMPONENT or COMPONENT_SET in the file is named (#2380). */
@@ -1791,7 +1810,9 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     // line. A bare re-apply (no field moved) is not a difference and is left to the set's own line.
     ...r.sets.flatMap((p) => [previewLine(p), ...namedLines(p.set, p.changes.filter((c) => c.field !== 'stamp').map((c) => ({ part: c.part, field: c.field, plan: c.to, file: c.from, members: c.members }))),
       // #2649: the rows moving into the slot, every placed instance named with what moves and what can't carry over.
-      ...(p.slotMigration && !p.blockers.length ? migrationLines(p.set, p.slotMigration) : [])]),
+      ...(p.slotMigration && !p.blockers.length ? migrationLines(p.set, p.slotMigration) : []),
+      // #3225: the slot text moving into its property, every carried instance named.
+      ...(p.slotTextMigration && !p.blockers.length ? slotTextLines(p.set, p.slotTextMigration) : [])]),
     // #2831: what the update breaks for library consumers, in its own section.
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),

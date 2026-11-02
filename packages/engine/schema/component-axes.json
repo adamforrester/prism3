@@ -116,6 +116,7 @@
       "tone": [
         "danger",
         "info",
+        "neutral",
         "success",
         "warning"
       ],
@@ -124,12 +125,16 @@
         "full"
       ]
     },
-    "members": 8,
+    "members": 10,
     "properties": {
       "actions": "BOOLEAN",
-      "body": "SLOT",
+      "body": "BOOLEAN",
+      "body text": "TEXT",
       "dismiss": "BOOLEAN",
       "icon": "BOOLEAN",
+      "link": "BOOLEAN",
+      "rich body": "BOOLEAN",
+      "richBody": "SLOT",
       "title": "BOOLEAN",
       "title text": "TEXT"
     }

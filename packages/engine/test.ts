@@ -56,7 +56,7 @@ import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, Unrecogniz
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, DIALOG_TITLE_TYPE_KEYS, applyBannerStyle, BANNER_STYLE_FILL_KEYS, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
-import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
+import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, slotTextUnclaimed, slotTextMigrationOf, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -6918,16 +6918,20 @@ arm: {
   const bannerDef = componentDefs.find((d) => d.id === 'banner');
   ok(!!bannerDef, 'banner: the def is registered');
   if (bannerDef) {
-    const TONES = ['info', 'success', 'warning', 'danger'];
-    const GLYPH: Record<string, string> = { info: 'icon/info-circle', success: 'icon/check-circle', warning: 'icon/error-circle', danger: 'icon/warning-triangle' };
+    // #3225 (Q-BN3.2 A): neutral last, so info stays first and the default.
+    const TONES = ['info', 'success', 'warning', 'danger', 'neutral'];
+    // Q-BN3.3 A: the neutral tone shows no glyph.
+    const GLYPH: Record<string, string | null> = { info: 'icon/info-circle', success: 'icon/check-circle', warning: 'icon/error-circle', danger: 'icon/warning-triangle', neutral: null };
+    // #3225 (Q-BN3.1 A): the neutral edge is border.tertiary; every status tone's edge is its own border role.
+    const EDGE = (t: string): string => (t === 'neutral' ? 'border.tertiary' : `border.${t}`);
     const CORNER: Record<string, string> = { contained: 'radius/md', full: 'radius/none' };
     const set = figmaAnatomySet(bannerDef) as any[];
     // #2924: the Banner style's fill per tone, typed from the decision (Q693 A, Q707 A), never read off the materializer.
-    const FILL: Record<string, (tone: string) => string> = { tinted: (t) => `foreground.${t}-subtle`, outlined: () => 'background.primary' };
+    const FILL: Record<string, (tone: string) => string> = { tinted: (t) => (t === 'neutral' ? 'background.secondary' : `foreground.${t}-subtle`), outlined: () => 'background.primary' };
     const names = set.map(planComponentName);
     const EXPECT_NAMES = TONES.flatMap((t) => ['contained', 'full'].map((w) => `tone=${t}, width=${w}`));
     ok(JSON.stringify(names) === JSON.stringify(EXPECT_NAMES),
-      `banner set: exactly the 8 members tone × width, info and contained first (Q327, Q347) (got ${names.join(' | ')})`);
+      `banner set: exactly the 10 members tone × width, info and contained first and neutral last (Q327, Q347, Q-BN3.2 A) (got ${names.join(' | ')})`);
     const find = (n: any, name: string): any => n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean);
     const glyphs = (n: any): any[] => [...(/^icon\//.test(n.nestTarget ?? '') ? [n] : []), ...(n.children ?? []).flatMap(glyphs)];
     const wrong: string[] = [];
@@ -6938,7 +6942,7 @@ arm: {
       const width = /width=(\w+)/.exec(name)?.[1] ?? '';
       const r = m.root;
       if (r.paints?.fills !== `color/${FILL[style](tone).replace(/\./g, '/')}`) wrong.push(`${name} fill ${r.paints?.fills}`);
-      if (r.paints?.strokes !== `color/border/${tone}`) wrong.push(`${name} edge ${r.paints?.strokes}`);
+      if (r.paints?.strokes !== `color/${EDGE(tone).replace(/\./g, '/')}`) wrong.push(`${name} edge ${r.paints?.strokes}`);
       // The edge per side (Q533.4): hairline top and bottom on both widths; the sides hairline contained, none full.
       const SIDE: Record<string, string> = { contained: 'border-width/hairline', full: 'border-width/none' };
       const edges = [r.bound?.strokeTopWeight, r.bound?.strokeRightWeight, r.bound?.strokeBottomWeight, r.bound?.strokeLeftWeight];
@@ -6950,9 +6954,9 @@ arm: {
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'])
         if (r.bound?.[c] !== CORNER[width]) wrong.push(`${name} ${c} ${r.bound?.[c]}`);
       const g = glyphs(r).filter((n) => n.name !== 'dismiss');
-      if (g.length !== 1 || g[0].nestTarget !== GLYPH[tone] || g[0].descendantFills !== `color/icon/${tone}` || g[0].bound?.width !== 'icon/size/md')
+      if (GLYPH[tone] === null ? g.length !== 0 : (g.length !== 1 || g[0].nestTarget !== GLYPH[tone] || g[0].descendantFills !== `color/icon/${tone}` || g[0].bound?.width !== 'icon/size/md'))
         wrong.push(`${name} glyph ${g.map((n) => `${n.nestTarget} in ${n.descendantFills}`).join(', ') || 'none'}`);
-      for (const t of ['title', 'placeholder'])
+      for (const t of ['title', 'bodyText'])
         if (find(r, t)?.paints?.fills !== 'color/text/primary') wrong.push(`${name} ${t} ink ${find(r, t)?.paints?.fills}`);
       const row = find(r, 'actions'), a = find(r, 'action'), d = find(r, 'dismiss');
       // Q533.1: ONE action, a text Button, small, the row's only child.
@@ -6964,12 +6968,52 @@ arm: {
       if (row?.visible !== false || d?.visible !== false) wrong.push(`${name} action/dismiss shown by default`);
       if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
     }
-    ok(wrong.length === 0 && outlined.length === 8,
-      `banner members, Tinted and Outlined (#2924): each paints foreground.<tone>-subtle at Tinted and background.primary at Outlined, with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+    ok(wrong.length === 0 && outlined.length === 10,
+      `banner members, Tinted and Outlined (#2924, #3225): each paints foreground.<tone>-subtle (neutral: background.secondary) at Tinted and background.primary at Outlined, with a 1px border.<tone> edge (neutral: border.tertiary), its tone's glyph in icon.<tone> (neutral: none), text.primary ink on the title and the body text, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+
+    // #3225 (Q-BN2.1 A, Q-BN4.1 A): the body row, the body text, the inline link and the rich body, typed from the decision.
+    //   · the body row wraps (layoutWrap WRAP) and aligns on the text baseline, shown by default behind `body`;
+    //   · the body text hugs up to the row's own width, derived from the build width: 480 or 960, less the 16px padding
+    //     each side, less the 24px glyph and its 12px gap where the tone has a glyph (the dismiss is off by default);
+    //   · the link is a Link, inline, default weight, medium, off by default;
+    //   · the rich body is the native slot, empty and off by default.
+    const bodyWrong: string[] = [];
+    for (const m of set) {
+      const name = planComponentName(m);
+      const tone = /tone=(\w+)/.exec(name)?.[1] ?? '';
+      const width = /width=(\w+)/.exec(name)?.[1] ?? '';
+      const MAX: Record<string, number> = tone === 'neutral' ? { contained: 448, full: 928 } : { contained: 412, full: 892 };
+      const row = find(m.root, 'bodyRow'), text = find(m.root, 'bodyText'), link = find(m.root, 'link'), rich = find(m.root, 'richBody');
+      if (row?.layoutWrap !== 'WRAP' || row?.counterAxisAlignItems !== 'BASELINE' || row?.layoutMode !== 'HORIZONTAL' || row?.visible === false || row?.visibleProp !== 'body')
+        bodyWrong.push(`${name} body row ${row?.layoutMode}/${row?.layoutWrap}/${row?.counterAxisAlignItems}/${row?.visibleProp}/${row?.visible}`);
+      if (JSON.stringify((row?.children ?? []).map((c: any) => c.name)) !== JSON.stringify(['bodyText', 'link'])) bodyWrong.push(`${name} body row holds ${(row?.children ?? []).map((c: any) => c.name).join('+')}`);
+      if (text?.maxWidth !== MAX[width] || text?.layoutGrow !== undefined || text?.textAutoResize !== undefined || text?.propertyRef?.prop !== 'body text')
+        bodyWrong.push(`${name} body text maxWidth ${text?.maxWidth} (want ${MAX[width]}) grow ${text?.layoutGrow} resize ${text?.textAutoResize} prop ${text?.propertyRef?.prop}`);
+      if (link?.nestTarget !== 'link' || link?.nestVariant?.style !== 'inline' || link?.nestVariant?.weight !== 'default' || link?.nestVariant?.size !== 'medium' || link?.visible !== false || link?.visibleProp !== 'link')
+        bodyWrong.push(`${name} link ${link?.nestTarget}/${link?.nestVariant?.style}/${link?.nestVariant?.weight}/${link?.nestVariant?.size}/${link?.visible}`);
+      if (rich?.type !== 'CONTENT_SLOT' || rich?.visible !== false || (rich?.children ?? []).length !== 0 || rich?.visibleProp !== 'rich body')
+        bodyWrong.push(`${name} rich body ${rich?.type}/${rich?.visible}/${(rich?.children ?? []).length} children`);
+      if (find(m.root, 'placeholder') || find(m.root, 'body')) bodyWrong.push(`${name} still holds the old slot or its placeholder`);
+    }
+    ok(set.length === 10 && bodyWrong.length === 0,
+      `banner #3225 body: on all 10 members the body row wraps and aligns on the baseline (shown, behind body), holding the body text then the link; the body text hugs at 412 contained and 892 full (448 and 928 with no glyph) and drives body text; the link is an inline, default-weight, medium Link, off; the rich body is an empty slot, off${bodyWrong.length ? ` — ${bodyWrong.join('; ')}` : ''}`);
+    // Q-BN2.3 A: the body text's default is the old placeholder, as a literal, on the def and on the set's property.
+    const BODY_DEFAULT = 'Body text. Say what happened and what to do next.';
+    const bodyProp = planSetProperties(set).find((x: any) => x.name === 'body text') as any;
+    ok(bannerDef.figmaProperties?.texts?.children?.default === BODY_DEFAULT && bodyProp?.type === 'TEXT' && bodyProp?.default === BODY_DEFAULT && bannerDef.figmaProperties?.texts?.children?.part === 'bodyText',
+      `banner #3225 Q-BN2.3 A: body text (code children) defaults to "${BODY_DEFAULT}" on the def and on the set (got ${JSON.stringify(bodyProp)})`);
+    // Q-BN4.2 A: the link and the action are never both on: not in any member, and the two props say so in their types
+    // (code's union) and the docs say so in the don't list. Two Figma booleans cannot be made exclusive, so this is the gate.
+    const both = set.filter((m) => find(m.root, 'link')?.visible !== false && find(m.root, 'actions')?.visible !== false).map(planComponentName);
+    const linkProp = bannerDef.props.find((x) => x.name === 'link'), actionsProp = bannerDef.props.find((x) => x.name === 'actions');
+    const dontBoth = (bannerDef.docs?.dont ?? []).some((d) => /inline link and the action together/.test(d));
+    ok(both.length === 0 && /never with actions/.test(linkProp?.type ?? '') && /never with link/.test(actionsProp?.type ?? '') && dontBoth
+      && bannerDef.figmaProperties?.booleans?.link !== undefined && (bannerDef.figmaProperties.booleans.link as any).default === false && (bannerDef.figmaProperties.booleans.actions as any).default === false,
+      `banner #3225 Q-BN4.2 A: the inline link and the action are never both on (members with both: ${both.length}), link's type says never with actions (${linkProp?.type}), actions' says never with link (${actionsProp?.type}), both off by default, and the don't list says so (${dontBoth})`);
     // #2971: one width floor on every member, contained and full alike, bound to `container/min` (never a literal).
     const floors = set.map((m) => `${planComponentName(m)}: ${m.root.bound?.minWidth ?? '-'}/${m.root.minWidth ?? '-'}`);
-    ok(set.length === 8 && set.every((m) => m.root.bound?.minWidth === 'container/min' && m.root.minWidth === undefined),
-      `banner #2971: all 8 members bind the root's minWidth to container/min, with no literal floor (got ${floors.join(' | ')})`);
+    ok(set.length === 10 && set.every((m) => m.root.bound?.minWidth === 'container/min' && m.root.minWidth === undefined),
+      `banner #2971: all 10 members bind the root's minWidth to container/min, with no literal floor (got ${floors.join(' | ')})`);
     // And the token it binds resolves to 320px in every committed example brand (read off the emission, not the builder).
     const outDir = join(HERE, 'out');
     const mins = readdirSync(outDir).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.'))
@@ -6985,8 +7029,8 @@ arm: {
       ...Object.entries(fp.texts ?? {}).map(([k, t]: [string, any]) => t.figmaName ?? k),
       ...Object.entries(fp.booleans ?? {}).map(([k, b]: [string, any]) => (typeof b === 'object' && b.figmaName) || k),
     ];
-    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'title', 'icon', 'actions', 'dismiss']),
-      `banner Figma properties: title text, title, icon, actions, dismiss, all lowercase (Q345), and no second action (Q533.1) (got ${propNames.join(', ')})`);
+    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'body text', 'title', 'body', 'rich body', 'icon', 'actions', 'link', 'dismiss']),
+      `banner Figma properties: title text, body text, title, body, rich body, icon, actions, link, dismiss, all lowercase (Q345, #3225), and no second action (Q533.1) (got ${propNames.join(', ')})`);
     // Q533.1 from the other side: the banner's one action is not grouped, so Button group neither pairs with Banner nor
     // says in its prose that it holds a banner's actions (review on #2786).
     const bg = componentDefs.find((d) => d.id === 'button-group')!;
@@ -7016,12 +7060,19 @@ arm: {
       return { measured, low, min };
     };
     // #2924: every part in both Banner styles, each on that style's fill (`FILL`, typed from the decision).
+    // #3225: each pair measures the role the STYLED DEF binds (the subject), held to a literal floor, so a rebinding fails
+    // its pair by name; the members arm above holds each binding to the decision's literal.
+    const bound = (style: string, key: string): string => String((style === 'outlined' ? applyBannerStyle(bannerDef, 'outlined') : bannerDef).tokens[key] ?? '').replace(/^color\./, '');
     const PAIRS: [string, string, number, string][] = (['tinted', 'outlined'] as const).flatMap((style) => TONES.flatMap((t) => {
-      const fill = FILL[style](t);
+      const fill = bound(style, `${t}.fill`), edge = bound(style, `${t}.border`);
       return [
         ['text.primary', fill, 4.5, `${style}: title and body on the ${t} fill`],
-        [`border.${t}`, 'background.primary', 3, `${style}: the ${t} edge against the page`],
-        [`icon.${t}`, fill, 3, `${style}: the ${t} glyph on its fill`],
+        [edge, 'background.primary', 3, `${style}: the ${t} edge against the page`],
+        // A status tone's glyph on its fill; the neutral tone has none, and its edge is what carries the shape on a fill
+        // close to the page (1.08–1.22:1), so the edge is held against the fill too.
+        t === 'neutral' ? [edge, fill, 3, `${style}: the ${t} edge against its fill`] : [`icon.${t}`, fill, 3, `${style}: the ${t} glyph on its fill`],
+        // #3225 (Q-BN4 all A): the inline link's rest ink on the fill, in every tone.
+        ['text.link.default', fill, 4.5, `${style}: the inline link on the ${t} fill`],
         // The nested neutral text action and dismiss paint their rest ink on the banner's fill.
         ['interactive.neutral.text.rest', fill, 4.5, `${style}: the action label on the ${t} fill`],
         // The fallback when the file has no Button.Neutral: the primary Button's text label, held to 4.5:1 by #2820's surface contract (Q419 A).
@@ -7034,7 +7085,7 @@ arm: {
         ['border.focus', fill, 3, `${style}: the dismiss focus ring on the ${t} fill`],
       ] as [string, string, number, string][];
     }));
-    ok(PAIRS.length === 72, `banner contrast covers 72 pairs, 9 per tone in each of the 2 Banner styles (got ${PAIRS.length})`);
+    ok(PAIRS.length === 100, `banner contrast covers 100 pairs, 10 per tone in each of the 2 Banner styles (got ${PAIRS.length})`);
     for (const [a, b, floor, what] of PAIRS) {
       const { measured, low, min } = measure(a, b, floor);
       ok(measured === CELLS && low.length === 0,
@@ -12141,6 +12192,8 @@ arm: {
   const GROUNDS_2817 = [
     // #3049: Dialog's panel is `foreground.raised`, so the card surface left the list (Q419 A: no wider).
     'background.primary', 'foreground.raised',
+    // #3225: Banner's neutral tone carries the primary action and the inline link on the secondary ground.
+    'background.secondary',
     'foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle',
   ];
   // Banner (#2786) places the inks on the four status tints; the brand tint stays in the contract by Q419 A ahead of a def that places them there.
@@ -16519,18 +16572,21 @@ arm: {
     // `color.foreground.{tone}-subtle`, Outlined → `color.background.primary`), never read off the materializer (docs/34).
     {
       const banner = componentDefs.find((x) => x.id === 'banner')!;
-      const TONES = ['info', 'success', 'warning', 'danger'];
+      // #3225 (Q-BN3.1 A): the neutral tone joins, its Tinted fill the secondary ground and its edge border.tertiary.
+      const TONES = ['info', 'success', 'warning', 'danger', 'neutral'];
+      const TINT = (t: string): string => (t === 'neutral' ? 'color.background.secondary' : `color.foreground.${t}-subtle`);
+      const EDGE = (t: string): string => (t === 'neutral' ? 'color.border.tertiary' : `color.border.${t}`);
       const moved = componentDefs.filter((d) => applyBannerStyle(d, 'tinted') !== d || (d.id !== 'banner' && applyBannerStyle(d, 'outlined') !== d)).map((d) => d.id);
       ok(moved.length === 0, `#2924 identity: Tinted returns every def unchanged, and Outlined every def but Banner (moved: ${moved.join(', ') || 'none'})`);
-      ok(JSON.stringify(BANNER_STYLE_FILL_KEYS) === JSON.stringify({ banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill'] })
-        && TONES.every((t) => banner.tokens[`${t}.fill`] === `color.foreground.${t}-subtle`),
-        `#2924 reach (Q4 A, Banner only): the setting reaches Banner's four fills, authored at the tone's tint (${JSON.stringify(BANNER_STYLE_FILL_KEYS)})`);
+      ok(JSON.stringify(BANNER_STYLE_FILL_KEYS) === JSON.stringify({ banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill', 'neutral.fill'] })
+        && TONES.every((t) => banner.tokens[`${t}.fill`] === TINT(t)),
+        `#2924 reach (Q4 A, Banner only): the setting reaches Banner's five fills, authored at the tone's tint (the neutral tone's: the secondary ground, #3225) (${JSON.stringify(BANNER_STYLE_FILL_KEYS)})`);
       const out = applyBannerStyle(banner, 'outlined');
       ok(TONES.every((t) => out.tokens[`${t}.fill`] === 'color.background.primary'),
         `#2924 binding: Outlined binds every tone's fill to color.background.primary (${TONES.map((t) => out.tokens[`${t}.fill`]).join(', ')})`);
-      const others = (d: typeof banner) => JSON.stringify({ ...d, tokens: Object.fromEntries(Object.entries(d.tokens).filter(([k]) => !/^(info|success|warning|danger)\.fill$/.test(k))) });
-      ok(others(out) === others(banner) && TONES.every((t) => out.tokens[`${t}.border`] === `color.border.${t}` && out.tokens[`${t}.icon`] === `color.icon.${t}`),
-        '#2924 a value setting (#2959): Outlined changes the four fill refs and nothing else on the def; the edge, the glyph and the inks keep their tokens');
+      const others = (d: typeof banner) => JSON.stringify({ ...d, tokens: Object.fromEntries(Object.entries(d.tokens).filter(([k]) => !/^(info|success|warning|danger|neutral)\.fill$/.test(k))) });
+      ok(others(out) === others(banner) && TONES.every((t) => out.tokens[`${t}.border`] === EDGE(t) && out.tokens[`${t}.icon`] === (t === 'neutral' ? undefined : `color.icon.${t}`)),
+        '#2924 a value setting (#2959): Outlined changes the five fill refs and nothing else on the def; the edge, the glyph and the inks keep their tokens');
       let threw = '';
       try { applyBannerStyle({ ...banner, tokens: { ...banner.tokens, 'warning.fill': 'color.foreground.warning' } }, 'outlined'); } catch (e) { threw = (e as Error).message; }
       ok(threw.includes('"Banner style" rebinds warning.fill') && threw.includes('color.foreground.warning there'),
@@ -16545,11 +16601,11 @@ arm: {
         && order.indexOf('bannerStyle') === order.indexOf('dialogTitleSize') + 1,
         `#2924 lever (DRAFT copy, Q2 on #2924): "Banner style", Tinted / Outlined, default Tinted, a value lever, not advanced, in Form after Dialog title size (form order: ${order.join(', ')})`);
       // THE PROJECTION: every one of the 8 members' fill and edge, read off the plan as Figma will bind them.
-      for (const [style, fill] of [['tinted', (t: string) => `color/foreground/${t}-subtle`], ['outlined', () => 'color/background/primary']] as const) {
+      for (const [style, fill] of [['tinted', (t: string) => TINT(t).replace(/\./g, '/')], ['outlined', () => 'color/background/primary']] as const) {
         const plans = figmaAnatomySet(applyBannerStyle(banner, style)) as any[];
-        const bad = plans.filter((p) => { const t = /tone=(\w+)/.exec(planComponentName(p))?.[1] ?? ''; return p.root.paints?.fills !== fill(t) || p.root.paints?.strokes !== `color/border/${t}`; });
-        ok(plans.length === 8 && bad.length === 0,
-          `#2924 projection: at ${style}, every one of Banner's 8 members fills with ${fill('<tone>')} and keeps the color/border/<tone> edge (${plans.length} members${bad.length ? `; off: ${bad.map((p) => `${planComponentName(p)} ${p.root.paints?.fills}`).join(', ')}` : ''})`);
+        const bad = plans.filter((p) => { const t = /tone=(\w+)/.exec(planComponentName(p))?.[1] ?? ''; return p.root.paints?.fills !== fill(t) || p.root.paints?.strokes !== EDGE(t).replace(/\./g, '/'); });
+        ok(plans.length === 10 && bad.length === 0,
+          `#2924 projection: at ${style}, every one of Banner's 10 members fills with ${fill('<tone>')} and keeps its edge, color/border/<tone> (neutral: color/border/tertiary) (${plans.length} members${bad.length ? `; off: ${bad.map((p) => `${planComponentName(p)} ${p.root.paints?.fills}`).join(', ')}` : ''})`);
       }
     }
 
@@ -36174,6 +36230,45 @@ arm: {
   ok(renamesDangling({ grp: { axes: {}, members: 1, properties: {} }, inner: { axes: {}, members: 1, properties: { items: 'SLOT' } } }, [within]).length === 0
     && renamesDangling({ grp: { axes: {}, members: 1, properties: {} }, inner: { axes: {}, members: 1, properties: {} } }, [within]).some((b) => b.includes("which 'inner' does not project as a SLOT property")),
     '#2661 renames lint: a slot entry reached within a nested def must name a SLOT property that def projects');
+
+  // #3225 — A SLOT'S TEXT MOVED OUT (owner Q-BN2.2 A). Hand-built baselines, so the accounting is held without the live
+  // projection: a def that held a SLOT gains a TEXT property beside it, and only a `slot-text` entry naming it claims it.
+  const stBefore: AxesBaseline = { bn: { axes: {}, members: 1, properties: { 'title text': 'TEXT', body: 'SLOT' } } };
+  const stAfter: AxesBaseline = { bn: { axes: {}, members: 1, properties: { 'title text': 'TEXT', 'body text': 'TEXT', body: 'BOOLEAN', 'rich body': 'BOOLEAN', richBody: 'SLOT' } } };
+  const stEntry: ComponentRename = { def: 'bn', kind: 'slot-text', slot: 'body', text: 'placeholder', property: 'body text', show: 'rich body', hide: 'body', issue: 3225 };
+  const stSib = { bn: ['body text'] };
+  ok(slotTextUnclaimed(stBefore, stAfter, stSib, []).some((b) => b.includes("bn: the TEXT property 'body text' is new beside a native slot")) && slotTextUnclaimed(stBefore, stAfter, stSib, [stEntry]).length === 0,
+    '#3225 renames lint arm C: a TEXT property new beside a slot the base held is refused by name, and claimed by a slot-text entry naming it');
+  ok(slotTextUnclaimed({ bn: { axes: {}, members: 1, properties: { 'title text': 'TEXT' } } }, stAfter, stSib, []).length === 0
+    && slotTextUnclaimed(stBefore, stAfter, { bn: ['title text'] }, []).length === 0,
+    '#3225 renames lint arm C: nothing is demanded of a def that held no slot at the base, nor for a TEXT property the base already had');
+  ok(renamesDangling(stAfter, [stEntry]).length === 0
+    && renamesDangling({ bn: { ...stAfter.bn, properties: { body: 'BOOLEAN', 'rich body': 'BOOLEAN' } } }, [stEntry]).some((b) => b.includes("writes 'body text', which the set does not declare as TEXT"))
+    && renamesDangling({ bn: { ...stAfter.bn, properties: { 'body text': 'TEXT', body: 'BOOLEAN' } } }, [stEntry]).some((b) => b.includes("toggles 'rich body', which the set does not declare as BOOLEAN")),
+    '#3225 renames lint: a slot-text entry must write a TEXT property and toggle two BOOLEANs the set declares');
+  // Banner's own entries, typed from the decision.
+  const bnText = slotTextMigrationOf('banner');
+  ok(!!bnText && bnText.slot === 'body' && bnText.text === 'placeholder' && bnText.property === 'body text' && bnText.show === 'rich body' && bnText.hide === 'body' && bnText.issue === 3225
+    && partRenames('banner').get('body') === 'richBody' && renameProperty('banner', 'body') === 'richBody',
+    `#3225 COMPONENT_RENAMES: Banner's slot text moves into body text (rich body shows the slot, body hides the sentence), and the slot layer and its SLOT property are renamed body to richBody in place (${JSON.stringify(bnText)})`);
+}
+
+// #3225 — THE SCHEMA'S NEW LAYOUT FIELDS, refused where they mean nothing (owner Q-BN4.1 A). A wrapping row, and a text
+// that hugs inside a nested wrapping row, on a minimal def built here.
+{
+  const base = componentDefs.find((d) => d.id === 'banner')!;
+  const parts = base.anatomy!.parts;
+  const withPart = (name: string, patch: Record<string, unknown>) => ({ ...base, anatomy: { ...base.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } } }) as any;
+  const errs = (d: any) => validateComponentDef(d).errors.join(' | ');
+  ok(validateComponentDef(base).errors.length === 0, `#3225 schema: Banner validates with its wrapping body row and nested hugging body text (${errs(base)})`);
+  ok(/declares layout.wrap on a column/.test(errs(withPart('content', { layout: { ...parts.content.layout!, wrap: true } }))),
+    '#3225 schema: layout.wrap on a column is refused by name');
+  ok(/declares layout.wrap but its width hugs its children/.test(errs(withPart('bodyRow', { layout: { ...parts.bodyRow.layout!, sizing: { x: 'hug', y: 'hug' } } }))),
+    '#3225 schema: layout.wrap on a row that hugs its width is refused by name');
+  ok(/not a row that wraps/.test(errs(withPart('bodyRow', { layout: { ...parts.bodyRow.layout!, wrap: undefined } }))),
+    '#3225 schema: a nested hugging text under a row that does not wrap is refused by name');
+  ok(/does not stretch across its column 'content'/.test(errs(withPart('bodyRow', { crossAxisFill: undefined }))),
+    "#3225 schema: a nested hugging text whose row does not stretch across its column is refused by name (the width cannot be derived)");
 }
 
 // ------------------------------------------------------------------- #2324: the text-button underline

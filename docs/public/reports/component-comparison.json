@@ -349,7 +349,8 @@
           "info",
           "success",
           "warning",
-          "danger"
+          "danger",
+          "neutral"
         ],
         "width": [
           "contained",
@@ -364,7 +365,8 @@
             "info",
             "success",
             "warning",
-            "danger"
+            "danger",
+            "neutral"
           ]
         },
         {
@@ -397,6 +399,9 @@
         },
         {
           "name": "actions"
+        },
+        {
+          "name": "link"
         },
         {
           "name": "dismissible",
@@ -6235,6 +6240,19 @@
     "tone": [
       {
         "values": [
+          "danger",
+          "info",
+          "neutral",
+          "success",
+          "warning"
+        ],
+        "components": [
+          "badge",
+          "banner"
+        ]
+      },
+      {
+        "values": [
           "brand",
           "danger",
           "info",
@@ -6247,29 +6265,6 @@
         ],
         "components": [
           "icon"
-        ]
-      },
-      {
-        "values": [
-          "danger",
-          "info",
-          "neutral",
-          "success",
-          "warning"
-        ],
-        "components": [
-          "badge"
-        ]
-      },
-      {
-        "values": [
-          "danger",
-          "info",
-          "success",
-          "warning"
-        ],
-        "components": [
-          "banner"
         ]
       }
     ],
@@ -7603,6 +7598,11 @@
       {
         "id": "code-input",
         "default": 6
+      }
+    ],
+    "link": [
+      {
+        "id": "banner"
       }
     ],
     "max": [
@@ -9149,7 +9149,8 @@
           "info",
           "success",
           "warning",
-          "danger"
+          "danger",
+          "neutral"
         ]
       },
       {
@@ -10038,7 +10039,7 @@
         "banner",
         "icon"
       ],
-      "detail": "the tone axis takes 3 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge; [danger, info, success, warning] in banner"
+      "detail": "the tone axis takes 2 value sets — [danger, info, neutral, success, warning] in badge, banner; [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon"
     },
     {
       "kind": "axis values",

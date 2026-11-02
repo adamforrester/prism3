@@ -21,7 +21,7 @@ Type: dimension. Bound by 26 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `border-width` | surface | every member (50 of 50) |
-| banner | `border-width`, `width.contained.edge-side` | container | every member (8 of 8) |
+| banner | `border-width`, `width.contained.edge-side` | container | every member (10 of 10) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
@@ -81,7 +81,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `width.full.edge-side` | container | width: full (4 of 8) |
+| banner | `width.full.edge-side` | container | width: full (5 of 10) |
 
 ### `border-width.thick`
 
@@ -125,10 +125,11 @@ Type: color. Bound by 2 component(s).
 
 ### `color.background.secondary`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| banner | `neutral.fill` | container | tone: neutral (2 of 10) |
 | image-placeholder | `fill` | frame | every member (7 of 7) |
 | segmented-control | `fill` | track | every member (3 of 3) |
 
@@ -150,7 +151,7 @@ Type: color. Bound by 12 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: danger · type: status (2 of 50) |
-| banner | `danger.border` | container | tone: danger (2 of 8) |
+| banner | `danger.border` | container | tone: danger (2 of 10) |
 | card-number-field | `error.border.empty` (not drawn), `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | checkbox-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.indeterminate.border.focus-visible`, `error.indeterminate.border.hover`, `error.indeterminate.border.pressed`, `error.indeterminate.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (36 of 90) |
 | code-input-cell | `border.error` | container | state: error (4 of 28) |
@@ -198,7 +199,7 @@ Type: color. Bound by 2 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `info.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: info · type: status (2 of 50) |
-| banner | `info.border` | container | tone: info (2 of 8) |
+| banner | `info.border` | container | tone: info (2 of 10) |
 
 ### `color.border.primary`
 
@@ -233,7 +234,7 @@ Type: color. Bound by 8 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `success.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: success · type: status (2 of 50) |
-| banner | `success.border` | container | tone: success (2 of 8) |
+| banner | `success.border` | container | tone: success (2 of 10) |
 | card-number-field | `success.border.empty` (not drawn), `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
 | password-field | `success.border.empty` (not drawn), `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
 | search-field | `success.border.empty` (not drawn), `success.border.filled`, `success.border.focus-visible`, `success.border.focus-visible-filled`, `success.border.hover`, `success.border.read-only`, `success.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: success (18 of 84) |
@@ -243,11 +244,12 @@ Type: color. Bound by 8 component(s).
 
 ### `color.border.tertiary`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `neutral.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: neutral · type: status (2 of 50) |
+| banner | `neutral.border` | container | tone: neutral (2 of 10) |
 | divider | `separator.fill` | (not drawn) | — |
 | pagination-item | `selected.underline.page.fill.focus-visible`, `selected.underline.page.fill.rest` | underline | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
 
@@ -258,7 +260,7 @@ Type: color. Bound by 8 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `warning.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: warning · type: status (2 of 50) |
-| banner | `warning.border` | container | tone: warning (2 of 8) |
+| banner | `warning.border` | container | tone: warning (2 of 10) |
 | card-number-field | `warning.border.empty` (not drawn), `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
 | password-field | `warning.border.empty` (not drawn), `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
 | search-field | `warning.border.empty` (not drawn), `warning.border.filled`, `warning.border.focus-visible`, `warning.border.focus-visible-filled`, `warning.border.hover`, `warning.border.read-only`, `warning.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: warning (18 of 84) |
@@ -475,7 +477,7 @@ Type: color. Bound by 2 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: danger · type: status (2 of 50) |
-| banner | `danger.fill` | container | tone: danger (2 of 8) |
+| banner | `danger.fill` | container | tone: danger (2 of 10) |
 
 ### `color.foreground.info`
 
@@ -492,7 +494,7 @@ Type: color. Bound by 2 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `info.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: info · type: status (2 of 50) |
-| banner | `info.fill` | container | tone: info (2 of 8) |
+| banner | `info.fill` | container | tone: info (2 of 10) |
 
 ### `color.foreground.raised`
 
@@ -525,7 +527,7 @@ Type: color. Bound by 2 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `success.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: success · type: status (2 of 50) |
-| banner | `success.fill` | container | tone: success (2 of 8) |
+| banner | `success.fill` | container | tone: success (2 of 10) |
 
 ### `color.foreground.warning`
 
@@ -542,7 +544,7 @@ Type: color. Bound by 2 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `warning.status.contained.subtle.fill` | surface | emphasis: subtle · style: contained · tone: warning · type: status (2 of 50) |
-| banner | `warning.fill` | container | tone: warning (2 of 8) |
+| banner | `warning.fill` | container | tone: warning (2 of 10) |
 
 ### `color.icon.brand`
 
@@ -562,7 +564,7 @@ Type: color. Bound by 5 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: danger · type: status (2 of 50) |
-| banner | `danger.icon` | dangerGlyph | tone: danger (2 of 8) |
+| banner | `danger.icon` | dangerGlyph | tone: danger (2 of 10) |
 | field-message | `error.icon` | errorGlyph | status: error (1 of 4) |
 | icon | `tone.danger` | (not drawn) | — |
 | progress | `error.icon`, `error.indicator` | arcGlyph | shape: circular · status: error · type: determinate (2 of 12) |
@@ -576,7 +578,7 @@ Type: color. Bound by 3 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `info.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: info · type: status (2 of 50) |
-| banner | `info.icon` | infoGlyph | tone: info (2 of 8) |
+| banner | `info.icon` | infoGlyph | tone: info (2 of 10) |
 | icon | `tone.info` | (not drawn) | — |
 
 ### `color.icon.link.default`
@@ -656,7 +658,7 @@ Type: color. Bound by 5 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `success.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: success · type: status (2 of 50) |
-| banner | `success.icon` | successGlyph | tone: success (2 of 8) |
+| banner | `success.icon` | successGlyph | tone: success (2 of 10) |
 | field-message | `success.icon` | successGlyph | status: success (1 of 4) |
 | icon | `tone.success` | (not drawn) | — |
 | progress | `complete.icon`, `complete.indicator` | dotGlyph | shape: linear · size: medium · status: complete · type: determinate (1 of 12) |
@@ -679,7 +681,7 @@ Type: color. Bound by 4 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `warning.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: warning · type: status (2 of 50) |
-| banner | `warning.icon` | warningGlyph | tone: warning (2 of 8) |
+| banner | `warning.icon` | warningGlyph | tone: warning (2 of 10) |
 | field-message | `warning.icon` | warningGlyph | status: warning (1 of 4) |
 | icon | `tone.warning` | (not drawn) | — |
 
@@ -1960,8 +1962,8 @@ Type: color. Bound by 21 component(s).
 |---|---|---|---|
 | accordion | `body` | placeholder | expansion: expanded (24 of 48) |
 | badge | `danger.status.inline.subtle.label`, `info.status.inline.subtle.label`, `neutral.status.contained.subtle.label`, `neutral.status.contained.surface.label`, `neutral.status.inline.subtle.label`, `success.status.inline.subtle.label`, `warning.status.inline.subtle.label` | label | emphasis: subtle, surface · type: status (14 of 50) |
-| banner | `body`, `label` | placeholder | every member (8 of 8) |
-|  |  | title | every member (8 of 8) |
+| banner | `body`, `label` | bodyText | every member (10 of 10) |
+|  |  | title | every member (10 of 10) |
 | breadcrumb-item | `label` | current | kind: current · separator: chevron (2 of 10) |
 | card-number-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
@@ -2111,7 +2113,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `min-width` | container | every member (8 of 8) |
+| banner | `min-width` | container | every member (10 of 10) |
 
 ### `container.narrow`
 
@@ -2492,10 +2494,10 @@ Type: dimension. Bound by 24 component(s).
 |  |  | frame | size: large (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: large (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: large (1 of 12) |
-| banner | `glyph-size` | dangerGlyph | tone: danger (2 of 8) |
-|  |  | infoGlyph | tone: info (2 of 8) |
-|  |  | successGlyph | tone: success (2 of 8) |
-|  |  | warningGlyph | tone: warning (2 of 8) |
+| banner | `glyph-size` | dangerGlyph | tone: danger (2 of 10) |
+|  |  | infoGlyph | tone: info (2 of 10) |
+|  |  | successGlyph | tone: success (2 of 10) |
+|  |  | warningGlyph | tone: warning (2 of 10) |
 | button | `size.large.icon` | leadingVisual | leading: true · size: large · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: large · state: pending (32 of 576) |
 |  |  | trailingVisual | size: large · trailing: true (88 of 576) |
@@ -2687,7 +2689,7 @@ Type: dimension. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `width.contained.radius` | container | width: contained (4 of 8) |
+| banner | `width.contained.radius` | container | width: contained (5 of 10) |
 | button | `radius` | container | every member (576 of 576) |
 | button-destructive | `radius` | container | every member (576 of 576) |
 | button-neutral | `radius` | container | every member (576 of 576) |
@@ -2706,7 +2708,7 @@ Type: dimension. Bound by 6 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `inline.count.radius` (not drawn), `inline.dot.radius` (not drawn), `inline.status.radius` | surface | emphasis: subtle · style: inline · type: status (10 of 50) |
-| banner | `width.full.radius` | container | width: full (4 of 8) |
+| banner | `width.full.radius` | container | width: full (5 of 10) |
 | dialog | `placement.bottom.radius-bottom`, `placement.end.radius-bottom`, `placement.end.radius-top`, `placement.full.radius-bottom`, `placement.full.radius-top` | panel | placement: bottom, end, full · size: medium (12 of 24) |
 | flush-icon-button | `radius.flush` | container | shape: flush (30 of 60) |
 | flush-icon-button-destructive | `radius.flush` | container | shape: flush (30 of 60) |
@@ -2956,8 +2958,9 @@ Type: dimension. Bound by 14 component(s).
 |---|---|---|---|
 | _slider-thumb | `halo-step` | hoverHalo | every member (15 of 15) |
 |  |  | pressHalo | every member (15 of 15) |
-| banner | `content-gap`, `title-offset` | content | every member (8 of 8) |
-|  |  | titleBox | every member (8 of 8) |
+| banner | `content-gap`, `link-gap`, `title-offset` | bodyRow | every member (10 of 10) |
+|  |  | content | every member (10 of 10) |
+|  |  | titleBox | every member (10 of 10) |
 | breadcrumb-item | `size.small.gap` | container | size: small (5 of 10) |
 | breadcrumbs | `back-gap`, `size.small.gap` | container | every member (6 of 6) |
 |  |  | items | path: full · size: small (2 of 6) |
@@ -3078,8 +3081,8 @@ Type: dimension. Bound by 19 component(s).
 |  |  | header | size: medium, small (32 of 48) |
 |  |  | titleRow | size: medium (16 of 48) |
 | badge | `size.medium.contained.status.pad-x` | surface | size: medium · style: contained · type: status (15 of 50) |
-| banner | `actions-gap`, `gap` | actions | every member (8 of 8) |
-|  |  | container | every member (8 of 8) |
+| banner | `actions-gap`, `gap` | actions | every member (10 of 10) |
+|  |  | container | every member (10 of 10) |
 | button | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-destructive | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-group | `layout.fill.gap`, `layout.inline.gap` | items | layout: fill, inline (2 of 3) |
@@ -3109,7 +3112,7 @@ Type: dimension. Bound by 20 component(s).
 | accordion | `size.large.gap`, `size.large.pad-y`, `size.medium.pad-x`, `size.medium.panel-pad-end` | content | expansion: expanded · size: medium (8 of 48) |
 |  |  | header | size: large, medium (32 of 48) |
 |  |  | titleRow | size: large (16 of 48) |
-| banner | `pad` | container | every member (8 of 8) |
+| banner | `pad` | container | every member (10 of 10) |
 | button | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | button-destructive | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | button-neutral | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
@@ -3251,7 +3254,7 @@ Type: typography. Bound by 18 component(s).
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (8 of 48) |
 | badge | `size.medium.inline.type` | label | emphasis: subtle · size: medium · style: inline · type: status (5 of 50) |
-| banner | `body-type` | placeholder | every member (8 of 8) |
+| banner | `body-type` | bodyText | every member (10 of 10) |
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
@@ -3527,7 +3530,7 @@ Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `title-type` | title | every member (8 of 8) |
+| banner | `title-type` | title | every member (10 of 10) |
 | button | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
 | button-destructive | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
 | button-neutral | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
@@ -3667,9 +3670,9 @@ Declared, not drawn: `color.border.focus`
 
 ### banner
 
-24 token(s); 8 design-file member(s).
+26 token(s); 10 design-file member(s).
 
-`border-width.hairline`, `border-width.none`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `container.min`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
+`border-width.hairline`, `border-width.none`, `color.background.secondary`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `container.min`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
 
 ### breadcrumb-item
 

@@ -184,6 +184,7 @@ export interface CompNode {
   layoutMode?: unknown;
   primaryAxisAlignItems?: unknown;
   counterAxisAlignItems?: unknown;
+  layoutWrap?: unknown;
   primaryAxisSizingMode?: unknown;
   counterAxisSizingMode?: unknown;
   /** #1343a/#1345 — the auto-layout minimum width. Written only where the plan carries it (`select`'s
@@ -2324,6 +2325,12 @@ const writeComponentSet = async (
         node.counterAxisAlignItems = n.counterAxisAlignItems;
         node.primaryAxisSizingMode = n.primaryAxisSizingMode;
         node.counterAxisSizingMode = n.counterAxisSizingMode;
+        // A ROW THAT WRAPS (#3225, `FigmaNodePlan.layoutWrap`), after `layoutMode`: Figma wraps a horizontal frame only.
+        // In place, a frame the plan no longer wraps is set back. Read back. Lockstep with the paste executor.
+        if (n.layoutWrap || node.layoutWrap === 'WRAP') {
+          node.layoutWrap = n.layoutWrap ?? 'NO_WRAP';
+          if (node.layoutWrap !== (n.layoutWrap ?? 'NO_WRAP')) misses.push(`${n.name}.layoutWrap -> DISCARDED (set ${n.layoutWrap ?? 'NO_WRAP'}, reads ${String(node.layoutWrap)})`);
+        }
         // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the `layoutMode` branch because Figma accepts a
         // minimum width only on an auto-layout frame (the schema refuses `minWidth` on a layout-less box).
         // Written only when the plan carries it, so every other frame is untouched.

@@ -36,7 +36,7 @@
           ],
           "parts": {
             "container": {
-              "members": 8,
+              "members": 10,
               "where": {}
             }
           }
@@ -555,7 +555,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 5,
               "where": {
                 "width": [
                   "full"
@@ -842,6 +842,21 @@
     "color.background.secondary": {
       "type": "color",
       "components": {
+        "banner": {
+          "keys": [
+            "neutral.fill"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "neutral"
+                ]
+              }
+            }
+          }
+        },
         "image-placeholder": {
           "keys": [
             "fill"
@@ -2045,6 +2060,21 @@
                 ],
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "banner": {
+          "keys": [
+            "neutral.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "neutral"
                 ]
               }
             }
@@ -15170,12 +15200,12 @@
             "label"
           ],
           "parts": {
-            "placeholder": {
-              "members": 8,
+            "bodyText": {
+              "members": 10,
               "where": {}
             },
             "title": {
-              "members": 8,
+              "members": 10,
               "where": {}
             }
           }
@@ -16250,7 +16280,7 @@
           ],
           "parts": {
             "container": {
-              "members": 8,
+              "members": 10,
               "where": {}
             }
           }
@@ -20947,7 +20977,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 5,
               "where": {
                 "width": [
                   "contained"
@@ -21116,7 +21146,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 5,
               "where": {
                 "width": [
                   "full"
@@ -23480,15 +23510,20 @@
         "banner": {
           "keys": [
             "content-gap",
+            "link-gap",
             "title-offset"
           ],
           "parts": {
+            "bodyRow": {
+              "members": 10,
+              "where": {}
+            },
             "content": {
-              "members": 8,
+              "members": 10,
               "where": {}
             },
             "titleBox": {
-              "members": 8,
+              "members": 10,
               "where": {}
             }
           }
@@ -24777,11 +24812,11 @@
           ],
           "parts": {
             "actions": {
-              "members": 8,
+              "members": 10,
               "where": {}
             },
             "container": {
-              "members": 8,
+              "members": 10,
               "where": {}
             }
           }
@@ -25112,7 +25147,7 @@
           ],
           "parts": {
             "container": {
-              "members": 8,
+              "members": 10,
               "where": {}
             }
           }
@@ -26375,8 +26410,8 @@
             "body-type"
           ],
           "parts": {
-            "placeholder": {
-              "members": 8,
+            "bodyText": {
+              "members": 10,
               "where": {}
             }
           }
@@ -28764,7 +28799,7 @@
           ],
           "parts": {
             "title": {
-              "members": 8,
+              "members": 10,
               "where": {}
             }
           }
@@ -29881,11 +29916,12 @@
       "drawnNotDeclared": []
     },
     "banner": {
-      "members": 8,
+      "members": 10,
       "axes": {
         "tone": [
           "danger",
           "info",
+          "neutral",
           "success",
           "warning"
         ],
@@ -29897,9 +29933,11 @@
       "tokens": [
         "border-width.hairline",
         "border-width.none",
+        "color.background.secondary",
         "color.border.danger",
         "color.border.info",
         "color.border.success",
+        "color.border.tertiary",
         "color.border.warning",
         "color.foreground.danger-subtle",
         "color.foreground.info-subtle",

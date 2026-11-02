@@ -793,14 +793,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'tone',
-    values: ['info', 'success', 'warning', 'danger'],
+    values: ['info', 'success', 'warning', 'danger', 'neutral'],
     defs: ['banner'],
-    relation: 'subset',
+    relation: 'overlapping',
     reason:
       'How serious a banner\'s message is (#2579, owner decision Q327.1 A): the four status roles, spelled as the token '
-      + 'tier spells them, so a value names the same role as in `icon` and `badge`. No `neutral` (Q327.1 declined it) and no '
-      + 'rank words or `inherit`: a banner paints a tinted surface and an edge, which only a status role has. `info` LEADS '
-      + 'because it is the code default and Figma\'s default member (Q347).',
+      + 'tier spells them, so a value names the same role as in `icon` and `badge`, and since #3225 (owner Q-BN3.4 A) '
+      + '`neutral` for a message with no status, the word Badge and Toast use. OVERLAPPING, as Badge\'s set is: `neutral` is '
+      + 'not an ink of `icon`\'s, since it names no color family; it binds the secondary ground and the neutral edge, and no '
+      + 'glyph. No rank words or `inherit`: a banner paints a surface and an edge. `info` LEADS because it is the code '
+      + 'default and Figma\'s default member (Q347); `neutral` comes LAST so it stays so (Q-BN3.2 A).',
   },
   {
     axis: 'status',

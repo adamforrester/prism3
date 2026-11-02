@@ -25,7 +25,7 @@
 import type { AxisKind, ComponentDef, LiteralEntry, LiteralFont, NestVariantWhen, NestVariantWhere, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ICON_SIZES, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
@@ -67,6 +67,9 @@ export type FigmaNodePlan = {
   layoutMode?: 'HORIZONTAL' | 'VERTICAL';
   primaryAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN';
   counterAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE';
+  /** A ROW THAT WRAPS (#3225, `LayoutDef.wrap`): carried ONLY on a box whose layout declares it, so every other frame's
+   *  plan is byte-identical. Both executors write it after `layoutMode` and read it back. */
+  layoutWrap?: 'WRAP';
   primaryAxisSizingMode?: 'AUTO' | 'FIXED';
   counterAxisSizingMode?: 'AUTO' | 'FIXED';
   /** Figma property → Figma variable NAME (slash-pathed). Names not IDs: the plan is
@@ -1815,6 +1818,39 @@ export const figmaAnatomyPlan = (
     const flushed = isFlush(a.parts[parentOf.get(from) ?? '']);
     return { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: flushed ? 0 : perSize(from, 'pin inset', pin.inset) };
   };
+  /* THE WIDTH OF A NESTED ROW AT THE BUILD WIDTH (#3225, `PartDef.wrap: 'hug'` below the root), in px, derived down
+   * from the root: the root's build width less its inline padding; a column child that stretches across takes its
+   * column's width; a row child that grows takes what its row's SHOWN siblings and gaps leave. A sibling shows when it
+   * is present at this coordinate and not hidden by default by its boolean, so a banner's dismiss, off by default,
+   * takes nothing. Each shown sibling's width must be one this can state in px (a glyph bound to an icon size); any
+   * other throws by name, since a guess would put the wrap point somewhere no host lays the row out. `anatomyErrors`
+   * (`nestedRowWidthErrors`) has proven the chain's shape; the throws are the backstop. */
+  const inlinePadPx = (q: PartDef): number => (q.padding ? 2 * spacePx(resolveKey(q.padding.inlineLabel, 'padding')) : 0);
+  const shownFlowWidth = (sib: string): number => {
+    const q = a.parts[sib];
+    if (q?.kind === 'vector' && q.size) {
+      const ref = resolveKey(q.size, 'size');
+      const step = /^icon\.size\.([a-z]+)$/.exec(ref)?.[1];
+      const px = ICON_SIZES.find((s) => s.name === step)?.px;
+      if (px !== undefined) return px;
+      throw new Error(`${def.id}: part '${sib}' sits in a row a hugging text derives its width from, and its size '${ref}' is not an icon size the engine holds in px`);
+    }
+    throw new Error(`${def.id}: part '${sib}' sits in a row a hugging text derives its width from, shown by default, with no width the engine can state in px`);
+  };
+  const nestedRowWidth = (name: string): number => {
+    const q = a.parts[name];
+    if (name === a.root) {
+      if (q.placementWidth === undefined) throw new Error(`${def.id}: a hugging text derives its width from the root '${name}', which has no build width at this coordinate`);
+      return q.placementWidth - inlinePadPx(q);
+    }
+    const up = parentOf.get(name);
+    const uq = up ? a.parts[up] : undefined;
+    if (!up || !uq?.layout) throw new Error(`${def.id}: part '${name}' has no laid-out parent to derive its width from`);
+    if (uq.layout.direction === 'column') return nestedRowWidth(up) - inlinePadPx(q);
+    const shown = (uq.children ?? []).filter((c) => c !== name && a.parts[c]?.kind !== 'overlay' && a.parts[c]?.kind !== 'absolute' && present(c) && booleanParts.get(c)?.visible !== false);
+    const gap = shown.length && uq.gap ? spacePx(resolveKey(uq.gap, 'gap')) : 0;
+    return nestedRowWidth(up) - shown.reduce((s, c) => s + shownFlowWidth(c), 0) - shown.length * gap - inlinePadPx(q);
+  };
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     // WHERE THIS PART FILLS (#1751), and the parent-side supplier each axis takes — see `fillsAxis`.
     const parentName = parentOf.get(name);
@@ -2295,6 +2331,8 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'text' && p.wrap === 'hug'
         ? (() => {
             const root = a.parts[a.root];
+            // A NESTED WRAPPING ROW (#3225): the text may take the row's whole width, and what follows it wraps.
+            if (parentName !== undefined && parentName !== a.root) return { maxWidth: nestedRowWidth(parentName) };
             if (parentName !== a.root || root.placementWidth === undefined)
               throw new Error(`${def.id}: part '${name}' hugs and wraps, but its parent is not a root with a placementWidth to derive the max width from`);
             const siblings = (root.children ?? []).length - 1;
@@ -2407,6 +2445,7 @@ export const figmaAnatomyPlan = (
             // modes are read off the axis each one names — not `x` then `y`, which swapped every column's.
             primaryAxisSizingMode: ownMode(mainAxisOf(p.layout.direction)),
             counterAxisSizingMode: ownMode(mainAxisOf(p.layout.direction) === 'x' ? 'y' : 'x'),
+            ...(p.layout.wrap ? { layoutWrap: 'WRAP' as const } : {}),
           }
         : {}),
       bound,
@@ -2851,14 +2890,18 @@ export const applyDialogTitleSize = (def: ComponentDef, size: DialogTitleSize): 
 /** The defs the setting reaches, each with its per-tone fill keys. Banner only (Q4 A on #2924): Toast sits on the inverse
  *  surface with no tint, and FieldMessage has no surface. */
 export const BANNER_STYLE_FILL_KEYS: Readonly<Record<string, readonly string[]>> = {
-  banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill'],
+  // #3225 (Q-BN3.1 A): the neutral tone's fill moves too, from the secondary ground to the page color.
+  banner: ['info.fill', 'success.fill', 'warning.fill', 'danger.fill', 'neutral.fill'],
 };
+/** What each tone's fill binds at Tinted: the tone's tint, and for the neutral tone (#3225) the secondary ground. */
+const bannerTintOf = (tone: string): string => (tone === 'neutral' ? 'color.background.secondary' : `color.foreground.${tone}-subtle`);
 
 /**
  * Materialize a def for the brand's `bannerStyle` lever (#2924). The IDENTITY under `tinted` and for any def not in
  * `BANNER_STYLE_FILL_KEYS`: it returns the same object, so every Tinted plan is byte-identical to before. Under `outlined`
  * each `<tone>.fill` key binds the page color, `color.background.primary`.
- * THROWS when a key does not hold its tone's tint, `color.foreground.<tone>-subtle`: rebinding anything else is the
+ * THROWS when a key does not hold its tone's tint, `color.foreground.<tone>-subtle` (the neutral tone's
+ * `color.background.secondary`, #3225): rebinding anything else is the
  * silent-loss shape.
  */
 export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): ComponentDef => {
@@ -2868,8 +2911,8 @@ export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): Compone
   const tokens = { ...def.tokens };
   for (const key of keys) {
     const tone = key.split('.')[0];
-    if (def.tokens[key] !== `color.foreground.${tone}-subtle`)
-      throw new Error(`${def.id}: "Banner style" rebinds ${key} from color.foreground.${tone}-subtle, and the def binds ${def.tokens[key] ?? 'nothing'} there`);
+    if (def.tokens[key] !== bannerTintOf(tone))
+      throw new Error(`${def.id}: "Banner style" rebinds ${key} from ${bannerTintOf(tone)}, and the def binds ${def.tokens[key] ?? 'nothing'} there`);
     tokens[key] = 'color.background.primary';
   }
   return { ...def, tokens };
@@ -4898,6 +4941,8 @@ ${LITERAL_FONT_SLOT}
 ${PLACEMENT_SLOT}
     // The five, in this order — one loop for the chunk byte budget (#1667), \`layoutMode\` first.
     for(const k of['layoutMode','primaryAxisAlignItems','counterAxisAlignItems','primaryAxisSizingMode','counterAxisSizingMode'])node[k]=n[k];
+    // A ROW THAT WRAPS (#3225), after \`layoutMode\` (Figma wraps a horizontal frame only). Read back. Lockstep with the plugin.
+    if(n.layoutWrap){node.layoutWrap=n.layoutWrap;if(node.layoutWrap!==n.layoutWrap)misses.push(n.name+'.layoutWrap -> DISCARDED');}
     // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the \`layoutMode\` branch because Figma accepts a
     // minimum width only on an auto-layout frame (the schema refuses \`minWidth\` on a layout-less box for
     // the same reason). Written only when the plan carries it, so every other frame is untouched. A floor

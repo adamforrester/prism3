@@ -23,6 +23,11 @@
  * projection with itself and pass any rename (`docs/34` shape 11). Arm A is what makes the committed
  * file trustworthy enough for arm B to read.
  *
+ *   C. (#3225) A def that held a native slot at the base and now has a TEXT property on a sibling of that slot (or on
+ *      a child of a sibling, as Banner's body text sits in its body row), new since the base, must carry a `slot-text`
+ *      entry naming it: placed instances filled the slot with text, and only that entry moves it into the property.
+ *      The sibling relation is read off the live defs; the "new since the base" side is arm B's file, out of git.
+ *
  * ── NEVER IN `regen.ts` ────────────────────────────────────────────────────────────────────────────
  *
  * The baseline is rewritten only by `--accept`, which runs arm B first and refuses an unaccounted
@@ -46,7 +51,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { componentDefs } from './components/index';
 import { figmaAnatomySet, planComponentName, planSetProperties } from './anatomy-figma';
-import { COMPONENT_RENAMES, coordKey, coordPairs, danglingTargets, unaccounted, type AxesBaseline as Baseline } from './component-renames';
+import { COMPONENT_RENAMES, coordKey, coordPairs, danglingTargets, slotTextUnclaimed, unaccounted, type AxesBaseline as Baseline } from './component-renames';
 import { comparisonBase } from './comparison-base';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -103,6 +108,20 @@ const project = (): Baseline => {
 };
 
 const live = project();
+
+// #3225 — per def, the TEXT properties (panel names) on a part that is a sibling of a native slot part, read off the
+// live defs: the input to arm C. The base side stays git's (arm B's file); this names which new properties to ask about.
+const siblingTexts: Record<string, string[]> = {};
+for (const def of componentDefs) {
+  const parts = def.anatomy?.parts ?? {};
+  const parentOf = new Map<string, string>();
+  for (const [n, q] of Object.entries(parts)) for (const c of q.children ?? []) parentOf.set(c, n);
+  const slotParents = new Set(Object.entries(parts).filter(([, q]) => q.contentSlot).map(([n]) => parentOf.get(n)).filter((x): x is string => !!x));
+  const texts = Object.entries(def.figmaProperties?.texts ?? {})
+    .filter(([, t]) => { const up = parentOf.get(t.part); return (up !== undefined && slotParents.has(up)) || (up !== undefined && slotParents.has(parentOf.get(up) ?? '')); })
+    .map(([k, t]) => t.figmaName ?? k);
+  if (texts.length) siblingTexts[def.id] = texts;
+}
 const liveText = `${JSON.stringify(live, null, 2)}\n`;
 const nDefs = Object.keys(live).length;
 if (nDefs < FLOOR_DEFS)
@@ -153,7 +172,7 @@ if (tracked.out.trim()) {
 const committed: Baseline | null = existsSync(FILE) ? (JSON.parse(readFileSync(FILE, 'utf8')) as Baseline) : null;
 
 if (ACCEPT) {
-  const bad = before ? [...unaccounted(before, live, COMPONENT_RENAMES), ...danglingTargets(live, COMPONENT_RENAMES)] : danglingTargets(live, COMPONENT_RENAMES);
+  const bad = before ? [...unaccounted(before, live, COMPONENT_RENAMES), ...slotTextUnclaimed(before, live, siblingTexts, COMPONENT_RENAMES), ...danglingTargets(live, COMPONENT_RENAMES)] : danglingTargets(live, COMPONENT_RENAMES);
   if (bad.length)
     die([`--accept refused: ${bad.length} change(s) the ledger does not account for.`, ...bad.map((b) => `    ${b}`), '', '  Add the entries to packages/engine/component-renames.ts first; the baseline follows them, never the other way.']);
   writeFileSync(FILE, liveText);
@@ -176,6 +195,9 @@ else if (readFileSync(FILE, 'utf8') !== liveText) {
 
 const after = committed ?? live;
 if (before) for (const b of unaccounted(before, after, COMPONENT_RENAMES)) failures.push(`B: ${b}`);
+// ARM C (#3225): a slot's text moved out to a TEXT property beside it is claimed by a `slot-text` entry, so the update
+// carries every edited slot's text into the property instead of leaving it behind.
+if (before) for (const b of slotTextUnclaimed(before, after, siblingTexts, COMPONENT_RENAMES)) failures.push(`C: ${b}`);
 for (const b of danglingTargets(after, COMPONENT_RENAMES)) failures.push(`B: ${b}`);
 
 const nAxes = Object.values(live).reduce((n, d) => n + Object.keys(d.axes).length, 0);

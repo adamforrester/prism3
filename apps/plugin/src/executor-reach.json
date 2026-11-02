@@ -22,6 +22,7 @@
     "42": ["brand-mark", "wallet-button"],
     "43": ["sign-in-button"],
     "44": ["banner", "breadcrumb-item", "breadcrumbs", "card-number-field", "code-input", "counter", "dialog", "icon", "pagination", "provider-logo", "slider", "toast"],
-    "45": []
+    "45": [],
+    "46": ["banner"]
   }
 }

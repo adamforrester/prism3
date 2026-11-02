@@ -23,7 +23,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in link, spinner; [large, medium, small, xlarge] in code-input, code-input-cell
 - **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
 - **axis style** — the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link
-- **axis tone** — the tone axis takes 3 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge; [danger, info, success, warning] in banner
+- **axis tone** — the tone axis takes 2 value sets — [danger, info, neutral, success, warning] in badge, banner; [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon
 - **axis type** — the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
 - **axis width** — the width axis takes 2 value sets — [auto, full] in button, button-destructive, button-neutral; [contained, full] in banner
@@ -301,9 +301,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | contained, inline | badge |
 |  | inline, standalone | link |
 | surface | default, inverse | button, button-destructive, button-neutral, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, focus-ring, icon-button, icon-button-destructive, icon-button-neutral, link |
-| tone | brand, danger, info, inherit, primary, secondary, success, tertiary, warning | icon |
-|  | danger, info, neutral, success, warning | badge |
-|  | danger, info, success, warning | banner |
+| tone | danger, info, neutral, success, warning | badge, banner |
+|  | brand, danger, info, inherit, primary, secondary, success, tertiary, warning | icon |
 | type | icon, ordered, unordered | list, list-item |
 |  | chevron, slash | _breadcrumb-separator |
 |  | compact, numbered, simple | pagination |
@@ -771,7 +770,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | banner | — | — |
 |  | dialog | — | — |
 | tone | badge | neutral | neutral, info, success, warning, danger |
-|  | banner | info | info, success, warning, danger |
+|  | banner | info | info, success, warning, danger, neutral |
 |  | icon | inherit | 9 values |
 | trailingIcon | link | — | — |
 |  | search-field | — | — |

@@ -745,11 +745,15 @@ section('width/… — each specimen at its member\'s width, the panel as wide a
   {
     const p = page('↳ w hug');
     const set = fakeSet(p, 'banner');
+    // #3225: Banner's body text hugs its own words, which gives the column a width; with the body turned off, every
+    // child of the column fills it again, the shape that collapses.
+    const row = walk(set.children[0]).find((c) => c.name === 'bodyRow');
+    if (row) row.visible = false;
     const sp = mk('INSTANCE', 'specimen', [], { layoutSizingHorizontal: 'HUG' });
     p.appendChild!(sp);
     instanceOf(sp, set.children[0]);
     const title = walk(sp).find((c) => c.type === 'TEXT' && c.textAutoResize === 'HEIGHT')!;
-    ok(title.width! <= runWidth('W'), `width/hug: an instance swapped to Banner that keeps the placeholder's hug squeezes its text to ${title.width}px`);
+    ok(!!row && title.width! <= runWidth('W'), `width/hug: an instance swapped to Banner, its body off, that keeps the placeholder's hug squeezes its text to ${title.width}px`);
   }
   // THE PANEL WIDENS AND THE SPEC COLUMN MOVES WITH IT: Banner's panel drawn, a live spec panel beside it, then the
   // member built wider. The panel is due (its width moved), the redraw is wider by as much, and the spec panel keeps

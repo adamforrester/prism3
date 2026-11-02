@@ -104,6 +104,21 @@
       }
     },
     {
+      "from": "banner",
+      "to": "link",
+      "part": "link",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "selection": "unselected",
+        "state": "rest"
+      }
+    },
+    {
       "from": "breadcrumb-item",
       "to": "link",
       "part": "crumb",
@@ -1955,12 +1970,14 @@
     "banner": {
       "nests": [
         "button",
-        "flush-icon-button-neutral"
+        "flush-icon-button-neutral",
+        "link"
       ],
       "nestsTransitively": [
         "button",
         "flush-icon-button-neutral",
         "focus-ring",
+        "link",
         "spinner"
       ],
       "nestedBy": [],
@@ -2491,10 +2508,12 @@
         "focus-ring"
       ],
       "nestedBy": [
+        "banner",
         "breadcrumb-item",
         "breadcrumbs"
       ],
       "affectedByChange": [
+        "banner",
         "breadcrumb-item",
         "breadcrumbs"
       ],
