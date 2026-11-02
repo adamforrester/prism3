@@ -145,6 +145,10 @@ export const TILE_VARS = [
   // step down, changed in place under the old names so no rule moves; secondary (`fs-12`) stays 12, set apart by its ink.
   ['fs-12', 'core.font.size.12', D], ['fs-14', 'core.font.size.12', D],
   ['fs-16', 'core.font.size.14', D],
+  // #3305 (the owner, 2026-11-02): the Activity drawer's monospace text (a run's console lines, the publish description,
+  // the status counter) at 10px, a step under `fs-12`; its UI-face text stays 12. Its leading is the drawer's own
+  // unitless `lh-normal`, so it scales with the size.
+  ['fs-10', 'core.font.size.10', D],
   ['fw-default', 'core.font.weight-role.default', N], ['fw-emphasis', 'core.font.weight-role.emphasis', N],
   ['fw-strong', 'core.font.weight-role.strong', N],
   ['lh-compact', 'core.font.line-height-role.compact', N],

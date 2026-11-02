@@ -786,13 +786,17 @@
       ]
     },
     "banner": {
-      "members": 8,
-      "sha256": "d335048f7c7fde249944fafed0e0b17feff04751e38b41ba11513ca533033557",
+      "members": 10,
+      "sha256": "2eea4290c4964d05a17a2f892ed2c896196d17cf18187e670796e0ebd58d69cd",
       "properties": [
         "actions:BOOLEAN",
-        "body:SLOT",
+        "body text:TEXT",
+        "body:BOOLEAN",
         "dismiss:BOOLEAN",
         "icon:BOOLEAN",
+        "link:BOOLEAN",
+        "rich body:BOOLEAN",
+        "richBody:SLOT",
         "title text:TEXT",
         "title:BOOLEAN"
       ]
