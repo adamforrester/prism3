@@ -209,8 +209,7 @@ export const UPDATE_COPY = {
   updateStep: 'Update sets in place',
   /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
   dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? (d.moved ? engineWhy(d.moved) : UPDATE_COPY.engineUnprinted)
-    : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently'
-    : d.reason === 'panel' ? 'Engine update: Prism3 draws usage panels differently' : 'Due · its settings changed'),
+    : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently' : d.reason === 'panel' ? 'Engine update: Prism3 draws usage panels differently' : 'Due · its settings changed'),
   /** #3090 finding 1: an engine update over a set recorded before Prism3 kept a print of its drawing, so nothing can be
    *  named; the next update records the print. DRAFT (Q2909.10 A). */
   engineUnprinted: 'Engine update: recorded before Prism3 noted what it drew',

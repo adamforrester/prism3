@@ -1244,9 +1244,7 @@ const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
  *  brand's theme is built once for every def (`materializerFor`); a def the engine cannot plan has none, and reads
  *  unrecorded. */
 const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
-  const mat = materializerFor(brandOf(input));
-  // #3205: and, on a lead set while the panels are on, today's panel format, so a raise makes its set due.
-  const panel = panelFormatOf();
+  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(); // #3205: on a lead set, today's panel format
   // #3301: each def's entry worked out once per read (`needsPrint` and `dueOf` both ask for every set's).
   const memo = new Map<string, LedgerEntry | null>();
   return (id) => {
@@ -1257,13 +1255,6 @@ const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) =>
     memo.set(id, e);
     return e;
   };
-};
-/** THE PANEL FORMAT A SET'S ENTRY CARRIES (#3205): `PANEL_FORMAT` on a family's lead set while Documentation has the
- *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
- *  The file's switch is read once per call. */
-const panelFormatOf = (): ((def: string) => { panel?: number }) => {
-  const on = readDocSettings(figma.root).panels;
-  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
 };
 /** #3301: every present set's entry worked out ahead of `needsPrint` and `dueOf`, handing the thread back once about
  *  `PACE_MS` of it has run: materializing and hashing each def a full library holds was one turn of its own. */
@@ -2266,3 +2257,12 @@ onUiMessage((msg: UiToMain) => {
       assertNever(msg); // compile error if a UiToMain variant is added but not handled here
   }
 });
+
+/** THE PANEL FORMAT A SET'S ENTRY CARRIES (#3205): `PANEL_FORMAT` on a family's lead set while Documentation has the
+ *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
+ *  The file's switch is read once per call. Defined here, at the end, so the lines public guides cite above stay put;
+ *  it is called only once the module has loaded. */
+const panelFormatOf = (): ((def: string) => { panel?: number }) => {
+  const on = readDocSettings(figma.root).panels;
+  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
+};
