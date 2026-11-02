@@ -122,7 +122,7 @@ console.log('\nan update that gains the slot');
 console.log('\na host without native slots');
 {
   const plans = figmaAnatomySet(slotted, { swapTarget: SWAP_TARGET });
-  const { page, api } = host(plans);
+  const { page, api } = host(plans, { looseHost: 'patches createComponentFromNode for a host without native slots' });
   const convert = api.createComponentFromNode;
   api.createComponentFromNode = (n: Node) => { const c = convert(n); delete (c as Record<string, unknown>).createSlot; return c; };
   const res = await applyComponentPlan(plans, api, {});
