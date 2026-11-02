@@ -49,3 +49,6 @@ DRAFT.
   the tag of every frame the per-page panel searches returned, all in one turn. `searchPagesYielding` now reads each
   frame's tag in its page's own turn and keeps only the live panels (`livePanelsOf`). Worst turn: 5443. Mutation: the
   page's panel frames kept unread again → `open/member-paced` (worst 10766).
+  The census reading the kept types is pinned on its own (`open/census-kept`): no turn reads the type of more
+  components and sets than the largest page holds. Mutation: the census filtering by each node's `type` again →
+  `open/census-kept` (worst 4450 against 577). `open/member-paced` stays green under it, so it could not hold this.

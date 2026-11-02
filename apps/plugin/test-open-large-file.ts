@@ -712,6 +712,9 @@ console.log('\n  Capture baseline and Adopt (#3189)');
 //     `PACE_MS` of them, plus the largest member's read. Mutations, each → `open/member-paced`: `readSetView`'s `PACE_MS`
 //     hand-back dropped (every 24 members only); `readSingleView`'s hand-back while it reads every component's parent
 //     dropped; `rootOver` filtering by each node's type again, not by the types the read kept.
+//   · `open/census-kept`: no turn reads the `type` of more components and sets than the largest page holds: the panels
+//     census reads the types the read kept (#3137 S2). Mutation: `panelCensus` filtering by each node's `type` again →
+//     `open/census-kept` (`open/member-paced` stays green under it: about 9k calls, spread under the cap).
 //   · `open/print-paced`: each set of `BIG` members or more is projected across turns, never in one. Mutation: the
 //     projection's tick dropped (`print.paced` draining in one go) → `open/print-paced`.
 //   · `open/pass-light`: the hand-edit pass finds each such set in under a tenth of the time its projection took: it reads
@@ -732,10 +735,13 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   let counting = false;
   let calls = 0;
   const callsIn = new Map<number, number>();
+  // #3137 S2: reads of a component's or a set's `type`, per turn (`open/census-kept`).
+  const kindReadsIn = new Map<number, number>();
   const raws = new WeakMap<object, Record<string, any>>();
   const handler: ProxyHandler<Record<string, any>> = {
     get(t, k, r) {
       if (counting && typeof k === 'string') { calls++; callsIn.set(turnNo, (callsIn.get(turnNo) ?? 0) + 1); }
+      if (counting && k === 'type' && (t.type === 'COMPONENT' || t.type === 'COMPONENT_SET')) kindReadsIn.set(turnNo, (kindReadsIn.get(turnNo) ?? 0) + 1);
       return Reflect.get(t, k, r);
     },
   };
@@ -838,7 +844,7 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   const theart = (): void => { const at = wall(); realTimeout(() => { const l = wall() - at - 1; tlag = Math.max(tlag, l); if (tbeat) theart(); }, 1); };
   theart();
   panelLive = false;
-  calls = 0; callsIn.clear(); loads = 0;
+  calls = 0; callsIn.clear(); kindReadsIn.clear(); loads = 0;
   const from = posted.length;
   const start = wall();
   counting = true;
@@ -859,6 +865,15 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   const worstTurn = [...callsIn.entries()].find(([, c]) => c === worst)?.[0];
   ok(!!tdone() && worst <= TURN_CAP,
     `open/member-paced: no turn from ui-ready to the hand-edit pass's end makes more than ${TURN_CAP} host calls (worst ${worst}, in turn ${worstTurn}; ${calls} in all over ${callsIn.size} turns${tdone() ? '' : '; the pass never ended'})`);
+  // The read keeps each node's type as its page's turn searched it (#3301), and the panels census reads those kept types
+  // (#3137 S2): so no turn reads the type of more components and sets than the largest page holds. Reading `.type` again
+  // in the census reads every component in the file in one turn.
+  const kindsOnPage = (pg: TPage): number => { let n = 0; const walk = (x: any): void => { const r = raws.get(x)!; if (r.type === 'COMPONENT' || r.type === 'COMPONENT_SET') n++; for (const k of r.children) walk(k); }; for (const x of pg.children) walk(x); return n; };
+  const pageMax = Math.max(...tpages.map(kindsOnPage));
+  const kindWorst = Math.max(0, ...kindReadsIn.values());
+  const kindWorstTurn = [...kindReadsIn.entries()].find(([, c]) => c === kindWorst)?.[0];
+  ok(!!tdone() && kindWorst > 0 && kindWorst <= pageMax,
+    `open/census-kept: no turn reads the type of more components and sets than the largest page holds (worst ${kindWorst}, in turn ${kindWorstTurn}; the largest page holds ${pageMax})`);
   const prints = tlog.filter((t) => t.stage === 'print');
   const bigIds = tdefs.filter((d) => membersOf.get(d.id)! >= BIG && !d.figmaProperties!.emitAsComponents).map((d) => d.id);
   const spans = bigIds.map((id) => {
