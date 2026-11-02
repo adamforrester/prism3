@@ -38,10 +38,10 @@ export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'panels-clean'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'panels-clean'] as const;
 /** #3147 Phase 2a: the commands that only read nodes (`agent-reads.ts`). They post no verdict: like `status`, their value
  *  is their `data`. Each writes nothing to the file, which `test-agent-link.ts` and `test-agent-bridge.ts` assert. */
-export const READ_COMMANDS = ['inspect', 'component-keys', 'audit-frames', 'snapshot'] as const;
+export const READ_COMMANDS = ['inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity'] as const;
 /** #2530: the dev-only commands (`dev-commands.ts`). Named here for the TYPES only: `parseCommand` answers them
  *  `unknown-command`, and the dispatcher accepts one only in a `PRISM3_DEV &&` branch, so a release build neither
  *  lists nor runs one, and the Node-side tools that import this file see no dev code. */
@@ -85,6 +85,8 @@ export type AgentArgs = {
   'audit-frames': { ids: string[]; legacy?: { textStyles?: string[]; components?: string[]; variablePrefixes?: string[] }; nameRule?: string };
   /** #3147 Phase 2a. Writes nothing. One node rendered to PNG in this session at `scale` (0.5 to 2, default 1). Result data: { png (base64), width, height, local: true }. */
   snapshot: { id: string; scale?: number };
+  /** #3309. Writes nothing. The Activity drawer's runs this session, newest first, from the main thread's memory (`activity-log.ts`): each { seq, op, by: panel | agent, cmd, at, verdict: { type, ok }, headline, summary, lines, problems: [{ set, reasons }], built: { commit, build } }. `since` keeps the runs after that seq; `limit` (1 to 50, default all) caps them. Result data: { runs, total, latest }. */
+  activity: { since?: number; limit?: number };
   /** #3137 Q3137.7 A: the usage panels Update file › Clean up offers while Documentation has panels off. `confirm: false`
    *  (or absent) counts them; `confirm: true` removes each live panel that still holds what was drawn, never an edited one. */
   'panels-clean': { confirm?: boolean };
@@ -99,6 +101,7 @@ export type InspectArgs = AgentArgs['inspect'];
 export type ComponentKeysArgs = AgentArgs['component-keys'];
 export type AuditFramesArgs = AgentArgs['audit-frames'];
 export type SnapshotArgs = AgentArgs['snapshot'];
+export type ActivityArgs = AgentArgs['activity'];
 
 /** #2265 PR 2 — what an applied update does with hand edits (design note §5): `keep` (the default), `overwrite` or
  *  `accept`, for every set, or per set by name. Dropped members are never deleted, so there is no choice for them. */
@@ -338,6 +341,13 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       const { scale } = args;
       if (scale !== undefined && (typeof scale !== 'number' || !Number.isFinite(scale) || scale < 0.5 || scale > 2)) return fail('bad-args', 'snapshot takes args.scale: a number from 0.5 to 2');
       return { ok: true, command: { ...base, cmd: 'snapshot', args: { id: args.id, ...(scale === undefined ? {} : { scale }) } } };
+    }
+    // #3309: the Activity drawer's runs, read from memory.
+    case 'activity': {
+      const { since, limit } = args;
+      if (since !== undefined && (!Number.isInteger(since) || (since as number) < 0)) return fail('bad-args', 'activity takes args.since: a run seq, a whole number from 0');
+      if (limit !== undefined && (!Number.isInteger(limit) || (limit as number) < 1 || (limit as number) > 50)) return fail('bad-args', 'activity takes args.limit: a whole number from 1 to 50');
+      return { ok: true, command: { ...base, cmd: 'activity', args: { ...(since === undefined ? {} : { since: since as number }), ...(limit === undefined ? {} : { limit: limit as number }) } } };
     }
     case 'panels-clean':
       if (args.confirm !== undefined && typeof args.confirm !== 'boolean') {

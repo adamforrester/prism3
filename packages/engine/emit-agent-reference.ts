@@ -130,6 +130,7 @@ export const WRITES: Record<string, string> = {
   'component-keys': 'Nothing. Reads every local component set and component, page by page.',
   'audit-frames': 'Nothing. Reads the listed frames and the layers in them.',
   snapshot: 'Nothing. Renders one node to PNG in this session.',
+  activity: 'Nothing. Reads the Activity drawer\'s runs this session from the plugin\'s memory; nothing is kept in the file.',
   'panels-clean': 'With confirm: false (or none), nothing: a count of the live usage panels and how many still hold what was drawn. With confirm: true, removes each of those, re-read now; a panel edited by hand is never removed.',
   'run-code': 'Whatever the code writes. Dev builds only; a release build answers unknown-command.',
 };

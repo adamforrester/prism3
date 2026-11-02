@@ -376,7 +376,7 @@
         },
         {
           "name": "figma_run",
-          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, panels-clean. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
+          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity, panels-clean. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -398,6 +398,7 @@
                   "component-keys",
                   "audit-frames",
                   "snapshot",
+                  "activity",
                   "panels-clean"
                 ]
               },
@@ -803,6 +804,24 @@
           {
             "message": "snapshot takes args.scale: a number from 0.5 to 2",
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.snapshot"
+          }
+        ],
+        "devOnly": false
+      },
+      {
+        "name": "activity",
+        "args": "{ since?: number; limit?: number }",
+        "description": "#3309. Writes nothing. The Activity drawer's runs this session, newest first, from the main thread's memory (`activity-log.ts`): each { seq, op, by: panel | agent, cmd, at, verdict: { type, ok }, headline, summary, lines, problems: [{ set, reasons }], built: { commit, build } }. `since` keeps the runs after that seq; `limit` (1 to 50, default all) caps them. Result data: { runs, total, latest }.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.activity",
+        "writes": "Nothing. Reads the Activity drawer's runs this session from the plugin's memory; nothing is kept in the file.",
+        "refuses": [
+          {
+            "message": "activity takes args.since: a run seq, a whole number from 0",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.activity"
+          },
+          {
+            "message": "activity takes args.limit: a whole number from 1 to 50",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.activity"
           }
         ],
         "devOnly": false
