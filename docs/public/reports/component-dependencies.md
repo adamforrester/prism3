@@ -25,7 +25,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | field-message | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea |
 | flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
 | focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, search-field, segmented-control-segment, select, sign-in-button, switch-control, tab-item, tag, text-field, textarea, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast, wallet-button |
-| link | breadcrumb-item, breadcrumbs | breadcrumb-item, breadcrumbs |
+| link | banner, breadcrumb-item, breadcrumbs | banner, breadcrumb-item, breadcrumbs |
 | list-item | list | list |
 | pagination-item | pagination | pagination |
 | provider-logo | sign-in-button, wallet-button | sign-in-button, wallet-button |
@@ -48,7 +48,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | _slider-thumb | 1 | focus-ring | focus-ring |
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
-| banner | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
+| banner | 2 | button, flush-icon-button-neutral, link | button, flush-icon-button-neutral, focus-ring, link, spinner |
 | breadcrumb-item | 2 | _breadcrumb-separator, flush-icon-button-neutral, link | _breadcrumb-separator, flush-icon-button-neutral, focus-ring, link |
 | breadcrumbs | 3 | breadcrumb-item, link | _breadcrumb-separator, breadcrumb-item, flush-icon-button-neutral, focus-ring, link |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |
@@ -117,6 +117,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
 | banner | action | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
+| banner | link | nest | link | nest-fixed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | — | — |
 | breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |
 | breadcrumb-item | overflow | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=small, surface=default, state=rest | — | state |
 | breadcrumb-item | separator | nest | _breadcrumb-separator | nest-fixed | type=chevron | — | — |
