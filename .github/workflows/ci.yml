@@ -1266,7 +1266,12 @@ jobs:
       # #2898: in shard `CHROME_SHARD` (an `env:` value, not an argument, so the command is the one `verify.ts` runs
       # whole). The shard writes its record, each assertion under its section and what the end-of-run checks read, to
       # `apps/studio/chrome-record/shard-<n>.json`; the next step hands it to `chrome-shards`.
+      #
+      # #3044: a time limit, so a hang ends the job instead of holding it for six hours. Healthy shard runs peak at
+      # 651 s (120 runs, 2026-11-02); 30 minutes is 2.8x that. Inside it, the suite's own section watchdog fails a
+      # stalled section by name at 600 s. `lint-doc-gates.ts` arm 9 holds this line.
       - name: New shell chrome suite (UI redesign S1.2)
+        timeout-minutes: 30
         env:
           CHROME_SHARD: ${{ matrix.shard }}
         run: npm run -w @prism3/studio test:chrome
