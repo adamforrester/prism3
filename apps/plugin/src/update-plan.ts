@@ -1410,6 +1410,7 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   const runPorts: UpdatePorts = renames.size ? { ...ports, renamedSet: (name) => renames.get(name) ?? renamedSingle(name) } : ports;
   const total = viewed.length;
   progress?.({ done: 0, total, next: viewed[0]?.t.def ?? null });
+  if (progress && breathe) await breathe();
   for (const [i, { t, v: spot }] of viewed.entries()) {
     const told = (preview: SetPreview | null): void => progress?.({ done: i + 1, total, next: viewed[i + 1]?.t.def ?? null, set: { def: t.def, preview } });
     if (spot.kind === 'missing') { out.missing.push(t.def); told(null); continue; }
