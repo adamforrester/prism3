@@ -19,6 +19,8 @@
  * knew what was being asserted about it would be a different kind of object.
  */
 
+import hostDescriptors from './host-descriptors.json';
+
 export type Node = Record<string, unknown>;
 /** A PAGE that outlives one run, because idempotency's whole premise is that run 2 finds what run 1
  *  left in the file. A shim that forgot between runs could not exercise it at all. */
@@ -470,6 +472,14 @@ export type ShimOpts = {
    *  to record a host API the executor asks a node for that the shim does not model (a `?.()` call that is a no-op
    *  here). Unset, a node is the plain object it always was. */
   wrapNode?: (n: Node) => Node;
+  /**
+   * #3215 Q-C8 A — OPT OUT OF THE STRICT HOST, with the reason. By default the shim's host (`figma`) and its root fix
+   * their methods as the real host does (`fixHostMethods`, read from `host-descriptors.json`), so a wrapper that
+   * breaks a Proxy invariant, or code that reassigns a host method, fails here as it fails in Figma (#3209). A suite
+   * that patches a host method after building the shim passes `looseHost: '<why>'`, and its file must be in
+   * `loose-host-register.json`, a register that can only shrink (`test-loose-host.ts`). An empty reason is refused.
+   */
+  looseHost?: string;
 };
 
 
@@ -480,8 +490,10 @@ export type ShimOpts = {
  * non-configurable data property on the proxy target but the proxy did not return its actual value"). The shim's
  * objects are plain, so a wrapper that breaks the invariant passes every test that does not call this.
  *
- * Fixes every own function-valued data property of `o` in place, as the host's are, and returns `o`. Opt-in, because
- * many suites patch a shim method after building it; a suite that reproduces the host calls it on its own copy.
+ * Fixes every own function-valued data property of `o` in place, as the host's are, and returns `o`. Since #3215 (Q-C8 A)
+ * `makeShim` applies it to its host and root by DEFAULT, as `host-descriptors.json` records them; a suite that patches a
+ * host method opts out with `looseHost` (see `ShimOpts`). A suite that copies a host (`{ ...shim }` makes plain
+ * properties again) calls it on its own copy, as #3214's arms do.
  */
 export const fixHostMethods = <T extends object>(o: T): T => {
   for (const k of Reflect.ownKeys(o)) {
@@ -2295,5 +2307,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
       findOne: (pred: (n: unknown) => boolean) => (page?.children ?? []).find(pred) ?? null,
     },
   } as ShimOpts & Record<string, unknown>;
+  // #3215 Q-C8 A — THE STRICT HOST IS THE DEFAULT. Each surface is fixed as `host-descriptors.json` records the real
+  // host: `figma` measured (#3209's error), the root as #3214 assumed it. Nodes are not fixed here: their descriptors
+  // are not measured yet, and `test-loose-host.ts` fails by name the day the fixture says they are fixed.
+  if (opts.looseHost !== undefined && !String(opts.looseHost).trim())
+    throw new Error('makeShim: looseHost needs a reason (#3215): say which host method the suite patches, and why');
+  if (opts.looseHost === undefined) {
+    if (hostDescriptors.figma.methods === 'fixed') fixHostMethods(shim);
+    if (hostDescriptors.root.methods === 'fixed') fixHostMethods(shim.root as object);
+  }
   return shim;
 };

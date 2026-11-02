@@ -52,7 +52,7 @@ export const DOCS_COPY = {
   specs: 'Spec sheets',
   specsDesc: 'Measured specs for each component set on this page, drawn beside its usage panel. Build and Update file never draw them.',
   specsDraw: 'Draw specs',
-  specsBusy: 'Drawing specs…',
+  specsBusy: 'Drawing specs',
   saveError: 'Couldn’t save the setting in this file.',
 } as const;
 
