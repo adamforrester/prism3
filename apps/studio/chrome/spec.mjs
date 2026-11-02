@@ -220,6 +220,8 @@ export const SHELL_VARS = [
   'space-025', 'space-050', 'space-075', 'space-100', 'space-150', 'space-200', 'space-300', 'space-400', 'space-500',
   // type
   'fs-12', 'fs-14', 'fw-default', 'fw-emphasis', 'lh-compact', 'lh-normal',
+  // #3305: the Activity drawer's monospace text.
+  'fs-10',
   // S1.3: the preview title (V8's 20px view title) and the cards' tracked small-capital titles
   'fs-20', 'ls-wide',
   // S2: the levers panel, the Palettes preview (V7, V8) and the step picker (V9): section and palette titles
