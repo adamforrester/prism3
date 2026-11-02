@@ -17343,6 +17343,9 @@ for (const host of ['web', 'figma']) {
 // Mutations, each failing here by name: the button's ArrowDown removed → every `ArrowDown opens` arm; Escape's
 // `stopPropagation` removed → every `Escape … goes no further` arm; one menu back on its own copy without either → its
 // own two arms (Theme, the drift the review found).
+// The open Inspect menu also stays inside the viewport at 1280 with the approved privacy note in it (#3147, Q3147.17).
+// Mutation: `.p3-menu-privacy` without `width: 0; min-width: 100%; box-sizing: border-box` → `Inspect: the open menu,
+// privacy note and all, stays inside the … viewport`, on both hosts.
 // =============================================================================================
 if (runs('47-menu')) {
 console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
@@ -17363,6 +17366,19 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
         return { expanded: btn?.getAttribute('aria-expanded') ?? null, menu: !!menu, inside: !!menu && menu.contains(document.activeElement) };
       }, [btnHook, menuHook]);
       ok(opened.expanded === 'true' && opened.menu && opened.inside, `${where} ${name}: ArrowDown on the closed button opens the menu, focus inside it (${JSON.stringify(opened)})`);
+      if (name === 'Inspect') {
+        // #3147 (Q3147.17): the approved privacy note is long, and the menu sizes to `max-content`, so the note must wrap
+        // within the width the menu's items give it rather than set that width. ORACLE: the browser's own rects against
+        // the viewport, typed bounds here.
+        step = 'Inspect: the open menu, measured';
+        const box = await page.evaluate((m) => {
+          const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { left: Math.round(b.left), right: Math.round(b.right), width: Math.round(b.width) } : null; };
+          const menu = document.querySelector(`[data-p3="${m}"]`);
+          return { vw: window.innerWidth, menu: r(menu), note: r(menu?.querySelector('[data-p3="privacy-note"]')) };
+        }, menuHook);
+        ok(!!box.menu && !!box.note && box.menu.left >= 0 && box.menu.right <= box.vw && box.note.width <= box.menu.width,
+          `${where} Inspect: the open menu, privacy note and all, stays inside the ${box.vw} px viewport (${JSON.stringify(box)})`);
+      }
       step = `${name}: Escape in the menu`;
       // Open by a click when ArrowDown did not, so this arm reads Escape alone, never the ArrowDown arm's failure.
       if (!opened.menu) await hooks.click(page.locator(`[data-p3="${btnHook}"]`));
