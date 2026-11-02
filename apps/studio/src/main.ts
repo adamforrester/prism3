@@ -1922,12 +1922,12 @@ const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): v
 };
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
-const endStep = (ok: boolean, headline: string): void => {
+const endStep = (ok: boolean, headline: string, warn = false): void => {
   if (!updateRun) return;
   const step = stepOf(updateRun);
   const steps = updateRun.steps;
-  updateRun = stepDone(updateRun, ok, headline);
-  if (!ok && step) updateStopped = { step, headline };
+  updateRun = stepDone(updateRun, ok, headline, warn);
+  if (!ok && !warn && step) updateStopped = { step, headline };
   if (stripRun) stripRun = stepEnded(stripRun, Date.now());
   if (updateRun.done) {
     // #3170 Q3170.6 A: the strip becomes the verdict line, until the next action.
@@ -1984,7 +1984,13 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   }
   if (step === 'update' && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
-  if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) { endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline); return; }
+  // #3308: a queue that built every set, some with problems, did all it was asked: the run goes on (`warn`). A set that
+  // failed, or a stop that left sets unbuilt, still ends it.
+  if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) {
+    const all = lastRun ? lastRun.run.results.length === lastRun.run.ids.length && lastRun.run.results.every((x) => x.result !== 'failed') : m.completed;
+    endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline, all);
+    return;
+  }
   if (step === 'guides' && guidesWait && m.kind === 'style-guide-catalog') {
     guidesWait = false;
     // Documentation's saved selection and options, read against the file's catalog as it is now (Q2909.23 A).

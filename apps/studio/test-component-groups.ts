@@ -259,8 +259,9 @@ let full = startRun('subcomponents', ['focus-ring', 'icon']);
 full = record(full, { id: 'focus-ring', result: 'ok', headline: '' });
 full = record(full, { id: 'icon', result: 'issues', headline: '' });
 const fv = runVerdict(full, catalog);
-ok(full.done && fv.headline === 'Built 2 sets · 1 with problems' && !fv.ok && fv.lines.includes('Icon: built with problems.'),
-  `a run with problems says how many, and names the one with problems (${fv.headline}; ${JSON.stringify(fv.lines)})`);
+// #3308: marked `⚠`, as one set's "with problems" build is, so Activity counts it a warning and not a failure.
+ok(full.done && fv.headline === '⚠ Built 2 sets · 1 with problems' && !fv.ok && fv.lines.includes('Icon: built with problems.'),
+  `a run with problems says how many, marked a warning, and names the one with problems (${fv.headline}; ${JSON.stringify(fv.lines)})`);
 let clean = startRun('selection', ['button', 'button-destructive']);
 clean = record(record(clean, { id: 'button', result: 'ok', headline: '' }), { id: 'button-destructive', result: 'ok', headline: '' });
 const cv = runVerdict(clean, catalog);
