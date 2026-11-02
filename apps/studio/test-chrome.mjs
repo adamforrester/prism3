@@ -18782,6 +18782,92 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
   } finally { await ctx.close(); }
 }
 } // 3170
+
+// =============================================================================================
+// #3305 — THE ACTIVITY DRAWER'S MONOSPACE TEXT AT 10px (the owner, 2026-11-02)
+// =============================================================================================
+// The drawer's mono text, a run's console lines (`.p3-op-summary`), an Update's publish description
+// (`.p3-op-publish-text`) and the status strip's counter (`.p3-status-n`), is drawn at 10px, its leading the drawer's
+// 1.5 (15px); its UI-face text, a bad result's reason (`.p3-op-reason`), the row's title and the strip's words, stays at
+// 12px. Read as computed, on both hosts, light and dark, at 1280 and 380:
+//   · the plugin, whose drawer draws: the strip planted by a `run-progress` reading, then an agent's Update result with
+//     a reason, two console lines and a publish description, each node read as drawn;
+//   · the studio, which runs no write and so draws no drawer (section 10): the same classes mounted in its frame, read
+//     through the studio bundle's own stylesheet. A probe of the stylesheet, not of a drawn drawer, and labeled so.
+// INDEPENDENCE (docs/34): the sizes are the issue's literals, typed here; nothing is read from `tokens.mjs`, `spec.mjs`,
+// `chrome.css` or the emission. MUTATION: `.p3-op-summary`'s `font-size: var(--p3-fs-10)` removed from `chrome.css` (the
+// lines inherit the drawer's 12px again) → `#3305 … a run's console lines (.p3-op-summary) are 10px`, by name.
+if (runs('3305')) {
+console.log(`\n#3305 — the Activity drawer's monospace text at 10px\n${'='.repeat(78)}`);
+const MONO_3305 = { size: '10px', lh: '15px' }, UI_3305 = '12px';
+const FACE_3305 = (page) => page.evaluate(() => {
+  const read = (sel) => { const n = document.querySelector(sel); if (!n || !n.checkVisibility()) return null; const cs = getComputedStyle(n);
+    return { size: cs.fontSize, lh: cs.lineHeight, mono: /mono/i.test(cs.fontFamily) }; };
+  // By the classes the issue names, inside the drawer (`.p3-drawer`), so the studio's mounted probe needs no hook.
+  return {
+    summary: read('.p3-drawer .p3-op-body > .p3-op-summary'), publish: read('.p3-drawer .p3-op-publish-text'), n: read('.p3-drawer .p3-status-n'),
+    reason: read('.p3-drawer .p3-op-body > .p3-op-reason'), title: read('.p3-drawer .p3-op-head b'), what: read('.p3-drawer .p3-status-what'),
+  };
+});
+const holds3305 = (where, f, names) => {
+  const mono = (r) => !!r && r.mono && r.size === MONO_3305.size && r.lh === MONO_3305.lh;
+  const ui = (r) => !!r && !r.mono && r.size === UI_3305;
+  for (const [k, what] of names.mono) ok(mono(f[k]), `#3305 ${where}: ${what} are ${MONO_3305.size} on a ${MONO_3305.lh} line, in the mono face (read ${JSON.stringify(f[k])})`);
+  for (const [k, what] of names.ui) ok(ui(f[k]), `#3305 ${where}: ${what} stays ${UI_3305} in the UI face (read ${JSON.stringify(f[k])})`);
+};
+const N_3305 = [['n', "the status strip's counter (.p3-status-n)"]], WHAT_3305 = [['what', "the status strip's words (.p3-status-what)"]];
+const ROW_MONO_3305 = [['summary', "a run's console lines (.p3-op-summary)"], ['publish', "the publish description (.p3-op-publish-text)"]];
+const ROW_UI_3305 = [['reason', "a bad result's reason (.p3-op-reason)"], ['title', "the row's title (.p3-op-head b)"]];
+for (const host of ['figma', 'web']) {
+  for (const theme of ['light', 'dark']) {
+    for (const w of [1280, 380]) {
+      const where = `${host} ${theme} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme, w, h: w === 380 ? 760 : 900 });
+      let step = host === 'figma' ? 'the status strip' : 'the studio stylesheet';
+      try {
+        if (host === 'figma') {
+          await postMsg(page, { type: 'run-progress', run: 'read', phase: 'work', item: null, done: 24, total: 60 });
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="status-n"]', WAIT);
+          holds3305(where, await FACE_3305(page), { mono: N_3305, ui: WHAT_3305 });
+          await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: [], atOpen: true });
+          step = "an agent's Update result";
+          await postMsg(page, { type: 'agent-started', id: 'm3305', cmd: 'update-components' });
+          await postMsg(page, { type: 'component-update-result', ok: false, headline: '✗ 1 set not updated', summary: 'Button was hand-edited.',
+            lines: ['Button was hand-edited.', 'button: 24 variants checked', 'tag: up to date'], publish: 'Button: 24 variants updated.' });
+          await postMsg(page, { type: 'agent-finished', id: 'm3305', cmd: 'update-components' });
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-body"] > [data-p3="op-summary"]', WAIT);
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-publish-text"]', WAIT);
+          await settle(page);
+          holds3305(where, await FACE_3305(page), { mono: ROW_MONO_3305, ui: ROW_UI_3305 });
+        } else {
+          // The studio draws no drawer, so its stylesheet is probed through the drawer's own classes, mounted in its frame:
+          // classes only, no hook and no inline value.
+          await page.evaluate(() => {
+            const el = (tag, cls, text) => { const n = document.createElement(tag); n.className = cls; if (text) n.textContent = text; return n; };
+            const d = el('div', 'p3-drawer');
+            const strip = el('div', 'p3-status'), top = el('div', 'p3-status-top');
+            top.append(el('span', 'p3-status-what', 'Reading this file…'), el('span', 'p3-status-n', 'page 24 of 60'));
+            strip.append(top);
+            const op = el('div', 'p3-op'), head = el('button', 'p3-op-head'), body = el('div', 'p3-op-body');
+            head.append(el('b', '', 'Build set'));
+            const ul = el('ul', 'p3-op-summary'); ul.append(el('li', 'p3-op-line', 'button: 24 variants checked'));
+            body.append(el('p', 'p3-op-reason', 'Button was hand-edited.'), ul, el('pre', 'p3-op-publish-text', 'Button: 24 variants updated.'));
+            op.append(head, body);
+            d.append(strip, op);
+            document.querySelector('[data-p3="frame"]').append(d);
+          });
+          await settle(page);
+          const f = await FACE_3305(page);
+          holds3305(`${where} (the studio stylesheet, a mounted probe)`, f, { mono: [...N_3305, ...ROW_MONO_3305], ui: [...WHAT_3305, ...ROW_UI_3305] });
+        }
+        ok(errors.length === 0, `#3305 ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `#3305 ${where}: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+} // 3305
 // =============================================================================================
 // #3150 — THE CHROME'S MOTION (part 2; the owner's Q3150.1–11 A, 2026-10-31). Every other section runs with the motion
 // durations at 0s (SETTLED_MOTION, beside `browser`), so it measures end states; this one runs them live.
