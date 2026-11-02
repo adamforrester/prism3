@@ -23,6 +23,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
+import { windowPlacement } from './window-place';
 import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
@@ -175,15 +176,24 @@ let uiSize: { width: number; height: number } = { ...DEFAULT_SIZE };
  */
 const STRIP_SIZE = { width: 480, height: 40 };
 let beforeStrip: { width: number; height: number } | null = null;
+/** #3327: on the toggle only, place the window against the canvas as it is now (`window-place.ts`). A host with no
+ *  viewport or no `reposition` (a test shim) is left where it is. */
+const placeWindow = (toggle: 'minimize' | 'restore', size: { width: number; height: number }): void => {
+  if (typeof figma.ui.reposition !== 'function' || !figma.viewport) return;
+  const { x, y } = windowPlacement(toggle, figma.viewport.bounds, figma.viewport.zoom, size);
+  figma.ui.reposition(x, y);
+};
 const setMinimized = (minimized: boolean): void => {
   if (minimized === (beforeStrip !== null)) return;
   if (minimized) {
     beforeStrip = uiSize;
     figma.ui.resize(STRIP_SIZE.width, STRIP_SIZE.height);
+    placeWindow('minimize', STRIP_SIZE);
   } else {
     const back = beforeStrip as { width: number; height: number };
     beforeStrip = null;
     figma.ui.resize(back.width, back.height);
+    placeWindow('restore', back);
   }
   postToUi({ type: 'ui-minimized', minimized });
 };

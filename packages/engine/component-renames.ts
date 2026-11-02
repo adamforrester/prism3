@@ -61,7 +61,17 @@ export type ComponentRename =
    *  layer in place instead of removing it and building a new one, so it keeps its id and every override a designer
    *  made on it in a placed instance. A def's part entries apply together, as one map from old name to new, so two
    *  parts can swap names in one revision (FieldLabel's root and text). The root part is not a layer: the member is. */
-  | { readonly def: string; readonly kind: 'part'; readonly from: string; readonly to: string; readonly issue: number };
+  | { readonly def: string; readonly kind: 'part'; readonly from: string; readonly to: string; readonly issue: number }
+  /** A native slot's plain TEXT moved out to a TEXT property beside it (#3225, owner decision Q-BN2.2 A). The slot stays
+   *  for rich content behind the boolean `show`, off by default and empty, and the sentence moves to a text part the
+   *  boolean `hide` shows. `slot` is the slot's layer name BEFORE the update and `text` the one text layer its default
+   *  content held. An update reads every placed instance's slot before the set changes, then: a slot still holding its
+   *  one text with the default characters needs nothing; one holding that text with EDITED characters has them written
+   *  into `property` (so an agent can set them from then on); one holding anything else turns `show` on and `hide` off,
+   *  so the content stays where it is; an emptied one turns `hide` off. Every instance moved is listed
+   *  (`apps/plugin/src/slot-text-migration.ts`). `lint-component-renames.ts` demands the entry when a def that held a
+   *  slot gains a TEXT property on a sibling of it. */
+  | { readonly def: string; readonly kind: 'slot-text'; readonly slot: string; readonly text: string; readonly property: string; readonly show: string; readonly hide: string; readonly issue: number };
 
 /**
  * THE LEDGER. Names are the Figma panel's, as a set holds them: an axis renamed only for display
@@ -140,11 +150,22 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'image-placeholder', kind: 'property-rename', from: 'Marker', to: 'marker', issue: 2759 },
   { def: 'tag', kind: 'property-rename', from: 'Check icon', to: 'check icon', issue: 2759 },
   { def: 'segmented-control', kind: 'property-rename', from: 'Label', to: 'label', issue: 2759 },
+  // #3225 (owner decisions 2026-11-01, Q-BN2.1 A and Q-BN2.2 A) — Banner's body. The sentence moves out of the slot into
+  // the `body text` property, so an agent can set it; the slot stays for rich content behind `rich body`. The slot layer
+  // is renamed `richBody` in place, with its SLOT property, so the `body` boolean can take the name and every placed
+  // instance keeps what it holds in the slot. The update then carries each instance's body across (`slot-text`).
+  { def: 'banner', kind: 'part', from: 'body', to: 'richBody', issue: 3225 },
+  { def: 'banner', kind: 'property-rename', from: 'body', to: 'richBody', issue: 3225 },
+  { def: 'banner', kind: 'slot-text', slot: 'body', text: 'placeholder', property: 'body text', show: 'rich body', hide: 'body', issue: 3225 },
 ];
 
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */
 export const slotMigrationOf = (def: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Extract<ComponentRename, { kind: 'slot' }> | undefined =>
   ledger.find((r): r is Extract<ComponentRename, { kind: 'slot' }> => r.def === def && r.kind === 'slot');
+
+/** The ledger's slot-text entry for `def`, if its slot's plain text moved out to a TEXT property (#3225). */
+export const slotTextMigrationOf = (def: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Extract<ComponentRename, { kind: 'slot-text' }> | undefined =>
+  ledger.find((r): r is Extract<ComponentRename, { kind: 'slot-text' }> => r.def === def && r.kind === 'slot-text');
 
 /** The id a def has now, its ledger renames followed (`a` → `b` → `c` resolves to `c`). The id itself when the
  *  ledger does not rename it. A cycle is a ledger error, refused by throwing. */
@@ -331,6 +352,28 @@ export const unaccounted = (before: AxesBaseline, after: AxesBaseline, ledger: r
   return bad;
 };
 
+/**
+ * #3225 — A SLOT'S TEXT MOVED OUT, CLAIMED. `siblingTexts` is, per def in the tree, every TEXT property (panel name)
+ * whose part is a sibling of a native slot part, read off the live defs by the caller. A def that projected a SLOT at
+ * the base and now projects such a TEXT property the base did not have has moved copy out of (or beside) a slot that
+ * placed instances already filled: without a `slot-text` entry naming that property, an update leaves each edited
+ * slot's text where it was, hidden or shown beside the new default. Each line names the missing claim.
+ */
+export const slotTextUnclaimed = (before: AxesBaseline, after: AxesBaseline, siblingTexts: Readonly<Record<string, readonly string[]>>, ledger: readonly ComponentRename[]): string[] => {
+  const bad: string[] = [];
+  for (const [def, texts] of Object.entries(siblingTexts)) {
+    const b = before[def];
+    if (!b?.properties || !after[def]?.properties) continue;
+    if (!Object.values(b.properties).includes('SLOT')) continue;
+    for (const t of texts) {
+      if (b.properties[t] === 'TEXT' || after[def].properties![t] !== 'TEXT') continue;
+      if (!ledger.some((r) => r.def === def && r.kind === 'slot-text' && r.property === t))
+        bad.push(`${def}: the TEXT property '${t}' is new beside a native slot that placed instances already fill — needs { def: '${def}', kind: 'slot-text', slot, text, property: '${t}', show, hide, issue } so an update carries each edited slot's text into it`);
+    }
+  }
+  return bad;
+};
+
 /** Every ledger entry whose successor is absent from the tree's projection. A value entry's `to` may
  *  itself have been renamed by a later entry, so the chain is followed to its end first. */
 export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentRename[]): string[] => {
@@ -338,6 +381,15 @@ export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentR
   for (const r of ledger) {
     if (!Number.isInteger(r.issue) || r.issue <= 0) bad.push(`${r.def}: entry ${JSON.stringify(r)} names no issue`);
     if (r.kind === 'drop' || r.kind === 'property' || r.kind === 'part') continue;
+    if (r.kind === 'slot-text') {
+      // #3225 — what the update writes must be on the set: the TEXT property, and the two booleans.
+      const props = after[r.def]?.properties;
+      if (!after[r.def]) { bad.push(`${r.def}: slot-text entry names a def that projects no set`); continue; }
+      if (!props) continue;
+      if (props[r.property] !== 'TEXT') bad.push(`${r.def}: slot-text entry writes '${r.property}', which the set does not declare as TEXT`);
+      for (const b of [r.show, r.hide]) if (props[b] !== 'BOOLEAN') bad.push(`${r.def}: slot-text entry toggles '${b}', which the set does not declare as BOOLEAN`);
+      continue;
+    }
     if (r.kind === 'def') {
       let to = r.to;
       try { to = currentDefId(r.def, ledger); } catch (err) { bad.push(`${r.def}: ${(err as Error).message}`); continue; }

@@ -3709,6 +3709,54 @@ for (const host of ['web', 'figma']) {
         const rfC = (await drawerState(page)).ops['components'];
         ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
           `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
+        // #3308: the owner's first run, in small. Set up file, then two queued sets, each built with problems (completed,
+        // not ok), and Style guides ticked: the run goes on to the style guides (it asks for a fresh catalog) instead of stopping at To add,
+        // and Activity reads the queue's result as a warning, not a failure. The guides step is then refused, which ends the
+        // run. (mutation: `main.ts`'s sets step passing `warn` false → `#3308: … goes on`)
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+        // A fresh file, so Set up file and Style guides are ticked (Q2909.2 A); the theme is not.
+        await openUpdate({ present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 2 misses', summary: 'built', lines: ['built'] });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 1 miss', summary: 'built', lines: ['built'] });
+        await settle(page);
+        // Still running is the run gone on: it now waits on the style guides' catalog. Ended, it would be free again.
+        const pwU = await updBtn();
+        const pwC = (await drawerState(page)).ops['components'];
+        ok(pwU.busy && pwC?.kind === 'warn' && String(pwC?.verdict ?? '').includes('Built 2 sets · 2 with problems'),
+          `${where}: #3308: a queue that built every set with problems goes on to the style guides, and Activity reads it as a warning (Update file ${JSON.stringify(pwU)}, row ${JSON.stringify(pwC ?? null)})`);
+        await postMsg(page, { type: 'refused', code: 'busy', cmd: 'style-guide', agent: false, message: REFUSED_WORDS });
+        await settle(page);
+        ok(!(await updBtn()).busy, `${where}: #3308: the refused style guides end that run, and Update file is free again`);
+        // #3308 review (Blocking 2): a failed set still ends the run. The same fresh file and queue, but the second set
+        // fails (not completed): the sets step is not a warning, so the run stops at To add, Update file is free, the strip
+        // reads it, and Activity counts a failure. The failed set is the LAST one, so the queue has a result for every set
+        // and only the "none failed" test tells this run from the one above.
+        // (mutation R1: `results.every((x) => x.result !== 'failed')` → `true` in `main.ts`'s sets step → this arm, by name)
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+        await openUpdate({ present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 2 misses', summary: 'built', lines: ['built'] });
+        await postMsg(page, { type: 'component-result', ok: false, completed: false, headline: '✗ write failed', summary: 'write failed', lines: ['write failed'] });
+        await settle(page);
+        const pfU = await updBtn();
+        const pfC = (await drawerState(page)).ops['components'];
+        const pfS = await page.evaluate(() => {
+          const s = document.querySelector('[data-p3="status-strip"]');
+          return { tone: s?.dataset.tone ?? null, what: s?.querySelector('[data-p3="status-what"]')?.textContent ?? null };
+        });
+        ok(!pfU.busy && pfS.what === 'Stopped at To add' && pfS.tone === 'bad' && pfC?.kind === 'bad',
+          `${where}: #3308: a queue with a failed set ends the run at To add: Update file is free, the strip reads "Stopped at To add", and Activity reads a failure (Update file ${JSON.stringify(pfU)}, strip ${JSON.stringify(pfS)}, row ${JSON.stringify(pfC ?? null)})`);
         if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
@@ -17391,6 +17439,12 @@ for (const host of ['web', 'figma']) {
 // Mutations, each failing here by name: the button's ArrowDown removed → every `ArrowDown opens` arm; Escape's
 // `stopPropagation` removed → every `Escape … goes no further` arm; one menu back on its own copy without either → its
 // own two arms (Theme, the drift the review found).
+// The open Inspect menu also stays inside the viewport at 1280 with the approved privacy note in it (#3147, Q3147.17).
+// Mutation: `.p3-menu-privacy` without `width: 0; min-width: 100%; box-sizing: border-box` → `Inspect: the open menu,
+// privacy note and all, stays inside the … viewport`, on both hosts.
+// At 1280 the menu is also at least 320 px wide and the note at most 6 lines (#3147, O2 B). Mutation: the Inspect menu's
+// `width: calc(var(--p3-dlg-unit) * 2.5)` removed → `Inspect: the open menu is at least 320 px wide and its privacy note
+// at most 6 lines`, on web.
 // =============================================================================================
 if (runs('47-menu')) {
 console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
@@ -17411,6 +17465,33 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
         return { expanded: btn?.getAttribute('aria-expanded') ?? null, menu: !!menu, inside: !!menu && menu.contains(document.activeElement) };
       }, [btnHook, menuHook]);
       ok(opened.expanded === 'true' && opened.menu && opened.inside, `${where} ${name}: ArrowDown on the closed button opens the menu, focus inside it (${JSON.stringify(opened)})`);
+      if (name === 'Inspect') {
+        // #3147 (Q3147.17): the approved privacy note is long, and the menu sizes to `max-content`, so the note must wrap
+        // within the width the menu's items give it rather than set that width. ORACLE: the browser's own rects against
+        // the viewport, typed bounds here.
+        step = 'Inspect: the open menu, measured';
+        const box = await page.evaluate((m) => {
+          const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { left: Math.round(b.left), right: Math.round(b.right), width: Math.round(b.width) } : null; };
+          const menu = document.querySelector(`[data-p3="${m}"]`);
+          return { vw: window.innerWidth, menu: r(menu), note: r(menu?.querySelector('[data-p3="privacy-note"]')) };
+        }, menuHook);
+        ok(!!box.menu && !!box.note && box.menu.left >= 0 && box.menu.right <= box.vw && box.note.width <= box.menu.width,
+          `${where} Inspect: the open menu, privacy note and all, stays inside the ${box.vw} px viewport (${JSON.stringify(box)})`);
+        // #3147 (O2 B, owner, 2026-11-02): at 1280 the menu is at least 320px wide, so the note wraps to about five lines,
+        // not to the stamp's width (it was 17 on web). ORACLE: typed literals here, never the chrome's token; the note's
+        // lines are its content height over its computed line height, both read from the browser.
+        step = 'Inspect: the privacy note, measured';
+        const lines = await page.evaluate((m) => {
+          const n = document.querySelector(`[data-p3="${m}"] [data-p3="privacy-note"]`);
+          if (!n) return null;
+          const cs = getComputedStyle(n);
+          const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+          const h = n.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+          return { height: Math.round(h * 10) / 10, lineHeight: lh, lines: Math.round(h / lh) };
+        }, menuHook);
+        ok(!!box.menu && box.menu.width >= 320 && !!lines && lines.lines <= 6,
+          `${where} Inspect: the open menu is at least 320 px wide and its privacy note at most 6 lines (${JSON.stringify({ menu: box.menu, note: lines })})`);
+      }
       step = `${name}: Escape in the menu`;
       // Open by a click when ArrowDown did not, so this arm reads Escape alone, never the ArrowDown arm's failure.
       if (!opened.menu) await hooks.click(page.locator(`[data-p3="${btnHook}"]`));
@@ -17425,6 +17506,48 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
       ok(closed.expanded === 'false' && !closed.menu && closed.onBtn && closed.heard === 0,
         `${where} ${name}: Escape closes the menu onto its button and goes no further (${JSON.stringify(closed)})`);
     }
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// Q3298/3294 compose A (owner, 2026-11-02): O2 B's minimum is the wide tier's alone. At 380 the Inspect menu is #3298's
+// cap (the preview header less 12px a side), and the note sets the width up to it, so it wraps to the lines that width
+// allows, not to the items' width. ORACLE: the browser's rects and the note's computed line height, typed bounds
+// here: 12 is the decision's number; 8 lines is a test bound, not a design one (7 measured at the 296px cap on both
+// hosts, 14 on web with `width: 0` at every tier). Mutation: `.p3-menu-privacy`'s `width: 0; min-width: 100%`
+// back at every tier (the `:not([data-w="narrow"])` scope dropped) → `§47 web light 380 Inspect: … reaches the narrow
+// cap …` (the figma host lays out the same either way: its build stamp already sets the menu to the cap).
+for (const host of ['web', 'figma']) {
+  const where = `§47 ${host} light 380`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 380, h: 800 });
+  let step = 'open';
+  try {
+    step = 'Brand'; await goPlace(page, 'brand');
+    step = 'the Preview pane'; await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    step = 'open Inspect';
+    await hooks.need(page, '[data-p3="inspect-open"]', { timeout: 10000 });
+    await hooks.click(page.locator('[data-p3="inspect-open"]'));
+    await hooks.need(page, '[data-p3="inspect-menu"]', { timeout: 10000 });
+    await page.waitForTimeout(300);
+    step = 'Inspect: the open menu, measured';
+    const box = await page.evaluate(() => {
+      const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { left: Math.round(b.left), right: Math.round(b.right), width: Math.round(b.width) } : null; };
+      const menu = document.querySelector('[data-p3="inspect-menu"]');
+      const n = menu?.querySelector('[data-p3="privacy-note"]');
+      let lines = null;
+      if (n) {
+        const cs = getComputedStyle(n);
+        const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+        const h = n.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+        lines = { height: Math.round(h * 10) / 10, lineHeight: lh, lines: Math.round(h / lh) };
+      }
+      return { vw: window.innerWidth, menu: r(menu), note: r(n), head: r(document.querySelector('[data-p3="preview-head"]')), lines };
+    });
+    ok(!!box.menu && !!box.note && box.menu.left >= 0 && box.menu.right <= box.vw && box.note.width <= box.menu.width,
+      `${where} Inspect: the open menu, privacy note and all, stays inside the ${box.vw} px viewport (${JSON.stringify(box)})`);
+    ok(!!box.menu && !!box.head && Math.abs(box.menu.left - (box.head.left + 12)) <= 1 && Math.abs(box.menu.right - (box.head.right - 12)) <= 1 && !!box.lines && box.lines.lines <= 8,
+      `${where} Inspect: the open menu reaches the narrow cap (the preview header less 12px a side) and its privacy note is at most 8 lines (${JSON.stringify({ menu: box.menu, head: box.head, note: box.lines })})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
@@ -18753,6 +18876,92 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
   } finally { await ctx.close(); }
 }
 } // 3170
+
+// =============================================================================================
+// #3305 — THE ACTIVITY DRAWER'S MONOSPACE TEXT AT 10px (the owner, 2026-11-02)
+// =============================================================================================
+// The drawer's mono text, a run's console lines (`.p3-op-summary`), an Update's publish description
+// (`.p3-op-publish-text`) and the status strip's counter (`.p3-status-n`), is drawn at 10px, its leading the drawer's
+// 1.5 (15px); its UI-face text, a bad result's reason (`.p3-op-reason`), the row's title and the strip's words, stays at
+// 12px. Read as computed, on both hosts, light and dark, at 1280 and 380:
+//   · the plugin, whose drawer draws: the strip planted by a `run-progress` reading, then an agent's Update result with
+//     a reason, two console lines and a publish description, each node read as drawn;
+//   · the studio, which runs no write and so draws no drawer (section 10): the same classes mounted in its frame, read
+//     through the studio bundle's own stylesheet. A probe of the stylesheet, not of a drawn drawer, and labeled so.
+// INDEPENDENCE (docs/34): the sizes are the issue's literals, typed here; nothing is read from `tokens.mjs`, `spec.mjs`,
+// `chrome.css` or the emission. MUTATION: `.p3-op-summary`'s `font-size: var(--p3-fs-10)` removed from `chrome.css` (the
+// lines inherit the drawer's 12px again) → `#3305 … a run's console lines (.p3-op-summary) are 10px`, by name.
+if (runs('3305')) {
+console.log(`\n#3305 — the Activity drawer's monospace text at 10px\n${'='.repeat(78)}`);
+const MONO_3305 = { size: '10px', lh: '15px' }, UI_3305 = '12px';
+const FACE_3305 = (page) => page.evaluate(() => {
+  const read = (sel) => { const n = document.querySelector(sel); if (!n || !n.checkVisibility()) return null; const cs = getComputedStyle(n);
+    return { size: cs.fontSize, lh: cs.lineHeight, mono: /mono/i.test(cs.fontFamily) }; };
+  // By the classes the issue names, inside the drawer (`.p3-drawer`), so the studio's mounted probe needs no hook.
+  return {
+    summary: read('.p3-drawer .p3-op-body > .p3-op-summary'), publish: read('.p3-drawer .p3-op-publish-text'), n: read('.p3-drawer .p3-status-n'),
+    reason: read('.p3-drawer .p3-op-body > .p3-op-reason'), title: read('.p3-drawer .p3-op-head b'), what: read('.p3-drawer .p3-status-what'),
+  };
+});
+const holds3305 = (where, f, names) => {
+  const mono = (r) => !!r && r.mono && r.size === MONO_3305.size && r.lh === MONO_3305.lh;
+  const ui = (r) => !!r && !r.mono && r.size === UI_3305;
+  for (const [k, what] of names.mono) ok(mono(f[k]), `#3305 ${where}: ${what} are ${MONO_3305.size} on a ${MONO_3305.lh} line, in the mono face (read ${JSON.stringify(f[k])})`);
+  for (const [k, what] of names.ui) ok(ui(f[k]), `#3305 ${where}: ${what} stays ${UI_3305} in the UI face (read ${JSON.stringify(f[k])})`);
+};
+const N_3305 = [['n', "the status strip's counter (.p3-status-n)"]], WHAT_3305 = [['what', "the status strip's words (.p3-status-what)"]];
+const ROW_MONO_3305 = [['summary', "a run's console lines (.p3-op-summary)"], ['publish', "the publish description (.p3-op-publish-text)"]];
+const ROW_UI_3305 = [['reason', "a bad result's reason (.p3-op-reason)"], ['title', "the row's title (.p3-op-head b)"]];
+for (const host of ['figma', 'web']) {
+  for (const theme of ['light', 'dark']) {
+    for (const w of [1280, 380]) {
+      const where = `${host} ${theme} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme, w, h: w === 380 ? 760 : 900 });
+      let step = host === 'figma' ? 'the status strip' : 'the studio stylesheet';
+      try {
+        if (host === 'figma') {
+          await postMsg(page, { type: 'run-progress', run: 'read', phase: 'work', item: null, done: 24, total: 60 });
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="status-n"]', WAIT);
+          holds3305(where, await FACE_3305(page), { mono: N_3305, ui: WHAT_3305 });
+          await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: [], atOpen: true });
+          step = "an agent's Update result";
+          await postMsg(page, { type: 'agent-started', id: 'm3305', cmd: 'update-components' });
+          await postMsg(page, { type: 'component-update-result', ok: false, headline: '✗ 1 set not updated', summary: 'Button was hand-edited.',
+            lines: ['Button was hand-edited.', 'button: 24 variants checked', 'tag: up to date'], publish: 'Button: 24 variants updated.' });
+          await postMsg(page, { type: 'agent-finished', id: 'm3305', cmd: 'update-components' });
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-body"] > [data-p3="op-summary"]', WAIT);
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-publish-text"]', WAIT);
+          await settle(page);
+          holds3305(where, await FACE_3305(page), { mono: ROW_MONO_3305, ui: ROW_UI_3305 });
+        } else {
+          // The studio draws no drawer, so its stylesheet is probed through the drawer's own classes, mounted in its frame:
+          // classes only, no hook and no inline value.
+          await page.evaluate(() => {
+            const el = (tag, cls, text) => { const n = document.createElement(tag); n.className = cls; if (text) n.textContent = text; return n; };
+            const d = el('div', 'p3-drawer');
+            const strip = el('div', 'p3-status'), top = el('div', 'p3-status-top');
+            top.append(el('span', 'p3-status-what', 'Reading this file…'), el('span', 'p3-status-n', 'page 24 of 60'));
+            strip.append(top);
+            const op = el('div', 'p3-op'), head = el('button', 'p3-op-head'), body = el('div', 'p3-op-body');
+            head.append(el('b', '', 'Build set'));
+            const ul = el('ul', 'p3-op-summary'); ul.append(el('li', 'p3-op-line', 'button: 24 variants checked'));
+            body.append(el('p', 'p3-op-reason', 'Button was hand-edited.'), ul, el('pre', 'p3-op-publish-text', 'Button: 24 variants updated.'));
+            op.append(head, body);
+            d.append(strip, op);
+            document.querySelector('[data-p3="frame"]').append(d);
+          });
+          await settle(page);
+          const f = await FACE_3305(page);
+          holds3305(`${where} (the studio stylesheet, a mounted probe)`, f, { mono: [...N_3305, ...ROW_MONO_3305], ui: [...WHAT_3305, ...ROW_UI_3305] });
+        }
+        ok(errors.length === 0, `#3305 ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `#3305 ${where}: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+} // 3305
 // =============================================================================================
 // #3150 — THE CHROME'S MOTION (part 2; the owner's Q3150.1–11 A, 2026-10-31). Every other section runs with the motion
 // durations at 0s (SETTLED_MOTION, beside `browser`), so it measures end states; this one runs them live.
@@ -19561,6 +19770,54 @@ if (runs('3044')) {
   ok(child.status === 1 && named && took < 30000,
     `3044: a section that never returns fails by name at its limit, with the last check it reached (exit ${child.status}, signal ${child.signal}, ${took}ms; stderr ${JSON.stringify(String(child.stderr ?? '').trim().slice(-220))})`);
 } // 3044
+// 3298. THE INSPECT MENU STAYS INSIDE THE WINDOW (#3298, owner decision Q3298.1 A). Sized to its longest unwrapped line
+//     and hung from Inspect's right edge, the open menu ran off the window's left edge at 380 on both hosts (the privacy
+//     note on one line set a 529px menu; left edge −161), where the page cannot scroll to it. At the narrow tier the
+//     preview header now holds the menu: Inspect's right edge, capped at the header less 12px a side, the note and the
+//     stamp wrapping inside it. 1280 is unchanged. EXPECTED is the window (`innerWidth`) and the button's own rect;
+//     ACTUAL is the open menu's `getBoundingClientRect()`, and the note's and the stamp's, as the browser lays them out.
+//     Mutation this fails by name: the narrow rules under `#3298` in `chrome.css` removed → `3298 figma 380: …` and
+//     `3298 web 380: …` (the menu's left edge below 0). A cap on the right only (`max-width: calc(100% - 12px)`) →
+//     `3298 <host> 380: the menu is capped at the preview header less 12px a side` (the menu at the header's left edge).
+if (runs('3298')) {
+  console.log(`\nThe Inspect menu inside the window (#3298)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 380, h: 800 }, { w: 1280, h: 900 }]) {
+    const where = `3298 ${host} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    let step = 'open';
+    try {
+      step = 'Brand';
+      await goPlace(page, 'brand');
+      if (w <= 560) { step = 'the Preview pane'; await hooks.click(page.locator('[data-p3="pane-toggle-preview"]')); }
+      step = 'open Inspect';
+      await hooks.need(page, '[data-p3="inspect-open"]', { timeout: 10000 });
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      await hooks.need(page, '[data-p3="inspect-menu"]', { timeout: 10000 });
+      await page.waitForTimeout(300);
+      const m = await page.evaluate(() => {
+        const r = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { l: +b.left.toFixed(1), r: +b.right.toFixed(1), t: +b.top.toFixed(1), b: +b.bottom.toFixed(1), w: +b.width.toFixed(1) } : null; };
+        return { iw: innerWidth, sw: document.documentElement.scrollWidth, menu: r('[data-p3="inspect-menu"]'), btn: r('[data-p3="inspect-open"]'),
+          note: r('[data-p3="privacy-note"]'), stamp: r('[data-p3="build-stamp"]'), head: r('[data-p3="preview-head"]') };
+      });
+      const inside = (a, b) => !!a && !!b && a.l >= b.l - 0.5 && a.r <= b.r + 0.5 && a.t >= b.t - 0.5 && a.b <= b.b + 0.5;
+      ok(!!m.menu && m.menu.l >= 0 && m.menu.r <= m.iw, `${where}: the open Inspect menu stays inside the window, [0, ${m.iw}] (${JSON.stringify(m.menu)}, scrollWidth ${m.sw})`);
+      ok(inside(m.note, m.menu) && inside(m.stamp, m.menu), `${where}: the privacy note and the build stamp sit inside the menu (note ${JSON.stringify(m.note)}, stamp ${JSON.stringify(m.stamp)}, menu ${JSON.stringify(m.menu)})`);
+      ok(!!m.menu && !!m.btn && Math.abs(m.menu.r - m.btn.r) <= 0.5 && m.menu.t >= m.btn.b, `${where}: the menu keeps Inspect's right edge and hangs below it (menu ${JSON.stringify(m.menu)}, Inspect ${JSON.stringify(m.btn)})`);
+      // Q3298.1 A's cap, from both sides: at narrow the menu sits inside the preview header less 12px a side. The window
+      // alone would pass a menu reaching the header's edge, or the rail. 12 is the decision's number, typed here.
+      if (w <= 560) ok(!!m.menu && !!m.head && m.menu.l >= m.head.l + 12 - 0.5 && m.menu.r <= m.head.r - 12 + 0.5,
+        `${where}: the menu is capped at the preview header less 12px a side (menu ${JSON.stringify(m.menu)}, header ${JSON.stringify(m.head)})`);
+      // Q3298/3294 compose A (owner, 2026-11-02): at narrow the cap decides, not #3294's `width: 0` on the note, so the
+      // note sets the menu's width up to the cap and the menu reaches the header's left edge less 12. Mutation: that
+      // rule's wide-tier scope dropped → `3298 web 380: the privacy note sets the menu's width up to the cap` (~164px).
+      if (w <= 560) ok(!!m.menu && !!m.head && Math.abs(m.menu.l - (m.head.l + 12)) <= 0.5,
+        `${where}: the privacy note sets the menu's width up to the cap, the preview header less 12px a side (menu ${JSON.stringify(m.menu)}, header ${JSON.stringify(m.head)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3298
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

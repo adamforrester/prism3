@@ -106,6 +106,13 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
   const late = stripVerdict({ results: [{ step: 'update', ok: true, headline: '✓' }], steps: ['update'], stopped: true, run: stepEnded(withReading(s, { run: 'update', phase: 'finish', item: null, done: 12, total: 12 }, T0), T0), now: T0 + 1000, nameOf });
   ok(late.tone === 'ok' && late.what === '12 sets updated', `verdict/stop too late: a Stop that came after the last set reads as the run done (${J(late)})`);
   ok(J(two) === J({ tone: 'ok', what: 'File updated', n: '1:15', sub: 'Theme applied, Style guides drawn. Details in Activity.' }), `verdict/steps: "File updated", each step said (${J(two)})`);
+  // #3308: the owner's first run, once the sets step's problems no longer stop it: every step ran, and the line is a
+  // warning that names the sets step's own words. Literal. (mutation: `failed` counting a `warn` step → `verdict/warn`)
+  const warned = stripVerdict({ results: [{ step: 'setup', ok: true, headline: '✓ file set up' }, { step: 'theme', ok: true, headline: '✓ applied' },
+    { step: 'sets', ok: false, headline: '⚠ Built 9 sets · 5 with problems', warn: true }, { step: 'guides', ok: true, headline: '✓ drawn' }],
+  steps: ['setup', 'theme', 'sets', 'guides'], stopped: false, run: startStripRun(T0), now: T0 + 95_000, nameOf });
+  ok(J(warned) === J({ tone: 'warn', what: 'File updated', n: '1:35', sub: 'File set up, Theme applied, Sets added, Style guides drawn. Built 9 sets · 5 with problems. Details in Activity.' }),
+    `verdict/warn: a run whose sets step had problems ends "File updated" as a warning, naming them (${J(warned)})`);
 }
 
 // ── Apply Theme and the build queue ──
