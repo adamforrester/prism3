@@ -13,9 +13,9 @@ Building needs the Figma plugin. On the web, the Components area lists the same 
 1. Open **Components** in the rail. The list reads "Tick a family to add its sets to this file; Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:120 -->
 2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:122-123 -->
 3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:200-201 -->
-4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:231 -->
+4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:236 -->
 
-Each set in the list carries its state in this file: **To add**, **Not in file**, **Due**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:226 -->
+Each set in the list carries its state in this file: **To add**, **Not in file**, **Due**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:231 -->
 
 The sets you tick are kept in the file, not in the panel, so a teammate who opens Update file sees the same list. A set leaves the list once it is built whole; one that fails or is stopped stays on it. <!-- src: apps/plugin/src/add-queue.ts:1-11 -->
 

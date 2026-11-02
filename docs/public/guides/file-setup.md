@@ -9,7 +9,7 @@ It is the first item of the **Update file** checklist, **Set up file**, listed w
 
 1. Choose **Update file** in the plugin's top bar. On a file that isn't set up, the dialog says "This file isn't set up for Prism3 yet. This first update sets it up." <!-- src: apps/studio/src/state/update-file.ts:192 -->
 2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:194 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:97-103 -->
-3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:232 -->
+3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:237 -->
 
 Once the file is set up, the checklist no longer lists the setup item. <!-- src: apps/studio/src/shell/update-file.ts:220 -->
 Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:88-95 --> If a setup failed, the Activity drawer offers **Set up again**. <!-- src: apps/studio/src/shell/activity.ts:207 -->
@@ -48,11 +48,11 @@ The names start with an underscore because Figma treats such components as priva
 
 ## The result
 
-The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1775-1777 -->
+The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1784-1786 -->
 
 | Result | Meaning |
 |---|---|
-| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1764 --> |
-| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1779 --> |
+| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1773 --> |
+| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1788 --> |
 
 While setup runs, a second request for it is refused: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:38-42 -->

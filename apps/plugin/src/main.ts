@@ -89,6 +89,7 @@ import type { ReadHost } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
 import { dropFor as dropViewsFor, dropViews, keepView, keptView, viewEpoch, watchViews } from './member-views';
+import { breakingOf, type CheckProgress } from './update-plan';
 import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
@@ -1514,8 +1515,16 @@ const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<v
   try {
     const { targets, refused } = updateTargets(defs, input);
     // #3177: `previewUpdate` loads and searches the file a page per turn, once, for every set it reads.
+    // #3302 Q3302.1–.3 A: how far the check has got, for the dialog's foot and its rows: once every set is found, then as
+    // each is checked. A def the engine could not plan is checked already. Each set's line is its own preview's, ahead of
+    // what the answer works out over every set (`CheckProgress`); the answer below replaces it.
+    const total = targets.length + refused.length;
+    const onProgress = (p: CheckProgress): void => postToUi({
+      type: 'update-check-progress', done: refused.length + p.done, total, next: p.next,
+      ...(p.set?.preview ? { set: checkedSetOf({ ...p.set.preview, breaking: breakingOf(p.set.preview) }, p.set.def) } : {}),
+    });
     // #3313: each set the hand-edit pass read, and nothing has changed in since, is laid against as that pass read it.
-    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe, undefined, keptView);
+    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe, undefined, keptView, onProgress);
     r.refused.push(...refused);
     // `previewUpdate` adds a preview for each target it found, in the targets' order, and names the rest as missing or
     // refused, so the found targets pair with the previews one to one.

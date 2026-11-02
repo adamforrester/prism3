@@ -96,7 +96,9 @@ export type HostMessage =
   | { kind: 'hand-edits'; def: string; members: number; edited: number }
   | { kind: 'hand-edits-done' }
   // #2909 Q2909.8 A — the full check scoped to the flagged sets: each set's counts and the hash its update must echo.
-  | { kind: 'update-check'; previewHash: string; sets: readonly CheckedSetView[]; missing: readonly string[]; error: string | null };
+  | { kind: 'update-check'; previewHash: string; sets: readonly CheckedSetView[]; missing: readonly string[]; error: string | null }
+  // #3302 Q3302.1–.3 A — how far that check has got: `done` of `total` sets, the one being checked now, and the one just checked.
+  | { kind: 'update-check-progress'; done: number; total: number; next: string | null; set: CheckedSetView | null };
 
 /** A set as the as-built ledger reads it (#2909 Q2909.8 A, `apps/plugin/src/as-built-ledger.ts`). */
 export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'executor' }
@@ -527,6 +529,12 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   'update-check': (m) => ({ kind: 'update-check', previewHash: str(m.previewHash) ? m.previewHash : '', missing: Array.isArray(m.missing) ? (m.missing as unknown[]).filter(str) : [],
     sets: Array.isArray(m.sets) ? (m.sets as unknown[]).flatMap(checkedSet) : [], error: str(m.error) && m.error ? m.error : null }),
+  // #3302: a reading with a count of the wrong type is dropped; a set that does not read as one is left out of it.
+  'update-check-progress': (m) => {
+    const done = count(m.done), total = count(m.total);
+    if (done === null || total === null || done > total) return null;
+    return { kind: 'update-check-progress', done, total, next: isId(m.next) ? m.next : null, set: checkedSet(m.set)[0] ?? null };
+  },
   'agent-result': null,
   'agent-progress': (m) => {
     const raw = m.progress && typeof m.progress === 'object' ? m.progress as Record<string, unknown> : null;

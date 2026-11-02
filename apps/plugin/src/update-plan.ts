@@ -1201,7 +1201,10 @@ export const freshView = async (view: HostSetView, set: LiveSet, drawVars?: Read
 /** A kept read of a set by its node id, or `undefined` to read the set (`member-views.ts`, #3313). */
 export type KeptView = (setId: string) => HostSetView | undefined;
 
-const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, kept?: KeptView): Promise<Viewed> => {
+/** #3302: a target found but, for a set, not read yet (`view` absent): the check finds every set first, then reads each
+ *  in turn, so it can say how far it has got. A single-component def is read as it is found (`readSingleView`). */
+type Spot = Exclude<Viewed, { kind: 'found' }> | { kind: 'found'; name: string; set: LiveSet; view?: HostSetView; from?: string };
+const locateSpot = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<Spot> => {
   if (t.single) {
     const { view, set, from } = await readSingleView(host, t, breathe, drawVars, ledger);
     return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view, ...(from ? { from } : {}) } : { kind: 'missing' };
@@ -1209,10 +1212,17 @@ const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Pro
   const { found, name, from } = locateSets(host, t, ledger);
   if (found.length === 0) return { kind: 'missing' };
   if (found.length > 1) return { kind: 'refused', reason: `${found.length} sets are named ${from ?? name}` };
-  const before = kept?.(String((found[0] as { id?: unknown }).id ?? ''));
-  const view = before ? await freshView(before, found[0], drawVars) : await readSetView(found[0], breathe, drawVars);
-  return { kind: 'found', name, set: found[0], view, ...(from ? { from } : {}) };
+  return { kind: 'found', name, set: found[0], ...(from ? { from } : {}) };
 };
+/** A spot read: a set's members, from a kept read when there is one (#3313), else from the file. */
+const viewOf = async (s: Spot, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, kept?: KeptView): Promise<Viewed> => {
+  if (s.kind !== 'found' || s.view) return s as Viewed;
+  const before = kept?.(String((s.set as { id?: unknown }).id ?? ''));
+  const view = before ? await freshView(before, s.set, drawVars) : await readSetView(s.set, breathe, drawVars);
+  return { ...s, view };
+};
+const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, kept?: KeptView): Promise<Viewed> =>
+  viewOf(await locateSpot(host, t, breathe, drawVars, ledger), breathe, drawVars, kept);
 
 /**
  * THE BACKGROUND HAND-EDIT PASS (#2909 Q2909.8 A): how many of a set's members someone edited by hand, read the way the
@@ -1363,7 +1373,13 @@ const pageViews = (found: readonly PageSet[], reach: PanelReach = 0) => {
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
  *  because which one an update should touch is not this command's call. */
-export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, kept?: KeptView): Promise<UpdatePreview> => {
+/** #3302: how far the check has got. `done` targets of `total` are checked; `next` is the one being checked now (null when
+ *  none is); `set` is the target just checked and its preview (null when it has no set: missing or refused). Posted once
+ *  every target is found (`done` 0), then once per target. A preview here is the set's own: what is worked out over
+ *  every set at the end (the sets' moves, a blocked panel's clearing) is in the check's answer, not here. */
+export type CheckProgress = { done: number; total: number; next: string | null; set?: { def: string; preview: SetPreview | null } };
+
+export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, kept?: KeptView, progress?: (p: CheckProgress) => void): Promise<UpdatePreview> => {
   // #3177: every set below is found in one read of the file, never by a search of the whole file per set.
   const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
@@ -1373,9 +1389,10 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   let modesRead: ReturnType<typeof panelModes> | undefined;
   const modes = () => (modesRead ??= panelModes(host as unknown as Pick<PanelApi, 'variables'>));
   const blockedPanels: { preview: SetPreview; set: LiveSet; due: FurnitureDue; by: PNode[] }[] = [];
-  // Every set first, so a set this update renames (#2759) counts as present for the sets that nest it.
-  const viewed: { t: UpdateTarget; v: Viewed }[] = [];
-  for (const t of targets) viewed.push({ t, v: await locateView(host, t, breathe, ports.drawVars, ledger, kept) });
+  // Every set found first, so a set this update renames (#2759) counts as present for the sets that nest it. #3302: a
+  // set's members are read below, a set at a time, so the check can say how far it has got.
+  const viewed: { t: UpdateTarget; v: Spot }[] = [];
+  for (const t of targets) viewed.push({ t, v: await locateSpot(host, t, breathe, ports.drawVars, ledger) });
   // A single-component def renamed (#3148) is present as each of its components under the new id.
   const renamedInto = new Set(viewed.flatMap(({ t, v }) => (v.kind !== 'found' || !v.from ? []
     : t.single ? ((v.set as { children?: readonly unknown[] }).children ?? []).map((c) => renamedComponent(String((c as { name?: unknown }).name ?? ''), { from: v.from!, to: v.name }))
@@ -1391,9 +1408,13 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     return null;
   };
   const runPorts: UpdatePorts = renames.size ? { ...ports, renamedSet: (name) => renames.get(name) ?? renamedSingle(name) } : ports;
-  for (const { t, v } of viewed) {
-    if (v.kind === 'missing') { out.missing.push(t.def); continue; }
-    if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
+  const total = viewed.length;
+  progress?.({ done: 0, total, next: viewed[0]?.t.def ?? null });
+  for (const [i, { t, v: spot }] of viewed.entries()) {
+    const told = (preview: SetPreview | null): void => progress?.({ done: i + 1, total, next: viewed[i + 1]?.t.def ?? null, set: { def: t.def, preview } });
+    if (spot.kind === 'missing') { out.missing.push(t.def); told(null); continue; }
+    if (spot.kind === 'refused') { out.refused.push({ def: t.def, reason: spot.reason }); told(null); continue; }
+    const v = await viewOf(spot, breathe, ports.drawVars, kept) as Extract<Viewed, { kind: 'found' }>;
     const preview = dryRunSet(t.def, t.plans, v.view, runPorts, ledger);
     // The set is named for the current id from here on: the apply finds its preview by that name, and renames the node.
     if (v.from) { preview.setRename = { from: v.from, to: v.name }; preview.set = v.name; }
@@ -1431,6 +1452,9 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     }
     out.sets.push(preview);
     if (!t.single) found.push({ preview, set: v.set, lead: !!t.doc });
+    told(preview);
+    // The panel hears each set as it is checked, before the next is read.
+    if (progress && breathe) await breathe();
   }
   // #2831: what each published set's update breaks for library consumers, once everything above has named its changes.
   for (const p of out.sets) { const b = breakingOf(p); if (b.length) p.breaking = b; }

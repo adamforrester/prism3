@@ -17567,14 +17567,53 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const askedSets = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request'));
       ok(askedSets.length >= 1 && askedSets.every((m) => canon(m.input) === canon(PANEL_BRAND)) && asked.every((m) => canon(m.input) === canon(PANEL_BRAND)),
         `${where}: Q699 A: the checklist's due read and its check each send the brand the panel holds (${askedSets.length} file-sets-request; ${[...askedSets, ...asked].map((m) => wireDiff(m.input, PANEL_BRAND)).join(', ')})`);
-      const waiting = await page.evaluate(() => ({ go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null, line: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => n.textContent) }));
-      ok(waiting.go === true && waiting.line.every((l) => l === 'Checking what changes…'), `${where}: Q2909.8 A: until the check answers, each due set says so and the update waits (${JSON.stringify(waiting)})`);
       const sets = [
         { def: 'button', hash: 'hb', members: 648, update: 12, add: 0, drop: 0, handEdited: 2, noBaseline: 0, blocked: false, upToDate: false, breaks: 'Breaks library consumers: 1 layer removed.' },
         { def: 'select', hash: 'hs', members: 30, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: true },
       ];
+      // #3302 (the owner's Q3302.1–.3 A, 2026-11-02; the strings approved as written): the check's progress in the
+      // dialog's foot, before Cancel, the chrome's own bar filled by sets: "Reading this file…" with the bar empty until
+      // every set is found, then "Checked n of N sets". The row being checked reads "Checking…", a checked row its result,
+      // a row not reached nothing. Nothing moves by time (#3150): no animation or transition on the bar, and the foot reads
+      // the same a moment later. Literals, the owner's. MUTATIONS: every row reading "Checking…" while the check is out →
+      // `#3302 Q3302.2 A`; the foot's count left at "Reading this file…" → `#3302 Q3302.1 A`.
+      const progressOf = () => page.evaluate(() => {
+        const wrap = document.querySelector('[data-p3="update-check-progress"]'), bar = document.querySelector('[data-p3="update-check-bar"]');
+        const foot = wrap?.closest('.p3-bardlg-foot'), cancel = document.querySelector('[data-p3="update-cancel"]');
+        const cs = bar ? getComputedStyle(bar) : null;
+        return {
+          text: document.querySelector('[data-p3="update-check-count"]')?.textContent ?? null,
+          bar: bar ? { tag: bar.tagName.toLowerCase(), value: bar.value, max: bar.max, label: bar.getAttribute('aria-label'), anim: cs.animationName, trans: cs.transitionDuration } : null,
+          inFoot: !!foot && !!cancel && foot.contains(cancel), beforeCancel: !!wrap && !!cancel && !!(wrap.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING),
+          rows: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => [n.closest('.p3-upd-setrow')?.querySelector('[data-p3="update-due-set"]')?.dataset.id ?? null, n.textContent, n.dataset.state ?? null]),
+          go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
+        };
+      });
+      const reading = await progressOf();
+      await new Promise((r) => setTimeout(r, 600));
+      const later = await progressOf();
+      ok(reading.text === 'Reading this file…' && reading.bar?.tag === 'progress' && reading.bar.value === 0 && reading.bar.max === 1 && reading.bar.label === 'Reading this file…'
+        && reading.inFoot && reading.beforeCancel && reading.go === true && JSON.stringify(reading.rows) === JSON.stringify([['button', '', 'waiting'], ['select', '', 'waiting']]),
+        `${where}: #3302 Q3302.3 A: before the first set the foot reads "Reading this file…" before Cancel, the bar empty, no row has a line, and the update waits (${JSON.stringify(reading)})`);
+      ok(reading.bar?.anim === 'none' && /^0s(, 0s)*$/.test(reading.bar?.trans ?? '') && JSON.stringify(later) === JSON.stringify(reading),
+        `${where}: #3302, #3150: the progress moves only as the host reports a set: no animation or transition on its bar, and the foot and rows read the same 600 ms later (${JSON.stringify({ anim: reading.bar?.anim, trans: reading.bar?.trans, same: JSON.stringify(later) === JSON.stringify(reading) })})`);
+      await postMsg(page, { type: 'update-check-progress', done: 0, total: 2, next: 'button' });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-check-count"]')?.textContent === 'Checked 0 of 2 sets', null, { timeout: 5000 }).catch(() => {});
+      const first = await progressOf();
+      await postMsg(page, { type: 'update-check-progress', done: 1, total: 2, next: 'select', set: sets[0] });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-check-count"]')?.textContent === 'Checked 1 of 2 sets', null, { timeout: 5000 }).catch(() => {});
+      const second = await progressOf();
+      ok(first.text === 'Checked 0 of 2 sets' && first.bar?.value === 0 && first.bar.max === 2 && first.bar.label === 'Checked 0 of 2 sets'
+        && second.text === 'Checked 1 of 2 sets' && second.bar?.value === 1 && second.bar.max === 2 && second.bar.label === 'Checked 1 of 2 sets' && second.go === true,
+        `${where}: #3302 Q3302.1 A: the foot reads "Checked n of N sets", the bar filled by sets, as each set is checked, and the update waits for the answer (${JSON.stringify({ first: [first.text, first.bar], second: [second.text, second.bar] })})`);
+      ok(JSON.stringify(first.rows) === JSON.stringify([['button', 'Checking…', 'checking'], ['select', '', 'waiting']])
+        && JSON.stringify(second.rows) === JSON.stringify([['button', '12 of 648 members change · 2 edited by hand', 'checked'], ['select', 'Checking…', 'checking']]),
+        `${where}: #3302 Q3302.2 A: only the row being checked reads "Checking…", a checked row shows its result as it lands, and a row not reached shows nothing (${JSON.stringify({ first: first.rows, second: second.rows })})`);
       await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
       await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      const done = await progressOf();
+      ok(done.text === null && done.bar === null && done.rows.every(([, , st]) => st === 'checked'),
+        `${where}: #3302: once the check answers, the foot's progress is gone and every row carries the answer's line (${JSON.stringify({ text: done.text, rows: done.rows })})`);
       const ck = await page.evaluate(() => ({
         rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => ({ id: b.dataset.id, on: b.getAttribute('aria-checked'), why: b.querySelector('[data-p3="update-set-due"]')?.textContent ?? null })),
         lines: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => n.textContent),

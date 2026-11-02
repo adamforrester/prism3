@@ -25,6 +25,9 @@ import type { StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/s
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';
 import type { HostTopic } from './store';
 
+/** #3302: a scoped check under way (`HostSession.updateProgress`). */
+export type UpdateProgress = { readonly done: number; readonly total: number; readonly next: string | null; readonly sets: readonly CheckedSetView[] };
+
 /** A terminal verdict on a host action: the pill's headline and the detail behind it. `lines` is the detail's items, one
  *  per line in the Activity drawer (#2177), when the host sent them; absent, the summary is one line. */
 export type Verdict = { ok: boolean; headline: string; summary: string; lines?: readonly string[] | null;
@@ -236,6 +239,9 @@ export interface HostSession {
   /** #2909 Q2909.8 A: the full check scoped to the flagged sets, as the host last answered it; `pending` while one is
    *  out (set by the panel as it asks); `null` before the first. */
   readonly updateCheck: { readonly previewHash: string; readonly sets: readonly CheckedSetView[]; readonly missing: readonly string[]; readonly error: string | null } | 'pending' | null;
+  /** #3302 Q3302.1–.3 A: while `updateCheck` is pending, how far it has got (null until every set is found): `done` of
+   *  `total`, the set being checked now, and each set checked so far, as its own check read it. */
+  readonly updateProgress: UpdateProgress | null;
 }
 
 /** Documentation's settings as the panel holds them (#2909). */
@@ -277,6 +283,7 @@ export const initialHostSession = (): HostSession => ({
   handEdits: new Map(),
   handPass: 'idle',
   updateCheck: null,
+  updateProgress: null,
 });
 
 /** The panel's own slot for `op`, out of `pending` (#1957). The slot's last verdict was replaced by
@@ -446,7 +453,11 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'hand-edits-done':
       return { ...s, handPass: 'done' };
     case 'update-check':
-      return { ...s, updateCheck: { previewHash: m.previewHash, sets: m.sets, missing: m.missing, error: m.error } };
+      return { ...s, updateCheck: { previewHash: m.previewHash, sets: m.sets, missing: m.missing, error: m.error }, updateProgress: null };
+    case 'update-check-progress':
+      // Only while a check is out: a reading that lands after its answer says nothing the answer does not.
+      if (s.updateCheck !== 'pending') return s;
+      return { ...s, updateProgress: { done: m.done, total: m.total, next: m.next, sets: m.set ? [...(s.updateProgress?.sets ?? []).filter((c) => c.def !== m.set!.def), m.set] : s.updateProgress?.sets ?? [] } };
     case 'seed-info':
       // Joins the two independent boot reads into one outcome (#721); `restore-input` repairs it if it lands later.
       return { ...s, seedOutcome: joinSeed({ present: m.present, ok: m.ok, detail: m.summary, failed: m.failed }, s.inputRecovered) };
@@ -521,6 +532,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'hand-edits': return ['host:update', 'host:components'];
     case 'hand-edits-done': return ['host:update', 'host:components'];
     case 'update-check': return ['host:update'];
+    case 'update-check-progress': return ['host:update'];
     // UI redesign S11: the Activity drawer's agent rows. A start or an end it does not show moves nothing.
     case 'agent-started': return next === prev ? [] : ['host'];
     case 'agent-finished': return next === prev ? [] : ['host'];

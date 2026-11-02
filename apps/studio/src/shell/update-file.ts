@@ -43,6 +43,7 @@ import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
 import { awaitingRead, badgeParts, defaultTicks, dueSetsOf, newSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
+import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
 
 export type UpdateFileLend = {
@@ -70,6 +71,8 @@ export type UpdateFileLend = {
     /** Q2909.8 A: the background pass's hand edits by set, and the scoped check's last answer (`pending` while out). */
     readonly handEdits: ReadonlyMap<string, { readonly members: number; readonly edited: number }>;
     readonly updateCheck: { readonly previewHash: string; readonly sets: readonly CheckedSetView[]; readonly error: string | null } | 'pending' | null;
+    /** #3302 Q3302.1–.3 A: while the check is pending, how far it has got; null until every set is found. */
+    readonly updateProgress: UpdateProgress | null;
     /** #3129 Q833 A: the file's add queue, as the host last read it or the panel last wrote it; null before the host has
      *  said. */
     readonly queue: readonly string[] | null;
@@ -238,6 +241,10 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const chk = r.updateCheck;
     const answered = chk && chk !== 'pending' && checkedFor !== null ? chk : null;
     const checkOf = (id: string): CheckedSetView | undefined => answered?.sets.find((c) => c.def === id);
+    // #3302 Q3302.2 A: while the check is out, each set's line as its own check landed, the set being checked now, and
+    // nothing for a set not reached yet. The answer's line replaces it.
+    const prog = chk === 'pending' ? r.updateProgress : null;
+    const lineOf = (id: string): CheckedSetView | undefined => checkOf(id) ?? prog?.sets.find((c) => c.def === id);
     // Q392 A on #2812: a set named as Components names it.
     const nameOf = (id: string): string => displayNameOf(r.catalog, id);
     // A check that read the not-yet-recorded sets ticks each one an update would change, once, before anything is drawn.
@@ -302,7 +309,6 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       for (const id of updating) {
         const on = t.update.has(id);
         const d = f.due[id];
-        const c = checkOf(id);
         // #3133: the name and its tag share one wrapping line (`.p3-check-text`), so where they do not fit beside each other
         // the tag drops under the name, and a tag wider than the line wraps inside it, never past the dialog's edge.
         const text = h('span', 'p3-check-text p3-upd-checktext');
@@ -315,14 +321,16 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         });
         box.dataset.id = id;
         const row = h('div', 'p3-upd-setrow');
-        const line = hook(h('p', 'p3-sub p3-upd-setline', c ? UPDATE_COPY.checked(c) : chk === 'pending' ? UPDATE_COPY.checkingSets : ''), 'update-set-check');
-        if (c && pendingLines.has(id)) armEnter(`update-line=${id}`);
+        const shown = lineOf(id);
+        const line = hook(h('p', 'p3-sub p3-upd-setline', shown ? UPDATE_COPY.checked(shown) : prog?.next === id ? UPDATE_COPY.checkingSet : ''), 'update-set-check');
+        line.dataset.state = shown ? 'checked' : prog?.next === id ? 'checking' : chk === 'pending' ? 'waiting' : 'none';
+        if (shown && pendingLines.has(id)) armEnter(`update-line=${id}`);
         if (entering(`update-line=${id}`)) line.dataset.land = 'true';
-        if (!c && chk === 'pending') pending.add(id);
+        if (!shown && chk === 'pending') pending.add(id);
         row.append(box, line);
         list.append(row);
         // #2831: on a published set, what the update breaks for library consumers, beside the set.
-        if (c?.breaks && !c.blocked) list.append(hook(h('p', 'p3-sub p3-upd-setline', c.breaks), 'update-set-breaks'));
+        if (shown?.breaks && !shown.blocked) list.append(hook(h('p', 'p3-sub p3-upd-setline', shown.breaks), 'update-set-breaks'));
       }
       sets.append(list);
       pendingLines = pending;
@@ -366,6 +374,19 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       close();
     };
     const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go];
+    if (chk === 'pending' && checkedFor !== null && updating.length) {
+      // #3302 Q3302.1 A, Q3302.3 A: the check's progress in the foot, before Cancel: "Reading this file…" with the bar
+      // empty until every set is found, then "Checked n of N sets", the chrome's own bar filled by sets. It moves only
+      // as a set is checked, never by time (#3150).
+      const text = prog ? UPDATE_COPY.checkedOf(prog.done, prog.total) : UPDATE_COPY.checkReading;
+      const wrap = hook(h('div', 'p3-upd-progress'), 'update-check-progress');
+      const bar = hook(h('progress', 'p3-op-prog p3-upd-prog'), 'update-check-bar') as HTMLProgressElement;
+      bar.max = prog && prog.total > 0 ? prog.total : 1;
+      bar.value = prog ? prog.done : 0;
+      bar.setAttribute('aria-label', text);
+      wrap.append(bar, hook(h('span', 'p3-sub p3-upd-progtext', text), 'update-check-count'));
+      foot.unshift(wrap);
+    }
     if (handN > 0) {
       // #3083 (Q3083.3 A, Q3083.4 A): "Hand edits", then the select, its label tied to it; a repaint keeps focus on it.
       const wrap = hook(h('div', 'p3-upd-handsel'), 'update-hand-row');
