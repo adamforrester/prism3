@@ -1800,7 +1800,8 @@ const runSets = (kind: RunKind, ids: readonly string[]): void => {
   if (componentBusy()) return;
   const ok = ids.filter((id) => componentCatalog().some((e) => e.id === id && e.buildable));
   if (!ok.length) return;
-  run = startRun(kind, ok);
+  // #3308: each set after the queued sets it nests, so none is built twice (`depsFirst`).
+  run = startRun(kind, ok, componentCatalog());
   lastRun = null;
   if (!updateRun) clearStripLine();
   postCurrent();
