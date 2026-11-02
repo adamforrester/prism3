@@ -90,6 +90,7 @@ import { materializerFor } from './src/brand-def';
 import { SWAP_TARGET } from './src/build-deps';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { entryFor, LEDGER_KEY, LEDGER_V } from './src/as-built-ledger';
+import { leadsPanel, PANEL_FORMAT } from './src/doc-panel';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { planComponentName } from '@prism3/engine/anatomy-figma';
 import { NS, persistInput } from './src/persist-figma';
@@ -187,10 +188,13 @@ const root = shim.root as Record<string, unknown>;
 const pluginData = new Map<string, string>();
 const sharedData = new Map<string, string>();
 const mat = materializerFor(null);
+// Each entry as today's plugin writes it with the usage panels on (the default): a family's lead set carries the panel
+// format it was checked at (#3205), so only the sets this fixture moves read due.
+const panelOf = (id: string) => (leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
 const ledger = Object.fromEntries(setIds.slice(0, RECORDED).map((id, i) => {
   const m = mat(componentDefs.find((d) => d.id === id)!);
-  if (i >= DUE && i < DUE + PRINTED) return [id, { ...entryFor(m, figmaAnatomySet(m, { swapTarget: SWAP_TARGET })), engine: OLD_ENGINE }];
-  const e = entryFor(m);
+  if (i >= DUE && i < DUE + PRINTED) return [id, { ...entryFor(m, figmaAnatomySet(m, { swapTarget: SWAP_TARGET })), engine: OLD_ENGINE, ...panelOf(id) }];
+  const e = { ...entryFor(m), ...panelOf(id) };
   return [id, i < DUE ? { ...e, def: 'moved000moved000' } : e];
 }));
 pluginData.set(LEDGER_KEY, JSON.stringify({ v: LEDGER_V, sets: ledger }));
