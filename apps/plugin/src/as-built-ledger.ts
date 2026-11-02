@@ -68,16 +68,22 @@ export type Ledger = Readonly<Record<string, LedgerEntry>>;
 
 type DataRoot = { getPluginData?(key: string): string; setPluginData?(key: string, value: string): void };
 
-/** FNV-1a, 64-bit as two 32-bit halves, hex: the same hash the update's dry run keeps its stamps in. */
-const fnv = (s: string): string => {
+/** FNV-1a, 64-bit as two 32-bit halves, hex: the same hash the update's dry run keeps its stamps in. Fed a piece at a
+ *  time (`fnvStream`), so a hash of a long string can be taken across several turns (#3301) and is the hash of the whole. */
+const fnvStream = () => {
   let h1 = 0x811c9dc5, h2 = 0x01000193;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
-    h2 = Math.imul(h2 ^ c, 0x811c9dc5) >>> 0;
-  }
-  return h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');
+  return {
+    add(s: string): void {
+      for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+        h2 = Math.imul(h2 ^ c, 0x811c9dc5) >>> 0;
+      }
+    },
+    hex: (): string => h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0'),
+  };
 };
+const fnv = (s: string): string => { const h = fnvStream(); h.add(s); return h.hex(); };
 
 const FACET_OF: Readonly<Record<string, Facet>> = {
   aspectRatio: 'size', minWidth: 'size', maxWidth: 'size', placementWidth: 'size', placementHeight: 'size', glyphPx: 'size',
@@ -96,16 +102,28 @@ const FACET_OF: Readonly<Record<string, Facet>> = {
  * part name and facet, plan by plan in order, so a part's chunk moves when any variant's value of that facet moves.
  */
 export const printOf = (plans: readonly AnatomyPlan[]): PlanPrint => {
-  const acc = new Map<string, string[]>();
+  const steps = printSteps(plans);
+  for (let r = steps.next(); ; r = steps.next()) if (r.done) return r.value;
+};
+
+/** `printOf` a plan at a time (#3301): it pauses after each plan, so a caller can hand its thread back between them, and
+ *  returns the same print. `printOf` is this, drained. Every hash is fed as it goes, a plan at a time, rather than over
+ *  strings built up and hashed at the end (hashing Button's 576 plans at the end held the thread for about 0.2 s in
+ *  Node): the plan hash is `JSON.stringify(plans)`'s, and each part's facet chunk and the set's are their strings'. */
+export function* printSteps(plans: readonly AnatomyPlan[]): Generator<void, PlanPrint> {
+  const acc = new Map<string, ReturnType<typeof fnvStream>[]>();
   const put = (part: string, f: Facet, v: string): void => {
     let a = acc.get(part);
-    if (!a) acc.set(part, a = FACETS.map(() => ''));
-    a[FACETS.indexOf(f)] += v;
+    if (!a) acc.set(part, a = FACETS.map(() => fnvStream()));
+    a[FACETS.indexOf(f)].add(v);
   };
-  let set = '';
-  plans.forEach((p, i) => {
+  const set = fnvStream();
+  const plan = fnvStream();
+  plan.add('[');
+  for (const [i, p] of plans.entries()) {
+    plan.add(`${i ? ',' : ''}${JSON.stringify(p)}`);
     const { root, ...own } = p;
-    set += JSON.stringify(own);
+    set.add(JSON.stringify(own));
     const walk = (n: FigmaNodePlan): void => {
       const { children, name, ...fields } = n;
       for (const [k, v] of Object.entries(fields)) put(name, FACET_OF[k] ?? 'content', `${i}.${k}=${JSON.stringify(v)};`);
@@ -114,13 +132,15 @@ export const printOf = (plans: readonly AnatomyPlan[]): PlanPrint => {
       children.forEach(walk);
     };
     walk(root);
-  });
+    yield;
+  }
+  plan.add(']');
   return {
-    plan: fnv(JSON.stringify(plans)),
-    parts: Object.fromEntries([...acc].map(([k, a]) => [k, a.map((v) => fnv(v).slice(0, 4)).join('')])),
-    set: fnv(set).slice(0, 4),
+    plan: plan.hex(),
+    parts: Object.fromEntries([...acc].map(([k, a]) => [k, a.map((h) => h.hex().slice(0, 4)).join('')])),
+    set: set.hex().slice(0, 4),
   };
-};
+}
 
 /** The entry a set built now from `materialized` gets; `plans`, the plans drawn from it, give its print. */
 export const entryFor = (materialized: ComponentDef, plans?: readonly AnatomyPlan[], rev: number = EXECUTOR_REVISION, engine: string = ENGINE_VERSION): LedgerEntry =>

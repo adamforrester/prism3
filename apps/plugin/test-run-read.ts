@@ -184,6 +184,7 @@ const world = async (paged: boolean, more: N[] = []) => {
   const comps: Node[] = [];
   const pg = { children: comps as Node[], type: 'PAGE', id: 'P:1', name: 'Tags' } as unknown as { children: Node[]; type: string; id: string; name: string; findAllWithCriteria?(c: Criteria): unknown[] };
   const api = makeShim({
+    looseHost: 'wraps the root in a Proxy that substitutes findAllWithCriteria to count whole-file searches',
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', 'space/999'])],
     styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
     effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
