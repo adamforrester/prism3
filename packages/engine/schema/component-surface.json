@@ -468,7 +468,7 @@
     },
     "badge": {
       "members": 50,
-      "sha256": "b580022fe3fd8a3def2703b5580d390e1733a8f06cea780e5d756cccaa0b15ea",
+      "sha256": "5fa9051aa32b27a10a9118ad42c9dcdd0db5683c0147d9f75455a5ffb52539a1",
       "properties": [
         "label:TEXT",
         "value:TEXT"

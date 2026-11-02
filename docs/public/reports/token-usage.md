@@ -2281,11 +2281,10 @@ Type: dimension. Bound by 1 component(s).
 
 ### `control.size.sm.dot`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `dot-size` | dot | emphasis: bold · size: medium · style: contained · type: dot (5 of 50) |
 | radio-control | `size.small.dot` | dot | selection: checked · size: small (10 of 60) |
 
 ### `control.size.sm.height`
@@ -3011,7 +3010,8 @@ Type: dimension. Bound by 34 component(s).
 |---|---|---|---|
 | accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (16 of 48) |
 |  |  | titleRow | size: small (16 of 48) |
-| badge | `size.medium.contained.status.pad-y`, `size.medium.inline.gap`, `size.small.contained.status.pad-x`, `status-dot-size` | statusDot | emphasis: subtle · style: inline · type: status (10 of 50) |
+| badge | `dot-size`, `size.medium.contained.status.pad-y`, `size.medium.inline.gap`, `size.small.contained.status.pad-x`, `status-dot-size` | dot | emphasis: bold · size: medium · style: contained · type: dot (5 of 50) |
+|  |  | statusDot | emphasis: subtle · style: inline · type: status (10 of 50) |
 |  |  | surface | type: status (35 of 50) |
 | breadcrumb-item | `size.medium.gap` | container | size: medium (5 of 10) |
 | breadcrumbs | `size.medium.gap` | items | path: full · size: medium (2 of 6) |
@@ -3661,9 +3661,9 @@ Declared, not drawn: `color.border.focus`
 
 ### badge
 
-47 token(s); 50 design-file member(s).
+46 token(s); 50 design-file member(s).
 
-`border-width.hairline`, `color.background.primary`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger`, `color.foreground.danger-subtle`, `color.foreground.info`, `color.foreground.info-subtle`, `color.foreground.secondary`, `color.foreground.success`, `color.foreground.success-subtle`, `color.foreground.warning`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.secondary`, `color.icon.success`, `color.icon.warning`, `color.inverse.foreground.tertiary`, `color.inverse.text.primary`, `color.text.danger`, `color.text.info`, `color.text.on-danger`, `color.text.on-info`, `color.text.on-success`, `color.text.on-warning`, `color.text.primary`, `color.text.success`, `color.text.warning`, `control.size.sm.dot`, `radius.none`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `space.075`, `space.100`, `space.150`, `type.body.md.default`, `type.body.md.line-box`, `type.body.sm.default`, `type.body.sm.line-box`, `type.caption.md.strong`, `type.label.sm.emphasis`
+`border-width.hairline`, `color.background.primary`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger`, `color.foreground.danger-subtle`, `color.foreground.info`, `color.foreground.info-subtle`, `color.foreground.secondary`, `color.foreground.success`, `color.foreground.success-subtle`, `color.foreground.warning`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.secondary`, `color.icon.success`, `color.icon.warning`, `color.inverse.foreground.tertiary`, `color.inverse.text.primary`, `color.text.danger`, `color.text.info`, `color.text.on-danger`, `color.text.on-info`, `color.text.on-success`, `color.text.on-warning`, `color.text.primary`, `color.text.success`, `color.text.warning`, `radius.none`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `space.075`, `space.100`, `space.150`, `type.body.md.default`, `type.body.md.line-box`, `type.body.sm.default`, `type.body.sm.line-box`, `type.caption.md.strong`, `type.label.sm.emphasis`
 
 ### banner
 
