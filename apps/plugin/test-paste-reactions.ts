@@ -23,7 +23,7 @@ import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
-import { makeShim, type Node, type Page } from './component-shim';
+import { makeShim, fixHostMethods, type Node, type Page } from './component-shim';
 import { runComponentChunk, runComponentReactions, pack, unpack, packNames, unpackNames } from './src/mcp-steps';
 import { componentScripts } from './mcp-paste';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
@@ -77,8 +77,11 @@ const paste = async (id: string, budget?: number, opts: { skipReactions?: boolea
   // runtime's reaction step then finds the set.
   const pages: any[] = [];
   const stub = (isPageDivider: boolean) => ({ name: isPageDivider ? '---' : 'Page', isPageDivider, children: [], appendChild() {} });
-  Object.assign(h.api, {
-    root: { ...h.api.root, get children() { return pages; }, insertChild: (i: number, c: unknown) => { const at = pages.indexOf(c); if (at >= 0) pages.splice(at, 1); pages.splice(i, 0, c); }, appendChild: (c: unknown) => { const at = pages.indexOf(c); if (at >= 0) pages.splice(at, 1); pages.push(c); } },
+  // #3215 Q-C8 A: the shim's host is strict (its methods fixed, as Figma's are), so the page port goes on a COPY of the
+  // host, fixed again as `component-shim.ts` asks of a copy, rather than onto the host itself.
+  const api = fixHostMethods({
+    ...h.api,
+    root: fixHostMethods({ ...h.api.root, get children() { return pages; }, insertChild: (i: number, c: unknown) => { const at = pages.indexOf(c); if (at >= 0) pages.splice(at, 1); pages.splice(i, 0, c); }, appendChild: (c: unknown) => { const at = pages.indexOf(c); if (at >= 0) pages.splice(at, 1); pages.push(c); } }),
     createPage: () => { const p = stub(false); pages.push(p); return p; },
     createPageDivider: () => { const p = stub(true); pages.push(p); return p; },
     setCurrentPageAsync: async () => {},
@@ -94,7 +97,7 @@ const paste = async (id: string, budget?: number, opts: { skipReactions?: boolea
       for (const top of h.page.children as any[]) { const f = walk(top, h.api.currentPage); if (f) return f; }
       return null;
     },
-  });
+  }) as any;
   // `findOne` searches the whole page on the host, as the engine's chunk payload relies on; the shim's looks at the top
   // level only, which would hide a set inside a frame.
   h.api.currentPage.findOne = (pred: (n: unknown) => boolean) => {
@@ -102,7 +105,7 @@ const paste = async (id: string, budget?: number, opts: { skipReactions?: boolea
     for (const top of h.page.children as any[]) { const f = walk(top); if (f) return f; }
     return null;
   };
-  (globalThis as { figma?: unknown }).figma = h.api;
+  (globalThis as { figma?: unknown }).figma = api;
   // The chunk scripts' own step data is `{ def, chunk, chunks }`; the payloads are the engine's chunk bodies.
   const chunks = planSetChunks(plans, budget);
   const reports = [];
