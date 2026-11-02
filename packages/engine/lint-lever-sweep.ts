@@ -52,8 +52,8 @@
  *     `applyMinWidthRatio` (Tag's floor, off the theme's heights). This is the composition `apps/plugin/src/brand-def.ts`'s
  *     `materializeForBrand` performs. It is restated here, not imported, because the engine must not
  *     depend on a surface. The plugin's own `test-write-components.ts` pins that function's weight-intent
- *     (#1605), outline-hover (#1608) and button-setting (#1667, #1752) reads; its `controlShape` read has no
- *     plugin-side arm. This gate pins the ten engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
+ *     (#1605), outline-hover (#1608), button-setting (#1667, #1752) and `controlShape` (#1761: each shape's rung on the
+ *     button's root corners) reads. This gate pins the ten engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
  *     (`figmaArtifacts`, the in-memory form of the `out/figma/<brand>/*.json` files Apply writes): its
  *     variable tails, its text styles and its effect styles, checked separately by `planBindingErrors`.
  *     No allowlist: a component that binds a thing its brand does not emit is always a miss on paste.
