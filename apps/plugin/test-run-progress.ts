@@ -154,6 +154,7 @@ type PNode = { swapTarget?: string; nestTarget?: string; nestOverrides?: readonl
 const planComps = (n: PNode): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []),
   ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value), ...(n.children ?? []).flatMap(planComps)];
 const shim = makeShim({
+  looseHost: 'patches root.findAllWithCriteria to search the pages the suite builds',
   vars: [...new Set([...PLANS.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
   styles: [...new Set(PLANS.flatMap((p) => planTextStyles(p.root)))],
   effects: [...new Set(PLANS.flatMap((p) => planEffectStyles(p.root)))],

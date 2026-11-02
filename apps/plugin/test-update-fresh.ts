@@ -59,7 +59,7 @@ const mkPage = (divider: boolean): ShimPage => {
 };
 mkPage(false).name = 'Page 1';
 const posted: any[] = [];
-const shim = makeShim({ vars: [], styles: [], effects: [] }) as Record<string, any>;
+const shim = makeShim({ vars: [], styles: [], effects: [], looseHost: 'patches root.findAllWithCriteria to search the pages the suite builds' }) as Record<string, any>;
 const root = shim.root as Record<string, unknown>;
 const pluginData = new Map<string, string>();
 const sharedData = new Map<string, string>();
