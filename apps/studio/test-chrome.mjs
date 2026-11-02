@@ -2984,7 +2984,7 @@ const UPDATE_RUNNING = '\u2026 Updating';
  *  words, while the cell and its dots stay put, fails too.
  *  MUTATION M1 (#2908, after a `wip:` commit): `.p3-spin`'s `position: relative` to `position: absolute` in `chrome.css`,
  *  so the cell leaves the label's flow and draws over the first letters, as the owner saw it \u2192 `#2908 figma \u2026 : the busy
- *  spinner sits beside "Updating\u2026", not over it`, every theme and width.
+ *  spinner sits beside "Updating", not over it`, every theme and width.
  *  MUTATION M2 (#2908, after a `wip:` commit): `.p3-spin`'s `position: relative` to `position: static`, so the arc's
  *  containing block becomes the button and the arc draws over the words while the cell and dots don't move \u2192 the same
  *  arms, by name, now reading the arc's box larger than the cell and the cell `static`. */
@@ -3459,8 +3459,8 @@ for (const host of ['web', 'figma']) {
           `${where}: while the run is out, Update file reads "${UPDATE_RUNNING}", busy and not natively disabled (owner decision #4; read ${JSON.stringify(busyU)})`);
         ok(busyU.width === idleU.width, `${where}: Update file keeps its width while busy (${idleU.width} idle, ${busyU.width} busy)`);
         const ovU = await page.evaluate(BUSY_OVERLAP, '[data-p3="top-bar"] [data-p3="update-file"]');
-        ok(!!ovU && ovU.visible && ovU.words === 'Updating…' && ovU.area <= BUSY_OVERLAP_MAX && ovU.arcFits && ovU.position !== 'static',
-          `#2908 ${where}: the busy spinner sits beside "Updating…", not over it (shared area ${ovU?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovU?.arc?.w}×${ovU?.arc?.h} in a ${ovU ? Math.round((ovU.cell.r - ovU.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovU?.position}; ${JSON.stringify(ovU)})`);
+        ok(!!ovU && ovU.visible && ovU.words === 'Updating' && ovU.area <= BUSY_OVERLAP_MAX && ovU.arcFits && ovU.position !== 'static',
+          `#2908 ${where}: the busy spinner sits beside "Updating", not over it (shared area ${ovU?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovU?.arc?.w}×${ovU?.arc?.h} in a ${ovU ? Math.round((ovU.cell.r - ovU.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovU?.position}; ${JSON.stringify(ovU)})`);
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
         const t0 = Date.now();
@@ -3688,8 +3688,8 @@ for (const host of ['web', 'figma']) {
         ok(spW.length === 1 && canon(spW[0]) === canon({ type: 'draw-specs' }) && spBusy === 'true',
           `${where}: #2830 Q2830.3 A: Draw specs posts draw-specs alone and reads as drawing (${JSON.stringify(spW)}, busy ${spBusy})`);
         const ovS = await page.evaluate(BUSY_OVERLAP, '[data-p3="docs-specs-draw"]');
-        ok(!!ovS && ovS.visible && ovS.words === 'Drawing specs…' && ovS.area <= BUSY_OVERLAP_MAX && ovS.arcFits && ovS.position !== 'static',
-          `#2908 ${where}: the busy spinner sits beside "Drawing specs…", not over it (shared area ${ovS?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovS?.arc?.w}×${ovS?.arc?.h} in a ${ovS ? Math.round((ovS.cell.r - ovS.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovS?.position}; ${JSON.stringify(ovS)})`);
+        ok(!!ovS && ovS.visible && ovS.words === 'Drawing specs' && ovS.area <= BUSY_OVERLAP_MAX && ovS.arcFits && ovS.position !== 'static',
+          `#2908 ${where}: the busy spinner sits beside "Drawing specs", not over it (shared area ${ovS?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovS?.arc?.w}×${ovS?.arc?.h} in a ${ovS ? Math.round((ovS.cell.r - ovS.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovS?.position}; ${JSON.stringify(ovS)})`);
         // Q713 A: Draw specs has its own Specs row in Activity, like Style guides: it runs, reading "Drawing specs…"
         // (literal), while the Build set row neither runs nor carries the words. Its verdict lands on the Specs row below.
         await settle(page);

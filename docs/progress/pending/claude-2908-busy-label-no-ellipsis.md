@@ -17,8 +17,9 @@ emission or component surface moves.
 - The Activity drawer's phase lines ("Writing to Figma…", "Drawing specs…" in `main.ts`'s `PENDING_TEXT`) are a
   different surface from the button labels and were not part of the decision, so they keep their "…". The PR asks
   about them in a DRAFT Q-block.
-- #3276 (the `test:chrome` geometry arm for the same issue) pins `words === 'Updating…'` and `'Drawing specs…'`. This
-  PR is independent of it: whichever merges second updates those two literals.
+- #3276 (the `test:chrome` geometry arm for the same issue) merged first, pinning `words === 'Updating…'` and
+  `'Drawing specs…'` in its `BUSY_OVERLAP` arms. This PR updates both arms to the new words, and keeps their arc check
+  as it was.
 
 ### Verification
 
