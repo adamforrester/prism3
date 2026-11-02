@@ -84,9 +84,21 @@ export const modeControl = (cleanups: (() => void)[]): ModeControl => {
   /** Radios when every one fits, the select otherwise. #2383: the select is never narrower than its longest option,
    *  so where the title, the select and Inspect do not fit one row, the select takes its own row under the title
    *  (`data-row="own"`). Measured on one row each time, from widths that do not depend on the row the select is on
-   *  (the title, Inspect and the select are each their own width), so the answer is the same on either row. */
+   *  (the title, Inspect and the select are each their own width), so the answer is the same on either row.
+   *
+   *  #3013 (WCAG 2.4.3): the one that gives way is hidden with `display: none`, and a hidden control that held focus
+   *  drops it to the body. So when focus was in the control as the fit began and the one now shown does not hold it,
+   *  focus moves to the one now shown: the checked radio, or the select. */
   const fit = (): void => {
     if (!wrap.isConnected) return;
+    const had = wrap.contains(document.activeElement);
+    place();
+    if (!had) return;
+    const shown = wrap.dataset.fit === 'select' ? selWrap : group;
+    if (shown.contains(document.activeElement)) return;
+    (wrap.dataset.fit === 'select' ? select : radios.find((b) => b.tabIndex === 0) ?? radios[0])?.focus();
+  };
+  const place = (): void => {
     if (wrap.dataset.fit !== 'radios') wrap.dataset.fit = 'radios';
     delete wrap.dataset.row;
     const over = group.scrollWidth > group.clientWidth + 1;

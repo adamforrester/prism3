@@ -2498,8 +2498,7 @@
         ],
         "unverified": [
           "The circular-overlap inset of about 14.6%, from the brief, derived from a circle's geometry (1 − 1/√2, halved). Not measured against any shipping system here.",
-          "The count member's circle at one digit is an approximation: `space.075` inline padding around one digit against `space.025` block padding around the label line. It is about 1px off square in the example brands' fonts by arithmetic, and has not been measured on a live Figma host.",
-          "The dot binds `control.size.sm.dot`, the small selection control's dot rung, because it is the tier's density-scaled 8px dot. It borrows a control token for a non-control; a badge-specific rung would be a new token name."
+          "The count member's circle at one digit is an approximation: `space.075` inline padding around one digit against `space.025` block padding around the label line. It is about 1px off square in the example brands' fonts by arithmetic, and has not been measured on a live Figma host."
         ],
         "evolution": [
           "The `genre` variant axis (owner-approved, 2026-09-27): the count and dot project to Figma beside the status label, fifteen members at the time. Before it, the count and dot existed in code only.",

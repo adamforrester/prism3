@@ -6697,8 +6697,31 @@ arm: {
     `badge corner: radius.sm is 2px in nb and prism3 and 4px in aurora (got ${JSON.stringify(smPx)})`);
   // The dot's size is its own fixed square, not the count's padding around nothing (the brief's ~6–12px dot).
   const dotPart: any = badgeDef.anatomy!.parts['dot'];
-  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'control.size.sm.dot' && JSON.stringify(dotPart?.presentWhen) === '{"type":["dot"]}',
-    `badge dot: a fixed square bound to control.size.sm.dot, present only at type dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
+  // #3226 (Q3226.1 A): the presence dot has its own size, `space.100`, the inline dot's, not the radio's dot rung.
+  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'space.100' && JSON.stringify(dotPart?.presentWhen) === '{"type":["dot"]}',
+    `badge dot: a fixed square bound to space.100, present only at type dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
+  // #3226 (Q3226.1 A): the dot as EMITTED is 8px in every brand and at every density. The 8 is the owner's figure, typed
+  // here; the px is read from each brand's built tree through whatever token the def binds, so a rebind to a token that
+  // follows the brand's radio-dot share (the reference brand's is 12px) or its density (6px at compact) fails, naming
+  // the brand. The emitted brands at their own density, then the example inputs rebuilt at each density.
+  {
+    const dotRef = String(badgeDef.tokens[dotPart?.size] ?? '');
+    const pxOf = (th: any): number | undefined => {
+      const tree = buildTree(th).tree as any;
+      return dotRef.split('.').reduce((n: any, k) => n?.[k], tree[Object.keys(tree)[0]])?.$extensions?.prism3?.px;
+    };
+    const rows: [string, any][] = loadedRows([
+      ['nb', nbTheme()],
+      ...(['prism3', 'aurora', 'harbor'] as const).map((b) => [b, exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput))] as [string, any]),
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+      ...(['prism3', 'aurora', 'harbor'] as const).flatMap((b) => (['compact', 'comfortable', 'spacious'] as const).map((density) =>
+        [`${b} (density ${density})`, exampleTheme(`${b} (density ${density})`, () => brandTheme({ ...(exampleBrands()[b] as BrandInput), density }))] as [string, any])),
+    ]);
+    const read = rows.map(([b, th]) => [b, pxOf(th)] as [string, number | undefined]);
+    const off = read.filter(([, px]) => px !== 8);
+    ok(read.length === 14 && off.length === 0,
+      `#3226 badge dot: the emitted presence dot is 8px in every brand and at every density (${read.length} of 14 read, through ${dotRef})${off.length ? ` — off: ${off.map(([b, px]) => `${b} ${px ?? 'unresolved'}px`).join(', ')}` : ''}`);
+  }
 
   const themes: [string, any][] = loadedRows([
     ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
@@ -14689,15 +14712,25 @@ arm: {
     }
     ok(dimsAliasBad.length === 0, `figma generalise (${id}): every dims alias resolves within the emitted collections` + (dimsAliasBad.length ? ` — ${dimsAliasBad.slice(0, 3).join(', ')}` : ''));
 
-    // (d) LAYOUT aliases — grid/gutter + grid/margin resolve into THIS brand's space collection.
+    // (d) LAYOUT aliases — grid/gutter + grid/margin resolve into THIS brand's space collection, or since
+    // #3052 (Q785 A) its core/dimension collection when no spacing step has the value; which of the two is
+    // gated by (19g), this arm holds resolution. #3053: the names are matched ROOTED, the root read off the
+    // theme as (e) below does. This arm used to compare the bare `grid/gutter`, which no emitted name has
+    // been since #1097, so it selected nothing and passed for any emission. The row count is what makes
+    // an empty selection fail (docs/34 shape 15: a scope asserts each promised surface is represented).
     const spaceNames = new Set(dims.space.variables.map((v) => v.name));
+    const dimensionNames = new Set(dims.dimension.variables.map((v) => v.name));
+    const layoutAliasNames = new Set([`${theme.root}/grid/gutter`, `${theme.root}/grid/margin`]);
     const layoutAliasBad: string[] = [];
+    let layoutAliasRows = 0;
     for (const l of layout) for (const v of l.variables) {
-      if (v.name === 'grid/gutter' || v.name === 'grid/margin') {
-        if (!v.alias || !spaceNames.has(v.alias.name)) layoutAliasBad.push(`${l.$mode}:${v.name} → ${v.alias?.name ?? '<none>'}`);
+      if (layoutAliasNames.has(v.name)) {
+        layoutAliasRows++;
+        if (!v.alias || (!spaceNames.has(v.alias.name) && !dimensionNames.has(v.alias.name))) layoutAliasBad.push(`${l.$mode}:${v.name} → ${v.alias?.name ?? '<none>'}`);
       }
     }
-    ok(layoutAliasBad.length === 0, `figma generalise (${id}): every layout grid alias resolves within THIS brand's space collection` + (layoutAliasBad.length ? ` — ${layoutAliasBad.slice(0, 3).join(', ')}` : ''));
+    ok(layoutAliasBad.length === 0 && layoutAliasRows === layout.length * 2,
+      `figma generalise (${id}): every layout grid alias resolves within THIS brand's space or dimension collection (${layoutAliasRows}/${layout.length * 2} rows selected)` + (layoutAliasBad.length ? ` — ${layoutAliasBad.slice(0, 3).join(', ')}` : ''));
 
     // (e) THE NAMESPACE, AND #1097 INVERTED THIS ARM. It used to read "no brand prefix": `figName` stripped
     // exactly one root segment and this walked every emitted name asserting none of `prism/`, `nbds/` or
@@ -22979,13 +23012,16 @@ arm: {
         // Installed with `defineProperty` for the same reason `strokesIncludedInLayout` is — an accessor
         // in the literal above is flattened to a plain value — and mirrors the plugin shim so the parity
         // gate compares two executors against one Figma model.
+        // #3048 — AND A LITERAL WRITE DETACHES THAT CORNER'S BINDING, as on the host and as the plugin shim models it:
+        // the payload's `claimDefaults` zeroes every corner the plan leaves unbound, and `!(k in B)` is all that keeps
+        // it off a bound one. The setter used to keep the binding through the write, so removing that guard passed.
         for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const) {
           const backing = `_${corner}`;
           (node as Record<string, unknown>)[backing] = 0;
           Object.defineProperty(node, corner, {
             configurable: true, enumerable: true,
             get() { const bv = node.boundVariables as Record<string, { value?: number }>; return bv[corner]?.value ?? (node as Record<string, number>)[backing]; },
-            set(v: number) { (node as Record<string, number>)[backing] = v; },
+            set(v: number) { (node as Record<string, number>)[backing] = v; delete (node.boundVariables as Record<string, unknown>)[corner]; },
           });
         }
         // #1567 — WRITING A PARAGRAPH/GEOMETRY PROPERTY DETACHES THE COMPOSITE TEXT STYLE, which is the real
@@ -23599,6 +23635,53 @@ arm: {
       }
       ok(pasted === 10 && bad.length === 0,
         `#2695 paste: the underline fields' per-side stroke weights read back bound from the paste executor (none / none / hairline, thick at focus / none), nothing discarded (${bad.slice(0, 3).join(' | ') || 'clean'})`);
+    }
+
+    // ---- #3048: no literal written over a bound corner, read back off the PASTE executor ---------------------------
+    // The paste twin of `test-write-components.ts`'s #3048 arm. The payload's `claimDefaults` runs after the bindings
+    // and zeroes every corner its plan leaves unbound; `!(k in B)` keeps it off a bound one, and the stub above detaches
+    // a corner's binding on a literal write, as the host does. Every def that binds a corner, one member each (the first
+    // that binds one; a paste per member would cost minutes for the same guard). EXPECTED is the plan's `bound`, ACTUAL
+    // the stub's `boundVariables` after the whole payload ran. The floor is #3048's own list, typed here.
+    {
+      const CORNER_KEYS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
+      type PNode = { name: string; bound?: Record<string, string>; children?: PNode[]; nestTarget?: string; swapTarget?: string };
+      const planCorners = (n: PNode, root = true): string[] => [
+        ...CORNER_KEYS.filter((c) => n.bound?.[c]).map((c) => `${root ? '<root>' : n.name}:${c}=V:${n.bound![c]}`),
+        ...(n.children ?? []).flatMap((k) => planCorners(k, false)),
+      ];
+      const builtCorners = (n: Record<string, unknown>, root = true): string[] => {
+        const bv = (n.boundVariables as Record<string, { id?: string }> | undefined) ?? {};
+        const own = CORNER_KEYS.filter((c) => bv[c]?.id).map((c) => `${root ? '<root>' : String(n.name)}:${c}=${bv[c]!.id}`);
+        return n.type === 'INSTANCE' ? own : [...own, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap((k) => builtCorners(k, false))];
+      };
+      // Every component the payload instances, swap targets included (a card field's slot starts at a provider logo).
+      const nested = (n: PNode): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.swapTarget ? [n.swapTarget] : []), ...(n.children ?? []).flatMap(nested)];
+      const defsRead: string[] = [];
+      const threw: string[] = [];
+      const lost: string[] = [];
+      let claims = 0;
+      for (const d of componentDefs) {
+        const plan = figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).find((p) => planCorners(p.root as unknown as PNode).length);
+        if (!plan) continue;
+        defsRead.push(d.id);
+        const page: StubPage = { children: [] };
+        const r = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...planIconComps(plan.root), ...nested(plan.root as unknown as PNode)], page });
+        // A payload that threw stopped before its defaults pass, so its corners say nothing either way: the harness, not
+        // the subject. Named, so it cannot pass as a held binding or be read as a lost one.
+        if (r.misses.some((m) => /THREW/.test(m))) { threw.push(`${d.id}: ${r.misses.find((m) => /THREW/.test(m))}`); continue; }
+        const have = page.children[0] ? builtCorners(page.children[0] as Record<string, unknown>) : [];
+        for (const w of planCorners(plan.root as unknown as PNode)) {
+          claims++;
+          const i = have.indexOf(w);
+          if (i < 0) lost.push(`${d.id}/${planComponentName(plan)} ${w}`); else have.splice(i, 1);
+        }
+      }
+      const unread = ['text-field', 'select', 'badge', 'provider-logo'].filter((id) => !defsRead.includes(id));
+      ok(unread.length === 0 && threw.length === 0 && claims > 50,
+        `#3048 paste reachable: the bound-corner read-back reads every def #3048 names, and every paste ran to the end (${defsRead.length} defs bind a corner, ${claims} plan corner bindings${unread.length ? `; NOT READ: ${unread.join(', ')}` : ''}${threw.length ? `; THREW: ${threw.slice(0, 3).join(' | ')}` : ''})`);
+      ok(lost.length === 0,
+        `#3048 paste: every corner a plan binds is still bound to its variable on the pasted node: the payload's claimDefaults wrote no literal over it, which live would unbind it (${lost.length ? `${lost.length} lost: ${lost.slice(0, 4).join('; ')}` : `${claims}/${claims} held`})`);
     }
 
     // ---- #2428: Code input's character keeps its size's text style through the PASTE executor, as through the plugin's ----

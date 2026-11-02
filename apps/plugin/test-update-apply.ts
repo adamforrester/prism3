@@ -143,6 +143,18 @@
  *                  finished (record, stamp last, marker off) as a set member is; an added glyph placed in a free
  *                  slot, never over another; the owner's hand-made icon untouched. Mutations: the emit branch's
  *                  finish skipped → `single/finished`; adds laid out from the origin → `single/add`.
+ *   relay marks/…  the provider logos laid out at the old fixed 48px pitch (before #3142) and stamped by an earlier
+ *                  executor revision: the update re-lays the marks Prism3 placed at the measured pitch, each keeping its
+ *                  row and column, so none overlaps; a mark dragged off the grid and a component Prism3 did not build stay
+ *                  exactly; a designer's frame where the new spacing reaches stops the re-lay and is named (#3145). The marks are
+ *                  stamped at revision 45, so only reach entry 46 makes them due, and the dry run must read every one
+ *                  due. An icon block at the old pitch, which a wider hand-made icon measures past 48, stays put.
+ *                  Mutations: the re-lay's writes dropped → `relay marks/no overlap`, `relay marks/spacing`; every
+ *                  Prism3 mark taken as on the grid → `relay marks/hand moved`; the obstacle check dropped →
+ *                  `relay marks/blocked`; the obstacles not widened by the 24px gap → `relay marks/gap`; the ownership filter
+ *                  dropped → `relay marks/theirs`; reach entry 46 emptied →
+ *                  `relay marks/due`; the overlap guard dropped → `relay marks/icons kept`; the hand-moved marks left
+ *                  out of the re-lay's check → `relay marks/hand blocks`.
  *   recordfail/…   a member whose as-built record the host refuses after the update (an icon, and a set member) keeps
  *                  the stamp it had and its marker, reads out of date in the next dry run, and is named among the
  *                  outcome's misses (#2373). Mutation: the stamp written before the record → `recordfail/unstamped`,
@@ -283,7 +295,7 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; varPx?: Record<string, number>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[]; fileSets?: { name: string; variants: string[] }[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; varPx?: Record<string, number>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[]; fileSets?: { name: string; variants: string[] }[]; looseHost?: string } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
@@ -302,6 +314,7 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     refuseVersion: o.refuseVersion,
     varPx: o.varPx,
     componentProps: o.componentProps,
+    looseHost: o.looseHost,
   }) as any;
   const built = await applyComponentPlan(plans, api);
   if (o.allowMisses) o.allowMisses.push(...built.misses);
@@ -1110,7 +1123,7 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
     }, says: /fonts: Inter Semi Bold will not load/ },
   ];
   for (const c of cases) {
-    const w = await world(c.def);
+    const w = await world(c.def, plansOf(c.def), c.name === 'font' ? { looseHost: 'patches loadFontAsync so one font will not load' } : {});
     const r = await agrees(w, [{ def: c.def, plans: c.mk(w) }]);
     ok(r.refused.length === 1 && r.unlisted.length === 0 && r.untouched && c.says.test(r.pre.sets[0]?.blockers.join('; ') ?? ''),
       `agree/file ${c.name}: the apply refuses the set, and the dry run listed that reason as its blocker (${r.refused.length} refused; unlisted ${JSON.stringify(r.unlisted).slice(0, 160)}; blockers: ${r.pre.sets[0]?.blockers.join('; ').slice(0, 120) || 'none'})`);
@@ -1709,13 +1722,13 @@ section('aspect lock, in place — a square slot rebuilt under aspectLock keeps 
 }
 
 section('single — the icons, updated in place as single components (#2296)');
-const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { keyPrefix?: string; styleIdPrefix?: string } = {}) => {
+const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { keyPrefix?: string; styleIdPrefix?: string; looseHost?: string } = {}) => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), ...extraVars])],
     // #2379: SCALE children follow their frame, as on the host, so a built glyph fits its frame.
     comps: [], page, liveRoot: true, identities: true, liveComponents: true, scaleConstrained: true,
-    keyPrefix: o.keyPrefix, styleIdPrefix: o.styleIdPrefix,
+    keyPrefix: o.keyPrefix, styleIdPrefix: o.styleIdPrefix, looseHost: o.looseHost,
   }) as any;
   const built = await applyComponentPlan(plans, api, { emitAsComponents: true });
   if (built.misses.length) throw new Error(`premise: icons built with ${built.misses.length} miss(es): ${built.misses[0]}`);
@@ -2150,6 +2163,183 @@ section('single, place — a mark Update adds lands in its block, clear of the p
   ok(iconRun.misses.length === 0 && kin.length >= 2 && res.outcomes[0]?.added === 1 && !!a && (besideKind || inSlot) && hits.length === 0 && moved.length === 0,
     `#3192 update add: the mark Update adds lands ${besideKind ? 'beside its kind\'s row' : inSlot ? 'in a free slot of its block' : 'outside its block'} at ${a ? `${a.x},${a.y}` : 'nowhere'}, overlapping ${hits.length ? hits.slice(0, 3).join(', ') : 'nothing'}; ${moved.length} existing component(s) moved or re-keyed${moved.length ? ` (${moved.slice(0, 3).join(', ')})` : ''}`);
 }
+section('single, marks — an update re-lays a block still on the old 48px grid (#3145)');
+{
+  // THE TEMPLATE FILE'S CASE: the provider logos laid out at the fixed 48px pitch the executor used before #3142, so
+  // the wide marks sit over their neighbors, and stamped by an earlier executor revision, so Update takes them. One
+  // mark a designer dragged off the grid, and a designer's own component under the def's prefix, must stay exactly.
+  // Stamped at revision 45, the last before the re-lay, so only reach entry 46 (`executor-reach.json`) makes them due.
+  // Mutation: the re-lay call dropped from the emit branch → `relay marks/no overlap`, `relay marks/spacing`.
+  const plans = plansOf('provider-logo');
+  const w = await singleWorld(plans);
+  const marks = w.comps();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(marks.length)));
+  marks.forEach((c, i) => {
+    c.x = 400 + (i % cols) * 48;
+    c.y = 96 + Math.floor(i / cols) * 48;
+    putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|45'));
+  });
+  const moved = marks[1];
+  moved.x = 5003; moved.y = 3001;
+  const f = (w.api.createFrame as () => Node)();
+  const theirs = (w.api.createComponentFromNode as (n: Node) => Node)(f);
+  theirs.name = 'provider-logo/payment/zz-own';
+  if (!w.page.children.includes(theirs)) w.page.children.push(theirs);
+  // On the grid's own offset (400 and 96 modulo 48), clear of the block at either pitch: only ownership keeps it in
+  // place, not the offset. Mutation: the ownership filter dropped → `relay marks/theirs`.
+  theirs.x = 400 + 48 * 60; theirs.y = 96;
+  const where = (n: Node): string => `${n.x},${n.y}`;
+  const keep = { moved: where(moved), theirs: where(theirs), ids: marks.map((c) => String(c.id)).join() };
+  const grid = marks.filter((c) => c !== moved);
+  const box = (n: Node) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const overlaps = (ns: Node[]): string[] => ns.flatMap((a, i) => ns.slice(i + 1).filter((b) => {
+    const p = box(a), q = box(b);
+    return p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h;
+  }).map((b) => `${a.name} over ${b.name}`));
+  ok(overlaps(grid).length > 0, `premise: at the old 48px pitch the wide marks overlap (${overlaps(grid).slice(0, 2).join('; ')})`);
+  const t = { def: 'provider-logo', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok((pre.sets[0]?.counts.update ?? 0) > 0, `premise: under an earlier executor revision the marks are due (${JSON.stringify(pre.sets[0]?.counts)})`);
+  // Every mark due, not just the ones the shim reads as drifted: a block Updated under 44 or 45 that kept its overlaps
+  // reads current unless entry 46 reaches provider-logo. Mutation: `"46": ["provider-logo"]` → `"46": []` → this.
+  ok(pre.sets[0]?.counts.current === 0, `relay marks/due: stamped at revision 45, every mark reads due, none current (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const cell = (n: Node, ox: number, oy: number): string => `${Math.round((Number(n.x) - ox) / 48)},${Math.round((Number(n.y) - oy) / 48)}`;
+  const cellsBefore = grid.map((c) => cell(c, 400, 96));
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const left = overlaps(grid);
+  ok(left.length === 0, `relay marks/no overlap: after the update no mark Prism3 laid out sits over another (${left.length}: ${left.slice(0, 3).join('; ') || 'none'})`);
+  const pitchX = Math.max(...marks.concat(theirs).map((c) => Number(c.width))) + 24;
+  const pitchY = Math.max(...marks.concat(theirs).map((c) => Number(c.height))) + 24;
+  const off = grid.filter((c, i) => {
+    const [col, row] = cellsBefore[i].split(',').map(Number);
+    return Number(c.x) !== 400 + col * pitchX || Number(c.y) !== 96 + row * pitchY;
+  });
+  ok(off.length === 0, `relay marks/spacing: each mark keeps its row and column, at the measured pitch ${pitchX}×${pitchY} from the block's corner (${off.length} off: ${off.slice(0, 2).map((c) => `${c.name}@${where(c)}`).join(', ') || 'none'})`);
+  ok(where(moved) === keep.moved, `relay marks/hand moved: the mark a designer dragged off the grid stays where they put it (${where(moved)}, was ${keep.moved})`);
+  ok(where(theirs) === keep.theirs && theirs.name === 'provider-logo/payment/zz-own', `relay marks/theirs: the component Prism3 did not build is not moved (${where(theirs)})`);
+  ok(w.comps().filter((c) => c !== theirs).map((c) => String(c.id)).join() === keep.ids, 'relay marks/kept: every mark is the node it was, moved in place');
+  const blockedMiss = (res.outcomes[0]?.misses ?? []).filter((m) => m.includes('NOT RE-LAID'));
+  ok(blockedMiss.length === 0, `relay marks/clear: nothing blocks the new spacing, so nothing is reported kept (${blockedMiss[0] ?? 'none'})`);
+  // Once re-laid, a second update moves nothing: the block no longer overlaps.
+  const at = w.comps().map(where).join();
+  const pre2 = await previewUpdate(w.host, [t]);
+  await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre2));
+  ok(w.comps().map(where).join() === at, 'relay marks/settled: a second update leaves every mark where the first put it');
+}
+{
+  // A NOTE IN THE WAY: a designer's frame sits where the re-laid block would reach, so nothing moves and the outcome
+  // names the mark whose place is taken. Mutation: the obstacle check dropped → `relay marks/blocked`.
+  const plans = plansOf('provider-logo');
+  const w = await singleWorld(plans);
+  const marks = w.comps();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(marks.length)));
+  marks.forEach((c, i) => {
+    c.x = (i % cols) * 48;
+    c.y = Math.floor(i / cols) * 48;
+    putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|41'));
+  });
+  const note = (w.api.createFrame as () => Node)();
+  if (!w.page.children.includes(note)) w.page.children.push(note);
+  note.x = cols * 48 + 8; note.y = 0;
+  (note.resize as (a: number, b: number) => void)?.(40, 2000);
+  if (Number(note.width) !== 40) { note.width = 40; note.height = 2000; }
+  const before = w.comps().map((c) => `${c.x},${c.y}`).join();
+  const t = { def: 'provider-logo', plans, single: true };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+  const miss = (res.outcomes[0]?.misses ?? []).find((m) => m.includes('NOT RE-LAID'));
+  ok(w.comps().map((c) => `${c.x},${c.y}`).join() === before && !!miss,
+    `relay marks/blocked: with a designer's frame where the new spacing reaches, no mark moves and the outcome says so (${miss ?? 'no line'})`);
+}
+{
+  // A NOTE JUST BELOW WHERE THE RE-LAID BLOCK WOULD END, clear of it but nearer than the 24px gap new components keep
+  // from every node: the re-lay keeps the same clearance, so it stops and names the mark. Mutation: the obstacles not
+  // widened by `GAP` → `relay marks/gap`.
+  const plans = plansOf('provider-logo');
+  const w = await singleWorld(plans);
+  const marks = w.comps();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(marks.length)));
+  marks.forEach((c, i) => {
+    c.x = (i % cols) * 48;
+    c.y = Math.floor(i / cols) * 48;
+    putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|45'));
+  });
+  const pitchY = Math.max(...marks.map((c) => Number(c.height))) + 24;
+  const bottom = Math.max(...marks.map((c, i) => Math.floor(i / cols) * pitchY + Number(c.height)));
+  const note = (w.api.createFrame as () => Node)();
+  if (!w.page.children.includes(note)) w.page.children.push(note);
+  note.x = 0; note.y = bottom + 10;
+  (note.resize as (a: number, b: number) => void)?.(4000, 40);
+  if (Number(note.width) !== 4000) { note.width = 4000; note.height = 40; }
+  const before = w.comps().map((c) => `${c.x},${c.y}`).join();
+  const t = { def: 'provider-logo', plans, single: true };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+  const miss = (res.outcomes[0]?.misses ?? []).find((m) => m.includes('NOT RE-LAID'));
+  ok(w.comps().map((c) => `${c.x},${c.y}`).join() === before && !!miss,
+    `relay marks/gap: a frame 10px below where the re-laid block would end, nearer than the 24px gap, stops the re-lay too (${miss ?? 'no line'})`);
+}
+{
+  // A HAND-MOVED MARK IN THE WAY: a designer already pulled one of Prism3's marks apart from the overlap and dropped it
+  // off the grid, right where a neighbor would land at the new spacing. It is Prism3's, so it is not an obstacle at
+  // the call site; only the hand-moved list inside the re-lay protects it. Nothing moves and the outcome names the
+  // mark whose place is taken. Mutation: the hand-moved marks left out of the re-lay's check → `relay marks/hand blocks`.
+  const plans = plansOf('provider-logo');
+  const w = await singleWorld(plans);
+  const marks = w.comps();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(marks.length)));
+  marks.forEach((c, i) => {
+    c.x = (i % cols) * 48;
+    c.y = Math.floor(i / cols) * 48;
+    putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|45'));
+  });
+  const pitchX = Math.max(...marks.map((c) => Number(c.width))) + 24;
+  const oldRight = Math.max(...marks.map((c) => Number(c.x) + Number(c.width)));
+  const oldBottom = Math.max(...marks.map((c) => Number(c.y) + Number(c.height)));
+  // The first row-0 slot whose new place starts clear of the old block; the hand-moved mark goes 3px into it, at
+  // y 5, so it is off the grid's offset on both axes and clear of the block as it stands.
+  const col = marks.findIndex((_, i) => i > 1 && i < cols && i * pitchX > oldRight);
+  const hand = marks[1];
+  hand.x = col * pitchX + 3; hand.y = 5;
+  const clearOfOld = hand.x >= oldRight || hand.y >= oldBottom;
+  const before = w.comps().map((c) => `${c.x},${c.y}`).join();
+  const t = { def: 'provider-logo', plans, single: true };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+  const miss = (res.outcomes[0]?.misses ?? []).find((m) => m.includes('NOT RE-LAID'));
+  ok(col > 1 && clearOfOld && w.comps().map((c) => `${c.x},${c.y}`).join() === before && !!miss && miss.startsWith(String(marks[col].name)),
+    `relay marks/hand blocks: a mark a designer moved off the grid, where a neighbor would land at the new spacing, stops the re-lay and the outcome names that neighbor (slot ${col}, ${miss ?? 'no line'})`);
+}
+{
+  // THE ICONS NEVER MOVE: an icon block at the old 48px pitch, stamped by an earlier revision so Update takes it, and a
+  // designer's own icon wider than 24px under the def's prefix. The measured pitch counts it, so it reads above 48;
+  // the icons do not overlap at 48, so none of them moves. The designer's icon sits up and left, clear of anywhere a
+  // re-laid block would reach, so nothing else could stop a re-lay. Mutation: the overlap guard dropped →
+  // `relay marks/icons kept`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans);
+  const icons = w.comps();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(icons.length)));
+  icons.forEach((c, i) => {
+    c.x = 400 + (i % cols) * 48;
+    c.y = 96 + Math.floor(i / cols) * 48;
+    putPd(c, STAMP_KEY, pdOf(c, STAMP_KEY).replace(/\|\d+$/, '|41'));
+  });
+  const f = (w.api.createFrame as () => Node)();
+  const wide = (w.api.createComponentFromNode as (n: Node) => Node)(f);
+  wide.name = 'icon/zz-wide';
+  if (!w.page.children.includes(wide)) w.page.children.push(wide);
+  (wide.resize as (a: number, b: number) => void)?.(80, 24);
+  if (Number(wide.width) !== 80) { wide.width = 80; wide.height = 24; }
+  wide.x = -2000; wide.y = -2000;
+  const before = icons.map((c) => `${c.name}@${c.x},${c.y}`);
+  const t = { def: 'icon', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok((pre.sets[0]?.counts.update ?? 0) > 0, `premise: the icons stamped at revision 41 are due (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const after = icons.map((c) => `${c.name}@${c.x},${c.y}`);
+  const movedIcons = after.filter((a, i) => a !== before[i]);
+  ok(applyVerdict(res).ok && movedIcons.length === 0 && wide.x === -2000 && wide.y === -2000,
+    `relay marks/icons kept: an icon block the old pitch fits stays exactly, though a wider hand-made icon measures the pitch past 48 (${movedIcons.length} moved${movedIcons.length ? `: ${movedIcons.slice(0, 2).join(', ')}` : ''}; ${applyVerdict(res).headline})`);
+}
+
 section('single, marks — a mark built under its former kind is renamed in place (#2343 PR 3)');
 {
   // Typed from the decision: each new name and the name it had. One of each kind is renamed, picked among those the
@@ -2561,7 +2751,7 @@ section('rename — a declared value rename, and an added axis, rename members i
 /* ── fonts ───────────────────────────────────────────────────────────────────────────────────────────── */
 section('fonts — a typeface that will not load refuses the set before anything is written');
 {
-  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'], looseHost: 'patches loadFontAsync so one font will not load' });
   const real = w.api.loadFontAsync as (f: { family: string; style: string }) => Promise<void>;
   // The dry run's host and the executor's port are the same `figma` in the plugin, so the font is refused on both.
   w.api.loadFontAsync = (w.host as { loadFontAsync?: unknown }).loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
@@ -2575,7 +2765,7 @@ section('fonts — a typeface that will not load refuses the set before anything
   // A font installed between the check and the confirm (#2601 review). The check ran with it missing, so the set read
   // "can't be checked" and the designer was never shown its changes. The apply's fresh preview has no blocker; only the
   // blockers in the hash tell the two apart, so the confirm must refuse rather than write changes nobody saw.
-  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'], looseHost: 'patches loadFontAsync so one font will not load' });
   const realApi = w.api.loadFontAsync, realHost = (w.host as { loadFontAsync?: unknown }).loadFontAsync;
   const real = realApi as (f: { family: string; style: string }) => Promise<void>;
   w.api.loadFontAsync = (w.host as { loadFontAsync?: unknown }).loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
@@ -3568,7 +3758,7 @@ section('verify reads what the host draws — damage the HOST makes behind the e
   // The host, not the executor, misbehaves here: it ignores the base a paint is bound on (as it kept the black base
   // on the NB master), and it does not scale an imported glyph to its frame. The executor is unchanged, so only the
   // update's own verify can catch it. Mutation: verify's draw check dropped → `verify/drawn paints`, `verify/drawn glyphs`.
-  const w = await world(TAG);
+  const w = await world(TAG, plansOf(TAG), { looseHost: 'patches createNodeFromSvg so the host does not scale an imported glyph' });
   for (const m of membersOf(w.set())) {
     const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
     (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
@@ -3599,7 +3789,7 @@ section('verify reads what the host draws — damage the HOST makes behind the e
   // imported glyph to its frame (behind the executor), the update's own verify must name it. The spinner's sizes are the
   // glyphs drawn at a size other than their import's. Mutation: verify's draw check dropped → `verify/drawn glyphs`.
   const plans = plansOf('spinner');
-  const w = await singleWorld(plans);
+  const w = await singleWorld(plans, [], { looseHost: 'patches createNodeFromSvg so the host does not scale an imported glyph' });
   for (const c of w.comps()) {
     const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
     (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));

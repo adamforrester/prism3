@@ -36,6 +36,14 @@
  *                   `respaceLive` given no reach (M1) → `room/apply`; the live panel dropped from `pageViews`' furniture
  *                   (M3) → `room/panel follows`; the panel dropped from what `respaceLive` moves with a set →
  *                   `room/panel follows`.
+ *   own draw/…      (#3303) the panel as Prism3 left it: Tag built by the executor, its panel drawn, then made due and every
+ *                   component its blocks nest rebuilt (`mainMoves`: the host's instances follow their main, `live`). One
+ *                   Update on a host and root with fixed methods: `untouched` replaces it in place, no "(edited)" copy;
+ *                   `text edit`, `fill edit` and `hidden layer` keep it aside; a second-form print is replaced while it
+ *                   matches (`v2 unchanged`) and kept once a nested component moves (`v2 rebuilt`, the safe rule). Mutations:
+ *                   the print read whole (`printView` in `panelPrint`) → `own draw/untouched`; overrides ignored →
+ *                   `own draw/text edit`, `fill edit`, `hidden layer`; a second-form print read in the third form →
+ *                   `own draw/v2 unchanged`.
  *   orphan/…        before a def is built again, its deleted set's unedited panel is removed and an edited one kept.
  *                   Mutation: `clearOrphanPanels` without its `panelUnedited` check (M4) → `orphan/edited kept`.
  *   seat/…          a new set is seated with room for its panel. Mutation: `seatNewSet` ignoring `panelReach` →
@@ -74,7 +82,12 @@
  *                   `collapse/dialog` and every `collapse/<def>` built at a width, `collapse/hug read`, `update/redraw
  *                   in place`; the def's width ignored (the member's reported sizing alone) → `collapse/hug read`;
  *                   `PANEL_FORMAT` not raised → `update/redraw in place`; the specimen's `minWidth` never set →
- *                   `collapse/after reset`.
+ *                   `collapse/after reset`. THE HOST'S RESET (#3205 follow-up, `hostReset`): a tree appended or moved
+ *                   drops each nested instance's size overrides and freezes it FIXED at what it hugs, as the template
+ *                   showed Dialog's specimen after #3211 (FIXED, 62px). Mutation: the specimens not sized again once
+ *                   the panel is on the page → `collapse/dialog` and every `collapse/<def>` built at a width,
+ *                   `collapse/hug read`, `collapse/after reset`, `update/redraw in place`, `width/banner`,
+ *                   `width/checkbox-row`.
  *   legend/…        (#3265, owner decisions Q3265.1 A and Q3265.2 A) the anatomy legends of Code input, Pagination, Tabs
  *                   and Breadcrumbs, typed by hand from their defs: "Cell 4" for one instance, "Cells 1–6" for a run of
  *                   neighbors alike on the specimen, each run captioned by its parts' shared note or else the nested
@@ -106,8 +119,8 @@ import type { ComponentDef } from '@prism3/engine/component-schema';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
-import { makeShim, type Node } from './component-shim';
-import { anatomyEntry, anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
+import { fixHostMethods, makeShim, type Node } from './component-shim';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, type PanelApi, type PNode } from './src/doc-panel';
 import { TAXONOMY } from './src/file-taxonomy';
 import { readSpecTag } from './src/spec-tag';
 import { fingerprintOf } from './src/style-guide';
@@ -203,8 +216,8 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
       return { x: at.x + x, y: at.y + y, width: self.width!, height: self.height! };
     },
     resize(w: number, h: number) { (n as N)._w = w; (n as N)._h = h; },
-    appendChild(c: N) { detach(c); c.parent = n; n.children.push(c); },
-    insertChild(i: number, c: N) { detach(c); c.parent = n; n.children.splice(i, 0, c); },
+    appendChild(c: N) { detach(c); c.parent = n; n.children.push(c); hostReset(c); },
+    insertChild(i: number, c: N) { detach(c); c.parent = n; n.children.splice(i, 0, c); hostReset(c); },
     remove() { detach(n); n.removed = true; },
     getSharedPluginData: (ns: string, k: string) => data.get(`${ns}/${k}`) ?? '',
     setSharedPluginData: (ns: string, k: string, v: string) => { data.set(`${ns}/${k}`, v); },
@@ -222,6 +235,27 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
   }
   return n;
 };
+/**
+ * THE HOST DROPS A NESTED INSTANCE'S SIZE WHEN ITS TREE MOVES (#3205 follow-up, after #3211). In the template after one
+ * Update, Dialog's specimen read `layoutSizingHorizontal: FIXED` at 62px inside a 687px stage: the width and floor the
+ * draw set were gone, and the instance was fixed at the width it hugs (#3265's re-scan, 2026-11-02). Modeled so: when a
+ * tree is appended or moved to a new parent, each instance inside another instance in it (a block's specimen) loses
+ * its size overrides. Its floor goes back to its main's, and it is frozen FIXED at what it hugs. A specimen sized
+ * before its panel lands on the page is lost; one sized after it keeps its width. That is the trigger this host
+ * assumes. Real-Figma confirmation is owed, and the agent link's check reads it.
+ */
+function hostReset(root: N): void {
+  for (const q of walk(root)) {
+    if (q.type !== 'INSTANCE' || q.swapped === undefined) continue;
+    let up = q.parent as N | undefined, nested = false;
+    for (; up; up = up.parent as N | undefined) if (up.type === 'INSTANCE') { nested = true; break; }
+    if (!nested) continue;
+    if (typeof q._mainMin === 'number') q.minWidth = q._mainMin; else delete q.minWidth;
+    q.layoutSizingHorizontal = 'HUG';
+    q._w = q.width;
+    q.layoutSizingHorizontal = 'FIXED';
+  }
+}
 /** A node's width before its floor: the host's own layout, written here, never read off the panel. */
 function rawWidth(self: N): number {
   if (self.type === 'TEXT' && self.textAutoResize === 'WIDTH_AND_HEIGHT') return runWidth(String(self.characters ?? ''), typeof self.fontSize === 'number' ? self.fontSize : 14);
@@ -312,7 +346,58 @@ const blockInstance = (type: string): N => {
     }
   };
   i.setExplicitVariableModeForCollection = (_c: unknown, modeId: string) => { i.pinned = modeId; };
-  return i;
+  return liveInstances ? live(i) : i;
+};
+/**
+ * THE HOST'S INSTANCES FOLLOW THEIR MAIN (#3303), as Figma's do. Each layer of a block instance (a specimen's aside, the
+ * set's) holds two values per field: what it inherits from its main (`_inh`), and what was set on it (an override). A
+ * write is an override, and `overrides` lists them by layer id, as `InstanceNode.overrides` does; `mainMoves` changes the
+ * inherited values, as rebuilding the block's or List.Item's component does, and an override keeps its own value. Written
+ * here, from Figma's documented `overrides` shape, never read off the panel.
+ */
+/** On for the arms that read it: the model costs a closure per field per layer, too much for every panel in this file. */
+let liveInstances = false;
+const TRACKED = ['characters', 'fontSize', 'letterSpacing', 'visible', 'fills', 'strokes', 'name', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing', 'cornerRadius', 'opacity'];
+const liveLayers = (q: N): N[] => [q, ...q.children.flatMap((c) => (c.type === 'INSTANCE' && c.name === 'specimen' ? [] : liveLayers(c)))];
+function live(inst: N): N {
+  for (const q of liveLayers(inst)) {
+    const ovr = new Set<string>(), own: Record<string, unknown> = {}, inh: Record<string, unknown> = {};
+    for (const f of TRACKED) {
+      inh[f] = q[f];
+      Object.defineProperty(q, f, { configurable: true, enumerable: true, get: () => (ovr.has(f) ? own[f] : inh[f]), set: (v: unknown) => { ovr.add(f); own[f] = v; } });
+    }
+    // Sizing is an override too, of fields Figma names its own way: the print must leave it out.
+    let sizing = q.layoutSizingHorizontal;
+    Object.defineProperty(q, 'layoutSizingHorizontal', { configurable: true, enumerable: true, get: () => sizing, set: (v: unknown) => { ovr.add('layoutAlign'); ovr.add('counterAxisSizingMode'); sizing = v; } });
+    const resize = q.resize!;
+    q.resize = (w: number, h: number) => { ovr.add('width'); ovr.add('height'); resize(w, h); };
+    if (typeof q.setProperties === 'function') { const set = q.setProperties; q.setProperties = (pr: Record<string, unknown>) => { ovr.add('componentProperties'); set(pr as never); }; }
+    q._ovr = ovr; q._inh = inh;
+    if (q.type === 'INSTANCE') Object.defineProperty(q, 'overrides', { configurable: true, get: () => liveLayers(q).filter((x) => (x._ovr as Set<string> | undefined)?.size).map((x) => ({ id: String(x.id), overriddenFields: [...(x._ovr as Set<string>)] })) });
+  }
+  return inst;
+}
+/** ENGINE N+1 REBUILDS THE COMPONENTS THE PANEL NESTS (#3303): every inherited value under each block moves, a layer
+ *  is added to each block's main, and the Specimen swap points at a rebuilt member. Nobody touches the panel. */
+/** No rebuild: the components the panel nests stay as drawn. */
+const keepMains = (): void => {};
+const mainMoves = (panel: N): number => {
+  let moved = 0;
+  for (const q of walk(panel)) {
+    const inh = q._inh as Record<string, unknown> | undefined;
+    if (!inh) continue;
+    inh.fills = [{ type: 'SOLID', visible: true, opacity: 1, color: { r: 0.2, g: 0.3, b: 0.4 } }];
+    inh.paddingLeft = Number(inh.paddingLeft ?? 0) + 4;
+    inh.cornerRadius = 6;
+    if (q.type === 'TEXT') { inh.fontSize = 15; inh.characters = 'Template text, revised'; }
+    if (q.name === '_Doc-block' && q.type === 'INSTANCE') {
+      q.children.push(Object.assign(mk('FRAME', 'added in the rebuild', [], { _w: 0, _h: 0 }), { parent: q }));
+      const props = q.componentProperties as Record<string, { type: string; value: unknown }> | undefined;
+      for (const v of Object.values(props ?? {})) if (v.type === 'INSTANCE_SWAP') v.value = `${String(v.value)}-rebuilt`;
+    }
+    moved++;
+  }
+  return moved;
 };
 /** The members a specimen can be swapped to, by id. */
 const members = new Map<string, N>();
@@ -358,6 +443,7 @@ const instanceOf = (sp: N, member: N): void => {
   sp._w = member.width;
   // An instance inherits its main's floor (#3205): Figma's `minWidth` reaches every instance.
   if (typeof member.minWidth === 'number') sp.minWidth = member.minWidth; else delete sp.minWidth;
+  sp._mainMin = member.minWidth;
   sp.layoutMode = member.layoutMode ?? 'VERTICAL';
   sp.itemSpacing = 4;
   const props: Record<string, { type: string; value: unknown }> = {};
@@ -1413,7 +1499,7 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   await drawDocPanel(uh, set, d, { names });
   const old = panelsOn(p)[0];
   const at = { x: Number(old.x), y: Number(old.y) };
-  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '4:'));
+  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '5:'));
   for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; delete sp.minWidth; }
   const was = walk(old).find((c) => c.name === 'specimen')!.absoluteBoundingBox!.width;
   const targets: UpdateTarget[] = [{ def: 'dialog', plans: plansOf('dialog'), doc: { def: d, names } }];
@@ -1428,6 +1514,64 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
     && !String(now.name).endsWith('(edited)') && widths.length > 0 && widths.every((w) => w === DIALOG_WIDTH) && !collapses(now).length,
     `update/redraw in place: Dialog's collapsed panel (${was}px example) is due (${due}) and one Update redraws it at (${now?.x}, ${now?.y}), examples ${[...new Set(widths)].join(', ')} wide`,
     `panels ${all.length}, live ${live.length}, at (${at.x}, ${at.y}), names ${all.map((n) => n.name).join(' | ')}; ${now ? collapses(now).slice(0, 2).join('; ') : ''}`);
+}
+
+/* ── own draw: an untouched panel is Prism3's own, whatever the components it nests became (#3303) ───────── */
+section('own draw/… — Update redraws a panel nobody touched in place, the components it nests rebuilt (#3303)');
+{
+  liveInstances = true;
+  // Tag's panel drawn by engine N; engine N+1 changes the panel's plan (due) and rebuilds the components its blocks
+  // nest. Update, as `main.ts` runs it on the strict host, replaces the panel where it was: one panel, no "(edited)".
+  const run = async (label: string, edit?: (old: N) => void, age?: (old: N) => Promise<void>) => {
+    const p = page(`↳ own ${label}`);
+    const { api, sets } = await buildAll(p, ['tag']);
+    const set = sets[0];
+    // The components the plan nests, which the shim holds off the page: here on the page, where the update finds them.
+    for (const [k, name] of [SWAP_TARGET, 'focus-ring', 'icon/check', 'icon/close'].entries()) p.appendChild!(mk('COMPONENT', name, [], { x: -4000, y: k * 40, _w: 24, _h: 24 }));
+    for (const m of set.children) members.set(String(m.id), m);
+    const panels = host([p]);
+    const uh = fixHostMethods({ ...api, root: fixHostMethods({ ...(api.root as object), findAllWithCriteria: (c: never) => labelHost(panels).root.findAllWithCriteria(c) }) }) as unknown as UpdateHost & PanelApi & FurnitureApi;
+    const d = componentDefs.find((x) => x.id === 'tag')!;
+    await drawDocPanel(uh, set, d, { names });
+    const old = panelsOn(p)[0];
+    await age?.(old);
+    const at = { x: Number(old.x), y: Number(old.y) };
+    // Engine N+1: the plan the panel was drawn from is not the one the engine draws now.
+    old.setSharedPluginData!('prism3', 'docPanelPlan', `${old.getSharedPluginData!('prism3', 'docPanelPlan')}-engine-n`);
+    const moved = edit === keepMains ? 0 : mainMoves(old);
+    if (edit !== keepMains) edit?.(old);
+    const targets: UpdateTarget[] = [{ def: 'tag', plans: plansOf('tag'), doc: { def: d, names } }];
+    const pre = await previewUpdate(uh, targets);
+    const due = pre.sets.find((x) => x.set === 'tag')?.furniture?.panels;
+    const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (s0, id) => drawDocPanel(uh, s0 as unknown as PNode, componentDefs.find((x) => x.id === id)!, { names })); };
+    await applyUpdate(uh as never, uh as never, targets, previewHashOf(pre), { furnish });
+    const all = panelsOn(p);
+    return { all, old, at, moved, due, live: all.filter((n) => tagOf(n).state === 'live'), kept: all.filter((n) => tagOf(n).state === 'kept') };
+  };
+  const a = await run('untouched');
+  ok(a.moved > 20 && a.due === 1 && a.all.length === 1 && a.live.length === 1 && a.live[0] !== a.old && a.old.removed === true
+    && Number(a.live[0].x) === a.at.x && Number(a.live[0].y) === a.at.y && !a.all.some((n) => String(n.name).endsWith('(edited)')),
+    `own draw/untouched: ${a.moved} inherited layers moved under the panel, one Update replaces it in place, no "(edited)" copy`,
+    `due ${a.due}, panels ${a.all.length} [${a.all.map((n) => n.name).join(' | ')}]`);
+  // A real hand edit is still kept, whatever it is: a line rewritten, a fill set on a nested item, a layer hidden.
+  const line = (old: N) => walk(old).find((c) => c.type === 'TEXT' && c.name === 'text' && String(c.characters).length > 20)!;
+  const b = await run('text edit', (old) => { line(old).characters = 'Our team uses tags for filters only.'; });
+  ok(b.all.length === 2 && b.live.length === 1 && b.kept.length === 1 && b.kept[0] === b.old && String(b.old.name).endsWith(' (edited)') && texts(b.old).includes('Our team uses tags for filters only.'),
+    `own draw/text edit: a rewritten line keeps the panel aside as "${b.old.name}", its edit intact`, `panels ${b.all.map((n) => n.name).join(' | ')}`);
+  const c = await run('fill edit', (old) => { walk(old).find((q) => q.type === 'INSTANCE' && /^item\d$/.test(String(q.name)))!.fills = [{ type: 'SOLID', color: { r: 1, g: 0, b: 0 } }]; });
+  ok(c.kept.length === 1 && c.kept[0] === c.old && c.live.length === 1, `own draw/fill edit: a fill set on a nested item keeps the panel aside`, `panels ${c.all.map((n) => n.name).join(' | ')}`);
+  const e = await run('hidden layer', (old) => { walk(old).find((q) => q.name === 'heading' && q._inh)!.visible = false; });
+  ok(e.kept.length === 1 && e.kept[0] === e.old && e.live.length === 1, `own draw/hidden layer: a layer hidden inside a block keeps the panel aside`, `panels ${e.all.map((n) => n.name).join(' | ')}`);
+  // THE SAFE RULE FOR A PANEL DRAWN BEFORE #3303 (its print in the second form): unchanged since, it is replaced; once a
+  // component it nests is rebuilt, the second form cannot tell that from a hand edit, so it is kept, as before.
+  const v2 = (old: N) => printV2(old).then((pr) => old.setSharedPluginData!('prism3', 'docPanelPrint', pr));
+  const f = await run('v2 unchanged', keepMains, v2);
+  ok(f.all.length === 1 && f.live.length === 1 && f.old.removed === true, `own draw/v2 unchanged: a panel printed before #3303, untouched and its components as drawn, is replaced`,
+    `panels ${f.all.map((n) => n.name).join(' | ')}`);
+  const g = await run('v2 rebuilt', undefined, v2);
+  ok(g.moved > 20 && g.all.length === 2 && g.kept.length === 1 && g.kept[0] === g.old, `own draw/v2 rebuilt: once a component it nests is rebuilt, it is kept, as before #3303 (the safe rule)`,
+    `panels ${g.all.map((n) => n.name).join(' | ')}`);
+  liveInstances = false;
 }
 
 /* ── orphan: a deleted set's panels before its def is built again ─────────────────────────────────────── */
