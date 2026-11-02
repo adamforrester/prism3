@@ -129,6 +129,12 @@
  * and the gate's `shards.ids` in `verify.ts`. `shardMapProblems` (in `verify.ts`, beside the list it checks) holds
  * the two to each other and to the shard map, so a shard dropped from or doubled in either fails here by name.
  *
+ * ARM 9 — A TIME LIMIT ON EVERY STEP THAT CAN HANG (#3044). A CI run sat 74 minutes in the chrome suite's
+ * `Shape (S7)` with no output, and its step had no `timeout-minutes`, so it would have held the job for GitHub's six
+ * hours. `STEP_TIME_LIMITS` is a literal register of the steps that must carry one, read from the parsed tree
+ * (`parseYamlSubset`), so a limit dropped from `ci.yml` fails here by name. The register is authored here and never
+ * derived from `ci.yml`, or a step that lost its limit would leave the register with it (`docs/34` shape 1).
+ *
  * WHY IMPORTING `verify.ts` IS SAFE: it runs its gates only under a main-module guard, so importing
  * `GATES` costs nothing. It does run its own self-checks at import time, which is deliberate — this
  * gate then fails if the runner's checks are broken, rather than reporting on a list produced by a
@@ -473,6 +479,28 @@ export const aggregatorGaps = (tree: YamlValue): string[] => {
   }
   if (!(agg.steps ?? []).some((st) => typeof st.run === 'string' && st.run.trim() === `bash ${AGGREGATOR_SCRIPT}`)) {
     problems.push(`\`${AGGREGATOR_JOB}\` does not run \`bash ${AGGREGATOR_SCRIPT}\`, the step that fails on any result but \`success\``);
+  }
+  return problems;
+};
+
+/** ARM 9 (#3044): the steps that must carry a `timeout-minutes`, by job and `- name:`, typed here. The chrome suite's
+ *  step: its healthy shard runs peak at 651 s (120 runs on main and PRs, measured 2026-11-02), and `ci.yml` gives it 30
+ *  minutes, 2.8x that, the margin `verify.ts` point 5 gives its own limits. */
+export const STEP_TIME_LIMITS: readonly { job: string; step: string }[] = [
+  { job: 'chrome', step: 'New shell chrome suite (UI redesign S1.2)' },
+];
+/** What is wrong with each registered step's time limit in a parsed workflow: the job or step missing, or no positive
+ *  whole-minute `timeout-minutes` on the step. Empty when every one is sound. */
+export const stepTimeoutGaps = (tree: YamlValue, required: readonly { job: string; step: string }[]): string[] => {
+  const jobs = (tree as { jobs?: Record<string, { steps?: Record<string, YamlValue>[] }> }).jobs ?? {};
+  const problems: string[] = [];
+  for (const { job, step } of required) {
+    const j = jobs[job];
+    if (!j) { problems.push(`no \`${job}\` job, so "${step}" could not be checked for its time limit`); continue; }
+    const st = (j.steps ?? []).find((x) => x.name === step);
+    if (!st) { problems.push(`\`${job}\` has no step "${step}", so its time limit could not be checked`); continue; }
+    const t = st['timeout-minutes'];
+    if (!/^[1-9]\d*$/.test(String(t ?? ''))) problems.push(`"${step}" (\`${job}\`) has no \`timeout-minutes\` (${t === undefined ? 'none' : JSON.stringify(t)}), so a hang holds the job for GitHub's six-hour default`);
   }
   return problems;
 };
@@ -1119,6 +1147,25 @@ if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: ha
   if (!gaps(AGG.replace('  gates:', '  other:')).some((p) => p.startsWith(`no \`${AGGREGATOR_JOB}\` job`))) selfFails.push('the aggregator check misses a workflow with no `gates` job');
 }
 
+// 6b. ARM 9 — a step with its limit is clean; the limit dropped, zero, or the step renamed is named.
+{
+  const T = `
+jobs:
+  chrome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sample suite
+        timeout-minutes: 30
+        run: npm test
+`;
+  const R = [{ job: 'chrome', step: 'Sample suite' }];
+  const gaps = (yaml: string): string[] => stepTimeoutGaps(parseYamlSubset(yaml), R);
+  if (gaps(T).length) selfFails.push(`arm 9 flags a step that has its time limit: ${gaps(T).join('; ')}`);
+  if (!gaps(T.replace(/ {8}timeout-minutes: 30\n/, '')).some((p) => p.includes('has no `timeout-minutes`'))) selfFails.push('arm 9 misses a step whose `timeout-minutes` was dropped (it cannot fail)');
+  if (!gaps(T.replace('timeout-minutes: 30', 'timeout-minutes: 0')).some((p) => p.includes('has no `timeout-minutes`'))) selfFails.push('arm 9 accepts `timeout-minutes: 0`');
+  if (!gaps(T.replace('Sample suite', 'Renamed suite')).some((p) => p.includes('has no step "Sample suite"'))) selfFails.push('arm 9 misses a registered step that is no longer there');
+}
+
 // 7. ARM 6 — a retired gate's token is found in a place, and a place without it is clean.
 {
   const R = [{ token: 'audit:Sample', retired: 'the sample audit' }];
@@ -1202,6 +1249,18 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
     for (const p of problems) console.error(`    ${p}`);
     console.error(`\n  The merge rule reads ONE check, \`${AGGREGATOR_JOB}\`. A job it does not wait on, or waits on without`);
     console.error('  `if: always()`, can go red while that check reads green. Fix the `gates` job in ci.yml.');
+    process.exit(1);
+  }
+}
+// ARM 9 (#3044), on the real file: every registered step carries its time limit.
+{
+  const problems = stepTimeoutGaps(ciTree, STEP_TIME_LIMITS);
+  console.log(`    time limits: ${STEP_TIME_LIMITS.length} step(s) checked for \`timeout-minutes\``);
+  if (problems.length) {
+    console.error(`\n❌ ${problems.length} step(s) that can hang have no time limit (#3044):\n`);
+    for (const p of problems) console.error(`    ${p}`);
+    console.error('\n  A step that hangs without one holds its job for six hours, and its log cannot be read until it ends.');
+    console.error('  Give the step a `timeout-minutes` above its slowest healthy run, or retire its row in STEP_TIME_LIMITS.');
     process.exit(1);
   }
 }
