@@ -1,0 +1,7 @@
+## (2026-11-01) — The action-anchor note names a pinned step, not the auto step (#1894)
+
+When `actionPalette` names a brand color, `brandTheme` wrote the action-anchor note from a local `actionAnchorStep` that is always the brand color's auto-placed step, so `input.actionAnchorStep` never reached it. With a pin of 300 the note said "step 450 … moved only if it misses 3:1", while `modes.ts` applied 300 exactly (`restFill`, `exact`, #331) and never moves a pin. The note now branches on the pin: pinned, it names the pinned step and says it is applied exactly, with the miss reported rather than corrected; unpinned, it keeps the approved row-45 wording byte for byte.
+
+The new pinned wording is a DRAFT for the owner (Q-block on the PR). `test.ts` holds both cases as literals; reverting the branch fails `#1894: a pinned actionAnchorStep is reported as the pinned step…` by name. No corpus brand pins a brand-color action step (the one example with a pin, `nb-redesign`, uses `actionPalette: neutral`, which writes no anchor note), so `regen --check` is clean and the bump is a patch.
+
+**Trap:** `theme.ts` keeps a LOCAL `actionAnchorStep` (the auto step, fed to `roleAnchorStep.action`) beside `input.actionAnchorStep` (the pin, passed through as `theme.actionAnchorStep`). The two share a name; the note has to read the input. The same shape exists for `linkAnchorStep`, which has no pin lever, so it is not affected.

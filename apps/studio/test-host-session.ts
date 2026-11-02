@@ -326,7 +326,7 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 // The main thread refuses a second write of an operation while one is running. The refusal settles no run and
 // fills no verdict slot: the running write's verdict is still coming.
 {
-  const BUSY = 'Apply Theme is already running. Try again when it finishes.';
+  const BUSY = 'Update file is already running. Try again when it finishes.';
   const agentRun = step(init, { kind: 'agent-started', id: 'a1', cmd: 'apply-theme' }).next;
   const ownPending: HostSession = { ...agentRun, applyState: 'pending' };
   // The panel's request, raced behind an agent's run: its own `pending` gets no verdict, so it is cleared.
@@ -347,10 +347,10 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(again.next.refused?.n === 2 && same(again.topics, ['host']), 'refused: a second identical refusal still counts as a change');
   // A build's page row moves too when its pending is cleared.
   const buildRun = step(init, { kind: 'agent-started', id: 'b1', cmd: 'build-components' }).next;
-  const build = step({ ...buildRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'Build set is already running. Try again when it finishes.' });
+  const build = step({ ...buildRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'Update file is already running. Try again when it finishes.' });
   ok(build.next.componentState === null && same(build.topics, ['host', 'host:components']), 'refused: a cleared build pending also invalidates its page row');
   const prune = step({ ...step(init, { kind: 'agent-started', id: 'p1', cmd: 'prune' }).next, pruneBusy: 'delete' },
-    { kind: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Prune stale is already running. Try again when it finishes.' });
+    { kind: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Update file is already running. Try again when it finishes.' });
   ok(prune.next.pruneBusy === false, 'refused: a declined delete behind an agent\'s prune clears the panel\'s delete');
   const unknown = step(init, { kind: 'refused', code: 'busy', cmd: 'readback', agent: true, message: 'x' });
   ok(unknown.next === init && unknown.topics.length === 0, 'refused: a command with no write operation changes nothing');
