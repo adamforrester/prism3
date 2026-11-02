@@ -30,5 +30,15 @@ way.
   `format due/main`, `format due/no format`, `format due/older`.
 - `panelFormatOf` giving no entry its format → `format due/build`, `format due/main`.
 
+**After review.**
+- `main.ts`'s own apply record is now under test. `test-build-completed.ts` `format due/recorded by main` runs an update
+  through the real `main.ts` over Badge's entry with no format. It reads due for its panel before, and current after
+  with format 6 recorded. Mutation: the apply's record giving `panel: undefined` → `format due/recorded by main`.
+- "Due forever" for a panel whose draw is still blocked doesn't happen. The check offers no panel while it's blocked,
+  but it doesn't block the set either. Update file's apply runs on every ticked set the check didn't block
+  (`updatableOf`), and `main.ts` records the format whether or not a panel was drawn. So the set is offered once and
+  then reads current. `test-doc-panel.ts` `format due/blocked` covers it. Mutation: the check blocking a set whose panel
+  draw is blocked → `format due/blocked`.
+
 **Owed.** Real-Figma confirmation: after an Update in the template, Dialog's panel is offered and redrawn, and its
 specimen reads FIXED at 560 with `minWidth` 560.

@@ -96,6 +96,8 @@
  *                   runs it redraws the panel in place, each specimen FIXED at 560 with `minWidth` 560; the apply's
  *                   record then reads current. A panel edited by hand is kept (#3317). Mutation: the format-due credit
  *                   dropped from `dueOf` → `format due/offered`, `format due/redrawn`, `format due/edited kept`.
+ *                   `format due/blocked` (#3349 review): a panel whose draw is still blocked is offered once and
+ *                   recorded, never "due forever". Mutation: the check blocking such a set → `format due/blocked`.
  *   legend/…        (#3265, owner decisions Q3265.1 A and Q3265.2 A) the anatomy legends of Code input, Pagination, Tabs
  *                   and Breadcrumbs, typed by hand from their defs: "Cell 4" for one instance, "Cells 1–6" for a run of
  *                   neighbors alike on the specimen, each run captioned by its parts' shared note or else the nested
@@ -1594,7 +1596,7 @@ section('format due/… — Update file offers and redraws a panel drawn by an o
   // The template file after #3318 (2026-11-02): Dialog's set up to date, its ledger entry written before entries carried
   // a panel format, its panel drawn by format 5 with every specimen collapsed. Update file's own path, on the strict host:
   // the ledger read decides which sets are due, the scoped check reads only those, and the apply acts on what it read.
-  const run = async (label: string, edit?: (old: N) => void) => {
+  const run = async (label: string, edit?: (old: N) => void, block = false) => {
     const p = page(`↳ format due ${label}`);
     const { api, sets } = await buildAll(p, ['button', 'button-group', 'divider', 'flush-icon-button-neutral', 'dialog']);
     const set = sets[sets.length - 1];
@@ -1611,6 +1613,14 @@ section('format due/… — Update file offers and redraws a panel drawn by an o
     for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; delete sp.minWidth; }
     const was = walk(old).find((c) => c.name === 'specimen')!.absoluteBoundingBox!.width;
     edit?.(old);
+    // #3349 review: a panel whose last draw was BLOCKED. A layer sits where the panel goes, so the redraw that tried to
+    // replace the format-5 panel was refused: no panel on the page, the blocked record written (`writeBlocked`).
+    if (block) {
+      p.appendChild!(mk('FRAME', 'Notes', [], { x: at.x, y: at.y, _w: 400, _h: 200 }));
+      old.remove!();
+      const rb = await drawDocPanel(uh, set, d, { names });
+      if (rb.drawn || !String(p.getSharedPluginData!('prism3', 'docPanelBlocked'))) throw new Error(`premise: the blocked draw was not refused (${rb.skipped.join('; ')})`);
+    }
     // The file's ledger: Dialog's entry as the plugin wrote it before #3205's fix, its set's def and engine today's.
     const data = new Map<string, string>();
     const file = { getPluginData: (k: string) => data.get(k) ?? '', setPluginData: (k: string, v: string) => { data.set(k, v); } };
@@ -1626,16 +1636,19 @@ section('format due/… — Update file offers and redraws a panel drawn by an o
     const checked = pre.sets.map((x, i) => checkedSetOf(x, targets[i].def));
     const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (s0, id) => drawDocPanel(uh, s0 as unknown as PNode, componentDefs.find((x) => x.id === id)!, { names })); };
     // The apply runs on the sets the check read and did not block (`updatableOf`); none, and Update file runs no apply.
+    let outcomes: { def: string; refused: boolean }[] = [];
     if (checked.some((c) => !c.blocked)) {
       const r = await applyUpdate(uh as never, uh as never, targets, previewHashOf(pre), { furnish });
+      outcomes = r.outcomes.map((o) => ({ def: o.def, refused: !!o.refused }));
       // And records each set it acted on with today's entry, as `main.ts` does.
       recordSets(file, Object.fromEntries(r.outcomes.filter((o) => !o.refused).map((o) => [o.def, now(o.def)!])));
     }
     const after = dueOf(readLedger(file), ['dialog'], now);
+    const blockedRec = String(p.getSharedPluginData!('prism3', 'docPanelBlocked'));
     const all = panelsOn(p);
     const live = all.filter((n) => tagOf(n).state === 'live');
     const specs = live[0] ? walk(live[0]).filter((c) => c.name === 'specimen') : [];
-    return { read, checked, due: pre.sets[0]?.furniture?.panels, all, live, kept: all.filter((n) => tagOf(n).state === 'kept'), old, at, was, specs, after };
+    return { read, checked, due: pre.sets[0]?.furniture?.panels, all, live, kept: all.filter((n) => tagOf(n).state === 'kept'), old, at, was, specs, after, outcomes, blockedRec };
   };
   const a = await run('untouched');
   ok(a.was < DIALOG_WIDTH / 2 && JSON.stringify(a.read.dialog) === '{"state":"due","reason":"panel"}'
@@ -1655,6 +1668,20 @@ section('format due/… — Update file offers and redraws a panel drawn by an o
     && String(b.old.name).endsWith(' (edited)') && texts(b.old).includes('Our dialogs always confirm before deleting.'),
     `format due/edited kept: a hand-edited panel at format 5 is offered, and the apply keeps it as "${b.old.name}", its edit intact`,
     `read ${JSON.stringify(b.read)}, panels ${b.all.map((n) => n.name).join(' | ')}`);
+  // #3349 review, "due forever": a lead set with no recorded format whose last panel draw was blocked, the blocker still
+  // there. The ledger read lists it due for its panel, and the check finds no panel to draw (`docPanelDue` is 0 while
+  // blocked), so it offers no panel, and the set is not blocked. Update file's apply runs on every ticked set the check did not
+  // block (`updatableOf`), so it acts on this one, and `main.ts` records it with today's format (`test-build-completed.ts`,
+  // `format due/recorded by main`). The next read is current: offered once, never again while the blocker stays.
+  // Mutation: the check blocking a set whose panel draw is blocked (a blocker pushed to `preview.blockers`), so Update
+  // file runs no apply on it and it reads due on every check → `format due/blocked`.
+  const c = await run('blocked', undefined, true);
+  const again = Object.keys(c.after).filter((id) => c.after[id].state === 'due');
+  ok(JSON.stringify(c.read.dialog) === '{"state":"due","reason":"panel"}' && c.checked.length === 1 && c.checked[0].blocked === false
+    && !c.due && c.all.length === 0 && c.blockedRec !== '' && JSON.stringify(c.outcomes) === '[{"def":"dialog","refused":false}]'
+    && JSON.stringify(c.after.dialog) === '{"state":"current"}' && again.length === 0,
+    `format due/blocked: a lead set whose panel draw is still blocked is offered once, the apply acts on it without drawing, and the next read is current, so it is not offered again`,
+    `read ${JSON.stringify(c.read)}, checked ${JSON.stringify(c.checked)}, panels ${c.due}, on page ${c.all.length}, outcomes ${JSON.stringify(c.outcomes)}, after ${JSON.stringify(c.after)}`);
 }
 
 /* ── orphan: a deleted set's panels before its def is built again ─────────────────────────────────────── */
