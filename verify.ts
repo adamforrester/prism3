@@ -1208,6 +1208,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-ecosystem.ts'),
   },
   {
+    // #3264 — reads docs/public/guides/*.md, the app source and componentDefs; needs no build and no `after`:
+    // its labels are the source's string literals, not the built bundles'.
+    id: 'lint-guide-claims',
+    ciStep: 'The designer guides still describe the app (#3264)',
+    cmd: engine('lint-guide-claims.ts'),
+  },
+  {
     // #2650 — reads the COMMITTED docs/public/releases/** and git history, so it needs no `after`: the
     // fold writes the notes, and this re-derives every release's diff from the records at both folds.
     id: 'lint-release-notes',
