@@ -121,8 +121,8 @@ Two smaller traps worth inheriting rather than rediscovering:
   selector narrows/extends automatically. `Wireframe` is a generated greyscale mode (non-neutral
   roles → equivalent neutral, radius → 0); the preview reads its per-mode geometry from
   `resolvePreview`'s `dimOverrides` so corners actually square off. *New brand* starts light-only.
-- ✅ **Export** — from the menu: **design.md** (`toDesignMd`, re-imports here — the loop
-  closes) and **Design tokens** (since #2552, the consumer set: `<brand>.base.tokens.json` plus one
+- ✅ **Export** — an area of the rail (#2909; the export dialog until then): **Brand brief**, the `design.md`
+  (`toDesignMd`, re-imports here — the loop closes), and **Design tokens** (since #2552, the consumer set: `<brand>.base.tokens.json` plus one
   `<brand>.<mode>.overlay.tokens.json` per mode, with no `$extensions`; *Include build metadata*,
   internal and off by default, keeps them). The single-file tree is never offered — its other modes
   live in `$extensions`. Both are pure engine functions; the browser just Blob-downloads them.

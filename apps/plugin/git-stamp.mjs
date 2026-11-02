@@ -77,6 +77,21 @@ export const behindStamp = (run) => {
 };
 
 /**
+ * THE BEHIND CHECK, AS THE BUILD RUNS IT (#3261): `behindStamp`, except where it cannot help.
+ *
+ *   · The stamp's commit field is `NO_GIT`: git could not run, and the warning pair already said so. A fetch fails for
+ *     the same reason, so it would only add a second note, and where git hangs it would add the fetch's 20 s timeout.
+ *   · `--watch`: a watcher is a working loop, and the fetch would block it for up to 20 s after `watching …`. Only a
+ *     build that runs once and exits fetches.
+ *
+ * `buildId` is the stamp the build wrote (`composeBuildId`); its last field is the commit field.
+ */
+export const behindCheck = (buildId, { watch = false } = {}, run) => {
+  if (watch || String(buildId).split(' ').pop() === NO_GIT) return { behind: null, warnings: [] };
+  return behindStamp(run);
+};
+
+/**
  * The whole stamp, `<ISO seconds> <tree token> <commit field>`, as `build.mjs` writes it into both bundles. Here
  * rather than inline in `build.mjs` so the test drives the real composition with a stubbed git, and a stamp that
  * drops the commit fails `stamp/commit` by name. `warn` receives each line the build prints.

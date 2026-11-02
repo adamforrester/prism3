@@ -946,6 +946,7 @@ export const applyUpdate = async (
 
 // ---- the words (approved, Q114 A; #2265 §8) -----------------------------------------------------------------
 
+// A count's verb and pronoun agree with it too (#3243): "1 field still differs", "1 left as it is".
 const n = (k: number, one: string, many = `${one}s`): string => `${k} ${k === 1 ? one : many}`;
 
 /** The plain word for each field a plan binds (`anatomy-figma.ts`, `bound.<field>`), so a kept hand edit is named in
@@ -1043,7 +1044,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
       // The owner's wording (2026-10-09).
       o.earlierRecord?.length ? `${o.earlierRecord.length} of them recorded by an earlier plugin version` : '',
-      o.skipped.length ? `${o.skipped.length} left as they are` : '',
+      o.skipped.length ? `${o.skipped.length} left as ${o.skipped.length === 1 ? 'it is' : 'they are'}` : '',
     ].filter(Boolean);
     // A set the apply entered with nothing to write reads as its dry run read it (Q205 A): never "already up to date"
     // for a set the dry run doesn't call up to date (one Adopt could claim a member of, #2495).
@@ -1051,7 +1052,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     // DRAFT wording for the owner (#2649): the placed instances whose rows became slot items.
     if (o.carried) lines.push(`${o.set}: ${n(o.carried.instances, 'instance')} carried into the slot, ${n(o.carried.items, 'item')} in all.${o.carried.limits.length ? ` Outside the slot's limits: ${o.carried.limits.join('; ')}.` : ''}`);
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
-    if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still differ from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
+    if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still ${o.content.length === 1 ? 'differs' : 'differ'} from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
     // DRAFT wording for the owner (#2477, the issue's option A): a member written but not finished, by name.
     const { members, others } = unfinishedOf(o);
     if (members.length) {
