@@ -42,5 +42,6 @@ being `--p3-ctl-h-xs`, the menu overlaps it or floats off it; the arm's "hangs b
 
 ### Not covered
 
-Only the Inspect menu. The Theme menu in the bar was not measured at 380. #3294 also edits `.p3-menu-privacy`; these
-rules compose with its wrap rule.
+The arm holds only the Inspect menu. The Theme menu was measured once by hand at 380 (Brand, Preview pane) and fits on
+both hosts: 50.5 to 304.5 on the web, 50.5 to 206.5 in the plugin. #3294 also edits `.p3-menu-privacy`; these rules
+compose with its wrap rule.
