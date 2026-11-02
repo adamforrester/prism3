@@ -1350,7 +1350,6 @@ npx tsx packages/engine/lint-fill-under-hug.ts      # no projected member stretc
                                                     # subject is the plans the executors build from.
                                                     # Its height twins (#3014) pass only the fills
                                                     # MEASURED_SAFE names as measured on a real file.
-                                                    # NOT checked: the height twins (unmeasured).
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
