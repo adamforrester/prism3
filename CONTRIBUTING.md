@@ -1159,7 +1159,12 @@ npx tsx packages/engine/lint-mark-colors.ts         # a provider logo is NEVER R
                                                     # and (d) no host pushes descendantFills, a paint or a
                                                     # paint variable into a provider-logo/* instance, and each
                                                     # states fixedPaint; the hosts are listed by hand, both
-                                                    # ways (the Card number field is the first).
+                                                    # ways (the Card number field is the first). And (i),
+                                                    # #3066: every mark file and emitted document paints
+                                                    # its list in schema/mark-paints.json, seeded from the
+                                                    # owner's drop (3675273d), not from the record; only
+                                                    # `--accept --decision <ref>` rewrites it, stamping the
+                                                    # ref. `--seed-check` re-reads the seed (local only).
 npx tsx packages/engine/lint-mark-slots.ts          # a PAYMENT-TILE SLOT takes card networks only (#2343
                                                     # PR 4, Q-C7 A). The tiles are read from the marks
                                                     # folder by the gate's own viewBox reader (32x20); the

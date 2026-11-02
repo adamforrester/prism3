@@ -270,6 +270,8 @@ export const FIELDS: Record<string, FieldCheck> = {
   layoutMode: { check: (p, n) => (n.layoutMode === p ? null : str(n.layoutMode)) },
   primaryAxisAlignItems: { check: (p, n) => (n.primaryAxisAlignItems === p ? null : str(n.primaryAxisAlignItems)) },
   counterAxisAlignItems: { check: (p, n) => (n.counterAxisAlignItems === p ? null : str(n.counterAxisAlignItems)) },
+  // #3225 — a row that wraps (`LayoutDef.wrap`), carried only where the plan states it.
+  layoutWrap: { check: (p, n) => (n.layoutWrap === p ? null : str(n.layoutWrap)) },
   primaryAxisSizingMode: { check: (p, n, _ports, _isRoot, plan, parent) => (n.primaryAxisSizingMode === p || stretchedMode('primaryAxisSizingMode', p, n, plan, parent) ? null : str(n.primaryAxisSizingMode)) },
   counterAxisSizingMode: { check: (p, n, _ports, _isRoot, plan, parent) => (n.counterAxisSizingMode === p || stretchedMode('counterAxisSizingMode', p, n, plan, parent) ? null : str(n.counterAxisSizingMode)) },
   // #1567 — A CHARACTERS-BOUND NODE HOLDS THE SET'S ONE DEFAULT, NOT ITS OWN COPY, so that is what it is

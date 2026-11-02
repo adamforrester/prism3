@@ -279,6 +279,12 @@ const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
  * asserting something untrue about the def it names.
  */
 const PROVENANCE_EXCEPTIONS: Record<string, string> = {
+  // Banner (#3225, owner Q-BN3.1 A): the neutral tone has no `neutral` color family to draw from. Its surface is the
+  // page's secondary ground and its edge the neutral edge contracted at the non-text bar on every ground.
+  'banner|neutral.fill':
+    'tone `neutral` maps to the page\'s secondary ground, `color.background.secondary`: a message with no status sits on a neutral surface, not a status tint, and the token tier has no neutral-subtle role',
+  'banner|neutral.border':
+    'tone `neutral` maps to `color.border.tertiary`, the neutral edge contracted at the non-text bar on every ground (#2569, #1745); the token tier has no border.neutral role',
   // Toast (#2668, call 9 A): the inverse tier puts `inverse` before the family, so the intent sits one segment later.
   'toast|success.icon':
     'the inverse tier inserts `inverse` before the family: `color.inverse.icon.success` is the success glyph ink on the inverse surface, and `success` is its fourth segment, not its third',

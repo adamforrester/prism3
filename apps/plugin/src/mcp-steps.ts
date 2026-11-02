@@ -44,6 +44,8 @@ import type { ThemeHost } from './theme-ports';
 import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
 import type { BrandInput } from '@prism3/engine/theme';
 import { facade } from './host-facade';
+import { writeSetReactions } from './reactions';
+import type { ReactionNode } from './reactions';
 
 /* ── transport ─────────────────────────────────────────────────────────────────────────────────────── */
 
@@ -83,6 +85,29 @@ export const unpack = (v: unknown): unknown => {
   }
   return v;
 };
+
+/**
+ * MEMBER NAMES, COLUMNAR (#2564) — a lossless transport encoding for one set's planned member names, which a set's
+ * reactions script carries so the runtime can plan its reactions (`runComponentReactions`). Plain JSON is too
+ * big: the button family's 576 names are 68KB against a 45,000-character script. Every name is `axis=value, …` with
+ * the same axes in the same order, so a name is one index per axis into that axis's values. `packNames` REFUSES a
+ * list that is not that shape, rather than encoding it lossily; the round trip is asserted in `test-paste-reactions.ts`.
+ */
+export type PackedNames = { axes: string[]; values: string[][]; rows: number[][] };
+export const packNames = (names: readonly string[]): PackedNames => {
+  const split = names.map((n) => n.split(', ').map((kv) => { const i = kv.indexOf('='); return [kv.slice(0, i), kv.slice(i + 1)] as const; }));
+  const axes = (split[0] ?? []).map(([a]) => a);
+  const values: string[][] = axes.map(() => []);
+  const rows = split.map((pairs, r) => {
+    if (pairs.length !== axes.length || pairs.some(([a], i) => a !== axes[i])) throw new Error(`packNames: '${names[r]}' does not have the axes ${axes.join(', ')} in that order`);
+    return pairs.map(([, v], i) => { let x = values[i].indexOf(v); if (x < 0) x = values[i].push(v) - 1; return x; });
+  });
+  const back = unpackNames({ axes, values, rows });
+  if (back.some((n, r) => n !== names[r])) throw new Error('packNames: the encoding does not round-trip');
+  return { axes, values, rows };
+};
+export const unpackNames = (p: PackedNames): string[] =>
+  p.rows.map((row) => row.map((x, i) => p.axes[i] + '=' + p.values[i][x]).join(', '));
 
 /* ── shared plugin data: live, or the ledger fallback ──────────────────────────────────────────────── */
 
@@ -536,6 +561,47 @@ export const runComponentChunk = async (raw: unknown, payloads: Payload[]): Prom
     const out = await payloads[0](componentFigma(figma, notes));
     r.result = out;
     r.misses = (out.misses as string[] | undefined) ?? [];
+  } catch (e) {
+    r.threw = (e as Error)?.message ?? String(e);
+  }
+  r.host = notes;
+  r.ok = !r.threw && !(r.misses?.length);
+  return r;
+};
+
+/**
+ * INTERACTIVE COMPONENTS (#2466, owner decision Q238 A; this path since #2564) — one set's prototype reactions, by the
+ * plugin's own pass (`writeSetReactions`), from its planned member names. Its own script, run right after the set's
+ * LAST chunk: a reaction names its destination by node id, so it cannot be written before every sibling exists, and a
+ * step of its own keeps `reactions.ts` and the names out of every chunk script's budget. A member that already has
+ * reactions is left alone, so a re-run writes nothing and a designer's edit survives a re-paste. Unrecorded, like
+ * everything on a paste build.
+ */
+export const runComponentReactions = async (raw: unknown): Promise<StepReport> => {
+  const d = unpack(raw) as StepBase & { def: string; set: string; names: PackedNames; pressTo?: string };
+  const notes: { loadAllPages?: string; pageLoadFailures?: string[] } = {};
+  const r = base(d, 'component-reactions', { mode: 'live' }, null);
+  delete (r as Partial<StepReport>).shared;
+  r.def = d.def;
+  try {
+    r.page = await placeOnPage(d.def, notes);
+    // `findOne`, the lookup the engine's chunk payload finds the set with: the whole page, so a set a designer moved
+    // into a section or frame is found here too, and is the same set the chunks added members to.
+    const set = figma.currentPage.findOne((n) => n.type === 'COMPONENT_SET' && n.name === d.set) as ComponentSetNode | null;
+    if (!set) r.misses = [`${d.set}.reactions -> NOT WRITTEN (the set is not on ${r.page})`];
+    else {
+      const names = unpackNames(d.names);
+      const members = set.children as unknown as ReactionNode[];
+      const have = new Set(members.map((m) => String(m.name)));
+      // A planned member the set does not hold (its chunk threw, or an older set has other axes) is a miss: a step that
+      // wrote nothing for it must not read as ok.
+      const absent = names.filter((n) => !have.has(n)).map((n) => `${n}.reactions -> NOT WRITTEN (${n} is not in the set)`);
+      // A member that already carries reactions is left as it is (owner Q on #3287, the conservative option built): the
+      // paste writes no as-built record, so it cannot tell a designer's edit from anything else, and the chunks leave a
+      // member already in the set alone for the same reason. A fresh member has none, and gets the plan's.
+      const hasAny = (name: string) => { const m = members.find((x) => String(x.name) === name); try { return ((m?.reactions ?? []) as unknown[]).length > 0; } catch { return false; } };
+      r.misses = [...absent, ...await writeSetReactions(() => members, names, d.pressTo, { keep: hasAny })];
+    }
   } catch (e) {
     r.threw = (e as Error)?.message ?? String(e);
   }

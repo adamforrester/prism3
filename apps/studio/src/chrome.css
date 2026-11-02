@@ -667,8 +667,9 @@
 .p3-op-body { display: grid; gap: var(--p3-space-100); padding: 0 var(--p3-space-150) var(--p3-space-150); }
 .p3-op-body[hidden] { display: none; }
 /* A run's details, one line per item, console-style (#2177): the chrome's mono font, each line its own block, a long
-   one wrapping inside the drawer rather than widening it. */
-.p3-op-summary { margin: 0; padding: 0; list-style: none; font-family: var(--p3-font-mono); overflow-wrap: anywhere; }
+   one wrapping inside the drawer rather than widening it. #3305 (the owner): the drawer's mono text (these lines, the
+   publish description, the status counter) is set at 10px; its UI-face text stays at the drawer's 12. */
+.p3-op-summary { margin: 0; padding: 0; list-style: none; font-family: var(--p3-font-mono); font-size: var(--p3-fs-10); overflow-wrap: anywhere; }
 .p3-op-line { margin: 0; }
 /* Q3113.5 A: a bad result's first line, its reason, in the UI face at the emphasis weight; the rest stays mono. */
 .p3-op-reason { margin: 0; font-weight: var(--p3-fw-emphasis); overflow-wrap: anywhere; }
@@ -678,7 +679,7 @@
 /* An Update's library publish description and its Copy button (#2858). */
 .p3-op-publish { display: grid; gap: var(--p3-space-050); }
 .p3-op-publish-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-100); }
-.p3-op-publish-text { margin: 0; padding: var(--p3-space-100); border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-md); font-family: var(--p3-font-mono); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.p3-op-publish-text { margin: 0; padding: var(--p3-space-100); border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-md); font-family: var(--p3-font-mono); font-size: var(--p3-fs-10); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
 .p3-op-phase { display: grid; gap: var(--p3-space-050); }
 .p3-op-prog { display: block; appearance: none; width: 100%; height: var(--p3-space-050); border: none; border-radius: var(--p3-radius-pill); background: var(--p3-line-1); overflow: hidden; }
 .p3-op-prog::-webkit-progress-bar { background: var(--p3-line-1); }
@@ -694,7 +695,7 @@
 .p3-status-top > [hidden], .p3-status-sub > [hidden], .p3-status-prog[hidden] { display: none; }
 .p3-status-what { flex: 1 1 auto; min-width: 0; font-weight: var(--p3-fw-strong); overflow-wrap: anywhere; }
 .p3-status[data-tone="bad"] .p3-status-what { color: var(--p3-bad-text); }
-.p3-status-n { flex: none; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p3-status-n { flex: none; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-10); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .p3-status-sub { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); color: var(--p3-text-2); }
 .p3-status-sub:not(:has(> :not([hidden]))) { display: none; }
 .p3-status-line { flex: 1 1 auto; min-width: 0; }
