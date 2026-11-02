@@ -80,7 +80,12 @@
  *                   `collapse/dialog` and every `collapse/<def>` built at a width, `collapse/hug read`, `update/redraw
  *                   in place`; the def's width ignored (the member's reported sizing alone) → `collapse/hug read`;
  *                   `PANEL_FORMAT` not raised → `update/redraw in place`; the specimen's `minWidth` never set →
- *                   `collapse/after reset`.
+ *                   `collapse/after reset`. THE HOST'S RESET (#3205 follow-up, `hostReset`): a tree appended or moved
+ *                   drops each nested instance's size overrides and freezes it FIXED at what it hugs, as the template
+ *                   showed Dialog's specimen after #3211 (FIXED, 62px). Mutation: the specimens not sized again once
+ *                   the panel is on the page → `collapse/dialog` and every `collapse/<def>` built at a width,
+ *                   `collapse/hug read`, `collapse/after reset`, `update/redraw in place`, `width/banner`,
+ *                   `width/checkbox-row`.
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -200,8 +205,8 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
       return { x: at.x + x, y: at.y + y, width: self.width!, height: self.height! };
     },
     resize(w: number, h: number) { (n as N)._w = w; (n as N)._h = h; },
-    appendChild(c: N) { detach(c); c.parent = n; n.children.push(c); },
-    insertChild(i: number, c: N) { detach(c); c.parent = n; n.children.splice(i, 0, c); },
+    appendChild(c: N) { detach(c); c.parent = n; n.children.push(c); hostReset(c); },
+    insertChild(i: number, c: N) { detach(c); c.parent = n; n.children.splice(i, 0, c); hostReset(c); },
     remove() { detach(n); n.removed = true; },
     getSharedPluginData: (ns: string, k: string) => data.get(`${ns}/${k}`) ?? '',
     setSharedPluginData: (ns: string, k: string, v: string) => { data.set(`${ns}/${k}`, v); },
@@ -219,6 +224,27 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
   }
   return n;
 };
+/**
+ * THE HOST DROPS A NESTED INSTANCE'S SIZE WHEN ITS TREE MOVES (#3205 follow-up, after #3211). In the template after one
+ * Update, Dialog's specimen read `layoutSizingHorizontal: FIXED` at 62px inside a 687px stage: the width and floor the
+ * draw set were gone, and the instance was fixed at the width it hugs (#3265's re-scan, 2026-11-02). Modeled so: when a
+ * tree is appended or moved to a new parent, each instance inside another instance in it (a block's specimen) loses
+ * its size overrides. Its floor goes back to its main's, and it is frozen FIXED at what it hugs. A specimen sized
+ * before its panel lands on the page is lost; one sized after it keeps its width. That is the trigger this host
+ * assumes. Real-Figma confirmation is owed, and the agent link's check reads it.
+ */
+function hostReset(root: N): void {
+  for (const q of walk(root)) {
+    if (q.type !== 'INSTANCE' || q.swapped === undefined) continue;
+    let up = q.parent as N | undefined, nested = false;
+    for (; up; up = up.parent as N | undefined) if (up.type === 'INSTANCE') { nested = true; break; }
+    if (!nested) continue;
+    if (typeof q._mainMin === 'number') q.minWidth = q._mainMin; else delete q.minWidth;
+    q.layoutSizingHorizontal = 'HUG';
+    q._w = q.width;
+    q.layoutSizingHorizontal = 'FIXED';
+  }
+}
 /** A node's width before its floor: the host's own layout, written here, never read off the panel. */
 function rawWidth(self: N): number {
   if (self.type === 'TEXT' && self.textAutoResize === 'WIDTH_AND_HEIGHT') return runWidth(String(self.characters ?? ''), typeof self.fontSize === 'number' ? self.fontSize : 14);
@@ -406,6 +432,7 @@ const instanceOf = (sp: N, member: N): void => {
   sp._w = member.width;
   // An instance inherits its main's floor (#3205): Figma's `minWidth` reaches every instance.
   if (typeof member.minWidth === 'number') sp.minWidth = member.minWidth; else delete sp.minWidth;
+  sp._mainMin = member.minWidth;
   sp.layoutMode = member.layoutMode ?? 'VERTICAL';
   sp.itemSpacing = 4;
   const props: Record<string, { type: string; value: unknown }> = {};
@@ -1356,7 +1383,7 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   await drawDocPanel(uh, set, d, { names });
   const old = panelsOn(p)[0];
   const at = { x: Number(old.x), y: Number(old.y) };
-  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '4:'));
+  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '5:'));
   for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; delete sp.minWidth; }
   const was = walk(old).find((c) => c.name === 'specimen')!.absoluteBoundingBox!.width;
   const targets: UpdateTarget[] = [{ def: 'dialog', plans: plansOf('dialog'), doc: { def: d, names } }];

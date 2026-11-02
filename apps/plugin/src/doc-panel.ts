@@ -121,8 +121,10 @@ const SIZE: DocBlockSize = 'sm';
 /** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. 2: one panel
  *  per family, and the anatomy markers with their leaders (#2927). 3: the title sizes, the space above Do and Don't, and
  *  Related as linked lists (#2970). 4: each specimen at its member's own width, the panel widening to fit (#2970 items 1
- *  and 4, #2916). 5: a specimen never under what its def declares, so Dialog's anatomy no longer collapses (#3205). */
-const PANEL_FORMAT = 5;
+ *  and 4, #2916). 5: a specimen never under what its def declares, so Dialog's anatomy no longer collapses (#3205).
+ *  6: each specimen sized again once its panel is on the page, where the host kept 5's width only until the panel
+ *  moved there (#3205 follow-up). */
+const PANEL_FORMAT = 6;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -1011,7 +1013,10 @@ export const drawDocPanel = async (
    *  its member's width, with that width as the specimen's `minWidth` too, whatever sizing the member reports, so
    *  nothing that sets the instance back to hug can collapse it; a def that declares a literal minimum (`minWidth`)
    *  gets that floor on a specimen that hugs. Any other member: fixed at its width when it is fixed, hugging when it hugs. */
+  /** Every specimen sized, with its member: sized again once the panel is on the page (`resizeSpecimens`). */
+  const sized: { i: PNode; m: PNode }[] = [];
   const sizeSpecimen = (i: PNode, m: PNode): void => {
+    if (!sized.some((x) => x.i === i)) sized.push({ i, m });
     const sp = find(i, 'specimen');
     if (!sp) return;
     const floor = exampleFloor(def, m);
@@ -1303,6 +1308,12 @@ export const drawDocPanel = async (
   parent.appendChild(panel);
   panel.x = at.x;
   panel.y = at.y;
+  // SIZED AGAIN WHERE IT LANDS (#3205 follow-up). In the template, #3211's width and floor did not survive: Dialog's
+  // specimen was FIXED at the 62px it hugs inside a 687px stage. The host drops a nested instance's size overrides
+  // when its tree moves, and the panel moves onto the page only now, after every specimen was sized. So each one is
+  // sized again here, fixed at its member's width with its floor, once nothing above it moves again. That is before the
+  // markers, which are placed from the specimens' final boxes.
+  for (const { i, m } of sized) sizeSpecimen(i, m);
   out.marked = await drawMarkers();
 
   // NOTHING UNDER IT: every other node on the parent, the set and its labels included, but the edited panels this
