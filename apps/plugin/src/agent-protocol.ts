@@ -38,10 +38,7 @@ export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot'] as const;
-/** #3147 Phase 2a: the commands that only read nodes (`agent-reads.ts`). They post no verdict: like `status`, their value
- *  is their `data`. Each writes nothing to the file, which `test-agent-link.ts` and `test-agent-bridge.ts` assert. */
-export const READ_COMMANDS = ['inspect', 'component-keys', 'audit-frames', 'snapshot'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs'] as const;
 /** #2530: the dev-only commands (`dev-commands.ts`). Named here for the TYPES only: `parseCommand` answers them
  *  `unknown-command`, and the dispatcher accepts one only in a `PRISM3_DEV &&` branch, so a release build neither
  *  lists nor runs one, and the Node-side tools that import this file see no dev code. */
@@ -77,25 +74,9 @@ export type AgentArgs = {
   /** #2830 phase 2: draw the spec panel beside each family's usage panel. No `def` means every family whose lead's set
    *  is in the file; a `def` draws that def's family. */
   'draw-specs': { def?: string };
-  /** #3147 Phase 2a. Writes nothing. Each listed node and its descendants to `depth` (0 to 3, default 1), depth first, at most `maxNodes` (1 to 2000, default 500) entries, each { id, parentId, type, name, page, size, locked, mainComponent: { key, name, remote, set } | null, childCount } plus, per `fields` (default all): `props` componentProperties, `bindings` boundVariables (variable names), `styles` textStyle, `layout` layout, `text` characters. Result data: { nodes, unreadable: [{ id, error }], truncated }. */
-  inspect: { ids: string[]; depth?: number; fields?: Array<'props' | 'bindings' | 'styles' | 'layout' | 'text'>; maxNodes?: number };
-  /** #3147 Phase 2a. Writes nothing. Every local component set and standalone component, page by page: [{ name, key, kind: set | component, published, variantProperties, members? }]; `names` keeps only those names, `sets: true` lists each set's members with their keys. Result data: { components, missing, unreadable }. */
-  'component-keys': { names?: string[]; sets?: boolean };
-  /** #3147 Phase 2a, the done check. Writes nothing. Per frame { id, counts: { legacyInstances, unstyledText, rawFills, standInDividers, badName }, layers: { <count>: ids } }; `legacy` lists the brand's old text styles, components and variable-name prefixes, `nameRule` is a regular expression frame names must match. Result data: { frames, unreadable, truncated }. */
-  'audit-frames': { ids: string[]; legacy?: { textStyles?: string[]; components?: string[]; variablePrefixes?: string[] }; nameRule?: string };
-  /** #3147 Phase 2a. Writes nothing. One node rendered to PNG in this session at `scale` (0.5 to 2, default 1). Result data: { png (base64), width, height, local: true }. */
-  snapshot: { id: string; scale?: number };
   /** #2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`). */
   'run-code': RunCodeArgs;
 };
-
-/** #3147 Phase 2a — `inspect`'s optional facts, and the args of the four read commands as `parseCommand` hands them on. */
-export const INSPECT_FIELDS = ['props', 'bindings', 'styles', 'layout', 'text'] as const;
-export type InspectField = (typeof INSPECT_FIELDS)[number];
-export type InspectArgs = AgentArgs['inspect'];
-export type ComponentKeysArgs = AgentArgs['component-keys'];
-export type AuditFramesArgs = AgentArgs['audit-frames'];
-export type SnapshotArgs = AgentArgs['snapshot'];
 
 /** #2265 PR 2 — what an applied update does with hand edits (design note §5): `keep` (the default), `overwrite` or
  *  `accept`, for every set, or per set by name. Dropped members are never deleted, so there is no choice for them. */
@@ -208,8 +189,6 @@ export type AgentLinkState = {
 const ID_RE = /^[A-Za-z0-9._-]{1,64}$/;
 
 const isObject = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
-const nonEmptyStrings = (v: unknown): v is string[] => Array.isArray(v) && v.length > 0 && v.every((s) => typeof s === 'string' && s.length > 0);
-const validRegExp = (s: string): boolean => { try { new RegExp(s); return true; } catch { return false; } };
 
 /** The id of a raw entry, if it has a usable one — what the mailbox claims by, before validation. */
 export const commandId = (raw: unknown): string | null =>
@@ -309,33 +288,6 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
         return fail('bad-args', 'draw-specs takes args.def: a component def id, or no def for every family in the file');
       }
       return { ok: true, command: { ...base, cmd: 'draw-specs', args: args.def === undefined ? {} : { def: args.def } } };
-    // #3147 Phase 2a: the read-only node commands.
-    case 'inspect': {
-      if (!nonEmptyStrings(args.ids)) return fail('bad-args', 'inspect needs args.ids: a non-empty array of node ids');
-      const { depth, maxNodes, fields } = args;
-      if (depth !== undefined && (!Number.isInteger(depth) || (depth as number) < 0 || (depth as number) > 3)) return fail('bad-args', 'inspect takes args.depth: a whole number from 0 to 3');
-      if (maxNodes !== undefined && (!Number.isInteger(maxNodes) || (maxNodes as number) < 1 || (maxNodes as number) > 2000)) return fail('bad-args', 'inspect takes args.maxNodes: a whole number from 1 to 2000');
-      if (fields !== undefined && (!Array.isArray(fields) || !fields.length || fields.some((f) => !(INSPECT_FIELDS as readonly unknown[]).includes(f)))) return fail('bad-args', 'inspect takes args.fields: a non-empty array of props, bindings, styles, layout or text');
-      return { ok: true, command: { ...base, cmd: 'inspect', args: { ids: args.ids, ...(depth === undefined ? {} : { depth: depth as number }), ...(fields === undefined ? {} : { fields: fields as InspectField[] }), ...(maxNodes === undefined ? {} : { maxNodes: maxNodes as number }) } } };
-    }
-    case 'component-keys':
-      if (args.names !== undefined && !nonEmptyStrings(args.names)) return fail('bad-args', 'component-keys takes args.names: a non-empty array of component or set names');
-      if (args.sets !== undefined && typeof args.sets !== 'boolean') return fail('bad-args', "component-keys takes args.sets as a boolean: true lists each set's members");
-      return { ok: true, command: { ...base, cmd: 'component-keys', args: { ...(args.names === undefined ? {} : { names: args.names as string[] }), ...(args.sets === undefined ? {} : { sets: args.sets as boolean }) } } };
-    case 'audit-frames': {
-      if (!nonEmptyStrings(args.ids)) return fail('bad-args', 'audit-frames needs args.ids: a non-empty array of frame ids');
-      const legacy = args.legacy;
-      const list = (v: unknown) => v === undefined || (Array.isArray(v) && v.every((s) => typeof s === 'string' && s.length > 0));
-      if (legacy !== undefined && (!isObject(legacy) || Object.keys(legacy).some((x) => x !== 'textStyles' && x !== 'components' && x !== 'variablePrefixes') || !list(legacy.textStyles) || !list(legacy.components) || !list(legacy.variablePrefixes))) return fail('bad-args', 'audit-frames takes args.legacy as { textStyles?, components?, variablePrefixes? }, each an array of names');
-      if (args.nameRule !== undefined && (typeof args.nameRule !== 'string' || !validRegExp(args.nameRule))) return fail('bad-args', 'audit-frames takes args.nameRule: a regular expression, as a string, that frame names must match');
-      return { ok: true, command: { ...base, cmd: 'audit-frames', args: { ids: args.ids, ...(legacy === undefined ? {} : { legacy: legacy as AuditFramesArgs['legacy'] }), ...(args.nameRule === undefined ? {} : { nameRule: args.nameRule as string }) } } };
-    }
-    case 'snapshot': {
-      if (typeof args.id !== 'string' || !args.id) return fail('bad-args', 'snapshot needs args.id: the id of one node');
-      const { scale } = args;
-      if (scale !== undefined && (typeof scale !== 'number' || !Number.isFinite(scale) || scale < 0.5 || scale > 2)) return fail('bad-args', 'snapshot takes args.scale: a number from 0.5 to 2');
-      return { ok: true, command: { ...base, cmd: 'snapshot', args: { id: args.id, ...(scale === undefined ? {} : { scale }) } } };
-    }
     case 'status':
     case 'file-setup':
     case 'readback':

@@ -126,10 +126,6 @@ export const WRITES: Record<string, string> = {
   'capture-baseline': 'Plugin data only: the as-built record on members built before it existed.',
   'adopt-members': 'Plugin data only: records and stamps members Prism3 did not build, so an update can bring them to the plan.',
   'draw-specs': 'Canvas frames only: a spec panel beside each family\'s usage panel, replacing its earlier unedited one and keeping an edited one aside as "(edited)". Never a component set, a variable or a style.',
-  inspect: 'Nothing. Reads the listed nodes and their descendants; pages are loaded, never switched to.',
-  'component-keys': 'Nothing. Reads every local component set and component, page by page.',
-  'audit-frames': 'Nothing. Reads the listed frames and the layers in them.',
-  snapshot: 'Nothing. Renders one node to PNG in this session.',
   'run-code': 'Whatever the code writes. Dev builds only; a release build answers unknown-command.',
 };
 

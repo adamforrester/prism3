@@ -27,15 +27,13 @@
  * is a harness step, not a handler the panel reaches), and this dispatcher routes only to those.
  */
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { AGENT_PROTOCOL_VERSION, READ_COMMANDS, parseCommand, failedResult } from './agent-protocol';
+import { AGENT_PROTOCOL_VERSION, parseCommand, failedResult } from './agent-protocol';
 import type { UpdateChoiceArgs } from './agent-protocol';
 import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd, DevCmd } from './agent-protocol';
 import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
 import type { MainToUi, StyleGuideOptions } from './messages';
 import type { BrandInput } from '@prism3/engine/theme';
 import { allLeaves, leafPageName } from './file-taxonomy';
-import { inspect, componentKeys, auditFrames, snapshot, ReadRefusal } from './agent-reads';
-import type { ReadHost } from './agent-reads';
 
 /** Where a handler sends what it would show the designer, and the structured facts behind it. */
 export type ActionSink = {
@@ -133,8 +131,6 @@ type Deps = {
   status(): Promise<Record<string, unknown>>;
   /** The component-page census for `readback`. */
   census(): Promise<unknown>;
-  /** #3147 Phase 2a: the host the read-only node commands read (`figma` in `main.ts`). Asked at each command. */
-  host?(): ReadHost;
   now?: () => Date;
   /** Each progress reading as it arrives (the bridge streams these). */
   onProgress?(id: string, p: AgentProgress): void;
@@ -157,11 +153,6 @@ type Deps = {
   refuse?(c: ValidCommand): { message: string; post: MainToUi } | null;
 };
 
-const readHost = (d: Deps): ReadHost => {
-  if (!d.host) throw new Error('this plugin build gives the read commands no host');
-  return d.host();
-};
-
 /** Per-command routes into the table. The ONLY place a command meets a handler — see the header. */
 type Route = (c: ValidCommand, a: AgentActions, sink: ActionSink, d: Deps) => Promise<void>;
 export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
@@ -181,11 +172,6 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   'capture-baseline': (c, a, sink) => a.captureBaseline((c as Extract<ValidCommand, { cmd: 'capture-baseline' }>).args.def, sink),
   'adopt-members': (c, a, sink) => a.adoptMembers((c as Extract<ValidCommand, { cmd: 'adopt-members' }>).args.def, sink),
   'draw-specs': (c, a, sink) => a.drawSpecs((c as Extract<ValidCommand, { cmd: 'draw-specs' }>).args.def, 'file', sink),
-  // #3147 Phase 2a: read-only. Their value is their data; they post no verdict and write nothing (`agent-reads.ts`).
-  inspect: async (c, _a, sink, d) => { sink.data(await inspect(readHost(d), (c as Extract<ValidCommand, { cmd: 'inspect' }>).args)); },
-  'component-keys': async (c, _a, sink, d) => { sink.data(await componentKeys(readHost(d), (c as Extract<ValidCommand, { cmd: 'component-keys' }>).args)); },
-  'audit-frames': async (c, _a, sink, d) => { sink.data(await auditFrames(readHost(d), (c as Extract<ValidCommand, { cmd: 'audit-frames' }>).args)); },
-  snapshot: async (c, _a, sink, d) => { sink.data(await snapshot(readHost(d), (c as Extract<ValidCommand, { cmd: 'snapshot' }>).args)); },
   readback: async (_c, a, sink, d) => {
     await a.seedFromFile(sink);
     sink.data({ components: await d.census() });
@@ -294,10 +280,9 @@ export const createDispatcher = (deps: Deps) => {
         ? runCode((c as Extract<ValidCommand, { cmd: 'run-code' }>).args, sink.data)
         : ROUTES[c.cmd as Exclude<AgentCmd, DevCmd>](c, deps.actions, sink, deps)));
     } catch (e) {
-      // #3147: a read whose args this file cannot serve is the agent's to fix, not a plugin defect.
       return {
         ...failedResult({ id: c.id, cmd: c.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt },
-          { code: e instanceof ReadRefusal ? e.code : 'handler-threw', message: (e as Error)?.message ?? String(e) }),
+          { code: 'handler-threw', message: (e as Error)?.message ?? String(e) }),
         finishedAt: now().toISOString(),
         ...(progress.length ? { progress } : {}),
       };
@@ -320,9 +305,8 @@ export const createDispatcher = (deps: Deps) => {
     const verdict = verdicts.length ? verdicts[verdicts.length - 1] : null;
     if (verdicts.length > 1) data.earlierVerdicts = verdicts.slice(0, -1);
     // A write command that posted no verdict at all is not a success: the panel would still say pending.
-    // A read posts no verdict: `status`, the read-only node commands (#3147), and in a dev build its dev command, whose
-    // value is its data (#2530).
-    const read = c.cmd === 'status' || (READ_COMMANDS as readonly string[]).includes(c.cmd) || (PRISM3_DEV && c.cmd === RUN_CODE);
+    // A read posts no verdict: `status`, and in a dev build its dev command, whose value is its data (#2530).
+    const read = c.cmd === 'status' || (PRISM3_DEV && c.cmd === RUN_CODE);
     if (!verdict && !read) data.noVerdict = 'the handler returned without reporting a verdict';
     const ok = (verdict !== null || read) && verdicts.every((v) => !('ok' in v) || v.ok);
     return {

@@ -824,7 +824,7 @@
       "id": "agent-link",
       "label": "Agent link",
       "status": "shipped",
-      "purpose": "One versioned command protocol for driving the open plugin. Commands arrive through the file's mailbox or the desktop bridge. A write runs through the same handler as the panel's button; the four node reads write nothing. Off by default and never persisted. In the release build nothing in a command is evaluated; the development build adds one command, run-code, for testing.",
+      "purpose": "One versioned command protocol for driving the open plugin. Commands arrive through the file's mailbox or the desktop bridge and run through the same handlers as the panel's buttons. Off by default and never persisted. In the release build nothing in a command is evaluated; the development build adds one command, run-code, for testing.",
       "sources": [
         "apps/plugin/src/agent-protocol.ts",
         "apps/plugin/src/agent-link.ts",
@@ -846,11 +846,7 @@
           "update-components",
           "capture-baseline",
           "adopt-members",
-          "draw-specs",
-          "inspect",
-          "component-keys",
-          "audit-frames",
-          "snapshot"
+          "draw-specs"
         ]
       }
     },
@@ -1680,30 +1676,6 @@
           "agentCommands": [
             "status",
             "readback"
-          ],
-          "connections": [
-            "agent-link",
-            "desktop-bridge"
-          ]
-        }
-      }
-    },
-    {
-      "id": "read-nodes",
-      "label": "Read any layer: keys, properties, a done check, a picture",
-      "group": "Write to Figma",
-      "lanes": {
-        "agent": {
-          "status": "shipped",
-          "via": "inspect, component-keys, audit-frames and snapshot, which write nothing",
-          "sources": [
-            "apps/plugin/src/agent-reads.ts"
-          ],
-          "agentCommands": [
-            "inspect",
-            "component-keys",
-            "audit-frames",
-            "snapshot"
           ],
           "connections": [
             "agent-link",

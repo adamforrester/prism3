@@ -144,10 +144,6 @@ npx tsx tools/figma-mcp/agent-link.ts send style-guide '{"collections":["color"]
 npx tsx tools/figma-mcp/agent-link.ts send style-guide '{"tables":["Primary — nbds"]}'   # one table, by title or key
 npx tsx tools/figma-mcp/agent-link.ts send prune '{"confirm":false}' --brand aurora
 npx tsx tools/figma-mcp/agent-link.ts send readback
-npx tsx tools/figma-mcp/agent-link.ts send inspect '{"ids":["12:34"],"depth":1}'          # read-only: any layer
-npx tsx tools/figma-mcp/agent-link.ts send component-keys '{"sets":true}'               # read-only: keys, in the master
-npx tsx tools/figma-mcp/agent-link.ts send audit-frames '{"ids":["12:34"],"legacy":{"components":["Old Button"]}}'
-npx tsx tools/figma-mcp/agent-link.ts send snapshot '{"id":"12:34","scale":1}'          # read-only: a local PNG
 npx tsx tools/figma-mcp/agent-link.ts read <id>                          # the result, or where the command is
 npx tsx tools/figma-mcp/agent-link.ts read <id> --path result.data.apply.misses
 ```
@@ -191,10 +187,6 @@ Rules:
   table as stale; run without `tables` to have the generator judge those.
 - **`prune` with `confirm: true` deletes.** Send the preview (`confirm: false`) first and report its
   `result.verdict.summary` to the owner before sending the delete.
-- **The four node reads write nothing** (`inspect`, `component-keys`, `audit-frames`, `snapshot`). They post no
-  verdict: `result.verdict` is `null` and the facts are in `result.data`. A layer that cannot be read is listed in
-  `unreadable`, and a capped walk says `truncated: true`. `snapshot`'s PNG is this session's render (`local: true`),
-  not the server's: confirm slot and swap work with a server read-back. A snapshot of a big frame is chunked.
 - **No `cleanup` command exists**, because no panel action removes components. Use §4's scripts.
 - **The mailbox keeps the last 20 results.** Read each result before sending 20 more commands.
 

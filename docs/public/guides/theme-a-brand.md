@@ -55,7 +55,7 @@ A contrast miss is reported, never blocked. On **Foreground fills**, for example
 ## Where your work is kept
 
 - On the web, the studio keeps your working brand in this browser and reopens it next time. <!-- src: apps/studio/src/persist-local.ts:40-79 -->
-- In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:140-142 --> <!-- src: apps/plugin/src/main.ts:1797-1804 -->
+- In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:140-142 --> <!-- src: apps/plugin/src/main.ts:1796-1803 -->
 
 If a stored brand can't be opened, the web studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:137-166 -->
 

@@ -83,7 +83,6 @@ import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { createAgentLink } from './agent-link';
 import { createDispatcher, componentCensus } from './agent-dispatch';
-import type { ReadHost } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
 import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
@@ -1945,8 +1944,6 @@ const dispatch = createDispatcher({
   // which are not necessarily the input the agent previewed.
   forward: (m) => postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m),
   census: () => componentCensus(figma as unknown as Parameters<typeof componentCensus>[0], ENGINE_VERSION),
-  // #3147 Phase 2a: what the read-only node commands read. They only read it (`agent-reads.ts`).
-  host: () => figma as unknown as ReadHost,
   status: async () => {
     let brand: 'present' | 'absent' | 'unreadable' = 'absent';
     try { brand = restoreInput(figma.root) ? 'present' : 'absent'; } catch { brand = 'unreadable'; }
