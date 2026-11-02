@@ -48,11 +48,11 @@ The names start with an underscore because Figma treats such components as priva
 
 ## The result
 
-The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1768-1770 -->
+The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1778-1780 -->
 
 | Result | Meaning |
 |---|---|
-| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1757 --> |
-| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1772 --> |
+| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1767 --> |
+| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1782 --> |
 
 While setup runs, a second request for it is refused: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:38-42 -->
