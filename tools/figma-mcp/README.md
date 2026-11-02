@@ -148,6 +148,7 @@ npx tsx tools/figma-mcp/agent-link.ts send inspect '{"ids":["12:34"],"depth":1}'
 npx tsx tools/figma-mcp/agent-link.ts send component-keys '{"sets":true}'               # read-only: keys, in the master
 npx tsx tools/figma-mcp/agent-link.ts send audit-frames '{"ids":["12:34"],"legacy":{"components":["Old Button"]}}'
 npx tsx tools/figma-mcp/agent-link.ts send snapshot '{"id":"12:34","scale":1}'          # read-only: a local PNG
+npx tsx tools/figma-mcp/agent-link.ts send activity '{"limit":5}'                       # read-only: the Activity drawer's runs
 npx tsx tools/figma-mcp/agent-link.ts read <id>                          # the result, or where the command is
 npx tsx tools/figma-mcp/agent-link.ts read <id> --path result.data.apply.misses
 ```
@@ -195,6 +196,9 @@ Rules:
   verdict: `result.verdict` is `null` and the facts are in `result.data`. A layer that cannot be read is listed in
   `unreadable`, and a capped walk says `truncated: true`. `snapshot`'s PNG is this session's render (`local: true`),
   not the server's: confirm slot and swap work with a server read-back. A snapshot of a big frame is chunked.
+- **`activity` writes nothing either** (#3309). It returns the Activity drawer's runs this session, newest first, the
+  panel's own runs included: read it to diagnose a run the owner started, such as "built with problems", instead of
+  asking for the drawer's text. `result.data.runs[].problems` lists each set that was not clean and why.
 - **No `cleanup` command exists**, because no panel action removes components. Use §4's scripts.
 - **The mailbox keeps the last 20 results.** Read each result before sending 20 more commands.
 
