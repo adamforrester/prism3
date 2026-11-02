@@ -80,8 +80,8 @@ Commands: `status`, `apply-theme {input}`, `build-components {def?}`, `file-setu
 `style-guide {collections?, types?, tables?}`, `prune {input, confirm}`, `readback`, `update-components`, `capture-baseline`,
 `adopt-members`, `draw-specs` — the same as the mailbox, run through the same handlers the panel's buttons reach — and the
 four read-only node commands (#3147 Phase 2a), `inspect {ids, depth?, fields?, maxNodes?}`, `component-keys {names?, sets?}`,
-`audit-frames {ids, legacy?, nameRule?}` and `snapshot {id, scale?}`, and `activity {since?, limit?}` (#3309, the Activity
-drawer's runs this session), which write nothing and answer in `result.data`
+`audit-frames {ids, legacy?, nameRule?}` and `snapshot {id, scale?}`, `activity {since?, limit?}` (#3309, the Activity
+drawer's runs this session) and `context` (#3300, what the open file is: brand, sets, and what is read-only), which write nothing and answer in `result.data`
 (the full shapes: `docs/public/reference/commands.json`). `prune` with `confirm: true` deletes; send `confirm: false` first and report
 the preview. `status` lists every command the running build answers.
 
