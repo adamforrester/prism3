@@ -34,8 +34,39 @@ export type BuildRun = {
   readonly done: boolean;
 };
 
-/** A run over `ids`, in their order. */
-export const startRun = (kind: RunKind, ids: readonly string[]): BuildRun => ({ kind, ids: [...ids], results: [], stopping: false, done: ids.length === 0 });
+/**
+ * #3308: `ids` in the order the plugin can build them once each. A set's build first builds every set it nests that the
+ * file lacks (#1633, `build-deps.ts`), deepest first, so a queued set that another queued set nests is built by the
+ * first one's build and then again from the queue: the owner's first run built Checkbox.Row as Checkbox group's
+ * dependency and then on its own, six "ALREADY PRESENT" misses in a set that read as "built with problems". Here each
+ * set comes after every queued set it nests, directly or through a set the queue does not hold; otherwise the list's
+ * order is kept (review N1 on #2812). A set listed twice runs once.
+ */
+export const depsFirst = (catalog: Catalog, ids: readonly string[]): string[] => {
+  const want = new Set(ids);
+  const done = new Set<string>();
+  const out: string[] = [];
+  const visit = (id: string, path: Set<string>): void => {
+    if (done.has(id) || path.has(id)) return;
+    path.add(id);
+    for (const n of entryOf(catalog, id)?.nests ?? []) visit(n, path);
+    path.delete(id);
+    done.add(id);
+    if (want.has(id)) out.push(id);
+  };
+  for (const id of ids) visit(id, new Set());
+  return out;
+};
+
+/**
+ * A run over `ids`, each after the queued sets it nests (`depsFirst`, #3308). `catalog` is required, not optional: an
+ * optional one let the one call that applies the fix (`runSets` in `main.ts`) drop it with every gate green and bring the
+ * double build back in list order (review S1 on #3320); required, `typecheck-web` holds that call.
+ */
+export const startRun = (kind: RunKind, ids: readonly string[], catalog: Catalog): BuildRun => {
+  const order = depsFirst(catalog, ids);
+  return { kind, ids: order, results: [], stopping: false, done: order.length === 0 };
+};
 
 /** The set the run is building now, or null when it is done. */
 export const currentOf = (r: BuildRun): string | null => (r.done ? null : r.ids[r.results.length] ?? null);
@@ -85,7 +116,8 @@ export const runVerdict = (r: BuildRun, catalog: Catalog): { ok: boolean; headli
   const issues = r.results.filter((x) => x.result === 'issues').length;
   const headline = left.length ? RUN_COPY.stopped(r.results.length, r.ids.length)
     : failed ? RUN_COPY.builtOf(r.ids.length - failed, r.ids.length)
-      : issues ? RUN_COPY.builtWithProblems(r.ids.length, issues) : RUN_COPY.built(r.ids.length);
+      // #3308: a warning, marked as a set's own "with problems" build is (`⚠`), so Activity counts a warning, not a failure.
+      : issues ? `⚠ ${RUN_COPY.builtWithProblems(r.ids.length, issues)}` : RUN_COPY.built(r.ids.length);
   const lines: string[] = [];
   const byPage = new Map<string, string[]>();
   for (const x of r.results) {

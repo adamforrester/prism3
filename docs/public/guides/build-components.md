@@ -5,21 +5,21 @@
 Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:107-274 -->
 The engine currently defines 60 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:107-274 -->
 
-You choose sets in the **Components** area of the rail, and **Update file** builds them. <!-- src: apps/studio/src/state/update-file.ts:215 -->
+You choose sets in the **Components** area of the rail, and **Update file** builds them. <!-- src: apps/studio/src/state/update-file.ts:220 -->
 Building needs the Figma plugin. On the web, the Components area lists the same sets and says "Building sets needs the Figma plugin." <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 -->
 
 ## Choose the sets to add
 
 1. Open **Components** in the rail. The list reads "Tick a family to add its sets to this file; Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:120 -->
 2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:122-123 -->
-3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:230-231 -->
-4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:271 -->
+3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:235-236 -->
+4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:276 -->
 
-Each set in the list carries its state in this file: **To add**, **Not in file**, **Due**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:256 -->
+Each set in the list carries its state in this file: **To add**, **Not in file**, **Due**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:261 -->
 
 The sets you tick are kept in the file, not in the panel, so a teammate who opens Update file sees the same list. A set leaves the list once it is built whole; one that fails or is stopped stays on it. <!-- src: apps/plugin/src/add-queue.ts:1-11 -->
 
-Keep **Theme** ticked in the same run: the theme is written before any set, so the new sets can use your variables. <!-- src: apps/studio/src/state/update-file.ts:226 --> The run order is fixed. <!-- src: apps/studio/src/state/update-file.ts:39 -->
+Keep **Theme** ticked in the same run: the theme is written before any set, so the new sets can use your variables. <!-- src: apps/studio/src/state/update-file.ts:231 --> The run order is fixed. <!-- src: apps/studio/src/state/update-file.ts:39 -->
 On a file that isn't set up yet, the same run sets it up first. See [Set up a file](file-setup.md).
 
 ## What a build does
@@ -49,14 +49,14 @@ The status strip says how the run went, such as "Sets added" or "File updated". 
 | `⚠ N misses` | Something did not resolve or bind, such as a variable the file is missing. |
 | `✗ nothing built` | Nothing was in the file and nothing could be built. |
 
-A run of several sets is summed up in one line, such as "Built 3 sets" or "Built 2 of 3 sets". <!-- src: apps/studio/src/state/build-queue.ts:65-70 -->
+A run of several sets is summed up in one line, such as "Built 3 sets" or "Built 2 of 3 sets". <!-- src: apps/studio/src/state/build-queue.ts:94-99 -->
 
 A set that can't be built for this brand is listed with the reason: "Can't be built yet: …". <!-- src: apps/studio/src/preview/sections/component-sets.ts:26 -->
 
 ## Adding and updating
 
 Adding a set never replaces one the file already holds. The plugin finds the set by name and adds only what is missing. <!-- src: apps/plugin/src/apply-summary.ts:54-58 -->
-A set already in the file is brought up to date in place instead, under **Due**, with your hand edits kept unless you choose otherwise. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:237 -->
+A set already in the file is brought up to date in place instead, under **Due**, with your hand edits kept unless you choose otherwise. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:242 -->
 
 Only one build runs at a time, from the panel or an agent: a second request reads "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:39-43 -->
 
