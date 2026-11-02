@@ -52,7 +52,7 @@
  * and lets the relay reconnect while the command still runs, so at the hello the id is held as running, not as a result.
  */
 import { spawn } from 'node:child_process';
-import { connect } from 'node:net';
+import { connect, createServer } from 'node:net';
 import type { Socket } from 'node:net';
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { mkdtempSync, writeFileSync, statSync, readFileSync, chmodSync } from 'node:fs';
@@ -694,7 +694,7 @@ section('reconnect — a newer plugin connection replaces the older one');
   ok(await until(() => old.texts().some((m) => m.type === 'command')), 'reconnect: a command is in flight on the first connection');
   const fresh = await openClient();
   await fresh.hello();
-  ok(await until(() => old.frames.some((f) => f.op === 0x8 && f.payload.readUInt16BE(0) === 1000)), 'reconnect: the older connection is closed (1000)');
+  ok(await until(() => old.frames.some((f) => f.op === 0x8 && f.payload.readUInt16BE(0) === 4409)), 'reconnect: the older connection is closed with 4409, held by another instance (#3297)');
   const r = await done();
   ok(r.isError && /reconnected/.test(r.value?.error ?? ''), `reconnect: the in-flight run fails with the reason, not a timeout (${String(r.value?.error ?? '').slice(0, 60)})`);
   ok((await call('figma_status')).value?.connected === true, 'reconnect: the newer connection is now the plugin');
@@ -954,6 +954,105 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
   toMain({ type: 'agent-command', command: { v: 1, id: 'late-1', cmd: 'readback', args: {}, issuedAt: new Date().toISOString() } });
   const late = posted.find((m) => m.type === 'agent-result')?.result as AgentResult | undefined;
   ok(late?.error?.code === 'link-off' && late.id === 'late-1', 'e2e/link-off: a command reaching the plugin after switch-off is refused with link-off');
+}
+
+/* ── #3297: the transport word changes only on a settled change, never on each retry ──────────────────────────────────
+ * The owner's report: Prism3 open in two files on one machine, both paired, the status flipping "Listening · bridge" ⇄
+ * "Listening · mailbox" every ~2 s. The server lets a newer PAIRED connection replace the older (a reconnect must win over
+ * a dead socket, #2497), so two instances evicted each other on every retry. Every `agent-bridge` post below is one
+ * repaint of the transport word (`agent-link.ts` publishes a state only when the flag changes), so the arms count posts.
+ * EXPECTED is written here, from the report: the displaced instance repaints once and then holds still. */
+section('held — two paired instances, one bridge (#3297)');
+{
+  type Probe = { relay: ReturnType<typeof createBridgeRelay>; posts: boolean[]; held: boolean[]; opens: () => number; sock: () => WebSocket | null; refuse: (r: boolean) => void };
+  const probe = (url = `ws://localhost:${PORT}`): Probe => {
+    const posts: boolean[] = [];
+    const held: boolean[] = [];
+    let opens = 0;
+    let sock: WebSocket | null = null;
+    let refuse = false;
+    const relay = createBridgeRelay({
+      open: (u) => { opens++; if (refuse) throw new Error('refused by the test'); sock = new (WebSocket as unknown as new (u: string, o: unknown) => WebSocket)(u, { headers: { origin: IFRAME_ORIGIN } }); return sock as unknown as WsLike; },
+      post: (m) => { if (m.type === 'agent-bridge') posts.push(m.connected); },
+      schedule: (fn, ms) => setTimeout(fn, ms),
+      cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
+      url, retryMs: 100, holdMs: 400, heldMaxMs: 800,
+      onHeld: (h: boolean) => { held.push(h); },
+    });
+    relay.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+    return { relay, posts, held, opens: () => opens, sock: () => sock, refuse: (r) => { refuse = r; } };
+  };
+  // The server's half, by hand: a hello that yields is refused with 4409 while a plugin is attached, and the holder stays;
+  // with none attached, the same hello is welcomed. The proof is checked as before.
+  {
+    const holder = await openClient();
+    await holder.hello();
+    ok(await until(() => holder.texts().some((m) => m.type === 'welcome')), 'held/server: a paired connection holds the bridge');
+    const polite = await openClient();
+    await polite.hello({ yield: true });
+    ok(await until(() => polite.closeCode() === 4409) && !polite.texts().some((m) => m.type === 'welcome'),
+      `held/server: a yielding hello is closed with 4409 while a plugin is attached (close ${polite.closeCode()})`);
+    ok(!holder.closed() && holder.closeCode() === null && (await call('figma_status')).value?.connected === true, 'held/server: and the holder keeps the bridge');
+    const forged = await openClient();
+    await forged.nonce();
+    forged.sendJson({ type: 'hello', state: state(), yield: true, proof: 'ab'.repeat(32) });
+    ok(await until(() => forged.closeCode() === 4401), `held/server: a yielding hello with a wrong proof is still a pairing refusal, 4401 (close ${forged.closeCode()})`);
+    holder.sock.destroy();
+    ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false), 'held/server: the holder leaves');
+    const next = await openClient();
+    await next.hello({ yield: true });
+    ok(await until(() => next.texts().some((m) => m.type === 'welcome')), 'held/server: with no plugin attached, a yielding hello is welcomed');
+    next.sock.destroy();
+    await untilAsync(async () => (await call('figma_status')).value?.connected === false);
+    polite.sock.destroy(); forged.sock.destroy();
+  }
+  const connects = async () => ((await call('figma_logs', { since: 0, limit: 5000 })).value?.entries ?? [])
+    .filter((e: { line: string }) => e.line === 'plugin connected').length;
+
+  const a = probe();
+  a.relay.fromMain({ type: 'agent-link-state', state: state() });
+  ok(await until(() => a.relay.connected()), 'held/setup: the first file\'s relay connects');
+  const b = probe();
+  b.relay.fromMain({ type: 'agent-link-state', state: state() });
+  ok(await until(() => b.relay.connected()), 'held/setup: the second file\'s relay connects, replacing the first (a newer paired connection wins)');
+  const before = await connects();
+  const aOpens = a.opens();
+  await sleep(2500);
+  ok(JSON.stringify(a.posts) === '[true,false]',
+    `held/one-repaint: the displaced instance repaints the transport word once, not on every retry (posts: ${JSON.stringify(a.posts)})`);
+  ok(JSON.stringify(b.posts) === '[true]' && b.relay.connected(),
+    `held/holder-steady: the instance holding the bridge keeps it and never repaints (posts: ${JSON.stringify(b.posts)})`);
+  ok(await connects() === before, `held/no-evict: in 2.5 s neither instance evicts the other (${(await connects()) - before} new connections)`);
+  ok(JSON.stringify(a.held) === '[true]', `held/said: the displaced instance is told once that another instance holds the bridge (${JSON.stringify(a.held)})`);
+  ok(a.opens() - aOpens <= 7, `held/backoff: while the bridge is held its retries back off, ${a.opens() - aOpens} attempts in 2.5 s (at a flat 100 ms, ~20)`);
+  // The holder leaves (its file closes, or its link goes off): the waiting instance takes the bridge, and says so once.
+  b.relay.fromMain({ type: 'agent-link-state', state: state(false) });
+  ok(await until(() => a.relay.connected(), 3000), 'held/takeover: when the holder leaves, the waiting instance takes the bridge');
+  ok(JSON.stringify(a.posts) === '[true,false,true]' && a.held[a.held.length - 1] === false,
+    `held/takeover: one repaint back to the bridge, and the held note clears (posts: ${JSON.stringify(a.posts)}, held: ${JSON.stringify(a.held)})`);
+
+  // A flaky socket: it drops and the retry is back inside the hold. That is not a settled change, so no repaint.
+  const before2 = a.posts.length;
+  a.sock()!.close();
+  ok(await until(() => !a.relay.connected()) && await until(() => a.relay.connected()), 'flaky: the socket drops and the relay reconnects');
+  await sleep(600);
+  ok(a.posts.length === before2, `flaky/held-word: a drop the retry repairs within the hold repaints nothing (posts since: ${JSON.stringify(a.posts.slice(before2))})`);
+
+  // A real transport change: the bridge goes away and stays away, so the mailbox takes over — one repaint, after the hold.
+  a.refuse(true);
+  a.sock()!.close();
+  await sleep(1200);
+  ok(JSON.stringify(a.posts.slice(before2)) === '[false]',
+    `real-change: a bridge that stays gone repaints the word to the mailbox exactly once (posts since: ${JSON.stringify(a.posts.slice(before2))})`);
+  a.relay.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // A socket refused on every attempt (no server on the port): the word never moves off the mailbox.
+  const closedPort = await new Promise<number>((r) => { const srv = createServer(); srv.listen(0, '127.0.0.1', () => { const p = (srv.address() as { port: number }).port; srv.close(() => r(p)); }); });
+  const c = probe(`ws://127.0.0.1:${closedPort}`);
+  c.relay.fromMain({ type: 'agent-link-state', state: state() });
+  await sleep(800);
+  ok(c.opens() >= 3 && c.posts.length === 0, `refused: ${c.opens()} refused attempts make no status change (posts: ${JSON.stringify(c.posts)})`);
+  c.relay.fromMain({ type: 'agent-link-state', state: state(false) });
 }
 
 child.stdin.end();
