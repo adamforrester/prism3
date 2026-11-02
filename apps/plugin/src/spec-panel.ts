@@ -63,7 +63,7 @@ import { readTag } from './canvas-furniture';
 import { CAPTION, DOC_BLOCK_SET, SPECIMEN, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 import {
   PANEL_PAD, PANEL_WIDTH, SECTION_GAP, SECTION_TYPE, SPEC_GAP, SPEC_WIDTH, TITLE_TYPE, anatomyMarks, findDocBlock, overlaps, panelWidthFor,
-  panelFamily, panelPrint, panelSpot, readPanelTag, type Box, type PNode, type PanelApi, type PanelParent, type PanelVariable,
+  panelFamily, panelPrint, panelSpot, printMatches, readPanelTag, type Box, type PNode, type PanelApi, type PanelParent, type PanelVariable,
 } from './doc-panel';
 import { SPEC_PANEL_KEY, SPEC_PANEL_NS, readSpecTag, type SpecTag } from './spec-tag';
 
@@ -287,7 +287,7 @@ const earlierSpecPanels = (api: Pick<PanelApi, 'root'>, set: PNode, defId: strin
 /** Whether a spec panel still holds what it was drawn with. One with no record reads as edited: the safe direction. */
 export const specPanelUnedited = async (n: PNode): Promise<boolean> => {
   const print = n.getSharedPluginData?.(SPEC_PANEL_NS, SPEC_PANEL_PRINT) ?? '';
-  return !!print && (await panelPrint(n)) === print;
+  return printMatches(n, print);
 };
 
 /** The set's live usage panel on its parent, if drawn. */

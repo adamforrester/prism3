@@ -161,6 +161,10 @@ export type UiToMain =
    *  never refused by the run guard. It also clears the keys of sets the file holds and of sets the engine no longer
    *  builds, so an Update file run ends with one carrying no ids. Answered with one `add-queue`. */
   | { type: 'add-queue'; ids: string[]; on: boolean }
+  /** #3309: the panel's own summary of a run of several writes, which only the panel computes: a build of several sets
+   *  (`components`) or Update file's run (`update`), as the Activity drawer and the status strip show it. Kept in the
+   *  main thread's activity log for the agent link's `activity` command. Writes nothing; never refused. */
+  | { type: 'activity-note'; op: 'components' | 'update'; ok: boolean; headline: string; lines: string[] }
   /** #2909 Q2909.8 A: the background hand-edit pass, after load. Answered with one `hand-edits` per set the file holds,
    *  then one with `done`. A read; a later request, or a write starting, ends an earlier pass. */
   | { type: 'hand-edits-request' }

@@ -1116,8 +1116,11 @@ npx tsx packages/engine/lint-glyph-geometry.ts      # a `vector` part submits an
                                                     # SUBTREE Figma returns. That is the executors'
                                                     # runtime NO VECTOR miss, which fails loudly rather
                                                     # than building a plausible empty frame.
-npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PROSE (description, prop
-                                                    # descriptions, part notes, codeOnly entries) may not
+npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PROSE (every field that
+                                                    # ships: summary, description, prop descriptions, part
+                                                    # notes, codeOnly, accessibility, content, docs, ai,
+                                                    # motion; #3062 holds that list to the emitted
+                                                    # components.ai.json entry) may not
                                                     # restate a glyph count that disagrees with the live
                                                     # vocabulary (#1293). EXPECTED is ICON_NAMES.length,
                                                     # read from icon-glyphs.ts — never a second hardcoded
@@ -1388,7 +1391,9 @@ npm run test:chrome  -w @prism3/studio      # the new shell's chrome, measured a
                                             #   copies. Same one-off browser as test:smoke. CI runs
                                             #   it in shards (#2898, chrome-shards.mjs), and so does
                                             #   verify, side by side (#3216); every run writes its
-                                            #   record to apps/studio/chrome-record/
+                                            #   record to apps/studio/chrome-record/. A section with
+                                            #   no progress for 600 s fails by name and ends the run,
+                                            #   and CI's step stops at 30 minutes (#3044)
 npm run test:chrome-shards -w @prism3/studio # #2898: AFTER test:chrome. Every section the unsharded
                                             #   suite lists (test-chrome.mjs --list) ran exactly once
                                             #   across the records, by name: a section in no shard or

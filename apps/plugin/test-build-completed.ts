@@ -43,7 +43,9 @@
  * `templates/update clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
  * `furnish` hook without `panelFor` → `panel/update drawn`. Documentation's switches (#2995, the file's
  * `prism3:docSettings`): Build ignoring Usage panels off (`main.ts`, the `readDocSettings(figma.root).panels` before
- * `panelBeside` read as `true`) → `docs/panels off`; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
+ * `panelBeside` read as `true`) → `docs/panels off`; Update ignoring it (`main.ts` `updateTargets`, its
+ * `panels && leadsPanel(d.id)` cut to `leadsPanel(d.id)`) → `docs/panels off (update)` (#3017), and the apply's
+ * `furnish` hook passing `panelFor` whatever the target's `doc` → the same arm; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
  * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`. The as-built ledger (#2909 Q2909.8 A): Build
  * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
  * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. #3082 Q811 A
@@ -186,7 +188,11 @@ Object.assign(shim, {
 const g = globalThis as Record<string, unknown>;
 g.figma = shim;
 g.__html__ = '';
-g.PRISM3_BUILD = '2026-10-05T00:00:00Z tree-test0000';
+// #3309: the stamp `build.mjs` writes today, with a commit (`TREE_WITH_COMMIT` in `build-identity.ts`: an 8-hex tree,
+// then a short sha), so `activity/built` reads the commit out of it.
+g.PRISM3_BUILD = '2026-10-05T00:00:00Z tree-7e570000 abc1234';
+// #3309: the agent link's dispatcher reads it (`activity/*` below); this suite runs as a release build.
+g.PRISM3_DEV = false;
 
 const { ACTIONS: TABLE } = await import('./src/main');
 // #3131 releases a build's guard as soon as its verdict posts, while the build's tail (the settle probe, then
@@ -280,6 +286,27 @@ ok(JSON.stringify(chk2?.missing) === JSON.stringify(['button']) && chk2?.sets?.l
 const NO_LABEL = 'No canvas labels or usage panels drawn: this file has no _Label or _Doc-block component. Run Set up file, then build again';
 ok(!!first && (first.lines as string[]).includes(NO_LABEL) && String(first.summary).includes(NO_LABEL),
   `templates/build verdict: the build's component-result carries the missing-template line (${JSON.stringify(first?.lines)})`);
+// #3309: the agent link's read-only `activity`, over the bridge (the panel's `agent-command`), names Badge as built with
+// problems, with the one reason its verdict's `ok` read: the missing template. Literal. The panel's own build is a run
+// `by: panel`, and reading it wrote nothing to the file. (mutation: `annotate` never called from `buildComponents` →
+// `activity/problems`)
+{
+  const before = JSON.stringify([...pluginData, ...sharedData].filter(([k]) => !k.startsWith('prism3agent')));
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'agent-link', on: true });
+  const res = (await ask({ type: 'agent-command', command: { v: 1, id: 'act-1', cmd: 'activity', args: {}, issuedAt: new Date().toISOString() } }, 'agent-result'))[0]?.result;
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'agent-link', on: false });
+  const runs = (res?.result?.data?.runs ?? []) as any[];
+  const badgeRun = runs.find((r) => r.verdict?.type === 'component-result');
+  ok(res?.ok === true && res?.result?.verdict === null && badgeRun?.by === 'panel' && badgeRun?.op === 'components' && badgeRun?.cmd === null && badgeRun?.headline === first?.headline,
+    `activity/run: the panel's Badge build is a components run by the panel, with its headline (${JSON.stringify(badgeRun ? { by: badgeRun.by, op: badgeRun.op, headline: badgeRun.headline } : res?.error ?? null)})`);
+  ok(JSON.stringify(badgeRun?.problems) === JSON.stringify([{ set: 'badge', reasons: [NO_LABEL] }]),
+    `activity/problems: Badge is listed with the missing template as its one reason (${JSON.stringify(badgeRun?.problems)})`);
+  ok(JSON.stringify([...pluginData, ...sharedData].filter(([k]) => !k.startsWith('prism3agent'))) === before,
+    'activity/no-write: reading the activity moved no plugin data outside the agent link\'s own');
+  // (mutation: `commit: null` in `main.ts`'s `createActivityLog` call → `activity/built`)
+  ok(JSON.stringify(badgeRun?.built) === JSON.stringify({ commit: 'abc1234', build: '2026-10-05T00:00:00Z tree-7e570000 abc1234' }),
+    `activity/built: the run names the commit its build stamp carries (${JSON.stringify(badgeRun?.built)})`);
+}
 // The Update, through the same action table the panel and the agent link reach: a check for its hash, then the apply.
 const { ACTIONS } = await import('./src/main');
 type Sink = { post(m: any): void; data(d: Record<string, unknown>): void };
@@ -431,6 +458,27 @@ ok(!!panelsOff && livePanel().length === 0,
 pluginData.delete('prism3:docSettings');
 await build('badge');
 ok(livePanel().length === 1, `docs/panels on (control): the same rebuild with the switch on draws the panel again (${livePanel().length})`);
+
+// #3017: the same switch, read by Update (`main.ts` `updateTargets`, which gives a target its `doc` only when `panels`
+// is on). The panel is removed and the real Update runs, dry run then apply, with the switch off: its dry run lists no
+// panel to draw and the apply draws none. Then the same Update with the switch on draws it back, so the off arm
+// measures the switch and not an Update that never draws a missing panel.
+const updateBadge = async (): Promise<number> => {
+  const check = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
+  const pre = check.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string; sets?: { furniture?: { panels?: number } }[] } | undefined;
+  await runAction((sink) => ACTIONS.updateComponents('badge', pre?.previewHash ?? null, undefined, undefined, sink as never));
+  return pre?.sets?.[0]?.furniture?.panels ?? 0;
+};
+for (const n of livePanel()) badgePage!.children.splice(badgePage!.children.indexOf(n as Node), 1);
+ok(livePanel().length === 0, `fixture: the usage panel is gone before the Update (${livePanel().length})`);
+pluginData.set('prism3:docSettings', '{"panels":false}');
+const offDue = await updateBadge();
+ok(offDue === 0 && livePanel().length === 0,
+  `docs/panels off (update): with Usage panels off in Documentation, Update lists no usage panel and draws none (${offDue} listed, ${livePanel().length} drawn)`);
+pluginData.delete('prism3:docSettings');
+const onDue = await updateBadge();
+ok(onDue === 1 && livePanel().length === 1,
+  `docs/panels on (update control): the same Update with the switch on lists the missing panel and draws it (${onDue} listed, ${livePanel().length} drawn)`);
 
 // 2. The same set, its members renamed onto a smaller axis list: refused, nothing built.
 const members = (set?.children ?? []) as Node[];
