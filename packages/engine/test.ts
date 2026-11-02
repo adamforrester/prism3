@@ -7020,6 +7020,13 @@ arm: {
     }
     ok(set.length === 10 && bodyWrong.length === 0,
       `banner #3225 body: on all 10 members the body row wraps and aligns on the baseline (shown, behind body), holding the body text then the link; the body text hugs at 412 contained and 892 full (448 and 928 with no glyph) and drives body text; the link is an inline, default-weight, medium Link, off; the rich body is an empty slot, off${bodyWrong.length ? ` — ${bodyWrong.join('; ')}` : ''}`);
+    // Q-BN4.3 A (#3307 review S1): the owner approved "Link text" as the inline link's default text. The banner states it
+    // as an override on the nested Link's `label`, so it holds even if Link's own default moves. EXPECTED is the literal
+    // the owner approved, not read from the def or from Link.
+    const linkTextWrong = set.filter((m) => JSON.stringify(find(m.root, 'link')?.nestOverrides) !== '[{"property":"label","type":"TEXT","value":"Link text"}]')
+      .map((m) => `${planComponentName(m)} ${JSON.stringify(find(m.root, 'link')?.nestOverrides)}`);
+    ok(set.length === 10 && linkTextWrong.length === 0,
+      `banner #3225 Q-BN4.3 A: on all 10 members the inline link's text is "Link text", an override on the nested Link's label${linkTextWrong.length ? ` — ${linkTextWrong.join('; ')}` : ''}`);
     // Q-BN2.3 A: the body text's default is the old placeholder, as a literal, on the def and on the set's property.
     const BODY_DEFAULT = 'Body text. Say what happened and what to do next.';
     const bodyProp = planSetProperties(set).find((x: any) => x.name === 'body text') as any;
