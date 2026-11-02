@@ -14712,15 +14712,25 @@ arm: {
     }
     ok(dimsAliasBad.length === 0, `figma generalise (${id}): every dims alias resolves within the emitted collections` + (dimsAliasBad.length ? ` — ${dimsAliasBad.slice(0, 3).join(', ')}` : ''));
 
-    // (d) LAYOUT aliases — grid/gutter + grid/margin resolve into THIS brand's space collection.
+    // (d) LAYOUT aliases — grid/gutter + grid/margin resolve into THIS brand's space collection, or since
+    // #3052 (Q785 A) its core/dimension collection when no spacing step has the value; which of the two is
+    // gated by (19g), this arm holds resolution. #3053: the names are matched ROOTED, the root read off the
+    // theme as (e) below does. This arm used to compare the bare `grid/gutter`, which no emitted name has
+    // been since #1097, so it selected nothing and passed for any emission. The row count is what makes
+    // an empty selection fail (docs/34 shape 15: a scope asserts each promised surface is represented).
     const spaceNames = new Set(dims.space.variables.map((v) => v.name));
+    const dimensionNames = new Set(dims.dimension.variables.map((v) => v.name));
+    const layoutAliasNames = new Set([`${theme.root}/grid/gutter`, `${theme.root}/grid/margin`]);
     const layoutAliasBad: string[] = [];
+    let layoutAliasRows = 0;
     for (const l of layout) for (const v of l.variables) {
-      if (v.name === 'grid/gutter' || v.name === 'grid/margin') {
-        if (!v.alias || !spaceNames.has(v.alias.name)) layoutAliasBad.push(`${l.$mode}:${v.name} → ${v.alias?.name ?? '<none>'}`);
+      if (layoutAliasNames.has(v.name)) {
+        layoutAliasRows++;
+        if (!v.alias || (!spaceNames.has(v.alias.name) && !dimensionNames.has(v.alias.name))) layoutAliasBad.push(`${l.$mode}:${v.name} → ${v.alias?.name ?? '<none>'}`);
       }
     }
-    ok(layoutAliasBad.length === 0, `figma generalise (${id}): every layout grid alias resolves within THIS brand's space collection` + (layoutAliasBad.length ? ` — ${layoutAliasBad.slice(0, 3).join(', ')}` : ''));
+    ok(layoutAliasBad.length === 0 && layoutAliasRows === layout.length * 2,
+      `figma generalise (${id}): every layout grid alias resolves within THIS brand's space or dimension collection (${layoutAliasRows}/${layout.length * 2} rows selected)` + (layoutAliasBad.length ? ` — ${layoutAliasBad.slice(0, 3).join(', ')}` : ''));
 
     // (e) THE NAMESPACE, AND #1097 INVERTED THIS ARM. It used to read "no brand prefix": `figName` stripped
     // exactly one root segment and this walked every emitted name asserting none of `prism/`, `nbds/` or
