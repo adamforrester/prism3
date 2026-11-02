@@ -1,0 +1,132 @@
+[
+ {
+  "v": 1,
+  "id": "canary-0",
+  "cmd": "status",
+  "ok": true,
+  "startedAt": "2026-11-02T09:20:00Z",
+  "finishedAt": "2026-11-02T09:20:03Z",
+  "engineVersion": "0.237.0",
+  "transport": "bridge",
+  "result": {
+   "verdict": null,
+   "data": {
+    "status": {
+     "engineVersion": "0.237.0",
+     "build": "2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3",
+     "file": {
+      "name": "Prism3 canary (scratch)",
+      "currentPage": "Cover",
+      "brandInput": "present",
+      "colorVars": 214,
+      "themed": true
+     },
+     "link": {
+      "v": 1,
+      "on": true,
+      "since": "2026-11-02T09:19:40Z",
+      "engineVersion": "0.237.0",
+      "build": "2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3",
+      "pollMs": 1500,
+      "transports": {
+       "mailbox": true,
+       "bridge": true
+      },
+      "lastCommand": null,
+      "inboxError": null
+     },
+     "commands": [
+      "status",
+      "apply-theme",
+      "build-components",
+      "file-setup",
+      "style-guide",
+      "prune",
+      "readback",
+      "update-components",
+      "capture-baseline",
+      "adopt-members",
+      "draw-specs",
+      "run-code"
+     ]
+    }
+   },
+   "logs": []
+  }
+ },
+ {
+  "v": 1,
+  "id": "canary-1",
+  "cmd": "readback",
+  "ok": true,
+  "startedAt": "2026-11-02T09:20:04Z",
+  "finishedAt": "2026-11-02T09:20:07Z",
+  "engineVersion": "0.237.0",
+  "transport": "bridge",
+  "result": {
+   "verdict": {
+    "type": "seed-info",
+    "ok": true,
+    "headline": "✓ Read the file: theme and 5 component sets",
+    "summary": "The file holds a theme and 5 component sets."
+   },
+   "data": {
+    "components": {
+     "sets": 5,
+     "pages": 5
+    }
+   },
+   "logs": []
+  }
+ },
+ {
+  "v": 1,
+  "id": "canary-2",
+  "cmd": "update-components",
+  "ok": false,
+  "startedAt": "2026-11-02T09:20:08Z",
+  "finishedAt": "2026-11-02T09:20:11Z",
+  "engineVersion": "0.237.0",
+  "transport": "bridge",
+  "result": {
+   "verdict": {
+    "type": "component-update-result",
+    "ok": false,
+    "headline": "✗ check failed",
+    "summary": "'get' on proxy: property 'getLocalTextStylesAsync' is a read-only and non-configurable data property on the proxy target but the proxy did not return its actual value (expected 'function innerRealmSafeFunction(...)' but got 'function () { [native code] }')",
+    "lines": [
+     "'get' on proxy: property 'getLocalTextStylesAsync' is a read-only and non-configurable data property on the proxy target but the proxy did not return its actual value (expected 'function innerRealmSafeFunction(...)' but got 'function () { [native code] }')"
+    ]
+   },
+   "data": {},
+   "logs": []
+  }
+ },
+ {
+  "v": 1,
+  "id": "canary-3",
+  "cmd": "prune",
+  "ok": true,
+  "startedAt": "2026-11-02T09:20:12Z",
+  "finishedAt": "2026-11-02T09:20:15Z",
+  "engineVersion": "0.237.0",
+  "transport": "bridge",
+  "result": {
+   "verdict": {
+    "type": "prune-result",
+    "ok": true,
+    "applied": false,
+    "count": 0,
+    "summary": "Nothing to remove."
+   },
+   "data": {
+    "prunePlan": {
+     "variables": [],
+     "styles": []
+    },
+    "staleFurniture": []
+   },
+   "logs": []
+  }
+ }
+]
