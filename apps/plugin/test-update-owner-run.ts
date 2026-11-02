@@ -160,8 +160,10 @@ ok(JSON.stringify(order) === JSON.stringify(['button', 'button-destructive', 'bu
 //    Checkbox.Row are built with problems, as the owner's were; the other four are clean.
 const DOC_BLOCK = 'No usage panels drawn: this file has no _Doc-block component. Run Set up file, then build again';
 const WITH_PROBLEMS = ['button', 'link', 'badge', 'checkbox-group', 'checkbox-row'];
+// Posted in the run's order, as the panel posts them: `startRun` puts each set after the queued sets it nests (#3320).
+let run = startRun('selection', order, catalog);
 const answers: { id: string; r: any }[] = [];
-for (const id of order) {
+for (const id of run.ids) {
   const r = await send({ type: 'build-components', def: id }, ['component-result']);
   answers.push({ id, r });
   const lines: string[] = Array.isArray(r?.lines) ? r.lines : [];
@@ -172,15 +174,14 @@ for (const id of order) {
   // fresh file (Q3308.3, held for the owner). A clean set has no such line.
   ok(lines.includes(DOC_BLOCK) === bad, `sets/${id}: ${bad ? 'its problem is' : 'no problem line:'} "${DOC_BLOCK}" (${JSON.stringify(lines.filter((l) => l.startsWith('No usage') || l.startsWith('⚠')))})`);
 }
-// Checkbox.Row, queued after Checkbox.Group built it as a dependency, is built again and finds its members present: the
-// owner's "built twice" (#3308 item 3, its own fix). Its problem lines say so.
+// Checkbox.Row, posted before Checkbox.Group (which nests it), is built once: no member is found already present. The
+// owner's "built twice" (#3308 item 3) is #3320's fix.
 const row = answers.find((a) => a.id === 'checkbox-row')?.r;
-ok(row?.headline === '⚠ already built' && (row?.lines ?? []).some((l: string) => l.startsWith('⚠ 6 misses (member status=default, size=medium -> ALREADY PRESENT (skipped; this set has been written before);')),
-  `sets/checkbox-row: built again after Checkbox.Group's dependency build, its six members already present (${JSON.stringify(row?.headline)})`);
+ok(row?.headline === '⚠ built 6 variants' && !(row?.lines ?? []).some((l: string) => l.includes('ALREADY PRESENT')),
+  `sets/checkbox-row: built once, before Checkbox.Group, its six members new (${JSON.stringify(row?.headline)})`);
 
 // 4. The panel's verdict and run over those answers, recorded as `runAfterResult` records each: ok, issues (completed,
 //    not ok) or failed. The theme step is the file's variables above, so the run here is Set up file, To add, Style guides.
-let run = startRun('selection', order);
 for (const { id, r } of answers) run = record(run, { id, result: r?.ok ? 'ok' : r?.completed ? 'issues' : 'failed', headline: String(r?.headline ?? '') });
 const verdict = runVerdict(run, catalog);
 ok(verdict.ok === false && verdict.headline === '⚠ Built 9 sets · 5 with problems',

@@ -17439,6 +17439,12 @@ for (const host of ['web', 'figma']) {
 // Mutations, each failing here by name: the button's ArrowDown removed → every `ArrowDown opens` arm; Escape's
 // `stopPropagation` removed → every `Escape … goes no further` arm; one menu back on its own copy without either → its
 // own two arms (Theme, the drift the review found).
+// The open Inspect menu also stays inside the viewport at 1280 with the approved privacy note in it (#3147, Q3147.17).
+// Mutation: `.p3-menu-privacy` without `width: 0; min-width: 100%; box-sizing: border-box` → `Inspect: the open menu,
+// privacy note and all, stays inside the … viewport`, on both hosts.
+// At 1280 the menu is also at least 320 px wide and the note at most 6 lines (#3147, O2 B). Mutation: the Inspect menu's
+// `width: calc(var(--p3-dlg-unit) * 2.5)` removed → `Inspect: the open menu is at least 320 px wide and its privacy note
+// at most 6 lines`, on web.
 // =============================================================================================
 if (runs('47-menu')) {
 console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
@@ -17459,6 +17465,33 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
         return { expanded: btn?.getAttribute('aria-expanded') ?? null, menu: !!menu, inside: !!menu && menu.contains(document.activeElement) };
       }, [btnHook, menuHook]);
       ok(opened.expanded === 'true' && opened.menu && opened.inside, `${where} ${name}: ArrowDown on the closed button opens the menu, focus inside it (${JSON.stringify(opened)})`);
+      if (name === 'Inspect') {
+        // #3147 (Q3147.17): the approved privacy note is long, and the menu sizes to `max-content`, so the note must wrap
+        // within the width the menu's items give it rather than set that width. ORACLE: the browser's own rects against
+        // the viewport, typed bounds here.
+        step = 'Inspect: the open menu, measured';
+        const box = await page.evaluate((m) => {
+          const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { left: Math.round(b.left), right: Math.round(b.right), width: Math.round(b.width) } : null; };
+          const menu = document.querySelector(`[data-p3="${m}"]`);
+          return { vw: window.innerWidth, menu: r(menu), note: r(menu?.querySelector('[data-p3="privacy-note"]')) };
+        }, menuHook);
+        ok(!!box.menu && !!box.note && box.menu.left >= 0 && box.menu.right <= box.vw && box.note.width <= box.menu.width,
+          `${where} Inspect: the open menu, privacy note and all, stays inside the ${box.vw} px viewport (${JSON.stringify(box)})`);
+        // #3147 (O2 B, owner, 2026-11-02): at 1280 the menu is at least 320px wide, so the note wraps to about five lines,
+        // not to the stamp's width (it was 17 on web). ORACLE: typed literals here, never the chrome's token; the note's
+        // lines are its content height over its computed line height, both read from the browser.
+        step = 'Inspect: the privacy note, measured';
+        const lines = await page.evaluate((m) => {
+          const n = document.querySelector(`[data-p3="${m}"] [data-p3="privacy-note"]`);
+          if (!n) return null;
+          const cs = getComputedStyle(n);
+          const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+          const h = n.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+          return { height: Math.round(h * 10) / 10, lineHeight: lh, lines: Math.round(h / lh) };
+        }, menuHook);
+        ok(!!box.menu && box.menu.width >= 320 && !!lines && lines.lines <= 6,
+          `${where} Inspect: the open menu is at least 320 px wide and its privacy note at most 6 lines (${JSON.stringify({ menu: box.menu, note: lines })})`);
+      }
       step = `${name}: Escape in the menu`;
       // Open by a click when ArrowDown did not, so this arm reads Escape alone, never the ArrowDown arm's failure.
       if (!opened.menu) await hooks.click(page.locator(`[data-p3="${btnHook}"]`));
@@ -18801,6 +18834,92 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
   } finally { await ctx.close(); }
 }
 } // 3170
+
+// =============================================================================================
+// #3305 — THE ACTIVITY DRAWER'S MONOSPACE TEXT AT 10px (the owner, 2026-11-02)
+// =============================================================================================
+// The drawer's mono text, a run's console lines (`.p3-op-summary`), an Update's publish description
+// (`.p3-op-publish-text`) and the status strip's counter (`.p3-status-n`), is drawn at 10px, its leading the drawer's
+// 1.5 (15px); its UI-face text, a bad result's reason (`.p3-op-reason`), the row's title and the strip's words, stays at
+// 12px. Read as computed, on both hosts, light and dark, at 1280 and 380:
+//   · the plugin, whose drawer draws: the strip planted by a `run-progress` reading, then an agent's Update result with
+//     a reason, two console lines and a publish description, each node read as drawn;
+//   · the studio, which runs no write and so draws no drawer (section 10): the same classes mounted in its frame, read
+//     through the studio bundle's own stylesheet. A probe of the stylesheet, not of a drawn drawer, and labeled so.
+// INDEPENDENCE (docs/34): the sizes are the issue's literals, typed here; nothing is read from `tokens.mjs`, `spec.mjs`,
+// `chrome.css` or the emission. MUTATION: `.p3-op-summary`'s `font-size: var(--p3-fs-10)` removed from `chrome.css` (the
+// lines inherit the drawer's 12px again) → `#3305 … a run's console lines (.p3-op-summary) are 10px`, by name.
+if (runs('3305')) {
+console.log(`\n#3305 — the Activity drawer's monospace text at 10px\n${'='.repeat(78)}`);
+const MONO_3305 = { size: '10px', lh: '15px' }, UI_3305 = '12px';
+const FACE_3305 = (page) => page.evaluate(() => {
+  const read = (sel) => { const n = document.querySelector(sel); if (!n || !n.checkVisibility()) return null; const cs = getComputedStyle(n);
+    return { size: cs.fontSize, lh: cs.lineHeight, mono: /mono/i.test(cs.fontFamily) }; };
+  // By the classes the issue names, inside the drawer (`.p3-drawer`), so the studio's mounted probe needs no hook.
+  return {
+    summary: read('.p3-drawer .p3-op-body > .p3-op-summary'), publish: read('.p3-drawer .p3-op-publish-text'), n: read('.p3-drawer .p3-status-n'),
+    reason: read('.p3-drawer .p3-op-body > .p3-op-reason'), title: read('.p3-drawer .p3-op-head b'), what: read('.p3-drawer .p3-status-what'),
+  };
+});
+const holds3305 = (where, f, names) => {
+  const mono = (r) => !!r && r.mono && r.size === MONO_3305.size && r.lh === MONO_3305.lh;
+  const ui = (r) => !!r && !r.mono && r.size === UI_3305;
+  for (const [k, what] of names.mono) ok(mono(f[k]), `#3305 ${where}: ${what} are ${MONO_3305.size} on a ${MONO_3305.lh} line, in the mono face (read ${JSON.stringify(f[k])})`);
+  for (const [k, what] of names.ui) ok(ui(f[k]), `#3305 ${where}: ${what} stays ${UI_3305} in the UI face (read ${JSON.stringify(f[k])})`);
+};
+const N_3305 = [['n', "the status strip's counter (.p3-status-n)"]], WHAT_3305 = [['what', "the status strip's words (.p3-status-what)"]];
+const ROW_MONO_3305 = [['summary', "a run's console lines (.p3-op-summary)"], ['publish', "the publish description (.p3-op-publish-text)"]];
+const ROW_UI_3305 = [['reason', "a bad result's reason (.p3-op-reason)"], ['title', "the row's title (.p3-op-head b)"]];
+for (const host of ['figma', 'web']) {
+  for (const theme of ['light', 'dark']) {
+    for (const w of [1280, 380]) {
+      const where = `${host} ${theme} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme, w, h: w === 380 ? 760 : 900 });
+      let step = host === 'figma' ? 'the status strip' : 'the studio stylesheet';
+      try {
+        if (host === 'figma') {
+          await postMsg(page, { type: 'run-progress', run: 'read', phase: 'work', item: null, done: 24, total: 60 });
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="status-n"]', WAIT);
+          holds3305(where, await FACE_3305(page), { mono: N_3305, ui: WHAT_3305 });
+          await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: [], atOpen: true });
+          step = "an agent's Update result";
+          await postMsg(page, { type: 'agent-started', id: 'm3305', cmd: 'update-components' });
+          await postMsg(page, { type: 'component-update-result', ok: false, headline: '✗ 1 set not updated', summary: 'Button was hand-edited.',
+            lines: ['Button was hand-edited.', 'button: 24 variants checked', 'tag: up to date'], publish: 'Button: 24 variants updated.' });
+          await postMsg(page, { type: 'agent-finished', id: 'm3305', cmd: 'update-components' });
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-body"] > [data-p3="op-summary"]', WAIT);
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-publish-text"]', WAIT);
+          await settle(page);
+          holds3305(where, await FACE_3305(page), { mono: ROW_MONO_3305, ui: ROW_UI_3305 });
+        } else {
+          // The studio draws no drawer, so its stylesheet is probed through the drawer's own classes, mounted in its frame:
+          // classes only, no hook and no inline value.
+          await page.evaluate(() => {
+            const el = (tag, cls, text) => { const n = document.createElement(tag); n.className = cls; if (text) n.textContent = text; return n; };
+            const d = el('div', 'p3-drawer');
+            const strip = el('div', 'p3-status'), top = el('div', 'p3-status-top');
+            top.append(el('span', 'p3-status-what', 'Reading this file…'), el('span', 'p3-status-n', 'page 24 of 60'));
+            strip.append(top);
+            const op = el('div', 'p3-op'), head = el('button', 'p3-op-head'), body = el('div', 'p3-op-body');
+            head.append(el('b', '', 'Build set'));
+            const ul = el('ul', 'p3-op-summary'); ul.append(el('li', 'p3-op-line', 'button: 24 variants checked'));
+            body.append(el('p', 'p3-op-reason', 'Button was hand-edited.'), ul, el('pre', 'p3-op-publish-text', 'Button: 24 variants updated.'));
+            op.append(head, body);
+            d.append(strip, op);
+            document.querySelector('[data-p3="frame"]').append(d);
+          });
+          await settle(page);
+          const f = await FACE_3305(page);
+          holds3305(`${where} (the studio stylesheet, a mounted probe)`, f, { mono: [...N_3305, ...ROW_MONO_3305], ui: [...WHAT_3305, ...ROW_UI_3305] });
+        }
+        ok(errors.length === 0, `#3305 ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `#3305 ${where}: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+} // 3305
 // =============================================================================================
 // #3150 — THE CHROME'S MOTION (part 2; the owner's Q3150.1–11 A, 2026-10-31). Every other section runs with the motion
 // durations at 0s (SETTLED_MOTION, beside `browser`), so it measures end states; this one runs them live.
@@ -19522,6 +19641,74 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
   } finally { await ctx.close(); }
 }
 } // 3149
+// 3013. THE MODE CONTROL KEEPS FOCUS WHEN IT SWITCHES (#3013, WCAG 2.4.3). The preview header's mode control shows its
+//     radios when they fit and the select otherwise (#2383), hiding the other with `display: none`. Focus in the one
+//     that gives way used to fall to the body. On both hosts, Depth & motion, light chrome: from 1600 px the checked
+//     radio is focused and the window narrows 100 px at a time until the select shows; focus must be on the select.
+//     Then the window widens back and focus must be on the checked radio. The control: focus on Inspect, beside it,
+//     through the same switch both ways, stays on Inspect, so a fit that pulls focus in from elsewhere fails too.
+//     Independence (docs/34): the widths are found by narrowing, never read from `preview.ts`; the controls are found
+//     by their hooks, the checked radio by its `aria-checked`, and focus read as `document.activeElement` after three
+//     frames, as #3013 reproduced it.
+//     Mutations this fails by name: `fit`'s focus move dropped (preview.ts) → `3013 <host>: narrowing to … focus moves
+//     from the checked radio to the select …` and `… widening … to the checked radio …`; the move made whatever held
+//     focus (its `had` test dropped) → `3013 <host>: … focus on Inspect stays there …`.
+if (runs('3013')) {
+console.log(`\nMode control focus (#3013)\n${'='.repeat(78)}`);
+const frames3 = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+const focusNow = (page) => page.evaluate(() => {
+  const a = document.activeElement;
+  const fit = document.querySelector('[data-p3="mode-select"]')?.checkVisibility() ? 'select' : 'radios';
+  return { fit, active: a?.getAttribute('data-p3') ?? a?.tagName ?? null, checked: a?.getAttribute('aria-checked') ?? null };
+});
+for (const host of ['figma', 'web']) {
+  const where = `3013 ${host}`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1600, h: 900 });
+  let step = 'Depth & motion';
+  try {
+    await goPlace(page, 'depth');
+    await frames3(page);
+    const wide = await focusNow(page);
+    ok(wide.fit === 'radios', `${where}: fixture: at 1600 px the mode control shows its radios (${JSON.stringify(wide)})`);
+    /** Narrow from 1600 by 100 px until the select shows; the width it first shows at, or 0 when it never does. */
+    const narrowToSelect = async () => {
+      for (let w = 1500; w >= 600; w -= 100) {
+        await page.setViewportSize({ width: w, height: 900 });
+        await frames3(page);
+        if ((await focusNow(page)).fit === 'select') return w;
+      }
+      return 0;
+    };
+    step = 'the checked radio focused';
+    await page.locator('[data-p3="mode-option"][aria-checked="true"]').focus();
+    const before = await focusNow(page);
+    ok(before.active === 'mode-option' && before.checked === 'true', `${where}: fixture: the checked radio holds focus at 1600 px (${JSON.stringify(before)})`);
+    step = 'narrowing';
+    const at = await narrowToSelect();
+    const narrowed = await focusNow(page);
+    ok(at > 0 && narrowed.active === 'mode-select',
+      `${where}: narrowing to ${at || 'no width'} px switches the radios to the select, and focus moves from the checked radio to the select, not the body (${JSON.stringify(narrowed)})`);
+    step = 'widening';
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await frames3(page);
+    const widened = await focusNow(page);
+    ok(widened.fit === 'radios' && widened.active === 'mode-option' && widened.checked === 'true',
+      `${where}: widening back to 1600 px switches the select to the radios, and focus moves to the checked radio, not the body (${JSON.stringify(widened)})`);
+    step = 'Inspect focused (control)';
+    await page.locator('[data-p3="inspect-open"]').focus();
+    const at2 = await narrowToSelect();
+    const ctlNarrow = await focusNow(page);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await frames3(page);
+    const ctlWide = await focusNow(page);
+    ok(at2 > 0 && ctlNarrow.active === 'inspect-open' && ctlWide.fit === 'radios' && ctlWide.active === 'inspect-open',
+      `${where}: through the same switch both ways, focus on Inspect stays there: the fit moves only the focus the control held (${JSON.stringify({ ctlNarrow, ctlWide })})`);
+    ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  } catch (e) {
+    ok(false, `${where}: ${step}: ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3013
 // 3044. THE SECTION WATCHDOG FIRES BY NAME (#3044). The suite runs itself as a child with `--stall-self-check`, whose one
 //     section awaits a promise that never settles, and a 1 s limit. Only the watchdog in `enter` can end that child,
 //     and it must end it with exit 1 and the named failure, within a bound held on this side (a child that hangs is

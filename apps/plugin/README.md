@@ -337,7 +337,12 @@ member names; the executor writes them from that plan on every build and every i
 write, because a reaction names its destination by node id and a member an update re-adds comes back under a new one
 (docs/18 §3). They are in the as-built record, so the dry run reads a reaction a designer removed or changed as a hand
 edit, a missing or extra one as "to update", and one pointing at a member no longer in the set as dangling. Gated by
-`test-reactions.ts`. The `use_figma` paste path writes none (#2564).
+`test-reactions.ts`. The `use_figma` paste path writes the same reactions through the same pass (`writeSetReactions`),
+in a script of its own right after a set's last chunk, from the planned member names that script carries (#2564,
+`runComponentReactions`, `test-paste-reactions.ts`).
+They are not recorded there: the paste path writes no as-built record, so an in-place update cannot repair them, the
+same as everything else on a paste build. A member that already has reactions is left alone, so a re-paste keeps a
+designer's edit (owner Q on #3287).
 
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
 placement, and the message contract + main-thread handler are complete and ready for it.
@@ -373,8 +378,8 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   tsconfigs): the command envelope `{v, id, cmd, args, issuedAt}`, the result envelope
   `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the
   commands (`AGENT_COMMANDS`: `status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`,
-  `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, and the four read-only node
-  commands below) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, the four read-only node
+  commands below, and `activity`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
 - ✅ **Read-only node commands** (#3147 Phase 2a, Q3147.10 and .14 A) — `inspect`, `component-keys`, `audit-frames`
   and `snapshot` (`src/agent-reads.ts`) read any layer, so a file where Prism3 is open needs no second plugin for the
@@ -383,6 +388,11 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   each over its transport against `NodeShim` (`file-shim.ts`), whose write log must stay empty, and compare the data
   with the literals in `agent-read-fixture.ts`. Walks are capped, and a layer that throws on read is listed
   `unreadable` while its siblings are still read. The write commands (Phase 2b) are not here yet.
+- ✅ **`activity`** (#3309) — the Activity drawer's runs this session, newest first, so an agent can read the result of a
+  run the owner started from the panel: op, time, verdict, headline, lines, each set built with problems and its
+  reasons, and the build stamp. Read from `src/activity-log.ts`, the main thread's memory of every verdict it posted to
+  the panel plus the panel's own summaries of a multi-set build and of Update file's run (`activity-note`). It posts no
+  verdict and writes nothing; `test-agent-link.ts` and `test-agent-bridge.ts` assert the write log stays empty.
 - ✅ **No parallel path** — `main.ts`'s handlers report to an `ActionSink`; the panel passes one that posts
   exactly what it posted before, and the dispatcher (`src/agent-dispatch.ts`) passes one that captures the
   verdict plus the structured `data` each handler now exposes. Both callers reach the handlers through ONE
@@ -453,7 +463,9 @@ build's domains and adds the dev-only code (`PRISM3_DEV`), such as the agent lin
 
 **Privacy.** The network build sends a brand face's family name to Google Fonts when the preview can't paint that face,
 and Google receives the user's IP address with it. Nothing from the file is sent. The offline build makes no network
-calls. The panel says which at the foot of the Inspect menu, and each manifest's `reasoning` says it to Figma.
+calls. The panel says which at the foot of the Inspect menu, and each manifest's `reasoning` says it to Figma. The
+network build's note is the owner's approved wording (#3147, Q3147.7 A and Q3147.17 A), and `lint-network-reach.ts`
+holds each build's bundle to its own note.
 
 **The gates.** `lint-network-reach.ts`: the offline bundles carry no request primitive and no allowed host, and the
 network build's every named host is one of its listed domains or reference-only. `lint-release-bundle.ts` holds both
@@ -469,6 +481,44 @@ materialize the whole generated system — `core-palette` + `color`, the ten FLO
 `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`), shadow/gradient Styles, and font variables +
 Text Styles (#237, see above) — into the current file; the panel reports any existing Prism3 theme
 found on boot.
+
+## Releasing to the organization (#3147, the owner's Q3147.15 to Q3147.21, all A)
+
+Only the owner publishes. Nothing in this repository publishes, tags or pushes a release.
+
+- **When.** On demand, by the owner, and only after `npm run verify` is green on that commit. At most one publish a day.
+  Nothing publishes on a schedule (Q3147.19).
+- **Both plugins.** "Prism3 Studio Offline" is published org-private too, from the same commit and at the same time, for
+  teams whose admins don't allow plugins with network access (Q3147.20).
+- **The id.** Keep `prism3-theming-plugin` (Q3147.15). If Figma's publish refuses it and issues its own id, use the issued
+  id, and bring that back to #3147 first: it revises Q3138.7 A, and every machine pairs the bridge again.
+- **If Figma refuses `ws://localhost:17331`** in a published plugin's `allowedDomains`, publish without it (the fonts
+  hosts only). The bridge stays in the owner's dev import until Figma allows it. Record what Figma said on #3147
+  (Q3147.21).
+- **A clean, current build only** (Q3147.16). `build:release` refuses to build when the build stamp's commit is
+  `-dirty` or `git-unavailable`, when the checkout is behind `origin/main`, or when it cannot tell (`git-stamp.mjs`,
+  `releaseCheck`; tested in `test-git-stamp.ts` with stand-in git). It writes nothing when it refuses. A dev build keeps
+  #3239's warning. Under `CI` (GitHub Actions, and every gate `verify.ts` runs) the release build is a gate, never
+  published, so it warns with the same reasons and builds.
+- **The privacy note** (Q3147.17) is in the plugin at the foot of the Inspect menu. Paste the same text into the publish
+  page's description: it is printed in the release note below.
+
+**Each publish:**
+1. On an up-to-date `main`: `npm ci`, then `npm run verify` is green.
+2. `npm run -w @prism3/plugin build:release`. It refuses a dirty or stale checkout. Then run
+   `npx tsx apps/plugin/lint-release-bundle.ts` and `npx tsx apps/plugin/lint-network-reach.ts`.
+3. In Figma desktop: **Plugins → Development → Import plugin from manifest…** → `apps/plugin/release/manifest.json` (the
+   release folder, not `dist/`). Run it once in a scratch file and check the menu stamp's commit.
+4. **Plugins → Development → Manage plugins in development → Prism3 Studio → Publish.** Choose the organization
+   (private), not Community. Add the privacy note to the description.
+5. If the organization's admins restrict plugins, ask them to approve it. Their screen shows the domains and `reasoning`.
+6. Repeat steps 3 to 5 for `apps/plugin/release-offline/manifest.json` (Prism3 Studio Offline).
+7. Record it (Q3147.18): `npx tsx tools/release/prepare.ts --figma-version <N>`, where N is Figma's version number. It
+   checks the checkout and both builds, writes the two zips and a draft release note, and prints the `git tag`,
+   `git push` and `gh release create --draft` commands for you to run (`tools/release/README.md`).
+
+**Rollback:** import the previous record's zip and publish it as a new version, with a note that says "rollback to
+r<N>". Users get it the next time they open the plugin.
 
 ## ⚠️ The plugin does NOT auto-update when the web UI changes
 

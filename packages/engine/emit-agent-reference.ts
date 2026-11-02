@@ -130,6 +130,7 @@ export const WRITES: Record<string, string> = {
   'component-keys': 'Nothing. Reads every local component set and component, page by page.',
   'audit-frames': 'Nothing. Reads the listed frames and the layers in them.',
   snapshot: 'Nothing. Renders one node to PNG in this session.',
+  activity: 'Nothing. Reads the Activity drawer\'s runs this session from the plugin\'s memory; nothing is kept in the file.',
   'run-code': 'Whatever the code writes. Dev builds only; a release build answers unknown-command.',
 };
 
@@ -257,6 +258,7 @@ export const CLI = [
   'tools/figma-mcp/agent-link.ts',
   'tools/figma-mcp/plan.ts',
   'tools/figma-mcp/report.ts',
+  'tools/release/prepare.ts',
   'packages/engine/emit-agent-reference.ts',
   'packages/engine/emit-figma-conventions.ts',
 ];
@@ -275,7 +277,7 @@ export const CLI_EXCLUDED: Record<string, string> = {
 const GATE = /^packages\/engine\/lint-[a-z0-9-]+\.ts$/;
 
 /** Where entry points can live. A file under one of these that reads `process.argv` must be listed or excluded. */
-const CLI_DIRS = ['', 'packages/engine', 'tools/figma-bridge', 'tools/figma-mcp'];
+const CLI_DIRS = ['', 'packages/engine', 'tools/figma-bridge', 'tools/figma-mcp', 'tools/release'];
 
 const readsArgv = (p: string): boolean => /process\.argv/.test(read(p));
 

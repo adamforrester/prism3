@@ -59,6 +59,6 @@ Each mode gets its own column, side by side, and each swatch stays bound to its 
 
 A rerun finds each table it drew before and updates it in place, reporting tokens added, removed and changed. <!-- src: apps/plugin/src/style-guide.ts:30-31 -->
 A table whose group is gone is deleted only if the plugin drew it and nobody has changed it since. A table someone edited, moved or copied is left in place and reported. <!-- src: apps/plugin/src/style-guide.ts:32-33 -->
-A run filtered by table title never deletes another table. <!-- src: tools/figma-mcp/README.md:186-187 -->
+A run filtered by table title never deletes another table. <!-- src: tools/figma-mcp/README.md:187-188 -->
 
 Tables for groups Prism3 no longer draws are offered for removal in Update file's **Clean up** tab. <!-- src: apps/studio/src/state/update-file.ts:194 --> See [Update a Figma file](update-a-file-safely.md#remove-what-the-brand-no-longer-uses).

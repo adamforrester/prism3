@@ -54,13 +54,26 @@
  *       retint of the derived file and its record together still fails here, because the social file is the oracle.
  *       Its geometry is `lint-glyph-geometry.ts`'s DERIVED arm.
  *
+ *   (i) THE PAINT BASELINE (#3066, owner decision Q3066.1 A) — (a) holds a file to its record, and the two are typed in
+ *       the same edit, so a retint of both passed every gate (docs/34 shape 11: the person editing sits under both sides).
+ *       `schema/mark-paints.json` lists each mark file's paints, in painting order, seeded from the owner's own drop
+ *       (commit `3675273d`, `incoming-marks/`) rather than from today's files; every later difference carries the
+ *       `decision` that made it. Every `marks/**.svg`, and every document `emit-marks.ts` wrote, paints exactly its
+ *       baseline list (`PAINT BASELINE`), and the listing and the baseline agree both ways. Only `--accept --decision
+ *       <ref>` rewrites the baseline, and it stamps that ref on each entry it changes, so a retint shows in the diff with
+ *       the decision that allowed it (docs/34 shape 6: regen never writes it). `--seed-check` re-reads every entry that
+ *       cites no decision from the seed commit and fails on any that differ; it needs that commit, so it is a local
+ *       check, not a CI step. The reader is `paintsOf`, written for both the drop's spelling (keywords, short hex,
+ *       `<rect>`, `<use>`, clip paths, gradients in any place) and today's, and it refuses a paint it cannot read.
+ *
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────────
  *
  * The source reader here is its own: a regex over `fill="…"` and `stop-color="…"` in the raw file, which never
  * calls `emit-marks.ts`. The module and the plan are the subjects; the files and the records are typed by
  * people. Comparing the plan to the module alone would only prove the projector copies what it was handed.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { componentDefs } from './components';
@@ -120,6 +133,78 @@ export const colorsOf = (svg: string): string[] => {
   }
   return out;
 };
+/** (i) A color as the baseline spells it: `#RRGGBB`, upper case. The two keywords the drop uses are named here; any
+ *  other spelling is refused by `paintsOf`. Pure. */
+const KEYWORDS: Record<string, string> = { white: '#FFFFFF', black: '#000000' };
+export const hex6 = (v: string): string | undefined => {
+  const k = KEYWORDS[v.toLowerCase()];
+  if (k) return k;
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v)?.[1];
+  return m && `#${(m.length === 3 ? [...m].map((c) => c + c).join('') : m).toUpperCase()}`;
+};
+/** Elements that paint nothing where they stand: a gradient paints where a shape references it, and a clip path or a
+ *  mask paints nowhere (the drop's Figma clip rects are `fill="white"`). */
+const UNPAINTED = new Set(['defs', 'clipPath', 'mask', 'linearGradient', 'radialGradient']);
+const SHAPES = new Set(['path', 'rect', 'circle', 'ellipse', 'polygon', 'use']);
+/** (i) The colors a document PAINTS, in painting order, each as `hex6`: a shape's fill, and for a `url(#id)` fill that
+ *  gradient's stops, read where the shape stands, wherever the gradient is declared. Throws on any paint it does not
+ *  read (a `style`, a stroke, a fill on a group, an unknown color or gradient), so a file it cannot read fails rather
+ *  than reads as fewer colors. Written for this gate; `emit-marks.ts` and `colorsOf` are not called. Pure. */
+export const paintsOf = (svg: string): string[] => {
+  const tags = [...svg.matchAll(/<(\/?)([a-zA-Z]+)\b([^>]*?)(\/?)>/g)].map(([, c, tag, attrs, s]) => ({ close: !!c, tag, attrs, self: !!s }));
+  const attr = (attrs: string, a: string): string | undefined => new RegExp(`\\s${a}="([^"]*)"`).exec(attrs)?.[1];
+  const color = (tag: string, a: string, v: string): string => {
+    const h = hex6(v);
+    if (!h) throw new Error(`<${tag}> ${a}="${v}" is not a color this reader knows`);
+    return h;
+  };
+  const gradients = new Map<string, string[]>();
+  let open: string[] | undefined;
+  for (const t of tags) {
+    if (/Gradient$/.test(t.tag)) {
+      if (t.close) open = undefined;
+      else if (!t.self) gradients.set(attr(t.attrs, 'id') ?? '', (open = []));
+    } else if (t.tag === 'stop' && !t.close) {
+      const v = attr(t.attrs, 'stop-color');
+      if (!open || v === undefined) throw new Error('a <stop> outside a gradient, or with no stop-color');
+      open.push(color('stop', 'stop-color', v));
+    }
+  }
+  const out: string[] = [];
+  let hidden = 0;
+  for (const t of tags) {
+    if (UNPAINTED.has(t.tag)) { if (t.close) hidden--; else if (!t.self) hidden++; continue; }
+    if (t.close || hidden) continue;
+    if (/\sstyle=/.test(t.attrs)) throw new Error(`<${t.tag}> carries a style attribute`);
+    for (const a of ['fill', 'stroke']) {
+      const v = attr(t.attrs, a);
+      if (v === undefined || v === 'none') continue;
+      if (a !== 'fill' || !SHAPES.has(t.tag)) throw new Error(`<${t.tag}> ${a}="${v}" is a paint this reader does not read`);
+      const ref = /^url\(#([^)]+)\)$/.exec(v)?.[1];
+      if (ref === undefined) { out.push(color(t.tag, a, v)); continue; }
+      const g = gradients.get(ref);
+      if (!g) throw new Error(`<${t.tag}> fills url(#${ref}), and no gradient has that id`);
+      out.push(...g);
+    }
+  }
+  return out;
+};
+/** A decision a baseline entry may cite: an issue or PR (`#3134`) or an owner question (`Q837 A`). */
+const DECISION = /^(#\d+|Q[\d.]+ [A-Z])( · (#\d+|Q[\d.]+ [A-Z]))*$/;
+type PaintEntry = { paints: string[]; decision?: string; supplied?: string };
+type PaintBaseline = { seed: string; marks: Record<string, PaintEntry> };
+/** What is wrong with one baseline entry's shape. Empty when right. Pure. */
+export const entryErrors = (e: unknown): string[] => {
+  if (!e || typeof e !== 'object') return ['is not an object'];
+  const out: string[] = [];
+  const { paints, decision, supplied, ...rest } = e as Record<string, unknown>;
+  if (!Array.isArray(paints) || !paints.length || paints.some((p) => typeof p !== 'string' || !/^#[0-9A-F]{6}$/.test(p))) out.push(`paints ${JSON.stringify(paints)} is not a non-empty list of #RRGGBB`);
+  if (decision !== undefined && (typeof decision !== 'string' || !DECISION.test(decision))) out.push(`decision ${JSON.stringify(decision)} cites no issue (#123) or owner question (Q123 A)`);
+  if (supplied !== undefined && (typeof supplied !== 'string' || !/^[a-z]+\/[a-z0-9-]+\.svg$/.test(supplied))) out.push(`supplied ${JSON.stringify(supplied)} is not a <kind>/<name>.svg path`);
+  if (Object.keys(rest).length) out.push(`carries ${Object.keys(rest).join(', ')}, which the baseline does not define`);
+  return out;
+};
+
 /** The same list, ordered as the document ORDERS IT FOR PAINTING: stops live in `<defs>` before the paths, in
  *  both the source and the module, so document order is the comparison. */
 const sameList = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -214,6 +299,22 @@ const self: string[] = [];
   if (groundErrors(btn(['#ffffff'], '#555555'), `${BUTTON_PREFIX}x-white`, { ground: '#ffffff' }).length !== 1) self.push('groundErrors misses an edge the record does not state');
   if (groundErrors(btn(), 'provider-logo/logo/x', undefined).length) self.push('groundErrors reports paint on a bare stand-in');
   if (groundErrors(btn(['#000000']), 'provider-logo/logo/x', undefined).length !== 1) self.push('groundErrors misses a stand-in that paints');
+  // (i) the reader: the drop's spelling and today's read the same, and a paint it cannot read throws.
+  const drop = '<svg fill="none"><g clip-path="url(#c)"><rect width="2" height="2" fill="white"/><path d="M0 0Z" fill="url(#g)"/><use href="#p" fill="#0af"/></g><defs><linearGradient id="g"><stop stop-color="#F34F26"/><stop offset="1" stop-color="black"/></linearGradient><clipPath id="c"><rect width="2" height="2" fill="white"/></clipPath><path id="p" d="M0 0Z"/></defs></svg>';
+  const today = '<svg fill="none"><defs><linearGradient id="g"><stop stop-color="#F34F26"/><stop offset="1" stop-color="#000000"/></linearGradient></defs><path d="M0 0H2V2H0Z" fill="#FFFFFF"/><path d="M0 0Z" fill="url(#g)"/><path d="M0 0Z" fill="#00AAFF"/></svg>';
+  const want = ['#FFFFFF', '#F34F26', '#000000', '#00AAFF'];
+  if (!sameList(paintsOf(drop), want)) self.push(`paintsOf reads ${JSON.stringify(paintsOf(drop))} from the drop's spelling (expected ${JSON.stringify(want)}: the clip rect unpainted, the gradient where it is used)`);
+  if (!sameList(paintsOf(today), want)) self.push(`paintsOf reads ${JSON.stringify(paintsOf(today))} from today's spelling (expected ${JSON.stringify(want)})`);
+  if (sameList(paintsOf(today.replace('#00AAFF', '#00AAFE')), want)) self.push('paintsOf misses a one-step retint');
+  for (const bad of ['<svg><path style="fill:red"/></svg>', '<svg><path stroke="#000000"/></svg>', '<svg><g fill="#000000"></g></svg>', '<svg><path fill="red"/></svg>', '<svg><path fill="url(#nope)"/></svg>']) {
+    let threw = false;
+    try { paintsOf(bad); } catch { threw = true; }
+    if (!threw) self.push(`paintsOf reads ${bad} without refusing it`);
+  }
+  if (entryErrors({ paints: ['#000000'], decision: '#3134' }).length || entryErrors({ paints: ['#000000'], decision: 'Q837 A', supplied: 'social/twitter.svg' }).length) self.push('entryErrors rejects a well-formed entry');
+  if (entryErrors({ paints: ['#000000'], decision: 'owner said so' }).length !== 1) self.push('entryErrors misses a decision that cites nothing');
+  if (entryErrors({ paints: ['#fff'] }).length !== 1 || entryErrors({ paints: [] }).length !== 1) self.push('entryErrors misses a malformed paint list');
+  if (entryErrors({ paints: ['#000000'], colors: [] }).length !== 1) self.push('entryErrors misses an unknown key');
 }
 if (self.length) {
   console.error("\n❌ lint-mark-colors' own detection is broken — it cannot see what it claims to:\n");
@@ -221,8 +322,94 @@ if (self.length) {
   process.exit(1);
 }
 
+// ---- (i) THE PAINT BASELINE: its modes, then its arm -----------------------------------------------
+const baselinePath = resolve(here, 'schema/mark-paints.json');
+/** Every `marks/**.svg`, as `<kind>/<name>.svg`, read from the folder rather than from any list the def or the
+ *  records keep. */
+const markFiles = (): string[] => readdirSync(marksDir)
+  .filter((k) => statSync(join(marksDir, k)).isDirectory())
+  .flatMap((k) => readdirSync(join(marksDir, k)).filter((f) => f.endsWith('.svg')).map((f) => `${k}/${f}`))
+  .sort();
+const readBaseline = (): PaintBaseline => JSON.parse(readFileSync(baselinePath, 'utf8')) as PaintBaseline;
+const writeBaseline = (b: PaintBaseline): void => {
+  const marks = Object.fromEntries(Object.keys(b.marks).sort().map((k) => [k, b.marks[k]]));
+  writeFileSync(baselinePath, `${JSON.stringify({ seed: b.seed, marks }, null, 2)}\n`);
+};
+const argv = process.argv.slice(2);
+if (argv.includes('--accept')) {
+  const decision = argv[argv.indexOf('--decision') + 1];
+  if (!argv.includes('--decision') || !decision || !DECISION.test(decision)) {
+    console.error('Usage: npx tsx packages/engine/lint-mark-colors.ts --accept --decision "<#issue | Qn X>"');
+    console.error('  An accept records a change to a provider\'s colors, so it names the decision that allowed it.');
+    process.exit(1);
+  }
+  const b = readBaseline(), files = markFiles(), changed: string[] = [];
+  for (const f of files) {
+    const paints = paintsOf(readFileSync(join(marksDir, f), 'utf8'));
+    const was = b.marks[f];
+    if (was && sameList(was.paints, paints)) continue;
+    b.marks[f] = { paints, decision };
+    changed.push(`${was ? 'changed' : 'added'}  ${f}  ${JSON.stringify(paints)}`);
+  }
+  for (const f of Object.keys(b.marks)) if (!files.includes(f)) { delete b.marks[f]; changed.push(`removed ${f}`); }
+  if (!changed.length) { console.log('Mark paints: every file already paints its baseline list; nothing to accept.'); process.exit(0); }
+  writeBaseline(b);
+  console.log(`Mark paints: accepted under ${decision}:`);
+  for (const c of changed) console.log(`    ${c}`);
+  process.exit(0);
+}
+if (argv.includes('--seed-check')) {
+  const b = readBaseline(), bad: string[] = [];
+  let seeded = 0, decided = 0;
+  for (const [f, e] of Object.entries(b.marks)) {
+    if (e.decision) { decided++; continue; }
+    seeded++;
+    let svg: string;
+    try { svg = execFileSync('git', ['show', `${b.seed}:incoming-marks/${e.supplied ?? f}`], { cwd: here, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); }
+    catch (err) {
+      console.error(`CANNOT DETERMINE — ${b.seed}:incoming-marks/${e.supplied ?? f} is unreadable here (${String((err as Error).message).split('\n')[0]}).`);
+      console.error(`  Fetch the seed commit first: git fetch origin refs/pull/3064/head`);
+      process.exit(1);
+    }
+    const seed = paintsOf(svg);
+    if (!sameList(seed, e.paints)) bad.push(`${f}: the baseline lists ${JSON.stringify(e.paints)}, cites no decision, and the seed paints ${JSON.stringify(seed)}`);
+  }
+  console.log(`Mark paints seed check — ${seeded} entr(ies) read against ${b.seed}, ${decided} carrying a decision.`);
+  if (bad.length) { console.error(`\n❌ ${bad.length} entr(ies) differ from the seed without a decision:\n`); for (const x of bad) console.error(`    ${x}`); process.exit(1); }
+  console.log('  ✓ every entry that cites no decision paints exactly what the seed commit painted');
+  process.exit(0);
+}
+
 // ---- THE REAL RUN ---------------------------------------------------------------------------------
 const failures: string[] = [];
+// (i) every mark file, and every emitted document, against the accept-only baseline (#3066)
+let baselined = 0;
+{
+  let b: PaintBaseline | undefined;
+  try { b = readBaseline(); } catch (e) { failures.push(`PAINT BASELINE — schema/mark-paints.json is unreadable (${(e as Error).message})`); }
+  if (b) {
+    if (typeof b.seed !== 'string' || !/^[0-9a-f]{8,40}$/.test(b.seed)) failures.push(`PAINT BASELINE — the seed ${JSON.stringify(b.seed)} is not a commit`);
+    const files = markFiles();
+    if (!files.length) failures.push('PAINT BASELINE — marks/ lists no SVG, so the arm read nothing');
+    for (const [f, e] of Object.entries(b.marks ?? {})) for (const x of entryErrors(e)) failures.push(`${f}: PAINT BASELINE — its entry ${x}`);
+    for (const f of Object.keys(b.marks ?? {})) if (!files.includes(f)) failures.push(`${f}: PAINT BASELINE — listed in schema/mark-paints.json, and marks/ has no such file`);
+    for (const f of files) {
+      const e = b.marks?.[f];
+      if (!e) { failures.push(`${f}: PAINT BASELINE — the file is not in schema/mark-paints.json; a new mark enters with --accept --decision`); continue; }
+      let paints: string[];
+      try { paints = paintsOf(readFileSync(join(marksDir, f), 'utf8')); } catch (err) { failures.push(`${f}: PAINT BASELINE — ${(err as Error).message}`); continue; }
+      baselined++;
+      if (!sameList(paints, e.paints)) failures.push(`${f}: PAINT BASELINE — paints ${JSON.stringify(paints)} and the baseline lists ${JSON.stringify(e.paints)}${e.decision ? ` (last accepted under ${e.decision})` : ` (as supplied, ${b.seed})`}: a mark is never retinted without a decision`);
+    }
+    for (const [name, source] of Object.entries(PROVIDER_LOGO_SOURCES)) {
+      const doc = PROVIDER_LOGO_DOCUMENTS[name as keyof typeof PROVIDER_LOGO_DOCUMENTS], e = b.marks?.[`${source}.svg`];
+      if (!doc || !e) continue; // (b) and the file loop above report these
+      let paints: string[];
+      try { paints = paintsOf(doc); } catch (err) { failures.push(`${name}: PAINT BASELINE — provider-logo-glyphs.ts: ${(err as Error).message}`); continue; }
+      if (!sameList(paints, e.paints)) failures.push(`${name}: PAINT BASELINE — provider-logo-glyphs.ts paints ${JSON.stringify(paints)} and the baseline lists ${JSON.stringify(e.paints)} for ${source}.svg`);
+    }
+  }
+}
 const records = (JSON.parse(readFileSync(join(marksDir, 'provenance.json'), 'utf8')) as { marks: Record<string, { colors?: string[] } & ButtonRecord> }).marks;
 const sourceColors = new Map<string, string[]>();
 const sourceSvgs = new Map<string, string>();
@@ -326,17 +513,19 @@ for (const id of MARK_HOSTS) if (!componentDefs.some((d) => d.id === id)) failur
 for (const id of TINT_HOSTS) if (!hostTints.get(id)) failures.push(`${id}: is in TINT_HOSTS and tints no provider glyph at any member — the tint arm read nothing for it`);
 for (const id of GROUND_HOSTS) if (!hostGrounds.get(id)) failures.push(`${id}: is in GROUND_HOSTS and paints no button logo's ground at any member — the ground arm read nothing for it`);
 
-console.log(`Mark colors — ${sourceColors.size} source file(s) (${derived} derived, read against their source), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark, ${tinted} of them tinted, ${grounded} on a button logo's ground.`);
+console.log(`Mark colors — ${sourceColors.size} source file(s) (${derived} derived, read against their source; ${baselined} against the paint baseline), ${markPlans} '${MARK_DEF}' plan(s), ${tileMembers} payment tile(s), ${hosted} host node(s) carrying a mark, ${tinted} of them tinted, ${grounded} on a button logo's ground.`);
 if (markPlans === 0 && markDef) failures.push(`'${MARK_DEF}' projected no plan — the plan arm checked nothing`);
 if (markDef && Object.keys(PROVIDER_LOGO_SOURCES).some(isTileMark) && tileMembers === 0) failures.push(`the set lists payment tiles and no '${MARK_DEF}' plan was read as a tile — the tile-edge arm checked nothing`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} mark color problem(s):\n`);
   for (const f of failures) console.error(`    ${f}`);
   console.error('\n  A mark keeps the colors in its file. Change a color only by replacing the file with the provider\'s');
-  console.error('  own artwork and its record with the new colors, then run npx tsx packages/engine/emit-marks.ts.');
+  console.error('  own artwork and its record with the new colors, then run npx tsx packages/engine/emit-marks.ts, and record');
+  console.error('  the decision that allowed it: npx tsx packages/engine/lint-mark-colors.ts --accept --decision "<#issue | Qn X>".');
   process.exit(1);
 }
 console.log('  ✓ clean — every mark paints its own colors, from file to record to module to plan, and no host retints one');
 console.log('    but SignInButton\'s provider glyphs (Q846 A);');
 console.log('    every payment tile\'s corners and edge are bound on its frame, and no other mark has an edge;');
-console.log('    every button logo sits on its record\'s ground and edge, at the edge\'s width (#3174).');
+console.log('    every button logo sits on its record\'s ground and edge, at the edge\'s width (#3174);');
+console.log('    every file and module document paints its baseline list, as supplied or under a cited decision (#3066).');

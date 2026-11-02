@@ -25,10 +25,14 @@
  *
  * ── SCOPE IS DECLARED, NOT INFERRED, AND IT IS THE ICON DEF ONLY ────────────────────────────────────
  *
- * `iconProse()` extracts a NAMED set of fields off the imported `icon` `ComponentDef` — its
- * `description`, each prop's `description`, each anatomy part's `note`, and every `codeOnly` entry. These
- * are the component's shipping DOCUMENTATION prose (they reach `apps/plugin/dist`, so `lint-us-english`
- * already scans them as an engine surface). Three surfaces are deliberately OUT of scope:
+ * `iconProse()` extracts a NAMED set of fields off the imported `icon` `ComponentDef`: every prose field
+ * that ships. That is `summary`, `description`, each prop's `description`, each anatomy part's `note`, every
+ * `codeOnly` entry, and the `accessibility`, `content`, `docs`, `ai`, `motion` and
+ * `composition.replacesPatterns` prose (#3062). These reach `out/components/components.ai.json`, the docs
+ * page and `apps/plugin/dist`. Until #3062 it read only the first four, so a count written in `summary` or
+ * `docs.usage` shipped unseen (docs/34 shape 15). `notes` is the one prose field left out: it is
+ * maintainer-only and ships nowhere. The SHIPPED COVERAGE arm below holds the list to the emission rather than
+ * to this paragraph. Three surfaces are deliberately OUT of scope:
  *
  *   - The CHANGELOG genre — `version.ts` entries and `docs/00-progress.md` — is append-only history, and
  *     an entry legitimately states the count that was true when it was written ("a 40th glyph joins the
@@ -69,6 +73,9 @@
  *
  * Dependency-free per repo convention — the def is imported, the detector is a hand-rolled regex.
  */
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { providerLogo, icon } from './components';
 import { ICON_NAMES } from './icon-glyphs';
 import type { ComponentDef } from './component-schema';
@@ -83,15 +90,25 @@ export type ProseField = { field: string; text: string };
  *  adding it here on purpose. */
 export const iconProse = (def: ComponentDef): ProseField[] => {
   const out: ProseField[] = [];
-  if (def.description) out.push({ field: 'description', text: def.description });
-  for (const p of def.props ?? []) {
-    if (p.description) out.push({ field: `props.${p.name}.description`, text: p.description });
-  }
+  const one = (field: string, text: string | undefined) => { if (text) out.push({ field, text }); };
+  const each = (field: string, list: readonly string[] | undefined) => (list ?? []).forEach((text, i) => one(`${field}[${i}]`, text));
+  one('summary', def.summary);
+  one('description', def.description);
+  for (const p of def.props ?? []) one(`props.${p.name}.description`, p.description);
   const parts = def.anatomy?.parts ?? {};
-  for (const [name, part] of Object.entries(parts)) {
-    if (part.note) out.push({ field: `anatomy.parts.${name}.note`, text: part.note });
-  }
-  (def.anatomy?.codeOnly ?? []).forEach((entry, i) => out.push({ field: `anatomy.codeOnly[${i}]`, text: entry }));
+  for (const [name, part] of Object.entries(parts)) one(`anatomy.parts.${name}.note`, part.note);
+  each('anatomy.codeOnly', def.anatomy?.codeOnly);
+  // #3062: the rest of what ships. Named by path, for the reason in the doc comment above.
+  const a = def.accessibility;
+  one('accessibility.role', a?.role); each('accessibility.wcag', a?.wcag); one('accessibility.keyboard', a?.keyboard);
+  one('accessibility.focus', a?.focus); one('accessibility.aria', a?.aria);
+  for (const [k, text] of Object.entries(def.content ?? {})) one(`content.${k}`, text);
+  one('docs.usage', def.docs?.usage); each('docs.do', def.docs?.do); each('docs.dont', def.docs?.dont);
+  one('docs.contentGuidelines', def.docs?.contentGuidelines);
+  one('ai.primaryPurpose', def.ai?.primaryPurpose); one('ai.whenToUse', def.ai?.whenToUse); one('ai.avoidWhen', def.ai?.avoidWhen);
+  each('ai.triggerKeywords', def.ai?.triggerKeywords);
+  one('motion.enter', def.motion?.enter); one('motion.exit', def.motion?.exit); one('motion.reduceMotion', def.motion?.reduceMotion);
+  each('composition.replacesPatterns', def.composition?.replacesPatterns);
   return out;
 };
 
@@ -164,14 +181,31 @@ if (!staleCounts('the set of 43 glyphs', 44).length) selfFails.push('staleCounts
 //    real one, so this assertion does not depend on icon.ts's current field count.
 {
   const sample = {
+    summary: 'one line',
     description: 'thirty-nine glyphs',
     props: [{ name: 'name', description: 'the vocabulary' } as never],
     anatomy: { parts: { glyph: { note: 'the outline' } }, codeOnly: ['a — ceiling one', 'b — ceiling two'] },
+    accessibility: { role: 'img', wcag: ['1.1.1'], keyboard: 'none', focus: 'none', aria: 'hidden' },
+    content: { labelPattern: 'a noun' },
+    docs: { usage: 'use it', do: ['do one'], dont: ['dont one'], contentGuidelines: 'name it' },
+    ai: { primaryPurpose: 'show', whenToUse: 'when', avoidWhen: 'avoid', triggerKeywords: ['kw'] },
+    motion: { enter: 'none', exit: 'none', reduceMotion: 'static' },
+    composition: { replacesPatterns: ['old way'] },
   } as unknown as ComponentDef;
   const fields = iconProse(sample).map((f) => f.field);
-  for (const want of ['description', 'props.name.description', 'anatomy.parts.glyph.note', 'anatomy.codeOnly[0]', 'anatomy.codeOnly[1]']) {
+  for (const want of ['summary', 'description', 'props.name.description', 'anatomy.parts.glyph.note', 'anatomy.codeOnly[0]', 'anatomy.codeOnly[1]',
+    'accessibility.role', 'accessibility.wcag[0]', 'accessibility.keyboard', 'accessibility.focus', 'accessibility.aria', 'content.labelPattern',
+    'docs.usage', 'docs.do[0]', 'docs.dont[0]', 'docs.contentGuidelines', 'ai.primaryPurpose', 'ai.whenToUse', 'ai.avoidWhen', 'ai.triggerKeywords[0]',
+    'motion.enter', 'motion.exit', 'motion.reduceMotion', 'composition.replacesPatterns[0]']) {
     if (!fields.includes(want)) selfFails.push(`iconProse dropped the '${want}' field`);
   }
+}
+// 7. #3062's own case: a count in `summary` reaches the detector. Driven through `iconProse` on a def whose ONLY
+//    count is in `summary`, so an extractor that drops the field fails here. The mark detector's twin is below.
+{
+  const summaryOnly = { summary: 'One of 74 marks, a set of 39 glyphs.', description: 'no count here' } as unknown as ComponentDef;
+  const seen = iconProse(summaryOnly).filter((f) => f.field === 'summary');
+  if (!seen.some((f) => iconCounts(f.text).some((c) => c.count === 39))) selfFails.push('a glyph count in `summary` does not reach the detector (#3062)');
 }
 
 if (selfFails.length) {
@@ -184,13 +218,21 @@ if (selfFails.length) {
 // A clean run is the DESIGNED state (#1290 leaves no bare count in the prose), so "found nothing wrong"
 // must be distinguishable from "found nothing to read". Assert the extraction pulled the icon def's
 // expected shape rather than an empty set — the docs/34 shape 9 floor.
+// #3062: one floor per shipped surface, typed here from each def as it stands, so a surface the extractor stops
+// reading fails by name. A def that drops a surface on purpose lowers its line here in the same PR.
+type Floor = [prefix: string, min: number][];
+const floorMisses = (prose: ProseField[], floor: Floor): string[] =>
+  floor.flatMap(([prefix, min]) => {
+    const n = prose.filter((f) => f.field === prefix || f.field.startsWith(prefix.endsWith('.') ? prefix : `${prefix}[`)).length;
+    return n < min ? [`fewer than ${min} \`${prefix}\` field(s) (read ${n})`] : [];
+  });
+const SURFACES = (props: number, codeOnly: number, a11y: number): Floor => [
+  ['summary', 1], ['description', 1], ['props.', props], ['anatomy.parts.', 1], ['anatomy.codeOnly', codeOnly],
+  ['accessibility.', a11y], ['content.', 1], ['docs.usage', 1], ['docs.do', 3], ['docs.dont', 3], ['docs.contentGuidelines', 1],
+  ['ai.primaryPurpose', 1], ['ai.whenToUse', 1], ['ai.avoidWhen', 1], ['motion.', 1],
+];
 const prose = iconProse(icon);
-const has = (prefix: string) => prose.some((f) => f.field.startsWith(prefix));
-const floorProblems: string[] = [];
-if (!has('description')) floorProblems.push('no description field');
-if (prose.filter((f) => f.field.startsWith('props.')).length < 3) floorProblems.push('fewer than 3 prop descriptions');
-if (!has('anatomy.parts.')) floorProblems.push('no anatomy part note');
-if (prose.filter((f) => f.field.startsWith('anatomy.codeOnly')).length < 5) floorProblems.push('fewer than 5 codeOnly entries');
+const floorProblems = floorMisses(prose, SURFACES(3, 5, 5));
 if (floorProblems.length) {
   console.error('\n❌ the icon-count check read less of the icon def than it promised to — its scope has gone blind:\n');
   for (const p of floorProblems) console.error(`    ${p}`);
@@ -218,6 +260,9 @@ export const markCounts = (text: string): CountClaim[] => {
   if (!markCounts('the set of 12 marks').some((c) => c.count === 12)) bad.push('"the set of 12 marks" is not detected');
   if (!markCounts('about 12 providers').some((c) => c.count === 12)) bad.push('"12 providers" is not detected');
   if (!markCounts('a 19-mark set').some((c) => c.count === 19)) bad.push('the hyphenated "19-mark" form is not detected');
+  // #3062's case, through the extractor: a def whose only count is in `summary`.
+  const summaryOnly = { summary: 'One of 74 marks: sign-in, payment and social.', description: 'no count here' } as unknown as ComponentDef;
+  if (!iconProse(summaryOnly).some((f) => f.field === 'summary' && markCounts(f.text).some((c) => c.count === 74))) bad.push('a mark count in `summary` does not reach the detector (#3062)');
   for (const clean of ['Square marks are 24 by 24, payment tiles 32 by 20', 'logos 24 high at their own width', 'The height: 20, 24 or 32px']) {
     if (markCounts(clean).length) bad.push(`false positive on real provider-logo prose: "${clean}" → ${JSON.stringify(markCounts(clean))}`);
   }
@@ -228,17 +273,51 @@ export const markCounts = (text: string): CountClaim[] => {
   }
 }
 const markProse = iconProse(providerLogo);
-const markFloor: string[] = [];
-if (!markProse.some((f) => f.field === 'description')) markFloor.push('no description field');
-if (markProse.filter((f) => f.field.startsWith('props.')).length < 2) markFloor.push('fewer than 2 prop descriptions');
-if (!markProse.some((f) => f.field.startsWith('anatomy.parts.'))) markFloor.push('no anatomy part note');
-if (markProse.filter((f) => f.field.startsWith('anatomy.codeOnly')).length < 3) markFloor.push('fewer than 3 codeOnly entries');
+const markFloor = floorMisses(markProse, SURFACES(2, 3, 3));
 if (markFloor.length) {
   console.error('\n❌ the provider-logo count check read less of the provider-logo def than it promised to:\n');
   for (const p of markFloor) console.error(`    ${p}`);
   process.exit(1);
 }
 const markFailures = markProse.flatMap(({ field, text }) => markCounts(text).map((claim) => ({ field, claim })));
+
+// ---- SHIPPED COVERAGE (#3062): every prose string the emission ships for each def is in the scanned set ----
+// The floors above are typed from the defs as they stand; this arm asks the EMISSION instead, so a prose field
+// added to the schema and projected into `components.ai.json` is caught the day it ships, not the day someone
+// remembers this file. Independent of `iconProse` (docs/34 shape 15): the walk is a generic one over the
+// emitted JSON, written here, and the only authored part is the list of keys that hold identifiers or
+// enumerated values rather than prose. Each is excluded by its path, with the reason it cannot carry a count.
+const NOT_PROSE = new Set([
+  'id', 'name', 'aliases[]', 'category', 'status', 'states[]',     // identifiers and lifecycle enums
+  'props[].name', 'props[].type', 'props[].default', 'props[].values[]', // the code API, typechecked
+  'ai.commonPartners[]', 'composition.composesWith[]', 'composition.alternativeTo[]', // def ids, resolved
+  'composition.supersedes[]', 'composition.supersededBy[]', 'composition.planned[]',  // against the registry
+]);
+const aiJson = JSON.parse(readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'out/components/components.ai.json'), 'utf8')) as { components: Record<string, unknown> };
+const coverageProblems: string[] = [];
+for (const def of [icon, providerLogo]) {
+  const entry = aiJson.components?.[def.id];
+  if (!entry) { coverageProblems.push(`${def.id}: no entry in components.ai.json`); continue; }
+  const scanned = new Set(iconProse(def).map((f) => f.text));
+  const leaves: { path: string; text: string }[] = [];
+  const walk = (v: unknown, path: string): void => {
+    if (typeof v === 'string') leaves.push({ path, text: v });
+    else if (Array.isArray(v)) v.forEach((x) => walk(x, `${path}[]`));
+    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
+  };
+  walk(entry, '');
+  const prosePaths = leaves.filter((l) => !NOT_PROSE.has(l.path) && !l.path.startsWith('variants.'));
+  if (prosePaths.length < 20) coverageProblems.push(`${def.id}: only ${prosePaths.length} shipped prose string(s) found in components.ai.json; the walk has gone blind`);
+  const unscanned = prosePaths.filter((l) => !scanned.has(l.text));
+  for (const l of unscanned) coverageProblems.push(`${def.id}.${l.path} ships and is not scanned: "${l.text.slice(0, 60)}"`);
+  console.log(`Shipped coverage — ${def.id}: ${prosePaths.length} prose string(s) in components.ai.json, ${prosePaths.length - unscanned.length} scanned.`);
+}
+if (coverageProblems.length) {
+  console.error('\n❌ a prose field ships for the icon or provider-logo def and this gate does not read it (#3062):\n');
+  for (const p of coverageProblems) console.error(`    ${p}`);
+  console.error('\n  Add the field to iconProse (and its line to the floor), or, if it holds an identifier and no prose, to NOT_PROSE.');
+  process.exit(1);
+}
 
 // ---- THE REAL RUN ---------------------------------------------------------------------------------
 const expected = ICON_NAMES.length;

@@ -48,14 +48,14 @@ Each tab shows its levers on one side and a preview on the other. <!-- src: apps
 - **Preview mode** switches the preview between the brand's modes. <!-- src: apps/studio/src/shell/preview.ts:78 -->
 - The **Palettes** tab always shows Light, and the mode control is off while it is open: "Palettes always show Light. Ramps are the same in every mode." <!-- src: apps/studio/src/preview/palettes.ts:32 -->
 - A derived mode, such as a high-contrast one, is shown but not edited. The studio says "is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit." <!-- src: apps/studio/src/shell/frame.ts:123 -->
-- **Inspect** opens two views over any tab: **Contrast**, each pair against its floor, and **Tokens**. <!-- src: apps/studio/src/shell/pages.ts:117 --> <!-- src: apps/studio/src/shell/preview.ts:232 -->
+- **Inspect** opens two views over any tab: **Contrast**, each pair against its floor, and **Tokens**. <!-- src: apps/studio/src/shell/pages.ts:117 --> <!-- src: apps/studio/src/shell/preview.ts:245 -->
 
 A contrast miss is reported, never blocked. On **Foreground fills**, for example, a pick below its floor is marked, not refused. <!-- src: apps/studio/src/shell/pages.ts:198 -->
 
 ## Where your work is kept
 
 - On the web, the studio keeps your working brand in this browser and reopens it next time. <!-- src: apps/studio/src/persist-local.ts:40-79 -->
-- In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:140-142 --> <!-- src: apps/plugin/src/main.ts:1881-1888 -->
+- In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:140-142 --> <!-- src: apps/plugin/src/main.ts:1897-1904 -->
 
 If a stored brand can't be opened, the web studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:137-166 -->
 
