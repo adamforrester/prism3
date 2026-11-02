@@ -120,6 +120,7 @@ const brandB: BrandInput = { ...brandA, density: 'compact' };
 const leverPlans = ['switch-row', 'switch-control', 'icon'].flatMap((id) => [brandA, brandB].flatMap((b) => figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === id)!, b), { swapTarget: SWAP_TARGET })));
 const filePlans = [...badgePlans, ...leverPlans];
 const shim = makeShim({
+  looseHost: 'patches root.findAllWithCriteria to search the pages the suite builds',
   vars: [...new Set(filePlans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
   styles: [...new Set(filePlans.flatMap((p) => planTextStyles(p.root)))],
   effects: [...new Set(filePlans.flatMap((p) => planEffectStyles(p.root)))],

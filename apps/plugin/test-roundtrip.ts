@@ -1318,7 +1318,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // deliberately non-purple green so "kept" and "overwritten with the purple" read differently.
   const HOST_PAINT = { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0.5, b: 0 } };
   const keptPage: Page = { children: [] };
-  const keptShim = makeShim({ ...fullFor(barePlans), page: keptPage }) as unknown as Record<string, unknown>;
+  const keptShim = makeShim({ ...fullFor(barePlans), page: keptPage, looseHost: 'patches combineAsVariants to hand the set back already stroked' }) as unknown as Record<string, unknown>;
   const combine = keptShim.combineAsVariants as (...a: unknown[]) => Record<string, unknown>;
   keptShim.combineAsVariants = (...a: unknown[]) => { const s = combine(...a); s.strokes = [{ ...HOST_PAINT }]; return s; };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
