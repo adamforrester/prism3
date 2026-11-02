@@ -150,3 +150,32 @@ export const EXPECTED = {
 /** Key-order-free JSON, so a check compares what an envelope says and not how its keys happen to be ordered. */
 export const canon = (x: unknown): string => JSON.stringify(x, (_k, v) => (v && typeof v === 'object' && !Array.isArray(v)
   ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, (v as Record<string, unknown>)[k]])) : v));
+
+/**
+ * #3309 — THE `activity` ARM, shared by the mailbox and bridge suites. Each suite posts `ACTIVITY_NOTES` as the panel
+ * would (`activity-note`, a multi-set build's summary and Update file's run), reads `activity { since }` from the run
+ * before them, and compares the answer with `activityExpected`, typed here. `at` is the main thread's clock: `atRead`
+ * checks each is ISO 8601 and reads it as `AT`, so the rest is compared whole. `total` is the log's size, which the suite
+ * reads before posting (the log keeps every run of the session up to its cap).
+ */
+export const ACTIVITY_NOTES = [
+  { type: 'activity-note', op: 'components', ok: false, headline: 'Built 2 sets · 1 with problems', lines: ['Built Badge, Link on ↳ Badge.', 'Link: built with problems.'] },
+  { type: 'activity-note', op: 'update', ok: false, headline: 'Stopped at To add', lines: ['0:42', 'Built 2 sets · 1 with problems. Details in Activity.', 'sets: not ok, Built 2 sets · 1 with problems'] },
+] as const;
+export const AT = '<iso>';
+export const atRead = (data: unknown): unknown => {
+  const d = data as { runs?: Array<Record<string, unknown>> } | undefined;
+  if (!d || !Array.isArray(d.runs)) return data;
+  return { ...d, runs: d.runs.map((r) => ({ ...r, at: typeof r.at === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$/.test(r.at) ? AT : r.at })) };
+};
+export const activityExpected = (since: number, total: number, build: string) => ({
+  runs: [
+    { seq: since + 2, op: 'update', by: 'panel', cmd: null, at: AT, verdict: { type: 'activity-note', ok: false }, headline: 'Stopped at To add',
+      summary: '0:42 Built 2 sets · 1 with problems. Details in Activity. sets: not ok, Built 2 sets · 1 with problems',
+      lines: ['0:42', 'Built 2 sets · 1 with problems. Details in Activity.', 'sets: not ok, Built 2 sets · 1 with problems'], problems: [], built: { commit: null, build } },
+    { seq: since + 1, op: 'components', by: 'panel', cmd: null, at: AT, verdict: { type: 'activity-note', ok: false }, headline: 'Built 2 sets · 1 with problems',
+      summary: 'Built Badge, Link on ↳ Badge. Link: built with problems.', lines: ['Built Badge, Link on ↳ Badge.', 'Link: built with problems.'], problems: [], built: { commit: null, build } },
+  ],
+  total,
+  latest: since + 2,
+});
