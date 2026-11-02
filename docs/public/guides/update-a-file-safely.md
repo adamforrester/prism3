@@ -38,7 +38,7 @@ A file that isn't set up opens with "This file isn't set up for Prism3 yet. This
 
 The dialog closes and the run starts. The steps run one at a time: Set up file, Theme, the update in place, To add, then Style guides. The update in place runs before To add, though To add is listed first. <!-- src: apps/studio/src/state/update-file.ts:35 -->
 
-While it runs, the button reads **Updating…**. The status strip at the foot of the panel says which step and set it is on. When the run ends, it shows a line such as "Theme applied" or "File updated", followed by "Details in Activity." <!-- src: apps/studio/src/state/update-file.ts:186 --> <!-- src: apps/studio/src/state/status-strip.ts:141-148 -->
+While it runs, the button reads **Updating**. The status strip at the foot of the panel says which step and set it is on. When the run ends, it shows a line such as "Theme applied" or "File updated", followed by "Details in Activity." <!-- src: apps/studio/src/state/update-file.ts:186 --> <!-- src: apps/studio/src/state/status-strip.ts:141-148 -->
 Each step's full result goes to its row in the Activity drawer.
 
 Choose **Update file** again during a run to follow it: "Step 2 of 4 · Theme", each set being updated, and a button to stop, such as "Stop after Button". The set being written finishes, and the rest are left as they were. <!-- src: apps/studio/src/state/update-file.ts:238 --> <!-- src: apps/studio/src/state/status-strip.ts:138-139 -->
