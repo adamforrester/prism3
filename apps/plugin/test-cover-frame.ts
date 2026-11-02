@@ -481,7 +481,7 @@ section('page — nothing to draw on, or nothing to draw');
   const o = await drawCover(f.api, root, { brand: 'x' });
   ok(o.did === 'none' && coverLine(o) === 'Cover: not drawn, the file has no Cover page. Run Set up file, then Update.', `page/no Cover page: why (${coverLine(o)})`);
   const n = await drawCover(f.api, f.root, { brand: null });
-  ok(n.did === 'none' && !tagged(f.cover).length && coverLine(n) === 'Cover: not drawn yet, the file has no brand. Apply Theme, then Update draws it.', `page/no brand: why (${coverLine(n)})`);
+  ok(n.did === 'none' && !tagged(f.cover).length && coverLine(n) === 'Cover: the file has no brand yet. Run Update file with Theme ticked, then it draws the cover.', `page/no brand: why (${coverLine(n)})`);
   // A font the host will not load: the text stays empty and the miss is named, never a throw.
   const g = host({ refuseFonts: ['Inter|Semi Bold'] });
   const m = await drawCover(g.api, g.root, { brand: 'Aurora', engine: '0.237.0' });

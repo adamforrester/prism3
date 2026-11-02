@@ -1300,6 +1300,20 @@ npx tsx packages/engine/lint-ecosystem.ts           # the ecosystem diagram's da
                                                     # lists are exactly the code's, both ways, each with
                                                     # a floor; the page fetches the data and writes no
                                                     # feature label itself; its text tokens clear 4.5:1.
+npx tsx packages/engine/lint-guide-claims.ts        # the designer guides still describe the app (#3264,
+                                                    # owner decision 3): docs/public/guides/*.md are the
+                                                    # SUBJECT, the code the ORACLE. LABEL: every **bold**
+                                                    # span is a whole string literal or HTML text in
+                                                    # apps/{studio,plugin,tokenpress}/src, comments not
+                                                    # counted; an italic part is a placeholder matched to
+                                                    # a template's ${…}. CITE: every src: path:line is
+                                                    # git-tracked and in range, and the cited lines hold
+                                                    # one of the claim's quotes, code spans or labels.
+                                                    # COUNT: "<n> component sets" equals componentDefs.
+                                                    # SCOPE: every guide index.md lists is read and cites
+                                                    # something; each source tree yields literals.
+                                                    # LIMIT: a claim that quotes nothing is checked for
+                                                    # range only, and the run prints how many there are
 npx tsx packages/engine/lint-release-notes.ts       # every release's notes in docs/public/releases/
                                                     # list exactly the changes git shows between its
                                                     # fold and the fold before (#2650), classified by

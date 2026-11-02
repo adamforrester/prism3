@@ -789,6 +789,15 @@ jobs:
       - name: The ecosystem diagram's data matches the code (#2637)
         run: npx --yes tsx@4 packages/engine/lint-ecosystem.ts
 
+      # #3264, owner decision 3 — the designer guides (docs/public/guides/*.md) still describe the app. The guides
+      # are the SUBJECT, the code the ORACLE: every **bold** UI label is a whole string literal (or HTML text) in
+      # apps/studio/src, apps/plugin/src or apps/tokenpress/src, comments not counted; every `<!-- src: path:line -->`
+      # names a git-tracked file and lines inside it, and the cited lines still hold one of the quoted strings, code
+      # spans or labels of the claim it backs; every "<n> component sets" equals componentDefs; and every guide the
+      # index lists is read and cites something, each source tree yields literals.
+      - name: The designer guides still describe the app (#3264)
+        run: npx --yes tsx@4 packages/engine/lint-guide-claims.ts
+
       # #2650 — every release's notes (docs/public/releases/) list exactly the changes git shows between the
       # fold before it and its own fold, classified by docs/30's rule. Re-derives each diff from the committed
       # records at both folds with its OWN code, never the generator (release-notes.ts). Fails by name on a

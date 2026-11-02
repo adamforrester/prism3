@@ -332,7 +332,7 @@ const unnamedNote = (shown: string | undefined): string => (shown === undefined 
 /** The dry run's line for the cover, or ''. DRAFT wording, the wireframe's where it has one. */
 export const coverDueLine = (d: CoverDue | undefined, engine: string = ENGINE_VERSION): string => {
   if (!d) return '';
-  if (d.state === 'missing') return d.noBrand ? `${COVER_NAME}: not drawn yet, the file has no brand. Apply Theme, then Update draws it.` : `${COVER_NAME}: to draw on the Cover page.${unnamedNote(d.unnamed)}`;
+  if (d.state === 'missing') return d.noBrand ? `${COVER_NAME}: the file has no brand yet. Run Update file with Theme ticked, then it draws the cover.` : `${COVER_NAME}: to draw on the Cover page.${unnamedNote(d.unnamed)}`;
   if (d.state === 'no-version') return `${COVER_EDITED}: its version text is gone, so Update writes nothing to it.`;
   if (d.state !== 'stale') return '';
   if (d.redraw) return `${COVER_NAME}: to redraw in the new design, at ${engine}.${unnamedNote(d.unnamed)}`;
@@ -550,7 +550,7 @@ export const drawCover = async (api: CoverApi, root: CoverRoot, o: { brand?: str
   if (!page) return { did: 'none', skipped: 'not drawn, the file has no Cover page. Run Set up file, then Update', fontMisses: [] };
   const own = ownCover(page);
   if (!own) {
-    if (brand === null) return { did: 'none', skipped: 'not drawn yet, the file has no brand. Apply Theme, then Update draws it', fontMisses: [] };
+    if (brand === null) return { did: 'none', skipped: 'the file has no brand yet. Run Update file with Theme ticked, then it draws the cover', fontMisses: [] };
     return { ...(await drawNew(api, page, brand, engine)), ...named };
   }
   const { frame, record } = own;

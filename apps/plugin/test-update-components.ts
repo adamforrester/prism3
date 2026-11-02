@@ -720,7 +720,7 @@ section('converged — a set whose only non-current members are not built by Pri
   ok(p.counts.members === 576 && p.counts.unstamped === 1 && p.adoptable.length === 1 && p.counts.add === 0 && p.changes.length === 0,
     `premise: Button's 576 members, one not built by Prism3 on a planned coordinate, adoptable, nothing to add (${JSON.stringify(p.counts)}, ${p.adoptable.length} adoptable)`);
   const line = previewLine(p);
-  ok(line === 'button: no changes (576 members). 1 not built by Prism3, left as they are. Adopt can claim it.',
+  ok(line === 'button: no changes (576 members). 1 not built by Prism3, left as it is. Adopt can claim it.',
     `converged/adoptable one: a set with one member Adopt could claim reads "… Adopt can claim it." (got "${line}")`);
 }
 

@@ -61,7 +61,6 @@ export const RUN_COPY = {
   stopping: 'Stopping after this set…',
   nothing: 'Select sets to build them.',
   also: (names: readonly string[]): string => `Also builds, when the file lacks them: ${names.join(', ')}.`,
-  order: 'Apply Theme first, so the sets can use your variables.',
   agent: "Waiting for the agent's build to finish.",
   current: (name: string, members: string): string => `${name}: ${members}. Sets already built stay.`,
   built: (n: number): string => `Built ${GROUPS_COPY.sets(n)}`,

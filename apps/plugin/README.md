@@ -365,16 +365,24 @@ The CLIs and the runbook are in `tools/figma-mcp/`.
 ## Scope (the agent link — an agent drives the running plugin by command)
 
 "The plugin does the writing; the agent does the triggering and reading of the output." With the owner's
-**Agent link** switched on (the **Agent: Off** chip in the top bar opens a small popover with the switch,
-IA-3 and D6; it replaced the bottom-left chip in UI redesign S1.4), an agent sends a command and reads back a structured result. One protocol, two
+**Agent link** switched on (the **Agent** switch on the top bar, beside Update file, #3113; it replaced the
+**Agent: Off** chip and its popover), an agent sends a command and reads back a structured result. One protocol, two
 transports: A, the file mailbox, and B, the local desktop bridge.
 
 - ✅ **One protocol** — `src/agent-protocol.ts`, context-neutral like `messages.ts` (compiles under both
   tsconfigs): the command envelope `{v, id, cmd, args, issuedAt}`, the result envelope
-  `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the seven
-  commands (`status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`, `readback`) and the
-  validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the
+  commands (`AGENT_COMMANDS`: `status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`,
+  `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, and the four read-only node
+  commands below) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
+- ✅ **Read-only node commands** (#3147 Phase 2a, Q3147.10 and .14 A) — `inspect`, `component-keys`, `audit-frames`
+  and `snapshot` (`src/agent-reads.ts`) read any layer, so a file where Prism3 is open needs no second plugin for the
+  reads an agent makes there: keys and properties in the master, the done check on a rebuild, a local picture. They
+  post no verdict (their value is `result.data`) and write nothing: `test-agent-link.ts` and `test-agent-bridge.ts` run
+  each over its transport against `NodeShim` (`file-shim.ts`), whose write log must stay empty, and compare the data
+  with the literals in `agent-read-fixture.ts`. Walks are capped, and a layer that throws on read is listed
+  `unreadable` while its siblings are still read. The write commands (Phase 2b) are not here yet.
 - ✅ **No parallel path** — `main.ts`'s handlers report to an `ActionSink`; the panel passes one that posts
   exactly what it posted before, and the dispatcher (`src/agent-dispatch.ts`) passes one that captures the
   verdict plus the structured `data` each handler now exposes. Both callers reach the handlers through ONE
@@ -410,8 +418,9 @@ transports: A, the file mailbox, and B, the local desktop bridge.
 - ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
 
 The iframe entry is now `src/ui/entry.ts`: it imports the studio entry `apps/studio/src/entry.ts` (which mounts `apps/studio/src/main.ts`) whole and unchanged (one UI,
-no fork) and mounts the Agent chip into the top bar's `bar-agent` slot, which only the plugin's frame
-renders, so the web build carries none of it.
+no fork) and mounts the Agent switch into the top bar's `bar-agent` slot, Minimize into the rail's `rail-minimize` slot
+and the library home's Agent link switch into `home-agent`, which only the plugin's frame renders, so the web build
+carries none of it.
 
 ## Run
 
@@ -433,14 +442,14 @@ One codebase builds two plugins, with distinct names and ids so both can be load
 
 | Build | Folder | Name and id | Network |
 |---|---|---|---|
-| Network | `release/` | Prism3 Studio, `prism3-theming-plugin` | `fonts.googleapis.com` and `fonts.gstatic.com` only, no `*` |
+| Network | `release/` | Prism3 Studio, `prism3-theming-plugin` | `fonts.googleapis.com`, `fonts.gstatic.com` and the desktop bridge at `ws://localhost:17331` only, no `*` |
 | Offline | `release-offline/` | Prism3 Studio Offline, `prism3-theming-plugin-offline` | `["none"]`, for client files and locked-down setups |
 
 `npm run build:release -w @prism3/plugin` builds both (`build.mjs --release`, then `--release --offline`). The offline
 build is the same code with `PRISM3_NETWORK` false, so esbuild drops every network branch; `manifest-offline.json` holds
-its name, id and `networkAccess`. Every network feature degrades there: today the one feature is the preview's brand
-faces, which fall back with a label. The dev build (`dist/`, `manifest.json`) is the network build plus the agent link's
-dev domain.
+its name, id and `networkAccess`. Every network feature degrades there: the preview's brand faces fall back with a label, and the
+agent link drops the desktop bridge and keeps the file mailbox. The dev build (`dist/`, `manifest.json`) has the network
+build's domains and adds the dev-only code (`PRISM3_DEV`), such as the agent link's `run-code`.
 
 **Privacy.** The network build sends a brand face's family name to Google Fonts when the preview can't paint that face,
 and Google receives the user's IP address with it. Nothing from the file is sent. The offline build makes no network
@@ -455,8 +464,8 @@ Development → Import plugin from manifest…** and pick `apps/plugin/release/m
 `apps/plugin/release-offline/manifest.json` (Prism3 Studio Offline). To share one, send its folder: the three files,
 `manifest.json`, `main.js` and `ui.html`. To publish privately to an organization, publish from the imported network
 build in Figma; the manifest's `reasoning` is the text Figma shows for the network access. Tune the brand with the knobs,
-then select **Apply Theme** (on the top bar) to materialise the whole generated
-system — `core-palette` + `color`, the ten FLOAT collections (`core-dimension`, `space`, `radius`,
+then choose **Update file** (on the top bar), leave **Theme** ticked and choose **Update file** in the dialog, to
+materialize the whole generated system — `core-palette` + `color`, the ten FLOAT collections (`core-dimension`, `space`, `radius`,
 `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`), shadow/gradient Styles, and font variables +
 Text Styles (#237, see above) — into the current file; the panel reports any existing Prism3 theme
 found on boot.

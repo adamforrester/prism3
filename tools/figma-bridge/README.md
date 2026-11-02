@@ -73,8 +73,11 @@ stays in the dev build only (Q3147.4 A): a release build answers it `unknown-com
    until it ends; `message` carries the phase's own fraction, e.g. `wire 24/48`.
 
 Commands: `status`, `apply-theme {input}`, `build-components {def?}`, `file-setup`,
-`style-guide {collections?, types?, tables?}`, `prune {input, confirm}`, `readback` — the same seven as the mailbox, run through the same handlers the
-panel's buttons reach. `prune` with `confirm: true` deletes; send `confirm: false` first and report
+`style-guide {collections?, types?, tables?}`, `prune {input, confirm}`, `readback`, `update-components`, `capture-baseline`,
+`adopt-members`, `draw-specs` — the same as the mailbox, run through the same handlers the panel's buttons reach — and the
+four read-only node commands (#3147 Phase 2a), `inspect {ids, depth?, fields?, maxNodes?}`, `component-keys {names?, sets?}`,
+`audit-frames {ids, legacy?, nameRule?}` and `snapshot {id, scale?}`, which write nothing and answer in `result.data`
+(the full shapes: `docs/public/reference/commands.json`). `prune` with `confirm: true` deletes; send `confirm: false` first and report
 the preview. `status` lists every command the running build answers.
 
 **A dev build of the plugin also answers `run-code {code, timeoutMs?}`** (#2530): `code` runs in the plugin's main
