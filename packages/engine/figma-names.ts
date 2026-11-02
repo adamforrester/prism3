@@ -114,3 +114,11 @@ export const ownedCoreGroup = (planned: Iterable<string>): string | null => {
   }
   return group;
 };
+
+/**
+ * `coreGroupOf` AS SOURCE, with the one constant it closes over, for the CLI paste path's rename pass
+ * (#1024, `rename-runtime.ts`). The plugin's `upsertCollection` scopes a `core` write to the group the plan
+ * owns with this function; the paste payload scopes the same way by running the same function.
+ */
+export const coreGroupOfSrc = (): string =>
+  '(()=>{const CORE=' + JSON.stringify(CORE) + ';return ' + coreGroupOf.toString() + ';})()';
