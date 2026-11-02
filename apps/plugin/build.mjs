@@ -19,7 +19,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { maintainerProsePlugin } from './strip-maintainer-prose.mjs';
 import { chromeCss } from '../studio/chrome/esbuild-plugin.mjs';
-import { behindStamp, commitStamp, composeBuildId, releaseCheck } from './git-stamp.mjs';
+import { NO_GIT, behindCheck, behindStamp, commitStamp, composeBuildId, releaseCheck } from './git-stamp.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 /** THE RELEASE BUILD (#2530, owner Q239 A). `--release` writes `release/` instead of `dist/`: the same two bundles
@@ -370,6 +370,7 @@ const writeReleaseManifest = async () => {
   console.log(`  ${outName}/manifest.json   (no devAllowedDomains${offline ? '; offline' : ''})`);
 };
 
+let lastId = '';
 if (watch) {
   await rebuild();
   // ONE watch mechanism for both outputs, replacing esbuild's `context().watch()` for main.js beside an
@@ -388,11 +389,14 @@ if (watch) {
   // A RELEASE FROM A CLEAN, CURRENT COMMIT ONLY (#3147, Q3147.16 A; `releaseCheck` in `git-stamp.mjs`). Checked before
   // anything is written, so a refused release leaves no bundle behind to import by mistake. Strict unless under `CI`.
   if (release) {
-    const check = releaseCheck(commitStamp(git).field, behindStamp(gitWithFetch).behind, !process.env.CI);
+    const commit = commitStamp(git).field;
+    // #3261: no fetch when git could not run; the release is refused for that already.
+    const check = releaseCheck(commit, commit === NO_GIT ? null : behindStamp(gitWithFetch).behind, !process.env.CI);
     for (const l of check.lines) console.error(l);
     if (check.refuse) process.exit(1);
   }
   const id = await rebuild();
+  lastId = id;
   // The identity, printed where the person who just ran the build is looking. The 2026-08-26 incident
   // was diagnosed by three lanes reading build output, and none of them could see which tree Figma had.
   console.log(`plugin build complete → apps/plugin/${outName}/  (${id})`);
@@ -401,7 +405,8 @@ if (watch) {
   // that says which tree that token is. Local build output, never a shipped artifact.
   console.log(`  ${treeToken(TREE)} = ${TREE}`);
 }
-// BEHIND origin/main? (#3239). Once per run, after the build, so the warning is the last thing printed and a
-// fetch that cannot run never stops a build. The fetch gets a longer timeout than the local reads.
+// BEHIND origin/main? (#3239). Once, after a build that runs once, so the warning is the last thing printed and a
+// fetch that cannot run never stops a build. The fetch gets a longer timeout than the local reads. Not under
+// `--watch`, and not when the stamp says git could not run (#3261, `behindCheck`).
 // A release has already been held to `releaseCheck` above, so it does not fetch a second time.
-if (!release) for (const w of behindStamp(gitWithFetch).warnings) console.warn(w);
+if (!release) for (const w of behindCheck(lastId, { watch }, gitWithFetch).warnings) console.warn(w);

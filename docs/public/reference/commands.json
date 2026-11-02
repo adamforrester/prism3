@@ -376,7 +376,7 @@
         },
         {
           "name": "figma_run",
-          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
+          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -393,7 +393,11 @@
                   "update-components",
                   "capture-baseline",
                   "adopt-members",
-                  "draw-specs"
+                  "draw-specs",
+                  "inspect",
+                  "component-keys",
+                  "audit-frames",
+                  "snapshot"
                 ]
               },
               "args": {
@@ -714,6 +718,90 @@
           {
             "message": "draw-specs takes args.def: a component def id, or no def for every family in the file",
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.draw-specs"
+          }
+        ],
+        "devOnly": false
+      },
+      {
+        "name": "inspect",
+        "args": "{ ids: string[]; depth?: number; fields?: Array<'props' | 'bindings' | 'styles' | 'layout' | 'text'>; maxNodes?: number }",
+        "description": "#3147 Phase 2a. Writes nothing. Each listed node and its descendants to `depth` (0 to 3, default 1), depth first, at most `maxNodes` (1 to 2000, default 500) entries, each { id, parentId, type, name, page, size, locked, mainComponent: { key, name, remote, set } | null, childCount } plus, per `fields` (default all): `props` componentProperties, `bindings` boundVariables (variable names), `styles` textStyle, `layout` layout, `text` characters. Result data: { nodes, unreadable: [{ id, error }], truncated }.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.inspect",
+        "writes": "Nothing. Reads the listed nodes and their descendants; pages are loaded, never switched to.",
+        "refuses": [
+          {
+            "message": "inspect needs args.ids: a non-empty array of node ids",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.inspect"
+          },
+          {
+            "message": "inspect takes args.depth: a whole number from 0 to 3",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.inspect"
+          },
+          {
+            "message": "inspect takes args.maxNodes: a whole number from 1 to 2000",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.inspect"
+          },
+          {
+            "message": "inspect takes args.fields: a non-empty array of props, bindings, styles, layout or text",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.inspect"
+          }
+        ],
+        "devOnly": false
+      },
+      {
+        "name": "component-keys",
+        "args": "{ names?: string[]; sets?: boolean }",
+        "description": "#3147 Phase 2a. Writes nothing. Every local component set and standalone component, page by page: [{ name, key, kind: set | component, published, variantProperties, members? }]; `names` keeps only those names, `sets: true` lists each set's members with their keys. Result data: { components, missing, unreadable }.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.component-keys",
+        "writes": "Nothing. Reads every local component set and component, page by page.",
+        "refuses": [
+          {
+            "message": "component-keys takes args.names: a non-empty array of component or set names",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.component-keys"
+          },
+          {
+            "message": "component-keys takes args.sets as a boolean: true lists each set's members",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.component-keys"
+          }
+        ],
+        "devOnly": false
+      },
+      {
+        "name": "audit-frames",
+        "args": "{ ids: string[]; legacy?: { textStyles?: string[]; components?: string[]; variablePrefixes?: string[] }; nameRule?: string }",
+        "description": "#3147 Phase 2a, the done check. Writes nothing. Per frame { id, counts: { legacyInstances, unstyledText, rawFills, standInDividers, badName }, layers: { <count>: ids } }; `legacy` lists the brand's old text styles, components and variable-name prefixes, `nameRule` is a regular expression frame names must match. Result data: { frames, unreadable, truncated }.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.audit-frames",
+        "writes": "Nothing. Reads the listed frames and the layers in them.",
+        "refuses": [
+          {
+            "message": "audit-frames needs args.ids: a non-empty array of frame ids",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.audit-frames"
+          },
+          {
+            "message": "audit-frames takes args.legacy as { textStyles?, components?, variablePrefixes? }, each an array of names",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.audit-frames"
+          },
+          {
+            "message": "audit-frames takes args.nameRule: a regular expression, as a string, that frame names must match",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.audit-frames"
+          }
+        ],
+        "devOnly": false
+      },
+      {
+        "name": "snapshot",
+        "args": "{ id: string; scale?: number }",
+        "description": "#3147 Phase 2a. Writes nothing. One node rendered to PNG in this session at `scale` (0.5 to 2, default 1). Result data: { png (base64), width, height, local: true }.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.snapshot",
+        "writes": "Nothing. Renders one node to PNG in this session.",
+        "refuses": [
+          {
+            "message": "snapshot needs args.id: the id of one node",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.snapshot"
+          },
+          {
+            "message": "snapshot takes args.scale: a number from 0.5 to 2",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.snapshot"
           }
         ],
         "devOnly": false
