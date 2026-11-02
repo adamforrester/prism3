@@ -56,7 +56,11 @@ stays in the dev build only (Q3147.4 A): a release build answers it `unknown-com
    machine, the plugin asks for the server's pairing code under the Agent switch: call `figma_status`
    to get one. The Activity drawer
    reads `Listening · bridge` once the plugin has connected. It retries every 2 s, so the server can
-   start before or after the plugin.
+   start before or after the plugin. **One plugin holds the bridge at a time** (#3297). With the link on
+   in two files, the file that connected last holds it. The server closes the other file's connection with
+   4409, and that file reads `Listening · mailbox` until the holder leaves. Its retries back off from 2 s
+   to 30 s and send `yield: true`, so they never take the bridge from the holder. A socket that drops and
+   comes back within 5 s does not change the word.
 2. `figma_status` — `connected: true`, plus the link state the plugin last reported.
 3. `figma_run { cmd: "status" }` — confirms the round trip, the engine version and the plugin build.
 4. `figma_run { cmd, args, timeoutMs }` for each command. The result is the protocol's result
