@@ -8,7 +8,7 @@
  *
  * THE SELECTED CUE (Q178.1 A, revised by Q226 A on 2026-10-10): the primary text ink, the label in the EMPHASIS
  * weight (regular when unselected), and a 2px bar in the primary border role (`border-width.thick`), sitting on the
- * list's 1px `color.border.primary` baseline. The weight moves, the width does not: a zero-height, clipping
+ * list's 1px `color.border.primary` baseline, overlapping it with bottom edges aligned (#3344). The weight moves, the width does not: a zero-height, clipping
  * `reserve` holds a bold copy of the label (`labelReserve`, driven by the same Label property), so the label box is
  * always as wide as the bold label and selecting a tab never moves its box or its neighbors (the footprint rule
  * for a runtime axis, kept by reserving the bold width rather than by one weight).

@@ -722,7 +722,7 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '2  Items — The tabs: a native slot holding Tab instances side by side with no gap, three by default, the first selected.',
     '3  Tab 1 — The first tab, selected.',
     '4  Tabs 2–3 — One trigger in a tab list.',
-    '5  Baseline — The 1px line under the tabs, which the selected underline sits on.',
+    '5  Baseline — The 1px line along the bottom of the tab list.',
   ], 'Tab 1, then Tabs 2–3 captioned by the tab\'s summary');
   // A run whose parts share one note takes that note, not the nested component's summary (Q3265.2 A). No run in
   // today's library shares a note, so this calls `anatomyEntry` directly: Code input's run cut to its first two cells,
