@@ -69,7 +69,7 @@
  *     shows too (mutation: `setOn(false); setOn(true)` in `setMinimized` → strip/since-min, strip/since-restore and strip/no-bounce fail)
  *   · strip-text: the strip's line for each state, against literals (Q2 A, Q3 A)
  *   · reads (#3147 Phase 2a, #3309): `mailbox/<cmd>`, `envelope/<cmd>` and `no-write/<cmd>` for inspect, component-keys,
- *     audit-frames, snapshot and activity (its two panel notes and `activityExpected` in the fixture too), against `NodeShim` and the literals in `agent-read-fixture.ts`; plus inspect/unreadable,
+ *     audit-frames, snapshot and activity (its two panel notes and `activityExpected` in the fixture too, and an agent's own run, `activity/agent`), against `NodeShim` and the literals in `agent-read-fixture.ts`; plus inspect/unreadable,
  *     inspect/cap, keys/fixture, audit/each-count/<count>, audit/clean, audit/legacy-lists, snapshot/scale and
  *     refuse/<case>. (mutations: `readOne` assigning `n.name = n.name` → `no-write/inspect`; `locked` dropped from its
  *     entry → `envelope/inspect`, each by name)
@@ -80,7 +80,7 @@
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { MAILBOX, AGENT_COMMANDS, READ_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
-import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead } from './agent-read-fixture';
+import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT } from './agent-read-fixture';
 import { ACTIVITY_KEEP } from './src/activity-log';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
@@ -1155,6 +1155,26 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
   ] as const) {
     const { r, writes } = await run(cmd, args);
     ok(r.ok === false && r.error?.code === code && writes.length === 0, `refuse/${label}: answered ${code} and wrote nothing (${JSON.stringify(r.error)})`);
+  }
+  // #3309 should-fix 1: a run an AGENT command started is the agent's, named by its command. One agent write (a build of
+  // a def that does not exist, which posts a `component-result`), then the log read from the run before it. Literal.
+  // (mutation: `forward` records `activityLog.post(m, 'panel', null)` → `activity/agent`)
+  {
+    const at0 = (await run('activity', { limit: 1 })).r.result?.data as { total: number; latest: number };
+    const { r: built } = await run('build-components', { def: 'no-such-def' });
+    const v = built.result?.verdict as { summary?: string } | null | undefined;
+    const got = (await run('activity', { since: at0.latest })).r.result?.data;
+    // The summary lists every def id this build knows, so it is the verdict the agent was answered with; the rest is literal.
+    const summary = typeof v?.summary === 'string' && v.summary.startsWith("no component def with id 'no-such-def'") ? v.summary : '<no unknown-def summary>';
+    const want = {
+      runs: [{ seq: at0.latest + 1, op: 'components', by: 'agent', cmd: 'build-components', at: AT, verdict: { type: 'component-result', ok: false },
+        headline: '✗ unknown def', summary, lines: [summary.replace(/ Built from .*$/, '').replace(/\.$/, ''), 'Built from tree-test0000 at 2026-09-25T00:00:00Z.'],
+        problems: [], built: { commit: null, build: '2026-09-25T00:00:00Z tree-test0000' } }],
+      total: Math.min(at0.total + 1, ACTIVITY_KEEP),
+      latest: at0.latest + 1,
+    };
+    ok(canon(atRead(got)) === canon(want),
+      `activity/agent: an agent's build-components is logged as the agent's run, named by its command — got ${canon(atRead(got)).slice(0, 300)}`);
   }
   root.children = saved.children;
   h.getNodeByIdAsync = saved.node; h.getStyleByIdAsync = saved.style; h.variables.getVariableByIdAsync = saved.variable;

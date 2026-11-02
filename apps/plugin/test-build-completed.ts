@@ -186,7 +186,9 @@ Object.assign(shim, {
 const g = globalThis as Record<string, unknown>;
 g.figma = shim;
 g.__html__ = '';
-g.PRISM3_BUILD = '2026-10-05T00:00:00Z tree-test0000';
+// #3309: the stamp `build.mjs` writes today, with a commit (`TREE_WITH_COMMIT` in `build-identity.ts`: an 8-hex tree,
+// then a short sha), so `activity/built` reads the commit out of it.
+g.PRISM3_BUILD = '2026-10-05T00:00:00Z tree-7e570000 abc1234';
 // #3309: the agent link's dispatcher reads it (`activity/*` below); this suite runs as a release build.
 g.PRISM3_DEV = false;
 
@@ -299,6 +301,9 @@ ok(!!first && (first.lines as string[]).includes(NO_LABEL) && String(first.summa
     `activity/problems: Badge is listed with the missing template as its one reason (${JSON.stringify(badgeRun?.problems)})`);
   ok(JSON.stringify([...pluginData, ...sharedData].filter(([k]) => !k.startsWith('prism3agent'))) === before,
     'activity/no-write: reading the activity moved no plugin data outside the agent link\'s own');
+  // (mutation: `commit: null` in `main.ts`'s `createActivityLog` call → `activity/built`)
+  ok(JSON.stringify(badgeRun?.built) === JSON.stringify({ commit: 'abc1234', build: '2026-10-05T00:00:00Z tree-7e570000 abc1234' }),
+    `activity/built: the run names the commit its build stamp carries (${JSON.stringify(badgeRun?.built)})`);
 }
 // The Update, through the same action table the panel and the agent link reach: a check for its hash, then the apply.
 const { ACTIONS } = await import('./src/main');
