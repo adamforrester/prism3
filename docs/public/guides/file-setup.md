@@ -3,13 +3,13 @@
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Update file checklist for #3264). -->
 
 Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1600-1670 -->
-It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet: "The pages, the templates and the style-guide cells. The cover too, while Documentation has it on." <!-- src: apps/studio/src/state/update-file.ts:194-195 -->
+It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet: "The pages, the templates and the style-guide cells. The cover too, while Documentation has it on." <!-- src: apps/studio/src/state/update-file.ts:224-225 -->
 
 ## Set up a new file
 
-1. Choose **Update file** in the plugin's top bar. On a file that isn't set up, the dialog says "This file isn't set up for Prism3 yet. This first update sets it up." <!-- src: apps/studio/src/state/update-file.ts:192 -->
-2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:194 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:97-103 -->
-3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:232 -->
+1. Choose **Update file** in the plugin's top bar. On a file that isn't set up, the dialog says "This file isn't set up for Prism3 yet. This first update sets it up." <!-- src: apps/studio/src/state/update-file.ts:222 -->
+2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:224 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:97-103 -->
+3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:272 -->
 
 Once the file is set up, the checklist no longer lists the setup item. <!-- src: apps/studio/src/shell/update-file.ts:220 -->
 Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:88-95 --> If a setup failed, the Activity drawer offers **Set up again**. <!-- src: apps/studio/src/shell/activity.ts:207 -->
@@ -28,7 +28,7 @@ The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-upd
 
 Component pages are not created here. Each component page, such as `↳ Buttons` or `↳ Checkbox`, appears the first time a set for it is added, so a file never holds empty component pages. <!-- src: apps/plugin/src/file-taxonomy.ts:99-105 --> `↳ Icons & assets`, under Foundations, appears the same way. <!-- src: apps/plugin/src/file-taxonomy.ts:87 --> Pages under Components and Subcomponents sit in alphabetical order. <!-- src: apps/plugin/src/file-taxonomy.ts:94 --> <!-- src: apps/plugin/src/file-taxonomy.ts:178 -->
 
-When the cover is on in Documentation, setup also draws the library cover on the `Cover` page, with the brand's name and the Prism3 version. <!-- src: apps/studio/src/shell/documentation.ts:49-51 -->
+When the cover is on in Documentation, setup also draws the library cover on the `Cover` page, with the brand's name and the Prism3 version. <!-- src: apps/studio/src/shell/documentation.ts:67-69 -->
 A file with no brand yet gets its cover once the theme is written. <!-- src: apps/plugin/src/cover-frame.ts:553 -->
 
 *[Screenshot placeholder: the Figma page list after setup.]*
@@ -48,11 +48,11 @@ The names start with an underscore because Figma treats such components as priva
 
 ## The result
 
-The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1664-1666 -->
+The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1702-1704 -->
 
 | Result | Meaning |
 |---|---|
-| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1653 --> |
-| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1668 --> |
+| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1691 --> |
+| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1706 --> |
 
-While setup runs, a second request for it is refused: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:38-42 -->
+While setup runs, a second request for it is refused: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:39-43 -->
