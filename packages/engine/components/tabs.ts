@@ -7,7 +7,7 @@
  * three by default, tab 1 selected, six at most. Until #2649 tabs 4 to 6 sat behind Figma-only booleans (#2344). The
  * set is `size` × `alignment`: 6 members. The panel is not drawn: it is the page content below, and its role and wiring are code-only.
  * Owner decisions on #2416: the nested shape (Q177.2), line tabs only (Q177.4), its own `↳ Tabs` page with
- * no navigation grouping (Q177.14), a 1px `color.border.primary` baseline under the 2px bar (Q179 A), six
+ * no navigation grouping (Q177.14), a 1px `color.border.primary` baseline under the 2px bar (Q179 A; the bar overlaps it, bottom edges aligned, since #3344), six
  * tabs at most in Figma, three shown (Q179 A, now the slot's default and ceiling), Tab 1 selected. `alignment` (Q222 A, #2518): start or center, the
  * centered list in a full-width bar.
  */
@@ -61,12 +61,16 @@ export const tabs: ComponentDef = {
       container: {
         kind: 'box',
         role: 'target',
-        children: ['items', 'baseline'],
+        // THE INDICATOR OVERLAPS THE BASELINE (#3344, owner decision): the baseline comes FIRST, so it paints under the
+        // tabs, and the list has no bottom inset, so the tabs reach the list's bottom edge and each tab's 2px bar (pinned
+        // across the tab's own foot) shares its bottom edge with the 1px baseline (pinned across the list's). Until #3344
+        // a 1px `blockEnd` inset kept the baseline clear under the tabs (#2928), which stacked the bar on top of it.
+        // The baseline stays ONE part of the list rather than a rule inside each tab: it spans the whole list, gaps and
+        // the centered bar's empty sides included, and a tab placed on its own carries no line it does not need.
+        children: ['baseline', 'items'],
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'gap',
-        // THE BASELINE'S ROW (#2928): the baseline is pinned across the foot (`foot`), out of the flow, so this bottom
-        // inset keeps its 1px clear under the tabs, where it sat when it took a cell.
-        padding: { block: 'gap', inlineLabel: 'gap', blockEnd: 'baseline-height' },
+        padding: { block: 'gap', inlineLabel: 'gap' },
         // CENTERED (#2518): at `alignment=center` the list fills its placement and centers the row of tabs; the Figma
         // member is built 480 wide, room for six large tabs (DRAFT, held for the owner on #2518).
         center: { axis: 'alignment', value: 'center', placementWidth: 480 },
@@ -98,7 +102,7 @@ export const tabs: ComponentDef = {
         // three default tabs, so a fourth tab added in the slot ran past the baseline. Out of the flow and constrained
         // `STRETCH`, the baseline follows the list's width at either alignment.
         foot: true,
-        note: 'The 1px line under the tabs, which the selected underline sits on.',
+        note: 'The 1px line along the bottom of the tab list. The selected underline overlaps it: their bottom edges line up, and the underline paints over the line.',
       },
     },
     codeOnly: [
@@ -106,7 +110,7 @@ export const tabs: ComponentDef = {
       'The tab list in code — role="tablist" with an accessible name, and aria-orientation when vertical. One tab stop: the selected tab is tabindex="0", the rest -1. Arrow keys move between tabs (Left and Right, or Up and Down when vertical), Home and End go to the first and last, and disabled tabs are skipped.',
       'The panel — role="tabpanel", aria-labelledby naming its tab and tabindex="0", so Tab after the list lands on the panel. Not drawn in Figma: the panel is the content below the list.',
       'Panel mounting — the default mounts a panel when it is first shown; keep it mounted when it holds state (a half-filled form), or mount all panels when find-in-page or print must reach them.',
-      'The selected underline in code — one element owned by the list that moves to the selected tab, sitting on the baseline (it overlaps the 1px line).',
+      'The selected underline in code — one element owned by the list that moves to the selected tab and overlaps the baseline: its bottom edge on the baseline\'s bottom edge, painted over the 1px line (for example the baseline as an inset box-shadow or a border on the list, and the underline absolutely positioned at bottom: 0 above it). The tabs reach the list\'s bottom edge; the list adds no height under them.',
       'Alignment — at center the list spans its container (width: 100%) and the tabs sit centered in it (justify-content: center on the row of tabs); the baseline spans the full width. At start the tabs sit at the inline start. Each tab hugs its label either way.',
       'Overflow — a horizontal list never wraps. When the tabs do not fit, it scrolls with a fade at the cut edge, or ends in a "More" menu.',
       'RTL — the row mirrors, the first tab sits rightmost, and Left and Right follow reading order: in RTL, Left moves to the next tab.',

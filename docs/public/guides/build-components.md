@@ -5,32 +5,32 @@
 Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:107-274 -->
 The engine currently defines 60 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:107-274 -->
 
-You choose sets in the **Components** area of the rail, and **Update file** builds them. <!-- src: apps/studio/src/state/update-file.ts:194 -->
+You choose sets in the **Components** area of the rail, and **Update file** builds them. <!-- src: apps/studio/src/state/update-file.ts:225 -->
 Building needs the Figma plugin. On the web, the Components area lists the same sets and says "Building sets needs the Figma plugin." <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 -->
 
 ## Choose the sets to add
 
 1. Open **Components** in the rail. The list reads "Tick a family to add its sets to this file; Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:120 -->
 2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:122-123 -->
-3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:209-210 -->
-4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:242 -->
+3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:240-241 -->
+4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:283 -->
 
-Each set in the list carries its state in this file: **To add**, **Not in file**, **Due**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:235 -->
+Each set in the list carries its state in this file: **To add**, **Not in file**, **Due**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:266 -->
 
 The sets you tick are kept in the file, not in the panel, so a teammate who opens Update file sees the same list. A set leaves the list once it is built whole; one that fails or is stopped stays on it. <!-- src: apps/plugin/src/add-queue.ts:1-11 -->
 
-Keep **Theme** ticked in the same run: the theme is written before any set, so the new sets can use your variables. <!-- src: apps/studio/src/state/update-file.ts:205 --> The run order is fixed. <!-- src: apps/studio/src/state/update-file.ts:38 -->
+Keep **Theme** ticked in the same run: the theme is written before any set, so the new sets can use your variables. <!-- src: apps/studio/src/state/update-file.ts:236 --> The run order is fixed. <!-- src: apps/studio/src/state/update-file.ts:43 -->
 On a file that isn't set up yet, the same run sets it up first. See [Set up a file](file-setup.md).
 
 ## What a build does
 
-For each set, the plugin: <!-- src: apps/plugin/src/main.ts:786-876 -->
+For each set, the plugin: <!-- src: apps/plugin/src/main.ts:797-887 -->
 
 - builds any set the chosen one contains first, such as the icon and focus ring inside a button;
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:856-857 -->
+- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:867-868 -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:147-148 -->
 
@@ -56,9 +56,9 @@ A set that can't be built for this brand is listed with the reason: "Can't be bu
 ## Adding and updating
 
 Adding a set never replaces one the file already holds. The plugin finds the set by name and adds only what is missing. <!-- src: apps/plugin/src/apply-summary.ts:54-58 -->
-A set already in the file is brought up to date in place instead, under **Due**, with your hand edits kept unless you choose otherwise. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:216 -->
+A set already in the file is brought up to date in place instead, under **Due**, with your hand edits kept unless you choose otherwise. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:247 -->
 
-Only one build runs at a time, from the panel or an agent: a second request reads "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:38-42 -->
+Only one build runs at a time, from the panel or an agent: a second request reads "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:39-43 -->
 
 ## Where each set goes
 
