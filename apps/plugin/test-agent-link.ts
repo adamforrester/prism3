@@ -941,6 +941,17 @@ section('state — what the panel shows');
     && agentLinkStatusText({ ...s, inboxError: 'the inbox is not a JSON array' }, at).endsWith(' Inbox error: the inbox is not a JSON array.'),
     'the bridge, no transport and an inbox error each read in words');
   ok(agentLinkStatusText(null) === agentLinkStatusText({ ...s, on: false }), 'and reads off before the first state arrives');
+  // #3297: another Prism3 instance holds the desktop bridge. The full line says so after the listening sentence; the word
+  // stays the mailbox's, and the note goes once this instance holds the bridge itself. Literals (the note is DRAFT).
+  {
+    const mb = { ...s, transports: { mailbox: true, bridge: false } };
+    const heldLine = agentLinkStatusText(mb, at, true);
+    ok(heldLine.startsWith('Listening for agent commands (file mailbox, every 1 s). The desktop bridge is connected to Prism3 in another file. Last: ')
+      && !agentLinkStatusText(mb, at).includes('another file')
+      && !agentLinkStatusText({ ...s, transports: { mailbox: true, bridge: true } }, at, true).includes('another file')
+      && agentLinkWord(mb)?.text === 'Listening · mailbox',
+      `link/held-line: while another file holds the bridge, the full line says so and the word holds still (read "${heldLine}")`);
+  }
   // #3147 Phase 1: the bar row's word names the transport (approved, Q3204.3 A). Literals: the bridge while it is connected,
   // the mailbox otherwise; the error words are unchanged. MUTATION: the suffix dropped → this arm fails by name.
   ok(agentLinkWord({ ...s, transports: { mailbox: true, bridge: true } })?.text === 'Listening · bridge'

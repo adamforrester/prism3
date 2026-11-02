@@ -37,6 +37,12 @@
  *
  * One plugin connection at a time (a newer PAIRED one replaces the older), one command in flight at a time.
  *
+ * ONE BRIDGE, TWO FILES (#3297). The replaced connection is closed with `CLOSE.held` (4409), not 1000, so its relay knows
+ * another paired instance holds the bridge. That relay's later hellos carry `yield: true`: a yielding hello with a valid
+ * proof is refused with `CLOSE.held` while a plugin is attached, and attaches as usual once none is. Without it, two
+ * files with the link on evicted each other on every retry. A hello without `yield` (the holder's own reconnect, #2497)
+ * still replaces. The proof is checked the same either way: pairing is unchanged.
+ *
  * A RECONNECT KEEPS A COMMAND IN FLIGHT (#2497). The plugin's socket can drop while a long command runs (a
  * ~6-minute update-components did). The waiting call is not failed: it waits `graceMs` for the plugin to come
  * back. The relay's `hello` names the ids it `held` (running, or a result kept for re-sending) and then re-sends
@@ -303,7 +309,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
   /** A PAIRED connection (its hello proved the token). Replaces any earlier one; its commands wait for the hello. An
    *  unpaired connection never reaches here, so it can never evict the plugin (#3204). */
   const attach = (conn: Conn) => {
-    if (plugin) plugin.close(1000, 'replaced by a newer connection');
+    if (plugin) plugin.close(CLOSE.held, 'replaced by a newer connection');
     plugin = conn;
     pluginState = null;
     record(null, 'bridge', 'plugin connected');
@@ -334,7 +340,7 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
   /** One text message from a connection. Before its hello proves the token, only `pair` and `hello` are heard; anything
    *  else, or a wrong proof, closes it (#3204). */
   const onMessage = (conn: Conn, text: string) => {
-    let m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string; proof?: unknown };
+    let m: { type?: string; state?: AgentLinkState; held?: unknown; result?: AgentResult; id?: string; progress?: AgentProgress; line?: string; proof?: unknown; yield?: unknown };
     try { m = JSON.parse(text); } catch { m = {}; }
     if (!conn.authed) {
       if (m.type === 'pair') {
@@ -345,8 +351,13 @@ export const createBridge = (opts: { pairing: Pairing; now?: () => Date; log?: (
       }
       if (m.type === 'hello' && pairing.helloOk(conn.nonce!, m.proof)) {
         pairing.settle();
-        conn.authed = true;
         if (conn.authTimer) { clearTimeout(conn.authTimer); conn.authTimer = undefined; }
+        if (m.yield === true && plugin && plugin !== conn) {
+          // #3297: a displaced instance asking politely. Another paired plugin holds the bridge, so this one waits.
+          conn.close(CLOSE.held, 'another plugin instance holds the bridge');
+          return;
+        }
+        conn.authed = true;
         attach(conn);
         conn.send({ type: 'welcome' });
       } else {

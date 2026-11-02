@@ -12,7 +12,7 @@ It is off every time the plugin opens, and only you can turn it on. <!-- src: ap
 An agent working through Figma's own MCP connection can read and write a file's data, but it can't press the plugin's buttons. The agent link gives it two ways in: <!-- src: apps/plugin/src/agent-link.ts:9-21 -->
 
 - The file's plugin data, as a mailbox. The agent writes a request there, and the plugin, while the link is on, checks for requests about once a second, runs one, and writes the result back beside it. <!-- src: apps/plugin/src/agent-protocol.ts:378 --> <!-- src: apps/plugin/src/agent-link.ts:9-21 -->
-- The desktop bridge, a small program on your computer that the agent talks to. While the link is on, the plugin holds a connection to it at `ws://localhost:17331`, on your computer only. The first time, the plugin asks you to pair: **Pair with the desktop bridge**, with a **Pairing code** from the bridge or your agent. A code works once, for 10 minutes. <!-- src: apps/plugin/src/agent-link-ui.ts:128-136 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:37-41 -->
+- The desktop bridge, a small program on your computer that the agent talks to. While the link is on, the plugin holds a connection to it at `ws://localhost:17331`, on your computer only. The first time, the plugin asks you to pair: **Pair with the desktop bridge**, with a **Pairing code** from the bridge or your agent. A code works once, for 10 minutes. <!-- src: apps/plugin/src/agent-link-ui.ts:134-142 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:50-54 -->
 
 "Prism3 Studio" carries both. "Prism3 Studio Offline" makes no network calls, so it has the mailbox only. <!-- src: apps/plugin/manifest.json:2-19 --> <!-- src: apps/plugin/manifest-offline.json:2-6 -->
 
@@ -21,12 +21,12 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 ## Turn it on
 
 1. Open the file and run the Prism3 plugin.
-2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:222-225 -->
+2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:230-233 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:222 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:1978 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:1978 -->
 
-The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:118-121 -->
+The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
 *[Screenshot placeholder: the top bar with the Agent switch on, and the Activity drawer's agent word.]*
 
@@ -55,7 +55,7 @@ Every write an agent asks for passes the same checks as Update file, and is refu
 ## Safety
 
 - **Off by default, never saved.** The link starts off at every launch and is not remembered between sessions. <!-- src: apps/plugin/src/agent-link.ts:5-8 -->
-- **Only you can turn it on.** An agent can't switch it on: only the panel's **Agent** switch sends that request. <!-- src: apps/plugin/src/agent-link-ui.ts:222 --> The main thread turns the link on only when the panel asks. <!-- src: apps/plugin/src/messages.ts:110-112 -->
+- **Only you can turn it on.** An agent can't switch it on: only the panel's **Agent** switch sends that request. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> The main thread turns the link on only when the panel asks. <!-- src: apps/plugin/src/messages.ts:110-112 -->
 - **While it is off, the plugin ignores the agent entirely.** A request waiting in the file does nothing, and the plugin holds no connection to the bridge. <!-- src: apps/plugin/src/agent-link.ts:6-8 --> <!-- src: apps/plugin/src/agent-link-ui.ts:326-327 -->
 - **Old requests are not replayed.** A request already waiting when you turn the link on is answered "stale" and not run; the agent has to send it again. <!-- src: apps/plugin/src/agent-link.ts:146-158 -->
 - **One request at a time.** The plugin runs requests in the order sent, never two at once, and never while the same write is running from Update file. <!-- src: apps/plugin/src/agent-link.ts:14-18 -->
