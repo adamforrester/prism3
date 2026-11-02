@@ -382,7 +382,15 @@ section('theme — what Apply Theme moves is not a hand edit');
     const nudge = (k: string, by: number): boolean => { try { n[k] = (typeof n[k] === 'number' ? n[k] as number : 10) + by; moved++; return true; } catch { return false; } };
     // A bound field reads its variable's resolved value on the host. The shim records the binding and
     // leaves the field unset, so the value the theme moves is written here, where Figma would show it.
-    for (const k of Object.keys(bv)) if (k !== 'fills' && k !== 'strokes' && nudge(k, 3)) movedBound++;
+    // #3048: except a CORNER, which the shim reads off its binding, as the host does, and which a literal write DETACHES
+    // (a hand edit). Apply Theme moves the variable, so the variable's value is what moves here.
+    const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
+    for (const k of Object.keys(bv)) {
+      if (k === 'fills' || k === 'strokes') continue;
+      const b = bv[k] as { value?: number };
+      if (CORNERS.includes(k)) { b.value = (typeof b.value === 'number' ? b.value : 10) + 3; moved++; movedBound++; }
+      else if (nudge(k, 3)) movedBound++;
+    }
     // A glyph's vectors are not re-derived by a theme: they stay where their frame scaled them (#2379 reads them there).
     for (const k of ['width', 'height', 'x', 'y']) if (n.type !== 'VECTOR' && typeof n[k] === 'number' && !bv[k]) nudge(k, 7);
     // A bound paint's color moves with its VARIABLE (#2379): Apply Theme rewrites the variable, and the host

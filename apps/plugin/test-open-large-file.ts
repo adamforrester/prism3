@@ -48,7 +48,7 @@
  * `file-sets`, as the studio sends it. Arms: `open/paint-first` (the `ui-ready` turn loads, searches and projects
  * nothing), `open/no-walk` (no whole-file search from open to the hand-edit pass's end), `open/search-yields` (one page
  * searched per turn at most), `open/one-read` (requests asked mid-read share it: each page searched at most twice) and
- * `open/plans` (the pass projects one set per turn). Mutations failing by name: the reads back in the `ui-ready` turn →
+ * `open/plans` (the pass takes one set per turn; since #3301 it projects a set's plans only for a single-component def). Mutations failing by name: the reads back in the `ui-ready` turn →
  * `open/paint-first`; `readPresent` on one whole-file search → `open/no-walk`; the pass searching `figma` → `open/no-walk`;
  * no shared read → `open/one-read`; every set projected at once → `open/plans`; `isSetUp(figma.root)` in `fileSets` or
  * Style guides' catalog → `open/no-walk`. A write between two pages of the read after open: `open/write-shared` (a
@@ -64,6 +64,10 @@
  * `update/one-read`; the criteria searched in one turn → `update/search-yields`; the apply's dry run reading again →
  * `update/one-read`; the furniture drawn on `figma` → `update/apply-no-walk`. The executor's lookups, the re-reads after a
  * write and the twin comparison are `test-run-read.ts`'s, which builds a set the executor can write.
+ *
+ * #3301, THE TEMPLATE STAND-IN (its own section at the end): every set, a usage panel beside each, the style guides and a
+ * page per set, every node counting its host calls, and the strip, the member reads and the projections at open held to
+ * the #3170 cadence (`open/strip-first`, `open/member-paced`, `open/print-paced`, `open/pass-light`, `open/hand-edits`).
  *
  * #3189, CAPTURE BASELINE AND ADOPT on the same host, each over every def, driven through `ACTIONS` with an agent's sink
  * (both are agent commands): `capture/no-walk`, `adopt/no-walk` (no whole-file search, one page a turn at most),
@@ -87,6 +91,10 @@ import { SWAP_TARGET } from './src/build-deps';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { entryFor, LEDGER_KEY, LEDGER_V } from './src/as-built-ledger';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { planComponentName } from '@prism3/engine/anatomy-figma';
+import { NS, persistInput } from './src/persist-figma';
+import { STAMP_KEY } from './src/write-components';
+import { writeBaseline } from './src/member-baseline';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -139,7 +147,7 @@ const loadOne = (p: { loaded: boolean }): void => {
   burn(PAGE_MS);
 };
 
-const shim = makeShim({ vars: [], styles: [], effects: [] }) as Record<string, any>;
+const shim = makeShim({ vars: [], styles: [], effects: [], looseHost: 'patches root.findAllWithCriteria to model paged and refusing searches' }) as Record<string, any>;
 const buildable = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents);
 ok(buildable.length >= SETS, `the stand-in has ${SETS} buildable defs to name its sets by (${buildable.length} buildable)`);
 const setIds = buildable.slice(0, SETS).map((d) => d.id);
@@ -629,6 +637,209 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   const adF = await agentRun('adopt', (sink) => ACTIONS.adoptMembers(undefined, sink as never));
   ok(!!adF.update && digest(adF.update) === digest(au), `adopt/fixed: Adopt on a host whose methods are fixed gives the plain host's answer (${adF.update ? `answer ${digest(adF.update)} vs ${digest(au)}` : `${adF.verdict?.headline}: ${String(adF.verdict?.summary).slice(0, 300)}`})`);
   g.figma = plain;
+}
+
+/* ── the template stand-in (#3301) ─────────────────────────────────────────────────────────────────── */
+
+// The owner's report: opening the plugin on the Prism3 template, a dev build, the panel hung while it read the file, and
+// the strip's progress started only after a while. The template holds every component set, a usage panel beside each,
+// the style guides and a page per set. On a dev build the engine has moved since the template was drawn, so every set's
+// ledger entry names another engine and the read at open projects every set to print it (#3082 Q811 A).
+//
+// The stand-in: every def with Figma properties, a page each (the single-component defs on one page of their own), each
+// set's members built from its own plans (a node per planned part, so a field's member is a dozen nodes and a button's
+// three), every member stamped and carrying its as-built record, one member of every fifth set edited by hand since; a
+// usage panel beside each set (instances of its members, with captions); `SG_PAGES` style-guide pages of `SG_NODES` nodes
+// each; a cover; and a ledger naming every set under an older engine, each with the print it was drawn from.
+//
+// Every read of a node's property, and every method called on it, is a host call in Figma, and costs main-thread time
+// there that a plain object does not cost here. So each node is a `Proxy` that counts them, and while this part runs the
+// test's clock moves `CALL_MS` per host call, as well as with the wall clock and `TICK_MS` per reading of the clock, so the
+// paced code sees time pass as Figma's would. A page search is Figma's own (native) and is not counted.
+//
+//   · `open/strip-first`: the strip's "Reading this file…" (the read's page 0) is posted before the read at open projects
+//     anything and before any page is loaded. Mutation: the reading moved back to the start of the page read →
+//     `open/strip-first`.
+//   · `open/member-paced`: no turn from `ui-ready` to the hand-edit pass's end makes more than `TURN_CAP` host calls: about
+//     `PACE_MS` of them, plus the largest member's read. Mutations, each → `open/member-paced`: `readSetView`'s `PACE_MS`
+//     hand-back dropped (every 24 members only); `readSingleView`'s hand-back while it reads every component's parent
+//     dropped; `rootOver` filtering by each node's type again, not by the types the read kept.
+//   · `open/print-paced`: each set of `BIG` members or more is projected across turns, never in one. Mutation: the
+//     projection's tick dropped (`print.paced` draining in one go) → `open/print-paced`.
+//   · `open/pass-light`: the hand-edit pass finds each such set in under a tenth of the time its projection took: it reads
+//     the set's members against their records and projects no plan. Mutation: the pass's target from `updateTargets` again
+//     → `open/pass-light`.
+//   · `open/hand-edits`: the pass reports every set, its member count and its one hand edit, as literals typed here.
+// Measured, not asserted: the most host calls in one turn, the longest stall of the event loop, and the time to each stage.
+{
+  console.log('\n  the template stand-in (#3301)');
+  const CALL_MS = 0.01;
+  const TICK_MS = 0.25;
+  const TURN_CAP = 8000;
+  const BIG = 200;
+  const SG_PAGES = 8;
+  const SG_NODES = 1500;
+  const PANEL_INSTANCES = 12;
+  const EDIT_EVERY = 5;
+  let counting = false;
+  let calls = 0;
+  const callsIn = new Map<number, number>();
+  const raws = new WeakMap<object, Record<string, any>>();
+  const handler: ProxyHandler<Record<string, any>> = {
+    get(t, k, r) {
+      if (counting && typeof k === 'string') { calls++; callsIn.set(turnNo, (callsIn.get(turnNo) ?? 0) + 1); }
+      return Reflect.get(t, k, r);
+    },
+  };
+  let tseq = 0;
+  // A node as Figma's: its properties and methods behind the counting `Proxy`, its children and parent the proxies.
+  const tnode = (type: string, name: string, kids: any[] = [], props: Record<string, unknown> = {}): any => {
+    const data = new Map<string, string>();
+    const raw: Record<string, any> = {
+      id: `T:${++tseq}`, type, name, children: kids, parent: null, visible: true, opacity: 1, width: 100, height: 40, x: 0, y: 0,
+      fills: [], strokes: [], effects: [], boundVariables: {}, ...props,
+      getSharedPluginData: (ns: string, k: string) => data.get(`${ns}:${k}`) ?? '',
+      setSharedPluginData: (ns: string, k: string, v: string) => { data.set(`${ns}:${k}`, v); },
+      getPluginData: () => '', setPluginData: () => undefined,
+    };
+    const px = new Proxy(raw, handler);
+    raws.set(px, raw);
+    for (const c of kids) raws.get(c)!.parent = px;
+    return px;
+  };
+  // The plan's part tree, as nodes: an instance part points at a main component, as a slot or a nested set does.
+  const mainComp = tnode('COMPONENT', 'icon/placeholder');
+  const partNodes = (n: { name: string; type: string; children: any[] }): any => n.type === 'INSTANCE'
+    ? tnode('INSTANCE', n.name, [], { getMainComponentAsync: async () => mainComp })
+    : tnode(n.type === 'TEXT' ? 'TEXT' : 'FRAME', n.name, n.children.map(partNodes), n.type === 'TEXT' ? { characters: 'Label', fontSize: 14 } : { layoutMode: 'HORIZONTAL', itemSpacing: 8 });
+
+  // The template's own brand, stored as Apply Theme stores it: pill controls, so no def materializes as it did for the
+  // stand-in above, and no print the sections above left in the session's memo stands in for a projection here.
+  const tbrand = { ...(exampleBrands['aurora'] as object), controlShape: 'pill' } as Parameters<typeof materializerFor>[0];
+  persistInput(root as never, tbrand!);
+  const tmat = materializerFor(tbrand);
+  const tdefs = componentDefs.filter((d) => d.figmaProperties);
+  const plansOf = new Map(tdefs.map((d) => [d.id, figmaAnatomySet(tmat(d), { swapTarget: SWAP_TARGET })]));
+  const valueOf = (p: AnatomyPlanT): string => { const n = planComponentName(p); return n.slice(n.indexOf('=') + 1); };
+  type AnatomyPlanT = ReturnType<typeof figmaAnatomySet>[number];
+  type TPage = { id: string; name: string; type: 'PAGE'; isPageDivider: boolean; loaded: boolean; children: any[];
+    loadAsync(): Promise<void>; findAllWithCriteria(c: { types?: string[] }): any[] };
+  const tpages: TPage[] = [];
+  const mkPage = (name: string, kids: any[]): TPage => {
+    const pg: TPage = {
+      id: `TP:${tpages.length + 1}`, name, type: 'PAGE', isPageDivider: false, loaded: false, children: kids,
+      async loadAsync() { if (!this.loaded) { this.loaded = true; loads++; } },
+      findAllWithCriteria(c) {
+        if (!this.loaded) throw new Error(`page ${this.name} searched before it was loaded`);
+        const was = counting; counting = false;
+        const out: any[] = [];
+        const walk = (n: any): void => { const r = raws.get(n)!; if (!c.types || c.types.includes(r.type)) out.push(n); for (const k of r.children) walk(k); };
+        for (const n of this.children) walk(n);
+        counting = was;
+        return out;
+      },
+    };
+    for (const k of kids) raws.get(k)!.parent = pg;
+    tpages.push(pg);
+    return pg;
+  };
+  const caption = (): any => tnode('TEXT', 'Caption', [], { characters: 'When to use it' });
+  mkPage('Cover', [tnode('FRAME', 'Cover', [caption(), caption()])]);
+  for (let i = 0; i < SG_PAGES; i++) mkPage(`Style guide ${i + 1}`, [tnode('FRAME', `Table ${i + 1}`, Array.from({ length: SG_NODES }, caption))]);
+  const edited = new Map<string, number>();
+  const membersOf = new Map<string, number>();
+  const singleComps: any[] = [];
+  const allMembers: { def: string; node: any }[] = [];
+  for (const [n, d] of tdefs.entries()) {
+    const plans = plansOf.get(d.id)!;
+    membersOf.set(d.id, plans.length);
+    if (d.figmaProperties!.emitAsComponents) {
+      for (const p of plans) { const c = tnode('COMPONENT', `${d.id}/${valueOf(p)}`, [partNodes(p.root)]); singleComps.push(c); allMembers.push({ def: d.id, node: c }); }
+      continue;
+    }
+    const members = plans.map((p) => tnode('COMPONENT', planComponentName(p), p.root.children.map(partNodes)));
+    for (const m of members) allMembers.push({ def: d.id, node: m });
+    const set = tnode('COMPONENT_SET', d.id, members, { componentPropertyDefinitions: {} });
+    const panel = tnode('FRAME', `${d.id} usage`, [caption(), ...members.slice(0, PANEL_INSTANCES).map((m) => tnode('INSTANCE', raws.get(m)!.name, [caption()], { getMainComponentAsync: async () => m })), caption()]);
+    mkPage(`${d.id}`, [set, panel]);
+    if (n % EDIT_EVERY === 0) edited.set(d.id, 1);
+  }
+  mkPage('Icons and logos', singleComps);
+  // Every member stamped and recorded as built; one member of every fifth set edited by hand since.
+  for (const { def, node } of allMembers) {
+    raws.get(node)!.setSharedPluginData(NS, STAMP_KEY, `${def}:built`);
+    await writeBaseline(node);
+  }
+  for (const id of edited.keys()) { const set = tpages.find((p) => p.name === id)!.children[0]; raws.get(raws.get(set)!.children[0])!.opacity = 0.5; }
+  ok(tdefs.every((d) => membersOf.get(d.id)! > 0) && tpages.length > 60,
+    `template/premise: ${tdefs.length} sets, ${[...membersOf.values()].reduce((a, b) => a + b, 0)} members, ${tpages.length} pages, ${SG_PAGES} of them style guides of ${SG_NODES} nodes`);
+  // The ledger: every set recorded with its print under an older engine, as a dev build finds the template.
+  const tledger = Object.fromEntries(tdefs.map((d) => { const m = tmat(d); return [d.id, { ...entryFor(m, plansOf.get(d.id)!), engine: OLD_ENGINE }]; }));
+  pluginData.set(LEDGER_KEY, JSON.stringify({ v: LEDGER_V, sets: tledger }));
+  pages.splice(0, pages.length, ...(tpages as unknown as Page[]));
+  allCalled = false;
+
+  // The test's clock: the wall clock, plus `CALL_MS` per host call and `TICK_MS` per reading of the clock.
+  const wall = Date.now;
+  let reads = 0;
+  Date.now = () => wall() + calls * CALL_MS + (++reads) * TICK_MS;
+  const tlog: { stage: string; ms: number; turn: number; posts: number; def?: string }[] = [];
+  timings.push = (...e: { stage: string; ms: number; def?: string }[]) => Array.prototype.push.call(tlog, ...e.map((x) => ({ ...x, turn: turnNo, posts: posted.length })));
+  let tlag = 0;
+  let tbeat = true;
+  const theart = (): void => { const at = wall(); realTimeout(() => { const l = wall() - at - 1; tlag = Math.max(tlag, l); if (tbeat) theart(); }, 1); };
+  theart();
+  panelLive = false;
+  calls = 0; callsIn.clear(); loads = 0;
+  const from = posted.length;
+  const start = wall();
+  counting = true;
+  send({ type: 'ui-ready' });
+  const tdone = () => posted.slice(from).find((p) => p.msg?.type === 'hand-edits' && p.msg.done === true);
+  for (let i = 0; i < 24000 && !tdone(); i++) await new Promise((res) => realTimeout(res, 5));
+  counting = false;
+  tbeat = false;
+  Date.now = wall;
+  const after = posted.slice(from);
+
+  const firstRead = after.findIndex((p) => p.msg?.type === 'run-progress' && p.msg.run === 'read' && p.msg.done === 0);
+  const firstPrint = tlog.find((t) => t.stage === 'print');
+  const firstLoad = after.findIndex((p) => p.loads > 0);
+  ok(firstRead >= 0 && (!firstPrint || from + firstRead < firstPrint.posts) && (firstLoad < 0 || firstRead < firstLoad),
+    `open/strip-first: "Reading this file…" (page 0 of ${tpages.length}) is posted before the read at open projects a set or loads a page (posted ${firstRead < 0 ? 'never' : `${firstRead + 1}th`}; the first projection ended after ${firstPrint ? firstPrint.posts - from : '—'} posts; the first page loaded by post ${firstLoad + 1})`);
+  const worst = Math.max(0, ...callsIn.values());
+  const worstTurn = [...callsIn.entries()].find(([, c]) => c === worst)?.[0];
+  ok(!!tdone() && worst <= TURN_CAP,
+    `open/member-paced: no turn from ui-ready to the hand-edit pass's end makes more than ${TURN_CAP} host calls (worst ${worst}, in turn ${worstTurn}; ${calls} in all over ${callsIn.size} turns${tdone() ? '' : '; the pass never ended'})`);
+  const prints = tlog.filter((t) => t.stage === 'print');
+  const bigIds = tdefs.filter((d) => membersOf.get(d.id)! >= BIG && !d.figmaProperties!.emitAsComponents).map((d) => d.id);
+  const spans = bigIds.map((id) => {
+    const i = prints.findIndex((t) => t.def === id);
+    return { id, span: i > 0 ? prints[i].turn - prints[i - 1].turn : i === 0 ? Infinity : -1 };
+  });
+  ok(spans.length > 0 && spans.every((x) => x.span >= 2),
+    `open/print-paced: each set of ${BIG} members or more is projected across turns, never in one (${spans.map((x) => `${x.id} ${x.span < 0 ? 'not projected' : `${x.span} turns`}`).join(', ')})`);
+  const plansLog = tlog.filter((t) => t.stage === 'plan');
+  const light = bigIds.map((id) => {
+    const pl = plansLog[tdefs.findIndex((d) => d.id === id)];
+    const pr = prints.find((t) => t.def === id);
+    return { id, plan: pl?.ms ?? NaN, print: pr?.ms ?? NaN };
+  });
+  ok(plansLog.length === tdefs.length && light.every((x) => x.plan < x.print / 10),
+    `open/pass-light: the hand-edit pass finds each set of ${BIG} members or more in under a tenth of the time its projection took (${light.map((x) => `${x.id} ${x.plan} vs ${x.print} ms`).join(', ')}; ${plansLog.length} sets)`);
+  const hand = after.filter((p) => p.msg?.type === 'hand-edits' && p.msg.def);
+  const wrong = tdefs.filter((d) => { const h = hand.find((p) => p.msg.def === d.id)?.msg; return !h || h.members !== membersOf.get(d.id) || h.edited !== (edited.get(d.id) ?? 0); }).map((d) => d.id);
+  ok(hand.length === tdefs.length && wrong.length === 0,
+    `open/hand-edits: the pass reports all ${tdefs.length} sets, each with its members and its ${edited.size} hand edits where they were made (${hand.length} reported${wrong.length ? `; wrong: ${wrong.slice(0, 5).join(', ')}` : ''})`);
+  console.log('\n  measured (not asserted):');
+  console.log(`    most host calls in one turn ${worst} (about ${(worst * CALL_MS).toFixed(0)} ms at ${CALL_MS * 1000} µs a call)`);
+  console.log(`    longest stall of the loop   ${tlag} ms`);
+  console.log(`    pass done                   ${wall() - start} ms of wall clock`);
+  for (const st of ['ledger read', 'due (ledger)', 'page reads', 'due (file)', 'file-sets', 'hand-edit pass']) {
+    const xs = tlog.filter((t) => t.stage === st);
+    if (xs.length) console.log(`    stage ${st.padEnd(22)}${xs.map((t) => t.ms.toFixed(0)).join(', ')} ms`);
+  }
+  console.log(`    projections at open         ${prints.length}, ${prints.reduce((a, t) => a + t.ms, 0).toFixed(0)} ms in all`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
