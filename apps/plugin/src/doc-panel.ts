@@ -369,6 +369,8 @@ export interface PNode {
   paddingBottom?: unknown;
   paddingLeft?: unknown;
   readonly componentProperties?: Readonly<Record<string, unknown>>;
+  /** What an instance sets on itself and its layers, by layer id (#3303): its own values, never its main's. */
+  readonly overrides?: readonly { id: string; overriddenFields: readonly string[] }[];
   /** The component property a layer's visibility follows (`visible`), by its key: how a hidden part is shown. */
   readonly componentPropertyReferences?: Readonly<Record<string, string>> | null;
   /** Where the node sits on the canvas, laid out: the one box a marker is placed from (#2916). */
@@ -521,9 +523,103 @@ const printView = (n: SgNode): SgNode => new Proxy({}, {
     return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(t) : v;
   },
 }) as SgNode;
-/** A print in this form starts with this, so one recorded before it is still read the old way. */
+/** A print in the second form starts with this: `printView` read whole, an instance's layers and all. Exported so a
+ *  test can age a panel to it. */
 const PRINT_V2 = '2:';
-export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V2}${await fingerprintOf(printView(n as unknown as SgNode))}`;
+export const printV2 = async (n: PNode): Promise<string> => `${PRINT_V2}${await fingerprintOf(printView(n as unknown as SgNode))}`;
+
+/**
+ * THE PANEL AS PRISM3 LEFT IT (#3303). The second form still read every layer inside an instance: List.Item's padding,
+ * Badge's fill, the `_Doc-block` template's own text. Those are the instance's MAIN's, and Update rebuilds those
+ * components, so an untouched panel printed differently afterwards and was kept aside as "(edited)" below a fresh one
+ * (23 sets in the template after one Update, 2026-11-02). In this form an instance is read only through what it sets
+ * itself, the host's `overrides`: the text, size, properties and visibility the draw wrote, and anything a designer
+ * changed on it since. What its main gives it, its layers, their names, fills, padding and the properties it leaves at
+ * their default, is not in it. Every frame and text of the panel's own is read as `printView` reads it.
+ *
+ * Left out of an override too, as `printView` leaves them out of a frame: size and placement (a specimen's size reaches
+ * every block that hugs it), and plugin data. A specimen swap is the set's, so a property that swaps reads by type only.
+ * A host that reports no `overrides` on an instance has it read whole, as in the second form: the safe direction.
+ */
+const PRINT_V3 = '3:';
+const UNPRINTED = new Set(['width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight', 'x', 'y', 'relativeTransform', 'rotation', 'constraints',
+  'layoutAlign', 'layoutGrow', 'layoutPositioning', 'counterAxisSizingMode', 'primaryAxisSizingMode', 'textAutoResize', 'parent', 'pluginData', 'expanded', 'autoRename']);
+/** What each layer under `inst` overrides, by layer id, gathered over `inst` and every instance inside it (a specimen's
+ *  aside); null when the host reports none on `inst`. */
+const overridesUnder = (inst: PNode): Map<string, Set<string>> | null => {
+  if (!Array.isArray(inst.overrides)) return null;
+  const out = new Map<string, Set<string>>();
+  const take = (q: PNode): void => {
+    if (q !== inst && q.type === 'INSTANCE' && q.name === 'specimen') return;
+    for (const o of (q.type === 'INSTANCE' && Array.isArray(q.overrides) ? q.overrides : [])) {
+      const f = o.overriddenFields.filter((k: string) => !UNPRINTED.has(k));
+      if (f.length) out.set(o.id, new Set([...(out.get(o.id) ?? []), ...f]));
+    }
+    for (const c of q.children ?? []) take(c);
+  };
+  take(inst);
+  return out;
+};
+/** A swap's value is a member's id: the set's, so read by type only. */
+const ownProps = (props: unknown): unknown => (props && typeof props === 'object'
+  ? Object.fromEntries(Object.entries(props as Record<string, { type?: unknown; value?: unknown }>).map(([k, v]) => [k, v?.type === 'INSTANCE_SWAP' ? { type: v.type } : v]))
+  : props);
+/** One layer of an instance as its overrides read it: its type, which fields it overrides, and only those fields' values. */
+const overrideView = (n: PNode, fields: ReadonlySet<string>, kids: SgNode[], top: boolean): SgNode => new Proxy({}, {
+  get(_, k) {
+    const t = n as object;
+    if (k === 'type') return n.type;
+    if (k === 'children') return kids;
+    if (k === 'width' || k === 'height') return 0;
+    if (k === 'getMainComponentAsync' || k === 'mainComponent' || k === 'getPluginData' || k === 'findOne') return undefined;
+    // Which fields it overrides, so an override the print does not read the value of still moves it.
+    if (k === 'name') return `${fields.has('name') ? String(n.name ?? '') : ''}|${[...fields].sort().join(',')}`;
+    // Pinned modes on a block are the draw's own (Theming), not its main's.
+    if (k === 'explicitVariableModes') return top ? Reflect.get(t, k, t) : undefined;
+    if (k === 'componentProperties') return fields.has('componentProperties') ? ownProps(Reflect.get(t, k, t)) : undefined;
+    if (typeof k === 'string' && !fields.has(k) && !(k === 'getStyledTextSegments' && fields.has('styledTextSegments'))) return undefined;
+    const v = Reflect.get(t, k, t) as unknown;
+    return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(t) : v;
+  },
+}) as SgNode;
+/** An instance on the panel, read through its overrides: itself, then each layer under it that overrides something, in
+ *  order, flat, so a layer its main adds, drops or moves does not move the print. */
+const instanceView = (inst: PNode, ovr: Map<string, Set<string>>): SgNode => {
+  const flat: SgNode[] = [];
+  const take = (q: PNode): void => {
+    for (const c of q.children ?? []) {
+      if (c.type === 'INSTANCE' && c.name === 'specimen') { flat.push(printView(c as unknown as SgNode)); continue; }
+      const f = ovr.get(String(c.id ?? ''));
+      if (f) flat.push(overrideView(c, f, [], false));
+      take(c);
+    }
+  };
+  take(inst);
+  return overrideView(inst, ovr.get(String(inst.id ?? '')) ?? new Set(), flat, true);
+};
+/** `printView`, with each instance on the panel read through its overrides (`instanceView`). */
+const ownView = (n: SgNode): SgNode => new Proxy({}, {
+  get(_, k) {
+    const own = n as unknown as PNode;
+    if (k === 'children') {
+      return ((own.children ?? []) as readonly PNode[]).map((c) => {
+        if (c.type !== 'INSTANCE' || c.name === 'specimen') return c.type === 'INSTANCE' ? printView(c as unknown as SgNode) : ownView(c as unknown as SgNode);
+        const ovr = overridesUnder(c);
+        return ovr ? instanceView(c, ovr) : printView(c as unknown as SgNode);
+      });
+    }
+    return Reflect.get(printView(n), k);
+  },
+}) as SgNode;
+export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V3}${await fingerprintOf(ownView(n as unknown as SgNode))}`;
+/**
+ * Whether `n` still prints as `print`, read in the form it was recorded in. A print in the second form (#2927) is
+ * compared in that form: a panel drawn before #3303 and untouched since still matches until a component it nests is
+ * rebuilt, and then reads as edited, as it did. That is the safe rule for those panels: the second form cannot tell a
+ * rebuild from a hand edit, so nothing a designer did is drawn over. Once redrawn, a panel carries this form.
+ */
+export const printMatches = async (n: PNode, print: string): Promise<boolean> =>
+  !!print && (print.startsWith(PRINT_V3) ? (await panelPrint(n)) === print : print.startsWith(PRINT_V2) ? (await printV2(n)) === print : false);
 /**
  * THE TEXT PRISM3 WRITES INTO `defId`'s PANEL (#2968), today or before one panel per family (#2927): every string of its
  * plan; the wording #2927 changed (each part's own anatomy line, the def's own Do and Don't items and their count); a
@@ -597,7 +693,7 @@ const legacyUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode, print: stri
 export const panelUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode): Promise<boolean> => {
   const print = n.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT) ?? '';
   if (!print) return false;
-  return print.startsWith(PRINT_V2) ? (await panelPrint(n)) === print : legacyUnedited(api, n, print);
+  return print.startsWith(PRINT_V3) || print.startsWith(PRINT_V2) ? printMatches(n, print) : legacyUnedited(api, n, print);
 };
 
 /**
