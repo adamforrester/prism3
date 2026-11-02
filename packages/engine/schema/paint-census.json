@@ -663,14 +663,14 @@
     },
     "banner": {
       "set": {
-        "members": 8,
-        "assignments": 40,
-        "sha256": "3537d614c7f70e0d5ada4bac9f24b2f0d1749ec2939826ef0f2c64f3f8568017"
+        "members": 10,
+        "assignments": 48,
+        "sha256": "5a304a5438f9dd5f5dbf3de1432faac40a770a6c1ddd5014b5e972f0fa1946d8"
       },
       "grid": {
-        "members": 8,
-        "assignments": 40,
-        "sha256": "de9baa297f7ba1e25d891f6f59a6964bebb209a26b4fbf98828cc0d3303c7641"
+        "members": 10,
+        "assignments": 48,
+        "sha256": "fc705874fac7395e5d420e07a42921f45755459c254865047c3195658c9cc4ff"
       }
     },
     "_slider-thumb": {

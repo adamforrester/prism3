@@ -3606,6 +3606,38 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
+// #1761 — THE PLUGIN READS controlShape OFF THE BRAND, TO THE RUNG EACH SHAPE NAMES
+// =============================================================================================
+// `materializeForBrand` reads `controlShape` off the raw input (`input?.controlShape ?? 'rounded'`). The #1812 arms
+// below hold that each value MOVES the materialized defs; this one holds WHERE it moves them: each shape goes through
+// `materializeForBrand` on nb-redesign, and the medium filled button's four root corners are compared to HAND-WRITTEN
+// variable names (docs/34), never to `CONTROL_SHAPE_RUNG` or `applyControlShape`: unset and `rounded` bind
+// `radius/md`, `pill` `radius/capsule`, `boxed` `radius/none`, `hairline` `radius/hairline`. MUTATIONS, each failing
+// by name: `applyControlShape(def, 'rounded')` in `brand-def.ts` (the read dropped) → the pill, boxed and hairline
+// lines; `?? 'pill'` (a wrong default) → the unset line.
+{
+  const nbInput = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input as BrandInput;
+  // nb-redesign sets its own `controlShape`, so each case starts from the lever cleared: "unset" is really unset.
+  const corners = (extra: Partial<BrandInput>) => {
+    const root = figmaAnatomyPlan(materializeForBrand(button, { ...nbInput, controlShape: undefined, ...extra } as BrandInput), 'medium', { leading: false, trailing: false, swapTarget: SWAP, appearance: 'filled', state: 'rest' }).root;
+    const b = root.bound as Record<string, string | undefined>;
+    return [b.topLeftRadius, b.topRightRadius, b.bottomLeftRadius, b.bottomRightRadius];
+  };
+  const CASES: readonly [string, Partial<BrandInput>, string][] = [
+    ['unset', {}, 'radius/md'],
+    ["'rounded'", { controlShape: 'rounded' }, 'radius/md'],
+    ["'pill'", { controlShape: 'pill' }, 'radius/capsule'],
+    ["'boxed'", { controlShape: 'boxed' }, 'radius/none'],
+    ["'hairline'", { controlShape: 'hairline' }, 'radius/hairline'],
+  ];
+  for (const [label, extra, want] of CASES) {
+    const got = corners(extra);
+    ok(got.every((c) => c === want),
+      `#1761 plugin controlShape: nb-redesign with controlShape ${label} binds the medium button's four root corners to ${want} (got ${JSON.stringify(got)})`);
+  }
+}
+
+// =============================================================================================
 // #1633 — NESTED COMPONENTS BUILD FIRST
 // =============================================================================================
 // The owner built `button` into a fresh Aurora file and got 72 `focusRing.nestTarget -> focus-ring (not in
@@ -5318,8 +5350,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // =============================================================================================
 // #2924 — BANNER STYLE, built through `materializeForBrand` and read back from the host shim
 // =============================================================================================
-// One brand-wide surface for every banner (owner Q693 A, Q707 A). A brand on Outlined builds every one of Banner's 8
-// members with its fill bound to `color/background/primary`, and an unset brand (Tinted) to `color/foreground/<tone>-subtle`;
+// One brand-wide surface for every banner (owner Q693 A, Q707 A). A brand on Outlined builds every one of Banner's 10
+// members (#3225: the neutral tone's Tinted fill is `color/background/secondary` and its edge `color/border/tertiary`) with its fill bound to `color/background/primary`, and an unset brand (Tinted) to `color/foreground/<tone>-subtle`;
 // the edge is `color/border/<tone>` in both. The host holds the plans' variables (`fullFor`): that every one is a variable
 // the brand emits is `lint-lever-sweep.ts`'s check, under this setting too. The expected names are typed here from the
 // decision, never read off the materializer's table (docs/34).
@@ -5337,21 +5369,22 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const run = await build(def);
     const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
     const members = (set?.children ?? []) as Node[];
-    const fill = input.bannerStyle === 'outlined' ? () => 'color/background/primary' : (t: string) => `color/foreground/${t}-subtle`;
+    const fill = input.bannerStyle === 'outlined' ? () => 'color/background/primary' : (t: string) => (t === 'neutral' ? 'color/background/secondary' : `color/foreground/${t}-subtle`);
+    const edge = (t: string): string => (t === 'neutral' ? 'color/border/tertiary' : `color/border/${t}`);
     return {
       read: members.length,
       off: members.flatMap((m) => {
         const t = /tone=(\w+)/.exec(String(m.name))?.[1] ?? '';
         const got = [paintVar(m, 'fills'), paintVar(m, 'strokes')];
-        return got[0] === fill(t) && got[1] === `color/border/${t}` ? [] : [`${m.name}: ${got.join(' / ')}`];
+        return got[0] === fill(t) && got[1] === edge(t) ? [] : [`${m.name}: ${got.join(' / ')}`];
       }),
       misses: run.misses,
     };
   };
   for (const style of [undefined, 'outlined'] as const) {
     const got = await surfaces(style ? { ...aurora, bannerStyle: style } as BrandInput : aurora);
-    ok(got.read === 8 && got.off.length === 0 && got.misses.length === 0,
-      `#2924 banner surface reads back: at ${style ?? 'unset (Tinted)'}, all ${got.read} of 8 members fill with ${style === 'outlined' ? 'color/background/primary' : 'color/foreground/<tone>-subtle'} and edge in color/border/<tone> (${got.off.slice(0, 2).join('; ') || 'all match'}; misses: ${got.misses.slice(0, 2).join('; ') || 'none'})`);
+    ok(got.read === 10 && got.off.length === 0 && got.misses.length === 0,
+      `#2924 banner surface reads back: at ${style ?? 'unset (Tinted)'}, all ${got.read} of 10 members fill with ${style === 'outlined' ? 'color/background/primary' : 'color/foreground/<tone>-subtle (neutral: color/background/secondary)'} and edge in color/border/<tone> (neutral: color/border/tertiary) (${got.off.slice(0, 2).join('; ') || 'all match'}; misses: ${got.misses.slice(0, 2).join('; ') || 'none'})`);
   }
 }
 
