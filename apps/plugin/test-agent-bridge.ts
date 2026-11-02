@@ -18,7 +18,11 @@
  * Arms, by name: mcp · relay/url · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
- * e2e/link-off · e2e/switch-off
+ * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read>
+ *
+ * #3147 Phase 2a: each read-only node command (inspect, component-keys, audit-frames, snapshot) through figma_run, against
+ * the same `NodeShim` fixture and literal expectations as `test-agent-link.ts`; its shim write log must stay empty
+ * (mutations: `readOne` assigning `n.name = n.name` → `no-write/inspect`; `locked` dropped → `envelope/inspect`).
  *
  * #3147: the server refuses an upgrade whose `Origin` is not `null`. `origin/refused` sends a web page's origin, a
  * localhost page's and none, and each must get 403 and never become the plugin.
@@ -63,6 +67,8 @@ import { createBridgeRelay, BRIDGE_PORT, BRIDGE_URL } from './src/agent-bridge-r
 import type { WsLike } from './src/agent-bridge-relay';
 import { createPairing, createProgressCounter, loadSecret } from '../../tools/figma-bridge/server';
 import { HANDSHAKE_PROBES } from '../../packages/engine/mcp-handshake-probes';
+import { READ_COMMANDS } from './src/agent-protocol';
+import { readFixture, ARGS, EXPECTED, canon } from './agent-read-fixture';
 
 let failed = 0;
 let executed = 0;
@@ -903,6 +909,41 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
     await sleep(200);
     ok(replyCount.get(done.rpcId) === 1, `resend/running: the call is answered exactly once (${replyCount.get(done.rpcId)})`);
     ok(g2.__midRuns === 1, `resend/running: the command ran once (${g2.__midRuns})`);
+  }
+
+  // #3147 Phase 2a: the four read-only node commands over the bridge, against the same fixture and the same literal
+  // expectations as the mailbox suite. Every write a command made would be in the shim's log or in `fileWrites`.
+  {
+    const fx = readFixture();
+    const h = host as Record<string, any>;
+    const savedChildren = root.children;
+    root.children = fx.pages;
+    h.getNodeByIdAsync = (id: string) => fx.getNodeByIdAsync(id);
+    h.getStyleByIdAsync = (id: string) => fx.getStyleByIdAsync(id);
+    h.variables.getVariableByIdAsync = (id: string) => fx.getVariableByIdAsync(id);
+    const ARMS: Array<[string, unknown, unknown]> = [
+      ['inspect', ARGS.inspect, EXPECTED.inspect],
+      ['component-keys', ARGS.keys, EXPECTED.keys],
+      ['audit-frames', ARGS.audit, EXPECTED.audit],
+      ['snapshot', ARGS.snapshot, EXPECTED.snapshot],
+    ];
+    ok(ARMS.map((a) => a[0]).join() === READ_COMMANDS.join(), `reads: every read command has a bridge arm (${READ_COMMANDS.join(', ')})`);
+    for (const [cmd, args, want] of ARMS) {
+      const w0 = fx.writes.length;
+      // The link record (`prism3agent/link`) is the agent link's own, rewritten after every command whatever it is; any
+      // OTHER plugin-data write is the command's.
+      const commandWrites = () => fileWrites.filter((w) => !w.startsWith('prism3agent/link='));
+      const f0 = commandWrites().length;
+      calls.length = 0;
+      const rr = await call('figma_run', { cmd, args, timeoutMs: 8000 });
+      const env = rr.value as AgentResult;
+      ok(!rr.isError && env.ok === true && !env.error && env.cmd === cmd && env.transport === 'bridge' && env.v === 1 && env.engineVersion === ENGINE_VERSION && env.result?.verdict === null,
+        `bridge/${cmd}: figma_run ${cmd} answers ok in a bridge envelope, with no verdict — ${JSON.stringify(env.error ?? null)}`);
+      ok(canon(env.result?.data) === canon(want), `envelope/${cmd}: result.data over the bridge is exactly the literal expectation — got ${canon(env.result?.data).slice(0, 300)}`);
+      ok(fx.writes.length === w0 && commandWrites().length === f0 && calls.length === 0,
+        `no-write/${cmd}: over the bridge the shim logged no write (${fx.writes.slice(w0).join(', ') || 'none'}), no plugin data but the link record was written (${commandWrites().slice(f0).join(', ') || 'none'}), and no ACTIONS handler ran`);
+    }
+    root.children = savedChildren;
   }
 
   toMain({ type: 'agent-link', on: false });

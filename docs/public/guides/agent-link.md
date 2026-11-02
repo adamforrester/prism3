@@ -11,7 +11,7 @@ It is off every time the plugin opens, and only you can turn it on. <!-- src: ap
 
 An agent working through Figma's own MCP connection can read and write a file's data, but it can't press the plugin's buttons. The agent link gives it two ways in: <!-- src: apps/plugin/src/agent-link.ts:9-21 -->
 
-- The file's plugin data, as a mailbox. The agent writes a request there, and the plugin, while the link is on, checks for requests about once a second, runs one, and writes the result back beside it. <!-- src: apps/plugin/src/agent-protocol.ts:330 --> <!-- src: apps/plugin/src/agent-link.ts:9-21 -->
+- The file's plugin data, as a mailbox. The agent writes a request there, and the plugin, while the link is on, checks for requests about once a second, runs one, and writes the result back beside it. <!-- src: apps/plugin/src/agent-protocol.ts:378 --> <!-- src: apps/plugin/src/agent-link.ts:9-21 -->
 - The desktop bridge, a small program on your computer that the agent talks to. While the link is on, the plugin holds a connection to it at `ws://localhost:17331`, on your computer only. The first time, the plugin asks you to pair: **Pair with the desktop bridge**, with a **Pairing code** from the bridge or your agent. A code works once, for 10 minutes. <!-- src: apps/plugin/src/agent-link-ui.ts:128-136 --> <!-- src: apps/plugin/src/agent-bridge-relay.ts:37-41 -->
 
 "Prism3 Studio" carries both. "Prism3 Studio Offline" makes no network calls, so it has the mailbox only. <!-- src: apps/plugin/manifest.json:2-19 --> <!-- src: apps/plugin/manifest-offline.json:2-6 -->
@@ -24,7 +24,7 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:222-225 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:222 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:1975 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:222 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:1978 -->
 
 The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:118-121 -->
 
@@ -34,17 +34,21 @@ The Activity drawer's bar shows the link's state in a word: "Listening · bridge
 
 | Request | What the plugin does |
 |---|---|
-| `status` | Reports the plugin version, the file and page, whether the file has a saved brand and variables, and the link's state. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:50-51 --> |
-| `apply-theme` | Writes the theme, as Update file's Theme item does, with the brand settings the agent supplies. See [Write the theme to a Figma file](apply-a-theme.md). <!-- src: apps/plugin/src/agent-protocol.ts:52-53 --> |
-| `build-components` | Builds one component set. See [Build components](build-components.md). <!-- src: apps/plugin/src/agent-protocol.ts:54-55 --> |
-| `file-setup` | Sets up the file. See [Set up a file](file-setup.md). <!-- src: apps/plugin/src/agent-protocol.ts:56-57 --> |
-| `style-guide` | Draws the style guides, with the same options as Documentation. See [Build style guides](style-guides.md). <!-- src: apps/plugin/src/agent-protocol.ts:58-59 --> |
-| `prune` | Clean up: a preview, or with a confirm, the delete. See [Remove what the brand no longer uses](update-a-file-safely.md#remove-what-the-brand-no-longer-uses). <!-- src: apps/plugin/src/agent-protocol.ts:60-61 --> |
-| `readback` | Reads the file's color variables back and checks they were written correctly: each mode distinct, every alias resolving, the brand's modes present and scopes set. It also lists every component page. Writes nothing. It does not check contrast. <!-- src: apps/plugin/src/agent-protocol.ts:62-63 --> |
-| `update-components` | Updates sets in place: a check first, then a confirm that carries the check's fingerprint. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/plugin/src/agent-protocol.ts:64-68 --> |
-| `capture-baseline` | Records how each variant looks now, so a later update can tell your edits apart. Plugin data only. <!-- src: apps/plugin/src/agent-protocol.ts:69-70 --> |
-| `adopt-members` | Claims variants Prism3 did not build, so updates can reach them. Plugin data only. <!-- src: apps/plugin/src/agent-protocol.ts:71-73 --> |
-| `draw-specs` | Draws the spec panel beside each family's usage panel, as **Draw specs** in Documentation's Specs tab does. <!-- src: apps/studio/src/shell/documentation.ts:54 --> <!-- src: apps/plugin/src/agent-protocol.ts:74-76 --> |
+| `status` | Reports the plugin version, the file and page, whether the file has a saved brand and variables, and the link's state. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:53-54 --> |
+| `apply-theme` | Writes the theme, as Update file's Theme item does, with the brand settings the agent supplies. See [Write the theme to a Figma file](apply-a-theme.md). <!-- src: apps/plugin/src/agent-protocol.ts:55-56 --> |
+| `build-components` | Builds one component set. See [Build components](build-components.md). <!-- src: apps/plugin/src/agent-protocol.ts:57-58 --> |
+| `file-setup` | Sets up the file. See [Set up a file](file-setup.md). <!-- src: apps/plugin/src/agent-protocol.ts:59-60 --> |
+| `style-guide` | Draws the style guides, with the same options as Documentation. See [Build style guides](style-guides.md). <!-- src: apps/plugin/src/agent-protocol.ts:61-62 --> |
+| `prune` | Clean up: a preview, or with a confirm, the delete. See [Remove what the brand no longer uses](update-a-file-safely.md#remove-what-the-brand-no-longer-uses). <!-- src: apps/plugin/src/agent-protocol.ts:63-64 --> |
+| `readback` | Reads the file's color variables back and checks they were written correctly: each mode distinct, every alias resolving, the brand's modes present and scopes set. It also lists every component page. Writes nothing. It does not check contrast. <!-- src: apps/plugin/src/agent-protocol.ts:65-66 --> |
+| `update-components` | Updates sets in place: a check first, then a confirm that carries the check's fingerprint. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/plugin/src/agent-protocol.ts:67-71 --> |
+| `capture-baseline` | Records how each variant looks now, so a later update can tell your edits apart. Plugin data only. <!-- src: apps/plugin/src/agent-protocol.ts:72-73 --> |
+| `adopt-members` | Claims variants Prism3 did not build, so updates can reach them. Plugin data only. <!-- src: apps/plugin/src/agent-protocol.ts:74-76 --> |
+| `draw-specs` | Draws the spec panel beside each family's usage panel, as **Draw specs** in Documentation's Specs tab does. <!-- src: apps/studio/src/shell/documentation.ts:54 --> <!-- src: apps/plugin/src/agent-protocol.ts:77-79 --> |
+| `inspect` | Reads the layers you name and the layers inside them: type, name, page, size, whether locked, the main component and its key for an instance, its properties, the variables it uses and its text style. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:80-81 --> |
+| `component-keys` | Lists the file's component sets and components with their keys, so another file can place them. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:82-83 --> |
+| `audit-frames` | Checks frames for what a rebuild should have replaced: old components, text with no style, colors bound to no variable, hand-drawn rules and unnamed frames. The agent supplies the old names. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:84-85 --> |
+| `snapshot` | Renders one layer as an image, as this session shows it. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:86-87 --> |
 
 Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-14 -->
 
@@ -55,8 +59,8 @@ Every write an agent asks for passes the same checks as Update file, and is refu
 - **While it is off, the plugin ignores the agent entirely.** A request waiting in the file does nothing, and the plugin holds no connection to the bridge. <!-- src: apps/plugin/src/agent-link.ts:6-8 --> <!-- src: apps/plugin/src/agent-link-ui.ts:326-327 -->
 - **Old requests are not replayed.** A request already waiting when you turn the link on is answered "stale" and not run; the agent has to send it again. <!-- src: apps/plugin/src/agent-link.ts:146-158 -->
 - **One request at a time.** The plugin runs requests in the order sent, never two at once, and never while the same write is running from Update file. <!-- src: apps/plugin/src/agent-link.ts:14-18 -->
-- **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:42-45 --> <!-- src: apps/plugin/src/agent-dispatch.ts:234 -->
-- **Deletes and updates need a confirm.** A clean-up or a component update runs as a preview first, and the agent has to send a separate confirm. Ask it to show you the preview before it confirms. <!-- src: apps/plugin/src/agent-protocol.ts:57-65 -->
+- **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:45-48 --> <!-- src: apps/plugin/src/agent-dispatch.ts:248 -->
+- **Deletes and updates need a confirm.** A clean-up or a component update runs as a preview first, and the agent has to send a separate confirm. Ask it to show you the preview before it confirms. <!-- src: apps/plugin/src/agent-protocol.ts:60-68 -->
 - **It writes to the open file.** Whatever the agent asks for lands in the file the plugin is open in. Try a new workflow on a copy first. <!-- src: tools/figma-mcp/README.md:131-133 -->
 
 The panel shows each result an agent's request produced, in Activity, as if you had run it. <!-- src: apps/plugin/src/agent-dispatch.ts:14-22 -->
