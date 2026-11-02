@@ -19561,6 +19561,44 @@ if (runs('3044')) {
   ok(child.status === 1 && named && took < 30000,
     `3044: a section that never returns fails by name at its limit, with the last check it reached (exit ${child.status}, signal ${child.signal}, ${took}ms; stderr ${JSON.stringify(String(child.stderr ?? '').trim().slice(-220))})`);
 } // 3044
+// 3298. THE INSPECT MENU STAYS INSIDE THE WINDOW (#3298, owner decision Q3298.1 A). Sized to its longest unwrapped line
+//     and hung from Inspect's right edge, the open menu ran off the window's left edge at 380 on both hosts (the privacy
+//     note on one line set a 529px menu; left edge −161), where the page cannot scroll to it. At the narrow tier the
+//     preview header now holds the menu: Inspect's right edge, capped at the header less 12px a side, the note and the
+//     stamp wrapping inside it. 1280 is unchanged. EXPECTED is the window (`innerWidth`) and the button's own rect;
+//     ACTUAL is the open menu's `getBoundingClientRect()`, and the note's and the stamp's, as the browser lays them out.
+//     Mutation this fails by name: the four narrow rules under `#3298` in `chrome.css` removed → `3298 figma 380: …` and
+//     `3298 web 380: …` (the menu's left edge below 0).
+if (runs('3298')) {
+  console.log(`\nThe Inspect menu inside the window (#3298)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 380, h: 800 }, { w: 1280, h: 900 }]) {
+    const where = `3298 ${host} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    let step = 'open';
+    try {
+      step = 'Brand';
+      await goPlace(page, 'brand');
+      if (w <= 560) { step = 'the Preview pane'; await hooks.click(page.locator('[data-p3="pane-toggle-preview"]')); }
+      step = 'open Inspect';
+      await hooks.need(page, '[data-p3="inspect-open"]', { timeout: 10000 });
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      await hooks.need(page, '[data-p3="inspect-menu"]', { timeout: 10000 });
+      await page.waitForTimeout(300);
+      const m = await page.evaluate(() => {
+        const r = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { l: +b.left.toFixed(1), r: +b.right.toFixed(1), t: +b.top.toFixed(1), b: +b.bottom.toFixed(1), w: +b.width.toFixed(1) } : null; };
+        return { iw: innerWidth, sw: document.documentElement.scrollWidth, menu: r('[data-p3="inspect-menu"]'), btn: r('[data-p3="inspect-open"]'),
+          note: r('[data-p3="privacy-note"]'), stamp: r('[data-p3="build-stamp"]') };
+      });
+      const inside = (a, b) => !!a && !!b && a.l >= b.l - 0.5 && a.r <= b.r + 0.5 && a.t >= b.t - 0.5 && a.b <= b.b + 0.5;
+      ok(!!m.menu && m.menu.l >= 0 && m.menu.r <= m.iw, `${where}: the open Inspect menu stays inside the window, [0, ${m.iw}] (${JSON.stringify(m.menu)}, scrollWidth ${m.sw})`);
+      ok(inside(m.note, m.menu) && inside(m.stamp, m.menu), `${where}: the privacy note and the build stamp sit inside the menu (note ${JSON.stringify(m.note)}, stamp ${JSON.stringify(m.stamp)}, menu ${JSON.stringify(m.menu)})`);
+      ok(!!m.menu && !!m.btn && Math.abs(m.menu.r - m.btn.r) <= 0.5 && m.menu.t >= m.btn.b, `${where}: the menu keeps Inspect's right edge and hangs below it (menu ${JSON.stringify(m.menu)}, Inspect ${JSON.stringify(m.btn)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3298
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

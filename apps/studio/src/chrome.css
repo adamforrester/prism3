@@ -538,6 +538,17 @@
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-inspect-head { grid-area: nav; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-inspect-body { grid-area: levers; }
 .p3-frame[data-w="narrow"] .p3-preview-head { flex-wrap: wrap; padding: var(--p3-space-100) var(--p3-space-150); }
+/* #3298 (owner decision Q3298.1 A): at the narrow tier the preview header holds the Inspect menu. Sized to its longest
+   line and hung from Inspect alone, the menu ran off the window's left edge at 380 (the privacy note on one line, 529px
+   wide). Here the header is its containing block: the menu keeps Inspect's right edge (the header's 12px padding),
+   drops just under Inspect from its static position (the narrow button's height plus the usual gap), and is capped at
+   the header's width less 12px a side, so the privacy note and the build stamp wrap inside it. 1280 is unchanged. */
+.p3-frame[data-w="narrow"] .p3-preview-head { position: relative; }
+.p3-frame[data-w="narrow"] .p3-preview-head > .p3-popwrap { position: static; }
+.p3-frame[data-w="narrow"] .p3-preview-head > .p3-popwrap > .p3-menu {
+  top: auto; right: var(--p3-space-150); margin-top: calc(var(--p3-ctl-h-xs) + var(--p3-space-050));
+  min-width: 0; max-width: calc(100% - 2 * var(--p3-space-150));
+}
 .p3-frame[data-w="narrow"] .p3-inspect-head { padding: 0 var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-inspect-body { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-btn.p3-tile { min-height: var(--p3-ctl-h-xs); min-width: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-050); }
