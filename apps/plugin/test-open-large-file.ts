@@ -255,7 +255,7 @@ timings.push = (...e: { stage: string; ms: number }[]) => Array.prototype.push.c
 g.PRISM3_OPEN_TIMINGS = timings;
 
 const { ACTIONS } = await import('./src/main');
-const { dropViews, keptView } = await import('./src/member-views');
+const { dropViews, keepView, keptCount, keptView, viewEpoch } = await import('./src/member-views');
 const { freshView, readSetView } = await import('./src/update-plan');
 
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
@@ -906,6 +906,20 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   ok(!!edited2.msg && text(edited2.msg) === text(fresh.msg) && setIn(edited2.msg) !== setIn(kept.msg),
     `check/drops: a hand edit to ${touched} after the pass is in the next check's answer, as a fresh read gives it (${setIn(edited2.msg) === setIn(kept.msg) ? 'the edit is missing' : 'the edit is there'}; ${text(edited2.msg) === text(fresh.msg) ? 'same as fresh' : 'differs from fresh'})`);
   console.log(`    the check's host calls: ${kept.calls} over the pass's reads, ${fresh.calls} reading every set`);
+
+  // #3348: A WRITE DROPS EVERY KEPT VIEW, as it starts and as it ends (`guarded`): a write moves members with no change
+  // the views hear in time. Each set's read is kept again here, then a write runs: one the guard brackets (an update of
+  // a def this build doesn't know, refused inside the run). The sink's first post lands inside the run.
+  //   · `check/write start`: no view is kept inside the run. Mutation: `guarded`'s drop at the start removed.
+  //   · `check/write end`: a view kept inside the run is gone after it. Mutation: `guarded`'s drop at the end removed.
+  for (const { set } of tsets) keepView(await readSetView(set, undefined, noVars), viewEpoch());
+  const keptBefore = keptCount();
+  const inRun = await readSetView(tsets[0].set, undefined, noVars);
+  let during: number | null = null;
+  const probe = (): void => { if (during !== null) return; during = keptCount(); keepView(inRun, viewEpoch()); };
+  await ACTIONS.updateComponents(['no-such-def'], 'no-such-hash', {}, tbrand, { post: probe, data: probe });
+  ok(keptBefore === tsets.length && during === 0, `check/write start: a write drops every kept view as it starts (${keptBefore} kept before it, ${during} inside it)`);
+  ok(during !== null && keptCount() === 0, `check/write end: a view kept while a write runs is dropped as it ends (${keptCount()} kept after it)`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

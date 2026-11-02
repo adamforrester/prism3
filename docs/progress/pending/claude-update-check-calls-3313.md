@@ -10,11 +10,15 @@ template-sized stand-in from #3312 put it at 2.6M host calls. #3313 named where 
   located, and hands the set to `fileBlockers` for each set. It is the same list for every set in a run.
 - **The pass's reads, kept** (`member-views.ts`). The hand-edit pass at open already reads every member's snapshot,
   stamp and record, which is the view the dry run lays its plans against. `handEditsOf` hands each set's view on, and
-  `checkSets` passes `previewUpdate` a lookup by set node id. A kept view is dropped:
-  - when a document change touches its set, either the set itself or any node inside it;
-  - all of them when a change can't be placed (a deletion, unreadable parents), or a component or set is renamed,
-    because an instance's snapshot names its main component, wherever that sits;
-  - all of them when a write starts or ends (`guarded`).
+  `checkSets` passes `previewUpdate` a lookup by set node id. Every kept view is dropped together:
+  - when a document change touches any component or set, or any node inside one. Figma never reports an instance
+    sublayer updated by its main component, so an edit to one set can resize another set's members unheard;
+  - on any style change. Figma never reports a node updated by a style either, so a text style's size can re-flow
+    every member that uses it unheard (#3348's review: the check read no move where a fresh read read 41);
+  - when a change can't be placed (a deletion, unreadable parents);
+  - when a write starts or ends (`guarded`).
+
+  A change outside every component and set (a canvas frame, a usage panel) keeps them.
 
   A read that was in progress during any drop is not kept (`viewEpoch`).
 - **What a kept view doesn't hold is read every time** (`freshView`):
@@ -52,3 +56,19 @@ by name:
 - the check not given the kept reads → `check/calls` (2.00M);
 - a kept view handed on without `drawn` read again → `check/views`;
 - the listener's drop removed → `check/drops`.
+
+After review, more arms:
+- `test-update-apply.ts`, `views/…`, on the strict shim. A set's read is kept, then a member grows with no change of
+  its own, as a re-flow grows it. Then the one change Figma would report is sent: a style change, a main component
+  resized outside every set, another set's member resized, or a text inside another set's member edited. The check
+  laid against the kept read must equal a fresh read, whole. The premise shows the kept read is stale with no drop
+  (44 moves fresh, 0 against it). `views/canvas` keeps the view for a canvas frame's change; `views/epoch` refuses a
+  read that ran across a drop.
+- `test-open-large-file.ts`, `check/write start` and `check/write end`: a write drops every view as it starts, and a
+  view kept while it runs is gone after it.
+
+Mutations, each failing by name:
+- `STYLE_*` changes skipped → `views/style`;
+- a component change not dropping the views → the three `views/main …` arms;
+- `keepView` ignoring its epoch → `views/epoch`;
+- `guarded`'s drop at the start removed → `check/write start`; at the end → `check/write end`; both → both.

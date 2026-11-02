@@ -1199,7 +1199,7 @@ const watchSets = (): void => {
   if (watchingSets) return;
   try {
     figma.on('documentchange', (e) => {
-      // #3313: a set this change touches is read again by the next Update check (`member-views.ts`).
+      // #3313: a change to any component or set, or any style, has the next Update check read every set again (`member-views.ts`).
       dropViewsFor(e.documentChanges as Parameters<typeof dropViewsFor>[0]);
       if (presentCache === null || !movesSets(e.documentChanges as readonly SetChange[])) return;
       presentCache = null; presentRead = null; presentGen++;
