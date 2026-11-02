@@ -30,7 +30,7 @@ The variables the plugin writes match the ones the engine emits for the same bra
 
 1. Set the brand in the studio. See [Theme a brand](theme-a-brand.md).
 2. Choose **Update file** in the top bar. The dialog opens with **Theme** ticked. <!-- src: apps/studio/src/state/update-file.ts:185-196 -->
-3. Untick anything else that should wait, then choose **Update file**. The top bar's button reads **Updating…** while it runs. <!-- src: apps/studio/src/state/update-file.ts:186 -->
+3. Untick anything else that should wait, then choose **Update file**. The top bar's button reads **Updating** while it runs. <!-- src: apps/studio/src/state/update-file.ts:186 -->
 4. When the theme is written, the status strip says "Theme applied". The full result is in the Activity drawer. <!-- src: apps/studio/src/state/status-strip.ts:141 -->
 
 | Result | Meaning |
