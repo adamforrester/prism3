@@ -1355,13 +1355,18 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // (the host, where `radius/md` binds all four); an unbound corner reads whatever was written, default
     // 0 (Figma's default, and the ring's hard square before the concentric fix). Neither read-back nor
     // write existed before, so the ring's radius was invisible to this shim.
+    // #3048 — AND A LITERAL WRITE DETACHES THAT CORNER'S BINDING, as a literal write after a binding does on the host
+    // (the rule #2695 models for the stroke weight above). `claimDefaults` runs after the bind loop and zeroes every
+    // corner the plan leaves unbound; its `!(corner in bound)` guard is the only thing keeping it off a bound one. The
+    // setter used to keep the binding through the write, so removing the guard left every read-back green while the
+    // host would ship the corner unbound at 0. `setBoundVariable` writes `boundVariables` only, never this setter.
     for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const) {
       const backing = `_${corner}`;
       (node as Record<string, unknown>)[backing] = 0;
       Object.defineProperty(node, corner, {
         configurable: true, enumerable: true,
         get() { const bv = node.boundVariables as Record<string, { value?: number }>; return bv[corner]?.value ?? (node as Record<string, number>)[backing]; },
-        set(v: number) { (node as Record<string, number>)[backing] = v; },
+        set(v: number) { (node as Record<string, number>)[backing] = v; delete (node.boundVariables as Record<string, unknown>)[corner]; },
       });
     }
     // #1567 — WRITING A TYPE PROPERTY DETACHES THE APPLIED TEXT STYLE, AND IT DOES SO EVEN WHEN THE VALUE
