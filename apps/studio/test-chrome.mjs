@@ -3689,6 +3689,37 @@ for (const host of ['web', 'figma']) {
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
         }
+        // #3308 (Q3308.4 A): a run that sets the file up and writes its theme ends by drawing the cover and About this
+        // library. After Theme, the run's last step checks the in-place update over no sets, then applies it with the
+        // check's hash; the plugin's finish of that update draws both, and its verdict ends the run. Style guides unticked
+        // and nothing queued, so the steps are Set up file, Theme and the cover.
+        // (mutations: `stepsOf` with no `cover` step → this arm; `startStep` posting nothing for `cover` → this arm)
+        {
+          if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+          // The update's two posts are reads and a write `recordPosts` does not keep, so this arm listens for them itself.
+          await page.evaluate(() => { if (window.__cv3308) return; window.__cv3308 = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['update-check-request', 'update-sets'].includes(m.type)) window.__cv3308.push(JSON.parse(JSON.stringify(m))); }); });
+          const takeCv = (type) => page.evaluate((t) => new Promise((r) => setTimeout(() => { const got = window.__cv3308.filter((m) => m.type === t); window.__cv3308.length = 0; r(got); }, 50)), type);
+          await openUpdate({ present: [], setUp: false, queued: [] });
+          await hooks.click(page.locator('[data-p3="update-check-guides"]'), WAIT);
+          await takeWrites(page);
+          await takeCv('none');
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          const cv1 = (await takeWrites(page)).map(keyOf);
+          await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+          const cv2 = (await takeWrites(page)).map(keyOf);
+          await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+          const cv3 = await takeCv('update-check-request');
+          await postMsg(page, { type: 'update-check', previewHash: 'H-3308', missing: [], refused: [], sets: [] });
+          const cv4 = await takeCv('update-sets');
+          const cvRun = await updBtn();
+          await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ About this library drawn', summary: 'Cover: drawn. About this library: drawn on the Cover page.', lines: ['Cover: drawn.', 'About this library: drawn on the Cover page.'] });
+          await settle(page);
+          const cvEnd = await updBtn();
+          ok(cv1.includes('file-setup') && cv2.includes('apply-theme') && !cv2.includes('update-check-request')
+            && cv3.length === 1 && canon(cv3[0].defs) === '[]' && cv4.length === 1 && canon(cv4[0].defs) === '[]' && cv4[0].previewHash === 'H-3308' && cvRun.busy && !cvEnd.busy,
+            `${where}: #3308: a run that sets the file up and writes its theme ends with the cover: after Theme it checks and applies the update over no sets, and that verdict ends the run (posted ${JSON.stringify(cv1)}, ${JSON.stringify(cv2)}, then ${JSON.stringify(cv3)} and ${JSON.stringify(cv4)}; Update file ${JSON.stringify(cvRun)} → ${JSON.stringify(cvEnd)})`);
+          await takeWrites(page);
+        }
         // #3128: a set the build queue posts that the host refuses (the plugin's run guard still held) gets no verdict.
         // The run ends on the refusal: Update file is free again, the Build set row is not left running, and its result
         // carries the host's words. Two sets queued (#3129, the file's add queue), the theme not; the first lands, the

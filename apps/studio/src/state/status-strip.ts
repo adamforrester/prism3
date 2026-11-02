@@ -128,17 +128,19 @@ export const STRIP_COPY = {
     float: 'size and layout variables', color: 'color variables', styles: 'effect and gradient styles', grid: 'grid styles',
     'type-vars': 'type variables', 'text-styles': 'text styles', motion: 'motion variables',
   } as Record<ApplyStageKey, string>,
-  step: { setup: 'Setting up the file', theme: 'Applying the theme', update: 'Updating sets in place', sets: 'Adding sets', guides: 'Drawing the style guides' } as Record<StepKey, string>,
+  step: { setup: 'Setting up the file', theme: 'Applying the theme', update: 'Updating sets in place', sets: 'Adding sets', guides: 'Drawing the style guides',
+    // #3308 (Q3308.4 A), DRAFT.
+    cover: 'Drawing the cover and About this library' } as Record<StepKey, string>,
   adding: (name: string): string => `Adding ${name}`,
   /** Each step's name after "Stop after", "Stopped after" and "Stopped at". */
-  stopName: { setup: 'Set up file', theme: 'Theme', update: 'the update', sets: 'To add', guides: 'Style guides' } as Record<StepKey, string>,
+  stopName: { setup: 'Set up file', theme: 'Theme', update: 'the update', sets: 'To add', guides: 'Style guides', cover: 'the cover' } as Record<StepKey, string>,
   theCheck: 'the check',
   of: (n: number, of: number): string => `${n} of ${of}`,
   still: (what: string): string => `Still working on ${what}`,
   stopAfter: (what: string): string => `Stop after ${what}`,
   stopping: (what: string): string => `Stopping after ${what}…`,
   /** Each step's words once it is done, for the verdict line. */
-  done: { setup: 'File set up', theme: 'Theme applied', sets: 'Sets added', guides: 'Style guides drawn' } as Record<Exclude<StepKey, 'update'>, string>,
+  done: { setup: 'File set up', theme: 'Theme applied', sets: 'Sets added', guides: 'Style guides drawn', cover: 'Cover drawn' } as Record<Exclude<StepKey, 'update'>, string>,
   updated: (n: number): string => `${sets(n)} updated`,
   fileUpdated: 'File updated',
   stoppedAfter: (what: string): string => `Stopped after ${what}`,

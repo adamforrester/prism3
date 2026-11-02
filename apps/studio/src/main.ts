@@ -1915,6 +1915,11 @@ let updateReviewed: readonly CheckedSetView[] = [];
 let updatePhase: 'recheck' | 'apply' | null = null;
 /** The update of fewer sets than were checked, checked again: each set must hash as the person reviewed it. */
 const UPDATE_MOVED = 'A set changed in the file since the check. Open Update file again to see what changes now.';
+/** #3308 (Q3308.4 A): the `cover` step is the in-place update over no sets. Its check and its apply read and write only
+ *  what the file owes beyond its sets, the cover and About this library first; the apply's finish draws both. */
+const COVER_UPDATE: NonNullable<UpdateRun['update']> = { defs: [], previewHash: '', handEdits: 'keep' };
+/** The in-place update the step running applies: the ticked sets' for `update`, none for `cover`. */
+const inPlaceOf = (step: StepKey | null): NonNullable<UpdateRun['update']> | null => (step === 'cover' ? COVER_UPDATE : step === 'update' ? updateRun?.update ?? null : null);
 /** The brand Update file measures against (Q699 A, #3023 Q701 B): the one the panel holds (Apply's own
  *  `lastGoodInput`) when Theme is ticked, as the run's Theme step applies it; with Theme unticked, none, so the host
  *  measures against the brand the file keeps (`brandFor`). The due read, the check and the update agree either way. */
@@ -1972,6 +1977,11 @@ const startStep = (): void => {
     else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(u.defs, panelBrand(runTheme(updateRun.steps))); }
   }
   else if (step === 'sets') { runSets('selection', updateRun.sets); if (!run) { endStep(false, busy); return; } }
+  else if (step === 'cover') {
+    // #3308 (Q3308.4 A): checked first, for the hash the apply echoes, as an update the checklist did not check is.
+    if (componentBusy()) { endStep(false, busy); return; }
+    updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(COVER_UPDATE.defs, panelBrand(runTheme(updateRun.steps)));
+  }
   else if (agentRunning('styleguide') || host.styleGuideState === 'pending') { endStep(false, busy); return; }
   else { guidesWait = true; commit.requestStyleGuideCatalog(); }
   updateChanged();
@@ -1982,14 +1992,14 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   if (!step) return;
   if (step === 'setup' && m.kind === 'file-setup-result') { endStep(m.ok, m.headline); return; }
   if (step === 'theme' && m.kind === 'apply-result') { endStep(m.ok, m.headline); return; }
-  if (step === 'update' && updatePhase === 'recheck' && m.kind === 'update-check') {
-    const u = updateRun!.update!;
+  if ((step === 'update' || step === 'cover') && updatePhase === 'recheck' && m.kind === 'update-check') {
+    const u = inPlaceOf(step)!;
     const same = !m.error && u.defs.every((id) => { const was = updateReviewed.find((c) => c.def === id); const now = m.sets.find((c) => c.def === id); return !!was && !!now && was.hash === now.hash; });
     if (!same) { updatePhase = null; endStep(false, m.error ?? UPDATE_MOVED); return; }
     postUpdate(u, m.previewHash);
     return;
   }
-  if (step === 'update' && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline); return; }
+  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
   if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) { endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline); return; }
   if (step === 'guides' && guidesWait && m.kind === 'style-guide-catalog') {
@@ -2001,7 +2011,7 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   if (step === 'guides' && !guidesWait && m.kind === 'style-guide-result') { endStep(m.ok, m.headline); return; }
   // A panel request the host declined behind an agent's run gets no verdict: the step ends with the host's words.
   const refusedStep = STEP_OF_OP[host.refused?.op ?? 'readback'];
-  if (m.kind === 'refused' && !m.agent && (refusedStep === step || (step === 'update' && refusedStep === 'sets'))) { updatePhase = null; endStep(false, m.message); }
+  if (m.kind === 'refused' && !m.agent && (refusedStep === step || ((step === 'update' || step === 'cover') && refusedStep === 'sets'))) { updatePhase = null; endStep(false, m.message); }
 };
 /** #3081 Q810 A: THE BADGE, LIVE. Update file's badge counts everything Update file would change: the sets due against
  *  the brand the panel holds, and one item for Theme changes the file does not hold yet. The panel asks for the count
@@ -2050,6 +2060,8 @@ const stripHears = (m: Parameters<typeof reduce>[1]): void => {
     if (m.run === 'read') stripRead = { done: m.done, total: m.total };
     else if (stripRun && ((m.run === 'update' && step === 'update' && updatePhase === 'apply') || (m.run === 'apply-theme' && step === 'theme')))
       stripRun = withReading(stripRun, { run: m.run, phase: m.phase, item: m.item, done: m.done, total: m.total }, Date.now());
+    // #3308: the cover step's update is heard, so the strip does not read it as silent; its count is not the update's.
+    else if (stripRun && m.run === 'update' && step === 'cover' && updatePhase === 'apply') stripRun = heard(stripRun, Date.now());
     invalidate('host:run');
     return;
   }
@@ -2098,7 +2110,7 @@ const updateFileLend: UpdateFileLend = {
     updateRun = stopUpdate(updateRun);
     if (stepOf(updateRun) === 'sets') stopSets();
     // #3170 Q3170.4 A: inside the in-place update, the host stops at its next set boundary.
-    if (stepOf(updateRun) === 'update' && updatePhase === 'apply') commit.postUpdateStop();
+    if ((stepOf(updateRun) === 'update' || stepOf(updateRun) === 'cover') && updatePhase === 'apply') commit.postUpdateStop();
     updateChanged();
     invalidate('host:run');
   },
