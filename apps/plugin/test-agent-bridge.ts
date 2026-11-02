@@ -1053,6 +1053,34 @@ section('held — two paired instances, one bridge (#3297)');
   await sleep(800);
   ok(c.opens() >= 3 && c.posts.length === 0, `refused: ${c.opens()} refused attempts make no status change (posts: ${JSON.stringify(c.posts)})`);
   c.relay.fromMain({ type: 'agent-link-state', state: state(false) });
+
+  // The back-off is capped (#3297 review S1): a file left waiting for an hour still retries every `heldMaxMs`, so it takes
+  // the bridge within that long of the holder leaving. A fake clock records each retry's wait while every attempt is
+  // refused with 4409. EXPECTED is written here: doubling from retryMs 100 up to heldMaxMs 800, then flat at 800.
+  {
+    const waits: number[] = [];
+    const queue: (() => void)[] = [];
+    const fake = (): WsLike => ({ readyState: 0, send: () => undefined, close: () => undefined, onopen: null, onmessage: null, onclose: null, onerror: null });
+    const box: { live: WsLike | null } = { live: null };
+    const relay = createBridgeRelay({
+      open: () => (box.live = fake()),
+      post: () => undefined,
+      schedule: (fn, ms) => { waits.push(ms); queue.push(fn); return queue.length; },
+      cancel: () => undefined,
+      url: 'ws://held.invalid', retryMs: 100, holdMs: 0, heldMaxMs: 800,
+    });
+    relay.fromMain({ type: 'agent-bridge-token', token: TOKEN });
+    relay.fromMain({ type: 'agent-link-state', state: state() });
+    for (let i = 0; i < 9 && box.live; i++) {
+      const s = box.live;
+      box.live = null;
+      s.onclose?.({ code: 4409 });
+      queue.shift()?.();
+    }
+    ok(JSON.stringify(waits) === '[100,200,400,800,800,800,800,800,800]',
+      `held/backoff-cap: while held, each retry waits double the last up to heldMaxMs and then stays there (waits: ${JSON.stringify(waits)})`);
+    relay.fromMain({ type: 'agent-link-state', state: state(false) });
+  }
 }
 
 child.stdin.end();
