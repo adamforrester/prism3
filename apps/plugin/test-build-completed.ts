@@ -43,7 +43,9 @@
  * `templates/update clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
  * `furnish` hook without `panelFor` → `panel/update drawn`. Documentation's switches (#2995, the file's
  * `prism3:docSettings`): Build ignoring Usage panels off (`main.ts`, the `readDocSettings(figma.root).panels` before
- * `panelBeside` read as `true`) → `docs/panels off`; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
+ * `panelBeside` read as `true`) → `docs/panels off`; Update ignoring it (`main.ts` `updateTargets`, its
+ * `panels && leadsPanel(d.id)` cut to `leadsPanel(d.id)`) → `docs/panels off (update)` (#3017), and the apply's
+ * `furnish` hook passing `panelFor` whatever the target's `doc` → the same arm; Set up file ignoring Cover off (`main.ts` `fileSetup`, its
  * `readDocSettings(figma.root).cover` test never taken) → `docs/cover off`. The as-built ledger (#2909 Q2909.8 A): Build
  * recording nothing (`main.ts`, its `recordSets` after `applyComponentPlan`) → `ledger/build`; the Update recording
  * nothing (its `recordSets` after `applyUpdate`) → `ledger/update`; `file-sets` without `dueOf` → `ledger/due`. #3082 Q811 A
@@ -456,6 +458,27 @@ ok(!!panelsOff && livePanel().length === 0,
 pluginData.delete('prism3:docSettings');
 await build('badge');
 ok(livePanel().length === 1, `docs/panels on (control): the same rebuild with the switch on draws the panel again (${livePanel().length})`);
+
+// #3017: the same switch, read by Update (`main.ts` `updateTargets`, which gives a target its `doc` only when `panels`
+// is on). The panel is removed and the real Update runs, dry run then apply, with the switch off: its dry run lists no
+// panel to draw and the apply draws none. Then the same Update with the switch on draws it back, so the off arm
+// measures the switch and not an Update that never draws a missing panel.
+const updateBadge = async (): Promise<number> => {
+  const check = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
+  const pre = check.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string; sets?: { furniture?: { panels?: number } }[] } | undefined;
+  await runAction((sink) => ACTIONS.updateComponents('badge', pre?.previewHash ?? null, undefined, undefined, sink as never));
+  return pre?.sets?.[0]?.furniture?.panels ?? 0;
+};
+for (const n of livePanel()) badgePage!.children.splice(badgePage!.children.indexOf(n as Node), 1);
+ok(livePanel().length === 0, `fixture: the usage panel is gone before the Update (${livePanel().length})`);
+pluginData.set('prism3:docSettings', '{"panels":false}');
+const offDue = await updateBadge();
+ok(offDue === 0 && livePanel().length === 0,
+  `docs/panels off (update): with Usage panels off in Documentation, Update lists no usage panel and draws none (${offDue} listed, ${livePanel().length} drawn)`);
+pluginData.delete('prism3:docSettings');
+const onDue = await updateBadge();
+ok(onDue === 1 && livePanel().length === 1,
+  `docs/panels on (update control): the same Update with the switch on lists the missing panel and draws it (${onDue} listed, ${livePanel().length} drawn)`);
 
 // 2. The same set, its members renamed onto a smaller axis list: refused, nothing built.
 const members = (set?.children ?? []) as Node[];
