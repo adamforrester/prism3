@@ -103,6 +103,15 @@ export type LayoutDef = {
   /** Main-axis. */
   justify: 'start' | 'center' | 'end' | 'space-between';
   sizing: { x: SizingMode; y: SizingMode };
+  /** A ROW THAT WRAPS (#3225, owner decision Q-BN4.1 A): when its children run out of width, the ones that do not
+   *  fit flow onto a further line, as words do. Banner's body row is the case: the inline link follows the body's
+   *  last word, and drops under the text when the line has no room for it. PROJECTS `layoutWrap: 'WRAP'`; the space
+   *  between the lines is the host's default (none), so a wrapped text line and the line under it sit one line
+   *  height apart, as two lines of one paragraph do. Absent means the row does not wrap, byte-identical to before.
+   *
+   *  Refused on a column (Figma wraps a horizontal frame only) and on a row whose width hugs its children: a row
+   *  as wide as its content never runs out of room, so nothing would wrap. */
+  wrap?: true;
 };
 
 /** Per-side padding. The inline sides are SPLIT (#326): the side a visual sits against insets
@@ -4421,6 +4430,23 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     const fills = q.layout.sizing.x === 'fill' || (uq.layout.direction === 'row' ? !!q.grow : !!q.crossAxisFill);
     return fills && boundsX(up, depth + 1);
   };
+  // CAN THIS BOX'S WIDTH BE DERIVED from the root's build width (#3225, the nested hugging wrap)? Each step up must be
+  // one the projector's `nestedRowWidth` knows how to subtract through: a column child that stretches across
+  // (`crossAxisFill`), a row child that grows (`grow`), each with no padding or one inline padding key on both sides,
+  // up to a root with a build width. A literal min width or a fixed width is not on the list: neither is the width the
+  // box is BUILT at. Returns the reasons it cannot, none when it can.
+  const nestedRowWidthErrors = (name: string, depth = 0): string[] => {
+    const q = parts[name];
+    if (!q?.layout || depth > names.length) return [`'${name}' has no layout`];
+    const pad = q.padding && (q.padding.inlineVisual !== undefined || q.padding.inlineEnd !== undefined) ? [`'${name}' pads its two inline sides differently`] : [];
+    if (name === a.root) return [...pad, ...(q.placementWidth === undefined && q.builtSize === undefined ? [`the root '${name}' has no build width ('placementWidth' or 'builtSize')`] : [])];
+    const up = claimed.get(name);
+    const uq = up ? parts[up] : undefined;
+    if (!up || !uq?.layout) return [`'${name}' has no laid-out parent`];
+    const step = uq.layout.direction === 'column' ? (q.crossAxisFill ? [] : [`'${name}' does not stretch across its column '${up}' ('crossAxisFill')`])
+      : (q.grow ? [] : [`'${name}' does not grow along its row '${up}' ('grow')`]);
+    return [...pad, ...step, ...nestedRowWidthErrors(up, depth + 1)];
+  };
   // Overlays sit outside the child tree by construction (they take another part's position
   // rather than their own cell), so reachability is measured against the parts that aren't overlays.
   const seen = new Set<string>();
@@ -4721,13 +4747,33 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (!parent || !boundsX(parent))
         e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}'${parent === a.root ? `, placementWidth ${pp?.placementWidth ?? 'unset'}` : ''}) — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the text keeps the width of its default string and a longer one wraps there. Give the parent a 'minWidth' floor or a fixed width, fill it from a bounded parent, or give a root a 'placementWidth'`);
     }
+    // ---- A ROW THAT WRAPS (`layout.wrap`, #3225) ----
+    // Figma wraps a horizontal frame only, and only one with room to run out of: a row that hugs its width is as
+    // wide as its children and never wraps.
+    if (p.layout?.wrap !== undefined) {
+      if (p.layout.wrap !== true) e.push(`anatomy part '${n}' layout.wrap is ${JSON.stringify(p.layout.wrap)} — the field is true or absent`);
+      else if (p.layout.direction !== 'row') e.push(`anatomy part '${n}' declares layout.wrap on a column — Figma wraps a horizontal frame only`);
+      else if (p.layout.sizing.x === 'hug') e.push(`anatomy part '${n}' declares layout.wrap but its width hugs its children — a row as wide as its content never runs out of room, so nothing wraps. Give it 'fill' or 'fixed'`);
+    }
     // ---- THE HUGGING WRAP (`wrap: 'hug'`, #1762) ----
     // The max width is DERIVED at projection: the root's `placementWidth`, less one row gap per sibling. So
     // every input to that sum must exist and mean what the sum assumes — a ROOT parent (the only part that
     // carries a build width), laid out as a ROW (the siblings share the width), with no inline padding (the
     // sum does not subtract it), and a gap on the space ladder (the only spacing the projector can turn into
     // px). Each refused by name; any one missing would project a max width that is wrong or absent.
-    if (p.wrap === 'hug' && p.kind === 'text') {
+    // A NESTED WRAPPING ROW (#3225, Banner's body row): a text that hugs inside a row that WRAPS, below the root. Its
+    // max width is that row's own width at the build width, so the text takes the whole row and a sibling that does
+    // not fit after its last word drops under it. The width is DERIVED down from the root's build width
+    // (`nestedRowWidthErrors`): each step a column child that stretches across (`crossAxisFill`) or a row child that
+    // grows (`grow`), less the inline padding and the gaps on the way, and the shown siblings' own widths, which the
+    // projector reads at the coordinate and refuses by name when one has none it can state in px.
+    if (p.wrap === 'hug' && p.kind === 'text' && claimed.get(n) !== undefined && claimed.get(n) !== a.root) {
+      const parent = claimed.get(n)!;
+      const pp = parts[parent];
+      if (pp?.layout?.direction !== 'row' || !pp.layout.wrap)
+        e.push(`anatomy part '${n}' declares wrap 'hug' under '${parent}', which is not the root and not a row that wraps (layout.wrap) — below the root the max width is the row's whole width, which only holds when a sibling that does not fit can drop to the next line`);
+      else for (const why of nestedRowWidthErrors(parent)) e.push(`anatomy part '${n}' declares wrap 'hug' under '${parent}', whose width cannot be derived from the root's build width: ${why}`);
+    } else if (p.wrap === 'hug' && p.kind === 'text') {
       const parent = claimed.get(n);
       const pp = parent ? parts[parent] : undefined;
       if (parent !== a.root || pp?.placementWidth === undefined)
