@@ -43,3 +43,9 @@ DRAFT.
   turn, on every opening with panels off. They now read the panels a page per turn, as the census does
   (`test-open-large-file.ts` `clean/count-no-walk`, `clean/remove-no-walk`). The full read's switch gate gained its own
   arm (`q3137/off read`): the studio trusts an absent list, so that gate was load-bearing and untested.
+- **Merged with #3301 (#3312).** That change reads each node's type and name in its page's turn. The census now reads
+  the set types from that read (`found.kinds`), not from every component again. On #3301's template stand-in, main's
+  `open/member-paced` still failed: worst turn 10766 host calls against the 8000 cap. The cause was the census reading
+  the tag of every frame the per-page panel searches returned, all in one turn. `searchPagesYielding` now reads each
+  frame's tag in its page's own turn and keeps only the live panels (`livePanelsOf`). Worst turn: 5443. Mutation: the
+  page's panel frames kept unread again → `open/member-paced` (worst 10766).
