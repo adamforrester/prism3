@@ -151,6 +151,15 @@ const EXEMPT: { file: string; why: string }[] = [
       'note, move it to class 2 rather than widening this reason.',
   },
   {
+    file: 'mark-paints.json',
+    why:
+      'The brand-mark paint baseline lint-mark-colors.ts reads (#3066) — pure DATA: per mark file, its ' +
+      'paints as #RRGGBB in painting order, the seed commit, and where a paint moved, the issue or owner ' +
+      'question that allowed it, with no prose field. Written only by that gate\'s --accept and kept out ' +
+      'of regen, because a regenerated baseline would agree with a retint. It ships in no payload. If it ' +
+      'ever gains a $comment or a note, move it to class 2 rather than widening this reason.',
+  },
+  {
     file: 'kb-briefs.json',
     why:
       'The knowledge base\'s component-brief catalogue as test.ts reads it (#2488) — pure DATA: per ' +

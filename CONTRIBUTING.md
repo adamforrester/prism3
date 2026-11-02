@@ -1116,8 +1116,11 @@ npx tsx packages/engine/lint-glyph-geometry.ts      # a `vector` part submits an
                                                     # SUBTREE Figma returns. That is the executors'
                                                     # runtime NO VECTOR miss, which fails loudly rather
                                                     # than building a plausible empty frame.
-npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PROSE (description, prop
-                                                    # descriptions, part notes, codeOnly entries) may not
+npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PROSE (every field that
+                                                    # ships: summary, description, prop descriptions, part
+                                                    # notes, codeOnly, accessibility, content, docs, ai,
+                                                    # motion; #3062 holds that list to the emitted
+                                                    # components.ai.json entry) may not
                                                     # restate a glyph count that disagrees with the live
                                                     # vocabulary (#1293). EXPECTED is ICON_NAMES.length,
                                                     # read from icon-glyphs.ts — never a second hardcoded
@@ -1156,7 +1159,12 @@ npx tsx packages/engine/lint-mark-colors.ts         # a provider logo is NEVER R
                                                     # and (d) no host pushes descendantFills, a paint or a
                                                     # paint variable into a provider-logo/* instance, and each
                                                     # states fixedPaint; the hosts are listed by hand, both
-                                                    # ways (the Card number field is the first).
+                                                    # ways (the Card number field is the first). And (i),
+                                                    # #3066: every mark file and emitted document paints
+                                                    # its list in schema/mark-paints.json, seeded from the
+                                                    # owner's drop (3675273d), not from the record; only
+                                                    # `--accept --decision <ref>` rewrites it, stamping the
+                                                    # ref. `--seed-check` re-reads the seed (local only).
 npx tsx packages/engine/lint-mark-slots.ts          # a PAYMENT-TILE SLOT takes card networks only (#2343
                                                     # PR 4, Q-C7 A). The tiles are read from the marks
                                                     # folder by the gate's own viewBox reader (32x20); the

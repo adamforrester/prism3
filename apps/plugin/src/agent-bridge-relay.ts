@@ -26,6 +26,19 @@
  * the server refuses (its secret was rotated) is dropped (`agent-bridge-unpaired`) and the code asked for again. The link
  * reads connected only once the server welcomes the hello.
  *
+ * ONE BRIDGE, TWO FILES (#3297). The server lets a newer PAIRED connection replace the older one, so a reconnect wins over
+ * a socket that died without a close. With Prism3's link on in two files on one machine, that made the two instances
+ * evict each other on every 2 s retry, and the transport word flipped "bridge" ⇄ "mailbox" in both. Now the server closes
+ * the replaced connection with `CLOSE.held`; the relay then knows another instance holds the bridge (`onHeld`), and until
+ * it is welcomed again its hello carries `yield: true`, which the server refuses with `CLOSE.held` while a plugin is
+ * attached instead of replacing it. Those polite retries back off from `retryMs` to `heldMaxMs`. The holder's own
+ * reconnects send no `yield`, so the #2497 reconnect still replaces its dead socket.
+ *
+ * THE TRANSPORT WORD MOVES ONLY ON A SETTLED CHANGE (#3297). `agent-bridge` (what the main thread publishes, and so what the
+ * status word reads) is reported apart from the live socket: a drop holds the last reported `connected: true` for
+ * `holdMs`, and the post goes out only if no retry has been welcomed by then. A settled loss — the link switched off,
+ * another instance holding the bridge, a pairing refusal — is reported at once. Commands are gated on the live socket.
+ *
  * CONTEXT-NEUTRAL: the socket is injected (`open`) as a structural type, not the DOM `WebSocket`, so the
  * Node test drives this exact module against the real bridge server. The panel passes the browser's.
  */
@@ -67,15 +80,30 @@ export type RelayDeps = {
   keep?: number;
   /** Told each time pairing changes, so the panel can ask for the code (#3204). */
   onPairing?(p: BridgePairing): void;
+  /** How long a dropped socket keeps reading connected before the loss is reported (#3297). 0 reports at once. */
+  holdMs?: number;
+  /** The longest wait between retries while another instance holds the bridge (#3297). */
+  heldMaxMs?: number;
+  /** Told each time another instance starts or stops holding the bridge (#3297). */
+  onHeld?(held: boolean): void;
 };
 
 export const createBridgeRelay = (deps: RelayDeps) => {
   const url = deps.url ?? BRIDGE_URL;
   const retryMs = deps.retryMs ?? 2000;
   const keep = deps.keep ?? 8;
+  const holdMs = deps.holdMs ?? 5000;
+  const heldMaxMs = deps.heldMaxMs ?? 30000;
   let wanted = false;
   let ws: WsLike | null = null;
+  /** The live socket is welcomed: commands are heard. */
   let connected = false;
+  /** What the main thread was last told (`agent-bridge`): the settled transport (#3297). */
+  let reported = false;
+  let holdTimer: unknown = null;
+  /** Another paired instance holds the bridge (#3297): hellos `yield`, and retries back off. */
+  let held = false;
+  let heldDelay = retryMs;
   let retry: unknown = null;
   let state: AgentLinkState | null = null;
   const mine = new Set<string>();
@@ -92,21 +120,39 @@ export const createBridgeRelay = (deps: RelayDeps) => {
   const waitingForCode = (): boolean => (pairing === 'needed' || pairing === 'refused' || pairing === 'wrong-code') && code === null;
 
   const send = (obj: unknown): void => { if (ws && ws.readyState === OPEN) ws.send(JSON.stringify(obj)); };
-  const setConnected = (c: boolean): void => {
-    if (c === connected) return;
-    connected = c;
+  const report = (c: boolean): void => {
+    if (holdTimer !== null) { deps.cancel(holdTimer); holdTimer = null; }
+    if (c === reported) return;
+    reported = c;
     deps.post({ type: 'agent-bridge', connected: c });
+  };
+  /** The live socket's state. A loss that is not `settled` holds the reported state for `holdMs` (#3297). */
+  const setConnected = (c: boolean, settled = true): void => {
+    connected = c;
+    if (c || settled || holdMs <= 0 || !reported) { report(c); return; }
+    if (holdTimer === null) holdTimer = deps.schedule(() => { holdTimer = null; if (!connected) report(false); }, holdMs);
+  };
+  const setHeld = (h: boolean): void => {
+    if (!h) heldDelay = retryMs;
+    if (h !== held) { held = h; deps.onHeld?.(h); }
+  };
+  /** The wait before the next retry: flat, or backing off while another instance holds the bridge. */
+  const nextDelay = (): number => {
+    if (!held) return retryMs;
+    const d = heldDelay;
+    heldDelay = Math.min(heldDelay * 2, heldMaxMs);
+    return d;
   };
 
   const connect = (): void => {
     retry = null;
     if (!wanted || ws || !tokenKnown || waitingForCode()) return;
     let sock: WsLike;
-    try { sock = deps.open(url); } catch { retry = deps.schedule(connect, retryMs); return; }
+    try { sock = deps.open(url); } catch { retry = deps.schedule(connect, nextDelay()); return; }
     ws = sock;
     let nonce = '';
     const hello = (): void => {
-      send({ type: 'hello', state, held: [...mine, ...kept.keys()], proof: helloProof(token!, nonce) });
+      send({ type: 'hello', state, held: [...mine, ...kept.keys()], proof: helloProof(token!, nonce), ...(held ? { yield: true } : {}) });
       for (const result of kept.values()) send({ type: 'result', result });
     };
     // Nothing is said on open: the server speaks first, with its challenge.
@@ -129,18 +175,18 @@ export const createBridgeRelay = (deps: RelayDeps) => {
         hello();
         return;
       }
-      if (m.type === 'welcome') { setPairing('none'); setConnected(true); return; }
+      if (m.type === 'welcome') { setPairing('none'); setHeld(false); setConnected(true); return; }
       if (!connected) return;
       if (m.type === 'command' && m.command && typeof m.command === 'object') {
         if (typeof m.command.id === 'string') mine.add(m.command.id);
         deps.post({ type: 'agent-command', command: m.command });
       }
     };
-    const lost = () => {
+    const lost = (settled: boolean) => {
       if (ws !== sock) return;
       ws = null;
-      setConnected(false);
-      if (wanted && retry === null && !waitingForCode()) retry = deps.schedule(connect, retryMs);
+      setConnected(false, settled);
+      if (wanted && retry === null && !waitingForCode()) retry = deps.schedule(connect, nextDelay());
     };
     sock.onclose = (ev) => {
       if (ws !== sock) return;
@@ -154,9 +200,14 @@ export const createBridgeRelay = (deps: RelayDeps) => {
         code = null;
         setPairing('wrong-code');
       }
-      lost();
+      // #3297: another paired instance holds the bridge. A settled change: say so once, and back the retries off.
+      const isHeld = ev?.code === CLOSE.held;
+      if (isHeld) setHeld(true);
+      lost(isHeld || ev?.code === CLOSE.notPaired || ev?.code === CLOSE.wrongCode);
     };
-    sock.onerror = () => { try { sock.close(); } catch { /* already closing */ } lost(); };
+    // Lost first, then closed: Node's WebSocket fires `error` again inside `close()` on a socket still connecting, and the
+    // `ws !== sock` guard must already hold, or a refused socket recurses until the stack overflows (#3297's refused arm).
+    sock.onerror = () => { if (ws !== sock) return; lost(false); try { sock.close(); } catch { /* already closing */ } };
   };
   /** Close a socket the relay is done with, without a retry while a code is awaited. */
   const drop = (sock: WsLike): void => {
@@ -176,6 +227,7 @@ export const createBridgeRelay = (deps: RelayDeps) => {
     kept.clear();
     code = null;
     setPairing('none');
+    setHeld(false);
     setConnected(false);
     try { sock?.close(); } catch { /* already closed */ }
   };

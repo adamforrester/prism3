@@ -1821,7 +1821,11 @@ const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'compon
   run = null;
   const verdict = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: m.ok, headline: m.headline, lines: [...(m.lines ?? [])] };
   lastRun = { run: ended, verdict };
-  if (ended.ids.length > 1) setHost({ componentState: { ok: verdict.ok, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, openDetail: verdict.ok ? null : 'components' });
+  if (ended.ids.length > 1) {
+    setHost({ componentState: { ok: verdict.ok, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, openDetail: verdict.ok ? null : 'components' });
+    // #3309: the run's one result, which only the panel computes, for the agent link's `activity`.
+    commit.noteActivity('components', verdict.ok, verdict.headline, verdict.lines);
+  }
 };
 /** #3128: the host refused the set the run posted, so no verdict will answer it: the run ends there, that set failed with
  *  the host's words and the rest not built, and the build stops reading as running. Without this the run waited for good
@@ -1835,6 +1839,7 @@ const runRefused = (message: string): void => {
   const verdict = { ok: false, headline: v.headline, lines: [...v.lines, message] };
   lastRun = { run: ended, verdict };
   setHost({ componentState: { ok: false, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, componentProgress: null, componentDef: null, openDetail: 'components' });
+  commit.noteActivity('components', false, verdict.headline, verdict.lines);
 };
 /** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
  *  same variables an apply writes, so overlapping the two would race a delete against a create. */
@@ -1933,6 +1938,8 @@ const endStep = (ok: boolean, headline: string): void => {
   if (updateRun.done) {
     // #3170 Q3170.6 A: the strip becomes the verdict line, until the next action.
     if (stripRun) stripLine = stripVerdict({ results: updateRun.results, steps, stopped: updateRun.stopping, run: stripRun, now: Date.now(), nameOf: setName });
+    // #3309: Update file's run as the strip words it, and each step's verdict, for the agent link's `activity`.
+    if (stripRun && stripLine) commit.noteActivity('update', stripLine.tone === 'ok', stripLine.what, [stripLine.n, stripLine.sub, ...updateRun.results.map((r) => `${r.step}: ${r.ok ? 'ok' : 'not ok'}, ${r.headline}`)]);
     stripRun = null;
     updateRun = null;
     updatePhase = null;
