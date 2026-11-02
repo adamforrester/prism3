@@ -2,7 +2,7 @@
 
 **Status:** engine + plugin. Banner's set grows from 8 to 10 members and its properties move (`body` SLOT renamed
 `richBody`; `body text`, `body`, `rich body` and `link` added). The schema gains `LayoutDef.wrap` and a hugging text
-below the root; both executors write `layoutWrap`, so `EXECUTOR_REVISION` rises to 47, reaching `banner`. No token name
+below the root; both executors write `layoutWrap`, so `EXECUTOR_REVISION` rises to 48, reaching `banner`. No token name
 moves, so `CONTRACT_VERSION` stays. A `minor` change note.
 
 ### What changed

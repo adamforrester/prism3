@@ -20,7 +20,7 @@
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
+import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
@@ -72,9 +72,10 @@ import { holdsInput, restoreInput } from './persist-figma';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { PACE_MS, pacer } from './pace';
 import { materializeForBrand, materializerFor } from './brand-def';
-import { dueOf, entryFor, needsPrint, printOf, quietOf, readLedger, recordSets, type LedgerEntry, type PlanPrint } from './as-built-ledger';
+import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
@@ -82,6 +83,7 @@ import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { createAgentLink } from './agent-link';
+import { createActivityLog, type ActivityProblem } from './activity-log';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ReadHost } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
@@ -222,7 +224,11 @@ const withBuildLine = (lines: string[]): string[] => {
  * agent's command gets the same verdict — headline, summary, build note — plus the facts behind it. One
  * handler, two readers, and no second copy of any action (`agent-dispatch.ts`).
  */
-const uiSink: ActionSink = { post: postToUi, data: () => undefined };
+/** #3309: what the Activity drawer is told this session, for the agent link's read-only `activity` command
+ *  (`activity-log.ts`). The panel's verdicts are recorded as `uiSink` posts them, an agent's as `forward` does. */
+const buildId = parseBuildId(PRISM3_BUILD);
+const activityLog = createActivityLog({ now: () => new Date(), commit: buildId.kind === 'tree' ? buildId.commit : buildId.kind === 'commit' ? buildId.commit : null, build: PRISM3_BUILD });
+const uiSink: ActionSink = { post: (m) => { try { activityLog.post(m, 'panel', null); } catch { /* a reader */ } postToUi(m); }, data: () => undefined };
 
 // THE PRIMARY CHANNEL — measured, not assumed, and this ordering is the opposite of how #836 framed it.
 //
@@ -272,7 +278,6 @@ void (async (): Promise<void> => {
  * Theme post no readings, and its Capture baseline and Adopt (#3189) post theirs to the panel directly (`postProgress`),
  * a reading at each def, for the status strip.
  */
-const PACE_MS = 50;
 const postProgress = (run: RunProgressKind, p: ApplyProgress): void => postToUi({ type: 'run-progress', run, ...p });
 /** An executor `yieldTo` that hands the thread back only once about `PACE_MS` of work has run since it last did, and
  *  then says `again` first. Asked after every member (`chunk: 1`); a wait the executor asks for (`ms`) is always kept. */
@@ -932,6 +937,17 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         ]),
       }, furniture), sink);
       verdictPosted = true;
+      // #3309: the sets this run left not clean, and why, by the rule its `ok` reads: a miss that is not a skipped or
+      // stale member (those are named once, in the stale note), and a missing canvas template. A set built first counts.
+      try {
+        const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
+        const reasons = [...real, ...(r.stale && staleItem ? [staleItem] : []), ...furnitureItems(furniture.filter((o) => o.missing?.length), 'build')];
+        const problems: ActivityProblem[] = [
+          ...alsoBuilt.filter((d) => d.misses > 0).map((d) => ({ set: d.id, reasons: [`${d.misses} misses`] })),
+          ...(r.set === null || reasons.length ? [{ set: def.id, reasons: r.set === null ? [head[0], ...reasons] : reasons }] : []),
+        ];
+        activityLog.annotate('components', problems);
+      } catch { /* a reader */ }
       // #3128: the build is done with the file, so the next one may start: what is left (the settle probe and the
       // console telemetry) writes nothing. The panel posts its next set the moment this verdict lands (#2700), and
       // Update file its update step; held through the probe, that post was refused and the run never ended.
@@ -1079,19 +1095,24 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
   if (presentRead) return presentRead;
   const gen = presentGen;
   const read = (async (): Promise<FileRead> => {
-    const nodes = await timed('page reads', () => searchPagesYielding(['COMPONENT', 'COMPONENT_SET'], onPage));
-    const names = presentNames({ root: rootOver(nodes) } as unknown as Parameters<typeof presentNames>[0]);
+    const found = await timed('page reads', () => searchPagesYielding(['COMPONENT', 'COMPONENT_SET'], onPage));
+    // #3301: the names as each page's turn read them, so naming every component in a full library is not one more turn.
+    const recs = found.nodes.map((_, i) => ({ type: found.kinds[i], name: found.names[i] }));
+    const names = presentNames({ root: { findAllWithCriteria: (c: { types: readonly string[] }) => recs.filter((r) => c.types.includes(r.type)) } } as unknown as Parameters<typeof presentNames>[0]);
     const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
     if (gen === presentGen) presentCache = ids;
     watchSets();
-    return { ids, nodes };
+    return { ids, nodes: found.nodes, kinds: found.kinds };
   })();
   presentRead = read;
   const clear = (): void => { if (presentRead === read) presentRead = null; };
   read.then(clear, clear);
   return read;
 };
-type FileRead = { ids: string[]; nodes: readonly SearchNode[] };
+/** `kinds[i]` is `nodes[i]`'s type, read once, in the turn its page was searched (#3301). */
+type FileRead = { ids: string[]; nodes: readonly SearchNode[]; kinds: readonly string[] };
+/** What a page-by-page search found, each node's type and name read in its page's turn. */
+type Found = { nodes: SearchNode[]; kinds: string[]; names: string[] };
 type SearchNode = { readonly type?: string; readonly name?: string };
 let presentRead: Promise<FileRead> | null = null;
 /** Moved by each write's start and end (`guarded`): a read begun before it does not leave its answer as the cache. */
@@ -1102,18 +1123,26 @@ let presentGen = 0;
  * in the hand-edit pass, about 57 times on the 60-page stand-in, after #3110 had moved the page loads off the path.
  * Each page is loaded and then searched in its own turn, so no turn holds the thread for more than one page. A host
  * whose pages cannot be searched one at a time (a Node shim) is searched in one go, as before.
+ *
+ * #3301: each node's type and name are read here, in its page's turn, once. Every later lookup over the read (`rootOver`,
+ * `presentNames`) answers from them: in a full library each was a read of every component's type in one turn, once for
+ * the read and once per set in the hand-edit pass.
  */
-const searchPagesYielding = async (types: string[], onPage?: (done: number, total: number) => void): Promise<SearchNode[]> => {
+const searchPagesYielding = async (types: string[], onPage?: (done: number, total: number) => void): Promise<Found> => {
   const pages = figma.root.children as readonly { loadAsync?(): Promise<void>; findAllWithCriteria?(c: { types: string[] }): readonly SearchNode[] }[];
+  const out: Found = { nodes: [], kinds: [], names: [] };
+  const keep = (ns: readonly SearchNode[]): void => {
+    for (const n of ns) { out.nodes.push(n); out.kinds.push(n.type ?? ''); out.names.push(n.name ?? ''); }
+  };
   if (!pages.every((p) => typeof p.findAllWithCriteria === 'function')) {
     await loadPagesYielding(onPage);
-    return [...(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[])];
+    keep(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[]);
+    return out;
   }
-  const out: SearchNode[] = [];
   onPage?.(0, pages.length);
   for (const [i, p] of pages.entries()) {
     if (typeof p.loadAsync === 'function') { await p.loadAsync(); await breathe(); }
-    out.push(...p.findAllWithCriteria!({ types }));
+    keep(p.findAllWithCriteria!({ types }));
     onPage?.(i + 1, pages.length);
     await breathe();
   }
@@ -1122,10 +1151,11 @@ const searchPagesYielding = async (types: string[], onPage?: (done: number, tota
   return out;
 };
 /** A root that answers a search from one read (`searchPagesYielding`), for the readers that take a root and search it:
- *  `presentNames`, `isSetUp` and the hand-edit pass's `locateSets`. Its pages are the file's. */
-const rootOver = (nodes: readonly SearchNode[]) => ({
+ *  `isSetUp` and the hand-edit pass's `locateSets`. Its pages are the file's. It filters by the types the read kept
+ *  (#3301), so a search of it reads no node. */
+const rootOver = (read: Pick<FileRead, 'nodes' | 'kinds'>) => ({
   children: figma.root.children,
-  findAllWithCriteria: (c: { types?: readonly string[] }) => nodes.filter((n) => !c.types || c.types.includes(n.type ?? '')),
+  findAllWithCriteria: (c: { types?: readonly string[] }) => read.nodes.filter((_, i) => !c.types || c.types.includes(read.kinds[i])),
 });
 /** The rest of the update's host, beside a `rootOver` root: what the hand-edit pass's reads may reach. */
 const hostApi = () => ({
@@ -1215,10 +1245,22 @@ const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
  *  unrecorded. */
 const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
   const mat = materializerFor(brandOf(input));
+  // #3301: each def's entry worked out once per read (`needsPrint` and `dueOf` both ask for every set's).
+  const memo = new Map<string, LedgerEntry | null>();
   return (id) => {
+    if (memo.has(id)) return memo.get(id)!;
     const d = componentDefs.find((x) => x.id === id);
-    try { return d ? entryFor(mat(d)) : null; } catch { return null; }
+    let e: LedgerEntry | null = null;
+    try { e = d ? entryFor(mat(d)) : null; } catch { e = null; }
+    memo.set(id, e);
+    return e;
   };
+};
+/** #3301: every present set's entry worked out ahead of `needsPrint` and `dueOf`, handing the thread back once about
+ *  `PACE_MS` of it has run: materializing and hashing each def a full library holds was one turn of its own. */
+const nowYielding = async (now: (def: string) => LedgerEntry | null, ids: readonly string[]): Promise<void> => {
+  const tick = pacer(breathe);
+  for (const id of ids) { now(id); await tick(); }
 };
 /** #3129 Q833 A: THE ADD QUEUE (`add-queue.ts`), on the root's shared plugin data. A def it may hold is one the engine
  *  builds, the test `presentDefs` reads the file by; every read reports it without the sets the file holds (Q3129.2 A)
@@ -1253,28 +1295,61 @@ const printNow = (input?: BrandInput): Printer => {
     defs.set(id, v);
     return v;
   };
-  const print = (id: string): PlanPrint | null => {
-    const v = defOf(id);
-    if (!v) return null;
-    const { m, key } = v;
-    if (printMemo.has(key)) return printMemo.get(key)!;
-    let p: PlanPrint | null = null;
-    const t0 = Date.now();
-    try { p = printOf(figmaAnatomySet(m, { swapTarget: SWAP_TARGET })); } catch { p = null; }
-    // Each projection is logged as a `print` stage when timings are kept (`timed`), so a test can count them.
+  // #3301: one plan projected, then one printed, a step at a time (`figmaAnatomyMembers`, `printSteps`), so a caller can
+  // hand the thread back between them. Drained in one go it is `printOf(figmaAnatomySet(m))`, the print a build records.
+  const steps = function* (m: ComponentDef): Generator<void, PlanPrint | null> {
+    try {
+      const plans: AnatomyPlan[] = [];
+      for (const p of figmaAnatomyMembers(m, { swapTarget: SWAP_TARGET })) { plans.push(p); yield; }
+      checkAnatomySet(m, plans);
+      return yield* printSteps(plans);
+    } catch { return null; }
+  };
+  const keep = (id: string, key: string, p: PlanPrint | null, t0: number): PlanPrint | null => {
+    // Each projection is logged as a `print` stage, with its def, when timings are kept (`timed`), so a test can count them.
     const log = (globalThis as { PRISM3_OPEN_TIMINGS?: unknown }).PRISM3_OPEN_TIMINGS;
-    if (Array.isArray(log)) log.push({ stage: 'print', ms: Date.now() - t0 });
+    if (Array.isArray(log)) log.push({ stage: 'print', ms: Date.now() - t0, def: id });
     if (printMemo.size >= PRINT_MEMO_MAX) printMemo.delete(printMemo.keys().next().value!);
     printMemo.set(key, p);
     return p;
   };
-  return Object.assign(print, { held: (id: string) => { const v = defOf(id); return !v || printMemo.has(v.key); } });
+  const print = (id: string): PlanPrint | null => {
+    const v = defOf(id);
+    if (!v) return null;
+    if (printMemo.has(v.key)) return printMemo.get(v.key)!;
+    const t0 = Date.now();
+    const it = steps(v.m);
+    let r = it.next();
+    while (!r.done) r = it.next();
+    return keep(id, v.key, r.value, t0);
+  };
+  const paced = async (id: string, tick: () => Promise<void>): Promise<PlanPrint | null> => {
+    const v = defOf(id);
+    if (!v) return null;
+    if (printMemo.has(v.key)) return printMemo.get(v.key)!;
+    const t0 = Date.now();
+    const it = steps(v.m);
+    let r = it.next();
+    while (!r.done) { await tick(); r = it.next(); }
+    return keep(id, v.key, r.value, t0);
+  };
+  return Object.assign(print, {
+    held: (id: string) => { const v = defOf(id); return !v || printMemo.has(v.key); },
+    paced,
+  });
 };
-type Printer = ((def: string) => PlanPrint | null) & { readonly held: (def: string) => boolean };
-/** Prints `ids` ahead of a `dueOf`, handing the thread back after each set it projects. A print the memo holds costs no
- *  projection, so it yields nothing: a turn per set would make each recount wait on a timer per stale set. */
+type Printer = ((def: string) => PlanPrint | null) & {
+  readonly held: (def: string) => boolean;
+  /** #3301: the same print, projected a plan at a time, offering `tick` a hand-back after each plan. */
+  readonly paced: (def: string, tick: () => Promise<void>) => Promise<PlanPrint | null>;
+};
+/** Prints `ids` ahead of a `dueOf`, handing the thread back after each set it projects, and (#3301) inside a set once
+ *  about `PACE_MS` of projecting has run: Button's 576 members took about a quarter of a second in one turn in Node. A
+ *  print the memo holds costs no projection, so it yields nothing: a turn per set would make each recount wait on a
+ *  timer per stale set. */
 const printYielding = async (print: Printer, ids: readonly string[]): Promise<void> => {
-  for (const id of ids) { if (print.held(id)) continue; print(id); await breathe(); }
+  const tick = pacer(breathe);
+  for (const id of ids) { if (print.held(id)) continue; await print.paced(id, tick); await breathe(); }
 };
 /** #3096 into #3090: a set's plans are a function of its materialized def alone (the engine's code is fixed for the
  *  session), so its print is kept by that def's JSON, whatever brand produced it. Projecting is the costly part of a
@@ -1308,16 +1383,19 @@ const thenRestamp = <A extends unknown[]>(fn: (...a: A) => Promise<void>) => asy
  *  a request asked meanwhile can be answered first; the panel tells the two apart by this. */
 const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
   try {
-    const { ids: present, nodes } = await readPresent(atOpen ? (done, total) => postProgress('read', { phase: 'work', item: null, done, total }) : undefined);
+    // Page 0, the strip's "Reading this file…", was posted with the answer to `ui-ready` (#3301).
+    const read = await readPresent(atOpen ? (done, total) => { if (done > 0) postProgress('read', { phase: 'work', item: null, done, total }); } : undefined);
+    const present = read.ids;
     // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
     // #3082 Q811 A: a set whose engine moved is printed, a set at a time with the thread handed back, and is due only
     // when its plans moved.
     const ledger = readLedger(figma.root);
     const now = ledgerNow(input);
     const print = printNow(input);
+    await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
     const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(atOpen ? { atOpen: true as const } : {}) });
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(read) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
   }
@@ -1340,6 +1418,7 @@ const ledgerSets = async (): Promise<void> => {
     // handed back; the full read after it finds those prints memoized.
     const now = ledgerNow();
     const print = printNow();
+    await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
     const due = await timed('due (ledger)', () => dueOf(ledger, present, now, print));
     // `setUp` is not read: it needs a document-wide search, so every page loaded. Only the checklist reads it, and the
@@ -1361,6 +1440,7 @@ const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void
     const ledger = readLedger(figma.root);
     const now = ledgerNow(input);
     const print = printNow(input);
+    await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
     postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present) });
   } catch (e) {
@@ -1374,18 +1454,38 @@ const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void
  * The thread is handed back between members and between sets. A newer request ends an older pass where it is, and so
  * does a write starting (`guard`), whose result the next pass reads.
  */
+/**
+ * #3301: WHAT THE HAND-EDIT PASS NEEDS TO FIND A SET, and no more. The pass reads a set's members against their own
+ * records, so it needs the set's name, not its plans: a set is named by its def's id (`figmaAnatomyPlan` names every
+ * member's component `def.id`), and `locateSets` falls back to `t.def` when a target carries no plans. Projecting every
+ * set's plans only to read that name cost one full projection per set at open (Button's alone about 0.1 s in Node). A
+ * single-component def (#2296) is read by its plans' coordinates, so its plans are projected, a member at a time, with
+ * the thread handed back once about `PACE_MS` of it has run. `null` for a def this build does not know.
+ */
+const passTarget = async (id: string, tick: () => Promise<void>): Promise<UpdateTarget | null> => {
+  const d = componentDefs.find((x) => x.id === id);
+  if (!d?.figmaProperties) return null;
+  if (!d.figmaProperties.emitAsComponents) return { def: d.id, plans: [] };
+  try {
+    const m = materializeForBrand(d, brandOf(undefined));
+    const plans: AnatomyPlan[] = [];
+    for (const p of figmaAnatomyMembers(m, { swapTarget: SWAP_TARGET })) { plans.push(p); await tick(); }
+    return { def: d.id, plans: checkAnatomySet(m, plans), single: true };
+  } catch { return null; }
+};
 let handPass = 0;
 const handEditsPass = async (): Promise<void> => {
   const mine = ++handPass;
   const stale = (): boolean => mine !== handPass || (['build-components', 'apply-theme', 'file-setup', 'style-guide'] as const).some((c) => guard.busy(c));
   try {
-    const { ids: present, nodes } = await readPresent();
-    // #3170: each set is found in the read just made, never by a search of the whole file per set, and its plans are
-    // projected in its own turn: projecting every set at once held the thread for about 0.5 s in Node.
-    const host = { ...hostApi(), root: rootOver(nodes) } as unknown as UpdateHost;
+    const read = await readPresent();
+    const present = read.ids;
+    // #3170: each set is found in the read just made, never by a search of the whole file per set, each in its own turn.
+    const host = { ...hostApi(), root: rootOver(read) } as unknown as UpdateHost;
+    const tick = pacer(breathe);
     for (const id of present) {
       if (stale()) return;
-      const t = (await timed('plan', () => updateTargets(id))).targets[0];
+      const t = await timed('plan', () => passTarget(id, tick));
       if (!t) { await breathe(); continue; }
       await breathe();
       if (stale()) return;
@@ -1479,8 +1579,11 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // was skipped.
     const furniture: FurnitureOutcome[] = [];
     // #3177: drawn through the run's host (`file`), whose lookups are answered from the run's one read of the file.
+    // #3017: the usage panel is drawn only for a target `updateTargets` gave its `doc`, so the apply honors Documentation's
+    // Usage panels switch as the check does. Without this a set whose furniture was redrawn got its panel back with the switch off.
     const furnish = async (def: string, _set: unknown, file: unknown): Promise<void> => {
-      furniture.push(...await furnishUpdate(file as FurnitureApi, { outcomes: [{ def }] }, targets, (set, d) => panelFor(set, d, file as PanelApi)));
+      const paneled = !!targets.find((t) => t.def === def)?.doc;
+      furniture.push(...await furnishUpdate(file as FurnitureApi, { outcomes: [{ def }] }, targets, paneled ? (set, d) => panelFor(set, d, file as PanelApi) : undefined));
     };
     // #3170: the panel's own update reports each set boundary and hands the thread back after about `PACE_MS` inside a
     // set (`chunk: 1`, `paced`), and reads its Stop at each boundary. An agent's update yields as before and posts nothing.
@@ -1738,9 +1841,9 @@ const styleGuideCatalog = async (): Promise<void> => {
   try {
     // #3170: whether Set up file has run, from the file's read a page per turn (shared with one already going), never a
     // search of the whole file in one turn.
-    const { nodes } = await readPresent();
+    const read = await readPresent();
     const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync(), { effect: () => figma.getLocalEffectStylesAsync(), paint: () => figma.getLocalPaintStylesAsync(), grid: () => figma.getLocalGridStylesAsync() });
-    postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0])) });
+    postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(rootOver(read) as unknown as Parameters<typeof isSetUp>[0])) });
   } catch (e) {
     postToUi({ type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: (e as Error)?.message ?? String(e) });
   }
@@ -1926,14 +2029,16 @@ export const ACTIONS: AgentActions = {
  * for the routing. `status` reads the file's themed state the way `restoreToUi` and `seedFromFile` do,
  * without posting anything.
  */
+/** #3309: the agent command running now, so the activity log can name what an agent's forwarded verdict answered. */
+let agentCmd: string | null = null;
 const dispatch = createDispatcher({
   actions: ACTIONS,
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
-  onStart: (id, cmd, apply) => postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }),
-  onFinish: (id, cmd) => postToUi({ type: 'agent-finished', id, cmd }),
+  onStart: (id, cmd, apply) => { agentCmd = cmd; postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }); },
+  onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
   // #1957: an agent's write of an operation that is already running is declined before it starts.
   refuse: (c) => {
     const held = guardFor(c.cmd);
@@ -1943,7 +2048,13 @@ const dispatch = createDispatcher({
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
   // which are not necessarily the input the agent previewed.
-  forward: (m) => postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m),
+  forward: (m) => {
+    // #3309: the drawer records an agent's verdict as its own; so does the activity log, as the agent's.
+    try { activityLog.post(m, 'agent', agentCmd); } catch { /* a reader */ }
+    postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m);
+  },
+  // #3309: the read-only `activity` command reads the log, and only reads it.
+  activity: (a) => activityLog.list(a),
   census: () => componentCensus(figma as unknown as Parameters<typeof componentCensus>[0], ENGINE_VERSION),
   // #3147 Phase 2a: what the read-only node commands read. They only read it (`agent-reads.ts`).
   host: () => figma as unknown as ReadHost,
@@ -1988,6 +2099,10 @@ onUiMessage((msg: UiToMain) => {
       void sendActivityHeight();
       if (typeof PRISM3_NETWORK !== 'boolean' || PRISM3_NETWORK) void sendBridgeToken();
       postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root) });
+      // #3301 (Q3170.1 A): the strip reads "Reading this file…" from this turn on, before anything below holds the thread:
+      // the ledger's prints at open ran first, and the strip stayed silent until the first page. Page 0 of the file's
+      // pages; the read after open (`fileSets`) posts the pages from 1.
+      postProgress('read', { phase: 'work', item: null, done: 0, total: figma.root.children.length });
       // #3170: the panel paints first. This turn posts only what one root read answers; the reads below each start in a
       // turn of their own, so the panel has its brand and settings before any of them holds the thread.
       // #2909 Q2909.8 A: what is due, from the ledger, then the background hand-edit pass, so the panel knows both at rest.
@@ -2019,6 +2134,11 @@ onUiMessage((msg: UiToMain) => {
     case 'add-queue':
       // #3129 Q833 A: Components' boxes and Update file's Remove, Remove all and Add all. Writes no layer: never guarded.
       void addQueue(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], msg.on === true);
+      return;
+    case 'activity-note':
+      // #3309: the panel's summary of a run of several writes, for the agent link's `activity`. Writes nothing.
+      if ((msg.op === 'components' || msg.op === 'update') && typeof msg.headline === 'string')
+        activityLog.note({ op: msg.op, ok: msg.ok === true, headline: msg.headline, lines: Array.isArray(msg.lines) ? msg.lines.filter((x): x is string => typeof x === 'string') : [] });
       return;
     case 'hand-edits-request':
       // #2909 Q2909.8 A: the background pass after load. A read: never guarded; a write starting ends it.

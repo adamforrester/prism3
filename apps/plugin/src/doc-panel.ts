@@ -62,7 +62,7 @@
  * HELD FOR THE OWNER: `PANEL_GAP`, `PANEL_PAD`, `SECTION_GAP`, `MODE_GAP`, the panel's name, and every sentence this
  * file writes (DRAFT wording). `PANEL_WIDTH` and `THEMING_ROW_MAX` are the owner's (#2970 Q1 A, Q2 A).
  */
-import { docSections, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
+import { docSections, partName, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { componentDefs } from '@prism3/engine/components/index';
 import { CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
@@ -121,8 +121,10 @@ const SIZE: DocBlockSize = 'sm';
 /** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. 2: one panel
  *  per family, and the anatomy markers with their leaders (#2927). 3: the title sizes, the space above Do and Don't, and
  *  Related as linked lists (#2970). 4: each specimen at its member's own width, the panel widening to fit (#2970 items 1
- *  and 4, #2916). 5: a specimen never under what its def declares, so Dialog's anatomy no longer collapses (#3205). */
-const PANEL_FORMAT = 5;
+ *  and 4, #2916). 5: a specimen never under what its def declares, so Dialog's anatomy no longer collapses (#3205).
+ *  6: each specimen sized again once its panel is on the page, where the host kept 5's width only until the panel
+ *  moved there (#3205 follow-up). */
+const PANEL_FORMAT = 6;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -166,7 +168,7 @@ export interface PanelPlan { def: string; title: string; lede: string; family?: 
  * another marked part, the root among them (Q551 A on Q5): a bracket along its left edge instead of a leader. `parts`
  * counts the repeats merged into it (Q4): siblings with the same nest settings are one entry, marked on the first.
  */
-export interface AnatomyMark { n: number; part: string; path: string[]; bracket: boolean; parts: number }
+export interface AnatomyMark { n: number; part: string; path: string[]; bracket: boolean; parts: number; run: string[] }
 
 /** THE FAMILY A DEF'S PANEL COVERS (#2927, owner decision Q551 A on Q1): the defs on its taxonomy page that draw canvas
  *  furniture, in page order, and the one that leads (`leadOf`). A def on no page is a family of one. Null for a def
@@ -199,19 +201,77 @@ export const plain = (s: string): string => s.replace(/`/g, '').replace(/\s+/g, 
 export const firstSentences = (s: string, n: number): string => plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/).slice(0, n).join(' ');
 
 /**
- * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927), from the def's part tree: pure, so the merge and the bracket rule are
- * checked with no host. `listed` is the model's parts, in its order. Repeats (Q551 A on Q4) are numbered siblings of
- * one name (`item1`, `item2`) that nest the same component with the same settings, variant, follows and presence; their
- * overrides (an item's own text) are content, not settings. The first of them carries the entry; the numbering runs over the entries.
+ * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927, #3265), from the def's part tree: pure, so the runs and the bracket rule
+ * are checked with no host. `listed` is the model's parts, in its order. A repeat (Q551 A on Q4) is a numbered sibling of
+ * one name (`item1`, `item2`) nesting one component; its overrides (an item's own text) are content, not settings.
+ * NUMBERED INSTANCES (#3265, owner decisions Q3265.1 A and Q3265.2 A): each instance keeps its number, and NEIGHBORS that
+ * look the same ON THE SPECIMEN make one entry, a run (`run`, its parts in order). "The same on the specimen" is the variant
+ * each one resolves to on the default member, never its `variantWhen` for other members: Code input's six cells differ
+ * only at the focus states, so on the default member they rest alike and make one run. Two parts with different names
+ * (`decrement`, `increment`) nest one component for different jobs, so they stay apart. The first part of a run carries its
+ * marker; the numbering runs over the entries.
  */
 export const anatomyMarks = (def: ComponentDef, listed: readonly string[]): AnatomyMark[] => {
-  const parts = (def.anatomy?.parts ?? {}) as Record<string, { kind?: string; children?: string[]; nests?: string; nesting?: unknown; presentWhen?: unknown }>;
+  type Nesting = { kind?: string; variant?: Record<string, string>; follow?: readonly string[]; expose?: readonly string[];
+    variantWhen?: Record<string, Record<string, Record<string, string>>>; variantWhere?: ReadonlyArray<{ when: Record<string, string>; set: Record<string, string> }> };
+  const parts = (def.anatomy?.parts ?? {}) as Record<string, { kind?: string; children?: string[]; nests?: string; nesting?: Nesting; presentWhen?: unknown; optional?: boolean }>;
   const root = def.anatomy?.root;
   const parentOf = new Map<string, string>();
   for (const [id, p] of Object.entries(parts)) for (const c of p.children ?? []) parentOf.set(c, id);
   const pathOf = (id: string): string[] => { const out: string[] = []; for (let q: string | undefined = id; q && q !== root; q = parentOf.get(q)) out.unshift(q); return out; };
-  // A numbered part (`item2`) nesting what its numbered sibling nests, the same way: a repeat. Two parts with different
-  // names (`decrement`, `increment`) nest one component for different jobs, so they stay apart.
+  // The default member, as the Anatomy's specimen shows it: each axis's first value, and the first state.
+  const shownOn: Record<string, string> = Object.fromEntries(Object.entries(def.variants ?? {}).flatMap(([a, vs]) => (vs?.length ? [[a, vs[0]]] : [])));
+  if (def.states?.length && shownOn.state === undefined) shownOn.state = def.states[0];
+  // The variant a nest resolves to on that member, as the projection resolves it: the fixed variant, then `variantWhen`,
+  // then `variantWhere`, then `follow` (`anatomy-figma.ts`'s `nestVariantOf`).
+  const resolved = (n: Nesting): Record<string, string> => {
+    const out: Record<string, string> = { ...(n.variant ?? {}) };
+    for (const [axis, byValue] of Object.entries(n.variantWhen ?? {})) { const v = shownOn[axis]; if (v !== undefined && byValue[v]) Object.assign(out, byValue[v]); }
+    for (const w of n.variantWhere ?? []) if (Object.entries(w.when).every(([a, v]) => shownOn[a] === v)) Object.assign(out, w.set);
+    for (const axis of n.follow ?? []) { const v = shownOn[axis]; if (v !== undefined) out[axis] = v; }
+    return Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));
+  };
+  const key = (id: string): string | null => {
+    const p = parts[id];
+    return p?.kind === 'nest' && /\d$/.test(id)
+      ? JSON.stringify([id.replace(/\d+$/, ''), parentOf.get(id) ?? '', p.nests, p.nesting?.kind ?? null, p.nesting?.expose ?? null, p.nesting ? resolved(p.nesting) : null, p.presentWhen ?? null, !!p.optional])
+      : null;
+  };
+  const entries: { part: string; run: string[]; key: string | null }[] = [];
+  for (const id of listed) {
+    const k = key(id);
+    const last = entries[entries.length - 1];
+    if (k !== null && last?.key === k) { last.run.push(id); continue; }
+    entries.push({ part: id, run: [id], key: k });
+  }
+  const marked = new Set(entries.map((e) => e.part));
+  const holds = (id: string): boolean => [...marked].some((o) => o !== id && pathOf(o).includes(id));
+  return entries.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), bracket: e.part === root || holds(e.part), parts: e.run.length, run: e.run }));
+};
+
+/** The number a repeat's part carries (`cell4` → 4), or null for a part that is not numbered. */
+const instanceNo = (id: string): string | null => /\d+$/.exec(id)?.[0] ?? null;
+/** A legend entry's name and caption (#3265, owner decisions Q3265.1 A and Q3265.2 A; the wording DRAFT under Q10). The
+ *  name is the def's part key through `partName`, never a layer's name. One instance reads "Cell 4" and keeps its own
+ *  note. A run reads "Cells 1–6" (an en dash) and takes its parts' note when they share one, else the nested component's
+ *  summary, so the caption is true of every part the entry covers. */
+export const anatomyEntry = (def: ComponentDef, m: AnatomyMark, caption: (id: string) => string): { label: string; caption: string } => {
+  const no = instanceNo(m.part);
+  const nests = (def.anatomy?.parts as Record<string, { kind?: string; nests?: string }> | undefined)?.[m.part];
+  if (!no || nests?.kind !== 'nest') return { label: partName(m.part), caption: caption(m.part) };
+  const name = partName(m.part.replace(/\d+$/, ''));
+  if (m.run.length === 1) return { label: `${name} ${no}`, caption: caption(m.part) };
+  const notes = new Set(m.run.map(caption));
+  const shared = notes.size === 1 ? [...notes][0] : componentDefs.find((d) => d.id === nests.nests)?.summary ?? '';
+  return { label: `${name}s ${no}\u2013${instanceNo(m.run[m.run.length - 1])}`, caption: shared };
+};
+/** The legend's labels before #3265 numbered instances: a repeat merged by its settings (`nesting` whole, so `variantWhen`
+ *  too) wherever it stood, labelled with its first part's name less its number and how many ("Item ×4"). Kept for
+ *  `writtenTexts` alone, so a panel drawn then and printed before `printView` still reads as Prism3's own text. */
+const labelsBefore3265 = (def: ComponentDef, listed: readonly string[]): string[] => {
+  const parts = (def.anatomy?.parts ?? {}) as Record<string, { kind?: string; children?: string[]; nests?: string; nesting?: unknown; presentWhen?: unknown; optional?: boolean }>;
+  const parentOf = new Map<string, string>();
+  for (const [id, p] of Object.entries(parts)) for (const c of p.children ?? []) parentOf.set(c, id);
   const key = (id: string): string => {
     const p = parts[id];
     return p?.kind === 'nest' && /\d$/.test(id) ? JSON.stringify([id.replace(/\d+$/, ''), parentOf.get(id) ?? '', p.nests, p.nesting ?? null, p.presentWhen ?? null]) : `part:${id}`;
@@ -219,16 +279,16 @@ export const anatomyMarks = (def: ComponentDef, listed: readonly string[]): Anat
   const firsts: { part: string; parts: number }[] = [];
   const byKey = new Map<string, { part: string; parts: number }>();
   for (const id of listed) {
-    const k = key(id);
-    const had = byKey.get(k);
+    const had = byKey.get(key(id));
     if (had) { had.parts++; continue; }
     const e = { part: id, parts: 1 };
-    byKey.set(k, e);
+    byKey.set(key(id), e);
     firsts.push(e);
   }
-  const marked = new Set(firsts.map((e) => e.part));
-  const holds = (id: string): boolean => [...marked].some((o) => o !== id && pathOf(o).includes(id));
-  return firsts.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), bracket: e.part === root || holds(e.part), parts: e.parts }));
+  return firsts.map((e, i) => {
+    const name = partName(e.part);
+    return `${i + 1}  ${e.parts > 1 ? `${name.replace(/\s*\d+$/, '')} ×${e.parts}` : name}${parts[e.part]?.optional ? ' (optional)' : ''}`;
+  });
 };
 
 /**
@@ -259,9 +319,9 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         blocks.push({ type: 'Specimen', caption: `Shown on the default member: ${s.specimen.map((x) => `${x.axis} ${x.value}`).join(', ')}`, marks });
         for (const m of marks) {
           const p = s.parts.find((x) => x.id === m.part)!;
-          // DRAFT wording (Q10): a merged repeat reads as its first part's name without the number, and how many.
-          const label = m.parts > 1 ? `${p.name.replace(/\s*\d+$/, '')} ×${m.parts}` : p.name;
-          field(`${m.n}  ${label}${p.optional ? ' (optional)' : ''}`, p.caption ?? '', 1);
+          // #3265: "Cell 4" for one instance, "Cells 1–6" for a run, each captioned truly for every part it covers.
+          const e = anatomyEntry(def, m, (id) => s.parts.find((x) => x.id === id)?.caption ?? '');
+          field(`${m.n}  ${e.label}${p.optional ? ' (optional)' : ''}`, e.caption, 1);
         }
         break;
       }
@@ -369,6 +429,8 @@ export interface PNode {
   paddingBottom?: unknown;
   paddingLeft?: unknown;
   readonly componentProperties?: Readonly<Record<string, unknown>>;
+  /** What an instance sets on itself and its layers, by layer id (#3303): its own values, never its main's. */
+  readonly overrides?: readonly { id: string; overriddenFields: readonly string[] }[];
   /** The component property a layer's visibility follows (`visible`), by its key: how a hidden part is shown. */
   readonly componentPropertyReferences?: Readonly<Record<string, string>> | null;
   /** Where the node sits on the canvas, laid out: the one box a marker is placed from (#2916). */
@@ -521,9 +583,103 @@ const printView = (n: SgNode): SgNode => new Proxy({}, {
     return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(t) : v;
   },
 }) as SgNode;
-/** A print in this form starts with this, so one recorded before it is still read the old way. */
+/** A print in the second form starts with this: `printView` read whole, an instance's layers and all. Exported so a
+ *  test can age a panel to it. */
 const PRINT_V2 = '2:';
-export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V2}${await fingerprintOf(printView(n as unknown as SgNode))}`;
+export const printV2 = async (n: PNode): Promise<string> => `${PRINT_V2}${await fingerprintOf(printView(n as unknown as SgNode))}`;
+
+/**
+ * THE PANEL AS PRISM3 LEFT IT (#3303). The second form still read every layer inside an instance: List.Item's padding,
+ * Badge's fill, the `_Doc-block` template's own text. Those are the instance's MAIN's, and Update rebuilds those
+ * components, so an untouched panel printed differently afterwards and was kept aside as "(edited)" below a fresh one
+ * (23 sets in the template after one Update, 2026-11-02). In this form an instance is read only through what it sets
+ * itself, the host's `overrides`: the text, size, properties and visibility the draw wrote, and anything a designer
+ * changed on it since. What its main gives it, its layers, their names, fills, padding and the properties it leaves at
+ * their default, is not in it. Every frame and text of the panel's own is read as `printView` reads it.
+ *
+ * Left out of an override too, as `printView` leaves them out of a frame: size and placement (a specimen's size reaches
+ * every block that hugs it), and plugin data. A specimen swap is the set's, so a property that swaps reads by type only.
+ * A host that reports no `overrides` on an instance has it read whole, as in the second form: the safe direction.
+ */
+const PRINT_V3 = '3:';
+const UNPRINTED = new Set(['width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight', 'x', 'y', 'relativeTransform', 'rotation', 'constraints',
+  'layoutAlign', 'layoutGrow', 'layoutPositioning', 'counterAxisSizingMode', 'primaryAxisSizingMode', 'textAutoResize', 'parent', 'pluginData', 'expanded', 'autoRename']);
+/** What each layer under `inst` overrides, by layer id, gathered over `inst` and every instance inside it (a specimen's
+ *  aside); null when the host reports none on `inst`. */
+const overridesUnder = (inst: PNode): Map<string, Set<string>> | null => {
+  if (!Array.isArray(inst.overrides)) return null;
+  const out = new Map<string, Set<string>>();
+  const take = (q: PNode): void => {
+    if (q !== inst && q.type === 'INSTANCE' && q.name === 'specimen') return;
+    for (const o of (q.type === 'INSTANCE' && Array.isArray(q.overrides) ? q.overrides : [])) {
+      const f = o.overriddenFields.filter((k: string) => !UNPRINTED.has(k));
+      if (f.length) out.set(o.id, new Set([...(out.get(o.id) ?? []), ...f]));
+    }
+    for (const c of q.children ?? []) take(c);
+  };
+  take(inst);
+  return out;
+};
+/** A swap's value is a member's id: the set's, so read by type only. */
+const ownProps = (props: unknown): unknown => (props && typeof props === 'object'
+  ? Object.fromEntries(Object.entries(props as Record<string, { type?: unknown; value?: unknown }>).map(([k, v]) => [k, v?.type === 'INSTANCE_SWAP' ? { type: v.type } : v]))
+  : props);
+/** One layer of an instance as its overrides read it: its type, which fields it overrides, and only those fields' values. */
+const overrideView = (n: PNode, fields: ReadonlySet<string>, kids: SgNode[], top: boolean): SgNode => new Proxy({}, {
+  get(_, k) {
+    const t = n as object;
+    if (k === 'type') return n.type;
+    if (k === 'children') return kids;
+    if (k === 'width' || k === 'height') return 0;
+    if (k === 'getMainComponentAsync' || k === 'mainComponent' || k === 'getPluginData' || k === 'findOne') return undefined;
+    // Which fields it overrides, so an override the print does not read the value of still moves it.
+    if (k === 'name') return `${fields.has('name') ? String(n.name ?? '') : ''}|${[...fields].sort().join(',')}`;
+    // Pinned modes on a block are the draw's own (Theming), not its main's.
+    if (k === 'explicitVariableModes') return top ? Reflect.get(t, k, t) : undefined;
+    if (k === 'componentProperties') return fields.has('componentProperties') ? ownProps(Reflect.get(t, k, t)) : undefined;
+    if (typeof k === 'string' && !fields.has(k) && !(k === 'getStyledTextSegments' && fields.has('styledTextSegments'))) return undefined;
+    const v = Reflect.get(t, k, t) as unknown;
+    return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(t) : v;
+  },
+}) as SgNode;
+/** An instance on the panel, read through its overrides: itself, then each layer under it that overrides something, in
+ *  order, flat, so a layer its main adds, drops or moves does not move the print. */
+const instanceView = (inst: PNode, ovr: Map<string, Set<string>>): SgNode => {
+  const flat: SgNode[] = [];
+  const take = (q: PNode): void => {
+    for (const c of q.children ?? []) {
+      if (c.type === 'INSTANCE' && c.name === 'specimen') { flat.push(printView(c as unknown as SgNode)); continue; }
+      const f = ovr.get(String(c.id ?? ''));
+      if (f) flat.push(overrideView(c, f, [], false));
+      take(c);
+    }
+  };
+  take(inst);
+  return overrideView(inst, ovr.get(String(inst.id ?? '')) ?? new Set(), flat, true);
+};
+/** `printView`, with each instance on the panel read through its overrides (`instanceView`). */
+const ownView = (n: SgNode): SgNode => new Proxy({}, {
+  get(_, k) {
+    const own = n as unknown as PNode;
+    if (k === 'children') {
+      return ((own.children ?? []) as readonly PNode[]).map((c) => {
+        if (c.type !== 'INSTANCE' || c.name === 'specimen') return c.type === 'INSTANCE' ? printView(c as unknown as SgNode) : ownView(c as unknown as SgNode);
+        const ovr = overridesUnder(c);
+        return ovr ? instanceView(c, ovr) : printView(c as unknown as SgNode);
+      });
+    }
+    return Reflect.get(printView(n), k);
+  },
+}) as SgNode;
+export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V3}${await fingerprintOf(ownView(n as unknown as SgNode))}`;
+/**
+ * Whether `n` still prints as `print`, read in the form it was recorded in. A print in the second form (#2927) is
+ * compared in that form: a panel drawn before #3303 and untouched since still matches until a component it nests is
+ * rebuilt, and then reads as edited, as it did. That is the safe rule for those panels: the second form cannot tell a
+ * rebuild from a hand edit, so nothing a designer did is drawn over. Once redrawn, a panel carries this form.
+ */
+export const printMatches = async (n: PNode, print: string): Promise<boolean> =>
+  !!print && (print.startsWith(PRINT_V3) ? (await panelPrint(n)) === print : print.startsWith(PRINT_V2) ? (await printV2(n)) === print : false);
 /**
  * THE TEXT PRISM3 WRITES INTO `defId`'s PANEL (#2968), today or before one panel per family (#2927): every string of its
  * plan; the wording #2927 changed (each part's own anatomy line, the def's own Do and Don't items and their count); a
@@ -555,6 +711,8 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
     // Related by each def's own name, before #2970 named families.
     if (s.id === 'related') for (const l of s.lists) out.add(l.ids.map(names).join('\n'));
     if (s.id === 'anatomy') s.parts.forEach((p, i) => { out.add(`${i + 1}  ${p.name}${p.optional ? ' (optional)' : ''}`); out.add(firstSentences(p.caption ?? '', 1)); });
+    // The merged labels a panel read before #3265 numbered instances.
+    if (s.id === 'anatomy') for (const l of labelsBefore3265(def, s.parts.map((p) => p.id))) out.add(l);
     if (s.id === 'usage') {
       [...s.do, ...s.dont].forEach((t) => out.add(plain(t)));
       out.add(`Showing ${Math.min(s.do.length, PANEL_DO_ITEMS)} of ${s.do.length} Do items and ${Math.min(s.dont.length, PANEL_DO_ITEMS)} of ${s.dont.length} Don't items.`);
@@ -597,7 +755,7 @@ const legacyUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode, print: stri
 export const panelUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode): Promise<boolean> => {
   const print = n.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT) ?? '';
   if (!print) return false;
-  return print.startsWith(PRINT_V2) ? (await panelPrint(n)) === print : legacyUnedited(api, n, print);
+  return print.startsWith(PRINT_V3) || print.startsWith(PRINT_V2) ? printMatches(n, print) : legacyUnedited(api, n, print);
 };
 
 /**
@@ -915,7 +1073,10 @@ export const drawDocPanel = async (
    *  its member's width, with that width as the specimen's `minWidth` too, whatever sizing the member reports, so
    *  nothing that sets the instance back to hug can collapse it; a def that declares a literal minimum (`minWidth`)
    *  gets that floor on a specimen that hugs. Any other member: fixed at its width when it is fixed, hugging when it hugs. */
+  /** Every specimen sized, with its member: sized again once the panel is on the page (`resizeSpecimens`). */
+  const sized: { i: PNode; m: PNode }[] = [];
   const sizeSpecimen = (i: PNode, m: PNode): void => {
+    if (!sized.some((x) => x.i === i)) sized.push({ i, m });
     const sp = find(i, 'specimen');
     if (!sp) return;
     const floor = exampleFloor(def, m);
@@ -1207,6 +1368,12 @@ export const drawDocPanel = async (
   parent.appendChild(panel);
   panel.x = at.x;
   panel.y = at.y;
+  // SIZED AGAIN WHERE IT LANDS (#3205 follow-up). In the template, #3211's width and floor did not survive: Dialog's
+  // specimen was FIXED at the 62px it hugs inside a 687px stage. The host drops a nested instance's size overrides
+  // when its tree moves, and the panel moves onto the page only now, after every specimen was sized. So each one is
+  // sized again here, fixed at its member's width with its floor, once nothing above it moves again. That is before the
+  // markers, which are placed from the specimens' final boxes.
+  for (const { i, m } of sized) sizeSpecimen(i, m);
   out.marked = await drawMarkers();
 
   // NOTHING UNDER IT: every other node on the parent, the set and its labels included, but the edited panels this

@@ -24,6 +24,7 @@
     "44": ["banner", "breadcrumb-item", "breadcrumbs", "card-number-field", "code-input", "counter", "dialog", "icon", "pagination", "provider-logo", "slider", "toast"],
     "45": [],
     "46": ["provider-logo"],
-    "47": ["banner"]
+    "47": [],
+    "48": ["banner"]
   }
 }

@@ -15,7 +15,9 @@
  *                   "(edited)" one; a line rewritten on an old-print panel (Tag's, or Button.Neutral's) still keeps that
  *                   panel aside. Mutations: an old print compared whole again → `legacy/rebuilt`, `legacy/family lead`,
  *                   `legacy/family members`, `legacy/family edited`; the text check dropped → `legacy/edited`,
- *                   `legacy/family edited`, `family/kept`.
+ *                   `legacy/family edited`, `family/kept`. Tabs' panel with its legend as drawn before #3265 ("4  Tab ×2")
+ *                   is replaced too. Mutation: the labels before #3265 dropped from `writtenTexts` (the
+ *                   `labelsBefore3265` line) → `legacy/merged legend`.
  *   replace/…       a second draw of an unedited panel replaces it: one panel, the earlier removed.
  *   hand edit/…     a panel whose text a designer changed is kept: renamed "(edited)", tagged kept, its edit intact, below
  *                   the fresh panel and clear of it, and named in the run's clauses; a third draw keeps it once and draws
@@ -34,6 +36,14 @@
  *                   `respaceLive` given no reach (M1) → `room/apply`; the live panel dropped from `pageViews`' furniture
  *                   (M3) → `room/panel follows`; the panel dropped from what `respaceLive` moves with a set →
  *                   `room/panel follows`.
+ *   own draw/…      (#3303) the panel as Prism3 left it: Tag built by the executor, its panel drawn, then made due and every
+ *                   component its blocks nest rebuilt (`mainMoves`: the host's instances follow their main, `live`). One
+ *                   Update on a host and root with fixed methods: `untouched` replaces it in place, no "(edited)" copy;
+ *                   `text edit`, `fill edit` and `hidden layer` keep it aside; a second-form print is replaced while it
+ *                   matches (`v2 unchanged`) and kept once a nested component moves (`v2 rebuilt`, the safe rule). Mutations:
+ *                   the print read whole (`printView` in `panelPrint`) → `own draw/untouched`; overrides ignored →
+ *                   `own draw/text edit`, `fill edit`, `hidden layer`; a second-form print read in the third form →
+ *                   `own draw/v2 unchanged`.
  *   orphan/…        before a def is built again, its deleted set's unedited panel is removed and an edited one kept.
  *                   Mutation: `clearOrphanPanels` without its `panelUnedited` check (M4) → `orphan/edited kept`.
  *   seat/…          a new set is seated with room for its panel. Mutation: `seatNewSet` ignoring `panelReach` →
@@ -72,7 +82,21 @@
  *                   `collapse/dialog` and every `collapse/<def>` built at a width, `collapse/hug read`, `update/redraw
  *                   in place`; the def's width ignored (the member's reported sizing alone) → `collapse/hug read`;
  *                   `PANEL_FORMAT` not raised → `update/redraw in place`; the specimen's `minWidth` never set →
- *                   `collapse/after reset`.
+ *                   `collapse/after reset`. THE HOST'S RESET (#3205 follow-up, `hostReset`): a tree appended or moved
+ *                   drops each nested instance's size overrides and freezes it FIXED at what it hugs, as the template
+ *                   showed Dialog's specimen after #3211 (FIXED, 62px). Mutation: the specimens not sized again once
+ *                   the panel is on the page → `collapse/dialog` and every `collapse/<def>` built at a width,
+ *                   `collapse/hug read`, `collapse/after reset`, `update/redraw in place`, `width/banner`,
+ *                   `width/checkbox-row`.
+ *   legend/…        (#3265, owner decisions Q3265.1 A and Q3265.2 A) the anatomy legends of Code input, Pagination, Tabs
+ *                   and Breadcrumbs, typed by hand from their defs: "Cell 4" for one instance, "Cells 1–6" for a run of
+ *                   neighbors alike on the specimen, each run captioned by its parts' shared note or else the nested
+ *                   component's summary; and over every def, no label glued to its number or carrying ×, each repeat's
+ *                   entries covering its parts once, in order. Mutations: `variantWhen` back in the run key →
+ *                   `legend/code-input`; a run keeping its first part's note → `legend/tabs`; the merge before #3265
+ *                   (by settings, wherever a repeat stands, labelled "Item ×4") → `legend/pagination`, `legend/every def`;
+ *                   a run's shared note replaced by the summary → `legend/shared note` (`anatomyEntry` called directly,
+ *                   since no run in today's library shares a note).
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -95,8 +119,8 @@ import type { ComponentDef } from '@prism3/engine/component-schema';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
-import { makeShim, type Node } from './component-shim';
-import { anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
+import { fixHostMethods, makeShim, type Node } from './component-shim';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, type PanelApi, type PNode } from './src/doc-panel';
 import { TAXONOMY } from './src/file-taxonomy';
 import { readSpecTag } from './src/spec-tag';
 import { fingerprintOf } from './src/style-guide';
@@ -192,8 +216,8 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
       return { x: at.x + x, y: at.y + y, width: self.width!, height: self.height! };
     },
     resize(w: number, h: number) { (n as N)._w = w; (n as N)._h = h; },
-    appendChild(c: N) { detach(c); c.parent = n; n.children.push(c); },
-    insertChild(i: number, c: N) { detach(c); c.parent = n; n.children.splice(i, 0, c); },
+    appendChild(c: N) { detach(c); c.parent = n; n.children.push(c); hostReset(c); },
+    insertChild(i: number, c: N) { detach(c); c.parent = n; n.children.splice(i, 0, c); hostReset(c); },
     remove() { detach(n); n.removed = true; },
     getSharedPluginData: (ns: string, k: string) => data.get(`${ns}/${k}`) ?? '',
     setSharedPluginData: (ns: string, k: string, v: string) => { data.set(`${ns}/${k}`, v); },
@@ -211,6 +235,27 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
   }
   return n;
 };
+/**
+ * THE HOST DROPS A NESTED INSTANCE'S SIZE WHEN ITS TREE MOVES (#3205 follow-up, after #3211). In the template after one
+ * Update, Dialog's specimen read `layoutSizingHorizontal: FIXED` at 62px inside a 687px stage: the width and floor the
+ * draw set were gone, and the instance was fixed at the width it hugs (#3265's re-scan, 2026-11-02). Modeled so: when a
+ * tree is appended or moved to a new parent, each instance inside another instance in it (a block's specimen) loses
+ * its size overrides. Its floor goes back to its main's, and it is frozen FIXED at what it hugs. A specimen sized
+ * before its panel lands on the page is lost; one sized after it keeps its width. That is the trigger this host
+ * assumes. Real-Figma confirmation is owed, and the agent link's check reads it.
+ */
+function hostReset(root: N): void {
+  for (const q of walk(root)) {
+    if (q.type !== 'INSTANCE' || q.swapped === undefined) continue;
+    let up = q.parent as N | undefined, nested = false;
+    for (; up; up = up.parent as N | undefined) if (up.type === 'INSTANCE') { nested = true; break; }
+    if (!nested) continue;
+    if (typeof q._mainMin === 'number') q.minWidth = q._mainMin; else delete q.minWidth;
+    q.layoutSizingHorizontal = 'HUG';
+    q._w = q.width;
+    q.layoutSizingHorizontal = 'FIXED';
+  }
+}
 /** A node's width before its floor: the host's own layout, written here, never read off the panel. */
 function rawWidth(self: N): number {
   if (self.type === 'TEXT' && self.textAutoResize === 'WIDTH_AND_HEIGHT') return runWidth(String(self.characters ?? ''), typeof self.fontSize === 'number' ? self.fontSize : 14);
@@ -301,7 +346,58 @@ const blockInstance = (type: string): N => {
     }
   };
   i.setExplicitVariableModeForCollection = (_c: unknown, modeId: string) => { i.pinned = modeId; };
-  return i;
+  return liveInstances ? live(i) : i;
+};
+/**
+ * THE HOST'S INSTANCES FOLLOW THEIR MAIN (#3303), as Figma's do. Each layer of a block instance (a specimen's aside, the
+ * set's) holds two values per field: what it inherits from its main (`_inh`), and what was set on it (an override). A
+ * write is an override, and `overrides` lists them by layer id, as `InstanceNode.overrides` does; `mainMoves` changes the
+ * inherited values, as rebuilding the block's or List.Item's component does, and an override keeps its own value. Written
+ * here, from Figma's documented `overrides` shape, never read off the panel.
+ */
+/** On for the arms that read it: the model costs a closure per field per layer, too much for every panel in this file. */
+let liveInstances = false;
+const TRACKED = ['characters', 'fontSize', 'letterSpacing', 'visible', 'fills', 'strokes', 'name', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing', 'cornerRadius', 'opacity'];
+const liveLayers = (q: N): N[] => [q, ...q.children.flatMap((c) => (c.type === 'INSTANCE' && c.name === 'specimen' ? [] : liveLayers(c)))];
+function live(inst: N): N {
+  for (const q of liveLayers(inst)) {
+    const ovr = new Set<string>(), own: Record<string, unknown> = {}, inh: Record<string, unknown> = {};
+    for (const f of TRACKED) {
+      inh[f] = q[f];
+      Object.defineProperty(q, f, { configurable: true, enumerable: true, get: () => (ovr.has(f) ? own[f] : inh[f]), set: (v: unknown) => { ovr.add(f); own[f] = v; } });
+    }
+    // Sizing is an override too, of fields Figma names its own way: the print must leave it out.
+    let sizing = q.layoutSizingHorizontal;
+    Object.defineProperty(q, 'layoutSizingHorizontal', { configurable: true, enumerable: true, get: () => sizing, set: (v: unknown) => { ovr.add('layoutAlign'); ovr.add('counterAxisSizingMode'); sizing = v; } });
+    const resize = q.resize!;
+    q.resize = (w: number, h: number) => { ovr.add('width'); ovr.add('height'); resize(w, h); };
+    if (typeof q.setProperties === 'function') { const set = q.setProperties; q.setProperties = (pr: Record<string, unknown>) => { ovr.add('componentProperties'); set(pr as never); }; }
+    q._ovr = ovr; q._inh = inh;
+    if (q.type === 'INSTANCE') Object.defineProperty(q, 'overrides', { configurable: true, get: () => liveLayers(q).filter((x) => (x._ovr as Set<string> | undefined)?.size).map((x) => ({ id: String(x.id), overriddenFields: [...(x._ovr as Set<string>)] })) });
+  }
+  return inst;
+}
+/** ENGINE N+1 REBUILDS THE COMPONENTS THE PANEL NESTS (#3303): every inherited value under each block moves, a layer
+ *  is added to each block's main, and the Specimen swap points at a rebuilt member. Nobody touches the panel. */
+/** No rebuild: the components the panel nests stay as drawn. */
+const keepMains = (): void => {};
+const mainMoves = (panel: N): number => {
+  let moved = 0;
+  for (const q of walk(panel)) {
+    const inh = q._inh as Record<string, unknown> | undefined;
+    if (!inh) continue;
+    inh.fills = [{ type: 'SOLID', visible: true, opacity: 1, color: { r: 0.2, g: 0.3, b: 0.4 } }];
+    inh.paddingLeft = Number(inh.paddingLeft ?? 0) + 4;
+    inh.cornerRadius = 6;
+    if (q.type === 'TEXT') { inh.fontSize = 15; inh.characters = 'Template text, revised'; }
+    if (q.name === '_Doc-block' && q.type === 'INSTANCE') {
+      q.children.push(Object.assign(mk('FRAME', 'added in the rebuild', [], { _w: 0, _h: 0 }), { parent: q }));
+      const props = q.componentProperties as Record<string, { type: string; value: unknown }> | undefined;
+      for (const v of Object.values(props ?? {})) if (v.type === 'INSTANCE_SWAP') v.value = `${String(v.value)}-rebuilt`;
+    }
+    moved++;
+  }
+  return moved;
 };
 /** The members a specimen can be swapped to, by id. */
 const members = new Map<string, N>();
@@ -347,6 +443,7 @@ const instanceOf = (sp: N, member: N): void => {
   sp._w = member.width;
   // An instance inherits its main's floor (#3205): Figma's `minWidth` reaches every instance.
   if (typeof member.minWidth === 'number') sp.minWidth = member.minWidth; else delete sp.minWidth;
+  sp._mainMin = member.minWidth;
   sp.layoutMode = member.layoutMode ?? 'VERTICAL';
   sp.itemSpacing = 4;
   const props: Record<string, { type: string; value: unknown }> = {};
@@ -522,17 +619,16 @@ section('anatomy/… — held-back part notes never reach a panel');
     const p = page(`↳ a ${def.id}`);
     await drawDocPanel(host([p]), fakeSet(p, def.id), def, { names });
     const all = texts(panelsOn(p)[0]).join('\n');
-    const seen = new Set<string>();
+    const lede = (t: string): string => t.replace(/`/g, '').replace(/\s+/g, ' ').trim().split(/(?<=[.)])\s+(?=[A-Z"(])/)[0];
     for (const [id, part] of Object.entries(def.anatomy?.parts ?? {})) {
       if (!part.note?.trim()) continue;
-      // A repeat (Q4) lists only its first part: `item2` after `item1`, nesting the same component the same way.
-      const rp = part as { nests?: string; nesting?: unknown; presentWhen?: unknown };
-      const same = `${id.replace(/\d+$/, '')}|${rp.nests}|${JSON.stringify(rp.nesting)}|${JSON.stringify(rp.presentWhen)}`;
-      if (/\d$/.test(id) && rp.nests && seen.has(same)) continue;
-      seen.add(same);
-      const first = part.note.replace(/`/g, '').replace(/\s+/g, ' ').trim().split(/(?<=[.)])\s+(?=[A-Z"(])/)[0];
+      // A repeat's part in a run (#3265) is captioned by the run: its parts' shared note, else the nested component's
+      // summary. So a numbered part shows its own note or, when a run covers it, that summary (`legend/…` pins which).
+      const rp = part as { nests?: string };
+      const run = /\d$/.test(id) && rp.nests ? componentDefs.find((d) => d.id === rp.nests)?.summary : undefined;
+      const first = lede(part.note);
       if (MAINTAINER_REGISTER.test(part.note) || NAMES_A_TOOL.test(part.note)) { heldBack++; if (all.includes(first)) leaks.push(`${def.id}.${id}`); }
-      else { shown++; if (!all.includes(first)) leaks.push(`${def.id}.${id} (missing)`); }
+      else { shown++; if (!all.includes(first) && !(run && all.includes(lede(run)))) leaks.push(`${def.id}.${id} (missing)`); }
     }
   }
   ok(heldBack >= 30 && !leaks.some((l) => !l.endsWith('(missing)')), `anatomy/held back: none of ${heldBack} held-back notes is in a panel`, leaks.filter((l) => !l.endsWith('(missing)')).slice(0, 5).join(', '));
@@ -546,7 +642,7 @@ const listedNumbers = (panel: N): string[] => {
 };
 
 /* ── marks: the numbered entries, from the part tree ───────────────────────────────────────────────────── */
-section('marks/… — repeats merged, the root and the parts that hold others bracketed (#2927 Q4, Q5)');
+section('marks/… — repeats as runs of neighbors alike on the specimen, the root and the parts that hold others bracketed (#2927 Q4, Q5; #3265)');
 {
   // Written out from the defs' part trees as read by hand (list: container > items > item1..3; tabs: container >
   // items > tab1..3 and the baseline; button: container and its parts, none holding another).
@@ -554,22 +650,119 @@ section('marks/… — repeats merged, the root and the parts that hold others b
   const show = (ms: ReturnType<typeof anatomyMarks>) => ms.map((m) => `${m.n}:${m.part}${m.parts > 1 ? `x${m.parts}` : ''}${m.bracket ? '[' : ''}@${m.path.join('/')}`).join(' ');
   ok(show(of('list')) === '1:container[@ 2:items[@items 3:item1x3@items/item1', `marks/list: ${show(of('list'))}`, 'want 1:container[@ 2:items[@items 3:item1x3@items/item1');
   ok(show(of('tabs')) === '1:container[@ 2:items[@items 3:tab1@items/tab1 4:tab2x2@items/tab2 5:baseline@baseline', `marks/tabs: the selected tab apart from the two unselected (${show(of('tabs'))})`);
-  // Pagination (#2665), read by hand: the row's items are pages 1, 4, 6 and 10 (item1, 3, 5, 7: one setting), two gaps
-  // (item2, item6) and the current page (item4). A repeat merges by its settings, not by place, so the pages and the gaps
-  // each make one entry though they alternate.
-  const pg = '1:container[@ 2:row[@row 3:previous@row/previous 4:items[@row/items 5:item1x4@row/items/item1 6:item2x2@row/items/item2 7:item4@row/items/item4 8:status@row/status 9:next@row/next 10:simpleRow[@simpleRow 11:previousButton@simpleRow/previousButton 12:nextButton@simpleRow/nextButton';
-  ok(show(of('pagination')) === pg, `marks/pagination: the pages and the gaps merge apart from the current page (${show(of('pagination'))})`, `want ${pg}`);
-  // Code input (#2428), read by hand from its cell(n) settings: the first cell is the active one at focus-visible, cells 2
-  // and 3 are filled, cell 4 is active once three are in, cells 5 and 6 rest. Two runs of two, apart: the second run is
-  // cell5's, never cell3's.
-  const ci = '1:container[@ 2:label@label 3:items[@items 4:cell1@items/cell1 5:cell2x2@items/cell2 6:cell4@items/cell4 7:cell5x2@items/cell5 8:message@message';
-  ok(show(of('code-input')) === ci, `marks/code-input: two runs of two, apart (${show(of('code-input'))})`, `want ${ci}`);
+  // Pagination (#2665), read by hand: the row's items alternate, page 1, a gap, page 4, the current page 5, page 6, a gap,
+  // page 10, so no neighbor is like the one before it, and each item is its own entry (#3265: a run is neighbors alike on
+  // the specimen, never a repeat gathered from wherever it stands).
+  const pg = '1:container[@ 2:row[@row 3:previous@row/previous 4:items[@row/items 5:item1@row/items/item1 6:item2@row/items/item2 7:item3@row/items/item3 8:item4@row/items/item4 9:item5@row/items/item5 10:item6@row/items/item6 11:item7@row/items/item7 12:status@row/status 13:next@row/next 14:simpleRow[@simpleRow 15:previousButton@simpleRow/previousButton 16:nextButton@simpleRow/nextButton';
+  ok(show(of('pagination')) === pg, `marks/pagination: seven items, each its own entry (${show(of('pagination'))})`, `want ${pg}`);
+  // Code input (#2428), read by hand from its cell(n) settings: the cells differ only at hover, filled, focus-visible,
+  // focus-visible-filled and disabled. The specimen is the default member, state rest, where all six rest alike, so they
+  // make one run (#3265).
+  const ci = '1:container[@ 2:label@label 3:items[@items 4:cell1x6@items/cell1 5:message@message';
+  ok(show(of('code-input')) === ci, `marks/code-input: the six cells, alike on the specimen, one run (${show(of('code-input'))})`, `want ${ci}`);
   ok(show(of('counter')).includes('decrement') && show(of('counter')).includes('increment'), `marks/counter: two parts that nest one component with different jobs stay apart (${show(of('counter'))})`);
   ok(of('button').every((m) => !m.bracket && m.parts === 1), 'marks/button: nothing merged, nothing bracketed');
   // Breadcrumbs (#2916), read by hand: the container, the native items slot holding the trail (two ancestors alike, the
   // current page apart), and the parent path's back glyph and link, which only the `path=parent` member holds.
   const bc = '1:container[@ 2:items[@items 3:item1x2@items/item1 4:item3@items/item3 5:backGlyph@backGlyph 6:parentLink@parentLink';
   ok(show(of('breadcrumbs')) === bc, `marks/breadcrumbs: six entries, the slot's items among them (${show(of('breadcrumbs'))})`, `want ${bc}`);
+}
+
+/* ── legend: what each anatomy entry says, typed from the defs (#3265) ──────────────────────────────────── */
+section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for a run, each caption true of every part it covers (#3265)');
+{
+  // The anatomy legend as the panel plans it: each entry's label and its one-sentence caption.
+  const legend = (id: string): string[] => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections
+    .find((x) => x.id === 'anatomy')!.blocks.flatMap((b) => (b.type === 'Field' ? [`${b.label} — ${b.text}`] : []));
+  const want = (id: string, lines: string[], why: string): void => {
+    const got = legend(id);
+    const at = got.findIndex((l, i) => l !== lines[i]);
+    ok(got.length === lines.length && at < 0, `legend/${id}: ${why}`, at >= 0 ? `entry ${at + 1}: got "${got[at]}", want "${lines[at]}"` : `${got.length} entries, want ${lines.length}`);
+  };
+  // Written out by hand from each def's part notes and its nested component's summary, owner decisions Q3265.1 A and
+  // Q3265.2 A. Code input: the six cells rest alike on the default member; their notes differ ("Cell n of the default
+  // six."), so the run takes the cell's summary. Its message's note is held back, so it has no caption.
+  want('code-input', [
+    '1  Container — The field: label, the row of cells and the message, as wide as the widest of the three.',
+    '2  Label — The accessible name, composed.',
+    '3  Items — The cells: a native slot of Cell instances, six by default, four at least and eight at most.',
+    '4  Cells 1–6 — One cell of a code input: a box holding one character of the code.',
+    '5  Message (optional) — ',
+  ], 'the six cells, one run, captioned by the cell\'s summary');
+  // Pagination: no item is like its neighbor on the specimen, so each keeps its number and its own note. Item 4 is page 5.
+  want('pagination', [
+    '1  Container — The navigation landmark: one row of controls.',
+    '2  Row — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
+    '3  Previous — The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A).',
+    '4  Items — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.',
+    '5  Item 1 — The first page, 1.',
+    '6  Item 2 — An ellipsis for pages 2 and 3.',
+    '7  Item 3 — Page 4, before the current page.',
+    '8  Item 4 — Page 5, the current page.',
+    '9  Item 5 — Page 6, after the current page.',
+    '10  Item 6 — An ellipsis for pages 7 to 9.',
+    '11  Item 7 — The last page, 10.',
+    '12  Status — The position, "Page 5 of 10", between the previous and next buttons.',
+    '13  Next — The next cell: a Pagination.Item with a right chevron (Q414 A).',
+    '14  Simple row — The simple row: Previous at the start and Next at the end.',
+    '15  Previous button — Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).',
+    '16  Next button — Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).',
+  ], 'Item 1 to Item 7, each with its own note');
+  // Tabs: the selected tab alone, then the two unselected ones as a run. Their notes differ ("A second tab.", "A third
+  // tab."), so the run takes the tab's summary, never the second tab's note.
+  want('tabs', [
+    '1  Container — The tab list: the row of tabs above the baseline.',
+    '2  Items — The tabs: a native slot holding Tab instances side by side with no gap, three by default, the first selected.',
+    '3  Tab 1 — The first tab, selected.',
+    '4  Tabs 2–3 — One trigger in a tab list.',
+    '5  Baseline — The 1px line under the tabs, which the selected underline sits on.',
+  ], 'Tab 1, then Tabs 2–3 captioned by the tab\'s summary');
+  // A run whose parts share one note takes that note, not the nested component's summary (Q3265.2 A). No run in
+  // today's library shares a note, so this calls `anatomyEntry` directly: Code input's run cut to its first two cells,
+  // both given one note. The note and the summary are typed here, never read off the def.
+  {
+    const ci = componentDefs.find((d) => d.id === 'code-input')!;
+    const a = docSections(ci).sections.find((x) => x.id === 'anatomy');
+    const cell = anatomyMarks(ci, a && a.id === 'anatomy' ? a.parts.map((pt) => pt.id) : []).find((m) => m.part === 'cell1')!;
+    const note = 'A box for one character.';
+    const e = anatomyEntry(ci, { ...cell, parts: 2, run: ['cell1', 'cell2'] }, () => note);
+    ok(e.label === 'Cells 1\u20132' && e.caption === note, 'legend/shared note: a run whose parts share a note is captioned by it, not by the summary',
+      `got "${e.label} — ${e.caption}", want "Cells 1\u20132 — ${note}" (not "One cell of a code input: a box holding one character of the code.")`);
+  }
+  want('breadcrumbs', [
+    '1  Container — The navigation: a row that hugs the trail, or the one link up to the parent, with no padding and no fill.',
+    '2  Items — The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.',
+    '3  Items 1–2 — One step in a breadcrumb trail: a link, the current page, or the collapsed steps.',
+    '4  Item 3 — The current page, last and not a link.',
+    '5  Back glyph — The parent path: a 16px chevron pointing up the trail, in the link icon color, before the link.',
+    '6  Parent link — The parent path: a Link to the parent page, inline and default weight, reading "Parent page".',
+  ], 'the two ancestors as a run, the current page apart');
+
+  // EVERY DEF: no label is a word glued to a digit ("Cell4") or carries "×", and each repeated name's entries cover its
+  // numbered parts exactly once, in order. The parts are read off the def's part keys here, the labels off the plan.
+  const bad: string[] = [];
+  for (const def of componentDefs) {
+    const a = docSections(def).sections.find((x) => x.id === 'anatomy');
+    if (!a || a.id !== 'anatomy') continue;
+    const labels = legend(def.id).map((l) => l.replace(/^\d+ {2}/, '').replace(/ — [\s\S]*$/, '').replace(/ \(optional\)$/, ''));
+    for (const l of labels) if (/[A-Za-z]\d/.test(l) || l.includes('×')) bad.push(`${def.id}: "${l}"`);
+    const numbered = new Map<string, string[]>();
+    for (const pt of a.parts) {
+      const m = /^(.*?)(\d+)$/.exec(pt.id);
+      if (m && (def.anatomy!.parts as Record<string, { kind?: string }>)[pt.id]?.kind === 'nest') numbered.set(m[1], [...(numbered.get(m[1]) ?? []), m[2]]);
+    }
+    for (const [base, nums] of numbered) {
+      const word = base.charAt(0).toUpperCase() + base.slice(1).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+      const covered = labels.flatMap((l) => {
+        const run = new RegExp(`^${word}s (\\d+)–(\\d+)$`).exec(l);
+        if (run) return Array.from({ length: Number(run[2]) - Number(run[1]) + 1 }, (_, i) => String(Number(run[1]) + i));
+        const one = new RegExp(`^${word} (\\d+)$`).exec(l);
+        return one ? [one[1]] : [];
+      });
+      if (covered.join() !== nums.join()) bad.push(`${def.id}: the ${word} entries cover ${covered.join(',') || 'nothing'}, the def numbers ${nums.join(',')}`);
+    }
+  }
+  ok(bad.length === 0, 'legend/every def: no label glued to its number or carrying ×, and each repeat\'s entries cover its parts once, in order', bad.slice(0, 4).join('; '));
 }
 
 /* ── markers: on their parts, by the host's own layout ─────────────────────────────────────────────────── */
@@ -590,28 +783,25 @@ section('markers/… — every listed number on a specimen, on its part, by a le
     const nums = listedNumbers(panel);
     const taken = new Set<string>();
     const labelOf = (num: string): string => String(walk(sec).find((c) => c.name === 'label' && String(c.characters).startsWith(`${num}  `))!.characters).slice(`${num}  `.length).replace(/ \(optional\)$/, '');
-    // The names listed as themselves: a merged repeat never stands for one of them.
-    const ownNamed = new Set(nums.map(labelOf).filter((l) => !/ ×\d+$/.test(l)));
-    // How many parts each merged name's ×N entries claim between them, and the last part each name's entries reached.
-    const claimed = new Map<string, number>();
-    const lastAt = new Map<string, number>();
+    // #3265: a label names one instance ("Cell 4") or a run ("Cells 1–6"); each is read back to the def's parts by their
+    // part names ("Cell4"), so the oracle knows which parts an entry covers without asking the panel.
+    const covers = (label: string): ComponentDef['id'][] => {
+      const run = /^(.+)s (\d+)–(\d+)$/.exec(label);
+      if (run) return Array.from({ length: Number(run[3]) - Number(run[2]) + 1 }, (_, i) => `${run[1]}${Number(run[2]) + i}`).flatMap((nm) => parts.filter((pt) => pt.name === nm).map((pt) => pt.id));
+      const one = /^(.+) (\d+)$/.exec(label);
+      const byNo = one ? parts.filter((pt) => pt.name === `${one[1]}${one[2]}`) : [];
+      return (byNo.length ? byNo : parts.filter((pt) => pt.name === label)).map((pt) => pt.id);
+    };
+    const coveredIds: string[] = [];
     for (const num of nums) {
       const label = labelOf(num);
-      const merged = / ×\d+$/.test(label);
-      const runOf = Number(/ ×(\d+)$/.exec(label)?.[1] ?? 1);
-      const nm = label.replace(/ ×\d+$/, '');
-      // By its name, else (a merged repeat, ×N) any part of that name not listed by its own name and not reached yet. The
-      // panel merges repeats by their settings, not by place (Pagination's pages and gaps alternate, #2665; Code input's
-      // runs sit apart, #2428), so the oracle does not guess which parts a run holds. It holds what any grouping must
-      // keep instead: one name's entries reach its parts in part order, and their counts cover those parts exactly
-      // (after the loop). Which parts merge is pinned by hand in marks/ above.
-      const pool = merged
-        ? parts.filter((pt) => !taken.has(pt.id) && !ownNamed.has(pt.name) && pt.name.replace(/\s*\d+$/, '') === nm)
-        : [parts.find((pt) => pt.name === nm)!];
-      if (merged) claimed.set(nm, (claimed.get(nm) ?? 0) + runOf);
+      const pool = covers(label).map((id) => parts.find((pt) => pt.id === id)!);
+      if (!pool.length) { wrong.push(`${num} "${label}": names no part of the def`); continue; }
+      coveredIds.push(...pool.map((pt) => pt.id));
       const first = pool[0]!;
-      const isRoot = !merged && first.id === def.anatomy?.root;
-      const targets = specs.flatMap((sp) => (isRoot ? [sp] : walk(sp).filter((c) => pool.some((pt) => c.name === pt.id) && shown(c, sp))));
+      const isRoot = first.id === def.anatomy?.root;
+      // The marker stands on the entry's first part.
+      const targets = specs.flatMap((sp) => (isRoot ? [sp] : walk(sp).filter((c) => c.name === first.id && shown(c, sp))));
       const group = panel.children.find((c) => c.name === `part ${num}`);
       if (!group) { wrong.push(`${num} ${first.id}: no marker`); continue; }
       const box = group.absoluteBoundingBox!;
@@ -619,9 +809,8 @@ section('markers/… — every listed number on a specimen, on its part, by a le
       const badge = group.children.find((c) => c.name === '_Doc-block')!;
       const marker = walk(badge).find((c) => c.name === 'marker')!.absoluteBoundingBox!;
       const hit = targets.find((t) => { const b = t.absoluteBoundingBox!; return overlapsBox(box, b) && lines.some((l) => overlapsBox(l, b)); });
-      if (!hit) { wrong.push(`${num} ${first.id}: its marker and leader reach no ${merged ? `untaken ${nm}` : first.id} (${targets.length} in the specimens)`); continue; }
-      const part = isRoot ? first : pool.find((pt) => pt.id === hit.name)!;
-      taken.add(part.id);
+      if (!hit) { wrong.push(`${num} ${first.id}: its marker and leader reach no ${first.id} (${targets.length} in the specimens)`); continue; }
+      const part = first;
       // ON ITS PART BY CONTAINMENT (#2916): a leader runs down (or up) the part's middle and its tip lies inside the
       // part's box; a bracket runs exactly the part's height and both its ticks end inside the part. The root is always
       // bracketed.
@@ -639,11 +828,6 @@ section('markers/… — every listed number on a specimen, on its part, by a le
         if (!inside(tip.x, tip.y)) wrong.push(`${num} ${part.id}: its leader ends at ${tip.x},${tip.y}, outside the part ${B.x},${B.y} ${B.width}×${B.height}`);
         if (Math.abs(tip.x - (B.x + B.width / 2)) > 1) wrong.push(`${num} ${part.id}: its leader is ${Math.round(tip.x - (B.x + B.width / 2))}px off the part's middle`);
       } else wrong.push(`${num} ${part.id}: ${lines.length} lines, neither a leader nor a bracket`);
-      if (merged) {
-        const at = parts.indexOf(part);
-        if (at <= (lastAt.get(nm) ?? -1)) wrong.push(`${num} ${part.id}: reached before an earlier ${nm} entry's part`);
-        lastAt.set(nm, at);
-      }
       const spec = specs.find((sp) => walk(sp).includes(hit))!;
       if (overlapsBox(marker, spec.absoluteBoundingBox!)) wrong.push(`${num} ${part.id}: the marker sits on the specimen, not in its gutter`);
       const stage = (spec.parent as N).absoluteBoundingBox!;
@@ -651,10 +835,8 @@ section('markers/… — every listed number on a specimen, on its part, by a le
         wrong.push(`${num} ${part.id}: the marker is outside its specimen's stage`);
       if (texts(badge)[0] !== num) wrong.push(`${num}: the marker reads ${texts(badge)[0]}`);
     }
-    for (const [nm, n] of claimed) {
-      const of = parts.filter((pt) => !ownNamed.has(pt.name) && pt.name.replace(/\s*\d+$/, '') === nm).length;
-      if (n !== of) wrong.push(`the ${nm} entries count ${n} parts, the def has ${of}`);
-    }
+    // Every listed part is covered by exactly one entry, in the listed order.
+    if (coveredIds.join() !== parts.map((pt) => pt.id).join()) wrong.push(`the entries cover ${coveredIds.join(',')}, the def lists ${parts.map((pt) => pt.id).join(',')}`);
     const badges = panel.children.filter((c) => c.name.startsWith('part ')).map((g) => walk(g).find((c) => c.name === 'marker')!.absoluteBoundingBox!);
     const touching = badges.flatMap((b, i) => badges.slice(i + 1).filter((o) => overlapsBox(b, o)).map(() => i + 1));
     const inside = badges.every((b) => { const pb = panel.absoluteBoundingBox!; return b.x >= pb.x && b.y >= pb.y && b.x + b.width <= pb.x + pb.width && b.y + b.height <= pb.y + pb.height; });
@@ -984,6 +1166,26 @@ section('legacy/… — a panel printed the old way, its set rebuilt since: repl
   ok(r2.replaced === 0 && r2.kept.length === 1 && panelsOn(q).length === 2 && old.name === 'Tag usage (edited)' && texts(old).includes('Our team uses tags for filters only.'),
     `legacy/edited: a rewritten line on an old-print panel still keeps it aside, as "${old.name}" (replaced ${r2.replaced}, kept ${r2.kept.length})`);
 
+  // A PANEL DRAWN BEFORE #3265 (S2): Tabs' legend then merged the two unselected tabs as "4  Tab ×2", captioned by the
+  // first one's note, and glued each number to its name ("3  Tab1"). Those lines are typed here as the earlier code
+  // wrote them. Printed the old way and its set rebuilt, the panel still reads as Prism3's own text, so it is replaced.
+  {
+    const tabs = componentDefs.find((d) => d.id === 'tabs')!;
+    const t = page('↳ Tabs legacy legend');
+    const ts = fakeSet(t, 'tabs');
+    const ta = host([t]);
+    await drawDocPanel(ta, ts, tabs, { names });
+    const oldPanel = panelsOn(t)[0];
+    const was: Record<string, string> = { '3  Tab 1': '3  Tab1', '4  Tabs 2\u20133': '4  Tab \u00d72', 'One trigger in a tab list.': 'A second tab.' };
+    const swapped = walk(oldPanel).filter((c) => c.type === 'TEXT' && String(c.characters) in was);
+    for (const c of swapped) c.characters = was[String(c.characters)];
+    await printOld(oldPanel);
+    rebuild(t, 'tabs');
+    const r3 = await drawDocPanel(ta, ts, tabs, { names });
+    ok(swapped.length === 3 && texts(oldPanel).includes('4  Tab \u00d72') && r3.replaced === 1 && r3.kept.length === 0 && panelsOn(t).length === 1,
+      `legacy/merged legend: an old-print panel whose legend reads "4  Tab \u00d72" is replaced, not kept (lines swapped ${swapped.length} of 3, replaced ${r3.replaced}, kept ${r3.kept.length})`);
+  }
+
   // THE BUTTONS PAGE (#2968): four sets, laid out before one panel per family, each with its own panel printed the
   // old way, then the sets rebuilt. A member's panel is drawn as the earlier code drew one: its own heading and lede.
   const buttons = ['button', 'button-destructive', 'button-neutral', 'button-group'];
@@ -1301,7 +1503,7 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   await drawDocPanel(uh, set, d, { names });
   const old = panelsOn(p)[0];
   const at = { x: Number(old.x), y: Number(old.y) };
-  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '4:'));
+  old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '5:'));
   for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; delete sp.minWidth; }
   const was = walk(old).find((c) => c.name === 'specimen')!.absoluteBoundingBox!.width;
   const targets: UpdateTarget[] = [{ def: 'dialog', plans: plansOf('dialog'), doc: { def: d, names } }];
@@ -1316,6 +1518,64 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
     && !String(now.name).endsWith('(edited)') && widths.length > 0 && widths.every((w) => w === DIALOG_WIDTH) && !collapses(now).length,
     `update/redraw in place: Dialog's collapsed panel (${was}px example) is due (${due}) and one Update redraws it at (${now?.x}, ${now?.y}), examples ${[...new Set(widths)].join(', ')} wide`,
     `panels ${all.length}, live ${live.length}, at (${at.x}, ${at.y}), names ${all.map((n) => n.name).join(' | ')}; ${now ? collapses(now).slice(0, 2).join('; ') : ''}`);
+}
+
+/* ── own draw: an untouched panel is Prism3's own, whatever the components it nests became (#3303) ───────── */
+section('own draw/… — Update redraws a panel nobody touched in place, the components it nests rebuilt (#3303)');
+{
+  liveInstances = true;
+  // Tag's panel drawn by engine N; engine N+1 changes the panel's plan (due) and rebuilds the components its blocks
+  // nest. Update, as `main.ts` runs it on the strict host, replaces the panel where it was: one panel, no "(edited)".
+  const run = async (label: string, edit?: (old: N) => void, age?: (old: N) => Promise<void>) => {
+    const p = page(`↳ own ${label}`);
+    const { api, sets } = await buildAll(p, ['tag']);
+    const set = sets[0];
+    // The components the plan nests, which the shim holds off the page: here on the page, where the update finds them.
+    for (const [k, name] of [SWAP_TARGET, 'focus-ring', 'icon/check', 'icon/close'].entries()) p.appendChild!(mk('COMPONENT', name, [], { x: -4000, y: k * 40, _w: 24, _h: 24 }));
+    for (const m of set.children) members.set(String(m.id), m);
+    const panels = host([p]);
+    const uh = fixHostMethods({ ...api, root: fixHostMethods({ ...(api.root as object), findAllWithCriteria: (c: never) => labelHost(panels).root.findAllWithCriteria(c) }) }) as unknown as UpdateHost & PanelApi & FurnitureApi;
+    const d = componentDefs.find((x) => x.id === 'tag')!;
+    await drawDocPanel(uh, set, d, { names });
+    const old = panelsOn(p)[0];
+    await age?.(old);
+    const at = { x: Number(old.x), y: Number(old.y) };
+    // Engine N+1: the plan the panel was drawn from is not the one the engine draws now.
+    old.setSharedPluginData!('prism3', 'docPanelPlan', `${old.getSharedPluginData!('prism3', 'docPanelPlan')}-engine-n`);
+    const moved = edit === keepMains ? 0 : mainMoves(old);
+    if (edit !== keepMains) edit?.(old);
+    const targets: UpdateTarget[] = [{ def: 'tag', plans: plansOf('tag'), doc: { def: d, names } }];
+    const pre = await previewUpdate(uh, targets);
+    const due = pre.sets.find((x) => x.set === 'tag')?.furniture?.panels;
+    const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (s0, id) => drawDocPanel(uh, s0 as unknown as PNode, componentDefs.find((x) => x.id === id)!, { names })); };
+    await applyUpdate(uh as never, uh as never, targets, previewHashOf(pre), { furnish });
+    const all = panelsOn(p);
+    return { all, old, at, moved, due, live: all.filter((n) => tagOf(n).state === 'live'), kept: all.filter((n) => tagOf(n).state === 'kept') };
+  };
+  const a = await run('untouched');
+  ok(a.moved > 20 && a.due === 1 && a.all.length === 1 && a.live.length === 1 && a.live[0] !== a.old && a.old.removed === true
+    && Number(a.live[0].x) === a.at.x && Number(a.live[0].y) === a.at.y && !a.all.some((n) => String(n.name).endsWith('(edited)')),
+    `own draw/untouched: ${a.moved} inherited layers moved under the panel, one Update replaces it in place, no "(edited)" copy`,
+    `due ${a.due}, panels ${a.all.length} [${a.all.map((n) => n.name).join(' | ')}]`);
+  // A real hand edit is still kept, whatever it is: a line rewritten, a fill set on a nested item, a layer hidden.
+  const line = (old: N) => walk(old).find((c) => c.type === 'TEXT' && c.name === 'text' && String(c.characters).length > 20)!;
+  const b = await run('text edit', (old) => { line(old).characters = 'Our team uses tags for filters only.'; });
+  ok(b.all.length === 2 && b.live.length === 1 && b.kept.length === 1 && b.kept[0] === b.old && String(b.old.name).endsWith(' (edited)') && texts(b.old).includes('Our team uses tags for filters only.'),
+    `own draw/text edit: a rewritten line keeps the panel aside as "${b.old.name}", its edit intact`, `panels ${b.all.map((n) => n.name).join(' | ')}`);
+  const c = await run('fill edit', (old) => { walk(old).find((q) => q.type === 'INSTANCE' && /^item\d$/.test(String(q.name)))!.fills = [{ type: 'SOLID', color: { r: 1, g: 0, b: 0 } }]; });
+  ok(c.kept.length === 1 && c.kept[0] === c.old && c.live.length === 1, `own draw/fill edit: a fill set on a nested item keeps the panel aside`, `panels ${c.all.map((n) => n.name).join(' | ')}`);
+  const e = await run('hidden layer', (old) => { walk(old).find((q) => q.name === 'heading' && q._inh)!.visible = false; });
+  ok(e.kept.length === 1 && e.kept[0] === e.old && e.live.length === 1, `own draw/hidden layer: a layer hidden inside a block keeps the panel aside`, `panels ${e.all.map((n) => n.name).join(' | ')}`);
+  // THE SAFE RULE FOR A PANEL DRAWN BEFORE #3303 (its print in the second form): unchanged since, it is replaced; once a
+  // component it nests is rebuilt, the second form cannot tell that from a hand edit, so it is kept, as before.
+  const v2 = (old: N) => printV2(old).then((pr) => old.setSharedPluginData!('prism3', 'docPanelPrint', pr));
+  const f = await run('v2 unchanged', keepMains, v2);
+  ok(f.all.length === 1 && f.live.length === 1 && f.old.removed === true, `own draw/v2 unchanged: a panel printed before #3303, untouched and its components as drawn, is replaced`,
+    `panels ${f.all.map((n) => n.name).join(' | ')}`);
+  const g = await run('v2 rebuilt', undefined, v2);
+  ok(g.moved > 20 && g.all.length === 2 && g.kept.length === 1 && g.kept[0] === g.old, `own draw/v2 rebuilt: once a component it nests is rebuilt, it is kept, as before #3303 (the safe rule)`,
+    `panels ${g.all.map((n) => n.name).join(' | ')}`);
+  liveInstances = false;
 }
 
 /* ── orphan: a deleted set's panels before its def is built again ─────────────────────────────────────── */

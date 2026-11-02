@@ -53,6 +53,7 @@ import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration 
 import { captureSlotText, holdsSlotText, slotTextLines, type SlotTextMigration, type TextMigNode } from './slot-text-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
+import { PACE_MS } from './pace';
 import { reaches } from './executor-reach';
 import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { FURNITURE_KEY, FURNITURE_NS, furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
@@ -855,10 +856,12 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, d
   const members: HostMember[] = [];
   const others: string[] = [];
   let n = 0;
+  let last = Date.now();
   for (const raw of set.children ?? []) {
     // A 432-member set is about 13,000 nodes to read; handing the thread back every few members keeps
-    // Figma responsive while it runs (#684's reason).
-    if (breathe && ++n % 24 === 0) await breathe();
+    // Figma responsive while it runs (#684's reason). #3301: and once about `PACE_MS` of reading has run, since 24
+    // members of a large component (a field, a dialog) are thousands of host reads in one turn.
+    if (breathe && (++n % 24 === 0 || Date.now() - last >= PACE_MS)) { await breathe(); last = Date.now(); }
     const name = String((raw as { name?: unknown }).name ?? '');
     if (coordKey(name) === null) { others.push(name); continue; }
     members.push(await readMember(raw, name, undefined, drawVars));
@@ -1128,12 +1131,17 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
     if (r.kind === 'value' && r.axis === axis) known.add(r.from);
     if (r.kind === 'drop' && r.axis === axis && r.value !== undefined) known.add(r.value);
   }
-  const all = (host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly unknown[]).filter((c) => {
+  // #3301: every component in the file has its parent read here, a set's members included (thousands in a full library),
+  // so the thread is handed back once about `PACE_MS` of it has run.
+  const all: unknown[] = [];
+  let since = Date.now();
+  for (const c of host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly unknown[]) {
+    if (breathe && Date.now() - since >= PACE_MS) { await breathe(); since = Date.now(); }
     const x = c as { parent?: { type?: unknown } | null };
     let parentType: unknown;
     try { parentType = x.parent?.type; } catch { parentType = undefined; }
-    return parentType !== 'COMPONENT_SET';
-  });
+    if (parentType !== 'COMPONENT_SET') all.push(c);
+  }
   const under = (id: string): unknown[] => all.filter((c) => String((c as { name?: unknown }).name ?? '').startsWith(`${id}/`));
   // A DEF RENAMED (#3148, as `locateSets` for a set, #2759): a file built before the rename holds the components under
   // an earlier id. When none carries the current one, each id the ledger renames into it is tried, nearest first, and
@@ -1145,8 +1153,9 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
   const members: HostMember[] = [];
   const others: string[] = [];
   let k = 0;
+  let last = Date.now();
   for (const c of comps) {
-    if (breathe && ++k % 24 === 0) await breathe();
+    if (breathe && (++k % 24 === 0 || Date.now() - last >= PACE_MS)) { await breathe(); last = Date.now(); }
     const nodeName = String((c as { name?: unknown }).name ?? '');
     const value = nodeName.slice(prefix.length);
     if (!value || (value.includes('/') && !known.has(value)) || value.includes(', ') || value.includes('=')) { others.push(nodeName); continue; }

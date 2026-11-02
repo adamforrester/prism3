@@ -32,8 +32,10 @@ export const CODE_LENGTH = 8;
 export const PAIR_LABEL = 'prism3-bridge-pair-v1:';
 export const HELLO_LABEL = 'prism3-bridge-hello-v1:';
 export const TOKEN_LABEL = 'prism3-bridge-token-v1';
-/** WebSocket close codes in the private range (RFC 6455 §7.4.2). */
-export const CLOSE = { notPaired: 4401, wrongCode: 4403, timedOut: 4408 } as const;
+/** WebSocket close codes in the private range (RFC 6455 §7.4.2). `held` (#3297): the connection proved its token, but
+ *  another paired plugin instance holds the bridge — the server closed the older one for a newer connection, or refused a
+ *  `yield` hello while one is attached. Not a pairing refusal: the token stands. */
+export const CLOSE = { notPaired: 4401, wrongCode: 4403, timedOut: 4408, held: 4409 } as const;
 
 /** What a person typed → the code's canonical form: upper case, separators and spaces dropped. */
 export const normalizeCode = (s: string): string => s.toUpperCase().replace(/[^0-9A-Z]/g, '');

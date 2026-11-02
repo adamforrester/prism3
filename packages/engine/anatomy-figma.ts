@@ -3397,7 +3397,16 @@ export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlin
  * a slot is a fact about the FILE, not about the component. The same def builds in a file whose
  * placeholder icon is called anything, so the caller that knows the file nominates it.
  */
-export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string } = {}): AnatomyPlan[] => {
+export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string } = {}): AnatomyPlan[] =>
+  checkAnatomySet(def, [...figmaAnatomyMembers(def, opts)]);
+
+/**
+ * `figmaAnatomySet`'s members ONE AT A TIME, in the same order, for a caller that has to hand its thread back between
+ * them (#3301: the Figma plugin projects a 576-member set at open, and one unbroken projection held Figma's main thread
+ * for a quarter of a second in Node). The members are what `figmaAnatomySet` returns, by construction: it is this
+ * generator, drained, then `checkAnatomySet`. A caller that drains it itself owes the same check on what it collected.
+ */
+export function* figmaAnatomyMembers(def: ComponentDef, opts: { swapTarget?: string } = {}): Generator<AnatomyPlan> {
   const fp = def.figmaProperties;
   if (!fp) throw new Error(`${def.id}: no figmaProperties block — nothing declares which axes become a Figma set`);
   const declared = fp.variantAxes ?? [];
@@ -3438,7 +3447,6 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
     [[]],
   );
 
-  const plans: AnatomyPlan[] = [];
   // A SPARSE GRID skips the coordinates `excludeCoordinates` removes (2026-09-28). The full product above is
   // still what is enumerated; the exclusion is applied member by member, so the order of what survives is
   // the order it had in the full grid. `figmaVariantCount` counts the same removal by arithmetic, which is
@@ -3455,14 +3463,19 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
           // `↳ swap leading icon` above `↳ swap trailing icon` (#1380).
           for (const trailing of bools('trailing'))
             for (const leading of bools('leading'))
-              plans.push(figmaAnatomyPlan(def, size, {
+              yield figmaAnatomyPlan(def, size, {
                 leading,
                 trailing,
                 ...(opts.swapTarget ? { swapTarget: opts.swapTarget } : {}),
                 ...Object.fromEntries(gridAxes.flatMap((a, i) => (combo[i] === undefined ? [] : [[a, combo[i]]]))),
                 ...(state ? { state } : {}),
-              }));
+              });
+}
 
+/** The check `figmaAnatomySet` makes on the members it projected (below), for a caller that drained
+ *  `figmaAnatomyMembers` itself. Returns `plans`, or throws. */
+export const checkAnatomySet = (def: ComponentDef, plans: AnatomyPlan[]): AnatomyPlan[] => {
+  const declared = def.figmaProperties?.variantAxes ?? [];
   // A DEF THAT DECLARES AXES AND PROJECTS NO COORDINATE IS A FAILURE, NOT AN EMPTY ANSWER (#795, #802's
   // class: every layer accepted and nothing read the count).
   //
