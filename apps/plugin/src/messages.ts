@@ -63,7 +63,11 @@ export type UiToMain =
    *  An UNKNOWN or UNBUILDABLE id is answered with a failed `component-result`, not a throw: the UI
    *  offers only ids it derived from `componentDefs`, so a bad one means the two sides disagree about the
    *  catalogue, and the designer needs to be told that rather than watch a build never answer. */
-  | { type: 'build-components'; def?: string }
+  | { type: 'build-components'; def?: string;
+      /** #3308 (Q3308.3 A): Update file's sets step asks it. While Documentation has the usage panels on and the file has
+       *  no `_Doc-block`, the build first makes the sets the template is built from that the file lacks, then the
+       *  template, so this set and each of those gets its usage panel. Absent, the build is as it was. */
+      docBlock?: true }
   /** Scaffold the file's PAGE structure (#1554) — the first page-creation action.
    *
    *  A SEPARATE ACTION FROM `build-components`, not a flag on it, for the same reason `build-components`
@@ -538,7 +542,10 @@ export type MainToUi =
       atOpen?: true;
       /** #3129 Q833 A: the add queue, minus the sets the file holds and the sets the engine cannot build (`add-queue.ts`),
        *  in the order the root lists its keys. */
-      queued: string[] }
+      queued: string[];
+      /** #3308 (Q3308.3 A): on a full read of a file with no `_Doc-block`, the sets the template is built from that the
+       *  file lacks (none when it holds them all). Absent when the file holds the template, and on the ledger's read. */
+      docBlockLacks?: string[] }
   /** #3081 Q810 A: the answer to `due-request`, by its `seq`: the sets the file holds (as the last `file-sets` read found
    *  them, or read again after a write), each read against the ledger under the panel's brand, and `theme`: the file does
    *  not hold that brand, so Apply Theme would change it. `error` when the file could not be read. */

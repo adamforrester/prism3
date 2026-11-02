@@ -87,7 +87,7 @@ export type HostMessage =
   // what the as-built ledger says each present set is: current, due and why, or not recorded.
   // #3110: `partial` when the host read it from the ledger alone at open, before any page loaded.
   // #3129 Q833 A: `queued`, the file's add queue as the host reads it (the sets the file lacks, none it cannot build).
-  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; queued: readonly string[]; partial?: boolean; atOpen?: boolean }
+  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; queued: readonly string[]; docBlockLacks?: readonly string[]; partial?: boolean; atOpen?: boolean }
   // #3081 Q810 A — the badge's live recount: what is due against the panel's brand, and whether the file holds it.
   | { kind: 'file-due'; seq: number; present: readonly string[]; theme: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; queued: readonly string[] }
   // #3129 Q833 A — the answer to a queue write: the add queue after it.
@@ -147,7 +147,8 @@ export interface HostCommit {
    *  argument here would put a curation taxonomy on the wire before anyone has chosen one. The
    *  difference is that "which def" has an answer `componentDefs` already holds, and "which variants"
    *  does not — see `messages.ts`. */
-  postComponents(def?: string): void;
+  /** `docBlock` (#3308 Q3308.3 A): Update file's sets step asks the build to make `_Doc-block` first when it can. */
+  postComponents(def?: string, docBlock?: boolean): void;
   /** Ask the host to scaffold the file's PAGE structure (#1558; Figma only, no-op on web, which has no
    *  page taxonomy to lay). Carries no argument — the taxonomy is a config compiled into the main bundle
    *  (`file-taxonomy.ts`), so there is nothing for the UI to send (see `messages.ts` `file-setup`). Its
@@ -511,7 +512,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   // #2909. Ids that are not strings are dropped; a malformed `setUp` reads as not set up, the claim that asks for more.
   'file-sets': (m) => ({ kind: 'file-sets', present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [], setUp: m.setUp === true,
-    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), queued: idsOf(m.queued), ...(m.partial === true ? { partial: true } : {}), ...(m.atOpen === true ? { atOpen: true } : {}) }),
+    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), queued: idsOf(m.queued), ...(Array.isArray(m.docBlockLacks) ? { docBlockLacks: idsOf(m.docBlockLacks) } : {}), ...(m.partial === true ? { partial: true } : {}), ...(m.atOpen === true ? { atOpen: true } : {}) }),
   // #3081 Q810 A. An answer with no number to match is dropped; a malformed `theme` reads as nothing to apply.
   'file-due': (m) => (typeof m.seq === 'number' ? { kind: 'file-due', seq: m.seq, present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [],
     theme: m.theme === true, error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), queued: idsOf(m.queued) } : null),
@@ -565,13 +566,14 @@ const figmaCommit = (): HostCommit => ({
     // `input` is `unknown` at this seam (see `postTheme`), so it is cast to the wire's `BrandInput` here.
     post({ type: 'apply-theme', input: input as ApplyTheme['input'] });
   },
-  postComponents(def) {
+  postComponents(def, docBlock) {
     // `def` omitted from the message when the caller omitted it, rather than sent as `undefined`: the
     // main thread distinguishes absent (means Button) from present, and `postMessage` structured-clones,
     // so an explicit `undefined` would arrive as a present key holding nothing.
     // A typed local, not a spread: a conditional spread escapes the excess-property check, so a renamed
     // `def` in `messages.ts` would compile and post a build with no def.
     const msg: Extract<UiToMain, { type: 'build-components' }> = def ? { type: 'build-components', def } : { type: 'build-components' };
+    if (docBlock) msg.docBlock = true;
     post(msg);
   },
   postFileSetup() {

@@ -43,7 +43,9 @@ export type FileSets = { readonly present: readonly string[]; readonly setUp: bo
   readonly partial?: boolean;
   /** #3110: one of the host's own reads after open (the ledger's, then the file's against the stored brand), not an
    *  answer to the panel's request. */
-  readonly atOpen?: boolean };
+  readonly atOpen?: boolean;
+  /** #3308 (Q3308.3 A): the file has no `_Doc-block`, and these are the sets it is built from that the file lacks. */
+  readonly docBlockLacks?: readonly string[] };
 
 export type HandEditChoice = 'keep' | 'overwrite' | 'accept';
 /** The checklist's ticks: each item, each due set, and what the update does with hand edits. The add queue has no tick
@@ -60,6 +62,20 @@ export const newSetsOf = (catalog: Catalog, f: Pick<FileSets, 'present'>): strin
  *  sets the file lacks and the engine can build, in Components' list order. */
 export const queuedOf = (catalog: Catalog, f: Pick<FileSets, 'present'> | null, queue: readonly string[] | null): string[] =>
   f && queue ? inListOrder(catalog, queue.filter((id, i) => queue.indexOf(id) === i && !f.present.includes(id) && catalog.some((e) => e.id === id && e.buildable))) : [];
+/** #3308 (Q3308.3 A): USAGE PANELS ON A FIRST RUN. While Documentation has the panels on and the file has no
+ *  `_Doc-block`, the run's sets step builds the sets the template is made from first, then the template, so every queued
+ *  set gets its panel. These are the ones the queue does not hold, which To add lists as "Also builds", in catalog
+ *  order. Empty with the panels off, with nothing queued, or once the file holds the template (#3311). */
+export const docBlockAlsoOf = (catalog: Catalog, f: Pick<FileSets, 'docBlockLacks'> | null, queued: readonly string[], panels: boolean): string[] =>
+  panels && queued.length && f?.docBlockLacks ? catalog.filter((e) => f.docBlockLacks!.includes(e.id) && !queued.includes(e.id)).map((e) => e.id) : [];
+/** The queue in the order the sets step builds it (#3308): the queued sets `_Doc-block` is made from first, so the
+ *  template exists before any other set's panel is drawn; else the queue's own order. */
+export const runOrderOf = (f: Pick<FileSets, 'docBlockLacks'> | null, queued: readonly string[], panels: boolean): string[] => {
+  const lacks = panels ? f?.docBlockLacks : undefined;
+  if (!lacks) return [...queued];
+  const first = queued.filter((id) => lacks.includes(id));
+  return [...first, ...queued.filter((id) => !first.includes(id))];
+};
 /** The sets the ledger reads as due (Q2909.8 A), in catalog order. */
 export const dueSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'due').map((e) => e.id);
 /** The sets the file holds that the ledger has no entry for, in catalog order: only the full check can tell. */
