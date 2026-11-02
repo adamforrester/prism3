@@ -23262,6 +23262,17 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "toggle.pad-block"
+          ],
+          "parts": {
+            "toggle": {
+              "members": 84,
+              "where": {}
+            }
+          }
+        },
         "radio-group": {
           "keys": [
             "gap",
@@ -31744,6 +31755,7 @@
         "radius.sm",
         "size.lg.height",
         "size.md.min-height",
+        "space.0",
         "space.075",
         "space.100",
         "space.200",

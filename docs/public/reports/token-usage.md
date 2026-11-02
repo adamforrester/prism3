@@ -2897,7 +2897,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `space.0`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2922,6 +2922,7 @@ Type: dimension. Bound by 22 component(s).
 |  |  | container | every member (87 of 87) |
 |  |  | reserve | labeled: false · state: focus-visible, hover, pressed, rest · type: page (24 of 87) |
 |  |  | underlineReserve | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
+| password-field | `toggle.pad-block` | toggle | every member (84 of 84) |
 | radio-group | `gap`, `pad-x` | container | every member (6 of 6) |
 |  |  | items | every member (6 of 6) |
 | radio-row | `pad-x` | row | every member (6 of 6) |
@@ -3910,9 +3911,9 @@ Declared, not drawn: `color.border.focus`
 
 ### password-field
 
-30 token(s); 84 design-file member(s).
+31 token(s); 84 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### progress
 
