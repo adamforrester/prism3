@@ -15,7 +15,8 @@
  *      then travels MCP → server → socket → relay → main thread → the `ACTIONS` table → back, and the
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
- * Arms, by name: mcp · relay/url · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
+ * Arms, by name: mcp · relay/url · instructions/length · instructions/rules · instructions/same · resources/capability ·
+ * resources/list · resources/resolve · resources/public-only · served/no-file-keys (#3300) · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
  * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read>
@@ -59,13 +60,13 @@ import { mkdtempSync, writeFileSync, statSync, readFileSync, chmodSync } from 'n
 import { createServer as createHttpServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { resolve, dirname, join } from 'node:path';
+import { resolve, dirname, join, normalize, isAbsolute } from 'node:path';
 import { chromium } from 'playwright';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { createBridgeRelay, BRIDGE_PORT, BRIDGE_URL } from './src/agent-bridge-relay';
 import type { WsLike } from './src/agent-bridge-relay';
-import { createPairing, createProgressCounter, loadSecret } from '../../tools/figma-bridge/server';
+import { createPairing, createProgressCounter, loadSecret, RESOURCES } from '../../tools/figma-bridge/server';
 import { HANDSHAKE_PROBES } from '../../packages/engine/mcp-handshake-probes';
 import { READ_COMMANDS } from './src/agent-protocol';
 import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead } from './agent-read-fixture';
@@ -1086,6 +1087,69 @@ section('held — two paired instances, one bridge (#3297)');
       `held/backoff-cap: while held, each retry waits double the last up to heldMaxMs and then stays there (waits: ${JSON.stringify(waits)})`);
     relay.fromMain({ type: 'agent-link-state', state: state(false) });
   }
+}
+
+/* ── the self-describing bridge (#3300 A, the owner's Q3300.1–.3 A) ──────────────────────────────────────── */
+section('instructions + resources — what a fresh agent reads on connecting (#3300)');
+{
+  // Last in the suite on purpose: `figma_status` with no plugin connected issues a pairing code, which `pair/on-demand`
+  // asserts has not happened yet. Every expectation below is written HERE, by hand, not read from `BRIDGE_INSTRUCTIONS` or `RESOURCES`: an arm that
+  // compared the served text to the constant it is served from could not fail (docs/34 shape 1).
+  const init = await rpc('initialize', { protocolVersion: '2024-11-05' });
+  const initNew = await rpc('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+  const disc = await rpc('server/discover');
+  const st = (await call('figma_status')).value;
+  const note: unknown = init.result?.instructions;
+  const inst = typeof note === 'string' ? note : '';
+  ok(inst.length > 0 && inst.length <= 1200, `instructions/length: the note is sent and at most 1,200 characters, since hosts truncate long instructions (${inst.length})`);
+  // Until #3147 Phase 2b's guard lands, the protected-node defaults are this hand-written list. After it, the arm reads
+  // the guard module's defaults constant, so the prose and the guard stay two independent things (docs/34).
+  const MUST_NAME = [
+    ['FINAL', 'the FINAL-page default'], ['locked', 'the locked-layer default'], ['Original · ', 'the `Original · …` copy default'],
+    ['detach', 'never detach'], ['version', 'a named version first'], ['avoid_when', "a role's avoid_when"], ['core.*', 'no core.* primitives'],
+  ] as const;
+  for (const [needle, why] of MUST_NAME) ok(inst.includes(needle), `instructions/rules: the note names ${why} (\`${needle}\`)`);
+  ok(!/\b(MUST|SHALL|SHOULD)\b/.test(inst), 'instructions/rules: the note uses no RFC 2119 words (the product-agent channel, docs/voice-standard.md §4)');
+  ok(typeof note === 'string' && initNew.result?.instructions === note && disc.result?.instructions === note && st?.readFirst === note,
+    `instructions/same: initialize (2024-11-05 and 2025-11-25), server/discover and figma_status's readFirst carry the identical note (${[initNew.result?.instructions, disc.result?.instructions, st?.readFirst].map((x) => x === note ? 'same' : 'differs').join(', ')})`);
+  ok(init.result?.capabilities?.resources?.listChanged === false && JSON.stringify(disc.result?.capabilities) === JSON.stringify(init.result?.capabilities),
+    `resources/capability: initialize and server/discover both advertise resources, listChanged false (${JSON.stringify(init.result?.capabilities)})`);
+
+  // The five resources and a phrase each must carry, by hand. A phrase that moves in its file fails here by name.
+  const SENTINELS: Record<string, string> = {
+    'prism3://skills/prism3-rebind': 'never detach',
+    'prism3://skills/prism3-consume': 'avoid_when',
+    'prism3://commands': '"apply-theme"',
+    'prism3://figma-conventions': 'How a Prism3 Figma file is laid out',
+    'prism3://llms.txt': 'Prism3 is a design-token engine',
+  };
+  const listed = ((await rpc('resources/list')).result?.resources ?? []) as { uri: string; name?: string; mimeType?: string }[];
+  ok(JSON.stringify(listed.map((r) => r.uri).sort()) === JSON.stringify(Object.keys(SENTINELS).sort()),
+    `resources/list: exactly the five approved resources (${listed.map((r) => r.uri).join(', ')})`);
+  const bodies: [string, string][] = [['the note', inst], ['tools/list', JSON.stringify((await rpc('tools/list')).result?.tools ?? [])]];
+  for (const r of listed) {
+    const got = await rpc('resources/read', { uri: r.uri });
+    const c = got.result?.contents?.[0];
+    const body = typeof c?.text === 'string' ? c.text : '';
+    bodies.push([r.uri, body]);
+    const want = SENTINELS[r.uri];
+    ok(!got.error && c?.uri === r.uri && body.length > 0 && want !== undefined && body.toLowerCase().includes(want.toLowerCase()) && c?._meta?.['prism3/engineVersion'] === ENGINE_VERSION,
+      `resources/resolve: ${r.uri} reads back non-empty, stamped ${ENGINE_VERSION}, and carries "${want}" (${got.error ? `error ${got.error.code}: ${got.error.message}` : `${body.length} characters`})`);
+  }
+  const missing = await rpc('resources/read', { uri: 'prism3://no-such-thing' });
+  ok(missing.error?.code === -32002, `resources/resolve: an unknown URI fails with resource-not-found, -32002 (${JSON.stringify(missing.error ?? missing.result)})`);
+
+  // §6: structural, not a deny list. Every served file sits under one of two public roots, and the served list is the
+  // module's list (so the roots are checked on what is actually served).
+  const ROOTS = ['skills/', 'docs/public/'];
+  for (const r of RESOURCES) {
+    const p = normalize(r.path);
+    ok(!isAbsolute(p) && !p.startsWith('..') && ROOTS.some((root) => p.startsWith(root)), `resources/public-only: ${r.uri} is served from ${r.path}, under ${ROOTS.join(' or ')}`);
+  }
+  ok(JSON.stringify(RESOURCES.map((r) => r.uri).sort()) === JSON.stringify(listed.map((r) => r.uri).sort()), 'resources/public-only: the paths checked are the ones the server lists');
+  // No served body carries a Figma file URL with its key.
+  const FILE_KEY = /figma\.com\/(file|design|board|proto|slides|make)\/[A-Za-z0-9]{6,}/;
+  for (const [what, body] of bodies) ok(!FILE_KEY.test(body), `served/no-file-keys: ${what} carries no Figma file URL or key${FILE_KEY.test(body) ? ` (${FILE_KEY.exec(body)![0]})` : ''}`);
 }
 
 child.stdin.end();
