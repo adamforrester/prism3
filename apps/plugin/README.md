@@ -371,11 +371,18 @@ transports: A, the file mailbox, and B, the local desktop bridge.
 
 - ✅ **One protocol** — `src/agent-protocol.ts`, context-neutral like `messages.ts` (compiles under both
   tsconfigs): the command envelope `{v, id, cmd, args, issuedAt}`, the result envelope
-  `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the eleven
-  commands (`status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`, `readback`,
-  `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`; `AGENT_COMMANDS`) and the
-  validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the
+  commands (`AGENT_COMMANDS`: `status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`,
+  `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, and the four read-only node
+  commands below) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
+- ✅ **Read-only node commands** (#3147 Phase 2a, Q3147.10 and .14 A) — `inspect`, `component-keys`, `audit-frames`
+  and `snapshot` (`src/agent-reads.ts`) read any layer, so a file where Prism3 is open needs no second plugin for the
+  reads an agent makes there: keys and properties in the master, the done check on a rebuild, a local picture. They
+  post no verdict (their value is `result.data`) and write nothing: `test-agent-link.ts` and `test-agent-bridge.ts` run
+  each over its transport against `NodeShim` (`file-shim.ts`), whose write log must stay empty, and compare the data
+  with the literals in `agent-read-fixture.ts`. Walks are capped, and a layer that throws on read is listed
+  `unreadable` while its siblings are still read. The write commands (Phase 2b) are not here yet.
 - ✅ **No parallel path** — `main.ts`'s handlers report to an `ActionSink`; the panel passes one that posts
   exactly what it posted before, and the dispatcher (`src/agent-dispatch.ts`) passes one that captures the
   verdict plus the structured `data` each handler now exposes. Both callers reach the handlers through ONE

@@ -303,3 +303,14 @@ parent's executor against the commit's, over the commit's own plans and shim, th
 were written from. **Its gate sibling is `apps/plugin/lint-executor-reach.ts`**, which runs the same `reach-draw.ts`
 for the one revision a PR raises and fails an entry that names fewer sets than moved; the tool answers for the
 revisions before the gate existed and exits 0. Minutes per revision; `--jobs` runs revisions side by side.
+
+## `tools/figma-canary/`
+
+The real-Figma canary (#3215, owner decisions of 2026-11-01): before the owner is told "ready to rebuild", one
+read-only round trip through the agent link on a scratch file, with a plugin built from that exact `main` commit on
+the always-on Mac. `needs-check.ts` applies the owner's path rule (a literal list) to two commits; `judge.ts` reads the
+raw result envelopes and prints `safe to rebuild from <commit>` or `held: <reason>`; `selftest.ts` runs the judge over
+recorded envelopes, #3209's error among them, which must be held by name. **No gate sibling, and the reason is the
+subject:** a live Figma host is not in CI. Its CI-side counterpart is the shim's strict host (`apps/plugin/test-loose-host.ts`,
+#3295), which catches the same class of bug without a host. The judge is the orchestrator's, never the Mac's: the Mac
+returns envelopes verbatim and does not say PASS.

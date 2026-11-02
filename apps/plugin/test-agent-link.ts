@@ -68,13 +68,19 @@
  *     Restore the link's `since` holds and no `on: false` reaches the panel or the record, so a bounce (off, then on)
  *     shows too (mutation: `setOn(false); setOn(true)` in `setMinimized` → strip/since-min, strip/since-restore and strip/no-bounce fail)
  *   · strip-text: the strip's line for each state, against literals (Q2 A, Q3 A)
+ *   · reads (#3147 Phase 2a): `mailbox/<cmd>`, `envelope/<cmd>` and `no-write/<cmd>` for inspect, component-keys,
+ *     audit-frames and snapshot, against `NodeShim` and the literals in `agent-read-fixture.ts`; plus inspect/unreadable,
+ *     inspect/cap, keys/fixture, audit/each-count/<count>, audit/clean, audit/legacy-lists, snapshot/scale and
+ *     refuse/<case>. (mutations: `readOne` assigning `n.name = n.name` → `no-write/inspect`; `locked` dropped from its
+ *     entry → `envelope/inspect`, each by name)
  *   · switch-off: with the link off again, nothing new is run
  *   · state: the panel receives the link state and the last command's headline
  *   · snippets: every agent-side script is short
  */
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { MAILBOX, AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
+import { MAILBOX, AGENT_COMMANDS, READ_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
+import { readFixture, ARGS, EXPECTED, canon } from './agent-read-fixture';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
@@ -256,8 +262,8 @@ const CASES: Case[] = [
 // have their own section below rather than a parity case. `draw-specs`' panel twin is scoped to the current page, so it
 // is not one either (`specs/panel`, below).
 const AGENT_ONLY = ['update-components', 'capture-baseline', 'adopt-members', 'draw-specs'];
-ok(new Set(CASES.map((c) => c.cmd)).size + 1 + AGENT_ONLY.length === AGENT_COMMANDS.length && AGENT_ONLY.every((c) => (AGENT_COMMANDS as readonly string[]).includes(c)),
-  'every write/read command has a case here (status is covered above, the agent-only commands below)');
+ok(new Set(CASES.map((c) => c.cmd)).size + 1 + AGENT_ONLY.length + READ_COMMANDS.length === AGENT_COMMANDS.length && AGENT_ONLY.every((c) => (AGENT_COMMANDS as readonly string[]).includes(c)),
+  'every write/read command has a case here (status is covered above, the agent-only commands and the node reads below)');
 const results: AgentResult[] = [];
 for (const c of CASES) {
   // The UI path first: what the panel was sent.
@@ -1064,6 +1070,87 @@ section('strip-text — the strip\'s line for each state (#2949, Q2 A and Q3 A)'
     ok(JSON.stringify(got) === JSON.stringify(want), `strip-text ${name}: ${JSON.stringify(want)} (read ${JSON.stringify(got)})`);
   }
   ok([0, 59999, 60000, 3599999, 3600000].map(agentAge).join(',') === '0s,59s,1m,59m,1h', `strip-text age: 0s, 59s, 1m, 59m, 1h at the edges (${[0, 59999, 60000, 3599999, 3600000].map(agentAge).join(',')})`);
+}
+
+/* ── the read-only node commands (#3147 Phase 2a) ───────────────────────────────────────────────────── */
+section('reads — inspect, component-keys, audit-frames and snapshot answer as written and write nothing (#3147 Phase 2a)');
+{
+  // The fixture file is a NodeShim (`file-shim.ts`): every assignment, define, delete and call outside its read list is
+  // logged. The expected data are literals in `agent-read-fixture.ts`, shared with the bridge suite.
+  const fx = readFixture();
+  const h = host as Record<string, any>;
+  const saved = { children: root.children, node: h.getNodeByIdAsync, style: h.getStyleByIdAsync, variable: h.variables.getVariableByIdAsync };
+  root.children = fx.pages;
+  h.getNodeByIdAsync = (id: string) => fx.getNodeByIdAsync(id);
+  h.getStyleByIdAsync = (id: string) => fx.getStyleByIdAsync(id);
+  h.variables.getVariableByIdAsync = (id: string) => fx.getVariableByIdAsync(id);
+  /** Every plugin-data and shared-plugin-data value on the root outside the mailbox's own namespace. */
+  const otherData = () => JSON.stringify([...store.entries()].filter(([key]) => !key.startsWith(`${MAILBOX.ns}\u0000`)).sort());
+  const MAILBOX_OWN = (key: string) => key === MAILBOX.claimed || key === MAILBOX.results || key === MAILBOX.link || key.startsWith(MAILBOX.resultPrefix);
+  const run = async (cmd: string, args: unknown) => {
+    const before = otherData();
+    const w0 = fx.writes.length;
+    pluginWrites = [];
+    calls.length = 0;
+    const { id } = await send(cmd, args);
+    await tick();
+    const r = (await read(id)) as AgentResult;
+    return { r, writes: fx.writes.slice(w0), mailbox: [...pluginWrites], otherSame: otherData() === before, handlers: [...calls] };
+  };
+  const ARMS: Array<[string, unknown, unknown]> = [
+    ['inspect', ARGS.inspect, EXPECTED.inspect],
+    ['component-keys', ARGS.keys, EXPECTED.keys],
+    ['audit-frames', ARGS.audit, EXPECTED.audit],
+    ['snapshot', ARGS.snapshot, EXPECTED.snapshot],
+  ];
+  ok(ARMS.map((a) => a[0]).join() === READ_COMMANDS.join(), `reads: every read command has an arm here (${READ_COMMANDS.join(', ')})`);
+  for (const [cmd, args, want] of ARMS) {
+    const { r, writes, mailbox, otherSame, handlers } = await run(cmd, args);
+    ok(r.ok === true && !r.error && r.cmd === cmd && r.transport === 'mailbox' && r.v === AGENT_PROTOCOL_VERSION && r.engineVersion === ENGINE_VERSION
+      && r.result?.verdict === null && Array.isArray(r.result?.logs),
+      `mailbox/${cmd}: answered ok over the mailbox, with no verdict (a read's value is its data) — ${JSON.stringify(r.error ?? r.result?.verdict ?? null)}`);
+    ok(canon(r.result?.data) === canon(want), `envelope/${cmd}: result.data is exactly the literal expectation — got ${canon(r.result?.data).slice(0, 400)}`);
+    ok(writes.length === 0 && otherSame && handlers.length === 0 && mailbox.every(MAILBOX_OWN),
+      `no-write/${cmd}: the shim logged no write (${writes.join(', ') || 'none'}), no root data outside ${MAILBOX.ns} moved, no ACTIONS handler ran, and the plugin wrote only its mailbox keys (${mailbox.join(', ')})`);
+  }
+  {
+    const { r } = await run('inspect', ARGS.inspect);
+    const d = r.result?.data as { nodes: Array<{ id: string }>; unreadable: Array<{ id: string }> };
+    ok(d.unreadable.length === 1 && d.unreadable[0].id === 'X1' && d.nodes.some((n) => n.id === 'R1'),
+      `inspect/unreadable: the layer that throws on read is listed unreadable and its sibling after it is still read (${JSON.stringify(d.unreadable)})`);
+    const cap = await run('inspect', ARGS.inspectCap);
+    const c = cap.r.result?.data as { nodes: Array<{ id: string }>; truncated: boolean };
+    ok(canon({ nodeIds: c.nodes.map((n) => n.id), truncated: c.truncated }) === canon(EXPECTED.inspectCap), `inspect/cap: maxNodes 2 stops the walk at two nodes and says truncated (${JSON.stringify(c.nodes.map((n) => n.id))}, ${c.truncated})`);
+    const named = await run('component-keys', ARGS.keysNamed);
+    ok(canon(named.r.result?.data) === canon(EXPECTED.keysNamed), `keys/fixture: a name list keeps only those names, and a name that matches nothing is listed missing (${canon(named.r.result?.data)})`);
+    const audit = (await run('audit-frames', ARGS.audit)).r.result?.data as { frames: Array<{ id: string; counts: Record<string, number> }> };
+    const planted: Record<string, string> = { A1: 'legacyInstances', A2: 'unstyledText', A3: 'rawFills', A4: 'standInDividers', A5: 'badName' };
+    for (const [frame, count] of Object.entries(planted)) {
+      const f = audit.frames.find((x) => x.id === frame);
+      ok(!!f && Object.entries(f.counts).every(([k, v]) => v === (k === count ? 1 : 0)), `audit/each-count/${count}: the frame with one planted ${count} counts exactly that one (${JSON.stringify(f?.counts)})`);
+    }
+    const clean = audit.frames.find((x) => x.id === 'A6');
+    ok(!!clean && Object.values(clean.counts).every((v) => v === 0), `audit/clean: a clean frame counts all zeros (${JSON.stringify(clean?.counts)})`);
+    const lists = await run('audit-frames', ARGS.auditLegacyLists);
+    ok(canon(lists.r.result?.data) === canon(EXPECTED.auditLegacyLists), `audit/legacy-lists: a legacy text style and a legacy variable prefix count the layers that use them (${canon(lists.r.result?.data)})`);
+    const shot = await run('snapshot', ARGS.snapshot);
+    const asked = fx.exports[fx.exports.length - 1]?.settings as { format?: string; constraint?: { type?: string; value?: number } } | undefined;
+    ok(shot.r.ok && asked?.format === 'PNG' && asked?.constraint?.type === 'SCALE' && asked?.constraint?.value === 2, `snapshot/scale: the export is asked for a PNG at the scale sent (${JSON.stringify(asked)})`);
+  }
+  // Refusals: answered bad-args, never run, never a handler-threw.
+  for (const [label, cmd, args, code] of [
+    ['inspect/no-ids', 'inspect', {}, 'bad-args'],
+    ['inspect/depth', 'inspect', { ids: ['F1'], depth: 4 }, 'bad-args'],
+    ['audit/no-ids', 'audit-frames', { ids: [] }, 'bad-args'],
+    ['audit/bad-rule', 'audit-frames', { ids: ['A1'], nameRule: '(' }, 'bad-args'],
+    ['snapshot/scale-range', 'snapshot', { id: 'F1', scale: 3 }, 'bad-args'],
+    ['snapshot/missing', 'snapshot', { id: 'nope' }, 'bad-args'],
+  ] as const) {
+    const { r, writes } = await run(cmd, args);
+    ok(r.ok === false && r.error?.code === code && writes.length === 0, `refuse/${label}: answered ${code} and wrote nothing (${JSON.stringify(r.error)})`);
+  }
+  root.children = saved.children;
+  h.getNodeByIdAsync = saved.node; h.getStyleByIdAsync = saved.style; h.variables.getVariableByIdAsync = saved.variable;
 }
 
 /* ── switch-off ─────────────────────────────────────────────────────────────────────────────────────── */
