@@ -1479,8 +1479,11 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // was skipped.
     const furniture: FurnitureOutcome[] = [];
     // #3177: drawn through the run's host (`file`), whose lookups are answered from the run's one read of the file.
+    // #3017: the usage panel is drawn only for a target `updateTargets` gave its `doc`, so the apply honors Documentation's
+    // Usage panels switch as the check does. Without this a set whose furniture was redrawn got its panel back with the switch off.
     const furnish = async (def: string, _set: unknown, file: unknown): Promise<void> => {
-      furniture.push(...await furnishUpdate(file as FurnitureApi, { outcomes: [{ def }] }, targets, (set, d) => panelFor(set, d, file as PanelApi)));
+      const paneled = !!targets.find((t) => t.def === def)?.doc;
+      furniture.push(...await furnishUpdate(file as FurnitureApi, { outcomes: [{ def }] }, targets, paneled ? (set, d) => panelFor(set, d, file as PanelApi) : undefined));
     };
     // #3170: the panel's own update reports each set boundary and hands the thread back after about `PACE_MS` inside a
     // set (`chunk: 1`, `paced`), and reads its Stop at each boundary. An agent's update yields as before and posts nothing.
