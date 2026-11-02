@@ -1,0 +1,18 @@
+{
+  "_doc": "#3215 Q-C8 A: how the real Figma host defines its methods, per surface, as component-shim.ts models it. `methods` is `fixed` (own data properties, neither writable nor configurable) or `plain`. `provenance` says where the entry came from: `measured` on a real host, `assumed` (a stricter guess a test already relies on), or `unmeasured`. The canary's descriptor read (tools/figma-canary, the run-code step) is the measurement that replaces an `assumed` or `unmeasured` entry; it comes from the real host, never from the shim (docs/34). Change an entry only with that measurement, quoted in `source`.",
+  "figma": {
+    "methods": "fixed",
+    "provenance": "measured",
+    "source": "#3209, real Figma, plugin built from main dcbeaf76: \"'get' on proxy: property 'getLocalTextStylesAsync' is a read-only and non-configurable data property on the proxy target but the proxy did not return its actual value (expected 'function innerRealmSafeFunction(...)' but got 'function () { [native code] }')\""
+  },
+  "root": {
+    "methods": "fixed",
+    "provenance": "assumed",
+    "source": "#3214 tested the root fixed as the stricter case (\"not known; assumed\"). Not measured yet."
+  },
+  "node": {
+    "methods": "plain",
+    "provenance": "unmeasured",
+    "source": "No reading yet. If the canary measures node methods fixed, set `fixed` here: test-loose-host.ts then fails `descriptors/node` until the shim fixes its nodes too."
+  }
+}

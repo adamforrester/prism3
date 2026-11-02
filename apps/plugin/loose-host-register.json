@@ -1,0 +1,15 @@
+{
+  "_doc": "#3215 Q-C8 A: the suites that opt out of the shim's strict host with `makeShim({ looseHost: '<reason>' })`, each with why. This register can only SHRINK: test-loose-host.ts fails `register/shrink-only` when an entry is not in the register at the merge base (or, before this file reached main, in the seed it was measured as), and `register/stale` when an entry no longer opts out. To leave the register, stop patching the host method (patch a copy, or model the case in component-shim.ts) and delete the entry. Seeded with the 10 suites that failed the strict host on main fa3c934b.",
+  "entries": {
+    "test-build-completed.ts": "patches root.findAllWithCriteria to search the pages the suite builds",
+    "test-native-slots.ts": "patches createComponentFromNode for a host without native slots",
+    "test-open-large-file.ts": "patches root.findAllWithCriteria to model paged and refusing searches",
+    "test-roundtrip.ts": "patches combineAsVariants to hand the set back already stroked",
+    "test-run-progress.ts": "patches root.findAllWithCriteria to search the pages the suite builds",
+    "test-run-read.ts": "wraps the root in a Proxy that substitutes findAllWithCriteria to count whole-file searches",
+    "test-slot-constraints.ts": "patches combineAsVariants for a host that cannot take slot settings",
+    "test-update-apply.ts": "patches loadFontAsync so one font will not load, and createNodeFromSvg so the host does not scale an imported glyph",
+    "test-update-fresh.ts": "patches root.findAllWithCriteria to search the pages the suite builds",
+    "test-write-components.ts": "patches createNodeFromSvg to store the artboard at float32 or size it to its ink"
+  }
+}

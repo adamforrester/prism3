@@ -195,7 +195,7 @@ console.log('\nUpdate: gaining constraints, then dropping them');
 console.log('\na host that cannot take them');
 {
   const plans = figmaAnatomySet(slotted(CONSTRAINED), { swapTarget: SWAP_TARGET });
-  const { page, api } = host(plans, { fileNodes: [BADGE] });
+  const { page, api } = host(plans, { fileNodes: [BADGE], looseHost: 'patches combineAsVariants for a host that cannot take slot settings' });
   const combine = api.combineAsVariants;
   api.combineAsVariants = (...args: unknown[]) => { const s = combine(...args); s.editComponentProperty = () => { throw new Error('in editComponentProperty: slotSettings is not supported'); }; return s; };
   const res = await applyComponentPlan(plans, api, {});

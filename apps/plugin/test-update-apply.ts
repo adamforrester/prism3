@@ -283,7 +283,7 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; varPx?: Record<string, number>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[]; fileSets?: { name: string; variants: string[] }[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; varPx?: Record<string, number>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[]; fileSets?: { name: string; variants: string[] }[]; looseHost?: string } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
@@ -302,6 +302,7 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     refuseVersion: o.refuseVersion,
     varPx: o.varPx,
     componentProps: o.componentProps,
+    looseHost: o.looseHost,
   }) as any;
   const built = await applyComponentPlan(plans, api);
   if (o.allowMisses) o.allowMisses.push(...built.misses);
@@ -1110,7 +1111,7 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
     }, says: /fonts: Inter Semi Bold will not load/ },
   ];
   for (const c of cases) {
-    const w = await world(c.def);
+    const w = await world(c.def, plansOf(c.def), c.name === 'font' ? { looseHost: 'patches loadFontAsync so one font will not load' } : {});
     const r = await agrees(w, [{ def: c.def, plans: c.mk(w) }]);
     ok(r.refused.length === 1 && r.unlisted.length === 0 && r.untouched && c.says.test(r.pre.sets[0]?.blockers.join('; ') ?? ''),
       `agree/file ${c.name}: the apply refuses the set, and the dry run listed that reason as its blocker (${r.refused.length} refused; unlisted ${JSON.stringify(r.unlisted).slice(0, 160)}; blockers: ${r.pre.sets[0]?.blockers.join('; ').slice(0, 120) || 'none'})`);
@@ -1709,13 +1710,13 @@ section('aspect lock, in place — a square slot rebuilt under aspectLock keeps 
 }
 
 section('single — the icons, updated in place as single components (#2296)');
-const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { keyPrefix?: string; styleIdPrefix?: string } = {}) => {
+const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { keyPrefix?: string; styleIdPrefix?: string; looseHost?: string } = {}) => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), ...extraVars])],
     // #2379: SCALE children follow their frame, as on the host, so a built glyph fits its frame.
     comps: [], page, liveRoot: true, identities: true, liveComponents: true, scaleConstrained: true,
-    keyPrefix: o.keyPrefix, styleIdPrefix: o.styleIdPrefix,
+    keyPrefix: o.keyPrefix, styleIdPrefix: o.styleIdPrefix, looseHost: o.looseHost,
   }) as any;
   const built = await applyComponentPlan(plans, api, { emitAsComponents: true });
   if (built.misses.length) throw new Error(`premise: icons built with ${built.misses.length} miss(es): ${built.misses[0]}`);
@@ -2561,7 +2562,7 @@ section('rename — a declared value rename, and an added axis, rename members i
 /* ── fonts ───────────────────────────────────────────────────────────────────────────────────────────── */
 section('fonts — a typeface that will not load refuses the set before anything is written');
 {
-  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'], looseHost: 'patches loadFontAsync so one font will not load' });
   const real = w.api.loadFontAsync as (f: { family: string; style: string }) => Promise<void>;
   // The dry run's host and the executor's port are the same `figma` in the plugin, so the font is refused on both.
   w.api.loadFontAsync = (w.host as { loadFontAsync?: unknown }).loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
@@ -2575,7 +2576,7 @@ section('fonts — a typeface that will not load refuses the set before anything
   // A font installed between the check and the confirm (#2601 review). The check ran with it missing, so the set read
   // "can't be checked" and the designer was never shown its changes. The apply's fresh preview has no blocker; only the
   // blockers in the hash tell the two apart, so the confirm must refuse rather than write changes nobody saw.
-  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'], looseHost: 'patches loadFontAsync so one font will not load' });
   const realApi = w.api.loadFontAsync, realHost = (w.host as { loadFontAsync?: unknown }).loadFontAsync;
   const real = realApi as (f: { family: string; style: string }) => Promise<void>;
   w.api.loadFontAsync = (w.host as { loadFontAsync?: unknown }).loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
@@ -3568,7 +3569,7 @@ section('verify reads what the host draws — damage the HOST makes behind the e
   // The host, not the executor, misbehaves here: it ignores the base a paint is bound on (as it kept the black base
   // on the NB master), and it does not scale an imported glyph to its frame. The executor is unchanged, so only the
   // update's own verify can catch it. Mutation: verify's draw check dropped → `verify/drawn paints`, `verify/drawn glyphs`.
-  const w = await world(TAG);
+  const w = await world(TAG, plansOf(TAG), { looseHost: 'patches createNodeFromSvg so the host does not scale an imported glyph' });
   for (const m of membersOf(w.set())) {
     const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
     (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
@@ -3599,7 +3600,7 @@ section('verify reads what the host draws — damage the HOST makes behind the e
   // imported glyph to its frame (behind the executor), the update's own verify must name it. The spinner's sizes are the
   // glyphs drawn at a size other than their import's. Mutation: verify's draw check dropped → `verify/drawn glyphs`.
   const plans = plansOf('spinner');
-  const w = await singleWorld(plans);
+  const w = await singleWorld(plans, [], { looseHost: 'patches createNodeFromSvg so the host does not scale an imported glyph' });
   for (const c of w.comps()) {
     const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
     (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));

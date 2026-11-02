@@ -5624,7 +5624,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   };
   const build = async (pick: typeof plans, host: (n: Node) => void) => {
     const page: Page = { children: [] };
-    const shim = makeShim({ ...fullFor(pick), page }) as Record<string, unknown>;
+    const shim = makeShim({ ...fullFor(pick), page, looseHost: 'patches createNodeFromSvg to store the artboard at float32 or size it to its ink' }) as Record<string, unknown>;
     const svg = shim.createNodeFromSvg as (src: string) => Node;
     shim.createNodeFromSvg = (src: string) => { const n = svg(src); host(n); return n; };
     const r = await applyComponentPlan(pick, shim as any, { emitAsComponents: true });
