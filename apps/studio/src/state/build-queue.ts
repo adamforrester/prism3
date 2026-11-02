@@ -116,7 +116,8 @@ export const runVerdict = (r: BuildRun, catalog: Catalog): { ok: boolean; headli
   const issues = r.results.filter((x) => x.result === 'issues').length;
   const headline = left.length ? RUN_COPY.stopped(r.results.length, r.ids.length)
     : failed ? RUN_COPY.builtOf(r.ids.length - failed, r.ids.length)
-      : issues ? RUN_COPY.builtWithProblems(r.ids.length, issues) : RUN_COPY.built(r.ids.length);
+      // #3308: a warning, marked as a set's own "with problems" build is (`⚠`), so Activity counts a warning, not a failure.
+      : issues ? `⚠ ${RUN_COPY.builtWithProblems(r.ids.length, issues)}` : RUN_COPY.built(r.ids.length);
   const lines: string[] = [];
   const byPage = new Map<string, string[]>();
   for (const x of r.results) {

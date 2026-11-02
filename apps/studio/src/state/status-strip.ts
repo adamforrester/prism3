@@ -237,7 +237,7 @@ export const stripView = (x: {
 };
 
 /** One step's result, as Update file's run records it (`StepResult`). */
-type Result = { readonly step: StepKey; readonly ok: boolean; readonly headline: string };
+type Result = { readonly step: StepKey; readonly ok: boolean; readonly headline: string; readonly warn?: true };
 
 /** The verdict line once Update file's run has ended (Q3170.6 A). `stopped`: the person asked it to stop. The update's
  *  count is the run's (`StripRun.updated`): a reading of `finish` with fewer sets done than ticked is the host's stop at a
@@ -251,7 +251,8 @@ export const stripVerdict = (x: {
   readonly nameOf: (id: string) => string;
 }): StripVerdict => {
   const clock = elapsed(x.now - x.run.startedAt);
-  const failed = x.results.find((r) => !r.ok);
+  // #3308: a step that did all it was asked with problems (`warn`) did not stop the run, so it is not where it stopped.
+  const failed = x.results.find((r) => !r.ok && !r.warn);
   const u = x.results.some((r) => r.step === 'update') ? x.run.updated : null;
   const halted = !!u && u.finished && u.done < u.total;
   const last = x.results[x.results.length - 1];
@@ -272,5 +273,7 @@ export const stripVerdict = (x: {
       sub: `${failed.headline.replace(/^[✓✗⚠]\s*/, '')}. ${u ? kept(u.done, u.total) : ''}${STRIP_COPY.details}` };
   }
   const words = x.results.map((r) => (r.step === 'update' ? STRIP_COPY.updated(u?.done ?? 0) : STRIP_COPY.done[r.step]));
-  return { tone: 'ok', what: words.length === 1 ? words[0] : STRIP_COPY.fileUpdated, n: clock, sub: `${words.length > 1 ? `${words.join(', ')}. ` : ''}${STRIP_COPY.details}` };
+  // #3308: each step that had problems says so in its own headline, after the steps; the line is then a warning.
+  const warned = x.results.filter((r) => r.warn).map((r) => `${r.headline.replace(/^[✓✗⚠]\s*/, '')}. `).join('');
+  return { tone: warned ? 'warn' : 'ok', what: words.length === 1 ? words[0] : STRIP_COPY.fileUpdated, n: clock, sub: `${words.length > 1 ? `${words.join(', ')}. ` : ''}${warned}${STRIP_COPY.details}` };
 };
