@@ -6,6 +6,6 @@
 
 **Test.** `test-component-groups.ts`: `queue/deps-first` over the owner's nine sets (literal order: Icon first, Checkbox.Row before Checkbox group), through a set the queue does not hold (Checkbox (control) before Checkbox group), and the list's order kept with a duplicate dropped. It fails by name on current main, where `startRun` keeps the list's order.
 
-**Mutation, failing by name.** `startRun` ignoring its catalog → all four `queue/deps-first` arms.
+**Mutation, failing by name.** `startRun` ignoring its catalog → all four `queue/deps-first` arms. `catalog` is required (review S1), so `runSets` dropping it (`startRun(kind, ok)`) → `typecheck-web`, at `main.ts`.
 
 **Not this PR.** The other four "problems" in that run (each a missing usage-panel template) and why the run stopped are #3308's other fixes.

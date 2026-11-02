@@ -58,9 +58,13 @@ export const depsFirst = (catalog: Catalog, ids: readonly string[]): string[] =>
   return out;
 };
 
-/** A run over `ids`: in their order, or with `catalog`, each after the queued sets it nests (`depsFirst`, #3308). */
-export const startRun = (kind: RunKind, ids: readonly string[], catalog?: Catalog): BuildRun => {
-  const order = catalog ? depsFirst(catalog, ids) : [...ids];
+/**
+ * A run over `ids`, each after the queued sets it nests (`depsFirst`, #3308). `catalog` is required, not optional: an
+ * optional one let the one call that applies the fix (`runSets` in `main.ts`) drop it with every gate green and bring the
+ * double build back in list order (review S1 on #3320); required, `typecheck-web` holds that call.
+ */
+export const startRun = (kind: RunKind, ids: readonly string[], catalog: Catalog): BuildRun => {
+  const order = depsFirst(catalog, ids);
   return { kind, ids: order, results: [], stopping: false, done: order.length === 0 };
 };
 

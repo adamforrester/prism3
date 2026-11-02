@@ -243,7 +243,7 @@ ok(RUN_COPY.runLabel(4) === 'Build 4 sets' && RUN_COPY.runLabel(1) === 'Build 1 
   `call 17: the action counts sets ("${RUN_COPY.runLabel(4)}", "${RUN_COPY.runLabel(1)}", "${RUN_COPY.runLabel(0)}")`);
 
 console.log('\n5. The run (calls 10, 16; idea 13)');
-let r = startRun('selection', four);
+let r = startRun('selection', four, catalog);
 ok(currentOf(r) === 'button' && JSON.stringify(positionOf(r)) === JSON.stringify({ at: 1, of: 4 }), 'a run starts at its first set, 1 of 4');
 r = record(r, { id: 'button', result: 'ok', headline: '✓ built 576 variants' });
 ok(currentOf(r) === 'button-destructive' && positionOf(r).at === 2 && !r.done, 'a result moves the run to the next set, 2 of 4');
@@ -255,23 +255,23 @@ const v = runVerdict(r, catalog);
 ok(v.headline === 'Stopped after 2 of 4 sets' && !v.ok, `a stopped run says so (${v.headline})`);
 ok(JSON.stringify(v.lines) === JSON.stringify(['Built Button on ↳ Buttons.', 'Button.Destructive: build failed.', 'Not built: Dialog, TextField.']),
   `idea 13: the summary names what was built where, what failed, and what a stop left (${JSON.stringify(v.lines)})`);
-let full = startRun('subcomponents', ['focus-ring', 'icon']);
+let full = startRun('subcomponents', ['focus-ring', 'icon'], catalog);
 full = record(full, { id: 'focus-ring', result: 'ok', headline: '' });
 full = record(full, { id: 'icon', result: 'issues', headline: '' });
 const fv = runVerdict(full, catalog);
 ok(full.done && fv.headline === 'Built 2 sets · 1 with problems' && !fv.ok && fv.lines.includes('Icon: built with problems.'),
   `a run with problems says how many, and names the one with problems (${fv.headline}; ${JSON.stringify(fv.lines)})`);
-let clean = startRun('selection', ['button', 'button-destructive']);
+let clean = startRun('selection', ['button', 'button-destructive'], catalog);
 clean = record(record(clean, { id: 'button', result: 'ok', headline: '' }), { id: 'button-destructive', result: 'ok', headline: '' });
 const cv = runVerdict(clean, catalog);
 ok(cv.ok && cv.headline === 'Built 2 sets' && JSON.stringify(cv.lines) === JSON.stringify(['Built Button, Button.Destructive on ↳ Buttons.']),
   `a clean run of one family reads as one line for its page (${cv.headline}; ${JSON.stringify(cv.lines)})`);
-ok(startRun('selection', []).done, 'a run of nothing is over before it starts');
+ok(startRun('selection', [], catalog).done, 'a run of nothing is over before it starts');
 // #3308: the owner's first-run queue, in the list's order (Components' families: Buttons, Checkbox group and its row,
 // Icons & assets, Link, Badge). Typed here. The run builds each set after the queued sets it nests, so the plugin's own
 // dependency pass (#1633) never builds one the queue then builds again: Checkbox.Row before Checkbox group, which nests
 // it, and Icon before Button, which nests it through no other set. The rest keep the list's order.
-// (mutation: `startRun` ignoring its catalog → `queue/deps-first`)
+// (mutation: `startRun` ignoring its catalog → `queue/deps-first`; `runSets` in `main.ts` dropping it → `typecheck-web`)
 const owner = ['button', 'button-destructive', 'button-group', 'button-neutral', 'checkbox-group', 'checkbox-row', 'icon', 'link', 'badge'];
 const ownerRun = startRun('selection', owner, catalog);
 ok(JSON.stringify(ownerRun.ids) === JSON.stringify(['icon', 'button', 'button-destructive', 'button-group', 'button-neutral', 'checkbox-row', 'checkbox-group', 'link', 'badge']),
