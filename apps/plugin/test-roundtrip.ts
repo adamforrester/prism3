@@ -2810,5 +2810,113 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     `#3143 divider: the vertical labeled member is a 68px column as wide as its label, its two lines one hairline wide, and the two plain vertical members stay 1x44 columns around the rule, as laid out by the shim (${labeled} labeled, ${plain} plain; ${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
 }
 
+// ── #3225 — BANNER'S BODY ROW AND ITS SLOT TEXT, BUILT AND READ BACK OFF THE HOST (owner Q-BN2.2 A, Q-BN4.1 A) ─────────
+//
+// (1) THE WRAP AND THE BASELINE, read off the BUILT nodes, not the plan: every member's body row reads back
+//     `layoutWrap: WRAP` and `counterAxisAlignItems: BASELINE`, and its body text the max width typed here from the
+//     decision (480 or 960, less 16px padding each side, less the 24px glyph and its 12px gap where the tone has one).
+//     Mutation: drop either executor write and this fails by name.
+// (2) THE THREE MIGRATION ROWS (and an emptied body), across a real build: the OLD banner (its body a native slot
+//     holding one placeholder text, typed here as the base's shape) is built by the executor, and four placed instances
+//     point at its members — untouched, edited, rich, emptied. `captureSlotText` reads them; the NEW banner is built;
+//     each instance takes the new set's definitions (as Figma's instances do), its slot renamed as the ledger's part entry
+//     renames it, and `fillSlotText` writes them. EXPECTED is typed here: the untouched one is left out, the edited one's
+//     text lands in body text, the rich one shows rich body and hides body, the emptied one hides body. The shim's
+//     instances are opaque, so the placed instances are stand-ins; the members, slots and definitions are the host's.
+{
+  const { captureSlotText, fillSlotText } = await import('./src/slot-text-migration');
+  const { slotTextMigrationOf, partRenames } = await import('@prism3/engine/component-renames');
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const banner = componentDefs.find((d) => d.id === 'banner')!;
+  const build = async (d: ComponentDef) => {
+    const plans = project(d);
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const r = await applyComponentPlan(plans, shim as any);
+    // The one miss the harness owns: the shim declares no INSTANCE_SWAP on a nested FlushIconButton, so the dismiss's
+    // close-glyph override reports itself (the corpus loop above judges divergences, so it never reads it). Named here.
+    const harness = (m: string): boolean => /^dismiss\.nestOverrides -> swap icon \(no INSTANCE_SWAP property/.test(m);
+    return { r: { ...r, misses: r.misses.filter((m) => !harness(m)) }, set: page.children.find((c) => c.type === 'COMPONENT_SET') as Node | undefined };
+  };
+  const find = (n: Node | undefined, name: string): Node | undefined => (!n ? undefined : n.name === name ? n : ((n.children ?? []) as Node[]).map((c) => find(c, name)).find(Boolean));
+
+  // (1)
+  const now = await build(banner);
+  const members = ((now.set?.children ?? []) as Node[]);
+  const off: string[] = [];
+  for (const m of members) {
+    const name = String(m.name);
+    const row = find(m, 'bodyRow'), text = find(m, 'bodyText');
+    const want = /tone=neutral/.test(name) ? (/width=full/.test(name) ? 928 : 448) : (/width=full/.test(name) ? 892 : 412);
+    if (row?.layoutWrap !== 'WRAP' || row?.counterAxisAlignItems !== 'BASELINE' || row?.layoutMode !== 'HORIZONTAL') off.push(`${name}: body row ${String(row?.layoutMode)}/${String(row?.layoutWrap)}/${String(row?.counterAxisAlignItems)}`);
+    if (text?.maxWidth !== want) off.push(`${name}: body text maxWidth ${String(text?.maxWidth)}, want ${want}`);
+  }
+  ok(now.r.misses.length === 0 && members.length === 10 && off.length === 0,
+    `#3225 banner, read back off the host: all 10 members' body rows WRAP and align on the BASELINE, and the body text hugs at 412/892 (448/928 with no glyph) (${members.length} members, ${now.r.misses.length} misses, ${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
+
+  // (2) The base's banner: the body a native slot holding one text, `placeholder`, with the literal copy.
+  const P = banner.anatomy!.parts;
+  const { bodyRow: _r, bodyText: _t, link: _l, richBody: _s, ...keep } = P;
+  const OLD_COPY = 'Body text. Say what happened and what to do next.';
+  const old: ComponentDef = {
+    ...banner,
+    props: banner.props.filter((x) => x.name !== 'link'),
+    anatomy: { ...banner.anatomy!, parts: {
+      ...keep,
+      content: { ...P.content, children: ['titleBox', 'body', 'actions'] },
+      body: { kind: 'box', role: 'presentation', contentSlot: true, layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } }, crossAxisFill: true, children: ['placeholder'] },
+      placeholder: { kind: 'text', type: 'body-type', paintSlot: 'body', wrap: true, characters: OLD_COPY },
+    } },
+    composition: { ...banner.composition!, composesWith: ['button', 'flush-icon-button-neutral'] },
+    figmaProperties: { ...banner.figmaProperties!, texts: { title: banner.figmaProperties!.texts!.title }, booleans: { title: { part: 'titleBox', default: true }, icon: banner.figmaProperties!.booleans!.icon, actions: { part: 'actions', default: false }, dismissible: { part: 'dismiss', default: false, figmaName: 'dismiss' } } },
+  };
+  const before = await build(old);
+  const oldMembers = ((before.set?.children ?? []) as Node[]);
+  const oldSlot = find(oldMembers[0], 'body');
+  ok(before.r.misses.length === 0 && oldSlot?.type === 'SLOT' && (oldSlot.children as Node[] | undefined)?.[0]?.characters === OLD_COPY,
+    `#3225 premise: the base's banner builds, its body a SLOT holding the placeholder "${OLD_COPY}" (${before.r.misses[0] ?? 'no misses'})`);
+  // Four placed instances, stand-ins whose main is a host-built member of the base's set.
+  type Inst = Record<string, unknown> & { name: string; children: Node[] };
+  const text = (chars: string) => ({ type: 'TEXT', name: 'placeholder', characters: chars, remove() {} }) as unknown as Node;
+  const mk = (id: string, kids: Node[]): Inst => {
+    const slot = { type: 'SLOT', name: 'body', children: kids } as unknown as Node;
+    const inst: Inst = { id, name: `Banner ${id}`, type: 'INSTANCE', parent: { type: 'PAGE', name: 'Checkout' }, children: [slot], getMainComponentAsync: async () => oldMembers[0] };
+    for (const k of kids) (k as Record<string, unknown>).remove = () => { (slot.children as Node[]).splice((slot.children as Node[]).indexOf(k), 1); };
+    return inst;
+  };
+  const insts = [
+    mk('untouched', [text(OLD_COPY)]),
+    mk('edited', [text('Faster checkout by becoming a member.')]),
+    mk('rich', [{ type: 'FRAME', name: 'list' } as unknown as Node, { type: 'TEXT', name: 'note', characters: 'x' } as unknown as Node]),
+    mk('emptied', []),
+  ];
+  (oldMembers[0] as Record<string, unknown>).getInstancesAsync = async () => insts;
+  const entry = slotTextMigrationOf('banner')!;
+  const { migration, live } = await captureSlotText(before.set as never, entry);
+  const kinds = migration.instances.map((c) => `${c.id}:${c.case.kind}`).join(' ');
+  ok(kinds === 'edited:move rich:rich emptied:empty' && migration.instances[0].case.kind === 'move' && (migration.instances[0].case as { characters: string }).characters === 'Faster checkout by becoming a member.',
+    `#3225 capture: the untouched instance is left out, the edited one moves its text, the rich one keeps its content, the emptied one stays empty (${kinds})`);
+  // The update: the new set built, each instance taking its definitions, its slot renamed by the ledger's part entry.
+  const after = await build(banner);
+  const defs = (after.set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue: unknown }>;
+  const slotNow = partRenames('banner').get(entry.slot) ?? entry.slot;
+  for (const inst of insts) {
+    const vals: Record<string, unknown> = {};
+    (inst.children[0] as Record<string, unknown>).name = slotNow;
+    Object.defineProperty(inst, 'componentProperties', { get: () => Object.fromEntries(Object.entries(defs).filter(([, d]) => d.type !== 'VARIANT' && d.type !== 'SLOT').map(([k, d]) => [k, { type: d.type, value: k in vals ? vals[k] : d.defaultValue }])) });
+    inst.setProperties = (p: Record<string, unknown>) => { for (const [k, v] of Object.entries(p)) { if (!defs[k] || defs[k].type === 'SLOT') throw new Error(`no property ${k}`); vals[k] = v; } };
+  }
+  const out = await fillSlotText('banner', entry, slotNow, live as never, migration);
+  const read = (id: string, bare: string): unknown => { const i = insts.find((x) => x.id === id) as unknown as { componentProperties: Record<string, { value: unknown }> }; const k = Object.keys(i.componentProperties).find((x) => x.split('#')[0] === bare); return k ? i.componentProperties[k].value : undefined; };
+  const edited = insts.find((x) => x.id === 'edited')!;
+  ok(out.misses.length === 0 && out.instances === 3 && out.moved === 1 && out.rich === 1 && out.emptied === 1
+    && read('edited', 'body text') === 'Faster checkout by becoming a member.' && read('edited', 'body') === true && ((edited.children[0] as Node).children as Node[]).length === 0
+    && read('rich', 'rich body') === true && read('rich', 'body') === false && read('rich', 'body text') === OLD_COPY
+    && read('emptied', 'body') === false && read('emptied', 'rich body') === false
+    && read('untouched', 'body text') === OLD_COPY && read('untouched', 'body') === true,
+    `#3225 fill: the edited text lands in body text and its old slot copy is cleared, the rich instance shows rich body and hides body, the emptied one hides body, and the untouched one keeps the defaults (${out.instances} carried, ${out.misses.length} misses${out.misses.length ? `: ${out.misses.join('; ')}` : ''})`);
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
