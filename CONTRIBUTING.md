@@ -1391,7 +1391,9 @@ npm run test:chrome  -w @prism3/studio      # the new shell's chrome, measured a
                                             #   copies. Same one-off browser as test:smoke. CI runs
                                             #   it in shards (#2898, chrome-shards.mjs), and so does
                                             #   verify, side by side (#3216); every run writes its
-                                            #   record to apps/studio/chrome-record/
+                                            #   record to apps/studio/chrome-record/. A section with
+                                            #   no progress for 600 s fails by name and ends the run,
+                                            #   and CI's step stops at 30 minutes (#3044)
 npm run test:chrome-shards -w @prism3/studio # #2898: AFTER test:chrome. Every section the unsharded
                                             #   suite lists (test-chrome.mjs --list) ran exactly once
                                             #   across the records, by name: a section in no shard or

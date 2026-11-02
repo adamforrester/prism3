@@ -488,6 +488,7 @@
  * opening and closing; the row verdict that opens Activity on its row to `apps/plugin/test-style-guides-page.mjs`, the
  * new page's own pill. Section 26 holds the Pages menu's absence on both hosts, by its accessible name.
  */
+import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
@@ -535,12 +536,35 @@ const REACHED = [];
 const SECTION = new Map();
 let current = null;
 let currentAt = performance.now();
+// THE SECTION WATCHDOG (#3044). A CI run once printed `Shape (S7)` and then nothing for 74 minutes: no assertion failed,
+// and the step had no time limit, so the job would have held for GitHub's six hours with a log nobody could read until
+// it ended. `bounded` (#2550) holds the inputs it wraps, but a raw key press, a `page.evaluate` waiting on a frame that
+// never comes, or anything else unwrapped can still wait for ever. So every section guard arms a timer: a section that
+// reaches no further guard within `SECTION_LIMIT_MS` fails BY NAME, with the last check it reached, and the run exits
+// 1 there, so the log ends on the stall. 600 s is 2.8x the slowest healthy section measured (18-s4f, 217 s locally,
+// 2026-11-02), the margin `verify.ts` point 5 gives its limits. `CHROME_SECTION_LIMIT_S` overrides it, which the stall
+// self-check (section 3044) uses to prove the watchdog fires; CI's step `timeout-minutes` is the outer bound.
+// Not `unref`'d: a section awaiting a promise that never settles has nothing else keeping the process alive, and an
+// unref'd timer would let Node exit 13 ("unsettled top-level await") without the named failure.
+const SECTION_LIMIT_MS = Number(process.env.CHROME_SECTION_LIMIT_S ?? 600) * 1000;
+const STALL_SELF_CHECK = process.argv.includes('--stall-self-check');
+let lastCheck = '';
+let watchdog = null;
 const enter = (id) => {
   const now = performance.now();
   if (current) SECTION.get(current).ms += now - currentAt;
   current = id;
   currentAt = now;
   if (id && !SECTION.has(id)) SECTION.set(id, { id, ms: 0, assertions: [] });
+  clearTimeout(watchdog);
+  watchdog = null;
+  lastCheck = '';
+  if (id && MODE === 'run') {
+    watchdog = setTimeout(() => {
+      console.error(`  ✗ section ${id}: no progress for ${SECTION_LIMIT_MS / 1000}s, so the run stops here (#3044); the last check it reached: ${lastCheck ? `"${lastCheck.slice(0, 160)}"` : 'none yet'}`);
+      process.exit(1);
+    }, SECTION_LIMIT_MS);
+  }
 };
 /** Whether this run runs section `id`. Every guard of a section asks, so the section's time is the time between. */
 const runs = (id) => {
@@ -553,6 +577,7 @@ const ok = (cond, label) => {
   executed++;
   if (!current) enter('unsectioned');
   SECTION.get(current).assertions.push(String(label));
+  lastCheck = String(label);
   if (cond) return;
   failed++;
   console.error(`  ✗ ${label}`);
@@ -562,6 +587,16 @@ const ok = (cond, label) => {
 // its case with that named failure: `onDead` reports it and throws an error marked `reported`, so the case's own catch
 // does not count it twice, and the case's `finally` closes its context, which retires the page and cancels the input.
 const { bounded } = makeBounded({ ok, requireWatched: true, onDead: async (_page, label, why) => { const message = why ? `${label}: ${why}` : label; ok(false, message); const e = new Error(message); e.reported = true; throw e; } });
+// The stall self-check's child (#3044, section 3044 spawns it): one section that never returns, through the real
+// `runs`/`enter`, so only the watchdog can end it. No browser, no server: it stops here.
+if (STALL_SELF_CHECK) {
+  if (runs('stall-self-check')) {
+    ok(true, 'stall self-check: the section began');
+    await new Promise(() => {});
+  }
+  console.error('✗ stall self-check: the section did not run');
+  process.exit(2);
+}
 
 // ── the literal floors ───────────────────────────────────────────────────────────────────────────
 const TEXT_MIN = 4.5;
@@ -2972,9 +3007,9 @@ const COLLAPSE_MS = 4000;
  *  the prune; the Figma menu that held them is gone. */
 const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'] };
 /** Update file's label, idle and while a run is out (#2909; DRAFT words, Q2909.10 A), drawn as `pendingLabel` draws a
- *  busy label (its "…" cell, then the words). Literal. */
+ *  busy label (its "…" cell, then the words, with no "…" of their own: #2908 Q2908.1 A). Literal. */
 const UPDATE_LABEL = 'Update file';
-const UPDATE_RUNNING = '\u2026 Updating\u2026';
+const UPDATE_RUNNING = '\u2026 Updating';
 /** #2908: a busy control's spinner beside its label, never over it. `pendingLabel` (`shell/dom.ts`) draws the busy label
  *  as a "\u2026" cell (`.p3-spin`, the "\u2026" that turns into the arc) and then the words, so while the control is busy the
  *  cell's box, and the "\u2026" it draws, must not meet the words' text box. Measured as rendered: the cell by its box, the
@@ -2988,7 +3023,7 @@ const UPDATE_RUNNING = '\u2026 Updating\u2026';
  *  words, while the cell and its dots stay put, fails too.
  *  MUTATION M1 (#2908, after a `wip:` commit): `.p3-spin`'s `position: relative` to `position: absolute` in `chrome.css`,
  *  so the cell leaves the label's flow and draws over the first letters, as the owner saw it \u2192 `#2908 figma \u2026 : the busy
- *  spinner sits beside "Updating\u2026", not over it`, every theme and width.
+ *  spinner sits beside "Updating", not over it`, every theme and width.
  *  MUTATION M2 (#2908, after a `wip:` commit): `.p3-spin`'s `position: relative` to `position: static`, so the arc's
  *  containing block becomes the button and the arc draws over the words while the cell and dots don't move \u2192 the same
  *  arms, by name, now reading the arc's box larger than the cell and the cell `static`. */
@@ -3463,8 +3498,8 @@ for (const host of ['web', 'figma']) {
           `${where}: while the run is out, Update file reads "${UPDATE_RUNNING}", busy and not natively disabled (owner decision #4; read ${JSON.stringify(busyU)})`);
         ok(busyU.width === idleU.width, `${where}: Update file keeps its width while busy (${idleU.width} idle, ${busyU.width} busy)`);
         const ovU = await page.evaluate(BUSY_OVERLAP, '[data-p3="top-bar"] [data-p3="update-file"]');
-        ok(!!ovU && ovU.visible && ovU.words === 'Updating…' && ovU.area <= BUSY_OVERLAP_MAX && ovU.arcFits && ovU.position !== 'static',
-          `#2908 ${where}: the busy spinner sits beside "Updating…", not over it (shared area ${ovU?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovU?.arc?.w}×${ovU?.arc?.h} in a ${ovU ? Math.round((ovU.cell.r - ovU.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovU?.position}; ${JSON.stringify(ovU)})`);
+        ok(!!ovU && ovU.visible && ovU.words === 'Updating' && ovU.area <= BUSY_OVERLAP_MAX && ovU.arcFits && ovU.position !== 'static',
+          `#2908 ${where}: the busy spinner sits beside "Updating", not over it (shared area ${ovU?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovU?.arc?.w}×${ovU?.arc?.h} in a ${ovU ? Math.round((ovU.cell.r - ovU.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovU?.position}; ${JSON.stringify(ovU)})`);
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
         const t0 = Date.now();
@@ -3692,8 +3727,8 @@ for (const host of ['web', 'figma']) {
         ok(spW.length === 1 && canon(spW[0]) === canon({ type: 'draw-specs' }) && spBusy === 'true',
           `${where}: #2830 Q2830.3 A: Draw specs posts draw-specs alone and reads as drawing (${JSON.stringify(spW)}, busy ${spBusy})`);
         const ovS = await page.evaluate(BUSY_OVERLAP, '[data-p3="docs-specs-draw"]');
-        ok(!!ovS && ovS.visible && ovS.words === 'Drawing specs…' && ovS.area <= BUSY_OVERLAP_MAX && ovS.arcFits && ovS.position !== 'static',
-          `#2908 ${where}: the busy spinner sits beside "Drawing specs…", not over it (shared area ${ovS?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovS?.arc?.w}×${ovS?.arc?.h} in a ${ovS ? Math.round((ovS.cell.r - ovS.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovS?.position}; ${JSON.stringify(ovS)})`);
+        ok(!!ovS && ovS.visible && ovS.words === 'Drawing specs' && ovS.area <= BUSY_OVERLAP_MAX && ovS.arcFits && ovS.position !== 'static',
+          `#2908 ${where}: the busy spinner sits beside "Drawing specs", not over it (shared area ${ovS?.area ?? 'unmeasured'}px², at most ${BUSY_OVERLAP_MAX}; arc ${ovS?.arc?.w}×${ovS?.arc?.h} in a ${ovS ? Math.round((ovS.cell.r - ovS.cell.l) * 10) / 10 : '?'}px cell, cell position ${ovS?.position}; ${JSON.stringify(ovS)})`);
         // Q713 A: Draw specs has its own Specs row in Activity, like Style guides: it runs, reading "Drawing specs…"
         // (literal), while the Build set row neither runs nor carries the words. Its verdict lands on the Specs row below.
         await settle(page);
@@ -9587,6 +9622,9 @@ for (const host of ['web', 'figma']) {
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
+    // #3044: this case's key presses go through `bounded`, so a press the renderer never takes fails by name.
+    await watchStalls(page);
+    const press = (key, what) => bounded(page, `S7 Shape edits: ${what}`, () => page.keyboard.press(key));
     await goPlace(page, 'shape');
     await openShapeAdvanced(page);
     const view0 = (await previewView(page)).view;
@@ -9604,10 +9642,10 @@ for (const host of ['web', 'figma']) {
     ok(pc?.density === 'comfortable' && JSON.stringify(pc) === JSON.stringify({ ...p0, density: 'comfortable' }), `shape: back to Comfortable writes density: comfortable, not unset (the legacy bytes) (${pc?.density})`);
     // Light: radius softness, by the keyboard.
     await page.locator('[data-p3="radius-scale-slider"]').focus();
-    await page.keyboard.press('ArrowRight');
+    await press('ArrowRight', 'ArrowRight on radius softness, in Light');
     await page.waitForFunction(() => document.querySelector('[data-p3="radius-scale-slider"]')?.value === '1.5', null, { timeout: 5000 }).catch(() => {});
     ok((await persisted(page))?.radiusScale === 1.5, `shape: in Light, ArrowRight on radius softness writes radiusScale: 1.5 (${(await persisted(page))?.radiusScale})`);
-    await page.keyboard.press('ArrowLeft');
+    await press('ArrowLeft', 'ArrowLeft on radius softness, in Light');
     await page.waitForFunction(() => document.querySelector('[data-p3="radius-scale-slider"]')?.value === '1', null, { timeout: 5000 }).catch(() => {});
     const focusKept = await page.evaluate(() => document.activeElement?.getAttribute('data-p3'));
     ok(focusKept === 'radius-scale-slider', `shape: the slider keeps its focus through its own edits (focus on ${focusKept})`);
@@ -9627,7 +9665,7 @@ for (const host of ['web', 'figma']) {
     ok(pBase?.baseMd === 6, `shape: the Base radius picker's 6px writes baseMd: 6 (${pBase?.baseMd})`);
     const md6 = await page.evaluate(() => document.querySelector('[data-p3="shape-style-guide"] [data-p3="radius-row"][data-step="md"] [data-p3="shape-row-label"]')?.textContent);
     ok(md6 === `${6 * (p0?.radiusScale ?? 1)}px`, `shape: the preview's radius.md follows the base radius at once (${md6})`);
-    await page.keyboard.press('Escape');
+    await press('Escape', 'Escape after the Base radius pick');
     // Dark.
     await chooseMode(page, 'dark');
     const auto = await page.evaluate(() => ({ d: document.querySelector('[data-p3="density-auto"]')?.textContent ?? null, r: document.querySelector('[data-p3="radius-scale-auto"]')?.textContent ?? null,
@@ -9641,7 +9679,7 @@ for (const host of ['web', 'figma']) {
     const darkMd = await page.evaluate(() => document.querySelector('[data-p3="shape-style-guide"] [data-p3="height-row"][data-step="md"] [data-p3="shape-row-label"]')?.textContent);
     ok(darkMd === 'Medium button · 56px', `previewing Dark at Spacious, the preview's Medium button reads 56px (${darkMd})`);
     await page.locator('[data-p3="radius-scale-slider"]').focus();
-    await page.keyboard.press('ArrowRight');
+    await press('ArrowRight', 'ArrowRight on radius softness, previewing Dark');
     await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-reset"]'), null, { timeout: 5000 }).catch(() => {});
     const p2 = await persisted(page);
     ok(p2?.modeLevers?.dark?.radius === 1.5 && p2?.radiusScale === pBase?.radiusScale,
@@ -9666,7 +9704,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1 edit: Shape's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 Shape edits: the case stopped at a step that threw — ${stopped(e)}`);
+    if (!e?.reported) ok(false, `S7 Shape edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: in each derived mode every control on Shape is disabled, the advanced one included, under the derived line, and
@@ -9745,6 +9783,7 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'shape');
     await openShapeAdvanced(page);
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    await watchStalls(page);   // #3044: the radius softness press below goes through `bounded`
     const reveal = async (what, act, want) => {
       await page.evaluate(() => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = b.scrollHeight; });
       await act();
@@ -9758,12 +9797,12 @@ for (const host of ['web', 'figma']) {
       ok(s.found && s.inView && s.place === 'shape', `QA-B9: editing ${what} on Shape brings the preview's ${want} section into view, on the same page (${JSON.stringify(s)})`);
     };
     await reveal('Density', () => hooks.click(page.locator('[data-p3="density-choice-compact"]')), 'Density');
-    await reveal('radius softness', async () => { await page.locator('[data-p3="radius-scale-slider"]').focus(); await page.keyboard.press('ArrowRight'); }, 'Radius');
+    await reveal('radius softness', async () => { await page.locator('[data-p3="radius-scale-slider"]').focus(); await bounded(page, 'S7 reveal: ArrowRight on radius softness', () => page.keyboard.press('ArrowRight')); }, 'Radius');
     await reveal('Base radius', async () => { await hooks.click(page.locator('[data-p3="base-radius-pick"]')); await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="8"]')); }, 'Radius');
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     ok(errors.length === 0, `shape reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 reveal: the case stopped at a step that threw — ${stopped(e)}`);
+    if (!e?.reported) ok(false, `S7 reveal: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The chrome on Shape: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
@@ -19435,6 +19474,93 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
   } finally { await ctx.close(); }
 }
 } // 3149
+// 3013. THE MODE CONTROL KEEPS FOCUS WHEN IT SWITCHES (#3013, WCAG 2.4.3). The preview header's mode control shows its
+//     radios when they fit and the select otherwise (#2383), hiding the other with `display: none`. Focus in the one
+//     that gives way used to fall to the body. On both hosts, Depth & motion, light chrome: from 1600 px the checked
+//     radio is focused and the window narrows 100 px at a time until the select shows; focus must be on the select.
+//     Then the window widens back and focus must be on the checked radio. The control: focus on Inspect, beside it,
+//     through the same switch both ways, stays on Inspect, so a fit that pulls focus in from elsewhere fails too.
+//     Independence (docs/34): the widths are found by narrowing, never read from `preview.ts`; the controls are found
+//     by their hooks, the checked radio by its `aria-checked`, and focus read as `document.activeElement` after three
+//     frames, as #3013 reproduced it.
+//     Mutations this fails by name: `fit`'s focus move dropped (preview.ts) → `3013 <host>: narrowing to … focus moves
+//     from the checked radio to the select …` and `… widening … to the checked radio …`; the move made whatever held
+//     focus (its `had` test dropped) → `3013 <host>: … focus on Inspect stays there …`.
+if (runs('3013')) {
+console.log(`\nMode control focus (#3013)\n${'='.repeat(78)}`);
+const frames3 = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+const focusNow = (page) => page.evaluate(() => {
+  const a = document.activeElement;
+  const fit = document.querySelector('[data-p3="mode-select"]')?.checkVisibility() ? 'select' : 'radios';
+  return { fit, active: a?.getAttribute('data-p3') ?? a?.tagName ?? null, checked: a?.getAttribute('aria-checked') ?? null };
+});
+for (const host of ['figma', 'web']) {
+  const where = `3013 ${host}`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1600, h: 900 });
+  let step = 'Depth & motion';
+  try {
+    await goPlace(page, 'depth');
+    await frames3(page);
+    const wide = await focusNow(page);
+    ok(wide.fit === 'radios', `${where}: fixture: at 1600 px the mode control shows its radios (${JSON.stringify(wide)})`);
+    /** Narrow from 1600 by 100 px until the select shows; the width it first shows at, or 0 when it never does. */
+    const narrowToSelect = async () => {
+      for (let w = 1500; w >= 600; w -= 100) {
+        await page.setViewportSize({ width: w, height: 900 });
+        await frames3(page);
+        if ((await focusNow(page)).fit === 'select') return w;
+      }
+      return 0;
+    };
+    step = 'the checked radio focused';
+    await page.locator('[data-p3="mode-option"][aria-checked="true"]').focus();
+    const before = await focusNow(page);
+    ok(before.active === 'mode-option' && before.checked === 'true', `${where}: fixture: the checked radio holds focus at 1600 px (${JSON.stringify(before)})`);
+    step = 'narrowing';
+    const at = await narrowToSelect();
+    const narrowed = await focusNow(page);
+    ok(at > 0 && narrowed.active === 'mode-select',
+      `${where}: narrowing to ${at || 'no width'} px switches the radios to the select, and focus moves from the checked radio to the select, not the body (${JSON.stringify(narrowed)})`);
+    step = 'widening';
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await frames3(page);
+    const widened = await focusNow(page);
+    ok(widened.fit === 'radios' && widened.active === 'mode-option' && widened.checked === 'true',
+      `${where}: widening back to 1600 px switches the select to the radios, and focus moves to the checked radio, not the body (${JSON.stringify(widened)})`);
+    step = 'Inspect focused (control)';
+    await page.locator('[data-p3="inspect-open"]').focus();
+    const at2 = await narrowToSelect();
+    const ctlNarrow = await focusNow(page);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await frames3(page);
+    const ctlWide = await focusNow(page);
+    ok(at2 > 0 && ctlNarrow.active === 'inspect-open' && ctlWide.fit === 'radios' && ctlWide.active === 'inspect-open',
+      `${where}: through the same switch both ways, focus on Inspect stays there: the fit moves only the focus the control held (${JSON.stringify({ ctlNarrow, ctlWide })})`);
+    ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  } catch (e) {
+    ok(false, `${where}: ${step}: ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3013
+// 3044. THE SECTION WATCHDOG FIRES BY NAME (#3044). The suite runs itself as a child with `--stall-self-check`, whose one
+//     section awaits a promise that never settles, and a 1 s limit. Only the watchdog in `enter` can end that child,
+//     and it must end it with exit 1 and the named failure, within a bound held on this side (a child that hangs is
+//     killed at 30 s and fails the arm). The child's section is entered through the real `runs` and `enter`, so a
+//     watchdog dropped from `enter`, or one that never exits, fails here: docs/34 corollary 1, the call site mutated.
+//     The expected words are typed here, not imported.
+//     Mutations this fails by name: the watchdog's `setTimeout` dropped from `enter` → `3044: a section that never
+//     returns fails by name …` (the child killed at 30 s); its `process.exit(1)` dropped → the same arm.
+if (runs('3044')) {
+  console.log(`\nSection watchdog (#3044)\n${'='.repeat(78)}`);
+  const t0 = Date.now();
+  const child = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--stall-self-check'], {
+    env: { ...process.env, CHROME_SHARD: '', CHROME_SECTION_LIMIT_S: '1' }, encoding: 'utf8', timeout: 30000, killSignal: 'SIGKILL',
+  });
+  const took = Date.now() - t0;
+  const named = /✗ section stall-self-check: no progress for 1s, so the run stops here \(#3044\); the last check it reached: "stall self-check: the section began"/.test(child.stderr ?? '');
+  ok(child.status === 1 && named && took < 30000,
+    `3044: a section that never returns fails by name at its limit, with the last check it reached (exit ${child.status}, signal ${child.signal}, ${took}ms; stderr ${JSON.stringify(String(child.stderr ?? '').trim().slice(-220))})`);
+} // 3044
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
