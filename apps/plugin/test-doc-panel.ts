@@ -15,7 +15,9 @@
  *                   "(edited)" one; a line rewritten on an old-print panel (Tag's, or Button.Neutral's) still keeps that
  *                   panel aside. Mutations: an old print compared whole again → `legacy/rebuilt`, `legacy/family lead`,
  *                   `legacy/family members`, `legacy/family edited`; the text check dropped → `legacy/edited`,
- *                   `legacy/family edited`, `family/kept`.
+ *                   `legacy/family edited`, `family/kept`. Tabs' panel with its legend as drawn before #3265 ("4  Tab ×2")
+ *                   is replaced too. Mutation: the labels before #3265 dropped from `writtenTexts` (the
+ *                   `labelsBefore3265` line) → `legacy/merged legend`.
  *   replace/…       a second draw of an unedited panel replaces it: one panel, the earlier removed.
  *   hand edit/…     a panel whose text a designer changed is kept: renamed "(edited)", tagged kept, its edit intact, below
  *                   the fresh panel and clear of it, and named in the run's clauses; a third draw keeps it once and draws
@@ -79,7 +81,9 @@
  *                   component's summary; and over every def, no label glued to its number or carrying ×, each repeat's
  *                   entries covering its parts once, in order. Mutations: `variantWhen` back in the run key →
  *                   `legend/code-input`; a run keeping its first part's note → `legend/tabs`; the merge before #3265
- *                   (by settings, wherever a repeat stands, labelled "Item ×4") → `legend/pagination`, `legend/every def`.
+ *                   (by settings, wherever a repeat stands, labelled "Item ×4") → `legend/pagination`, `legend/every def`;
+ *                   a run's shared note replaced by the summary → `legend/shared note` (`anatomyEntry` called directly,
+ *                   since no run in today's library shares a note).
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -103,7 +107,7 @@ import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffe
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
-import { anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
 import { TAXONOMY } from './src/file-taxonomy';
 import { readSpecTag } from './src/spec-tag';
 import { fingerprintOf } from './src/style-guide';
@@ -627,6 +631,18 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '4  Tabs 2–3 — One trigger in a tab list.',
     '5  Baseline — The 1px line under the tabs, which the selected underline sits on.',
   ], 'Tab 1, then Tabs 2–3 captioned by the tab\'s summary');
+  // A run whose parts share one note takes that note, not the nested component's summary (Q3265.2 A). No run in
+  // today's library shares a note, so this calls `anatomyEntry` directly: Code input's run cut to its first two cells,
+  // both given one note. The note and the summary are typed here, never read off the def.
+  {
+    const ci = componentDefs.find((d) => d.id === 'code-input')!;
+    const a = docSections(ci).sections.find((x) => x.id === 'anatomy');
+    const cell = anatomyMarks(ci, a && a.id === 'anatomy' ? a.parts.map((pt) => pt.id) : []).find((m) => m.part === 'cell1')!;
+    const note = 'A box for one character.';
+    const e = anatomyEntry(ci, { ...cell, parts: 2, run: ['cell1', 'cell2'] }, () => note);
+    ok(e.label === 'Cells 1\u20132' && e.caption === note, 'legend/shared note: a run whose parts share a note is captioned by it, not by the summary',
+      `got "${e.label} — ${e.caption}", want "Cells 1\u20132 — ${note}" (not "One cell of a code input: a box holding one character of the code.")`);
+  }
   want('breadcrumbs', [
     '1  Container — The navigation: a row that hugs the trail, or the one link up to the parent, with no padding and no fill.',
     '2  Items — The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.',
@@ -1059,6 +1075,26 @@ section('legacy/… — a panel printed the old way, its set rebuilt since: repl
   const r2 = await drawDocPanel(qa, qs, def, { names });
   ok(r2.replaced === 0 && r2.kept.length === 1 && panelsOn(q).length === 2 && old.name === 'Tag usage (edited)' && texts(old).includes('Our team uses tags for filters only.'),
     `legacy/edited: a rewritten line on an old-print panel still keeps it aside, as "${old.name}" (replaced ${r2.replaced}, kept ${r2.kept.length})`);
+
+  // A PANEL DRAWN BEFORE #3265 (S2): Tabs' legend then merged the two unselected tabs as "4  Tab ×2", captioned by the
+  // first one's note, and glued each number to its name ("3  Tab1"). Those lines are typed here as the earlier code
+  // wrote them. Printed the old way and its set rebuilt, the panel still reads as Prism3's own text, so it is replaced.
+  {
+    const tabs = componentDefs.find((d) => d.id === 'tabs')!;
+    const t = page('↳ Tabs legacy legend');
+    const ts = fakeSet(t, 'tabs');
+    const ta = host([t]);
+    await drawDocPanel(ta, ts, tabs, { names });
+    const oldPanel = panelsOn(t)[0];
+    const was: Record<string, string> = { '3  Tab 1': '3  Tab1', '4  Tabs 2\u20133': '4  Tab \u00d72', 'One trigger in a tab list.': 'A second tab.' };
+    const swapped = walk(oldPanel).filter((c) => c.type === 'TEXT' && String(c.characters) in was);
+    for (const c of swapped) c.characters = was[String(c.characters)];
+    await printOld(oldPanel);
+    rebuild(t, 'tabs');
+    const r3 = await drawDocPanel(ta, ts, tabs, { names });
+    ok(swapped.length === 3 && texts(oldPanel).includes('4  Tab \u00d72') && r3.replaced === 1 && r3.kept.length === 0 && panelsOn(t).length === 1,
+      `legacy/merged legend: an old-print panel whose legend reads "4  Tab \u00d72" is replaced, not kept (lines swapped ${swapped.length} of 3, replaced ${r3.replaced}, kept ${r3.kept.length})`);
+  }
 
   // THE BUTTONS PAGE (#2968): four sets, laid out before one panel per family, each with its own panel printed the
   // old way, then the sets rebuilt. A member's panel is drawn as the earlier code drew one: its own heading and lede.
