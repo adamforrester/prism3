@@ -69,6 +69,8 @@ export type AgentActions = {
   /** #2830 phase 2: the spec panels, on request only: the agent's for the whole file, the panel's Draw specs
    *  (Documentation › Specs) for the current page. */
   drawSpecs(def: string | undefined, scope: 'file' | 'page', sink: ActionSink): Promise<void>;
+  /** #3137 Q3137.7 A: Clean up's usage panels: a count (`confirm` false), or the removal of the unedited ones. */
+  panelsClean(confirm: boolean, sink: ActionSink): Promise<void>;
 };
 
 /** The slice of a page node the census reads. */
@@ -172,6 +174,7 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   'capture-baseline': (c, a, sink) => a.captureBaseline((c as Extract<ValidCommand, { cmd: 'capture-baseline' }>).args.def, sink),
   'adopt-members': (c, a, sink) => a.adoptMembers((c as Extract<ValidCommand, { cmd: 'adopt-members' }>).args.def, sink),
   'draw-specs': (c, a, sink) => a.drawSpecs((c as Extract<ValidCommand, { cmd: 'draw-specs' }>).args.def, 'file', sink),
+  'panels-clean': (c, a, sink) => a.panelsClean((c as Extract<ValidCommand, { cmd: 'panels-clean' }>).args.confirm === true, sink),
   readback: async (_c, a, sink, d) => {
     await a.seedFromFile(sink);
     sink.data({ components: await d.census() });

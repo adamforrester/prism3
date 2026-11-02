@@ -12,9 +12,13 @@
  *     into the queue. Building stays add-only underneath: a set the file holds is only ever updated in place;
  *   · Due: each set the as-built ledger reads as due, ticked, updated in place (phase 2, Q2909.8 A), with the one choice
  *     for hand edits (Keep, the default; Overwrite; Accept as the new baseline);
+ *   · Usage panels (#3137, Q3137.1 A, Q3137.2 A): while Documentation has panels on, each family whose lead set is in the
+ *     file and has no live panel (`panelSetsOf`), less the Due sets and the queue, whose own runs draw the panel. One tick
+ *     for the group, on by default. The panels ride the in-place update, scoped to these sets: the step's defs are the
+ *     ticked Due sets and these (`updateDefsOf`), so the scoped check reads them and the page re-spaces to make room;
  *   · Style guides: drawn with Documentation's saved settings (Q2909.23 A), ticked on a file that is not set up.
- * Usage panels and the cover are not items of their own: they follow Documentation's switches, drawn with the sets and
- * by Set up file.
+ * The cover is not an item of its own: it follows Documentation's switch, drawn by Set up file. Nor is a panel a set gains
+ * by being added or updated: its build or update draws it.
  *
  * WHAT IS DUE (Q2909.8 A): the as-built ledger says, from one root read (`file-sets`' `due`). A set the ledger holds no
  * entry for (built before it, or by hand) reads "Not checked yet", and the checklist offers to check it. As the checklist
@@ -43,13 +47,19 @@ export type FileSets = { readonly present: readonly string[]; readonly setUp: bo
   readonly partial?: boolean;
   /** #3110: one of the host's own reads after open (the ledger's, then the file's against the stored brand), not an
    *  answer to the panel's request. */
-  readonly atOpen?: boolean };
+  readonly atOpen?: boolean;
+  /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a family and have no live usage
+   *  panel, and how many present sets lead one (`panelLeads`). Absent while panels are off, and on the ledger's read. */
+  readonly unpaneled?: readonly string[];
+  readonly panelLeads?: number };
 
 export type HandEditChoice = 'keep' | 'overwrite' | 'accept';
 /** The checklist's ticks: each item, each due set, and what the update does with hand edits. The add queue has no tick
  *  (Q3129.7 A): a queued set runs. */
 export type Ticks = {
   readonly setup: boolean; readonly theme: boolean; readonly guides: boolean;
+  /** #3137 Q3137.1 A: the Usage panels group's one tick. */
+  readonly panels: boolean;
   readonly update: ReadonlySet<string>; readonly handEdits: HandEditChoice;
 };
 
@@ -70,25 +80,36 @@ export const unrecordedOf = (catalog: Catalog, f: FileSets): string[] => catalog
  *  against the panel's). The checklist shows "Checking the file…" meanwhile. */
 export const awaitingRead = (f: FileSets | null, asked: FileSets | null | undefined): boolean =>
   !!f?.partial || (asked !== undefined && (f === asked || !!f?.atOpen));
+/** #3137 Q3137.1 A: the sets the Usage panels group lists, in catalog order: the file's sets with no usage panel, less
+ *  the Due sets (`furnishUpdate` draws a Due set's panel) and the queue (its build draws the panel). Empty while
+ *  Documentation has panels off, which the host says by sending no list. */
+export const panelSetsOf = (catalog: Catalog, f: (Pick<FileSets, 'present' | 'unpaneled'> & Partial<Pick<FileSets, 'due'>>) | null, queue: readonly string[] | null = null): string[] => {
+  if (!f?.unpaneled?.length) return [];
+  const due = new Set(Object.entries(f.due ?? {}).filter(([, d]) => d.state === 'due').map(([id]) => id));
+  return catalog.filter((e) => f.unpaneled!.includes(e.id) && f.present.includes(e.id) && !due.has(e.id) && !queue?.includes(e.id)).map((e) => e.id);
+};
 /** How many due sets a ledger read finds (Q2909.8 A). */
 export const dueCount = (catalog: Catalog, f: FileSets | null): number => (f && !f.error ? dueSetsOf(catalog, f).length : 0);
 
 /** The badge's live recount (#3081 Q810 A, `file-due`): what is due against the brand the panel holds, and `theme`:
  *  the file does not hold that brand, so Apply Theme would change it. */
-export type LiveDue = { readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null; readonly due: FileSets['due'] };
+export type LiveDue = { readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null; readonly due: FileSets['due'];
+  /** #3137: as `FileSets`' own, from the last full read's census. */
+  readonly unpaneled?: readonly string[]; readonly panelLeads?: number };
 /** What the badge on Update file counts (#3081 Q810 A, #3129): everything Update file would change. That is the add
  *  queue (the queued sets the file lacks), each due set, and one item for unapplied Theme changes. It reads the live
  *  recount once one has answered, so a changed setting moves it before the checklist opens. Before that, or when the
  *  recount could not read the file, it reads the ledger read at load, with no Theme item, because only the recount
  *  compares the file's brand with the panel's. */
-export type BadgeParts = { readonly add: number; readonly due: number; readonly theme: boolean };
+/** #3137 Q3137.4 A: the Usage panels group counts as one item (`panels`), however many sets it lists. */
+export type BadgeParts = { readonly add: number; readonly due: number; readonly theme: boolean; readonly panels: boolean };
 export const badgeParts = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null): BadgeParts => {
-  if (live && !live.error) return { add: queuedOf(catalog, live, queue).length, due: dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }), theme: live.theme };
-  return { add: f && !f.error ? queuedOf(catalog, f, queue).length : 0, due: dueCount(catalog, f), theme: false };
+  if (live && !live.error) return { add: queuedOf(catalog, live, queue).length, due: dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }), theme: live.theme, panels: panelSetsOf(catalog, live, queue).length > 0 };
+  return { add: f && !f.error ? queuedOf(catalog, f, queue).length : 0, due: dueCount(catalog, f), theme: false, panels: !!f && !f.error && panelSetsOf(catalog, f, queue).length > 0 };
 };
 export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null = null): number => {
   const p = badgeParts(catalog, f, live, queue);
-  return p.add + p.due + (p.theme ? 1 : 0);
+  return p.add + p.due + (p.theme ? 1 : 0) + (p.panels ? 1 : 0);
 };
 /** How long the panel waits after the last change before it asks for the recount (#3081): one ask for a burst of
  *  edits, such as a slider drag or typing, never one a keystroke. */
@@ -97,9 +118,9 @@ export const DUE_DEBOUNCE_MS = 250;
 /** The ticks the checklist opens with (Q2909.2 A, Q2909.8 A, Q3129.10 A): the theme always, and every due set, keeping
  *  hand edits; on a file that is not set up, the setup and the style guides too. No set is queued for it: the queue is
  *  the file's (#3129), so a fresh file starts with nothing to add until Add all or Components. */
-export const defaultTicks = (catalog: Catalog, f: FileSets): Ticks => {
+export const defaultTicks = (catalog: Catalog, f: FileSets, queue: readonly string[] | null = null): Ticks => {
   const fresh = !f.setUp;
-  return { setup: fresh, theme: true, guides: fresh, update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep' };
+  return { setup: fresh, theme: true, guides: fresh, panels: panelSetsOf(catalog, f, queue).length > 0, update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep' };
 };
 
 /** The steps a set of ticks runs, in order. Set up file is a step only on a file that is not set up; `sets` only while
@@ -115,6 +136,15 @@ export const brandFor = <B>(theme: boolean, panel: B): B | undefined => (theme ?
 /** What the scoped check says of the ticked sets the update would act on: the ones it read and did not block. */
 export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }): string[] =>
   [...t.update].filter((id) => check.sets.some((c) => c.def === id && !c.blocked));
+/** #3137 Q3137.2 A: the update step's defs: the ticked Due sets and, while the Usage panels tick is on, the panel sets,
+ *  each one the scoped check read and did not block. */
+export const updateDefsOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }, panelSets: readonly string[]): string[] =>
+  [...new Set([...updatableOf(t, check), ...(t.panels ? panelSets.filter((id) => check.sets.some((c) => c.def === id && !c.blocked)) : [])])];
+/** #3137 Q3137.5 A: up to this many names show inline in the Usage panels group; past it, under a closed disclosure. */
+export const PANELS_INLINE = 6;
+/** #3137: the sets the scoped check reads as the checklist opens: the Due sets and, while ticked, the panel sets. */
+export const checkScopeOf = (due: readonly string[], t: Pick<Ticks, 'panels'>, panelSets: readonly string[]): string[] =>
+  [...new Set([...due, ...(t.panels ? panelSets : [])])];
 
 /** A set's statuses, as Components' list and the checklist show them (Q2909.8 A): Not in file, or To add once it is in
  *  the add queue (#3129 Q3129.4 A); or Due; Hand-edited (first class, beside Due when both); Not checked yet; Checking
@@ -224,8 +254,18 @@ export const UPDATE_COPY = {
   checkUnrecorded: (n: number): string => `Check ${n} set${n === 1 ? '' : 's'}`,
   saves: 'Saves a version first. If Figma refuses the save, nothing is written.',
   status: { queued: 'To add', new: 'Not in file', due: 'Due', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
-  /** Q3129.11 A: the badge's name, split: "Update file, 7 to add, 3 due", with ", theme" when the Theme item counts. */
-  badgeName: (p: BadgeParts): string => ['Update file', p.add ? `${p.add} to add` : '', p.due ? `${p.due} due` : '', p.theme ? 'theme' : ''].filter(Boolean).join(', '),
+  /** Q3129.11 A: the badge's name, split: "Update file, 7 to add, 3 due", with ", theme" when the Theme item counts, and
+   *  (#3137 Q3137.4 A) ", usage panels" when the Usage panels group does. */
+  badgeName: (p: BadgeParts): string => ['Update file', p.add ? `${p.add} to add` : '', p.due ? `${p.due} due` : '', p.theme ? 'theme' : '', p.panels ? 'usage panels' : ''].filter(Boolean).join(', '),
+  /** #3137 (Q3137.1 A, Q3137.5 A, Q3137.7 A): the Usage panels group and Clean up's panels item. DRAFT, the wireframe's words. */
+  panels: 'Usage panels',
+  panelsTick: (n: number): string => `Draw ${n} usage panel${n === 1 ? '' : 's'}`,
+  panelsAll: 'No set in this file has its usage panel yet. Each is drawn beside its set, and sets move apart to make room. No member changes.',
+  panelsSome: (n: number): string => `${n} set${n === 1 ? ' in this file has' : 's in this file have'} no usage panel. Each is drawn beside its set, and sets move apart to make room. No member changes.`,
+  panelsShow: (n: number): string => `Show the ${n} sets`,
+  cleanPanels: (n: number): string => `${n} usage panel${n === 1 ? '' : 's'}, drawn while Documentation had panels on.`,
+  cleanPanelsKeep: 'Panels edited by hand stay. Turning panels on again draws them back.',
+  removePanels: (n: number): string => `Remove ${n} panel${n === 1 ? '' : 's'}`,
   guides: 'Style guides',
   guidesSub: 'Drawn with the settings in Documentation. A rerun updates each table in place.',
   go: 'Update file',

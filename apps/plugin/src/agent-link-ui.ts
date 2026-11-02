@@ -75,7 +75,7 @@ const HOME_SLOT = '[data-p3="home-agent"]';
 export const AGENT_CMD_WORDS: Readonly<Record<string, string>> = {
   status: 'Status', 'apply-theme': OP_TITLE['apply'], 'build-components': OP_TITLE.components, 'file-setup': OP_TITLE.filesetup,
   'style-guide': OP_TITLE.styleguide, prune: OP_TITLE.prune, readback: OP_TITLE.readback, 'draw-specs': OP_TITLE.specs,
-  'update-components': 'Update sets', 'capture-baseline': 'Record the sets', 'adopt-members': 'Adopt members',
+  'update-components': 'Update sets', 'capture-baseline': 'Record the sets', 'adopt-members': 'Adopt members', 'panels-clean': 'Clean up usage panels',
 };
 /** A relative age in words (Q3113.7 A; DRAFT): "just now" under a minute, then minutes, hours and days ago. Pure. */
 export const agoWords = (ms: number): string => {

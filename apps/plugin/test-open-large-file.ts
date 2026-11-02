@@ -68,6 +68,10 @@
  * #3189, CAPTURE BASELINE AND ADOPT on the same host, each over every def, driven through `ACTIONS` with an agent's sink
  * (both are agent commands): `capture/no-walk`, `adopt/no-walk` (no whole-file search, one page a turn at most),
  * `capture/one-read`, `adopt/one-read` (each page searched once per criterion, never once per set), `capture/answers`,
+ * (#3137) the usage-panel census searched across the whole file instead of a page per turn → `open/no-walk`,
+ * `open/search-yields`; Clean up's usage panels (Q3137.7 A, `panels-clean`) counted or removed after
+ * `loadAllPagesAsync` and one document-wide search → `clean/count-no-walk`, `clean/remove-no-walk` (its answers:
+ * `clean/count-answers`, `clean/remove-answers`, `clean/edited stays`),
  * `adopt/answers` (the answer a whole-file search gives, as literals; its digest is printed, and matched the one before
  * #3189) and `capture/progress`, `adopt/progress` (check, a reading per def in order, finish). Mutations failing by name:
  * the capture without the run's read (`runHost`) → `capture/no-walk`, `capture/one-read`; Adopt without it →
@@ -123,6 +127,9 @@ let turnNo = 0;
 const loadTurns: number[] = [];
 const searchTurns: number[] = [];
 const searchesOf = new Map<string, number>();
+/** #3137: of those, the searches by a plugin-data key (the usage panels'), per page, so the read at open can be held to
+ *  one search per page per criterion. */
+const panelSearchesOf = new Map<string, number>();
 const searchOne = (): void => {
   searchTurns.push(turnNo);
   searchedInTurn++;
@@ -145,7 +152,7 @@ ok(buildable.length >= SETS, `the stand-in has ${SETS} buildable defs to name it
 const setIds = buildable.slice(0, SETS).map((d) => d.id);
 
 type Page = { id: string; name: string; type: 'PAGE'; isPageDivider: boolean; loaded: boolean; children: Node[];
-  loadAsync(): Promise<void>; findAllWithCriteria(c: { types?: string[] }): Node[] };
+  loadAsync(): Promise<void>; findAllWithCriteria(c: { types?: string[]; sharedPluginData?: { namespace: string; keys: string[] } }): Node[] };
 const mkNode = (type: string, name: string, children: Node[] = []): Node => {
   const n = (shim.createFrame as () => Node)();
   n.type = type;
@@ -165,8 +172,11 @@ for (let i = 0; i < PAGES; i++) {
       if (!this.loaded) throw new Error(`page ${this.name} searched before it was loaded`);
       searchOne();
       searchesOf.set(this.id, (searchesOf.get(this.id) ?? 0) + 1);
+      if (c.sharedPluginData) panelSearchesOf.set(this.id, (panelSearchesOf.get(this.id) ?? 0) + 1);
       const all = this.children.flatMap((n) => [n, ...((n.children as Node[] | undefined) ?? [])]);
-      return all.filter((n) => !c.types || c.types.includes(n.type as string));
+      const pd = c.sharedPluginData;
+      return all.filter((n) => (!c.types || c.types.includes(n.type as string))
+        && (!pd || pd.keys.some((k) => !!(n as { getSharedPluginData?(a: string, b: string): string }).getSharedPluginData?.(pd.namespace, k))));
     },
   };
   // Each node's parent, as in Figma: the run's re-read after a write finds the page a set sits on by it (#3177).
@@ -249,7 +259,7 @@ const { ACTIONS } = await import('./src/main');
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
 
 console.log(`plugin open on a ${PAGES}-page, ${SETS}-set stand-in (#3110), ${PAGE_MS} ms a page`);
-loads = 0; inTurn = 0; worstTurn = 0; searchedInTurn = 0; worstSearch = 0; docSearches = 0; loadTurns.length = 0; searchTurns.length = 0; searchesOf.clear();
+loads = 0; inTurn = 0; worstTurn = 0; searchedInTurn = 0; worstSearch = 0; docSearches = 0; loadTurns.length = 0; searchTurns.length = 0; searchesOf.clear(); panelSearchesOf.clear();
 t0.at = Date.now();
 // A message from the panel starts a turn of its own.
 const send = (m: unknown): void => { inTurn = 0; searchedInTurn = 0; turnNo++; (shim.ui as { onmessage: (m: unknown) => void }).onmessage(m); };
@@ -336,9 +346,11 @@ ok(done() !== undefined, `open/pass: the hand-edit pass runs after the read and 
     `open/paint-first: the turn that answers ui-ready posts the brand and the settings and loads, searches and projects nothing (${readyWork} pieces of work in it; posted ${JSON.stringify(readyPosts)})`);
   ok(docSearches === 0, `open/no-walk: from open to the hand-edit pass's end, the live recounts included, nothing searches the whole file in one turn (${docSearches} document-wide searches)`);
   ok(worstSearch <= 1, `open/search-yields: no turn searches more than one page (worst ${worstSearch})`);
-  const most = Math.max(0, ...searchesOf.values());
-  ok(searchesOf.size === PAGES && most <= 2,
-    `open/one-read: the requests asked while the read after open is going share it; each page is searched at most twice, once for that read and once for the hand-edit pass (${searchesOf.size} of ${PAGES} pages searched, most ${most} times)`);
+  // #3137: the usage-panel census is a criterion of its own, searched per page by the same reads (Q3137.3 A).
+  const most = Math.max(0, ...[...searchesOf].map(([id, n]) => n - (panelSearchesOf.get(id) ?? 0)));
+  const mostP = Math.max(0, ...panelSearchesOf.values());
+  ok(searchesOf.size === PAGES && most <= 2 && panelSearchesOf.size === PAGES && mostP <= 2,
+    `open/one-read: the requests asked while the read after open is going share it; each page is searched at most twice per criterion, once for that read and once for the hand-edit pass (${searchesOf.size} of ${PAGES} pages searched, most ${most} times; panels ${panelSearchesOf.size}, most ${mostP})`);
   const plans = timings.slice(timingsAtOpen).filter((t) => t.stage === 'plan');
   const planTurns = new Set(plans.map((t) => t.turn));
   ok(plans.length === SETS && planTurns.size === plans.length,
@@ -412,6 +424,42 @@ await entry('check', { type: 'update-check-request', defs: setIds.slice(0, DUE),
 await entry('prune', { type: 'prune', input: exampleBrands['aurora'], confirm: false }, 'prune-result');
 await entry('style-guide', { type: 'style-guide', options: {} }, 'style-guide-result');
 await entry('style-guide-cleanup', { type: 'style-guide-cleanup', ids: [] }, 'style-guide-cleanup-result');
+
+/* ── #3137: Clean up's usage panels, a page per turn ───────────────────────────────────────────────── */
+
+// Q3137.7 A (the #3288 review): Clean up's count, asked as the tab opens while panels are off, and its removal read the
+// panels as the census does, each page loaded and searched in its own turn: never every page in one call, never one
+// document-wide search. Two panels: one still as drawn (its print matches), one with no print, which reads as edited.
+{
+  const { panelPrint } = await import('./src/doc-panel');
+  type Tagged = Node & { setSharedPluginData(ns: string, k: string, v: string): void };
+  const panel = (on: number, def: string): Tagged => {
+    const n = mkNode('FRAME', `${def} usage`) as Tagged;
+    n.setSharedPluginData('prism3', 'docPanel', JSON.stringify({ v: 1, def, set: `SET:${def}`, state: 'live' }));
+    pages[on].children.push(n);
+    n.parent = pages[on] as unknown as Node;
+    return n;
+  };
+  const asDrawn = panel(0, setIds[0]);
+  asDrawn.setSharedPluginData('prism3', 'docPanelPrint', await panelPrint(asDrawn as never));
+  const edited = panel(20, setIds[1]);
+  const want = { count: { drawn: 2, removable: 1, removed: 0, kept: 0 }, remove: { drawn: 1, removable: 0, removed: 1, kept: 1 } };
+  for (const [label, confirm] of [['count', false], ['remove', true]] as const) {
+    for (const p of pages) p.loaded = false;
+    allCalled = false; loads = 0; inTurn = 0; worstTurn = 0; searchedInTurn = 0; worstSearch = 0; docSearches = 0;
+    const from = posted.length;
+    send({ type: 'panels-clean', confirm });
+    for (let i = 0; i < 4000 && !reply('panels-clean-result', from); i++) await new Promise((res) => realTimeout(res, 5));
+    const r = reply('panels-clean-result', from)?.msg;
+    ok(r !== undefined && loads === PAGES && worstTurn <= 1 && docSearches === 0 && worstSearch <= 1,
+      `clean/${label}-no-walk: Clean up's ${label} loads every page one per turn and searches one page per turn, never the whole file (${loads} of ${PAGES} loaded, worst ${worstTurn} loads and ${worstSearch} searches in one turn, ${docSearches} document-wide searches${r ? '' : ', no answer'})`);
+    const got = r ? { drawn: r.drawn, removable: r.removable, removed: r.removed, kept: r.kept } : null;
+    ok(r?.ok === true && JSON.stringify(got) === JSON.stringify(want[label]),
+      `clean/${label}-answers: it finds both panels and takes only the one still as drawn (${JSON.stringify(got)}${r?.error ? `, ${r.error}` : ''})`);
+  }
+  ok(asDrawn.removed === true && edited.removed !== true, `clean/edited stays: the panel as drawn is removed, the edited one stays (${asDrawn.removed}, ${edited.removed})`);
+  (edited as { remove(): void }).remove();
+}
 
 /* ── a read after open that fails ──────────────────────────────────────────────────────────────────── */
 

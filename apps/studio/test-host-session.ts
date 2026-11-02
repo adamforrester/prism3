@@ -49,7 +49,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
-  'hand-edits', 'hand-edits-done', 'update-check', 'file-due', 'add-queue',
+  'hand-edits', 'hand-edits-done', 'update-check', 'file-due', 'add-queue', 'panels-clean-result',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -70,7 +70,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, addQueue: null,
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, panelsClean: { busy: false, count: null, verdict: null }, addQueue: null,
   handEdits: [], handPass: 'idle', updateCheck: null,
 }), 'initial session: every slot empty');
 
@@ -442,6 +442,18 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(same(lq.next.addQueue, ['badge']) && same(lq.topics, ['host:update', 'host:components']), '#3129: the live recount carries the queue too, and a queue it moves repaints Components');
   const lq2 = step(lq.next, { kind: 'file-due', seq: 10, present: ['button'], theme: false, error: null, due: {}, queued: ['badge'] });
   ok(same(lq2.topics, ['host:update']), '#3129 control: a recount that leaves the queue as it was moves only the overlay');
+  // #3137 Q3137.3 A: the census lands with the read and with the recount; Clean up's panels with its answer.
+  const up = step(aq.next, { kind: 'file-sets', present: ['badge', 'tag'], setUp: true, error: null, due: {}, queued: [], unpaneled: ['tag'], panelLeads: 2 });
+  ok(same(up.next.fileSets?.unpaneled, ['tag']) && up.next.fileSets?.panelLeads === 2, `#3137 file-sets: the sets with no usage panel land with the read (${JSON.stringify(up.next.fileSets?.unpaneled)})`);
+  const lp = step(up.next, { kind: 'file-due', seq: 11, present: ['badge', 'tag'], theme: false, error: null, due: {}, queued: [], unpaneled: [], panelLeads: 2 });
+  ok(same(lp.next.liveDue?.unpaneled, []) && same(lp.topics, ['host:update']), `#3137 file-due: the recount's census lands in liveDue (${JSON.stringify(lp.next.liveDue?.unpaneled)}; ${JSON.stringify(lp.topics)})`);
+  const off = step(up.next, { kind: 'file-sets', present: ['badge', 'tag'], setUp: true, error: null, due: {}, queued: [] });
+  ok(off.next.fileSets !== null && !('unpaneled' in off.next.fileSets), '#3137 file-sets: with panels off the host sends no list, and none is held');
+  const pc = step(up.next, { kind: 'panels-clean-result', applied: false, drawn: 32, removable: 30, removed: 0, kept: 0, error: null });
+  ok(same(pc.next.panelsClean, { busy: false, count: { drawn: 32, removable: 30 }, verdict: null }) && same(pc.topics, ['host:update', 'host:docs']),
+    `#3137 panels-clean-result: a count lands, and Clean up and Documentation repaint (${JSON.stringify(pc.next.panelsClean)})`);
+  const pr = step(pc.next, { kind: 'panels-clean-result', applied: true, drawn: 2, removable: 0, removed: 30, kept: 2, error: null });
+  ok(same(pr.next.panelsClean, { busy: false, count: { drawn: 2, removable: 0 }, verdict: { removed: 30, kept: 2, error: null } }), '#3137 panels-clean-result: a removal lands its outcome and the count after it');
   const eq = step(aq.next, { kind: 'file-sets', present: [], setUp: false, error: 'boom', due: {}, queued: [] });
   ok(same(eq.next.addQueue, ['tag', 'badge']), '#3129: a read that could not read the file keeps the queue held');
   const bad = step(init, { kind: 'file-sets', present: [], setUp: false, error: 'boom', due: {}, queued: [] });

@@ -175,7 +175,12 @@ export type UiToMain =
   | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput }
   /** #3170 Q3170.4 A: "Stop after <set>". The panel's running `update-sets` finishes the set it is on and stops at the
    *  next set boundary; the sets already done keep their changes. Nothing running, nothing to stop. */
-  | { type: 'update-stop' };
+  | { type: 'update-stop' }
+  /** #3137 Q3137.7 A: Update file › Clean up's usage panels, while Documentation has panels off. `confirm: false` counts
+   *  the live panels and how many still hold what was drawn; `confirm: true` re-reads the file and removes those, never a
+   *  panel edited by hand. A preview writes nothing and is never refused; a removal runs under the prune's guard, as the
+   *  agent's `panels-clean`. Answered with one `panels-clean-result`. */
+  | { type: 'panels-clean'; confirm: boolean };
 
 /** One set as the scoped check reads it (#2909): its members, what an update would do to them, and whether it is blocked. */
 export type CheckedSet = {
@@ -534,11 +539,25 @@ export type MainToUi =
       atOpen?: true;
       /** #3129 Q833 A: the add queue, minus the sets the file holds and the sets the engine cannot build (`add-queue.ts`),
        *  in the order the root lists its keys. */
-      queued: string[] }
+      queued: string[];
+      /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a panel family and have no live
+       *  panel (`panel-census.ts`), from one search for panel tags in the read that loaded every page. Absent on the
+       *  ledger's read at open, which loads no page, and while panels are off. */
+      unpaneled?: string[];
+      /** #3137: beside `unpaneled`, how many present sets lead a panel family, the count it is out of. */
+      panelLeads?: number }
   /** #3081 Q810 A: the answer to `due-request`, by its `seq`: the sets the file holds (as the last `file-sets` read found
    *  them, or read again after a write), each read against the ledger under the panel's brand, and `theme`: the file does
    *  not hold that brand, so Apply Theme would change it. `error` when the file could not be read. */
-  | { type: 'file-due'; seq: number; present: string[]; theme: boolean; due: Record<string, SetDue>; error?: string; queued: string[] }
+  | { type: 'file-due'; seq: number; present: string[]; theme: boolean; due: Record<string, SetDue>; error?: string; queued: string[];
+      /** #3137: as `file-sets`' `unpaneled`, from the census the last full read made (no page load), and absent while
+       *  Documentation has panels off. */
+      unpaneled?: string[];
+      panelLeads?: number }
+  /** #3137 Q3137.7 A: the answer to `panels-clean`. A preview (`applied` false) gives `drawn`, the live panels, and
+   *  `removable`, those still as drawn; a removal gives `removed` and `kept`, the edited panels left. `error` when the
+   *  file could not be read or the host refused a removal, and then `ok` is false. */
+  | { type: 'panels-clean-result'; ok: boolean; applied: boolean; drawn: number; removable: number; removed: number; kept: number; error?: string }
   /** #3129 Q833 A: the answer to `add-queue`: the queue after the write, read as `file-sets`' `queued` is. `error` when the
    *  write was refused; `queued` is then the queue as the file holds it. */
   | { type: 'add-queue'; queued: string[]; error?: string }

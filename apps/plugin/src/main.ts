@@ -59,7 +59,8 @@ import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
-import { clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { livePanels, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -1078,19 +1079,23 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
   if (presentRead) return presentRead;
   const gen = presentGen;
   const read = (async (): Promise<FileRead> => {
-    const nodes = await timed('page reads', () => searchPagesYielding(['COMPONENT', 'COMPONENT_SET'], onPage));
+    const frames: SearchNode[] = [];
+    const nodes = await timed('page reads', () => searchPagesYielding(['COMPONENT', 'COMPONENT_SET'], onPage, frames));
     const names = presentNames({ root: rootOver(nodes) } as unknown as Parameters<typeof presentNames>[0]);
     const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
-    if (gen === presentGen) presentCache = ids;
+    // #3137 Q3137.3 A: with every page loaded, the panels census, one search, kept beside the sets so a recount reads
+    // both with no page load, whichever way Documentation's switch is turned meanwhile.
+    const paneled = panelCensus(nodes, frames);
+    if (gen === presentGen) { presentCache = ids; panelCache = paneled; }
     watchSets();
-    return { ids, nodes };
+    return { ids, nodes, paneled };
   })();
   presentRead = read;
   const clear = (): void => { if (presentRead === read) presentRead = null; };
   read.then(clear, clear);
   return read;
 };
-type FileRead = { ids: string[]; nodes: readonly SearchNode[] };
+type FileRead = { ids: string[]; nodes: readonly SearchNode[]; paneled: string[] };
 type SearchNode = { readonly type?: string; readonly name?: string };
 let presentRead: Promise<FileRead> | null = null;
 /** Moved by each write's start and end (`guarded`): a read begun before it does not leave its answer as the cache. */
@@ -1102,17 +1107,23 @@ let presentGen = 0;
  * Each page is loaded and then searched in its own turn, so no turn holds the thread for more than one page. A host
  * whose pages cannot be searched one at a time (a Node shim) is searched in one go, as before.
  */
-const searchPagesYielding = async (types: string[], onPage?: (done: number, total: number) => void): Promise<SearchNode[]> => {
-  const pages = figma.root.children as readonly { loadAsync?(): Promise<void>; findAllWithCriteria?(c: { types: string[] }): readonly SearchNode[] }[];
+const searchPagesYielding = async (types: string[], onPage?: (done: number, total: number) => void, panels?: SearchNode[]): Promise<SearchNode[]> => {
+  // #3137 Q3137.3 A: `panels`, when given, collects the usage panels too: the frames tagged with the panel key, by an indexed
+  // search of the same page in its own turn, so the census never searches the whole file in one turn either.
+  const PANEL_CRITERIA = { types: ['FRAME'], sharedPluginData: { namespace: DOC_PANEL_NS, keys: [DOC_PANEL_KEY] } };
+  const pages = figma.root.children as readonly { loadAsync?(): Promise<void>; findAllWithCriteria?(c: { types: string[]; sharedPluginData?: { namespace: string; keys: string[] } }): readonly SearchNode[] }[];
   if (!pages.every((p) => typeof p.findAllWithCriteria === 'function')) {
     await loadPagesYielding(onPage);
-    return [...(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[])];
+    if (panels) panels.push(...(figma.root.findAllWithCriteria(PANEL_CRITERIA as never) as readonly SearchNode[]));
+    return types.length ? [...(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[])] : [];
   }
   const out: SearchNode[] = [];
   onPage?.(0, pages.length);
   for (const [i, p] of pages.entries()) {
     if (typeof p.loadAsync === 'function') { await p.loadAsync(); await breathe(); }
-    out.push(...p.findAllWithCriteria!({ types }));
+    // No types: only the panels are asked for (Clean up, `panelRootYielding`).
+    if (types.length) out.push(...p.findAllWithCriteria!({ types }));
+    if (panels) { await breathe(); panels.push(...p.findAllWithCriteria!(PANEL_CRITERIA)); }
     onPage?.(i + 1, pages.length);
     await breathe();
   }
@@ -1137,6 +1148,27 @@ const hostApi = () => ({
  *  in the panel never loads every page or walks the file: that is the costly part on a large file. A write starting and
  *  ending clears them (`guarded`), so the next recount reads the file again. */
 let presentCache: string[] | null = null;
+/** #3137 Q3137.3 A: the leads whose usage panel the last census found drawn (`panel-census.ts`), beside `presentCache` and
+ *  cleared with it, so the badge's recount reads the panels with no page load. Null until a read has run the census. */
+let panelCache: string[] | null = null;
+/** #3137: the census, from a read's own searches: the panel frames it collected a page at a time, read against the set ids
+ *  it found (`readPresent` keeps it as `panelCache`). Never throws: an unreadable frame reads as no panel. */
+const panelCensus = (nodes: readonly SearchNode[], frames: readonly SearchNode[]): string[] => {
+  try {
+    const setIds = new Set(nodes.filter((n) => n.type === 'COMPONENT_SET').map((n) => String((n as { id?: string }).id ?? '')));
+    return paneledOf(livePanels({ findAllWithCriteria: () => frames } as unknown as CensusRoot).map((x) => x.tag), setIds);
+  } catch { return []; }
+};
+/** #3137 Q3137.7 A: the usage panels in the file, collected a page per turn by `searchPagesYielding`, as a root Clean up's
+ *  count and removal search (`panelsCleanCount`, `removeUneditedPanels`): it answers with those frames alone. */
+const panelRootYielding = async (): Promise<CensusRoot> => {
+  const frames: SearchNode[] = [];
+  await searchPagesYielding([], undefined, frames);
+  return { findAllWithCriteria: () => frames } as unknown as CensusRoot;
+};
+/** #3137 Q3137.3 A: the sets Update file offers a usage panel for, sent only while Documentation has panels on. */
+const unpaneledNow = (present: readonly string[], paneled: readonly string[]): { unpaneled: string[]; panelLeads: number } | Record<string, never> =>
+  readDocSettings(figma.root).panels ? { unpaneled: unpaneledOf(present, paneled), panelLeads: panelLeadsOf(present) } : {};
 /**
  * #3091: A SET ADDED, DELETED OR RENAMED BY HAND DROPS THE CACHED SETS, so the badge's next recount reads the file again
  * instead of counting a set the file no longer holds, or missing one it now does. Figma's `documentchange` reports every
@@ -1168,7 +1200,7 @@ const watchSets = (): void => {
   try {
     figma.on('documentchange', (e) => {
       if (presentCache === null || !movesSets(e.documentChanges as readonly SetChange[])) return;
-      presentCache = null; presentRead = null; presentGen++;
+      presentCache = null; panelCache = null; presentRead = null; presentGen++;
     });
     watchingSets = true;
   } catch { /* a host that refuses the listener: the sets are read again after each write, as before #3091 */ }
@@ -1307,7 +1339,9 @@ const thenRestamp = <A extends unknown[]>(fn: (...a: A) => Promise<void>) => asy
  *  a request asked meanwhile can be answered first; the panel tells the two apart by this. */
 const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
   try {
-    const { ids: present, nodes } = await readPresent(atOpen ? (done, total) => postProgress('read', { phase: 'work', item: null, done, total }) : undefined);
+    const { ids: present, nodes, paneled } = await readPresent(atOpen ? (done, total) => postProgress('read', { phase: 'work', item: null, done, total }) : undefined);
+    // #3137 Q3137.3 A: the sets with no usage panel, from the read's one search for panel tags.
+    const unpaneled = unpaneledNow(present, paneled);
     // #2909 Q2909.8 A: what is due, from the as-built ledger, one root read (`as-built-ledger.ts`), against the panel's brand.
     // #3082 Q811 A: a set whose engine moved is printed, a set at a time with the thread handed back, and is due only
     // when its plans moved.
@@ -1316,7 +1350,7 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const print = printNow(input);
     await printYielding(print, needsPrint(ledger, present, now));
     const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(atOpen ? { atOpen: true as const } : {}) });
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(nodes) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...unpaneled, ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
   }
@@ -1354,14 +1388,18 @@ const ledgerSets = async (): Promise<void> => {
  *  replaced. */
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
-    const present = presentCache ?? await presentDefs();
+    const cached = presentCache !== null && panelCache !== null ? { ids: presentCache, paneled: panelCache } : null;
+    const { ids: present, paneled } = cached ?? await readPresent();
+    // #3137 Q3137.3 A: the panels switch is read each time (one root read), so turning it on recounts with no page load;
+    // the census is the last read's (`panelCache`), kept beside its sets.
+    const unpaneled = unpaneledNow(present, paneled);
     // #3096 into #3090: printed as `fileSets` prints, against the panel's brand, or an engine-moved set whose drawing
     // changed would read `unrecorded` and the badge would not count it while the checklist lists it as Due.
     const ledger = readLedger(figma.root);
     const now = ledgerNow(input);
     const print = printNow(input);
     await printYielding(print, needsPrint(ledger, present, now));
-    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present) });
+    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }
@@ -1893,8 +1931,8 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
     if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
-    presentCache = null; presentRead = null; presentGen++;
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; presentRead = null; presentGen++; });
+    presentCache = null; panelCache = null; presentRead = null; presentGen++;
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; });
   };
 
 /**
@@ -1906,6 +1944,32 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
  * drives both the UI message and the agent command — a route pointed at a copy fails there by name.
  * Exported for that test only; nothing in the plugin imports it.
  */
+/**
+ * #3137 Q3137.7 A: UPDATE FILE › CLEAN UP'S USAGE PANELS, while Documentation has panels off. A count reads the live
+ * panels and how many still hold what was drawn; a removal re-reads the file and removes those (`removeUneditedPanels`),
+ * never a panel edited by hand. It only removes, as Prune stale does, and like it saves no version. Not a verdict in
+ * Activity: the Clean up tab shows its own line.
+ */
+const panelsClean = async (confirm: boolean, sink: ActionSink): Promise<void> => {
+  try {
+    // Pages loaded and searched one per turn (#3110, #3170), as the census reads them: never `loadAllPagesAsync` alone,
+    // never one document-wide search. The removal reads the file afresh this way too; the count after it reads the same
+    // frames, a removed one left out (`livePanels`).
+    const api = { root: await panelRootYielding() };
+    if (!confirm) {
+      const c = await panelsCleanCount(api);
+      sink.post({ type: 'panels-clean-result', ok: true, applied: false, drawn: c.drawn, removable: c.removable, removed: 0, kept: 0 });
+      return;
+    }
+    const r = await removeUneditedPanels(api);
+    sink.data({ panelsClean: r });
+    const c = await panelsCleanCount(api);
+    sink.post({ type: 'panels-clean-result', ok: r.misses.length === 0, applied: true, drawn: c.drawn, removable: c.removable, removed: r.removed, kept: r.kept, ...(r.misses.length ? { error: r.misses.join('; ') } : {}) });
+  } catch (e) {
+    sink.post({ type: 'panels-clean-result', ok: false, applied: confirm, drawn: 0, removable: 0, removed: 0, kept: 0, error: (e as Error)?.message ?? String(e) });
+  }
+};
+
 export const ACTIONS: AgentActions = {
   applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
   buildComponents: guarded('build-components', thenRestamp(buildComponents)),
@@ -1917,6 +1981,7 @@ export const ACTIONS: AgentActions = {
   captureBaseline: guarded('build-components', captureBaseline),
   adoptMembers: guarded('build-components', adoptMembers),
   drawSpecs: guarded('build-components', drawSpecs),
+  panelsClean: guarded('prune', panelsClean, (confirm) => confirm),
 };
 
 /**
@@ -1936,7 +2001,7 @@ const dispatch = createDispatcher({
   // #1957: an agent's write of an operation that is already running is declined before it starts.
   refuse: (c) => {
     const held = guardFor(c.cmd);
-    if (!held || !writes(held, c.cmd === 'prune' ? c.args.confirm : undefined) || !guard.busy(held)) return null;
+    if (!held || !writes(held, c.cmd === 'prune' ? c.args.confirm : c.cmd === 'panels-clean' ? c.args.confirm === true : undefined) || !guard.busy(held)) return null;
     return { message: busyMessage(held), post: refusal(held, true) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
@@ -2080,6 +2145,10 @@ onUiMessage((msg: UiToMain) => {
       // Q412 A — the confirmed cleanup. A write under the style guide's own guard: never while a run is drawing.
       if (guard.busy('style-guide')) { uiSink.post(refusal('style-guide', false)); return; }
       void guard.run('style-guide', () => styleGuideCleanup(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], uiSink));
+      return;
+    case 'panels-clean':
+      // #3137 Q3137.7 A: Clean up's usage panels, through the same action and guard as the agent's `panels-clean`.
+      void ACTIONS.panelsClean(msg.confirm === true, uiSink);
       return;
     case 'style-guide-cancel':
       // S11.2 (P7) — read by the running style guide after its current table; nothing running, nothing to stop.

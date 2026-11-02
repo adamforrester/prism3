@@ -87,9 +87,13 @@ export type HostMessage =
   // what the as-built ledger says each present set is: current, due and why, or not recorded.
   // #3110: `partial` when the host read it from the ledger alone at open, before any page loaded.
   // #3129 Q833 A: `queued`, the file's add queue as the host reads it (the sets the file lacks, none it cannot build).
-  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; queued: readonly string[]; partial?: boolean; atOpen?: boolean }
+  // #3137 Q3137.3 A: `unpaneled`, while Documentation has panels on, the present sets that lead a family and have no
+  // live usage panel; absent while panels are off, and on the ledger's read at open.
+  | { kind: 'file-sets'; present: readonly string[]; setUp: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; queued: readonly string[]; partial?: boolean; atOpen?: boolean; unpaneled?: readonly string[]; panelLeads?: number }
   // #3081 Q810 A — the badge's live recount: what is due against the panel's brand, and whether the file holds it.
-  | { kind: 'file-due'; seq: number; present: readonly string[]; theme: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; queued: readonly string[] }
+  | { kind: 'file-due'; seq: number; present: readonly string[]; theme: boolean; error: string | null; due: Readonly<Record<string, SetDueView>>; queued: readonly string[]; unpaneled?: readonly string[]; panelLeads?: number }
+  // #3137 Q3137.7 A — Clean up's usage panels: a count (`applied` false) or a removal's outcome.
+  | { kind: 'panels-clean-result'; applied: boolean; drawn: number; removable: number; removed: number; kept: number; error: string | null }
   // #3129 Q833 A — the answer to a queue write: the add queue after it.
   | { kind: 'add-queue'; queued: readonly string[]; error: string | null }
   // #2909 Q2909.8 A — one set's hand edits from the background pass after load, or its end.
@@ -199,6 +203,9 @@ export interface HostCommit {
   /** #3170 Q3170.4 A: "Stop after <set>": the running update stops at its next set boundary (`update-stop`). Figma only;
    *  inert on the web. */
   postUpdateStop(): void;
+  /** #3137 Q3137.7 A: Clean up's usage panels: count them (`confirm` false) or remove the unedited ones (`panels-clean`).
+   *  Figma only; inert on the web. */
+  postPanelsClean(confirm: boolean): void;
   /** #2909: update `defs` in place under the check's hash (`update-sets`). Figma only; inert on the web. */
   postUpdateSets(defs: readonly string[], previewHash: string, handEdits: 'keep' | 'overwrite' | 'accept', input: unknown): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
@@ -508,10 +515,16 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   // #2909. Ids that are not strings are dropped; a malformed `setUp` reads as not set up, the claim that asks for more.
   'file-sets': (m) => ({ kind: 'file-sets', present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [], setUp: m.setUp === true,
-    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), queued: idsOf(m.queued), ...(m.partial === true ? { partial: true } : {}), ...(m.atOpen === true ? { atOpen: true } : {}) }),
+    error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), queued: idsOf(m.queued), ...(m.partial === true ? { partial: true } : {}), ...(m.atOpen === true ? { atOpen: true } : {}),
+    ...(Array.isArray(m.unpaneled) ? { unpaneled: idsOf(m.unpaneled), panelLeads: typeof m.panelLeads === 'number' && m.panelLeads >= 0 ? Math.floor(m.panelLeads) : idsOf(m.unpaneled).length } : {}) }),
   // #3081 Q810 A. An answer with no number to match is dropped; a malformed `theme` reads as nothing to apply.
   'file-due': (m) => (typeof m.seq === 'number' ? { kind: 'file-due', seq: m.seq, present: Array.isArray(m.present) ? (m.present as unknown[]).filter(str) : [],
-    theme: m.theme === true, error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), queued: idsOf(m.queued) } : null),
+    theme: m.theme === true, error: str(m.error) && m.error ? m.error : null, due: dueOf(m.due), queued: idsOf(m.queued),
+    ...(Array.isArray(m.unpaneled) ? { unpaneled: idsOf(m.unpaneled), panelLeads: typeof m.panelLeads === 'number' && m.panelLeads >= 0 ? Math.floor(m.panelLeads) : idsOf(m.unpaneled).length } : {}) } : null),
+  'panels-clean-result': (m) => {
+    const n = (x: unknown): number => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : 0);
+    return { kind: 'panels-clean-result', applied: m.applied === true, drawn: n(m.drawn), removable: n(m.removable), removed: n(m.removed), kept: n(m.kept), error: str(m.error) && m.error ? m.error : null };
+  },
   // #3129 Q833 A. An answer with no queue list is dropped: the panel's own `add-queue` request shares the type and carries
   // none. Ids that are not strings are dropped.
   'add-queue': (m) => (Array.isArray(m.queued) ? { kind: 'add-queue', queued: idsOf(m.queued), error: str(m.error) && m.error ? m.error : null } : null),
@@ -614,6 +627,9 @@ const figmaCommit = (): HostCommit => ({
   postUpdateStop() {
     post({ type: 'update-stop' });
   },
+  postPanelsClean(confirm) {
+    post({ type: 'panels-clean', confirm });
+  },
   saveDocSettings(settings) {
     post({ type: 'doc-settings-save', settings });
   },
@@ -655,6 +671,7 @@ const webCommit = (): HostCommit => ({
   requestUpdateCheck() {/* no file on web (#2909) */},
   postUpdateSets() {/* no file on web (#2909) */},
   postUpdateStop() {/* no file on web (#3170) */},
+  postPanelsClean() {/* no file on web (#3137) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
 });

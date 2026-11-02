@@ -66,7 +66,9 @@
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
  * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7); its `catch` posting
- * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`; `fileDue` calling
+ * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`; #3137's panels census
+ * (Q3137.3 A): the search dropped from `readPresent` → `q3137/premise`; `fileDue` reading the file again for it → `q3137/cheap`;
+ * the switch not read on the recount → `q3137/off`; nor on the full read (`fileSets`) → `q3137/off read`; `fileDue` calling
  * `dueOf` without `printNow(input)`, so an engine-moved set reads `unrecorded` → `q810/engine`; `ledgerSets` the same → `q810/engine at open`; `printNow` projecting on every call (`printMemo` unused) → `q810/memo`
  * (#3096 into #3090).
  */
@@ -608,6 +610,40 @@ ok(pageLoads === 1 && dW?.present?.includes('badge'), `q810/after a write: a wri
 pageLoads = 0;
 await ask({ type: 'due-request', input: brandB, seq: 7 }, 'file-due');
 ok(pageLoads === 0, `q810/cheap again: the recount after that reuses the sets read (${pageLoads} page loads)`);
+// #3137 Q3137.3 A: THE PANELS CENSUS, through the real `main.ts`. Badge was built with Documentation's panels on, so it has
+// its live panel. A designer deletes it: the next full read lists Badge among the sets with no usage panel, the recount
+// after it says the same with no page load, panels off sends no list (still no page load: the switch is read each time),
+// and panels back on lists it again. Mutations: the census search dropped from `readPresent` → `q3137/premise`; `fileDue`
+// reading the file again for the census → `q3137/cheap`; the switch not read on the recount → `q3137/off`; nor on the
+// full read → `q3137/off read`.
+{
+  const livePanel = (): { remove(): void } | undefined => ((root.findAllWithCriteria as (c: unknown) => unknown[])({ types: ['FRAME'], sharedPluginData: { namespace: 'prism3', keys: ['docPanel'] } }) as { getSharedPluginData?(n: string, k: string): string; removed?: boolean; remove(): void }[])
+    .find((n) => !n.removed && (() => { try { const t = JSON.parse(n.getSharedPluginData?.('prism3', 'docPanel') || 'null'); return t?.def === 'badge' && t.state === 'live'; } catch { return false; } })());
+  const before = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+  ok(!!livePanel() && !(before?.unpaneled ?? []).includes('badge') && Array.isArray(before?.unpaneled),
+    `q3137/premise: Badge's live panel is drawn, so the read does not list it (${JSON.stringify(before?.unpaneled)})`);
+  livePanel()!.remove();
+  const after = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+  ok((after?.unpaneled ?? []).includes('badge') && typeof after?.panelLeads === 'number' && after.panelLeads >= after.unpaneled!.length,
+    `q3137/census: with its panel deleted, the read lists Badge among the sets with no usage panel (${JSON.stringify(after?.unpaneled)} of ${after?.panelLeads})`);
+  pageLoads = 0;
+  const live = (await ask({ type: 'due-request', input: brandB, seq: 30 }, 'file-due'))[0];
+  ok(pageLoads === 0 && (live?.unpaneled ?? []).includes('badge'), `q3137/cheap: the recount lists it too, from the read's census, with no page load (${pageLoads} page loads; ${JSON.stringify(live?.unpaneled)})`);
+  pluginData.set('prism3:docSettings', '{"panels":false}');
+  const offD = (await ask({ type: 'due-request', input: brandB, seq: 31 }, 'file-due'))[0];
+  pluginData.delete('prism3:docSettings');
+  const onD = (await ask({ type: 'due-request', input: brandB, seq: 32 }, 'file-due'))[0];
+  ok(pageLoads === 0 && offD?.unpaneled === undefined && (onD?.unpaneled ?? []).includes('badge'),
+    `q3137/off: with panels off the recount sends no list, and turned back on it lists Badge again, both with no page load (${pageLoads} page loads; off ${JSON.stringify(offD?.unpaneled)}, on ${JSON.stringify(onD?.unpaneled)})`);
+  // The full read is gated on its own (`fileSets`' `unpaneledNow`): the studio trusts an absent list, so a read that sent
+  // one with panels off would offer the group, and Clean up's removal, at once.
+  pluginData.set('prism3:docSettings', '{"panels":false}');
+  const offS = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+  pluginData.delete('prism3:docSettings');
+  const onS = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+  ok(offS !== undefined && offS.unpaneled === undefined && offS.panelLeads === undefined && (onS?.unpaneled ?? []).includes('badge'),
+    `q3137/off read: with panels off the full read sends no list, and turned back on it lists Badge again (off ${JSON.stringify(offS?.unpaneled)}/${JSON.stringify(offS?.panelLeads)}, on ${JSON.stringify(onS?.unpaneled)})`);
+}
 // A recount that cannot read the file says so (`error`), so the panel falls back to the load's read instead of drawing
 // an answer with nothing due. Another write clears the cached sets, and the read after it is refused.
 await build('badge');

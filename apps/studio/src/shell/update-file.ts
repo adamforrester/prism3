@@ -27,9 +27,16 @@
  * empty queue shows no To add at all (R7); a file that is not set up starts empty and still offers Add all, which
  * writes every set it lacks into the queue (Q3129.9 A, Q3129.10 A, kept). With neither group, no Components section.
  *
+ * USAGE PANELS (#3137, Q3137.1 A, Q3137.2 A, Q3137.4 A, Q3137.5 A): the third subtitle under Components, after To add and
+ * Due, while Documentation has panels on and a set in the file has no usage panel (`panelSetsOf`). One tick, "Draw {n}
+ * usage panels", on by default; up to six names inline, past six under "Show the {n} sets", closed. The panels ride the
+ * in-place update: the scoped check reads these sets with Due, and the update step takes them (`updateDefsOf`). The
+ * section's line "Saves a version first…" closes it and covers them too. The badge counts the group as one item.
+ *
  * CLEAN UP: Prune stale, moved here with its own preview (Q668 A): the preview runs as the tab opens and writes nothing;
  * its Delete is the confirmed prune. It never rides Update. The style guide's retired tables (Q412 A) are offered here
- * too, after a run that found some.
+ * too, after a run that found some. While Documentation has panels off, the usage panels drawn while it had them on are
+ * offered too (#3137 Q3137.7 A): counted as the tab opens, removed on Remove, the hand-edited ones kept.
  *
  * DIALOG: modal (`aria-modal`), focus into it as it opens and back to the button as it closes, by any path; Escape and a
  * click on the scrim close it; Tab stays inside (`trapTab`). A repaint keeps focus on the same control (`data-key`) and
@@ -41,7 +48,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { awaitingRead, badgeParts, defaultTicks, dueSetsOf, newSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updatableOf, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, newSetsOf, panelSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
 
@@ -77,7 +84,12 @@ export type UpdateFileLend = {
     readonly rowState: (id: string) => 'updating' | 'updated' | null;
     /** #3170 Q3170.4 A: the run's Stop, "Stop after <set>", as the status strip words it; null with no run. */
     readonly stopLabel: () => string | null;
+    /** #3137 Q3137.7 A: Documentation has the usage panels off, as the host last said; and Clean up's panels item. */
+    readonly panelsOff: boolean;
+    readonly panelsClean: { readonly busy: false | 'count' | 'remove'; readonly count: { readonly drawn: number; readonly removable: number } | null };
   };
+  /** #3137 Q3137.7 A: count the drawn usage panels (`confirm` false), or remove the unedited ones (`panels-clean`). */
+  readonly panelsClean: (confirm: boolean) => void;
   /** #3129: queue `ids` in the file (`on`), or take them out (`add-queue`). */
   readonly queueSets: (ids: readonly string[], on: boolean) => void;
   /** Ask the host which sets the file holds (`file-sets-request`). `theme`: whether Theme is ticked, which decides the
@@ -114,6 +126,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   let ticks: Ticks | null = null;
   /** Clean up's preview was asked for in this opening. */
   let pruneAsked = false;
+  /** #3137: Clean up's panel count was asked for in this opening; the Usage panels group's names are shown. */
+  let panelsAsked = false;
+  let panelsOpen = false;
   /** The sets this opening asked the scoped check for, or null before it has (Q2909.8 A). */
   let checkedFor: readonly string[] | null = null;
   /** A Theme toggle asked the file again (#3023): its answer ticks the due sets afresh. */
@@ -134,6 +149,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     open = true;
     tab = 'update';
     pruneAsked = false;
+    panelsAsked = false;
+    panelsOpen = false;
     checkedFor = null;
     rechecking = false;
     seen.clear();
@@ -210,7 +227,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     asked = undefined;
     if (rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
-    ticks ??= defaultTicks(r.catalog, f);
+    ticks ??= defaultTicks(r.catalog, f, r.queue);
     const t = ticks;
     const fresh = !f.setUp;
     const body: HTMLElement[] = [];
@@ -233,8 +250,12 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const addable = newSetsOf(r.catalog, f);
     const due = dueSetsOf(r.catalog, f);
     const unrec = unrecordedOf(r.catalog, f);
-    // The full check, over the due sets alone, once per opening, as soon as the ledger's answer is in.
-    if (due.length && checkedFor === null) { checkedFor = due; lend.checkSets(due, t.theme); }
+    // #3137: the sets with no usage panel, less Due and the queue.
+    const panelSets = panelSetsOf(r.catalog, f, r.queue);
+    // The full check, over the due sets (and, #3137 Q3137.2 A, the panel sets while ticked), once per opening, as soon as
+    // the ledger's answer is in.
+    const scope = checkScopeOf(due, t, panelSets);
+    if (scope.length && checkedFor === null) { checkedFor = scope; lend.checkSets(scope, t.theme); }
     const chk = r.updateCheck;
     const answered = chk && chk !== 'pending' && checkedFor !== null ? chk : null;
     const checkOf = (id: string): CheckedSetView | undefined => answered?.sets.find((c) => c.def === id);
@@ -330,7 +351,6 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       // One choice for every hand edit the update meets (the owner's starter-kit posture: Keep, by default). Since #3083
       // (the owner's Q3083.3 A) a compact select in the foot, before Cancel and Update file, built below.
       handN = [...t.update].reduce((n, id) => n + (checkOf(id)?.handEdited ?? r.handEdits.get(id)?.edited ?? 0), 0);
-      if (t.update.size) sets.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
     }
     if (unrec.length && !unrec.every((id) => t.update.has(id) || checkOf(id))) {
       // Built before the ledger: only the full check can say. Checked, each one with changes joins the update, ticked.
@@ -345,13 +365,50 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     // Due is drawn while a set is due or unchecked (the check offered below); a file with neither has no Due group, and
     // with neither group there is no Components section.
     if (updating.length || unrec.length) comps.append(sets);
+    // #3137 Q3137.1 A: Usage panels, the third subtitle: one tick for the group, then the names (Q3137.5 A).
+    if (panelSets.length) {
+      const grp = hook(h('div', 'p3-upd-group'), 'update-group-panels');
+      grp.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.panels));
+      grp.append(check('update-check-panels', 'item=panels', t.panels, [h('span', undefined, UPDATE_COPY.panelsTick(panelSets.length))], () => {
+        ticks = { ...t, panels: !t.panels };
+        // The scoped check reads the panel sets only while ticked, so a toggle asks it again over the new scope.
+        checkedFor = null;
+      }));
+      const all = (f.unpaneled?.length ?? 0) >= (f.panelLeads ?? Infinity);
+      grp.append(hook(h('p', 'p3-sub p3-upd-sub', all ? UPDATE_COPY.panelsAll : UPDATE_COPY.panelsSome(panelSets.length)), 'update-panels-line'));
+      const list = hook(h('div', 'p3-upd-sets'), 'update-panels-sets');
+      for (const id of panelSets) {
+        const row = hook(h('div', 'p3-upd-addrow'), 'update-panels-row');
+        row.dataset.id = id;
+        row.append(h('span', 'p3-upd-setname', nameOf(id)));
+        list.append(row);
+      }
+      if (panelSets.length > PANELS_INLINE) {
+        // Past six, the names sit under a disclosure, closed as the checklist opens.
+        const more = hook(h('button', 'p3-btn p3-btn-ghost p3-upd-disclose'), 'update-panels-show');
+        more.type = 'button';
+        more.dataset.key = 'panels-show';
+        more.setAttribute('aria-expanded', String(panelsOpen));
+        more.setAttribute('aria-controls', 'p3-upd-panels-sets');
+        more.append(glyph('chev'), document.createTextNode(UPDATE_COPY.panelsShow(panelSets.length)));
+        more.onclick = () => { panelsOpen = !panelsOpen; paint(); };
+        list.id = 'p3-upd-panels-sets';
+        list.hidden = !panelsOpen;
+        grp.append(more);
+      }
+      grp.append(list);
+      comps.append(grp);
+    }
+    // The section's last line (#3137): a version is saved before the update, Due and the panels alike.
+    if (t.update.size || (t.panels && panelSets.length)) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
     if (comps.children.length > 1) body.push(comps);
     body.push(item('guides', t.guides, UPDATE_COPY.guides, UPDATE_COPY.guidesSub, () => { ticks = { ...t, guides: !t.guides }; }));
     const t2 = ticks ?? t;
     // The update waits on the check's answer: its counts are what the person reviews, and its hash what the update echoes.
-    const updatable = answered ? updatableOf(t2, answered) : [];
+    const updatable = answered ? updateDefsOf(t2, answered, panelSets) : [];
     const steps = stepsOf({ ...t2, update: new Set(updatable) }, f, queue);
-    const waiting = t2.update.size > 0 && !answered;
+    const asks = t2.update.size > 0 || (t2.panels && panelSets.length > 0);
+    const waiting = asks && !answered;
     const go = hook(h('button', 'p3-btn p3-btn-primary'), 'update-go');
     go.type = 'button';
     go.dataset.key = 'go';
@@ -359,7 +416,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     go.disabled = steps.length === 0 || !!r.off || waiting;
     if (r.off) go.title = r.off;
     go.onclick = () => {
-      if (go.disabled || !answered && t2.update.size) return;
+      if (go.disabled || !answered && asks) return;
       const exact = !!answered && checkedFor !== null && updatable.length === checkedFor.length && updatable.every((id) => checkedFor!.includes(id));
       lend.run(steps, steps.includes('sets') ? queue : [],
         updatable.length && answered ? { defs: updatable, previewHash: exact ? answered.previewHash : '', checked: answered.sets, handEdits: t2.handEdits } : null);
@@ -406,6 +463,21 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       if (r.off) { del.disabled = true; del.title = r.off; }
       foot.push(del);
     } else if (p.verdict) body.push(hook(h('p', 'p3-upd-summary', p.verdict.count === 0 && !p.verdict.applied ? UPDATE_COPY.cleanNone : p.verdict.summary), 'clean-prune-result'));
+    // #3137 Q3137.7 A: while Documentation has panels off, the panels drawn while it had them on; edited ones stay.
+    // A count already out (Documentation asks when panels turn off) is this opening's: its answer is the one drawn.
+    if (r.panelsOff && !panelsAsked) { panelsAsked = true; if (!r.panelsClean.busy) lend.panelsClean(false); }
+    const pc = lend.read().panelsClean;
+    if (r.panelsOff && pc.count && pc.count.drawn > 0) {
+      const box = hook(h('div', 'p3-upd-item'), 'clean-panels');
+      box.append(hook(h('p', 'p3-upd-summary', UPDATE_COPY.cleanPanels(pc.count.drawn)), 'clean-panels-summary'), h('p', 'p3-sub', UPDATE_COPY.cleanPanelsKeep));
+      body.push(box);
+      if (pc.count.removable > 0) {
+        const rm = btn('p3-btn p3-btn-primary', 'clean-panels-confirm', 'panels', UPDATE_COPY.removePanels(pc.count.removable), () => lend.panelsClean(true));
+        rm.disabled = !!pc.busy || !!r.off;
+        if (r.off) rm.title = r.off;
+        foot.push(rm);
+      }
+    }
     if (r.retired.length) {
       const box = hook(h('div', 'p3-upd-item'), 'clean-tables');
       const ul = h('ul', 'p3-sg-cleanup-list');
@@ -424,7 +496,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const r = lend.read();
     setBusy(button, !!r.run);
     const parts = badgeParts(r.catalog, r.fileSets, r.liveDue, r.queue);
-    const n = parts.add + parts.due + (parts.theme ? 1 : 0);
+    const n = parts.add + parts.due + (parts.theme ? 1 : 0) + (parts.panels ? 1 : 0);
     badge.textContent = n ? String(n) : '';
     badge.hidden = !n;
     if (n) button.setAttribute('aria-label', UPDATE_COPY.badgeName(parts)); else button.removeAttribute('aria-label');

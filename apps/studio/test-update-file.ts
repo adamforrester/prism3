@@ -26,6 +26,12 @@
  * steps: … the in-place update runs before the new sets are added`; a hand-edited set read as Up to date → `Q2909.8 A
  * status: a hand-edited set reads Hand-edited …`.
  *
+ * USAGE PANELS (#3137, Q3137.1–5 A): the sets with no usage panel, less Due and the queue, are one group with one tick, on
+ * by default; the scoped check reads them while ticked, and the update step takes them beside the ticked Due sets; the
+ * badge counts the group as one item and names it. Mutations that fail here by name: `panelSetsOf` keeping a Due set →
+ * `Q3137.1 A panels: a Due set is left out …`; the group dropped from `badgeCount` → `Q3137.4 A badge: the group counts
+ * as one item …`; `updateDefsOf` ignoring the tick → `Q3137.2 A update: the panel sets join …`.
+ *
  * THE BADGE, LIVE (#3081, the owner's decision Q810 A): it counts everything Update file would change. That is the sets
  * due against the brand the panel holds, by the live recount (`file-due`) once one has answered, plus one item for Theme
  * changes the file does not hold. The recount's newest answer wins, so an answer overtaken by a newer request never
@@ -34,7 +40,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, awaitingRead, badgeCount, badgeParts, defaultTicks, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -134,9 +140,9 @@ ok(same(queuedOf(CATQ, FILEQ, ['focus-ring', 'retired', 'tag', 'tag']), ['tag'])
 ok(same(queuedOf(CATQ, null, ['tag']), []) && same(queuedOf(CATQ, FILEQ, null), []), 'queue: nothing before the host has read the file or the queue');
 ok(same(newSetsOf(CATQ, FILEQ), ['tag', 'badge']), 'queue: Add all and the boxes offer the buildable sets the file lacks');
 const DUEQ = { present: ['button'], setUp: true, error: null, due: { button: { state: 'due', reason: 'definition' } } } as const;
-ok(same(badgeParts(CATQ, DUEQ, null, ['tag', 'badge', 'button']), { add: 2, due: 1, theme: false }) && badgeCount(CATQ, DUEQ, null, ['tag', 'badge', 'button']) === 3,
+ok(same(badgeParts(CATQ, DUEQ, null, ['tag', 'badge', 'button']), { add: 2, due: 1, theme: false, panels: false }) && badgeCount(CATQ, DUEQ, null, ['tag', 'badge', 'button']) === 3,
   'Q3129.11 A badge: the queue counts, the sets the file lacks only, beside the due sets (2 to add, 1 due: 3)');
-ok(same(badgeParts(CATQ, DUEQ, { present: ['button', 'tag'], theme: true, error: null, due: DUEQ.due }, ['tag', 'badge']), { add: 1, due: 1, theme: true }),
+ok(same(badgeParts(CATQ, DUEQ, { present: ['button', 'tag'], theme: true, error: null, due: DUEQ.due }, ['tag', 'badge']), { add: 1, due: 1, theme: true, panels: false }),
   'Q3129.11 A badge: against the live recount, the queue counts the sets that recount found missing, and Theme counts as its own part');
 ok(UPDATE_COPY.badgeName({ add: 7, due: 3, theme: false }) === 'Update file, 7 to add, 3 due' && UPDATE_COPY.badgeName({ add: 7, due: 3, theme: true }) === 'Update file, 7 to add, 3 due, theme'
   && UPDATE_COPY.badgeName({ add: 0, due: 2, theme: false }) === 'Update file, 2 due' && UPDATE_COPY.badgeName({ add: 0, due: 0, theme: true }) === 'Update file, theme',
@@ -176,6 +182,38 @@ const fd = (seq: number, theme: boolean) => ({ kind: 'file-due' as const, seq, p
 const s2 = reduce(reduce(initialHostSession(), fd(2, true)), fd(1, false));
 ok(s2.liveDue?.seq === 2 && s2.liveDue.theme === true, `Q810 A recount: an answer overtaken by a newer request never shows (held seq ${s2.liveDue?.seq})`);
 ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control): a newer answer replaces the one held');
+
+// ── #3137: the Usage panels group ───────────────────────────────────────────────────────────────────────────────────
+{
+  const CATP = [entry('button'), entry('tag'), entry('badge'), entry('divider'), entry('icon')] as unknown as Catalog;
+  const FP = { present: ['button', 'tag', 'badge', 'divider', 'icon'], setUp: true, error: null,
+    due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'current' }, badge: { state: 'current' }, divider: { state: 'current' } },
+    unpaneled: ['divider', 'button', 'badge'], panelLeads: 4 } as const;
+  ok(same(panelSetsOf(CATP, FP), ['badge', 'divider']),
+    `Q3137.1 A panels: a Due set is left out (its update draws the panel), and the rest are listed in catalog order (${JSON.stringify(panelSetsOf(CATP, FP))})`);
+  ok(same(panelSetsOf(CATP, FP, ['badge']), ['divider']), 'Q3137.1 A panels: a queued set is left out too: its build draws the panel');
+  ok(same(panelSetsOf(CATP, { ...FP, unpaneled: undefined }), []) && same(panelSetsOf(CATP, null), []), 'Q3137.1 A panels: with panels off (no list from the host), or before any read, the group is empty');
+  const tp = defaultTicks(CATP, FP);
+  ok(tp.panels === true && same([...tp.update], ['button']), `Q3137.1 A ticks: the group's one tick is on by default, beside the due sets (${tp.panels})`);
+  ok(defaultTicks(CATP, { ...FP, unpaneled: ['button'] }).panels === false, 'Q3137.1 A ticks: with nothing to list (only a Due set lacks its panel), no tick is on');
+  ok(same(checkScopeOf(['button'], tp, panelSetsOf(CATP, FP)), ['button', 'badge', 'divider']) && same(checkScopeOf(['button'], { panels: false }, ['badge']), ['button']),
+    'Q3137.2 A check: the scoped check reads the panel sets with Due while ticked, and Due alone when not');
+  const check = { sets: [{ def: 'button', blocked: false }, { def: 'badge', blocked: false }, { def: 'divider', blocked: true }] as never };
+  ok(same(updateDefsOf(tp, check, ['badge', 'divider']), ['button', 'badge']),
+    'Q3137.2 A update: the panel sets join the ticked Due sets in the update step, less one the check blocked');
+  ok(same(updateDefsOf({ ...tp, panels: false }, check, ['badge', 'divider']), ['button']), 'Q3137.2 A update: unticked, the panel sets stay out of the update');
+  ok(same(stepsOf({ ...tp, update: new Set(updateDefsOf({ ...tp, update: new Set() }, check, ['badge'])) }, FP, []).includes('update'), true),
+    'Q3137.2 A steps: with only the panels ticked, the in-place update step runs');
+  const bp = badgeParts(CATP, FP, null, null);
+  ok(same(bp, { add: 0, due: 1, theme: false, panels: true }) && badgeCount(CATP, FP, null, null) === 2,
+    `Q3137.4 A badge: the group counts as one item however many sets it lists (${JSON.stringify(bp)}: ${badgeCount(CATP, FP, null, null)})`);
+  const live = { present: FP.present, theme: false, error: null, due: FP.due, unpaneled: [] as string[] };
+  ok(badgeParts(CATP, FP, live, null).panels === false, 'Q3137.4 A badge: the live recount\'s census replaces the read\'s, so a group it finds empty does not count');
+  ok(UPDATE_COPY.badgeName({ add: 2, due: 2, theme: false, panels: true }) === 'Update file, 2 to add, 2 due, usage panels'
+    && UPDATE_COPY.badgeName({ add: 0, due: 0, theme: false, panels: true }) === 'Update file, usage panels',
+    `Q3137.4 A badge name: ", usage panels" when the group counts (${UPDATE_COPY.badgeName({ add: 2, due: 2, theme: false, panels: true })})`);
+  ok(UPDATE_COPY.panelsTick(35) === 'Draw 35 usage panels' && UPDATE_COPY.panelsTick(1) === 'Draw 1 usage panel', 'Q3137.1 A tick: "Draw {n} usage panels", singular for one');
+}
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);
