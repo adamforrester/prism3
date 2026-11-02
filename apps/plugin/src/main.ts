@@ -59,7 +59,7 @@ import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
-import { livePanels, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
+import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
 import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -1128,7 +1128,7 @@ const searchPagesYielding = async (types: string[], onPage?: (done: number, tota
   };
   if (!pages.every((p) => typeof p.findAllWithCriteria === 'function')) {
     await loadPagesYielding(onPage);
-    if (panels) panels.push(...(figma.root.findAllWithCriteria(PANEL_CRITERIA as never) as readonly SearchNode[]));
+    if (panels) panels.push(...livePanelsOf(figma.root.findAllWithCriteria(PANEL_CRITERIA as never) as readonly PNode[]).map((x) => x.node));
     if (types.length) keep(figma.root.findAllWithCriteria({ types: types as NodeType[] }) as readonly SearchNode[]);
     return out;
   }
@@ -1137,7 +1137,9 @@ const searchPagesYielding = async (types: string[], onPage?: (done: number, tota
     if (typeof p.loadAsync === 'function') { await p.loadAsync(); await breathe(); }
     // No types: only the panels are asked for (Clean up, `panelRootYielding`).
     if (types.length) keep(p.findAllWithCriteria!({ types }));
-    if (panels) { await breathe(); panels.push(...p.findAllWithCriteria!(PANEL_CRITERIA)); }
+    // Each panel's tag is read here, in its page's turn, and only the live panels are kept: the census then reads those
+    // alone, never every frame the file's searches found in one turn (#3301's pacing, `open/member-paced`).
+    if (panels) { await breathe(); panels.push(...livePanelsOf(p.findAllWithCriteria!(PANEL_CRITERIA) as readonly PNode[]).map((x) => x.node)); }
     onPage?.(i + 1, pages.length);
     await breathe();
   }

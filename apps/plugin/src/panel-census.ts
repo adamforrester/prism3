@@ -24,8 +24,12 @@ export type CensusRoot = Pick<PanelApi, 'root'>['root'];
 
 /** Every live usage panel in the file, with its tag: one indexed search, by the panel's own plugin-data key. */
 export const livePanels = (root: CensusRoot): { node: PNode; tag: PanelTag }[] =>
-  (root.findAllWithCriteria({ types: ['FRAME'], sharedPluginData: { namespace: DOC_PANEL_NS, keys: [DOC_PANEL_KEY] } }) as readonly PNode[])
-    .flatMap((node) => { const tag = readPanelTag(node); return tag && tag.state === 'live' && !node.removed ? [{ node, tag }] : []; });
+  livePanelsOf(root.findAllWithCriteria({ types: ['FRAME'], sharedPluginData: { namespace: DOC_PANEL_NS, keys: [DOC_PANEL_KEY] } }) as readonly PNode[]);
+
+/** The live usage panels among `nodes`, with their tags: each node's tag read once. The file read runs it over each page's
+ *  search in that page's turn, so a whole file's frames are never read in one turn. */
+export const livePanelsOf = (nodes: readonly PNode[]): { node: PNode; tag: PanelTag }[] =>
+  nodes.flatMap((node) => { const tag = readPanelTag(node); return tag && tag.state === 'live' && !node.removed ? [{ node, tag }] : []; });
 
 /** The leads whose panel is drawn: a live tag names the lead and a set id that is still a component set in the file. */
 export const paneledOf = (tags: readonly PanelTag[], setIds: ReadonlySet<string>): string[] =>
