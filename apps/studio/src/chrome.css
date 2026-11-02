@@ -197,6 +197,11 @@
 .p3-menu-privacy { margin: var(--p3-space-050) 0 0; padding: var(--p3-space-100) var(--p3-space-150) 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
   color: var(--p3-text-2); font-size: var(--p3-fs-12); width: 0; min-width: 100%; box-sizing: border-box; }
 .p3-menu-privacy + .p3-menu-stamp { margin-top: 0; border-top: 0; }
+/* #3147 (O2 B, owner, 2026-11-02): the open Inspect menu is at least 320px wide (two and a half start-window units), so
+   the privacy note wraps to about five lines on both hosts rather than to the stamp's width. A `width`, not a
+   `min-width`: `.p3-menu`'s `min-width: max-content` still wins when the items are wider. The wide tier only: the
+   narrow tier is never forced wider than its window (#3298 caps it there). */
+.p3-frame:not([data-w="narrow"]) .p3-menu[data-p3="inspect-menu"] { width: calc(var(--p3-dlg-unit) * 2.5); }
 .p3-menu-item > .p3-ico:last-child { visibility: hidden; color: var(--p3-icon); }
 .p3-menu-item[aria-checked="true"] { font-weight: var(--p3-fw-emphasis); }
 .p3-menu-item[aria-checked="true"] > .p3-ico:last-child { visibility: visible; }
