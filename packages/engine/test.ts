@@ -6697,8 +6697,31 @@ arm: {
     `badge corner: radius.sm is 2px in nb and prism3 and 4px in aurora (got ${JSON.stringify(smPx)})`);
   // The dot's size is its own fixed square, not the count's padding around nothing (the brief's ~6–12px dot).
   const dotPart: any = badgeDef.anatomy!.parts['dot'];
-  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'control.size.sm.dot' && JSON.stringify(dotPart?.presentWhen) === '{"type":["dot"]}',
-    `badge dot: a fixed square bound to control.size.sm.dot, present only at type dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
+  // #3226 (Q3226.1 A): the presence dot has its own size, `space.100`, the inline dot's, not the radio's dot rung.
+  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'space.100' && JSON.stringify(dotPart?.presentWhen) === '{"type":["dot"]}',
+    `badge dot: a fixed square bound to space.100, present only at type dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
+  // #3226 (Q3226.1 A): the dot as EMITTED is 8px in every brand and at every density. The 8 is the owner's figure, typed
+  // here; the px is read from each brand's built tree through whatever token the def binds, so a rebind to a token that
+  // follows the brand's radio-dot share (the reference brand's is 12px) or its density (6px at compact) fails, naming
+  // the brand. The emitted brands at their own density, then the example inputs rebuilt at each density.
+  {
+    const dotRef = String(badgeDef.tokens[dotPart?.size] ?? '');
+    const pxOf = (th: any): number | undefined => {
+      const tree = buildTree(th).tree as any;
+      return dotRef.split('.').reduce((n: any, k) => n?.[k], tree[Object.keys(tree)[0]])?.$extensions?.prism3?.px;
+    };
+    const rows: [string, any][] = loadedRows([
+      ['nb', nbTheme()],
+      ...(['prism3', 'aurora', 'harbor'] as const).map((b) => [b, exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput))] as [string, any]),
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+      ...(['prism3', 'aurora', 'harbor'] as const).flatMap((b) => (['compact', 'comfortable', 'spacious'] as const).map((density) =>
+        [`${b} (density ${density})`, exampleTheme(`${b} (density ${density})`, () => brandTheme({ ...(exampleBrands()[b] as BrandInput), density }))] as [string, any])),
+    ]);
+    const read = rows.map(([b, th]) => [b, pxOf(th)] as [string, number | undefined]);
+    const off = read.filter(([, px]) => px !== 8);
+    ok(read.length === 14 && off.length === 0,
+      `#3226 badge dot: the emitted presence dot is 8px in every brand and at every density (${read.length} of 14 read, through ${dotRef})${off.length ? ` — off: ${off.map(([b, px]) => `${b} ${px ?? 'unresolved'}px`).join(', ')}` : ''}`);
+  }
 
   const themes: [string, any][] = loadedRows([
     ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],

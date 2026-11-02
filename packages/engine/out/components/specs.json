@@ -27894,10 +27894,10 @@
               "part": "surface/dot",
               "values": {
                 "height": {
-                  "token": "control.size.sm.dot"
+                  "token": "space.100"
                 },
                 "width": {
-                  "token": "control.size.sm.dot"
+                  "token": "space.100"
                 }
               }
             }

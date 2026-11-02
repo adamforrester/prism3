@@ -173,7 +173,7 @@ Keyed by `size`, `style`, `type`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `surface` | `space.0` | `space.0` | — | — | — | — |
-| `surface/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+| `surface/dot` | — | — | `space.100` | `space.100` | — | — |
 
 ### Type
 

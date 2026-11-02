@@ -1835,6 +1835,12 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-frame[data-shell="rail"][data-place="components"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-place="components"] .p3-nav > .p3-search { margin-left: auto; }
 .p3-frame[data-place="components"] .p3-preview-head > .p3-modes-wrap { display: none; }
+/* #3149 (Q3149.1–.4, all A, the owner, 2026-11-01): Components shows no Inspect either, on both hosts, so its preview
+   header holds nothing. At wide widths the empty row stays, so the preview's divider still meets the levers header's at
+   one y (Q2). At the narrow tier the Preview pane has no levers pane beside it to line up with, so the row collapses.
+   Inspect stays on every Theme page, and with it the build stamp and the privacy note at its foot (Q3149.3 A). */
+.p3-frame[data-place="components"] .p3-preview-head > .p3-popwrap { display: none; }
+.p3-frame[data-w="narrow"][data-place="components"] .p3-preview-head { display: none; }
 
 /* ── Documentation (#2909, Q667 A, Q2909.21 A): a page no tab shows, full width, its own tab row ─────────── */
 .p3-docs {
