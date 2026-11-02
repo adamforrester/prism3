@@ -19,14 +19,17 @@
  *                    base fails by name. The base is read from git history, never from the tree, because a ceiling
  *                    in the tree is edited in the same commit as the entry it should refuse (docs/34 shape 6). Until
  *                    the register reached main, the base is SEED below: the suites measured failing strict on main
- *                    fa3c934b, each run alone with the strict default and no opt-out.
+ *                    fa3c934b, each run alone with the strict default and no opt-out. The register is PER SUITE, as
+ *                    Q-C8 A decided ("register of suites"): a listed suite can add more `looseHost` call sites and
+ *                    nothing here fails. What it holds is that no new suite opts out.
  *   · descriptors/…  the fixture says what was measured, and the shim models nodes as the fixture records them: the
  *                    day a real-host reading says node methods are fixed, `descriptors/node` fails until the shim
  *                    fixes its nodes too.
  *
  * BY-NAME MUTATIONS (proven red, then restored, in the PR): the default dropped (`makeShim` fixes nothing unless asked)
  * → `strict/figma`, `strict/root`, `strict/assign`, `strict/proxy`; a new register entry (with a suite that opts out
- * to match) → `register/shrink-only`.
+ * to match) → `register/shrink-only`; an unlisted suite that opts out by shorthand, with the register untouched
+ * (`const looseHost = '…'; makeShim({ looseHost, … })` in `test-cover-frame.ts`) → `register/unlisted`.
  */
 import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -100,7 +103,9 @@ type Register = { entries: Record<string, string> };
 const register = JSON.parse(readFileSync(resolve(REPO, REGISTER_PATH), 'utf8')) as Register;
 const entries = Object.keys(register.entries);
 {
-  // Every source under apps/, packages/ and tools/ that passes `looseHost:` with a string, by file name.
+  // Every source under apps/, packages/ and tools/ that names `looseHost` at all, by file name: a literal, a variable,
+  // a passthrough (`looseHost: o.reason`) or the shorthand `{ looseHost }` all opt out, since the shim honors any
+  // value. It errs toward over-listing: a comment that says `looseHost` counts too.
   const SKIP = new Set(['node_modules', 'dist', 'release', 'release-offline', 'out', '.git']);
   const SELF = new Set(['apps/plugin/component-shim.ts', 'apps/plugin/test-loose-host.ts']);
   const users = new Map<string, number>();
@@ -112,7 +117,7 @@ const entries = Object.keys(register.entries);
       if (!/\.(ts|mts|mjs|js)$/.test(name)) continue;
       const rel = relative(REPO, p).split('\\').join('/');
       if (SELF.has(rel)) continue;
-      const n = (readFileSync(p, 'utf8').match(/looseHost:\s*['"`]/g) ?? []).length;
+      const n = (readFileSync(p, 'utf8').match(/\blooseHost\b/g) ?? []).length;
       if (n) users.set(rel, n);
     }
   };
