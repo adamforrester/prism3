@@ -255,7 +255,8 @@ timings.push = (...e: { stage: string; ms: number }[]) => Array.prototype.push.c
 g.PRISM3_OPEN_TIMINGS = timings;
 
 const { ACTIONS } = await import('./src/main');
-const { dropViews } = await import('./src/member-views');
+const { dropViews, keptView } = await import('./src/member-views');
+const { freshView, readSetView } = await import('./src/update-plan');
 
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
 
@@ -854,8 +855,10 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   //   · `check/calls`: the check makes at most `CHECK_CAP` host calls. Mutations, each → `check/calls`: `fileBlockers`
   //     reading every component's name per set again; the check not given the pass's reads (`keptView` dropped).
   //   · `check/same`: the check's answer is the same, whole, whether it lays its plans against the pass's reads, against
-  //     them a second time, or against a fresh read of every set. Mutation: a kept view handed on without its `drawn`
-  //     read again → `check/same` (the stand-in's one glyph past its frame goes unreported).
+  //     them a second time, or against a fresh read of every set.
+  //   · `check/views`: every set the pass read is kept, and each kept read, as the check hands it on (`freshView`), is a
+  //     fresh read of the set field for field. Mutation: a kept view handed on without its `drawn` read again →
+  //     `check/views` (the stand-in's one glyph past its frame goes unreported).
   //   · `check/drops`: a hand edit made after the pass, heard as Figma's `documentchange`, is in the check's answer: the
   //     edited set is read again. Mutation: the listener's drop removed → `check/drops`.
   // Measured, not asserted: the check's host calls on a fresh read of every set.
@@ -872,6 +875,18 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   };
   const kept = await checkOf();
   const again = await checkOf();
+  const tsets = tdefs.filter((d) => !d.figmaProperties!.emitAsComponents).map((d) => ({ id: d.id, set: tpages.find((p) => p.name === d.id)!.children[0] }));
+  const noVars = new Map();
+  const viewWrong: string[] = [];
+  let keptN = 0;
+  for (const { id, set } of tsets) {
+    const kv = keptView(raws.get(set)!.id);
+    if (!kv) continue;
+    keptN++;
+    if (JSON.stringify(await freshView(kv, set, noVars)) !== JSON.stringify(await readSetView(set, undefined, noVars))) viewWrong.push(id);
+  }
+  ok(keptN === tsets.length && viewWrong.length === 0,
+    `check/views: the pass's read of each of the ${tsets.length} sets is kept, and as the check hands it on is the set's fresh read, field for field (${keptN} kept${viewWrong.length ? `; differ: ${viewWrong.slice(0, 5).join(', ')}` : ''})`);
   // A hand edit after the pass, on a set the stand-in left unedited, heard as Figma reports it.
   const touched = tdefs[unedited[1]].id;
   const tset = tpages.find((p) => p.name === touched)!.children[0];

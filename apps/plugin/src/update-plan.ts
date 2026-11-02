@@ -1179,7 +1179,7 @@ type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind
  * how each member draws against the file's variables (`drawn`), when the caller reads that, and the set's publish status.
  * Each member is the earlier read's, field for field, in the order `readMember` gives them.
  */
-const freshView = async (view: HostSetView, set: LiveSet, drawVars?: ReadonlyMap<string, DrawVar>): Promise<HostSetView> => {
+export const freshView = async (view: HostSetView, set: LiveSet, drawVars?: ReadonlyMap<string, DrawVar>): Promise<HostSetView> => {
   const byId = new Map<string, unknown>();
   if (drawVars) for (const c of set.children ?? []) byId.set(String((c as { id?: unknown }).id ?? ''), c);
   const members = view.members.map((m) => {
