@@ -850,7 +850,8 @@
           "inspect",
           "component-keys",
           "audit-frames",
-          "snapshot"
+          "snapshot",
+          "activity"
         ]
       }
     },
@@ -1704,6 +1705,27 @@
             "component-keys",
             "audit-frames",
             "snapshot"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "read-activity",
+      "label": "Read what Activity shows: each run's result and every problem's reason",
+      "group": "Write to Figma",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "activity, which writes nothing and lists the panel's own runs too",
+          "sources": [
+            "apps/plugin/src/activity-log.ts"
+          ],
+          "agentCommands": [
+            "activity"
           ],
           "connections": [
             "agent-link",

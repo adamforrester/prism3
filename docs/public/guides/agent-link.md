@@ -49,6 +49,7 @@ The Activity drawer's bar shows the link's state in a word: "Listening · bridge
 | `component-keys` | Lists the file's component sets and components with their keys, so another file can place them. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:82-83 --> |
 | `audit-frames` | Checks frames for what a rebuild should have replaced: old components, text with no style, colors bound to no variable, hand-drawn rules and unnamed frames. The agent supplies the old names. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:84-85 --> |
 | `snapshot` | Renders one layer as an image, as this session shows it. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:86-87 --> |
+| `activity` | Lists what Activity shows for this session, newest first: each run's result, its details, every set built with problems and why, and the plugin build that ran it. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:88-89 --> |
 
 Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-14 -->
 
@@ -59,7 +60,7 @@ Every write an agent asks for passes the same checks as Update file, and is refu
 - **While it is off, the plugin ignores the agent entirely.** A request waiting in the file does nothing, and the plugin holds no connection to the bridge. <!-- src: apps/plugin/src/agent-link.ts:6-8 --> <!-- src: apps/plugin/src/agent-link-ui.ts:326-327 -->
 - **Old requests are not replayed.** A request already waiting when you turn the link on is answered "stale" and not run; the agent has to send it again. <!-- src: apps/plugin/src/agent-link.ts:146-158 -->
 - **One request at a time.** The plugin runs requests in the order sent, never two at once, and never while the same write is running from Update file. <!-- src: apps/plugin/src/agent-link.ts:14-18 -->
-- **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:45-48 --> <!-- src: apps/plugin/src/agent-dispatch.ts:248 -->
+- **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:45-48 --> <!-- src: apps/plugin/src/agent-dispatch.ts:255 -->
 - **Deletes and updates need a confirm.** A clean-up or a component update runs as a preview first, and the agent has to send a separate confirm. Ask it to show you the preview before it confirms. <!-- src: apps/plugin/src/agent-protocol.ts:60-68 -->
 - **It writes to the open file.** Whatever the agent asks for lands in the file the plugin is open in. Try a new workflow on a copy first. <!-- src: tools/figma-mcp/README.md:131-133 -->
 

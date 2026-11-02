@@ -20,7 +20,7 @@
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
+import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
@@ -82,6 +82,7 @@ import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { createAgentLink } from './agent-link';
+import { createActivityLog, type ActivityProblem } from './activity-log';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ReadHost } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
@@ -222,7 +223,11 @@ const withBuildLine = (lines: string[]): string[] => {
  * agent's command gets the same verdict — headline, summary, build note — plus the facts behind it. One
  * handler, two readers, and no second copy of any action (`agent-dispatch.ts`).
  */
-const uiSink: ActionSink = { post: postToUi, data: () => undefined };
+/** #3309: what the Activity drawer is told this session, for the agent link's read-only `activity` command
+ *  (`activity-log.ts`). The panel's verdicts are recorded as `uiSink` posts them, an agent's as `forward` does. */
+const buildId = parseBuildId(PRISM3_BUILD);
+const activityLog = createActivityLog({ now: () => new Date(), commit: buildId.kind === 'tree' ? buildId.commit : buildId.kind === 'commit' ? buildId.commit : null, build: PRISM3_BUILD });
+const uiSink: ActionSink = { post: (m) => { try { activityLog.post(m, 'panel', null); } catch { /* a reader */ } postToUi(m); }, data: () => undefined };
 
 // THE PRIMARY CHANNEL — measured, not assumed, and this ordering is the opposite of how #836 framed it.
 //
@@ -932,6 +937,17 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         ]),
       }, furniture), sink);
       verdictPosted = true;
+      // #3309: the sets this run left not clean, and why, by the rule its `ok` reads: a miss that is not a skipped or
+      // stale member (those are named once, in the stale note), and a missing canvas template. A set built first counts.
+      try {
+        const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
+        const reasons = [...real, ...(r.stale && staleItem ? [staleItem] : []), ...furnitureItems(furniture.filter((o) => o.missing?.length), 'build')];
+        const problems: ActivityProblem[] = [
+          ...alsoBuilt.filter((d) => d.misses > 0).map((d) => ({ set: d.id, reasons: [`${d.misses} misses`] })),
+          ...(r.set === null || reasons.length ? [{ set: def.id, reasons: r.set === null ? [head[0], ...reasons] : reasons }] : []),
+        ];
+        activityLog.annotate('components', problems);
+      } catch { /* a reader */ }
       // #3128: the build is done with the file, so the next one may start: what is left (the settle probe and the
       // console telemetry) writes nothing. The panel posts its next set the moment this verdict lands (#2700), and
       // Update file its update step; held through the probe, that post was refused and the run never ended.
@@ -1926,14 +1942,16 @@ export const ACTIONS: AgentActions = {
  * for the routing. `status` reads the file's themed state the way `restoreToUi` and `seedFromFile` do,
  * without posting anything.
  */
+/** #3309: the agent command running now, so the activity log can name what an agent's forwarded verdict answered. */
+let agentCmd: string | null = null;
 const dispatch = createDispatcher({
   actions: ACTIONS,
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
-  onStart: (id, cmd, apply) => postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }),
-  onFinish: (id, cmd) => postToUi({ type: 'agent-finished', id, cmd }),
+  onStart: (id, cmd, apply) => { agentCmd = cmd; postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }); },
+  onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
   // #1957: an agent's write of an operation that is already running is declined before it starts.
   refuse: (c) => {
     const held = guardFor(c.cmd);
@@ -1943,7 +1961,13 @@ const dispatch = createDispatcher({
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
   // which are not necessarily the input the agent previewed.
-  forward: (m) => postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m),
+  forward: (m) => {
+    // #3309: the drawer records an agent's verdict as its own; so does the activity log, as the agent's.
+    try { activityLog.post(m, 'agent', agentCmd); } catch { /* a reader */ }
+    postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m);
+  },
+  // #3309: the read-only `activity` command reads the log, and only reads it.
+  activity: (a) => activityLog.list(a),
   census: () => componentCensus(figma as unknown as Parameters<typeof componentCensus>[0], ENGINE_VERSION),
   // #3147 Phase 2a: what the read-only node commands read. They only read it (`agent-reads.ts`).
   host: () => figma as unknown as ReadHost,
@@ -2019,6 +2043,11 @@ onUiMessage((msg: UiToMain) => {
     case 'add-queue':
       // #3129 Q833 A: Components' boxes and Update file's Remove, Remove all and Add all. Writes no layer: never guarded.
       void addQueue(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], msg.on === true);
+      return;
+    case 'activity-note':
+      // #3309: the panel's summary of a run of several writes, for the agent link's `activity`. Writes nothing.
+      if ((msg.op === 'components' || msg.op === 'update') && typeof msg.headline === 'string')
+        activityLog.note({ op: msg.op, ok: msg.ok === true, headline: msg.headline, lines: Array.isArray(msg.lines) ? msg.lines.filter((x): x is string => typeof x === 'string') : [] });
       return;
     case 'hand-edits-request':
       // #2909 Q2909.8 A: the background pass after load. A read: never guarded; a write starting ends it.

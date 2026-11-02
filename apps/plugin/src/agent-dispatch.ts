@@ -28,7 +28,7 @@
  */
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { AGENT_PROTOCOL_VERSION, READ_COMMANDS, parseCommand, failedResult } from './agent-protocol';
-import type { UpdateChoiceArgs } from './agent-protocol';
+import type { ActivityArgs, UpdateChoiceArgs } from './agent-protocol';
 import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd, DevCmd } from './agent-protocol';
 import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
 import type { MainToUi, StyleGuideOptions } from './messages';
@@ -135,6 +135,8 @@ type Deps = {
   census(): Promise<unknown>;
   /** #3147 Phase 2a: the host the read-only node commands read (`figma` in `main.ts`). Asked at each command. */
   host?(): ReadHost;
+  /** #3309: the Activity drawer's runs (`activity-log.ts`), for the read-only `activity` command. */
+  activity?(args: ActivityArgs): unknown;
   now?: () => Date;
   /** Each progress reading as it arrives (the bridge streams these). */
   onProgress?(id: string, p: AgentProgress): void;
@@ -186,6 +188,11 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   'component-keys': async (c, _a, sink, d) => { sink.data(await componentKeys(readHost(d), (c as Extract<ValidCommand, { cmd: 'component-keys' }>).args)); },
   'audit-frames': async (c, _a, sink, d) => { sink.data(await auditFrames(readHost(d), (c as Extract<ValidCommand, { cmd: 'audit-frames' }>).args)); },
   snapshot: async (c, _a, sink, d) => { sink.data(await snapshot(readHost(d), (c as Extract<ValidCommand, { cmd: 'snapshot' }>).args)); },
+  // #3309: read-only, from the main thread's memory of what the Activity drawer was told.
+  activity: async (c, _a, sink, d) => {
+    if (!d.activity) throw new Error('this plugin build keeps no activity log');
+    sink.data(d.activity((c as Extract<ValidCommand, { cmd: 'activity' }>).args) as Record<string, unknown>);
+  },
   readback: async (_c, a, sink, d) => {
     await a.seedFromFile(sink);
     sink.data({ components: await d.census() });
@@ -320,7 +327,7 @@ export const createDispatcher = (deps: Deps) => {
     const verdict = verdicts.length ? verdicts[verdicts.length - 1] : null;
     if (verdicts.length > 1) data.earlierVerdicts = verdicts.slice(0, -1);
     // A write command that posted no verdict at all is not a success: the panel would still say pending.
-    // A read posts no verdict: `status`, the read-only node commands (#3147), and in a dev build its dev command, whose
+    // A read posts no verdict: `status`, the read-only commands (#3147, #3309), and in a dev build its dev command, whose
     // value is its data (#2530).
     const read = c.cmd === 'status' || (READ_COMMANDS as readonly string[]).includes(c.cmd) || (PRISM3_DEV && c.cmd === RUN_CODE);
     if (!verdict && !read) data.noVerdict = 'the handler returned without reporting a verdict';

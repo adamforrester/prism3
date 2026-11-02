@@ -186,6 +186,8 @@ const g = globalThis as Record<string, unknown>;
 g.figma = shim;
 g.__html__ = '';
 g.PRISM3_BUILD = '2026-10-05T00:00:00Z tree-test0000';
+// #3309: the agent link's dispatcher reads it (`activity/*` below); this suite runs as a release build.
+g.PRISM3_DEV = false;
 
 const { ACTIONS: TABLE } = await import('./src/main');
 // #3131 releases a build's guard as soon as its verdict posts, while the build's tail (the settle probe, then
@@ -279,6 +281,24 @@ ok(JSON.stringify(chk2?.missing) === JSON.stringify(['button']) && chk2?.sets?.l
 const NO_LABEL = 'No canvas labels or usage panels drawn: this file has no _Label or _Doc-block component. Run Set up file, then build again';
 ok(!!first && (first.lines as string[]).includes(NO_LABEL) && String(first.summary).includes(NO_LABEL),
   `templates/build verdict: the build's component-result carries the missing-template line (${JSON.stringify(first?.lines)})`);
+// #3309: the agent link's read-only `activity`, over the bridge (the panel's `agent-command`), names Badge as built with
+// problems, with the one reason its verdict's `ok` read: the missing template. Literal. The panel's own build is a run
+// `by: panel`, and reading it wrote nothing to the file. (mutation: `annotate` never called from `buildComponents` →
+// `activity/problems`)
+{
+  const before = JSON.stringify([...pluginData, ...sharedData].filter(([k]) => !k.startsWith('prism3agent')));
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'agent-link', on: true });
+  const res = (await ask({ type: 'agent-command', command: { v: 1, id: 'act-1', cmd: 'activity', args: {}, issuedAt: new Date().toISOString() } }, 'agent-result'))[0]?.result;
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'agent-link', on: false });
+  const runs = (res?.result?.data?.runs ?? []) as any[];
+  const badgeRun = runs.find((r) => r.verdict?.type === 'component-result');
+  ok(res?.ok === true && res?.result?.verdict === null && badgeRun?.by === 'panel' && badgeRun?.op === 'components' && badgeRun?.cmd === null && badgeRun?.headline === first?.headline,
+    `activity/run: the panel's Badge build is a components run by the panel, with its headline (${JSON.stringify(badgeRun ? { by: badgeRun.by, op: badgeRun.op, headline: badgeRun.headline } : res?.error ?? null)})`);
+  ok(JSON.stringify(badgeRun?.problems) === JSON.stringify([{ set: 'badge', reasons: [NO_LABEL] }]),
+    `activity/problems: Badge is listed with the missing template as its one reason (${JSON.stringify(badgeRun?.problems)})`);
+  ok(JSON.stringify([...pluginData, ...sharedData].filter(([k]) => !k.startsWith('prism3agent'))) === before,
+    'activity/no-write: reading the activity moved no plugin data outside the agent link\'s own');
+}
 // The Update, through the same action table the panel and the agent link reach: a check for its hash, then the apply.
 const { ACTIONS } = await import('./src/main');
 type Sink = { post(m: any): void; data(d: Record<string, unknown>): void };
