@@ -51,7 +51,6 @@ import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
 import { planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { partRenames, type ComponentRename } from '@prism3/engine/component-renames';
 import { applyComponentPlan, emitCoordValue, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
-import { planTargets } from './build-deps';
 import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
@@ -62,7 +61,7 @@ import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furnitur
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { rereadAfter, withRoot } from './run-read';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
-import { REACTIONS, breakingClause, nestedMemberFaults, nestFaultLine, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, nestedFirst, breakingClause, nestedMemberFaults, nestFaultLine, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { saveVersion } from './version-title';
@@ -277,23 +276,8 @@ const pageOf = (n: unknown): CompPageTarget | undefined => {
   return undefined;
 };
 
-/** Nested sets first (Q8): a def whose plans nest or swap another target's set comes after that target. */
-export const nestedFirst = (targets: readonly UpdateTarget[]): UpdateTarget[] => {
-  const nameOf = (t: UpdateTarget): string => t.plans[0]?.component ?? t.def;
-  const out: UpdateTarget[] = [];
-  const seen = new Set<string>();
-  const visit = (t: UpdateTarget, depth: number): void => {
-    if (seen.has(t.def) || depth > targets.length) return;
-    seen.add(t.def);
-    for (const n of planTargets(t.plans)) {
-      const dep = targets.find((x) => x !== t && nameOf(x) === n);
-      if (dep) visit(dep, depth + 1);
-    }
-    out.push(t);
-  };
-  for (const t of targets) visit(t, 0);
-  return out;
-};
+/** Nested sets first (Q8, #3343): read and applied in the one order, so it lives with the dry run. */
+export { nestedFirst };
 
 /**
  * PREFLIGHT, one set, writing nothing: the dry run's blockers, read again here. `null` when the set can be updated;

@@ -2407,6 +2407,74 @@ section('order — nested sets first (Q8)');
   ok(JSON.stringify(o) === JSON.stringify(['focus-ring', 'button']), `order/nested first: the set button nests is updated before it (${JSON.stringify(o)})`);
 }
 
+section('order — a component this run adds counts as present for the set that nests it (#3343)');
+{
+  // THE TEMPLATE FILE'S CASE: Wallet button is due, and the plan's styled marks nest `provider-logo/button/*`, the
+  // provider-logo members this same run adds. The check read them as absent and blocked Wallet button, so the owner had
+  // to run Update twice. Now the run is read nested first and counts what an unblocked target adds. Built on the strict
+  // host (the shim default). Mutations: the "added this run" credit removed (`addedThisRun` never filled) →
+  // `run adds/check`, `run adds/one run` and `run adds/settled` fail; `nestedFirst`'s `<id>/` match for a single-component
+  // def removed → `run adds/order` fails too.
+  const isButton = (p: AnatomyPlan): boolean => String(p.coord.name).startsWith('button/');
+  const providerAll = plansOf('provider-logo');
+  const walletNow = plansOf('wallet-button');
+  // The wallet button as an earlier plan drew it: every styled mark nested the provider's logo, which the file has.
+  const LOGO = 'provider-logo/logo/apple-pay';
+  const unstyled = (n: PlanNode): PlanNode => ({ ...n, ...(n.nestTarget?.startsWith('provider-logo/button/') ? { nestTarget: LOGO } : {}), children: n.children?.map(unstyled) } as PlanNode);
+  const walletOld = walletNow.map((p) => ({ ...p, root: unstyled(p.root) }));
+  const runAdds = async () => {
+    const plans = [...providerAll, ...walletNow];
+    const page: Page = { children: [] };
+    const api = makeShim({
+      vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+      styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+      effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
+      comps: [SWAP_TARGET, 'focus-ring'], page, liveRoot: true, identities: true, liveComponents: true, scaleConstrained: true,
+    }) as any;
+    const marks = await applyComponentPlan(providerAll.filter((p) => !isButton(p)), api, { emitAsComponents: true });
+    const wallet = await applyComponentPlan(walletOld, api);
+    if (marks.misses.length || wallet.misses.length) throw new Error(`premise: built with misses: ${[...marks.misses, ...wallet.misses][0]}`);
+    // The update reads the SET as the file holds it (live nodes), as `world` does. Copied, so fixed again: strict.
+    const root = fixHostMethods({ ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) });
+    const host = fixHostMethods({ ...api, root }) as unknown as ApplyHost;
+    return { api, host, page };
+  };
+  const buttons = providerAll.filter(isButton).map((p) => `provider-logo/${String(p.coord.name)}`);
+  const w = await runAdds();
+  const names = (): string[] => w.page.children.filter((n) => n.type === 'COMPONENT').map((n) => String(n.name));
+  ok(buttons.length === 11 && buttons.every((b) => !names().includes(b)) && JSON.stringify(walletOld) !== JSON.stringify(walletNow),
+    `premise: the file lacks all 11 provider-logo button marks, and the wallet button's plan now nests them (${buttons.length})`);
+  // Wallet button first, as the panel may list it: the run's order is its own.
+  const targets: UpdateTarget[] = [{ def: 'wallet-button', plans: walletNow }, { def: 'provider-logo', plans: providerAll, single: true }];
+  ok(JSON.stringify(nestedFirst(targets).map((t) => t.def)) === '["provider-logo","wallet-button"]',
+    `run adds/order: provider-logo, a single-component def, is applied before the set nesting its components (${JSON.stringify(nestedFirst(targets).map((t) => t.def))})`);
+  const pre = await previewUpdate(w.host, targets);
+  const wb = pre.sets.find((p) => p.set === 'wallet-button');
+  const pl = pre.sets.find((p) => p.set === 'provider-logo');
+  ok(JSON.stringify(pre.sets.map((p) => p.set)) === '["wallet-button","provider-logo"]' && JSON.stringify(wb?.blockers) === '[]' && wb?.counts.update === 50
+    && JSON.stringify(pl?.blockers) === '[]' && pl?.counts.add === 11,
+    `run adds/check: wallet-button reads updatable, not blocked, and provider-logo adds its 11 marks (${JSON.stringify({ wallet: [wb?.blockers, wb?.counts.update], provider: [pl?.blockers, pl?.counts.add] })})`);
+  const res = await applyUpdate(w.host, w.api, targets, previewHashOf(pre));
+  const v = applyVerdict(res);
+  const o = (def: string) => res.outcomes.find((x) => x.def === def);
+  // Provider-logo's own verdict is not asserted whole: the shim misreads 21 non-square outlines as content drift Figma's
+  // importer does not have (see the #2343 arms above), the same before and after this run.
+  ok(!res.refusedAll && JSON.stringify(res.outcomes.map((x) => x.def)) === '["provider-logo","wallet-button"]' && !o('provider-logo')?.refused && o('provider-logo')?.added === 11
+    && !o('wallet-button')?.refused && o('wallet-button')?.updated.length === 50 && JSON.stringify(o('wallet-button')?.misses) === '[]' && JSON.stringify(o('wallet-button')?.content) === '[]',
+    `run adds/one run: provider-logo adds its 11 marks, then wallet-button updates its 50 due members, no miss (${v.headline}; ${JSON.stringify(res.outcomes.map((x) => [x.def, x.refused ?? '', x.added, x.updated.length, x.misses.slice(0, 1), x.content.slice(0, 1)]))})`);
+  const post = await previewUpdate(w.host, targets);
+  const wb2 = post.sets.find((p) => p.set === 'wallet-button');
+  ok(buttons.every((b) => names().includes(b)) && JSON.stringify(wb2?.blockers) === '[]' && wb2?.counts.current === 68 && post.sets.find((p) => p.set === 'provider-logo')?.counts.add === 0,
+    `run adds/settled: every mark is in the file, wallet-button reads all 68 current, and provider-logo has none left to add (${JSON.stringify(post.sets.map((p) => [p.set, p.blockers, p.counts.current, p.counts.add]))})`);
+  // A BLOCKER THE RUN DOES NOT SUPPLY STILL BLOCKS: this run's provider-logo plans leave out one button mark, so nothing
+  // adds it, and wallet-button is refused for that one mark and no other.
+  const w2 = await runAdds();
+  const short: UpdateTarget[] = [{ def: 'wallet-button', plans: walletNow }, { def: 'provider-logo', plans: providerAll.filter((p) => p.coord.name !== 'button/paypal-gold'), single: true }];
+  const pre2 = await previewUpdate(w2.host, short);
+  ok(JSON.stringify(pre2.sets.find((p) => p.set === 'wallet-button')?.blockers) === '["Not in this file: provider-logo/button/paypal-gold. Build provider-logo first, then run the update again"]',
+    `run adds/unsupplied: a mark the run does not add still blocks wallet-button, named alone (${JSON.stringify(pre2.sets.find((p) => p.set === 'wallet-button')?.blockers)})`);
+}
+
 /* ── replace ─────────────────────────────────────────────────────────────────────────────────────────── */
 section('replace — a child whose type changed is the one node replaced, and the dry run listed it');
 {
