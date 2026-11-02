@@ -43,9 +43,9 @@
  *     and more digits grow it into a pill, because the surface hugs its text under `radius.round`. Figma
  *     has no width-equals-height floor, so one digit is a near-circle whose exact width depends on the
  *     brand's digit advance; code sets `min-inline-size` equal to the block size (`codeOnly`).
- *   · dot    — the `dot` part, a fixed square with no paint of its own, bound to `control.size.sm.dot` (8px
- *     at comfortable density, 6px at compact, which is the brief's density-scaled dot). The surface pads it
- *     by `space.0`, hugs it, and paints the round fill over it.
+ *   · dot    — the `dot` part, a fixed square with no paint of its own, bound to `space.100`: 8px, the inline
+ *     dot's size, density-free (#3226, Q3226.1 A). The surface pads it by `space.0`, hugs it, and paints the
+ *     round fill over it.
  * Two text parts rather than one, for the reason text-field has two (#1567): a bound TEXT node shows its
  * set's ONE default, so one node cannot read "Status" on some members and "3" on others.
  *
@@ -260,8 +260,8 @@ export const badge: ComponentDef = {
     // The inline dot (#3199, Q6 A): 8px at both sizes, `space.100` (8px in every example brand), and round.
     'status-dot-size': 'space.100',
     'status-dot.radius': 'radius.round',
-    // The dot's diameter: the tier's small dot rung, 8px at comfortable density and 6px at compact.
-    'dot-size': 'control.size.sm.dot',
+    // The dot's diameter (#3226, Q3226.1 A): 8px, `space.100`, the inline dot's size, density-free.
+    'dot-size': 'space.100',
 
     // The subtle status label's edge: the tier's 1px border width, drawn inside the pill.
     'border-width': 'border-width.hairline',
@@ -516,7 +516,6 @@ export const badge: ComponentDef = {
     unverified: [
       'The circular-overlap inset of about 14.6%, from the brief, derived from a circle\'s geometry (1 − 1/√2, halved). Not measured against any shipping system here.',
       'The count member\'s circle at one digit is an approximation: `space.075` inline padding around one digit against `space.025` block padding around the label line. It is about 1px off square in the example brands\' fonts by arithmetic, and has not been measured on a live Figma host.',
-      'The dot binds `control.size.sm.dot`, the small selection control\'s dot rung, because it is the tier\'s density-scaled 8px dot. It borrows a control token for a non-control; a badge-specific rung would be a new token name.',
     ],
     evolution: [
       'The `genre` variant axis (owner-approved, 2026-09-27): the count and dot project to Figma beside the status label, fifteen members at the time. Before it, the count and dot existed in code only.',

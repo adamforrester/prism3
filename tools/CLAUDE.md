@@ -312,3 +312,14 @@ builds, writes the two zips and a draft release note under `tools/release/out/` 
 `figma-bridge/`, it is a tool the owner runs, not a measurement, and it refuses (exit 1) rather than answering 0 when the
 checkout or a build is not the one to record. Its gate lives in the plugin: the clean-and-current check it shares with
 `build:release` (`releaseCheck`, `apps/plugin/git-stamp.mjs`) is tested in `apps/plugin/test-git-stamp.ts`.
+
+## `tools/figma-canary/`
+
+The real-Figma canary (#3215, owner decisions of 2026-11-01): before the owner is told "ready to rebuild", one
+read-only round trip through the agent link on a scratch file, with a plugin built from that exact `main` commit on
+the always-on Mac. `needs-check.ts` applies the owner's path rule (a literal list) to two commits; `judge.ts` reads the
+raw result envelopes and prints `safe to rebuild from <commit>` or `held: <reason>`; `selftest.ts` runs the judge over
+recorded envelopes, #3209's error among them, which must be held by name. **No gate sibling, and the reason is the
+subject:** a live Figma host is not in CI. Its CI-side counterpart is the shim's strict host (`apps/plugin/test-loose-host.ts`,
+#3295), which catches the same class of bug without a host. The judge is the orchestrator's, never the Mac's: the Mac
+returns envelopes verbatim and does not say PASS.
