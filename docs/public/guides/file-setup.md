@@ -24,7 +24,7 @@ The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxon
 - A divider, then `Subcomponents`
 - A divider, then `Sandbox`, with `↳ File Components`
 
-The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:433-434 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5 -->
+The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:435-436 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5 -->
 
 Component pages are not created here. Each component page, such as `↳ Buttons` or `↳ Checkbox`, appears the first time a set for it is added, so a file never holds empty component pages. <!-- src: apps/plugin/src/file-taxonomy.ts:99-105 --> `↳ Icons & assets`, under Foundations, appears the same way. <!-- src: apps/plugin/src/file-taxonomy.ts:87 --> Pages under Components and Subcomponents sit in alphabetical order. <!-- src: apps/plugin/src/file-taxonomy.ts:94 --> <!-- src: apps/plugin/src/file-taxonomy.ts:178 -->
 
