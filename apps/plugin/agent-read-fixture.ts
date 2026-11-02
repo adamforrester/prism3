@@ -45,6 +45,13 @@ const PAGES: NodeSpec[] = [
         { id: 'X1', type: 'FRAME', name: 'slot body', unreadable: true },
         { id: 'R1', type: 'RECTANGLE', name: 'After', width: 10, height: 10 },
       ] },
+    // #3300 B: `context`'s protected nodes. A locked frame (its child is inside it, so not listed apart) and a rebind backup.
+    { id: 'L1', type: 'FRAME', name: 'Note', width: 200, height: 80, locked: true, children: [
+      { id: 'L1t', type: 'TEXT', name: 'Do not ship', width: 180, height: 20, characters: 'Do not ship', locked: true },
+    ] },
+    { id: 'O1', type: 'FRAME', name: 'Original · Checkout', width: 375, height: 812, children: [
+      { id: 'O1i', type: 'INSTANCE', name: 'Old Button', width: 100, height: 40, main: 'OB', locked: true },
+    ] },
   ] },
   { id: 'P3', type: 'PAGE', name: 'Audit', children: [
     { id: 'A1', type: 'FRAME', name: 'Legacy screen', width: 375, height: 200, children: [
@@ -70,6 +77,10 @@ const PAGES: NodeSpec[] = [
   ] },
   { id: 'P4', type: 'PAGE', name: 'Legacy', children: [
     { id: 'OB', type: 'COMPONENT', name: 'Old Button', key: 'k-old', publish: 'CURRENT' },
+  ] },
+  // #3300 B: a FINAL page. Everything on it is protected, so `context` lists the page and does not walk it.
+  { id: 'P5', type: 'PAGE', name: 'Checkout FINAL', children: [
+    { id: 'Z1', type: 'FRAME', name: 'Checkout', width: 375, height: 812, locked: true },
   ] },
 ];
 
@@ -178,4 +189,33 @@ export const activityExpected = (since: number, total: number, build: string) =>
   ],
   total,
   latest: since + 2,
+});
+
+/**
+ * #3300 B — THE `context` ARM, shared by the mailbox and bridge suites: what the fixture file is, typed here by hand.
+ * The suites' host model holds no brand, no variables and no ledger, so the facts read empty; `context/brand` in the
+ * mailbox suite stores a brand and reads it back. The protected nodes are the fixture's: the FINAL page `P5` (listed, not
+ * walked, so its locked frame is not listed apart), the locked instance `I1` inside `F1`, the locked frame `L1` (its
+ * locked child is inside it, so not listed apart), the backup `O1` (its locked instance likewise), and `X1`, which
+ * throws on read and is listed unreadable while the walk goes on. The suites run a dev build, so `run-code` is listed.
+ */
+export const contextExpected = (fileName: string, engineVersion: string) => ({
+  file: { name: fileName, currentPage: 'Page 1', pages: 5 },
+  prism3: { source: 'none', brand: null, engine: { plugin: engineVersion, lastBuilt: null }, collections: [], themed: false },
+  sets: { present: 0, due: [], queued: [], partial: true },
+  protected: {
+    finalPages: [{ id: 'P5', name: 'Checkout FINAL' }],
+    locked: [{ id: 'I1', name: 'Button', page: 'Screens' }, { id: 'L1', name: 'Note', page: 'Screens' }],
+    originals: [{ id: 'O1', name: 'Original · Checkout', page: 'Screens' }],
+    counts: { finalPages: 1, locked: 2, originals: 1 },
+    note: 'Read-only: leave these, and anything inside them, unchanged.',
+  },
+  commands: {
+    read: ['status', 'readback', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'context'],
+    write: ['apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'run-code'],
+  },
+  readFirst: ['prism3://skills/prism3-rebind', 'prism3://skills/prism3-consume', 'prism3://commands'],
+  engineMcp: { server: 'prism3-engine', for: 'validate or change the brand input', tools: ['validate_brand', 'theme_brand', 'export_theme'] },
+  unreadable: [{ id: 'X1', error: 'node X1 could not be read' }],
+  truncated: false,
 });

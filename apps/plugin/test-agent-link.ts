@@ -79,8 +79,10 @@
  */
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { ENGINE_VERSION } from '@prism3/engine/version';
+import { serializeBrandInput } from '@prism3/engine/persist-input';
+import type { BrandInput } from '@prism3/engine/theme';
 import { MAILBOX, AGENT_COMMANDS, READ_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
-import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT } from './agent-read-fixture';
+import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT, contextExpected } from './agent-read-fixture';
 import { ACTIVITY_KEEP } from './src/activity-log';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
@@ -1118,6 +1120,7 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
     ['audit-frames', ARGS.audit, EXPECTED.audit],
     ['snapshot', ARGS.snapshot, EXPECTED.snapshot],
     ['activity', { since: probe.latest }, activityExpected(probe.latest, Math.min(probe.total + 2, ACTIVITY_KEEP), g.PRISM3_BUILD as string)],
+    ['context', {}, contextExpected('agent-link test file', ENGINE_VERSION)],
   ];
   ok(ARMS.map((a) => a[0]).join() === READ_COMMANDS.join(), `reads: every read command has an arm here (${READ_COMMANDS.join(', ')})`);
   for (const [cmd, args, want] of ARMS) {
@@ -1186,6 +1189,30 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
     };
     ok(canon(atRead(got)) === canon(want),
       `activity/agent: an agent's build-components is logged as the agent's run, named by its command — got ${canon(atRead(got)).slice(0, 300)}`);
+  }
+  // #3300 B: `context/protected` — each protected default, listed exactly, on its own line so a miss names the rule.
+  // (mutations: the FINAL test dropped → `context/protected/final`; the walk going inside a locked node →
+  // `context/protected/locked`; the `Original · ` test dropped → `context/protected/originals`)
+  {
+    const d = (await run('context', {})).r.result?.data as { protected: { finalPages: unknown; locked: unknown; originals: unknown } };
+    const want = contextExpected('agent-link test file', ENGINE_VERSION).protected;
+    ok(canon(d?.protected?.finalPages) === canon(want.finalPages), `context/protected/final: the page whose name contains FINAL is listed, and nothing on it apart (${canon(d?.protected?.finalPages)})`);
+    ok(canon(d?.protected?.locked) === canon(want.locked), `context/protected/locked: each locked node is listed once, and nothing inside one apart (${canon(d?.protected?.locked)})`);
+    ok(canon(d?.protected?.originals) === canon(want.originals), `context/protected/originals: the \`Original · …\` copy is listed, and nothing inside it apart (${canon(d?.protected?.originals)})`);
+  }
+  // #3300 B: `context/brand` — a stored brand is read back as the file's (`source: local`), and one this build cannot read
+  // says so (`unreadable`) rather than `none`. Both written to the root as Apply Theme stores it, and removed after.
+  {
+    const key = k('prism3', 'brandInput');
+    const had = store.get(key);
+    store.set(key, serializeBrandInput({ id: 'example', name: 'Example', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput));
+    const local = (await run('context', {})).r.result?.data as { prism3?: { source?: string; brand?: unknown } };
+    ok(local?.prism3?.source === 'local' && canon(local.prism3.brand) === canon({ id: 'example', name: 'Example', modes: ['light', 'dark'] }),
+      `context/brand: a stored brand reads as local, with its id, name and modes (${canon(local?.prism3)})`);
+    store.set(key, '{"v":999}');
+    const bad = (await run('context', {})).r.result?.data as { prism3?: { source?: string; brand?: unknown } };
+    ok(bad?.prism3?.source === 'unreadable' && bad.prism3.brand === null, `context/brand: a stored brand this build cannot read says unreadable, not none (${canon(bad?.prism3)})`);
+    if (had === undefined) store.delete(key); else store.set(key, had);
   }
   root.children = saved.children;
   h.getNodeByIdAsync = saved.node; h.getStyleByIdAsync = saved.style; h.variables.getVariableByIdAsync = saved.variable;

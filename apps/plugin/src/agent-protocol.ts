@@ -38,10 +38,10 @@ export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'context'] as const;
 /** #3147 Phase 2a: the commands that only read nodes (`agent-reads.ts`). They post no verdict: like `status`, their value
  *  is their `data`. Each writes nothing to the file, which `test-agent-link.ts` and `test-agent-bridge.ts` assert. */
-export const READ_COMMANDS = ['inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity'] as const;
+export const READ_COMMANDS = ['inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'context'] as const;
 /** #2530: the dev-only commands (`dev-commands.ts`). Named here for the TYPES only: `parseCommand` answers them
  *  `unknown-command`, and the dispatcher accepts one only in a `PRISM3_DEV &&` branch, so a release build neither
  *  lists nor runs one, and the Node-side tools that import this file see no dev code. */
@@ -87,6 +87,8 @@ export type AgentArgs = {
   snapshot: { id: string; scale?: number };
   /** #3309. Writes nothing. The Activity drawer's runs this session, newest first, from the main thread's memory (`activity-log.ts`): each { seq, op, by: panel | agent, cmd, at, verdict: { type, ok }, headline, summary, lines, problems: [{ set, reasons }], built: { commit, build } }. `since` keeps the runs after that seq; `limit` (1 to 50, default all) caps them. Result data: { runs, total, latest }. */
   activity: { since?: number; limit?: number };
+  /** #3300 B. Writes nothing. What the open file is, for an agent's first read: { file { name, currentPage, pages }, prism3 { source: local | none | unreadable, brand { id, name, modes } | null, engine { plugin, lastBuilt }, collections, themed }, sets { present, due: [{ set, why }], queued, partial: true }, protected { finalPages, locked, originals: [{ id, name, page }], counts, note }, commands { read, write }, readFirst, engineMcp { server, for, tools }, unreadable, truncated }. `protected` lists what Q3147.11 protects by default: pages whose name contains FINAL, locked nodes, `Original · …` copies. The page walk is capped (`truncated`); the set counts come from the as-built ledger alone (`partial`). */
+  context: Record<string, never>;
   /** #2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`). */
   'run-code': RunCodeArgs;
 };
@@ -347,9 +349,10 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       return { ok: true, command: { ...base, cmd: 'activity', args: { ...(since === undefined ? {} : { since: since as number }), ...(limit === undefined ? {} : { limit: limit as number }) } } };
     }
     case 'status':
+    case 'context':
     case 'file-setup':
     case 'readback':
-      return { ok: true, command: { ...base, cmd: cmd as 'status' | 'file-setup' | 'readback', args: {} } };
+      return { ok: true, command: { ...base, cmd: cmd as 'status' | 'context' | 'file-setup' | 'readback', args: {} } };
   }
 };
 
