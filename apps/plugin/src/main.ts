@@ -59,7 +59,7 @@ import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
-import { clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -844,7 +844,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // THE AS-BUILT LEDGER (#2909 Q2909.8 A): a set this build landed whole, every member fresh or already this plan's,
       // is recorded as built from the def it was materialized to. A set holding a member from another plan (`stale`) is
       // not: it still is what it was, and its entry says so. CAUGHT: the set is built, and the record is bookkeeping.
-      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: entryFor(materializeForBrand(target, brandInput), project(target)) }); } catch { /* read as unrecorded */ } }
+      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: { ...entryFor(materializeForBrand(target, brandInput), project(target)), ...panelFormatOf()(target.id) } }); } catch { /* read as unrecorded */ } }
       // #3129 Q833 A: and its add-queue key is cleared in the same place, so a set that fails, or is stopped before it
       // runs, stays queued. A set made first as a nested set (#1633), or by the agent's build, clears here too.
       if (built.id && built.stale === 0) { try { clearQueued(queueRoot(), [target.id]); } catch { /* cleared by the next queue write */ } }
@@ -1245,16 +1245,25 @@ const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
  *  unrecorded. */
 const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
   const mat = materializerFor(brandOf(input));
+  // #3205: and, on a lead set while the panels are on, today's panel format, so a raise makes its set due.
+  const panel = panelFormatOf();
   // #3301: each def's entry worked out once per read (`needsPrint` and `dueOf` both ask for every set's).
   const memo = new Map<string, LedgerEntry | null>();
   return (id) => {
     if (memo.has(id)) return memo.get(id)!;
     const d = componentDefs.find((x) => x.id === id);
     let e: LedgerEntry | null = null;
-    try { e = d ? entryFor(mat(d)) : null; } catch { e = null; }
+    try { e = d ? { ...entryFor(mat(d)), ...panel(id) } : null; } catch { e = null; }
     memo.set(id, e);
     return e;
   };
+};
+/** THE PANEL FORMAT A SET'S ENTRY CARRIES (#3205): `PANEL_FORMAT` on a family's lead set while Documentation has the
+ *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
+ *  The file's switch is read once per call. */
+const panelFormatOf = (): ((def: string) => { panel?: number }) => {
+  const on = readDocSettings(figma.root).panels;
+  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
 };
 /** #3301: every present set's entry worked out ahead of `needsPrint` and `dueOf`, handing the thread back once about
  *  `PACE_MS` of it has run: materializing and hashing each def a full library holds was one turn of its own. */

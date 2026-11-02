@@ -70,7 +70,9 @@
  * cached mid-write once the write ends (its `.finally` clear dropped) → `q810/mid-write` (section 7); its `catch` posting
  * no `error` (a failed read reaching the panel as a live answer with nothing due) → `q810/error`; `fileDue` calling
  * `dueOf` without `printNow(input)`, so an engine-moved set reads `unrecorded` → `q810/engine`; `ledgerSets` the same → `q810/engine at open`; `printNow` projecting on every call (`printMemo` unused) → `q810/memo`
- * (#3096 into #3090).
+ * (#3096 into #3090). #3205: `ledgerNow` giving no entry its panel format (`main.ts`, `panelFormatOf`) →
+ * `format due/build`, `format due/main`; the format-due credit dropped from `dueOf` → `format due/main`; the credit
+ * given whatever the panels switch → `format due/panels off`.
  */
 import { EXECUTOR_REACH } from './src/executor-reach';
 import { makeShim } from './component-shim';
@@ -82,6 +84,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { materializeForBrand, materializerFor } from './src/brand-def';
 import { entryFor } from './src/as-built-ledger';
+import { PANEL_FORMAT } from './src/doc-panel';
 import { readSpecTag } from './src/spec-tag';
 
 let failed = 0;
@@ -263,10 +266,29 @@ const ledger = (): Record<string, { def: string; rev: number; engine: string; pr
 ok(typeof ledger().badge?.def === 'string', `ledger/build: the build records the set it landed (${JSON.stringify(ledger().badge)})`);
 ok(sharedData.get('prism3:addQueue.badge') === '', `queue/build: the build that lands Badge whole clears its add-queue key, where the ledger records it (${JSON.stringify(sharedData.get('prism3:addQueue.badge'))})`);
 const fs1 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+const fs1Entry = ledger().badge as (Record<string, unknown> & { panel?: number }) | undefined;
 ok(fs1?.present?.includes('badge') && fs1?.due?.badge?.state === 'current', `ledger/due: file-sets reads the set just built as current (${JSON.stringify(fs1?.due)})`);
 pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...ledger().badge, def: 'another-def' } } }));
 const fs2 = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(fs2?.due?.badge?.state === 'due' && fs2?.due?.badge?.reason === 'definition', `ledger/due: an entry for another def reads as due for its definition (${JSON.stringify(fs2?.due)})`);
+// #3205: THE PANEL FORMAT, through the real `main.ts`. Badge leads its family, so with the usage panels on its entry
+// carries the panel format it was checked at (`ledgerNow`), and an entry from before that (none recorded) reads due for
+// its panel, in the full read and the badge's recount alike, though its set is current. With the panels off, no credit.
+{
+  const built = fs1Entry;
+  ok(built?.panel === PANEL_FORMAT, `format due/build: the build records Badge's entry with today's panel format (${JSON.stringify(built?.panel)})`);
+  const { panel: _drop, ...older } = built as Record<string, unknown>;
+  pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: older } }));
+  const fsP = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+  const fdP = (await ask({ type: 'due-request', seq: 3205 }, 'file-due'))[0];
+  ok(JSON.stringify(fsP?.due?.badge) === '{"state":"due","reason":"panel"}' && JSON.stringify(fdP?.due?.badge) === '{"state":"due","reason":"panel"}',
+    `format due/main: an entry with no panel format reads due for its panel, in file-sets and the badge's recount (${JSON.stringify(fsP?.due?.badge)}, ${JSON.stringify(fdP?.due?.badge)})`);
+  pluginData.set('prism3:docSettings', '{"panels":false}');
+  const fsOff = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+  pluginData.delete('prism3:docSettings');
+  ok(JSON.stringify(fsOff?.due?.badge) === '{"state":"current"}', `format due/panels off: with Usage panels off, the same entry reads current (${JSON.stringify(fsOff?.due?.badge)})`);
+  pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: built } }));
+}
 const hands = await ask({ type: 'hand-edits-request' }, 'hand-edits', (m) => m.done === true);
 const hb = hands.find((m) => m.def === 'badge');
 ok(!!hb && hb.members > 0 && hb.edited === 0 && hands.some((m) => m.done === true), `hand-edits: the background pass reads Badge's members, none edited by hand, then ends (${JSON.stringify(hands)})`);

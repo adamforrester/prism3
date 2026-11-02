@@ -88,6 +88,14 @@
  *                   the panel is on the page → `collapse/dialog` and every `collapse/<def>` built at a width,
  *                   `collapse/hug read`, `collapse/after reset`, `update/redraw in place`, `width/banner`,
  *                   `width/checkbox-row`.
+ *   format due/…    (#3205, the 2026-11-02 real-Figma report) Update file's own path, on the strict host
+ *                   (`fixHostMethods`): Dialog's set current in the as-built ledger, its entry from before the ledger
+ *                   carried a panel format, and its panel at format 5 with its specimens collapsed (HUG, no `minWidth`).
+ *                   The ledger read (`dueOf`, the read `file-sets` posts) lists the set due, the scoped check
+ *                   (`previewUpdate` over the due sets, posted as `checkedSetOf`) offers it, and one apply as `main.ts`
+ *                   runs it redraws the panel in place, each specimen FIXED at 560 with `minWidth` 560; the apply's
+ *                   record then reads current. A panel edited by hand is kept (#3317). Mutation: the format-due credit
+ *                   dropped from `dueOf` → `format due/offered`, `format due/redrawn`, `format due/edited kept`.
  *   legend/…        (#3265, owner decisions Q3265.1 A and Q3265.2 A) the anatomy legends of Code input, Pagination, Tabs
  *                   and Breadcrumbs, typed by hand from their defs: "Cell 4" for one instance, "Cells 1–6" for a run of
  *                   neighbors alike on the specimen, each run captioned by its parts' shared note or else the nested
@@ -120,7 +128,9 @@ import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffe
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { fixHostMethods, makeShim, type Node } from './component-shim';
-import { anatomyEntry, anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyEntry, anatomyMarks, clearOrphanPanels, docPanelReach, docPanelReaches, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, printV2, PANEL_FORMAT, type PanelApi, type PNode } from './src/doc-panel';
+import { dueOf, entryFor, readLedger, recordSets, type LedgerEntry } from './src/as-built-ledger';
+import { checkedSetOf } from './src/update-plan';
 import { TAXONOMY } from './src/file-taxonomy';
 import { readSpecTag } from './src/spec-tag';
 import { fingerprintOf } from './src/style-guide';
@@ -1572,6 +1582,75 @@ section('own draw/… — Update redraws a panel nobody touched in place, the co
   ok(g.moved > 20 && g.all.length === 2 && g.kept.length === 1 && g.kept[0] === g.old, `own draw/v2 rebuilt: once a component it nests is rebuilt, it is kept, as before #3303 (the safe rule)`,
     `panels ${g.all.map((n) => n.name).join(' | ')}`);
   liveInstances = false;
+}
+
+/* ── format due: a panel behind PANEL_FORMAT on a set otherwise current (#3205) ───────────────────────────── */
+section('format due/… — Update file offers and redraws a panel drawn by an older format, its set current (#3205)');
+{
+  // The template file after #3318 (2026-11-02): Dialog's set up to date, its ledger entry written before entries carried
+  // a panel format, its panel drawn by format 5 with every specimen collapsed. Update file's own path, on the strict host:
+  // the ledger read decides which sets are due, the scoped check reads only those, and the apply acts on what it read.
+  const run = async (label: string, edit?: (old: N) => void) => {
+    const p = page(`↳ format due ${label}`);
+    const { api, sets } = await buildAll(p, ['button', 'button-group', 'divider', 'flush-icon-button-neutral', 'dialog']);
+    const set = sets[sets.length - 1];
+    p.appendChild!(mk('COMPONENT', 'icon/close', [], { x: -4000, y: 0, _w: 24, _h: 24 }));
+    for (const m of set.children) members.set(String(m.id), m);
+    const panels = host([p]);
+    const uh = fixHostMethods({ ...api, root: fixHostMethods({ ...(api.root as object), findAllWithCriteria: (c: never) => labelHost(panels).root.findAllWithCriteria(c) }) }) as unknown as UpdateHost & PanelApi & FurnitureApi;
+    const d = componentDefs.find((x) => x.id === 'dialog')!;
+    await drawDocPanel(uh, set, d, { names });
+    const old = panelsOn(p)[0];
+    const at = { x: Number(old.x), y: Number(old.y) };
+    // Aged to what the template holds: format 5, its specimens hugging with no floor, as #3211's draw left them in Figma.
+    old.setSharedPluginData!('prism3', 'docPanelPlan', old.getSharedPluginData!('prism3', 'docPanelPlan').replace(/^\d+:/, '5:'));
+    for (const sp of walk(old).filter((c) => c.name === 'specimen')) { sp.layoutSizingHorizontal = 'HUG'; delete sp.minWidth; }
+    const was = walk(old).find((c) => c.name === 'specimen')!.absoluteBoundingBox!.width;
+    edit?.(old);
+    // The file's ledger: Dialog's entry as the plugin wrote it before #3205's fix, its set's def and engine today's.
+    const data = new Map<string, string>();
+    const file = { getPluginData: (k: string) => data.get(k) ?? '', setPluginData: (k: string, v: string) => { data.set(k, v); } };
+    recordSets(file, { dialog: entryFor(d) });
+    // Today's entry, as `main.ts`'s `ledgerNow` makes it with the panels on: Dialog leads its family, so it carries the
+    // panel format.
+    const now = (id: string): LedgerEntry | null => (id === 'dialog' ? { ...entryFor(d), panel: PANEL_FORMAT } : null);
+    const read = dueOf(readLedger(file), ['dialog'], now);
+    // The checklist ticks the due sets (`defaultTicks`), and the scoped check reads only those.
+    const ticked = Object.keys(read).filter((id) => read[id].state === 'due');
+    const targets: UpdateTarget[] = ticked.map((id) => ({ def: id, plans: plansOf(id), doc: { def: componentDefs.find((x) => x.id === id)!, names } }));
+    const pre = await previewUpdate(uh, targets);
+    const checked = pre.sets.map((x, i) => checkedSetOf(x, targets[i].def));
+    const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (s0, id) => drawDocPanel(uh, s0 as unknown as PNode, componentDefs.find((x) => x.id === id)!, { names })); };
+    // The apply runs on the sets the check read and did not block (`updatableOf`); none, and Update file runs no apply.
+    if (checked.some((c) => !c.blocked)) {
+      const r = await applyUpdate(uh as never, uh as never, targets, previewHashOf(pre), { furnish });
+      // And records each set it acted on with today's entry, as `main.ts` does.
+      recordSets(file, Object.fromEntries(r.outcomes.filter((o) => !o.refused).map((o) => [o.def, now(o.def)!])));
+    }
+    const after = dueOf(readLedger(file), ['dialog'], now);
+    const all = panelsOn(p);
+    const live = all.filter((n) => tagOf(n).state === 'live');
+    const specs = live[0] ? walk(live[0]).filter((c) => c.name === 'specimen') : [];
+    return { read, checked, due: pre.sets[0]?.furniture?.panels, all, live, kept: all.filter((n) => tagOf(n).state === 'kept'), old, at, was, specs, after };
+  };
+  const a = await run('untouched');
+  ok(a.was < DIALOG_WIDTH / 2 && JSON.stringify(a.read.dialog) === '{"state":"due","reason":"panel"}'
+    && a.checked.length === 1 && a.checked[0].def === 'dialog' && a.checked[0].blocked === false && a.checked[0].upToDate === false && a.due === 1,
+    `format due/offered: Dialog's set current, its panel at format 5 (${a.was}px example): the ledger read lists it due for its panel, and the check offers its panel`,
+    `read ${JSON.stringify(a.read)}, checked ${JSON.stringify(a.checked)}, panels ${a.due}`);
+  ok(a.all.length === 1 && a.live.length === 1 && a.live[0] !== a.old && a.old.removed === true && Number(a.live[0].x) === a.at.x && Number(a.live[0].y) === a.at.y
+    && !String(a.live[0].name).endsWith('(edited)') && a.specs.length > 0
+    && a.specs.every((c) => c.layoutSizingHorizontal === 'FIXED' && c.absoluteBoundingBox!.width === 560 && c.minWidth === 560)
+    && a.live[0].getSharedPluginData!('prism3', 'docPanelPlan').startsWith(`${PANEL_FORMAT}:`),
+    `format due/redrawn: one apply redraws it in place, each of its ${a.specs.length} specimens FIXED at 560 with minWidth 560`,
+    `panels ${a.all.map((n) => n.name).join(' | ')}; specimens ${a.specs.map((c) => `${c.layoutSizingHorizontal} ${c.absoluteBoundingBox!.width} min ${c.minWidth}`).join(', ')}`);
+  ok(JSON.stringify(a.after.dialog) === '{"state":"current"}', `format due/recorded: after the apply, the ledger reads the set current (${JSON.stringify(a.after.dialog)})`);
+  // A panel edited by hand is offered too, and kept (#3317): the redraw draws a new one beside it, the edit intact.
+  const b = await run('edited', (old) => { walk(old).find((c) => c.type === 'TEXT' && String(c.characters).length > 20)!.characters = 'Our dialogs always confirm before deleting.'; });
+  ok(JSON.stringify(b.read.dialog) === '{"state":"due","reason":"panel"}' && b.due === 1 && b.all.length === 2 && b.live.length === 1 && b.kept.length === 1 && b.kept[0] === b.old
+    && String(b.old.name).endsWith(' (edited)') && texts(b.old).includes('Our dialogs always confirm before deleting.'),
+    `format due/edited kept: a hand-edited panel at format 5 is offered, and the apply keeps it as "${b.old.name}", its edit intact`,
+    `read ${JSON.stringify(b.read)}, panels ${b.all.map((n) => n.name).join(' | ')}`);
 }
 
 /* ── orphan: a deleted set's panels before its def is built again ─────────────────────────────────────── */
