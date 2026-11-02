@@ -76,6 +76,18 @@ ok(failedRun.done && stepOf(failedRun) === null && same(failedRun.results.map((x
 const stopped = stepDone(stopUpdate(r), true, '✓ applied');
 ok(stopped.done && stopped.results.length === 2, 'run: Stop ends the run after the step running');
 ok(startUpdate([], []).done, 'run: a run with no steps is done at once');
+// #3308: the owner's first run. The sets step built all 9 sets, 5 with problems: not ok, but it did all it was asked, so
+// the run goes on to the style guides, where until #3308 it stopped ("Stopped at To add"). A step that failed still ends
+// it. (mutation: `stepDone` ignoring `warn` → `run/warn goes on`)
+{
+  let w = startUpdate(['setup', 'theme', 'sets', 'guides'], ['button']);
+  w = stepDone(stepDone(w, true, '✓ file set up'), true, '✓ applied');
+  w = stepDone(w, false, '⚠ Built 9 sets · 5 with problems', true);
+  ok(!w.done && stepOf(w) === 'guides' && w.results[2].warn === true && w.results[2].ok === false,
+    `run/warn goes on: a sets step that built every set, some with problems, moves the run to the style guides (${JSON.stringify({ done: w.done, next: stepOf(w), last: w.results[2] })})`);
+  const ok2 = stepDone(startUpdate(['theme', 'guides'], []), true, '✓ applied', true);
+  ok(ok2.results[0].warn === undefined && !ok2.done, 'run/warn: a clean step is never marked warn');
+}
 
 // ── phase 2: what is due (Q2909.8 A) ──────────────────────────────────────────────────────────────────────────────
 const CAT2 = [entry('button'), entry('tag'), entry('badge'), entry('select'), entry('icon')] as unknown as Catalog;

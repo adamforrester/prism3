@@ -138,7 +138,10 @@ export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<str
   return out.length ? out : ['current'];
 };
 
-export type StepResult = { readonly step: StepKey; readonly ok: boolean; readonly headline: string };
+export type StepResult = { readonly step: StepKey; readonly ok: boolean; readonly headline: string;
+  /** #3308: not clean, but the step did all it was asked: every queued set was built, some with problems. The run goes
+   *  on to the next step; the verdict line says the step had problems. Never set with `ok`. */
+  readonly warn?: true };
 export type UpdateRun = {
   readonly steps: readonly StepKey[];
   /** The sets the `sets` step builds: the add queue, in Components' order (#3129). */
@@ -156,12 +159,14 @@ export const startUpdate = (steps: readonly StepKey[], sets: readonly string[], 
 /** The step running, or null once the run is done. */
 export const stepOf = (r: UpdateRun): StepKey | null => (r.done ? null : r.steps[r.results.length] ?? null);
 
-/** The run after the running step's verdict: done after a failure, after Stop, or after the last step. */
-export const stepDone = (r: UpdateRun, ok: boolean, headline: string): UpdateRun => {
+/** The run after the running step's verdict: done after a failure, after Stop, or after the last step. A step that is
+ *  not `ok` but did all it was asked (`warn`, #3308: every set built, some with problems) is not a failure: the run goes on. */
+export const stepDone = (r: UpdateRun, ok: boolean, headline: string, warn = false): UpdateRun => {
   const step = stepOf(r);
   if (!step) return r;
-  const results = [...r.results, { step, ok, headline }];
-  return { ...r, results, done: !ok || r.stopping || results.length >= r.steps.length };
+  const w = !ok && warn;
+  const results: StepResult[] = [...r.results, { step, ok, headline, ...(w ? { warn: true as const } : {}) }];
+  return { ...r, results, done: (!ok && !w) || r.stopping || results.length >= r.steps.length };
 };
 
 /** Stop after the step running. */

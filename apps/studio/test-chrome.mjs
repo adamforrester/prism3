@@ -3740,6 +3740,54 @@ for (const host of ['web', 'figma']) {
         const rfC = (await drawerState(page)).ops['components'];
         ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
           `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
+        // #3308: the owner's first run, in small. Set up file, then two queued sets, each built with problems (completed,
+        // not ok), and Style guides ticked: the run goes on to the style guides (it asks for a fresh catalog) instead of stopping at To add,
+        // and Activity reads the queue's result as a warning, not a failure. The guides step is then refused, which ends the
+        // run. (mutation: `main.ts`'s sets step passing `warn` false → `#3308: … goes on`)
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+        // A fresh file, so Set up file and Style guides are ticked (Q2909.2 A); the theme is not.
+        await openUpdate({ present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 2 misses', summary: 'built', lines: ['built'] });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 1 miss', summary: 'built', lines: ['built'] });
+        await settle(page);
+        // Still running is the run gone on: it now waits on the style guides' catalog. Ended, it would be free again.
+        const pwU = await updBtn();
+        const pwC = (await drawerState(page)).ops['components'];
+        ok(pwU.busy && pwC?.kind === 'warn' && String(pwC?.verdict ?? '').includes('Built 2 sets · 2 with problems'),
+          `${where}: #3308: a queue that built every set with problems goes on to the style guides, and Activity reads it as a warning (Update file ${JSON.stringify(pwU)}, row ${JSON.stringify(pwC ?? null)})`);
+        await postMsg(page, { type: 'refused', code: 'busy', cmd: 'style-guide', agent: false, message: REFUSED_WORDS });
+        await settle(page);
+        ok(!(await updBtn()).busy, `${where}: #3308: the refused style guides end that run, and Update file is free again`);
+        // #3308 review (Blocking 2): a failed set still ends the run. The same fresh file and queue, but the second set
+        // fails (not completed): the sets step is not a warning, so the run stops at To add, Update file is free, the strip
+        // reads it, and Activity counts a failure. The failed set is the LAST one, so the queue has a result for every set
+        // and only the "none failed" test tells this run from the one above.
+        // (mutation R1: `results.every((x) => x.result !== 'failed')` → `true` in `main.ts`'s sets step → this arm, by name)
+        if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+        await openUpdate({ present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+        await postMsg(page, { type: 'file-sets', present: [], setUp: false, queued: ['badge', 'tag'] });
+        await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+        await takeWrites(page);
+        await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+        await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+        await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 2 misses', summary: 'built', lines: ['built'] });
+        await postMsg(page, { type: 'component-result', ok: false, completed: false, headline: '✗ write failed', summary: 'write failed', lines: ['write failed'] });
+        await settle(page);
+        const pfU = await updBtn();
+        const pfC = (await drawerState(page)).ops['components'];
+        const pfS = await page.evaluate(() => {
+          const s = document.querySelector('[data-p3="status-strip"]');
+          return { tone: s?.dataset.tone ?? null, what: s?.querySelector('[data-p3="status-what"]')?.textContent ?? null };
+        });
+        ok(!pfU.busy && pfS.what === 'Stopped at To add' && pfS.tone === 'bad' && pfC?.kind === 'bad',
+          `${where}: #3308: a queue with a failed set ends the run at To add: Update file is free, the strip reads "Stopped at To add", and Activity reads a failure (Update file ${JSON.stringify(pfU)}, strip ${JSON.stringify(pfS)}, row ${JSON.stringify(pfC ?? null)})`);
         if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
         await hooks.click(page.locator('[data-p3="rail-documentation"]'), WAIT);
         // #2830 Q2830.3 A: Documentation › Specs is a real control. Draw specs posts the panel's `draw-specs` (for the
