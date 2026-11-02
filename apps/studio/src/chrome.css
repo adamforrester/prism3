@@ -193,9 +193,12 @@
 .p3-menu-stamp-b { font-family: var(--p3-font-mono); overflow-wrap: anywhere; }
 /* #3138: the privacy note, just above the build stamp, in the stamp's small secondary text. #3147: it wraps within the
    width the menu's items give it and never sets that width (`width: 0; min-width: 100%`), since the menu sizes to
-   `max-content` and the approved note on one line would make it wider than the window. */
+   `max-content` and the approved note on one line would make it wider than the window. The wide tier only
+   (Q3298/3294 compose A, owner, 2026-11-02): at the narrow tier #3298's cap decides, so the note sets the menu's width
+   up to that cap rather than shrinking it to the items'. */
 .p3-menu-privacy { margin: var(--p3-space-050) 0 0; padding: var(--p3-space-100) var(--p3-space-150) 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
-  color: var(--p3-text-2); font-size: var(--p3-fs-12); width: 0; min-width: 100%; box-sizing: border-box; }
+  color: var(--p3-text-2); font-size: var(--p3-fs-12); box-sizing: border-box; }
+.p3-frame:not([data-w="narrow"]) .p3-menu-privacy { width: 0; min-width: 100%; }
 .p3-menu-privacy + .p3-menu-stamp { margin-top: 0; border-top: 0; }
 /* #3147 (O2 B, owner, 2026-11-02): the open Inspect menu is at least 320px wide (two and a half start-window units), so
    the privacy note wraps to about five lines on both hosts rather than to the stamp's width. A `width`, not a

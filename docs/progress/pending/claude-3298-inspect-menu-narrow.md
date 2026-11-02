@@ -40,6 +40,24 @@ typed in the test). The window alone passed a menu reaching the header's left ed
 on the right only (`max-width: calc(100% - var(--p3-space-150))`) → `3298 web 380: the menu is capped at the preview
 header less 12px a side` (menu `l 60`, header `l 60`) and `3298 figma 380: …` the same.
 
+### Composing with #3294 (owner decision Q3298/3294 compose, A, 2026-11-02)
+
+#3294 (now on `main`) gave `.p3-menu-privacy` `width: 0; min-width: 100%` at every tier, and the Inspect menu a ~320px
+width at the wide tier (O2 B, already `:not([data-w="narrow"])`). At 380 the first rule let the items set the menu's
+width: 164px on the web, with the note 14 lines tall. The owner decided the minimum is the wide tier's alone and the
+narrow cap decides at 380, so `width: 0; min-width: 100%` now sits under `.p3-frame:not([data-w="narrow"])`, the same
+scope as O2 B's rule. At 380 the note sets the menu's width up to the cap: 296px (72 to 368) on both hosts, the note 7
+lines. 1280 keeps both of #3294's rules unchanged.
+
+Two arms hold it. Section `3298` gains a fifth arm at 380: the menu reaches the cap's left edge (the header's left plus
+12). Section `47-menu` gains a 380 case on both hosts: the menu inside the viewport, and at the cap with the note at
+most 8 lines (8 is a test bound, not a design number: 7 at the cap, 14 without the scope). Mutation, from a `wip:`
+commit, the scope dropped (`width: 0; min-width: 100%` back at every tier) → 38/40:
+`✗ 3298 web 380: the privacy note sets the menu's width up to the cap, the preview header less 12px a side (menu
+{"l":203.7,"r":368,…,"w":164.3}, …)` and `✗ §47 web light 380 Inspect: the open menu reaches the narrow cap … at most 8
+lines (… "lines":14 …)`. The figma host lays out the same either way, because its build stamp already sets the menu to
+the cap.
+
 ### Trap for whoever re-verifies
 
 The margin that drops the menu below Inspect is the narrow button's height token. If Inspect's narrow height ever stops
@@ -48,5 +66,4 @@ being `--p3-ctl-h-xs`, the menu overlaps it or floats off it; the arm's "hangs b
 ### Not covered
 
 The arm holds only the Inspect menu. The Theme menu was measured once by hand at 380 (Brand, Preview pane) and fits on
-both hosts: 50.5 to 304.5 on the web, 50.5 to 206.5 in the plugin. #3294 also edits `.p3-menu-privacy`; these rules
-compose with its wrap rule.
+both hosts: 50.5 to 304.5 on the web, 50.5 to 206.5 in the plugin.
