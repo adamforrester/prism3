@@ -19567,7 +19567,7 @@ if (runs('3044')) {
 //     preview header now holds the menu: Inspect's right edge, capped at the header less 12px a side, the note and the
 //     stamp wrapping inside it. 1280 is unchanged. EXPECTED is the window (`innerWidth`) and the button's own rect;
 //     ACTUAL is the open menu's `getBoundingClientRect()`, and the note's and the stamp's, as the browser lays them out.
-//     Mutation this fails by name: the four narrow rules under `#3298` in `chrome.css` removed → `3298 figma 380: …` and
+//     Mutation this fails by name: the narrow rules under `#3298` in `chrome.css` removed → `3298 figma 380: …` and
 //     `3298 web 380: …` (the menu's left edge below 0).
 if (runs('3298')) {
   console.log(`\nThe Inspect menu inside the window (#3298)\n${'='.repeat(78)}`);
