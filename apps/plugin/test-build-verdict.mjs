@@ -173,10 +173,21 @@ if (!existsSync(UI)) {
 // ---- the static server -----------------------------------------------------------------------
 // Ephemeral port (`listen(0)`), the call `test-smoke.mjs` records: a fixed number collides as
 // EADDRINUSE, which reads exactly like a test failure and gets debugged as one.
-const server = createServer(async (_req, res) => {
+// #2293: `?figma=light|dark` stubs Figma's theme the way the host does, its class on <html> and two of its variables,
+// typed here (as `apps/studio/test-chrome.mjs` types them). With no query the bundle is served as built.
+const FIGMA_THEME = {
+  light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
+  dark: { cls: 'figma-dark', vars: { '--figma-color-bg': '#2c2c2c', '--figma-color-text': '#ffffff' } },
+};
+const server = createServer(async (req, res) => {
   try {
+    const t = FIGMA_THEME[new URL(req.url, 'http://x').searchParams.get('figma') ?? ''];
+    const html = String(await readFile(UI));
+    const out = t ? html.replace(/<html([^>]*)>/, `<html$1 class="${t.cls}">`)
+      .replace(/<head>/, `<head><style>:root{${Object.entries(t.vars).map(([k, v]) => `${k}:${v}`).join(';')}}</style>`) : html;
+    if (t && out === html) throw new Error('the Figma theme stub did not apply to dist/ui.html');
     res.writeHead(200, { 'content-type': 'text/html' });
-    res.end(await readFile(UI));
+    res.end(out);
   } catch (e) {
     res.writeHead(500);
     res.end(String(e));
@@ -257,13 +268,13 @@ const readSurfaces = (page) => page.evaluate(() => {
  *  into the next, so a verdict left over from scenario 1 could satisfy scenario 2's assertion. Every build message the
  *  panel posts is caught on this window (the UI's `parent.postMessage` lands here), so a scenario can say which set
  *  was asked for. */
-const openPanel = async () => {
+const openPanel = async ({ figma } = {}) => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await hooks.watch(page);
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto(`${ORIGIN}/`, { waitUntil: 'load' });
+  await page.goto(`${ORIGIN}/${figma ? `?figma=${figma}` : ''}`, { waitUntil: 'load' });
   // A real condition, not a sleep: the frame is rendered once the app has booted onto a brand.
   await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
   await page.evaluate(() => {
@@ -922,7 +933,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `S11 an agent's Apply Theme run opens the Activity drawer on the Apply Theme row — state ${running.state}, drawer open ${running.drawerOpen}`);
   ok(running.agent && running.verdict === 'Running' && running.phase.some((t) => (t ?? '').includes('Writing to Figma…')),
     `S11 the running row is tagged Agent, reads "Running", phase "Writing to Figma…" — agent ${running.agent}, verdict ${JSON.stringify(running.verdict)}, phase ${JSON.stringify(running.phase)}`);
-  ok(running.statusRole === 'status' && running.status === 'Apply Theme, Writing to Figma…',
+  ok(running.statusRole === 'status' && running.status === 'Theme, Writing to Figma…',
     `S11 the start is announced once through the drawer's polite status line — role ${running.statusRole}, read ${JSON.stringify(running.status)}`);
   // #2909: the panel's theme write is Update file's Theme step. Started while the agent's Apply runs, it posts nothing,
   // and the run ends rather than waiting on a verdict that is not coming.
@@ -1028,18 +1039,18 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   };
 
   const clean = await run('f1', { ok: true, headline: '✓ 42 roles written', summary: '42 roles written' }, 'ok');
-  ok(clean.started.text === 'Apply Theme, Writing to Figma…' && clean.done.text === 'Apply Theme finished.' && clean.done.role === 'status' && clean.done.live !== 'assertive',
+  ok(clean.started.text === 'Theme, Writing to Figma…' && clean.done.text === 'Theme finished.' && clean.done.role === 'status' && clean.done.live !== 'assertive',
     `Q194 a clean Apply Theme run is announced as finished, politely, on the status line that announced its start — start ${JSON.stringify(clean.started.text)}, finish ${JSON.stringify(clean.done.text)}, role ${clean.done.role}, aria-live ${clean.done.live}`);
-  ok(clean.after.text === 'Apply Theme finished.',
+  ok(clean.after.text === 'Theme finished.',
     `Q194 the finish stands after the run closes, until the next start — read ${JSON.stringify(clean.after.text)}`);
 
   const REASON = 'The variable collection is read-only in this file';
   const failed = await run('f2', { ok: false, headline: '✗ Apply failed', summary: `${REASON}.`, lines: [`${REASON}.`] }, 'bad');
-  ok(failed.started.text === 'Apply Theme, Writing to Figma…' && failed.done.text === `Apply Theme failed: ${REASON}.` && failed.done.role === 'status',
+  ok(failed.started.text === 'Theme, Writing to Figma…' && failed.done.text === `Theme failed: ${REASON}.` && failed.done.role === 'status',
     `Q194 a failed Apply Theme run is announced with its reason — start ${JSON.stringify(failed.started.text)}, finish ${JSON.stringify(failed.done.text)}, role ${failed.done.role}`);
 
   const warned = await run('f3', { ok: false, headline: '⚠ 40 of 42 roles written', summary: '2 roles were skipped', lines: ['2 roles were skipped'] }, 'bad');
-  ok(warned.done.text === 'Apply Theme finished with a warning: 2 roles were skipped.',
+  ok(warned.done.text === 'Theme finished with a warning: 2 roles were skipped.',
     `Q194 a run that finishes with a warning is announced with its reason, as finished — read ${JSON.stringify(warned.done.text)}`);
   ok(errors.length === 0, `Q194: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
@@ -1065,12 +1076,12 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.waitForFunction(() => !document.querySelector('[data-p3="activity-op"][data-op="apply"][data-state="running"]'), null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(100);
   const ended = await line();
-  ok(ran && started === 'Apply Theme, Writing to Figma…' && ended === '',
+  ok(ran && started === 'Theme, Writing to Figma…' && ended === '',
     `#2507 a run that ends with no verdict empties the status line, so it claims no run still going — start ${JSON.stringify(started)}, after ${JSON.stringify(ended)}`);
   await post(page, { type: 'agent-started', id: 'n2', cmd: 'apply-theme' });
   await applyIs('running');
   const again = await line();
-  ok(again === 'Apply Theme, Writing to Figma…', `#2507 the next start is announced again, a change from the empty line — read ${JSON.stringify(again)}`);
+  ok(again === 'Theme, Writing to Figma…', `#2507 the next start is announced again, a change from the empty line — read ${JSON.stringify(again)}`);
   await post(page, { type: 'agent-finished', id: 'n2', cmd: 'apply-theme' });
   ok(errors.length === 0, `#2507: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
@@ -1223,7 +1234,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //   · the refusal opening the drawer → `#1957 a declined request does not open the drawer …`.
 {
   const { page, errors } = await openPanel();
-  const BUSY = 'Apply Theme is already running. Try again when it finishes.';
+  const BUSY = 'Update file is already running. Try again when it finishes.';
   await post(page, { type: 'agent-started', id: 'r1', cmd: 'apply-theme' });
   await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
   // The start opened the drawer; close it by hand, so a refusal that opened it would show.
@@ -1250,7 +1261,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#1957 a declined second Apply goes into Earlier results as "Refused", with the busy message — ${JSON.stringify(read.history)}, ${JSON.stringify(read.items)}`);
   ok(!/attention/.test(read.count), `#1957 a declined request is not counted as needing attention — count ${JSON.stringify(read.count)}`);
   ok(read.open === 'false', `#1957 a declined request does not open the drawer — open ${read.open}`);
-  ok(read.status === 'Apply Theme already running; the second request was declined.',
+  ok(read.status === 'Theme already running; the second request was declined.',
     `#1957 the live line says the second request was declined — read ${JSON.stringify(read.status)}`);
   // The running write still lands as its own result, and the refusal stays in the history.
   await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
@@ -2342,6 +2353,86 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     const texts = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] :is([data-p3="op-history-reason"], [data-p3="op-history-line"])')].map((n) => n.textContent));
     ok(JSON.stringify(texts) === JSON.stringify([summary]), `#2281 an earlier result sent without items shows as its one line, in its own words — read ${JSON.stringify(texts)}`);
     ok(errors.length === 0, `#2281 no items: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
+// ── #2293: the Update dry run's result is drawn line by line in the Activity drawer ─────────────────
+//
+// The #2265 dry run answers with a `component-update-result` whose `lines` (#2177) are one per set, then each set's
+// details, then the closing lines. The #2177 arms above draw Apply, a component build and the style guide; this kind
+// renders through the same generic path but its own routing (`write-adapter.ts`'s `component-update-result` entry,
+// `host-session.ts`'s op map), so a regression there that dropped or merged its lines passed every gate. The shim tests
+// in `test-update-components.ts` check the message, not what the panel draws.
+//
+// INDEPENDENCE (docs/34). EXPECTED is `DRY_RUN`, the lines authored here as literals in the dry run's shape
+// (`previewVerdict` in `update-plan.ts`: each set's line, its named differences, then the closing lines). Nothing here
+// calls `previewVerdict` or reads `activity.ts`: the posted `lines` and the expected side are this one literal, and
+// ACTUAL is the built panel's DOM. The Figma theme is stubbed by this suite's server (`?figma=`), its class and two
+// variables typed here, and the theme the panel took is read back off `<html data-theme>`.
+//
+// "Whole" means each line is its own element, its text equal to the literal (not cut, not joined), with a box of real
+// size inside the drawer's body, nothing cut off at its edge (`scrollWidth <= clientWidth`), and no side scroll.
+//
+// Run in light and dark at 1280 and 380. Mutations, each against the built bundle, each failing by name:
+//   · one line dropped from the drawer's renderer (`linesOf` in `activity.ts`) →
+//     `#2293 <theme> <w>: the dry run's N lines are drawn, whole and in order`
+//   · one line dropped from this kind's routing alone (`write-adapter.ts`, `component-update-result`) → the same arm,
+//     with the #2177 arms (the other kinds) still green.
+{
+  const DRY_RUN = {
+    headline: 'Would change 2 of 3',
+    lines: [
+      'button: 648 members, 12 to update, 636 up to date.',
+      'button / label: font weight is 600 in the plan and 500 in the file (12 members).',
+      'tag: 96 members, 4 to update, 92 up to date.',
+      'tag / container: corner radius is 999 in the plan and 4 in the file (4 members).',
+      'switch-row: 48 members, all up to date.',
+      '2 sets to move, so the sets on each page sit as a new build spaces them.',
+      'This was a check only. Nothing in the file changed.',
+    ],
+  };
+  const THEMES = ['light', 'dark'];
+  ok(DRY_RUN.lines.length === 7 && THEMES.length === 2, `#2293 the arm drives 7 dry-run lines in both themes (lines ${DRY_RUN.lines.length}, themes ${THEMES.length})`);
+  for (const theme of THEMES) for (const w of [1280, 380]) {
+    const where = `#2293 ${theme} ${w}`;
+    const { page, errors } = await openPanel({ figma: theme });
+    await page.setViewportSize({ width: w, height: w === 380 ? 640 : 900 });
+    const tier = w === 380 ? 'narrow' : 'wide';
+    const tierSet = await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.w === t, tier, { timeout: 5000 }).then(() => true, () => false);
+    ok(tierSet, `${where}: the frame reaches the ${tier} tier before the drawer is measured`);
+    const themed = await page.evaluate(() => document.documentElement.dataset.theme ?? null);
+    ok(themed === theme, `${where}: the panel takes Figma's ${theme} theme — <html data-theme> is "${themed}"`);
+    await post(page, { type: 'component-update-result', ok: true, headline: DRY_RUN.headline, summary: DRY_RUN.lines.join('\n'), lines: DRY_RUN.lines });
+    const head = '[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]';
+    await page.waitForFunction((s) => !!document.querySelector(s), head, { timeout: 5000 }).catch(() => {});
+    // An ok result leaves the drawer closed (as the #2858 arm opens it): open the drawer, then the row.
+    if (await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+    if ((await page.locator(head).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(head));
+    const sel = '[data-p3="activity-op"][data-op="components"] [data-p3="op-summary"]';
+    const shown = await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, sel, { timeout: 5000 }).then(() => true, () => false);
+    ok(shown, `${where}: the dry run's lines are shown in the drawer`);
+    await settleMotion(page, where);
+    const seen = await page.evaluate((s) => {
+      const list = document.querySelector(s);
+      const lines = list ? [...list.querySelectorAll(':scope > [data-p3="op-line"]')] : [];
+      const body = document.querySelector('[data-p3="activity-body"]');
+      const b = body?.getBoundingClientRect();
+      return {
+        children: list ? list.children.length : 0,
+        texts: lines.map((n) => n.textContent),
+        drawn: lines.map((n) => { const r = n.getBoundingClientRect(); return n.checkVisibility() && r.width > 0 && r.height > 0; }),
+        uncut: lines.map((n) => n.scrollWidth <= n.clientWidth),
+        inside: lines.map((n) => { const r = n.getBoundingClientRect(); return !!b && r.left >= b.left - 0.5 && r.right <= b.right + 0.5; }),
+        noSideScroll: !!body && body.scrollWidth <= body.clientWidth,
+      };
+    }, sel);
+    const n = DRY_RUN.lines.length;
+    const bad = seen.texts.map((t, i) => (seen.drawn[i] && seen.uncut[i] && seen.inside[i] ? null : `line ${i + 1} drawn ${seen.drawn[i]} uncut ${seen.uncut[i]} inside ${seen.inside[i]}`)).filter(Boolean);
+    ok(seen.children === n && JSON.stringify(seen.texts) === JSON.stringify(DRY_RUN.lines) && bad.length === 0 && seen.noSideScroll,
+      `${where}: the dry run's ${n} lines are drawn, whole and in order — read ${seen.texts.length} lines of ${seen.children} children `
+      + `${JSON.stringify(seen.texts.map((t) => (t ?? '').slice(0, 32)))}${bad.length ? `; ${bad.join('; ')}` : ''}; no side scroll ${seen.noSideScroll}`);
+    ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
 }

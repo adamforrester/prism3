@@ -1,20 +1,20 @@
 # Export tokens
 
-<!-- DRAFT for owner review (#2637, lane 4). -->
+<!-- DRAFT for owner review (#2637, lane 4; corrected to the Export area for #3264). -->
 
 There are two ways to get token files out, and they start from different places:
 
-- **Export in the Prism3 studio**, on the web or in the plugin, writes the brand you set in the studio. <!-- src: apps/studio/src/export-settings.ts:63-70 --> <!-- src: apps/studio/src/export-settings.ts:81 --> <!-- src: apps/studio/src/export-settings.ts:173 -->
-- **TokenPress**, a separate Figma plugin, writes what a Figma file holds: its variables, text styles and effect styles, whoever made them. <!-- src: apps/tokenpress/README.md:3 --> <!-- src: apps/tokenpress/README.md:107-115 -->
+- Export, an area of the Prism3 studio on the web and in the plugin, writes the brand you set in the studio. <!-- src: apps/studio/src/shell/pages.ts:497 --> <!-- src: apps/studio/src/export-settings.ts:63-70 -->
+- TokenPress, a separate Figma plugin, writes what a Figma file holds: its variables, text styles and effect styles, whoever made them. <!-- src: apps/tokenpress/README.md:3 --> <!-- src: apps/tokenpress/README.md:107-115 -->
 
 ## Export from the studio
 
-1. Choose **Export** in the top bar. <!-- src: apps/studio/src/shell/bar.ts:160-163 -->
-2. Choose **Design tokens**: "The token set in the W3C design-token format, aliases intact: a base file and one overlay per mode. These are the files a build reads." <!-- src: apps/studio/src/export-settings.ts:102-110 -->
-3. Set the options. The file list and a preview update as you change them. <!-- src: apps/studio/src/shell/bar.ts:380-445 -->
-4. Choose **↓ Download tokens**, or **Cancel**. <!-- src: apps/studio/src/main.ts:1447 --> <!-- src: apps/studio/src/shell/bar.ts:434 -->
+1. Open **Export** in the rail. <!-- src: apps/studio/src/shell/pages.ts:497 -->
+2. Choose **Design tokens**: "The token set in the W3C design-token format, aliases intact: a base file and one overlay per mode. These are the files a build reads." <!-- src: apps/studio/src/export-settings.ts:104-109 -->
+3. Set the options. The file list and a preview beside them update as you change them. <!-- src: apps/studio/src/main.ts:1452-1456 -->
+4. Choose **↓ Download tokens**. <!-- src: apps/studio/src/main.ts:1484 -->
 
-*[Screenshot placeholder: the Export dialog with Design tokens selected and the file list.]*
+*[Screenshot placeholder: the Export area with Design tokens selected and the file list.]*
 
 | Option | Choices |
 |---|---|
@@ -26,7 +26,7 @@ There are two ways to get token files out, and they start from different places:
 
 ### What you get
 
-With **One per mode**, the download is a base file plus one overlay file per extra mode: <!-- src: apps/studio/src/export-settings.ts:101-110 --> <!-- src: packages/engine/emit-dtcg-overlay.ts:10-13 -->
+With **One per mode** <!-- src: apps/studio/src/export-settings.ts:206 -->, the download is a base file plus one overlay file per extra mode: <!-- src: packages/engine/emit-dtcg-overlay.ts:10-13 -->
 
 - `<brand>.base.tokens.json` holds every token at its default-mode value.
 - `<brand>.<mode>.overlay.tokens.json`, for example `<brand>.dark.overlay.tokens.json`, holds only the tokens whose value changes in that mode.
@@ -42,7 +42,7 @@ To hand over the brand itself rather than its tokens, choose **Brand brief** ins
 
 ## Export any Figma file with TokenPress
 
-TokenPress (listed in Figma as "Token Press - DTCG Exporter") exports a file's variables, text styles and effect styles as DTCG JSON in one ZIP. It works on any file, not only one Prism3 wrote, and it makes no network requests. <!-- src: apps/tokenpress/manifest.json:2 --> <!-- src: apps/tokenpress/README.md:3 --> <!-- src: apps/tokenpress/manifest.json:12 -->
+TokenPress is listed in Figma as "Token Press - DTCG Exporter". <!-- src: apps/tokenpress/manifest.json:2 --> It exports a file's variables, text styles and effect styles as DTCG JSON in one ZIP. It works on any file, not only one Prism3 wrote, and it makes no network requests. <!-- src: apps/tokenpress/README.md:3 --> <!-- src: apps/tokenpress/manifest.json:12 -->
 
 1. Run TokenPress in the file.
 2. Choose **Scan & Validate**. It lists the variables and styles and flags anything that would not export cleanly. <!-- src: apps/tokenpress/src/ui.html:1191 --> <!-- src: apps/tokenpress/README.md:86 -->
@@ -57,6 +57,6 @@ When TokenPress exports a file Prism3 themed, CI checks that it writes the same 
 
 | You want | Use |
 |---|---|
-| The tokens for the brand you set in Prism3 | **Export** in the studio |
-| The tokens a Figma file holds now, including hand changes or non-Prism3 collections | **TokenPress** |
+| The tokens for the brand you set in Prism3 | **Export**, in the studio's rail |
+| The tokens a Figma file holds now, including hand changes or non-Prism3 collections | TokenPress |
 | The brand settings, to rebuild or share the brand | **Export** › **Brand brief** |

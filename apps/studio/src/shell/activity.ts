@@ -81,7 +81,7 @@ export const HISTORY_MAX = 5;
 /** Concept v6's operation titles (`OP_TITLE`). The drawer lists operations in the order they first ran. */
 export const OP_TITLE: Readonly<Record<OpKey, string>> = {
   // "Style guides" since S11.2 (owner decision P11), matching the Build style guides page.
-  'apply': 'Apply Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
+  'apply': 'Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
   // #2830 Q713 A: Documentation › Specs' Draw specs, a row of its own. DRAFT wording (Q685 A).
   specs: 'Specs',
 };
