@@ -139,7 +139,7 @@ const loadOne = (p: { loaded: boolean }): void => {
   burn(PAGE_MS);
 };
 
-const shim = makeShim({ vars: [], styles: [], effects: [] }) as Record<string, any>;
+const shim = makeShim({ vars: [], styles: [], effects: [], looseHost: 'patches root.findAllWithCriteria to model paged and refusing searches' }) as Record<string, any>;
 const buildable = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents);
 ok(buildable.length >= SETS, `the stand-in has ${SETS} buildable defs to name its sets by (${buildable.length} buildable)`);
 const setIds = buildable.slice(0, SETS).map((d) => d.id);
