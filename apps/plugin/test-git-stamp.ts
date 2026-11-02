@@ -24,7 +24,11 @@
  * `build.mjs --release` with a stand-in `git` first on `PATH` (a shell script answering from literals) and `CI` unset,
  * and requires it to exit 1 before writing a bundle. MUTATION: `releaseCheck` returning `refuse: false` when strict
  * (warn only) → "release/refuses-dirty", "release/refuses-no-git", "release/refuses-behind",
- * "release/refuses-unknown" and "release/build-refuses" fail, by name.
+ * "release/refuses-unknown" and "release/build-refuses" fail, by name. The real build is also run behind origin/main
+ * and with git unavailable ("release/build-refuses-behind", "-no-git"), and without `--release` on the dirty and
+ * git-unavailable stand-ins ("dev/dirty-builds", "dev/no-git-builds"). MUTATIONS: `build.mjs` passing `0` for
+ * `behind` → "release/build-refuses-behind" fails; `if (release)` → `if (true)` (the dev build made strict) →
+ * "dev/dirty-builds" and "dev/no-git-builds" fail.
  */
 import { behindCheck, behindStamp, commitStamp, composeBuildId, releaseCheck, NO_GIT } from './git-stamp.mjs';
 import { spawn, spawnSync } from 'node:child_process';
@@ -286,30 +290,76 @@ console.log('\n5. a release build refuses a dirty, unknown or behind checkout (#
     `release/ci-warns: under CI the same reasons are a warning and the build goes on (${JSON.stringify(ci.lines[0])})`);
 }
 {
-  // The REAL build.mjs, with a stand-in git first on PATH. Answers are literals: a dirty tree at the tip of origin/main.
+  // The REAL build.mjs, with a stand-in git first on PATH and `CI` unset, as the owner runs it. Answers are literals,
+  // chosen per arm by `STANDIN`: `dirty` (a changed file at the tip of origin/main), `behind` (clean, 2 behind) and
+  // `nogit` (every call refused, as a broken git or an unaccepted license does). The stand-in logs each call.
   const here = dirname(fileURLToPath(import.meta.url));
   const bin = mkdtempSync(join(tmpdir(), 'p3-fake-git-'));
+  const log = join(bin, 'calls.log');
   writeFileSync(join(bin, 'git'), [
     '#!/bin/sh',
+    `echo "$*" >> "${log}"`,
+    'if [ "$STANDIN" = nogit ]; then echo "You have not agreed to the license agreements." >&2; exit 69; fi',
     'while [ "$1" = "-C" ]; do shift 2; done',
     'case "$1" in',
     '  rev-parse) echo 76a1636b ;;',
-    '  status) echo " M apps/plugin/build.mjs" ;;',
+    '  status) [ "$STANDIN" = dirty ] && echo " M apps/plugin/build.mjs" ;;',
     '  fetch) exit 0 ;;',
-    '  rev-list) echo 0 ;;',
+    '  rev-list) if [ "$STANDIN" = behind ]; then echo 2; else echo 0; fi ;;',
     '  *) echo "stand-in git: unexpected $*" >&2; exit 2 ;;',
     'esac',
+    'exit 0',
     '',
   ].join('\n'));
   chmodSync(join(bin, 'git'), 0o755);
+  const mtime = (f: string) => (existsSync(f) ? statSync(f).mtimeMs : null);
+  const run = (args: string[], standIn: 'dirty' | 'behind' | 'nogit') => {
+    rmSync(log, { force: true });
+    const env: NodeJS.ProcessEnv = { ...process.env, PATH: `${bin}:${process.env.PATH}`, STANDIN: standIn };
+    delete env.CI;
+    const r = spawnSync(process.execPath, [join(here, 'build.mjs'), ...args], { cwd: here, env, encoding: 'utf8', timeout: 120000 });
+    let calls: string[] = [];
+    try { calls = readFileSync(log, 'utf8').trim().split('\n').filter(Boolean); } catch { calls = []; }
+    return { ...r, calls, said: JSON.stringify((r.stderr || r.stdout).trim().split('\n').slice(-2)) };
+  };
   const outMain = join(here, 'release', 'main.js');
-  const before = existsSync(outMain) ? statSync(outMain).mtimeMs : null;
-  const env: NodeJS.ProcessEnv = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
-  delete env.CI;
-  const r = spawnSync(process.execPath, [join(here, 'build.mjs'), '--release'], { cwd: here, env, encoding: 'utf8', timeout: 60000 });
-  const after = existsSync(outMain) ? statSync(outMain).mtimeMs : null;
-  ok(r.status === 1 && r.stderr.includes('✗ Release build refused: the working tree has changes not committed (76a1636b-dirty).') && before === after,
-    `release/build-refuses: the real build.mjs --release exits 1 on a dirty tree and writes no bundle (exit ${r.status}, release/main.js ${before === after ? 'untouched' : 'rewritten'}; ${JSON.stringify((r.stderr || r.stdout).trim().split('\n').slice(-2))})`);
+  const refused = (standIn: 'dirty' | 'behind' | 'nogit') => {
+    const before = mtime(outMain);
+    const r = run(['--release'], standIn);
+    return { ...r, untouched: before === mtime(outMain) };
+  };
+
+  const dirty = refused('dirty');
+  ok(dirty.status === 1 && dirty.stderr.includes('✗ Release build refused: the working tree has changes not committed (76a1636b-dirty).') && dirty.untouched,
+    `release/build-refuses: the real build.mjs --release exits 1 on a dirty tree and writes no bundle (exit ${dirty.status}, release/main.js ${dirty.untouched ? 'untouched' : 'rewritten'}; ${dirty.said})`);
+  const behind = refused('behind');
+  ok(behind.status === 1 && behind.stderr.includes('✗ Release build refused: the checkout is 2 commits behind origin/main.') && behind.untouched,
+    `release/build-refuses-behind: the real build.mjs --release exits 1 on a clean checkout 2 behind origin/main and writes no bundle (exit ${behind.status}, release/main.js ${behind.untouched ? 'untouched' : 'rewritten'}; ${behind.said})`);
+  const nogit = refused('nogit');
+  ok(nogit.status === 1
+    && nogit.stderr.includes('✗ Release build refused: git could not say which commit this is; it cannot tell whether the checkout is behind origin/main.')
+    && nogit.untouched && !nogit.calls.some((c) => c.includes('fetch')),
+    `release/build-refuses-no-git: the real build.mjs --release exits 1 when git cannot run, names both reasons, never fetches and writes no bundle (exit ${nogit.status}, release/main.js ${nogit.untouched ? 'untouched' : 'rewritten'}; git saw ${nogit.calls.length} call(s); ${nogit.said})`);
+
+  // The dev build only warns (#3239), with `CI` unset too: the same dirty and git-unavailable stand-ins build `dist/`.
+  // The build writes `dist/`, so the checkout's own `dist/` is moved aside first and put back after.
+  const dist = join(here, 'dist');
+  const aside = join(here, `.dist-release-test-${process.pid}`);
+  const hadDist = existsSync(dist);
+  if (hadDist) renameSync(dist, aside);
+  try {
+    const devDirty = run([], 'dirty');
+    ok(devDirty.status === 0 && existsSync(join(dist, 'main.js')) && !devDirty.stderr.includes('Release build refused'),
+      `dev/dirty-builds: the real build.mjs without --release builds a dirty tree, CI unset (exit ${devDirty.status}; ${devDirty.said})`);
+    rmSync(dist, { recursive: true, force: true });
+    const devNoGit = run([], 'nogit');
+    ok(devNoGit.status === 0 && existsSync(join(dist, 'main.js')) && !devNoGit.stderr.includes('Release build refused'),
+      `dev/no-git-builds: the real build.mjs without --release builds when git cannot run, CI unset (exit ${devNoGit.status}; ${devNoGit.said})`);
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+    if (hadDist) renameSync(aside, dist);
+    rmSync(bin, { recursive: true, force: true });
+  }
 }
 
 console.log(failures ? `\n❌ ${failures} FAILED — ${executed} assertions executed` : `\n✅ ALL PASS — ${executed} assertions executed`);
