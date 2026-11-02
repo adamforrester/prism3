@@ -3139,7 +3139,7 @@
         "kind": "component set",
         "page": "↳ Banner",
         "section": "Components",
-        "members": 8,
+        "members": 10,
         "variantProperties": [
           {
             "name": "tone",
@@ -3147,7 +3147,8 @@
               "info",
               "success",
               "warning",
-              "danger"
+              "danger",
+              "neutral"
             ]
           },
           {
@@ -3164,11 +3165,27 @@
             "type": "TEXT"
           },
           {
+            "name": "body text",
+            "type": "TEXT"
+          },
+          {
             "name": "icon",
             "type": "BOOLEAN"
           },
           {
             "name": "title",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "body",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "link",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "rich body",
             "type": "BOOLEAN"
           },
           {
@@ -3544,7 +3561,7 @@
       },
       {
         "component": "banner",
-        "property": "body"
+        "property": "richBody"
       },
       {
         "component": "code-input",
