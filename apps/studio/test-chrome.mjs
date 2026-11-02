@@ -874,8 +874,9 @@ const expectFor = (column, place, state = 'page') => {
   // #2909: on the rail (both hosts since Q2909.9 A), Components has no tab and, at 380, no domain select (its tab row
   // keeps the page's title and the search, #3129 R3), and Contrast sits in the preview header of Theme's pages, never on Components.
   const base = EXPECT_CONTROLS[column].filter((h) => (place.startsWith('color-') || !COLOR_SUBS.includes(h)) && !(place === 'components' && (FIGMA_TABS.includes(h) || h === '[data-p3="tab-select"]')));
-  // #3129 R4 (the owner, 2026-10-28): Components shows no mode control, so its preview header holds Inspect alone.
-  const PREVIEW_HEAD = place !== 'components' ? [...PREVIEW_HEAD_ALL, '[data-p3="verdict"]'] : ['[data-p3="inspect-open"]'];
+  // #3129 R4 (the owner, 2026-10-28): Components shows no mode control, and since #3149 (Q3149.2 A) no Inspect, so its
+  // preview header holds nothing (section 3149 holds the absence).
+  const PREVIEW_HEAD = place !== 'components' ? [...PREVIEW_HEAD_ALL, '[data-p3="verdict"]'] : [];
   const levers = LEVERS_CONTROLS[place];
   if (!levers) return base;
   // A moved place. Narrow, on the Preview pane (Inspect opens there), the tab row and the levers are hidden.
@@ -902,6 +903,9 @@ const FOCUS_STOPS = {
   'figma narrow': [...FIGMA_RAIL, '[data-p3="brand-switcher"]', '[data-p3="agent-toggle"]', '[data-p3="update-file"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
 };
 const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
+/** Components (#3149): its preview header draws nothing since Inspect left it, so the web's page measures 8 edges, at
+ *  every width and on the Preview pane at 380. */
+const COMPONENTS_EDGES = 7;
 /** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
 const INSPECT_NARROW_FLOOR = { text: 5, edges: 10, glyphs: 3, controls: 8, fonts: 5 };
 /** Every chrome control is one of these, by class. A control that is none fails as unclassified. */
@@ -2176,7 +2180,7 @@ for (const host of ['web', 'figma']) {
       hooks.absent(ok, { seen: !!(await page.locator('[data-p3="frame"]').count()), state: 'the frame' }, (await page.evaluate(LOCAL_SWITCHES)) === 0,
         `${where}: no place draws a local switch between legacy pages (D8's, retired in S9.2)`);
       const m = await measure(page, where, host, 1280);
-      check(m, where, columnOf(host, 1280), PLACE_FLOOR);
+      check(m, where, columnOf(host, 1280), place === 'components' ? { ...PLACE_FLOOR, edges: COMPONENTS_EDGES } : PLACE_FLOOR);
       if (place === 'layout') {
         // F1 A: Layout's first breakpoint field is disabled by design (D13), so this sweep must exempt it. A sweep that
         // exempts nothing here has stopped measuring the exemption, or the field, and fails by name.
@@ -10553,7 +10557,8 @@ for (const host of ['web', 'figma']) {
 // #2825 (the plugin's section-head boxes and Build all, centered on the title's first line): RETIRED with the boxes,
 // #2909 (Q2909.5 A): the Components page draws no box or Build all on either host.
 // C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
-// both hosts (the plugin showed it too). Oracle: the engine version read from `packages/engine/version.ts` here, as
+// both hosts (the plugin showed it too). Since #3149 (Q3149.3 A) Components shows no Inspect, so the stamp is read from a
+// Theme page, Brand. Oracle: the engine version read from `packages/engine/version.ts` here, as
 // text, never the bundle's import; the stamp's words are #474's, unchanged.
 //
 // Mutations this fails by name: the stamp block removed from `inspectMenu` → `C3: <host>: the Inspect menu ends with
@@ -10564,7 +10569,7 @@ ok(ENGINE_V !== null, `C3: the oracle reads the engine version from packages/eng
 for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   try {
-    await goPlace(page, 'components');
+    await goPlace(page, 'brand');
     await hooks.click(page.locator('[data-p3="inspect-open"]'));
     await hooks.need(page, '[data-p3="inspect-menu"]');
     const s = await page.evaluate(() => {
@@ -10605,12 +10610,12 @@ for (const { w, h } of WIDTHS) {
         const where = `${host} ${theme} ${w} / components`;
         const narrow = w <= 560;
         const m = await measure(page, where, host, w);
-        check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+        check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : { ...PLACE_FLOOR, edges: COMPONENTS_EDGES });
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s82-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
         if (narrow) {
           await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
           const mp = await measure(page, `${where} / preview`, host, w);
-          check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'preview' });
+          check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4, edges: COMPONENTS_EDGES }, { state: 'preview' });
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
@@ -11314,8 +11319,10 @@ for (const host of ['web', 'figma']) {
         hostTotal += rings.length;
         focusSwept += rings.length;
       }
-      // B2 (#2487): Inspect › Token list, on Semantics, over the last place: the lent token list's segments and selects.
+      // B2 (#2487): Inspect › Token list, on Semantics, over a Theme page (Brand: the last place, Components, shows no
+      // Inspect since #3149): the lent token list's segments and selects.
       {
+        await goPlace(page, 'brand');
         await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
         await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
         await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
@@ -16768,6 +16775,8 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
         }
         if (w === 1280) {
           step = 'Inspect › Token list';
+          // Over a Theme page: Components, the last place, shows no Inspect since #3149.
+          await goPlace(page, 'brand');
           await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
           await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
           await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
@@ -19362,6 +19371,70 @@ console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot 
   }
 }
 } // 3199
+
+// =============================================================================================
+// #3149 — Components' preview header: no Inspect, the empty row kept at wide widths and collapsed at 380
+// (Q3149.1–.4, all A, the owner, 2026-11-01)
+// =============================================================================================
+// WHAT THIS HOLDS. Inspect comes off the Components page's preview header on both hosts (Q3149.2 A, Q3149.4 A), and only
+// there: a Theme page keeps it, with the build stamp and the privacy note at its foot (Q3149.3 A). Since #3129 R3 and R4
+// Inspect was all that header held, so the row is now empty: at 1280 it stays, its bottom edge on the levers header's, so
+// the two dividers still meet at one y (Q2); at 380, on the Preview pane, it collapses (Q3149.1 A).
+// INDEPENDENCE (docs/34): the expectations are the decision's, typed here. Each absence reads against a Theme page's
+// header measured in the same run (`hooks.absent`), and the 1280 row's edge against the levers header, not against itself.
+//
+// Mutations, each after a `wip:` commit, each failing by name:
+//   · Inspect restored on Components (the `.p3-popwrap` rule in `chrome.css` dropped) → `3149 <host> 1280: Q3149.2 A:
+//     Components shows no Inspect` on both hosts (at 380 the collapsed row hides it all the same);
+//   · the row kept at 380 (the narrow collapse rule dropped) → `3149 <host> 380: Q3149.1 A: the empty header row collapses`;
+//   · the row collapsed at every width (the collapse rule unscoped from the narrow tier) → `3149 <host> 1280: Q3149.1 A:
+//     the empty header row stays`.
+if (runs('3149')) {
+console.log(`\n#3149 — Components' preview header: no Inspect; the row kept at 1280, collapsed at 380\n${'='.repeat(78)}`);
+/** The preview header and its Inspect, read where they are drawn, beside the levers header's bottom edge. */
+const headNow = (page) => page.evaluate(() => {
+  const head = document.querySelector('[data-p3="preview-head"]');
+  const nav = document.querySelector('[data-p3="tab-row"]');
+  const inspect = document.querySelector('[data-p3="inspect-open"]');
+  const r = head?.getBoundingClientRect();
+  return { headShown: !!head?.checkVisibility(), headH: Math.round(r?.height ?? 0), headBottom: Math.round(r?.bottom ?? -1),
+    navBottom: Math.round(nav?.getBoundingClientRect().bottom ?? -2), inspect: !!inspect?.checkVisibility(),
+    body: !!document.querySelector('[data-p3="preview-body"]')?.checkVisibility() };
+});
+for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
+  const where = `3149 ${host} ${w}`;
+  const narrow = w === 380;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w, h: narrow ? 760 : 900 });
+  let step = 'a Theme page';
+  try {
+    // The oracle: a Theme page (Brand) keeps Inspect in its preview header. At 380 that header is on the Preview pane.
+    await goPlace(page, 'brand');
+    if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    await settle(page);
+    const theme = await headNow(page);
+    ok(theme.headShown && theme.inspect, `${where}: Q3149.2 A: a Theme page (Brand) keeps Inspect in its preview header (${JSON.stringify(theme)})`);
+    if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+    step = 'Components';
+    await goPlace(page, 'components');
+    await hooks.need(page, '[data-p3="components-levers"]');
+    if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    await settle(page);
+    const comp = await headNow(page);
+    hooks.absent(ok, { seen: theme.inspect && comp.body, state: 'a Theme page\'s Inspect, shown, and Components\' preview' }, !comp.inspect,
+      `${where}: Q3149.2 A: Components shows no Inspect (${JSON.stringify(comp)})`);
+    if (!narrow) {
+      ok(comp.headShown && comp.headH > 0 && Math.abs(comp.headBottom - comp.navBottom) <= 1,
+        `${where}: Q3149.1 A: the empty header row stays, its bottom edge on the levers header's, so the dividers meet (${JSON.stringify(comp)})`);
+    } else {
+      hooks.absent(ok, { seen: theme.headShown && comp.body, state: 'a Theme page\'s preview header, and Components\' Preview pane' }, !comp.headShown && comp.headH === 0,
+        `${where}: Q3149.1 A: the empty header row collapses on the Preview pane (${JSON.stringify(comp)})`);
+    }
+    ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  } catch (e) {
+    ok(false, `${where}: ${step}: ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+} // 3149
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
