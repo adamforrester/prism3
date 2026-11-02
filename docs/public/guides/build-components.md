@@ -19,7 +19,7 @@ Each set in the list carries its state in this file: **To add**, **Not in file**
 
 The sets you tick are kept in the file, not in the panel, so a teammate who opens Update file sees the same list. A set leaves the list once it is built whole; one that fails or is stopped stays on it. <!-- src: apps/plugin/src/add-queue.ts:1-11 -->
 
-Keep **Theme** ticked in the same run: the theme is written before any set, so the new sets can use your variables. <!-- src: apps/studio/src/state/update-file.ts:226 --> The run order is fixed. <!-- src: apps/studio/src/state/update-file.ts:35 -->
+Keep **Theme** ticked in the same run: the theme is written before any set, so the new sets can use your variables. <!-- src: apps/studio/src/state/update-file.ts:226 --> The run order is fixed. <!-- src: apps/studio/src/state/update-file.ts:39 -->
 On a file that isn't set up yet, the same run sets it up first. See [Set up a file](file-setup.md).
 
 ## What a build does

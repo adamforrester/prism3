@@ -11052,20 +11052,21 @@
       "category": "feedback",
       "status": "draft",
       "summary": "A persistent message in the page flow about an important state, with an optional action.",
-      "description": "A message that sits in the page flow and stays until the user dismisses it or the condition clears: a page-level error, a service notice, or the result of a process that has to stay visible. Because it is part of the page and the tab order, it can carry an action. Four tones, each with its own glyph shape, so the tone is never carried by color alone. Contained inside a section, or full width at the top of a page. Not a toast (it does not go away by itself), not a field message (that belongs to one field), and not a dialog (it does not block the page).",
+      "description": "A message that sits in the page flow and stays until the user dismisses it or the condition clears: a page-level error, a service notice, an announcement, or the result of a process that has to stay visible. Because it is part of the page and the tab order, it can carry an action: a button under the text, or a link at the end of the sentence. Four status tones, each with its own glyph shape, so the tone is never carried by color alone, and a neutral tone with no glyph for a message that carries no status. Contained inside a section, or full width at the top of a page. Not a toast (it does not go away by itself), not a field message (that belongs to one field), and not a dialog (it does not block the page).",
       "props": [
         {
           "name": "tone",
-          "type": "enum: 'info' | 'success' | 'warning' | 'danger'",
+          "type": "enum: 'info' | 'success' | 'warning' | 'danger' | 'neutral'",
           "default": "info",
           "required": false,
           "values": [
             "info",
             "success",
             "warning",
-            "danger"
+            "danger",
+            "neutral"
           ],
-          "description": "How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for everything else."
+          "description": "How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for other status news, and neutral for a message with no status, such as an announcement or a membership offer. Neutral sits on the secondary background with a neutral edge and shows no glyph."
         },
         {
           "name": "width",
@@ -11088,7 +11089,7 @@
           "name": "children",
           "type": "node",
           "required": true,
-          "description": "The body: what happened and what to do next, in one or two sentences. It can hold a link or a short list. Never repeat the title."
+          "description": "The body: what happened and what to do next, in one or two sentences. Usually plain text; it can hold a short list or other rich content instead. Never repeat the title."
         },
         {
           "name": "headingLevel",
@@ -11112,9 +11113,15 @@
         },
         {
           "name": "actions",
-          "type": "node",
+          "type": "node, never with link",
           "required": false,
-          "description": "One text Button that resolves the message (Button.Neutral when the file has it). Name it by what it does (\"Retry\", \"Update billing\"). A banner carries one action at most."
+          "description": "One text Button that resolves the message (Button.Neutral when the file has it), under the body. Name it by what it does (\"Retry\", \"Update billing\"). A banner carries one action at most, so a banner with actions takes no link."
+        },
+        {
+          "name": "link",
+          "type": "{ label: string; href: string }, never with actions",
+          "required": false,
+          "description": "A link at the end of the body sentence, for a one-line message whose action goes somewhere (\"Faster checkout by becoming a member. Join\"). It renders as an inline Link, underlined, appended to the body paragraph, and wraps under the text when the line has no room. A banner carries one action at most, so a banner with a link takes no actions. Name the outcome where it fits (\"Become a member\")."
         },
         {
           "name": "dismissible",
@@ -11148,7 +11155,8 @@
             "info",
             "success",
             "warning",
-            "danger"
+            "danger",
+            "neutral"
           ],
           "kind": "runtime"
         },
@@ -11165,34 +11173,38 @@
         "wcag": [
           "4.1.3 Status Messages (a banner inserted after an action is announced without moving focus)",
           "1.3.1 Info and Relationships (the title is a heading at the level the page outline needs, and it labels the region)",
-          "1.4.1 Use of Color (each tone has its own glyph shape, and the text says what happened)",
-          "1.4.3 Contrast (the title and body clear 4.5:1 on every tone's fill, measured in every mode of the example brands)",
+          "1.4.1 Use of Color (each status tone has its own glyph shape, the neutral tone carries no status, the text says what happened, and the inline link is underlined)",
+          "1.4.3 Contrast (the title, the body and the inline link clear 4.5:1 on every tone's fill, measured in every mode of the example brands)",
           "1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)",
-          "2.4.3 Focus Order (the action is in the tab order, and a dismiss moves focus to a surviving element)",
+          "2.4.3 Focus Order (the action or the link is in the tab order, and a dismiss moves focus to a surviving element)",
+          "2.4.4 Link Purpose (In Context) (the inline link sits in the sentence that gives it its purpose)",
           "2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)",
           "2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)"
         ],
-        "keyboard": "The action and the dismiss button are ordinary Tab stops in reading order. The banner itself takes no focus.",
+        "keyboard": "The action or the inline link, then the dismiss button, are ordinary Tab stops in reading order. The banner itself takes no focus.",
         "focus": "No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.",
-        "aria": "The glyph is aria-hidden. A banner present at load: a section with aria-labelledby pointing at the title, and no role=\"alert\". An inserted banner: announced through a live region that already exists, role=\"alert\" for danger and role=\"status\" otherwise. The dismiss button's accessible name names what it dismisses (\"Dismiss error message\"), and is translated."
+        "aria": "The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role=\"alert\". An inserted banner: announced through a live region that already exists, role=\"alert\" for danger and role=\"status\" otherwise. The dismiss button's accessible name names what it dismisses (\"Dismiss error message\"), and is translated."
       },
       "content": {
-        "labelPattern": "Title: names the issue up front, in sentence case and with no period (\"Payment failed\", not \"Error\"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Action: a verb of one or two words (\"Retry\", \"Update billing\").",
+        "labelPattern": "Title: names the issue up front, in sentence case and with no period (\"Payment failed\", not \"Error\"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Action: a verb of one or two words (\"Retry\", \"Update billing\"). Inline link: the outcome it leads to, short enough to end the sentence (\"Become a member\").",
         "errorPattern": "Say what went wrong, whether anything was lost, and how to fix it. Use danger only for an error that blocks the user."
       },
       "docs": {
-        "usage": "Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one. The brand's Banner style sets the surface for every banner: Tinted fills it with the tone's tint, Outlined with the page color, and both keep the edge in the tone. It is a brand setting, not a prop.",
+        "usage": "Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Use the neutral tone for a message with no status, such as an announcement or a membership offer. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one. Give it one action at most: an inline link at the end of a one-line message that goes somewhere, or a text button under a longer message, or one that does something (\"Retry\"). The brand's Banner style sets the surface for every banner: Tinted fills it with the tone's tint, Outlined with the page color, and both keep the edge in the tone. It is a brand setting, not a prop.",
         "do": [
           "Match the tone to how serious the message is",
           "Name the issue in the title, and say what to do next in the body",
           "Give the action a verb that says what it does",
+          "Use the neutral tone for an announcement or an offer, which carries no status",
+          "End a one-line message with an inline link when its action goes somewhere",
           "Move focus to a sensible place after a dismiss"
         ],
         "dont": [
           "Use a banner for a short confirmation like \"Saved\". Use a toast.",
           "Use a banner for one field's validation. Use the field's message.",
           "Stack banners. Show the most serious one.",
-          "Give a banner a second action. Link to the details in the body instead.",
+          "Give a banner a second action, or show the inline link and the action together. Link to the details in the body instead.",
+          "Borrow the info tone for a promotion. Use neutral.",
           "Mark a banner present at page load as role=\"alert\"",
           "Let a dismissed banner come back on reload"
         ],
@@ -11229,7 +11241,8 @@
       "composition": {
         "composesWith": [
           "button",
-          "flush-icon-button-neutral"
+          "flush-icon-button-neutral",
+          "link"
         ],
         "alternativeTo": [
           "dialog",

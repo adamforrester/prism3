@@ -134,7 +134,10 @@ const keysNotDrawn = (def: ComponentDef): Set<string> => {
     for (const k of ks) {
       const probe = `zz-report-probe.${k}`;
       const names = new Set<string>();
-      for (const plan of figmaAnatomySet({ ...def, tokens: { ...def.tokens, [k]: probe } })) planNames(plan.root, names);
+      // A key the projection READS as a value (#3225: a gap or a padding a hugging text's max width is derived from,
+      // in px) refuses the probe's name by throwing: the projection uses it, so it is drawn.
+      try { for (const plan of figmaAnatomySet({ ...def, tokens: { ...def.tokens, [k]: probe } })) planNames(plan.root, names); }
+      catch (err) { if (/is not a step of the space ladder|is not an icon size/.test((err as Error).message)) continue; throw err; }
       if (![...names].some((n) => n.replace(/\//g, '.') === probe)) dropped.add(k);
     }
   }

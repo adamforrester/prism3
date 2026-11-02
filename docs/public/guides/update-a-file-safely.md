@@ -26,7 +26,7 @@ The **Update** tab lists these items, in this order:
 | **Components** › **Due** | The sets in the file that are out of date, updated in place. See [Update sets in place](#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:237-239 --> | Yes |
 | **Style guides** | The token tables, drawn with the settings in Documentation. See [Build style guides](style-guides.md). <!-- src: apps/studio/src/state/update-file.ts:269-270 --> | Only on a file not set up yet |
 
-<!-- src: apps/studio/src/state/update-file.ts:97-103 -->
+<!-- src: apps/studio/src/state/update-file.ts:118-124 -->
 
 A file that isn't set up opens with "This file isn't set up for Prism3 yet. This first update sets it up." Otherwise the dialog opens with "Tick what to write. Untick what should wait." <!-- src: apps/studio/src/state/update-file.ts:222-223 -->
 
@@ -36,7 +36,7 @@ A file that isn't set up opens with "This file isn't set up for Prism3 yet. This
 2. Tick what to write and untick what should wait. To leave a set out of **To add**, choose its remove button (×), or **Remove all**. <!-- src: apps/studio/src/state/update-file.ts:233-234 -->
 3. Choose **Update file**. On a file that isn't set up yet, the button reads **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:271-272 -->
 
-The dialog closes and the run starts. The steps run one at a time: Set up file, Theme, the update in place, To add, then Style guides. The update in place runs before To add, though To add is listed first. <!-- src: apps/studio/src/state/update-file.ts:35 -->
+The dialog closes and the run starts. The steps run one at a time: Set up file, Theme, the update in place, To add, then Style guides. The update in place runs before To add, though To add is listed first. <!-- src: apps/studio/src/state/update-file.ts:39 -->
 
 While it runs, the button reads **Updating**. The status strip at the foot of the panel says which step and set it is on. When the run ends, it shows a line such as "Theme applied" or "File updated", followed by "Details in Activity." <!-- src: apps/studio/src/state/update-file.ts:216 --> <!-- src: apps/studio/src/state/status-strip.ts:141-148 -->
 Each step's full result goes to its row in the Activity drawer.
@@ -67,7 +67,7 @@ When a ticked set carries hand edits, a **Hand edits** choice appears beside the
 
 Before its first write, the update saves a named version in the file's version history: "Saves a version first. If Figma refuses the save, nothing is written." <!-- src: apps/studio/src/state/update-file.ts:255 -->
 
-The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:998-1000 -->
+The update writes exactly what the check read. If the file changed in between, it writes nothing and says so in Activity, under `✗ update refused`: "Nothing was updated: the file changed since the check." <!-- src: apps/plugin/src/update-apply.ts:1010-1012 -->
 Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/update-file.ts:215 -->
 
 ### What an update keeps
@@ -114,6 +114,6 @@ After a style-guide run that found tables Prism3 no longer draws, **Clean up** l
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:228 --> | Rename or remove the named items, then run Update file again. |
 | "is already running. Try again when it finishes." | The same write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:39-43 --> | Wait for it to finish. |
 | "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1756 --> | Load the brand again, for example from its `design.md`. |
-| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:796 --> | Open Update file again and read the new check. |
-| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:871 --> | Try again. Nothing in the file changed. |
+| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:799 --> | Open Update file again and read the new check. |
+| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:874 --> | Try again. Nothing in the file changed. |
 | `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:908 --> | Rename or move the existing set. |

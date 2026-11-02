@@ -1,0 +1,604 @@
+{
+  "seed": "3675273d",
+  "marks": {
+    "button/apple-pay-black.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/apple-pay-white-outline.svg": {
+      "paints": [
+        "#000000",
+        "#000000",
+        "#000000",
+        "#000000",
+        "#000000"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/apple-pay-white.svg": {
+      "paints": [
+        "#000000",
+        "#000000",
+        "#000000",
+        "#000000",
+        "#000000"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/google-pay-black.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#4285F4",
+        "#34A853",
+        "#FABB05",
+        "#E94235"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/google-pay-white.svg": {
+      "paints": [
+        "#5F6368",
+        "#4285F4",
+        "#34A853",
+        "#FABB05",
+        "#E94235"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/paypal-black.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/paypal-blue.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/paypal-gold.svg": {
+      "paints": [
+        "#003087",
+        "#003087",
+        "#003087",
+        "#009CDE",
+        "#009CDE",
+        "#009CDE"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/paypal-silver.svg": {
+      "paints": [
+        "#003087",
+        "#003087",
+        "#003087",
+        "#009CDE",
+        "#009CDE",
+        "#009CDE"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/paypal-white.svg": {
+      "paints": [
+        "#003087",
+        "#003087",
+        "#003087",
+        "#009CDE",
+        "#009CDE",
+        "#009CDE"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "button/shop-pay-purple.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF"
+      ],
+      "decision": "#3174 · Q3174.3 A"
+    },
+    "logo/affirm.svg": {
+      "paints": [
+        "#060809",
+        "#060809",
+        "#060809",
+        "#060809",
+        "#060809",
+        "#0FA0EA"
+      ]
+    },
+    "logo/amazon-pay.svg": {
+      "paints": [
+        "#000000",
+        "#FF9900"
+      ]
+    },
+    "logo/amex.svg": {
+      "paints": [
+        "#1F72CD"
+      ]
+    },
+    "logo/apple-pay.svg": {
+      "paints": [
+        "#000000"
+      ]
+    },
+    "logo/diners-club.svg": {
+      "paints": [
+        "#0079BE",
+        "#FFFFFF",
+        "#0079BE",
+        "#FFFFFF"
+      ]
+    },
+    "logo/discover.svg": {
+      "paints": [
+        "#F34F26",
+        "#F69E35",
+        "#000000"
+      ]
+    },
+    "logo/google-pay.svg": {
+      "paints": [
+        "#3C4043",
+        "#3C4043",
+        "#3C4043",
+        "#4285F4",
+        "#34A853",
+        "#FBBC04",
+        "#EA4335"
+      ]
+    },
+    "logo/klarna.svg": {
+      "paints": [
+        "#17120F",
+        "#17120F",
+        "#17120F",
+        "#17120F",
+        "#17120F",
+        "#17120F",
+        "#17120F",
+        "#17120F"
+      ]
+    },
+    "logo/mastercard.svg": {
+      "paints": [
+        "#ED0006",
+        "#FF5E00",
+        "#F9A000"
+      ]
+    },
+    "logo/paypal-wordmark.svg": {
+      "paints": [
+        "#2790C3",
+        "#2790C3",
+        "#2790C3",
+        "#27346A",
+        "#27346A",
+        "#27346A",
+        "#27346A",
+        "#2790C3",
+        "#1F264F"
+      ]
+    },
+    "logo/paypal.svg": {
+      "paints": [
+        "#27346A",
+        "#2790C3",
+        "#1F264F"
+      ]
+    },
+    "logo/shop-pay.svg": {
+      "paints": [
+        "#5A31F4"
+      ]
+    },
+    "logo/venmo.svg": {
+      "paints": [
+        "#008CFF"
+      ]
+    },
+    "logo/visa.svg": {
+      "paints": [
+        "#1434CB"
+      ]
+    },
+    "payment/affirm.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#060809",
+        "#0FA0EA"
+      ]
+    },
+    "payment/amazon-pay.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#000000",
+        "#FF9900"
+      ]
+    },
+    "payment/amex.svg": {
+      "paints": [
+        "#1F72CD",
+        "#FFFFFF"
+      ]
+    },
+    "payment/apple-pay.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#000000"
+      ]
+    },
+    "payment/diners-club.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#0079BE"
+      ]
+    },
+    "payment/discover.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#FD6020",
+        "#000000",
+        "#FD6020"
+      ]
+    },
+    "payment/generic.svg": {
+      "paints": [
+        "#545454",
+        "#545454"
+      ]
+    },
+    "payment/google-pay.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#3C4043",
+        "#4285F4",
+        "#34A853",
+        "#FBBC04",
+        "#EA4335"
+      ]
+    },
+    "payment/klarna.svg": {
+      "paints": [
+        "#FEB4C7",
+        "#17120F"
+      ]
+    },
+    "payment/maestro.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#ED0006",
+        "#0099DF",
+        "#6C6BBD"
+      ]
+    },
+    "payment/mastercard.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#ED0006",
+        "#F9A000",
+        "#FF5E00"
+      ]
+    },
+    "payment/paypal.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#28356A",
+        "#298FC2",
+        "#22284F",
+        "#28356A"
+      ]
+    },
+    "payment/shop-pay.svg": {
+      "paints": [
+        "#5A31F4",
+        "#FFFFFF"
+      ]
+    },
+    "payment/venmo.svg": {
+      "paints": [
+        "#008CFF",
+        "#FFFFFF"
+      ]
+    },
+    "payment/visa.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#1434CB"
+      ]
+    },
+    "provider/apple.svg": {
+      "paints": [
+        "#000000"
+      ],
+      "decision": "#3134"
+    },
+    "provider/facebook-blue.svg": {
+      "paints": [
+        "#0866FF",
+        "#FFFFFF"
+      ],
+      "decision": "Q831 A"
+    },
+    "provider/facebook.svg": {
+      "paints": [
+        "#000000"
+      ],
+      "decision": "#3134"
+    },
+    "provider/google.svg": {
+      "paints": [
+        "#4285F4",
+        "#34A853",
+        "#FBBC05",
+        "#EA4335"
+      ]
+    },
+    "social/apple-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/apple.svg": {
+      "paints": [
+        "#000000"
+      ]
+    },
+    "social/discord-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/discord.svg": {
+      "paints": [
+        "#5865F2"
+      ]
+    },
+    "social/dribbble-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/dribbble.svg": {
+      "paints": [
+        "#EA4C89",
+        "#C32361"
+      ]
+    },
+    "social/facebook-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/facebook.svg": {
+      "paints": [
+        "#0866FF",
+        "#FFFFFF"
+      ],
+      "decision": "Q837 A"
+    },
+    "social/figma-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/figma.svg": {
+      "paints": [
+        "#0ACF83",
+        "#A259FF",
+        "#F24E1E",
+        "#FF7262",
+        "#1ABCFE"
+      ]
+    },
+    "social/github-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/github.svg": {
+      "paints": [
+        "#24292F"
+      ]
+    },
+    "social/google-mono.svg": {
+      "paints": [
+        "#24262D",
+        "#24262D",
+        "#24262D",
+        "#24262D"
+      ]
+    },
+    "social/google.svg": {
+      "paints": [
+        "#4285F4",
+        "#34A853",
+        "#FBBC05",
+        "#EA4335"
+      ]
+    },
+    "social/instagram-mono.svg": {
+      "paints": [
+        "#24262D",
+        "#24262D",
+        "#24262D"
+      ]
+    },
+    "social/instagram.svg": {
+      "paints": [
+        "#000100",
+        "#000100",
+        "#000100"
+      ]
+    },
+    "social/linkedin-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/linkedin.svg": {
+      "paints": [
+        "#0A66C2"
+      ]
+    },
+    "social/medium-mono.svg": {
+      "paints": [
+        "#24262D",
+        "#24262D",
+        "#24262D"
+      ]
+    },
+    "social/medium.svg": {
+      "paints": [
+        "#000000",
+        "#000000",
+        "#000000"
+      ]
+    },
+    "social/messenger-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/messenger.svg": {
+      "paints": [
+        "#0099FF",
+        "#A033FF",
+        "#FF5280",
+        "#FF7061",
+        "#FFFFFF"
+      ]
+    },
+    "social/pinterest-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/pinterest.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#E60019"
+      ]
+    },
+    "social/reddit-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/reddit.svg": {
+      "paints": [
+        "#FF4500",
+        "#FFFFFF"
+      ]
+    },
+    "social/snapchat-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/snapchat.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#000000"
+      ]
+    },
+    "social/spotify-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/spotify.svg": {
+      "paints": [
+        "#1ED760"
+      ]
+    },
+    "social/tiktok-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/tiktok.svg": {
+      "paints": [
+        "#FF004F",
+        "#000000",
+        "#00F2EA"
+      ]
+    },
+    "social/tumblr-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/tumblr.svg": {
+      "paints": [
+        "#001935"
+      ]
+    },
+    "social/twitch-mono.svg": {
+      "paints": [
+        "#24262D",
+        "#24262D",
+        "#24262D"
+      ]
+    },
+    "social/twitch.svg": {
+      "paints": [
+        "#FFFFFF",
+        "#9146FF",
+        "#9146FF",
+        "#9146FF"
+      ]
+    },
+    "social/whatsapp-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/whatsapp.svg": {
+      "paints": [
+        "#25D366"
+      ]
+    },
+    "social/x-mono.svg": {
+      "paints": [
+        "#24262D"
+      ],
+      "supplied": "social/twitter-mono.svg"
+    },
+    "social/x.svg": {
+      "paints": [
+        "#000000"
+      ],
+      "supplied": "social/twitter.svg"
+    },
+    "social/youtube-mono.svg": {
+      "paints": [
+        "#24262D"
+      ]
+    },
+    "social/youtube.svg": {
+      "paints": [
+        "#FF0302",
+        "#FEFEFE"
+      ]
+    }
+  }
+}

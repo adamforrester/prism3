@@ -8,10 +8,10 @@ It is the first item of the **Update file** checklist, **Set up file**, listed w
 ## Set up a new file
 
 1. Choose **Update file** in the plugin's top bar. On a file that isn't set up, the dialog says "This file isn't set up for Prism3 yet. This first update sets it up." <!-- src: apps/studio/src/state/update-file.ts:222 -->
-2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:224 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:97-103 -->
+2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:224 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:118-124 -->
 3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:272 -->
 
-Once the file is set up, the checklist no longer lists the setup item. <!-- src: apps/studio/src/shell/update-file.ts:220 -->
+Once the file is set up, the checklist no longer lists the setup item. <!-- src: apps/studio/src/shell/update-file.ts:237 -->
 Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:88-95 --> If a setup failed, the Activity drawer offers **Set up again**. <!-- src: apps/studio/src/shell/activity.ts:207 -->
 
 ## The pages it creates

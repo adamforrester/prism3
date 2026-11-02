@@ -37,7 +37,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Draw spec panels | – | ✓ Documentation › Specs | ✓ `draw-specs` | – |
 | Read the file back | – | ✓ when the plugin opens | ✓ `readback`, `status` | – |
 
-<!-- src: apps/studio/src/state/update-file.ts:188-209 --> <!-- src: apps/plugin/src/agent-protocol.ts:41 --> <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 --> <!-- src: apps/studio/src/shell/pages.ts:511-516 -->
+<!-- src: apps/studio/src/state/update-file.ts:218-239 --> <!-- src: apps/plugin/src/agent-protocol.ts:41 --> <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 --> <!-- src: apps/studio/src/shell/pages.ts:511-516 -->
 
 ## Tokens
 

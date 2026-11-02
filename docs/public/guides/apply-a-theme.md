@@ -4,7 +4,7 @@
 
 To write the brand you set in the studio into the open Figma file, choose **Update file** in the plugin's top bar, leave **Theme** ticked, and choose **Update file** in the dialog. <!-- src: apps/studio/src/state/update-file.ts:215-227 -->
 The item reads "The brand's variables and styles. Layers bound to them restyle at once." <!-- src: apps/studio/src/state/update-file.ts:226-227 -->
-It is ticked each time the dialog opens. <!-- src: apps/studio/src/state/update-file.ts:97-103 -->
+It is ticked each time the dialog opens. <!-- src: apps/studio/src/state/update-file.ts:118-124 -->
 It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:108 -->
 
 Each run checks the file first and writes only if nothing conflicts. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:67-74 --> <!-- src: apps/plugin/src/preflight.ts:144-224 -->
