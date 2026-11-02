@@ -5985,4 +5985,59 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#3200 placeholder stays secondary: every shown placeholder inks color.text.secondary, under the primary label (hosts with one: ${[...phSeen].sort().join(', ')}${phOff.length ? `; WRONG on ${phOff.length}: ${phOff.slice(0, 3).join(' | ')}` : ''})`);
 }
 
+// ── #3048: NO LITERAL WRITTEN OVER A BOUND CORNER, READ BACK OFF EVERY BUILT MEMBER ────────────────────────────────
+// `claimDefaults` runs after the bind loop (#865) and zeroes each corner the plan leaves unbound; `!(corner in bound)`
+// is what keeps it off a bound one. On the host a literal write after `setBoundVariable` DETACHES the variable (the
+// rule #1228 relies on for the stroke weight), and since #3048 the shim models that for the four corners. So the
+// claim is made where the host would make it: every corner a plan binds is still bound, to the same variable, on the
+// built node. EXPECTED is the plan's `bound` (the projector's output); ACTUAL is the shim's `boundVariables` after the
+// whole executor ran, claimDefaults included. Every def that binds a corner, not a sample: the list is discovered from
+// the plans, and the floor below holds it to the defs #3048 names, so a discovery that finds nothing cannot pass.
+{
+  const CORNER_KEYS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
+  type PlanNode = { name: string; type: string; bound?: Record<string, string>; children?: PlanNode[] };
+  /** `node:corner=variable` for every corner a plan binds, in the plan's own tree. The ROOT is keyed `<root>` on both
+   *  sides: the built member is named by its coordinate, never by the plan root's part name. */
+  const planCorners = (n: PlanNode, root = true): string[] => [
+    ...CORNER_KEYS.filter((c) => n.bound?.[c]).map((c) => `${root ? '<root>' : n.name}:${c}=${n.bound![c]}`),
+    ...(n.children ?? []).flatMap((k) => planCorners(k, false)),
+  ];
+  /** The same off a built node, stopping at instances: what is inside one is its main component's, built elsewhere. */
+  const builtCorners = (n: Node, root = true): string[] => {
+    const bv = (n.boundVariables as Record<string, { id?: string }> | undefined) ?? {};
+    const own = CORNER_KEYS.filter((c) => bv[c]?.id).map((c) => `${root ? '<root>' : String(n.name)}:${c}=${bv[c]!.id!.replace(/^V:/, '')}`);
+    return n.type === 'INSTANCE' ? own : [...own, ...((n.children as Node[] | undefined) ?? []).flatMap((k) => builtCorners(k, false))];
+  };
+  const defsBinding: string[] = [];
+  const lost: string[] = [];
+  let claims = 0;
+  for (const def of componentDefs) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP });
+    if (!plans.some((p) => planCorners(p.root as unknown as PlanNode).length)) continue;
+    defsBinding.push(def.id);
+    const page: Page = { children: [] };
+    await run(plans, { ...fullFor(plans), page });
+    const members = page.children.flatMap((n) => (n.type === 'COMPONENT_SET' ? ((n.children as Node[] | undefined) ?? []) : [n]));
+    for (const p of plans) {
+      const want = planCorners(p.root as unknown as PlanNode);
+      if (!want.length) continue;
+      const member = members.find((m) => m.name === planComponentName(p));
+      const have = member ? builtCorners(member) : [];
+      for (const w of want) {
+        claims++;
+        const i = have.indexOf(w);
+        if (i < 0) lost.push(`${def.id}/${planComponentName(p)} ${w}`);
+        else have.splice(i, 1);
+      }
+    }
+  }
+  // The floor, typed from #3048's own list, not from the discovery above: each of these binds a corner today.
+  const NAMED = ['text-field', 'select', 'badge', 'provider-logo'];
+  const unread = NAMED.filter((id) => !defsBinding.includes(id));
+  ok(unread.length === 0 && claims > 100,
+    `#3048 reachable: the bound-corner read-back reads every def #3048 names (${defsBinding.length} defs bind a corner, ${claims} plan corner bindings${unread.length ? `; NOT READ: ${unread.join(', ')}` : ''})`);
+  ok(lost.length === 0,
+    `#3048 every corner a plan binds is still bound to its variable on the built node: claimDefaults wrote no literal over it, which live would unbind it (${lost.length ? `${lost.length} lost: ${lost.slice(0, 4).join('; ')}` : `${claims}/${claims} held`})`);
+}
+
 if (failed) process.exit(1);
