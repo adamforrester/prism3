@@ -19,6 +19,9 @@
  *      Tag, List item and Divider, and no `_Doc-block`; the panel lists nothing as "Also builds" and keeps the queue's
  *      order.
  *   3. `no ask`: panels on, a build posted without the ask (the Components page's, or an agent's) builds none of them.
+ *   4. `some held` (review S1): a file that already holds Badge, built with the panels off, then the panels on and Link
+ *      queued. The file's read names only the three it lacks, "Also builds" lists them and not Badge, and Link's build
+ *      builds them and `_Doc-block`, leaving the file's one Badge set as it was.
  *
  * THE HOST is #3323's (`test-update-owner-run.ts`): the shared component shim with its strict default (#3215), a fresh
  * file's pages added as properties the host lacks, and the shim's own `liveRoot` search over every page (`pages`), so a
@@ -30,7 +33,10 @@
  * MUTATIONS, each failing by name: the build ignoring the ask (`blockFirst` false in `main.ts`) → `panels/on: sets/…`
  * and `panels/on: _Doc-block`; the ask ignoring the panels switch → `panels/off: nothing extra`; the panel's sets step
  * not asking (`postCurrent`) is held by the chrome arm, not here; `runOrderOf` keeping the queue's order → `panels/on:
- * run order`; `docBlockAlsoOf` ignoring the switch → `panels/off: also builds`.
+ * run order`; `docBlockAlsoOf` ignoring the switch → `panels/off: also builds`; the file's read ignoring presence
+ * (`fileSets`' `docBlockLacks` filter) → `some held: the file's read …` and `some held: also builds`; the block-first
+ * loop ignoring presence (its `presentNames` skip) → `some held: sets/link: builds …` (its "Also built" names Badge;
+ * the rebuild is in place, so the Badge set's id alone would not show it).
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -239,6 +245,35 @@ ok(JSON.stringify(queued) === JSON.stringify(['button', 'button-destructive', 'b
     `no ask: a build without the ask is as it was: its panel waits for _Doc-block (${said(r)})`);
   ok(!['badge', 'tag', 'list-item', 'divider'].some(setNamed) && !setNamed('_Doc-block'),
     `no ask: nothing extra: no Badge, Tag, List item, Divider or _Doc-block (${['badge', 'tag', 'list-item', 'divider', '_Doc-block'].filter(setNamed).join(', ') || 'none'})`);
+}
+
+/* ── 4. a file that already holds one of the four (review S1) ──────────────────────────────────────────────────── */
+{
+  freshFile();
+  // Badge built with the panels off: the file holds it, with no `_Doc-block`.
+  await send({ type: 'doc-settings-save', settings: { panels: false, cover: true, styleGuide: null } }, ['doc-settings']);
+  await setUp('some held');
+  const b = await build('badge', true);
+  ok(b?.type === 'component-result' && b.completed === true && setNamed('badge') && !setNamed('_Doc-block'),
+    `some held: Badge built with the panels off, and no _Doc-block (${said(b)})`);
+  const badgeSets = (): string[] => onPages().filter((n) => n.type === 'COMPONENT_SET' && n.name === 'badge').map((n) => n.id);
+  const badgeBefore = badgeSets();
+  await send({ type: 'doc-settings-save', settings: { panels: true, cover: true, styleGuide: null } }, ['doc-settings']);
+  const f = await fileRead();
+  ok(JSON.stringify(f?.docBlockLacks) === JSON.stringify(['tag', 'list-item', 'divider']),
+    `some held: the file's read names only the three the file lacks, not the Badge it holds (${JSON.stringify(f?.docBlockLacks)})`);
+  const fileSets = { docBlockLacks: f?.docBlockLacks as string[] | undefined };
+  const also = docBlockAlsoOf(catalog, fileSets, ['link'], true);
+  ok(JSON.stringify(also.map((id) => displayNameOf(catalog, id))) === JSON.stringify(['Tag', 'Divider', 'List Item']),
+    `some held: also builds: Tag, Divider and List Item, not Badge (${also.map((id) => displayNameOf(catalog, id)).join(', ')})`);
+  const r = await build('link', true);
+  const lines: string[] = Array.isArray(r?.lines) ? r.lines : [];
+  ok(r?.type === 'component-result' && r.completed === true && r.ok === true, `some held: sets/link: completed, clean (${said(r)})`);
+  ok(lines.includes('Also built: icon, focus-ring, tag, list-item, divider') && lines.includes('Built _Doc-block'),
+    `some held: sets/link: builds the three the file lacks (with the sets they nest), then _Doc-block, and not Badge (${JSON.stringify(lines.filter((l) => l.startsWith('Also built') || l.includes('_Doc-block')))})`);
+  ok(badgeBefore.length === 1 && JSON.stringify(badgeSets()) === JSON.stringify(badgeBefore),
+    `some held: Badge is not rebuilt: the file's one Badge set is the one it held (${JSON.stringify(badgeBefore)} → ${JSON.stringify(badgeSets())})`);
+  ok(setNamed('_Doc-block') && livePanels().includes('link'), `some held: _Doc-block is in the file and Link has its usage panel (${[...new Set(livePanels())].join(', ')})`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
