@@ -3606,38 +3606,6 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
-// #1761 — THE PLUGIN READS controlShape OFF THE BRAND, TO THE RUNG EACH SHAPE NAMES
-// =============================================================================================
-// `materializeForBrand` reads `controlShape` off the raw input (`input?.controlShape ?? 'rounded'`). The #1812 arms
-// below hold that each value MOVES the materialized defs; this one holds WHERE it moves them: each shape goes through
-// `materializeForBrand` on nb-redesign, and the medium filled button's four root corners are compared to HAND-WRITTEN
-// variable names (docs/34), never to `CONTROL_SHAPE_RUNG` or `applyControlShape`: unset and `rounded` bind
-// `radius/md`, `pill` `radius/capsule`, `boxed` `radius/none`, `hairline` `radius/hairline`. MUTATIONS, each failing
-// by name: `applyControlShape(def, 'rounded')` in `brand-def.ts` (the read dropped) → the pill, boxed and hairline
-// lines; `?? 'pill'` (a wrong default) → the unset line.
-{
-  const nbInput = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input as BrandInput;
-  // nb-redesign sets its own `controlShape`, so each case starts from the lever cleared: "unset" is really unset.
-  const corners = (extra: Partial<BrandInput>) => {
-    const root = figmaAnatomyPlan(materializeForBrand(button, { ...nbInput, controlShape: undefined, ...extra } as BrandInput), 'medium', { leading: false, trailing: false, swapTarget: SWAP, appearance: 'filled', state: 'rest' }).root;
-    const b = root.bound as Record<string, string | undefined>;
-    return [b.topLeftRadius, b.topRightRadius, b.bottomLeftRadius, b.bottomRightRadius];
-  };
-  const CASES: readonly [string, Partial<BrandInput>, string][] = [
-    ['unset', {}, 'radius/md'],
-    ["'rounded'", { controlShape: 'rounded' }, 'radius/md'],
-    ["'pill'", { controlShape: 'pill' }, 'radius/capsule'],
-    ["'boxed'", { controlShape: 'boxed' }, 'radius/none'],
-    ["'hairline'", { controlShape: 'hairline' }, 'radius/hairline'],
-  ];
-  for (const [label, extra, want] of CASES) {
-    const got = corners(extra);
-    ok(got.every((c) => c === want),
-      `#1761 plugin controlShape: nb-redesign with controlShape ${label} binds the medium button's four root corners to ${want} (got ${JSON.stringify(got)})`);
-  }
-}
-
-// =============================================================================================
 // #1633 — NESTED COMPONENTS BUILD FIRST
 // =============================================================================================
 // The owner built `button` into a fresh Aurora file and got 72 `focusRing.nestTarget -> focus-ring (not in

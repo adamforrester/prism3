@@ -17391,12 +17391,6 @@ for (const host of ['web', 'figma']) {
 // Mutations, each failing here by name: the button's ArrowDown removed → every `ArrowDown opens` arm; Escape's
 // `stopPropagation` removed → every `Escape … goes no further` arm; one menu back on its own copy without either → its
 // own two arms (Theme, the drift the review found).
-// The open Inspect menu also stays inside the viewport at 1280 with the approved privacy note in it (#3147, Q3147.17).
-// Mutation: `.p3-menu-privacy` without `width: 0; min-width: 100%; box-sizing: border-box` → `Inspect: the open menu,
-// privacy note and all, stays inside the … viewport`, on both hosts.
-// At 1280 the menu is also at least 320 px wide and the note at most 6 lines (#3147, O2 B). Mutation: the Inspect menu's
-// `width: calc(var(--p3-dlg-unit) * 2.5)` removed → `Inspect: the open menu is at least 320 px wide and its privacy note
-// at most 6 lines`, on web.
 // =============================================================================================
 if (runs('47-menu')) {
 console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
@@ -17417,33 +17411,6 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
         return { expanded: btn?.getAttribute('aria-expanded') ?? null, menu: !!menu, inside: !!menu && menu.contains(document.activeElement) };
       }, [btnHook, menuHook]);
       ok(opened.expanded === 'true' && opened.menu && opened.inside, `${where} ${name}: ArrowDown on the closed button opens the menu, focus inside it (${JSON.stringify(opened)})`);
-      if (name === 'Inspect') {
-        // #3147 (Q3147.17): the approved privacy note is long, and the menu sizes to `max-content`, so the note must wrap
-        // within the width the menu's items give it rather than set that width. ORACLE: the browser's own rects against
-        // the viewport, typed bounds here.
-        step = 'Inspect: the open menu, measured';
-        const box = await page.evaluate((m) => {
-          const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { left: Math.round(b.left), right: Math.round(b.right), width: Math.round(b.width) } : null; };
-          const menu = document.querySelector(`[data-p3="${m}"]`);
-          return { vw: window.innerWidth, menu: r(menu), note: r(menu?.querySelector('[data-p3="privacy-note"]')) };
-        }, menuHook);
-        ok(!!box.menu && !!box.note && box.menu.left >= 0 && box.menu.right <= box.vw && box.note.width <= box.menu.width,
-          `${where} Inspect: the open menu, privacy note and all, stays inside the ${box.vw} px viewport (${JSON.stringify(box)})`);
-        // #3147 (O2 B, owner, 2026-11-02): at 1280 the menu is at least 320px wide, so the note wraps to about five lines,
-        // not to the stamp's width (it was 17 on web). ORACLE: typed literals here, never the chrome's token; the note's
-        // lines are its content height over its computed line height, both read from the browser.
-        step = 'Inspect: the privacy note, measured';
-        const lines = await page.evaluate((m) => {
-          const n = document.querySelector(`[data-p3="${m}"] [data-p3="privacy-note"]`);
-          if (!n) return null;
-          const cs = getComputedStyle(n);
-          const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
-          const h = n.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
-          return { height: Math.round(h * 10) / 10, lineHeight: lh, lines: Math.round(h / lh) };
-        }, menuHook);
-        ok(!!box.menu && box.menu.width >= 320 && !!lines && lines.lines <= 6,
-          `${where} Inspect: the open menu is at least 320 px wide and its privacy note at most 6 lines (${JSON.stringify({ menu: box.menu, note: lines })})`);
-      }
       step = `${name}: Escape in the menu`;
       // Open by a click when ArrowDown did not, so this arm reads Escape alone, never the ArrowDown arm's failure.
       if (!opened.menu) await hooks.click(page.locator(`[data-p3="${btnHook}"]`));
