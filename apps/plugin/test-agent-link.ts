@@ -96,6 +96,9 @@ import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripTex
 import { createRunGuard, TITLE } from './src/run-guard';
 import { STRIP_MARGIN, windowPlacement } from './src/window-place';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
+import { NodeShim } from './file-shim';
+import type { NodeSpec } from './file-shim';
+import { EXECUTOR_REVISION } from './src/executor-revision';
 import { OP_TITLE } from '../studio/src/shell/activity';
 
 let failed = 0;
@@ -1252,6 +1255,46 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
     const bad = (await run('context', {})).r.result?.data as { prism3?: { source?: string; brand?: unknown } };
     ok(bad?.prism3?.source === 'unreadable' && bad.prism3.brand === null, `context/brand: a stored brand this build cannot read says unreadable, not none (${canon(bad?.prism3)})`);
     if (had === undefined) store.delete(key); else store.set(key, had);
+  }
+  // #3300 B (review nit 1): `context/ledger` — the ledger-derived fields, from a stored as-built ledger with two sets at
+  // different engines. `button` names today's engine and a definition hash no def has, so it is due as `definition moved`;
+  // `badge` names an older engine and no print, so it is due as `engine moved`. `lastBuilt` is the NEWER of the two, by
+  // number: a string compare would read '0.9.0' as newer than today's '0.2xx.0'.
+  // The ledger is a typed literal in the record's own shape (`{ v: 1, sets }`), not built with `recordSets`.
+  // (mutations: `lastBuilt` keeps the oldest → `context/ledger/lastBuilt`; the two reasons swapped → `context/ledger/due`)
+  {
+    const key = k('', 'prism3:asBuilt');
+    const had = store.get(key);
+    store.set(key, JSON.stringify({ v: 1, sets: {
+      button: { def: 'not-a-def-hash', rev: EXECUTOR_REVISION, engine: ENGINE_VERSION },
+      badge: { def: 'not-a-def-hash', rev: EXECUTOR_REVISION, engine: '0.9.0' },
+    } }));
+    const d = (await run('context', {})).r.result?.data as { sets?: { present?: number; due?: unknown }; prism3?: { engine?: { lastBuilt?: unknown } } };
+    ok(d?.sets?.present === 2, `context/ledger/present: the two sets the ledger names are counted present (${canon(d?.sets)})`);
+    ok(canon([...((d?.sets?.due ?? []) as { set: string }[])].sort((a, b) => a.set.localeCompare(b.set))) === canon([{ set: 'badge', why: 'engine moved' }, { set: 'button', why: 'definition moved' }]),
+      `context/ledger/due: each due set names why — badge's older engine, button's moved definition (${canon(d?.sets?.due)})`);
+    ok(d?.prism3?.engine?.lastBuilt === ENGINE_VERSION, `context/ledger/lastBuilt: the newest engine any set was built with (${canon(d?.prism3?.engine)})`);
+    if (had === undefined) store.delete(key); else store.set(key, had);
+  }
+  // #3300 B (review nit 2): `context/caps` — the list cap and the walk cap at their real values. One page: 51 locked
+  // frames, 51 `Original · ` copies, then 20,000 plain rectangles, so the walk passes 20,000 nodes. The numbers are
+  // literals, not `CONTEXT_LIST_CAP` / `CONTEXT_NODE_CAP`, so a moved cap fails here.
+  // (mutations: the list cap dropped → `context/caps/list`; the walk cap dropped → `context/caps/truncated`)
+  {
+    const many = (n: number, f: (i: number) => NodeSpec): NodeSpec[] => Array.from({ length: n }, (_, i) => f(i));
+    const big = new NodeShim([{ id: 'PB', type: 'PAGE', name: 'Many', children: [
+      ...many(51, (i) => ({ id: `BL${i}`, type: 'FRAME', name: `Locked ${i}`, width: 10, height: 10, locked: true })),
+      ...many(51, (i) => ({ id: `BO${i}`, type: 'FRAME', name: `Original · Screen ${i}`, width: 10, height: 10 })),
+      ...many(20_000, (i) => ({ id: `BR${i}`, type: 'RECTANGLE', name: `Rect ${i}`, width: 10, height: 10 })),
+    ] }], { styles: {}, variables: {} });
+    const was = root.children;
+    root.children = big.pages;
+    const d = (await run('context', {})).r.result?.data as { protected?: { locked?: unknown[]; originals?: unknown[]; counts?: { locked?: number; originals?: number } }; truncated?: unknown };
+    root.children = was;
+    const p = d?.protected;
+    ok(p?.locked?.length === 50 && p?.counts?.locked === 51 && p?.originals?.length === 50 && p?.counts?.originals === 51,
+      `context/caps/list: 50 of 51 locked nodes and 50 of 51 originals are listed, and the counts say 51 (${canon(p?.counts)}, listed ${p?.locked?.length}/${p?.originals?.length})`);
+    ok(d?.truncated === true, `context/caps/truncated: a walk past 20,000 nodes stops and says truncated (${canon(d?.truncated)})`);
   }
   root.children = saved.children;
   h.getNodeByIdAsync = saved.node; h.getStyleByIdAsync = saved.style; h.variables.getVariableByIdAsync = saved.variable;
