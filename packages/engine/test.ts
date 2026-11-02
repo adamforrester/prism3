@@ -23012,13 +23012,16 @@ arm: {
         // Installed with `defineProperty` for the same reason `strokesIncludedInLayout` is — an accessor
         // in the literal above is flattened to a plain value — and mirrors the plugin shim so the parity
         // gate compares two executors against one Figma model.
+        // #3048 — AND A LITERAL WRITE DETACHES THAT CORNER'S BINDING, as on the host and as the plugin shim models it:
+        // the payload's `claimDefaults` zeroes every corner the plan leaves unbound, and `!(k in B)` is all that keeps
+        // it off a bound one. The setter used to keep the binding through the write, so removing that guard passed.
         for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const) {
           const backing = `_${corner}`;
           (node as Record<string, unknown>)[backing] = 0;
           Object.defineProperty(node, corner, {
             configurable: true, enumerable: true,
             get() { const bv = node.boundVariables as Record<string, { value?: number }>; return bv[corner]?.value ?? (node as Record<string, number>)[backing]; },
-            set(v: number) { (node as Record<string, number>)[backing] = v; },
+            set(v: number) { (node as Record<string, number>)[backing] = v; delete (node.boundVariables as Record<string, unknown>)[corner]; },
           });
         }
         // #1567 — WRITING A PARAGRAPH/GEOMETRY PROPERTY DETACHES THE COMPOSITE TEXT STYLE, which is the real
@@ -23632,6 +23635,53 @@ arm: {
       }
       ok(pasted === 10 && bad.length === 0,
         `#2695 paste: the underline fields' per-side stroke weights read back bound from the paste executor (none / none / hairline, thick at focus / none), nothing discarded (${bad.slice(0, 3).join(' | ') || 'clean'})`);
+    }
+
+    // ---- #3048: no literal written over a bound corner, read back off the PASTE executor ---------------------------
+    // The paste twin of `test-write-components.ts`'s #3048 arm. The payload's `claimDefaults` runs after the bindings
+    // and zeroes every corner its plan leaves unbound; `!(k in B)` keeps it off a bound one, and the stub above detaches
+    // a corner's binding on a literal write, as the host does. Every def that binds a corner, one member each (the first
+    // that binds one; a paste per member would cost minutes for the same guard). EXPECTED is the plan's `bound`, ACTUAL
+    // the stub's `boundVariables` after the whole payload ran. The floor is #3048's own list, typed here.
+    {
+      const CORNER_KEYS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
+      type PNode = { name: string; bound?: Record<string, string>; children?: PNode[]; nestTarget?: string; swapTarget?: string };
+      const planCorners = (n: PNode, root = true): string[] => [
+        ...CORNER_KEYS.filter((c) => n.bound?.[c]).map((c) => `${root ? '<root>' : n.name}:${c}=V:${n.bound![c]}`),
+        ...(n.children ?? []).flatMap((k) => planCorners(k, false)),
+      ];
+      const builtCorners = (n: Record<string, unknown>, root = true): string[] => {
+        const bv = (n.boundVariables as Record<string, { id?: string }> | undefined) ?? {};
+        const own = CORNER_KEYS.filter((c) => bv[c]?.id).map((c) => `${root ? '<root>' : String(n.name)}:${c}=${bv[c]!.id}`);
+        return n.type === 'INSTANCE' ? own : [...own, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap((k) => builtCorners(k, false))];
+      };
+      // Every component the payload instances, swap targets included (a card field's slot starts at a provider logo).
+      const nested = (n: PNode): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.swapTarget ? [n.swapTarget] : []), ...(n.children ?? []).flatMap(nested)];
+      const defsRead: string[] = [];
+      const threw: string[] = [];
+      const lost: string[] = [];
+      let claims = 0;
+      for (const d of componentDefs) {
+        const plan = figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).find((p) => planCorners(p.root as unknown as PNode).length);
+        if (!plan) continue;
+        defsRead.push(d.id);
+        const page: StubPage = { children: [] };
+        const r = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...planIconComps(plan.root), ...nested(plan.root as unknown as PNode)], page });
+        // A payload that threw stopped before its defaults pass, so its corners say nothing either way: the harness, not
+        // the subject. Named, so it cannot pass as a held binding or be read as a lost one.
+        if (r.misses.some((m) => /THREW/.test(m))) { threw.push(`${d.id}: ${r.misses.find((m) => /THREW/.test(m))}`); continue; }
+        const have = page.children[0] ? builtCorners(page.children[0] as Record<string, unknown>) : [];
+        for (const w of planCorners(plan.root as unknown as PNode)) {
+          claims++;
+          const i = have.indexOf(w);
+          if (i < 0) lost.push(`${d.id}/${planComponentName(plan)} ${w}`); else have.splice(i, 1);
+        }
+      }
+      const unread = ['text-field', 'select', 'badge', 'provider-logo'].filter((id) => !defsRead.includes(id));
+      ok(unread.length === 0 && threw.length === 0 && claims > 50,
+        `#3048 paste reachable: the bound-corner read-back reads every def #3048 names, and every paste ran to the end (${defsRead.length} defs bind a corner, ${claims} plan corner bindings${unread.length ? `; NOT READ: ${unread.join(', ')}` : ''}${threw.length ? `; THREW: ${threw.slice(0, 3).join(' | ')}` : ''})`);
+      ok(lost.length === 0,
+        `#3048 paste: every corner a plan binds is still bound to its variable on the pasted node: the payload's claimDefaults wrote no literal over it, which live would unbind it (${lost.length ? `${lost.length} lost: ${lost.slice(0, 4).join('; ')}` : `${claims}/${claims} held`})`);
     }
 
     // ---- #2428: Code input's character keeps its size's text style through the PASTE executor, as through the plugin's ----
