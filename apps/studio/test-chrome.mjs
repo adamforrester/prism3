@@ -19654,7 +19654,8 @@ if (runs('3044')) {
 //     stamp wrapping inside it. 1280 is unchanged. EXPECTED is the window (`innerWidth`) and the button's own rect;
 //     ACTUAL is the open menu's `getBoundingClientRect()`, and the note's and the stamp's, as the browser lays them out.
 //     Mutation this fails by name: the narrow rules under `#3298` in `chrome.css` removed → `3298 figma 380: …` and
-//     `3298 web 380: …` (the menu's left edge below 0).
+//     `3298 web 380: …` (the menu's left edge below 0). A cap on the right only (`max-width: calc(100% - 12px)`) →
+//     `3298 <host> 380: the menu is capped at the preview header less 12px a side` (the menu at the header's left edge).
 if (runs('3298')) {
   console.log(`\nThe Inspect menu inside the window (#3298)\n${'='.repeat(78)}`);
   for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 380, h: 800 }, { w: 1280, h: 900 }]) {
@@ -19673,12 +19674,16 @@ if (runs('3298')) {
       const m = await page.evaluate(() => {
         const r = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { l: +b.left.toFixed(1), r: +b.right.toFixed(1), t: +b.top.toFixed(1), b: +b.bottom.toFixed(1), w: +b.width.toFixed(1) } : null; };
         return { iw: innerWidth, sw: document.documentElement.scrollWidth, menu: r('[data-p3="inspect-menu"]'), btn: r('[data-p3="inspect-open"]'),
-          note: r('[data-p3="privacy-note"]'), stamp: r('[data-p3="build-stamp"]') };
+          note: r('[data-p3="privacy-note"]'), stamp: r('[data-p3="build-stamp"]'), head: r('[data-p3="preview-head"]') };
       });
       const inside = (a, b) => !!a && !!b && a.l >= b.l - 0.5 && a.r <= b.r + 0.5 && a.t >= b.t - 0.5 && a.b <= b.b + 0.5;
       ok(!!m.menu && m.menu.l >= 0 && m.menu.r <= m.iw, `${where}: the open Inspect menu stays inside the window, [0, ${m.iw}] (${JSON.stringify(m.menu)}, scrollWidth ${m.sw})`);
       ok(inside(m.note, m.menu) && inside(m.stamp, m.menu), `${where}: the privacy note and the build stamp sit inside the menu (note ${JSON.stringify(m.note)}, stamp ${JSON.stringify(m.stamp)}, menu ${JSON.stringify(m.menu)})`);
       ok(!!m.menu && !!m.btn && Math.abs(m.menu.r - m.btn.r) <= 0.5 && m.menu.t >= m.btn.b, `${where}: the menu keeps Inspect's right edge and hangs below it (menu ${JSON.stringify(m.menu)}, Inspect ${JSON.stringify(m.btn)})`);
+      // Q3298.1 A's cap, from both sides: at narrow the menu sits inside the preview header less 12px a side. The window
+      // alone would pass a menu reaching the header's edge, or the rail. 12 is the decision's number, typed here.
+      if (w <= 560) ok(!!m.menu && !!m.head && m.menu.l >= m.head.l + 12 - 0.5 && m.menu.r <= m.head.r - 12 + 0.5,
+        `${where}: the menu is capped at the preview header less 12px a side (menu ${JSON.stringify(m.menu)}, header ${JSON.stringify(m.head)})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);

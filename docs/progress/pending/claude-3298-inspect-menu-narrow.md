@@ -35,6 +35,11 @@ menu's right edge on Inspect's and its top below Inspect.
 Mutation, failing by name: the fix reverted → `3298 web 380: the open Inspect menu stays inside the window, [0, 380]
 ({"l":-160.8,…})` and `3298 figma 380: …` the same. 1280 passes either way.
 
+At 380 a fourth arm holds the decision's cap from both sides: the menu inside the preview header less 12px a side (12
+typed in the test). The window alone passed a menu reaching the header's left edge. Mutation, failing by name: a cap
+on the right only (`max-width: calc(100% - var(--p3-space-150))`) → `3298 web 380: the menu is capped at the preview
+header less 12px a side` (menu `l 60`, header `l 60`) and `3298 figma 380: …` the same.
+
 ### Trap for whoever re-verifies
 
 The margin that drops the menu below Inspect is the narrow button's height token. If Inspect's narrow height ever stops
