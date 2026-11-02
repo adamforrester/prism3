@@ -76,6 +76,65 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 export const DEFAULT_PORT = BRIDGE_PORT;
 export const SERVER_INFO = { name: 'prism3-figma-bridge', version: ENGINE_VERSION };
 
+/* ── what an agent reads on connecting (#3300) ──────────────────────────────────────────────────────── */
+
+/**
+ * The note a fresh agent reads before its first command: the rules that matter in a Figma file and where to read more.
+ * The owner's text, approved verbatim (Q3300.1 A); change it only with the owner. Sent from this one constant in three
+ * places — the `initialize` and `server/discover` results (`instructions`) and `figma_status`'s `readFirst` — because
+ * the bridge answers Claude Code at `2024-11-05` (#3109), a version older than the `instructions` field, and a host may
+ * not read it there. `figma_status` says "Call first", so the text arrives either way.
+ *
+ * Product-agent channel, not the payload channel (docs/voice-standard.md §4): no RFC 2119 words. Kept short because
+ * hosts truncate long server instructions; `test-agent-bridge.ts` caps it at 1,200 characters (`instructions/length`).
+ * It does not say "don't reset overrides" on purpose: the rebind skill §4 tells the agent to reset them after a swap,
+ * and only the bridge's own commands never do.
+ */
+export const BRIDGE_INSTRUCTIONS = [
+  'Prism3 bridge. Each command runs in the Prism3 plugin, in the Figma file the owner has open. In that file:',
+  '- Never detach a Prism3 instance. Detach only a legacy instance you are replacing.',
+  '- Keep hand edits: change only the layers and fields the task names.',
+  '- Pages whose name contains FINAL, locked layers and `Original · …` copies are read-only.',
+  "- On a library instance, change component properties only: no fills, padding, radius or size. Spacing goes on the parent's auto layout, bound to a `space.*` variable.",
+  "- Bind semantic roles by exact name (`color.*`, `space.*`), never `core.*` primitives. Read a role's `avoid_when` before you use it.",
+  '- Save a named version before a write. Never delete a page.',
+  'Start with figma_status, then figma_run `context`. Full rules: prism3://skills/prism3-rebind and prism3://skills/prism3-consume. Each command, with what it writes and refuses: prism3://commands.',
+].join('\n');
+
+/**
+ * The five static resources (Q3300.3 A): files from the checkout this server runs in, read once at start and stamped
+ * with `ENGINE_VERSION`, so "build time" is the checkout's commit. Each `path` is under `skills/` or `docs/public/`,
+ * text that is already public (`resources/public-only`, §6 of the proposal); nothing is read live from the Figma file
+ * (the file's own context is the `context` command's, Q3300.2 A). Paths are relative to the repository root.
+ */
+export const RESOURCES = [
+  { uri: 'prism3://skills/prism3-rebind', path: 'skills/prism3-rebind/SKILL.md', mimeType: 'text/markdown', name: 'prism3-rebind skill', description: 'How to move a Figma file onto Prism3 without detaching: the mapping pass, the traps, the audit.' },
+  { uri: 'prism3://skills/prism3-consume', path: 'skills/prism3-consume/SKILL.md', mimeType: 'text/markdown', name: 'prism3-consume skill', description: "How to bind Prism3's semantic roles by name, honor `avoid_when` and check contrast." },
+  { uri: 'prism3://commands', path: 'docs/public/reference/commands.json', mimeType: 'application/json', name: 'commands.json', description: 'Every agent-link command with its args, what it writes and what it refuses, and every MCP tool.' },
+  { uri: 'prism3://figma-conventions', path: 'docs/public/reference/figma-conventions.json', mimeType: 'application/json', name: 'figma-conventions.json', description: 'How a Prism3 Figma file is laid out and named: pages, sets, the `_` prefix, slots, variables.' },
+  { uri: 'prism3://llms.txt', path: 'docs/public/llms.txt', mimeType: 'text/plain', name: 'llms.txt', description: 'The index of the public Prism3 docs.' },
+] as const;
+
+/** MCP's resource-not-found error code. */
+export const RESOURCE_NOT_FOUND = -32002;
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+type Loaded = { text: string } | { error: string };
+let loadedResources: Map<string, Loaded> | null = null;
+/** Read every resource once (the first call, made at start) and keep it; a file that cannot be read is kept as its error,
+ *  so `resources/read` names it rather than the server failing to start. */
+export const loadResources = (root = REPO_ROOT): Map<string, Loaded> => {
+  if (loadedResources) return loadedResources;
+  loadedResources = new Map(RESOURCES.map((r) => {
+    try { return [r.uri, { text: readFileSync(join(root, r.path), 'utf8') }] as const; }
+    catch (e) { return [r.uri, { error: `cannot read ${r.path} — ${(e as Error).message}` }] as const; }
+  }));
+  return loadedResources;
+};
+
+/** Server capabilities, shared by `initialize` and `server/discover` so the two can never disagree. */
+export const CAPABILITIES = { tools: { listChanged: false }, resources: { listChanged: false } };
+
 /* ── RFC 6455 framing ───────────────────────────────────────────────────────────────────────────────── */
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
@@ -578,11 +637,11 @@ export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: strin
   const err = (code: number, message: string): RpcOut => ({ jsonrpc: '2.0', id, error: { code, message } });
   switch (req.method) {
     case 'server/discover':
-      return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO });
+      return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: CAPABILITIES, serverInfo: SERVER_INFO, instructions: BRIDGE_INSTRUCTIONS });
     // The engine server's rule, imported rather than copied: a copy here kept the old fallback after
     // #1867 fixed it there, and Claude Code refused the bridge's `2026-07-28` answer (#3109).
     case 'initialize':
-      return ok({ protocolVersion: negotiateHandshakeVersion(req.params?.protocolVersion), capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO });
+      return ok({ protocolVersion: negotiateHandshakeVersion(req.params?.protocolVersion), capabilities: CAPABILITIES, serverInfo: SERVER_INFO, instructions: BRIDGE_INSTRUCTIONS });
     case 'notifications/initialized':
     case 'initialized':
       return null;
@@ -590,10 +649,22 @@ export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: strin
       return ok({});
     case 'tools/list':
       return ok({ tools: TOOLS, ttlMs: 3_600_000, cacheScope: 'public' });
+    case 'resources/list':
+      return ok({ resources: RESOURCES.map(({ uri, name, description, mimeType }) => ({ uri, name, description, mimeType })) });
+    case 'resources/templates/list':
+      return ok({ resourceTemplates: [] });
+    case 'resources/read': {
+      const uri = req.params?.uri;
+      const r = RESOURCES.find((x) => x.uri === uri);
+      if (!r) return { jsonrpc: '2.0', id, error: { code: RESOURCE_NOT_FOUND, message: `Resource not found: ${uri}`, data: { uri } } };
+      const got = loadResources().get(r.uri)!;
+      if ('error' in got) return err(-32603, got.error);
+      return ok({ contents: [{ uri: r.uri, mimeType: r.mimeType, text: got.text, _meta: { 'prism3/engineVersion': ENGINE_VERSION } }] });
+    }
     case 'tools/call': {
       const name = req.params?.name;
       const a = (req.params?.arguments ?? {}) as Record<string, unknown>;
-      if (name === 'figma_status') return ok(text(bridge.status()));
+      if (name === 'figma_status') return ok(text({ ...bridge.status(), readFirst: BRIDGE_INSTRUCTIONS }));
       if (name === 'figma_logs') {
         return ok(text(bridge.logs(typeof a.since === 'number' ? a.since : 0, typeof a.limit === 'number' ? a.limit : 200)));
       }
@@ -643,6 +714,8 @@ if (isMain) {
   const pairing = createPairing(loaded.secret, say);
   if (argv.includes('--pair')) pairing.request();
   const bridge = createBridge({ graceMs, pairing });
+  // The five resources are read now, once: what they serve is this checkout's commit (#3300).
+  for (const [uri, r] of loadResources()) if ('error' in r) say(`resource ${uri}: ${r.error}`);
   const send = (msg: unknown) => process.stdout.write(JSON.stringify(msg) + '\n');
   const notify = (method: string, params: unknown) => send({ jsonrpc: '2.0', method, params });
   const bound = await listen(bridge, port).catch((e: Error) => {

@@ -221,11 +221,23 @@ export interface HostSession {
     /** #3110: read from the ledger alone at open, before any page loaded; the full read replaces it. */
     readonly partial?: boolean;
     /** #3110: one of the host's own reads after open, not an answer to the panel's request. */
-    readonly atOpen?: boolean } | null;
+    readonly atOpen?: boolean;
+    /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a family and have no live usage
+     *  panel. Absent while panels are off, and on the ledger's read at open (the group waits for the full read). */
+    readonly unpaneled?: readonly string[];
+    /** #3137: beside `unpaneled`, how many present sets lead a panel family. */
+    readonly panelLeads?: number } | null;
   /** #3081 Q810 A: the badge's live recount, the newest answer by `seq`: what is due against the panel's brand, and
    *  whether Apply Theme would change the file (`theme`). `null` until the first answer. */
   readonly liveDue: { readonly seq: number; readonly present: readonly string[]; readonly theme: boolean; readonly error: string | null;
-    readonly due: Readonly<Record<string, SetDueView>> } | null;
+    readonly due: Readonly<Record<string, SetDueView>>;
+    /** #3137: as `fileSets`' `unpaneled` and `panelLeads`, from the last full read's census. */
+    readonly unpaneled?: readonly string[]; readonly panelLeads?: number } | null;
+  /** #3137 Q3137.7 A: Clean up's usage panels. `busy` while a count or a removal is out (set by the panel as it asks);
+   *  `count`, the last count (the live panels and how many still hold what was drawn); `verdict`, the last removal's
+   *  outcome. `null`s before the first answer. */
+  readonly panelsClean: { readonly busy: false | 'count' | 'remove'; readonly count: { readonly drawn: number; readonly removable: number } | null;
+    readonly verdict: { readonly removed: number; readonly kept: number; readonly error: string | null } | null };
   /** #3129 Q833 A: the file's add queue, as the host last read it (`file-sets`, `file-due`, or a queue write's answer),
    *  or as the panel last wrote it while that write's answer is out. `null` until the host has said (and on the web). */
   readonly addQueue: readonly string[] | null;
@@ -273,6 +285,7 @@ export const initialHostSession = (): HostSession => ({
   docSettings: null,
   fileSets: null,
   liveDue: null,
+  panelsClean: { busy: false, count: null, verdict: null },
   addQueue: null,
   handEdits: new Map(),
   handPass: 'idle',
@@ -433,14 +446,18 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // the ledger's a full one. Before, the read after open always landed first; now it yields, so a request can win.
       if (m.atOpen && s.fileSets && !s.fileSets.atOpen) return s;
       if (m.partial && s.fileSets && !s.fileSets.partial) return s;
-      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass,
+      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}), ...(m.unpaneled ? { unpaneled: m.unpaneled, panelLeads: m.panelLeads } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass,
         addQueue: m.error ? s.addQueue : m.queued };
     case 'file-due':
       // An answer older than the one held was overtaken by a newer request: the newer answer is the brand on screen.
-      return s.liveDue && m.seq < s.liveDue.seq ? s : { ...s, liveDue: { seq: m.seq, present: m.present, theme: m.theme, error: m.error, due: m.due }, addQueue: m.error ? s.addQueue : m.queued };
+      return s.liveDue && m.seq < s.liveDue.seq ? s : { ...s, liveDue: { seq: m.seq, present: m.present, theme: m.theme, error: m.error, due: m.due, ...(m.unpaneled ? { unpaneled: m.unpaneled, panelLeads: m.panelLeads } : {}) }, addQueue: m.error ? s.addQueue : m.queued };
     case 'add-queue':
       // #3129: the queue after the panel's write, the teammates' writes since included.
       return { ...s, addQueue: m.queued };
+    case 'panels-clean-result':
+      // #3137 Q3137.7 A: a count, or a removal's outcome with the count after it.
+      return { ...s, panelsClean: { busy: false, count: m.error && !m.applied ? s.panelsClean.count : { drawn: m.drawn, removable: m.removable },
+        verdict: m.applied ? { removed: m.removed, kept: m.kept, error: m.error } : s.panelsClean.verdict } };
     case 'hand-edits':
       return { ...s, handEdits: new Map([...s.handEdits, [m.def, { members: m.members, edited: m.edited }]]) };
     case 'hand-edits-done':
@@ -517,6 +534,8 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'file-sets': return ['host:update', 'host:components'];
     case 'file-due': return next === prev ? [] : JSON.stringify(next.addQueue) === JSON.stringify(prev.addQueue) ? ['host:update'] : ['host:update', 'host:components'];
     case 'add-queue': return ['host:update', 'host:components'];
+    // #3137: Clean up's panels item, and Documentation's off line, which names how many are drawn.
+    case 'panels-clean-result': return ['host:update', 'host:docs'];
     // Q2909.8 A: the statuses fill in on Components' list and in the checklist as each set's answer lands.
     case 'hand-edits': return ['host:update', 'host:components'];
     case 'hand-edits-done': return ['host:update', 'host:components'];

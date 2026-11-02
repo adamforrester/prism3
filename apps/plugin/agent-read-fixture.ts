@@ -212,7 +212,7 @@ export const contextExpected = (fileName: string, engineVersion: string) => ({
   },
   commands: {
     read: ['status', 'readback', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'context'],
-    write: ['apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'run-code'],
+    write: ['apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'panels-clean', 'run-code'],
   },
   readFirst: ['prism3://skills/prism3-rebind', 'prism3://skills/prism3-consume', 'prism3://commands'],
   engineMcp: { server: 'prism3-engine', for: 'validate or change the brand input', tools: ['validate_brand', 'theme_brand', 'export_theme'] },
