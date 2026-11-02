@@ -106,6 +106,7 @@ const manifest = {
     'readback-vars': '+ { total, collections: {id,name,modes,owned}[], variables: [collection,name,type,scopes,hidden,description,valuesByMode][], rootBrand }',
     'readback-styles': '+ { styles: { text|effect|paint|grid: {name, description, bound[], …}[] } }',
     'component-chunk': '+ { def, page, host: {loadAllPages}, result: <the engine payload\'s own return>, misses[] }',
+    'component-reactions': '+ { def, page, host: {loadAllPages}, misses[] }',
     'component-emit': '+ { def, page, members: {name, status, id, misses}[], misses[] }',
     'readback-components': '+ { page, found: {name, type, variants?, properties?}[], absentPage? }',
     'cleanup-theme | cleanup-page': '+ { removed[], kept[] }',
