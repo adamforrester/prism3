@@ -17109,30 +17109,6 @@
     "control.size.sm.dot": {
       "type": "dimension",
       "components": {
-        "badge": {
-          "keys": [
-            "dot-size"
-          ],
-          "parts": {
-            "dot": {
-              "members": 5,
-              "where": {
-                "emphasis": [
-                  "bold"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "style": [
-                  "contained"
-                ],
-                "type": [
-                  "dot"
-                ]
-              }
-            }
-          }
-        },
         "radio-control": {
           "keys": [
             "size.small.dot"
@@ -24064,12 +24040,30 @@
         },
         "badge": {
           "keys": [
+            "dot-size",
             "size.medium.contained.status.pad-y",
             "size.medium.inline.gap",
             "size.small.contained.status.pad-x",
             "status-dot-size"
           ],
           "parts": {
+            "dot": {
+              "members": 5,
+              "where": {
+                "emphasis": [
+                  "bold"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "contained"
+                ],
+                "type": [
+                  "dot"
+                ]
+              }
+            },
             "statusDot": {
               "members": 10,
               "where": {
@@ -29861,7 +29855,6 @@
         "color.text.primary",
         "color.text.success",
         "color.text.warning",
-        "control.size.sm.dot",
         "radius.none",
         "radius.round",
         "radius.sm",
