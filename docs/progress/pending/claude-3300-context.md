@@ -20,6 +20,8 @@ It answers over the mailbox and the bridge, posts no verdict, writes nothing, an
 - `protected.note` doesn't say writes refuse these, because the guard is Phase 2b and isn't built yet.
 - `readback` is in the read list, because `commands.json` says it writes nothing.
 
+**Version class: `minor`, not the proposal's `patch`.** By the change-note policy, a new command is a behavior change, and `commands.json`, a committed artifact, moves with it. `activity` (#3309) declared the same.
+
 **Tests.**
 - **The read loops.** `context` joins the read loops in `test-agent-link.ts` and `test-agent-bridge.ts`: `mailbox/context`, `bridge/context`, `envelope/context` and `no-write/context`, against `contextExpected` in `agent-read-fixture.ts`.
 - **The fixture** gains a FINAL page, a locked frame with a locked child, and an `Original · Checkout` frame with a locked instance inside. A child inside a protected node is not listed apart.
