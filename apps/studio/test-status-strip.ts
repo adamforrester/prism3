@@ -106,6 +106,10 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
   const late = stripVerdict({ results: [{ step: 'update', ok: true, headline: '✓' }], steps: ['update'], stopped: true, run: stepEnded(withReading(s, { run: 'update', phase: 'finish', item: null, done: 12, total: 12 }, T0), T0), now: T0 + 1000, nameOf });
   ok(late.tone === 'ok' && late.what === '12 sets updated', `verdict/stop too late: a Stop that came after the last set reads as the run done (${J(late)})`);
   ok(J(two) === J({ tone: 'ok', what: 'File updated', n: '1:15', sub: 'Theme applied, Style guides drawn. Details in Activity.' }), `verdict/steps: "File updated", each step said (${J(two)})`);
+  // #3308 Q3308.4, the owner's copy decision (2026-11-02): the cover step's verdict reads "Cover page drawn", true with
+  // Documentation's cover off too, when the step draws About this library alone.
+  const first = stripVerdict({ results: [{ step: 'setup', ok: true, headline: '✓' }, { step: 'theme', ok: true, headline: '✓' }, { step: 'cover', ok: true, headline: '✓' }], steps: ['setup', 'theme', 'cover'], stopped: false, run: startStripRun(T0), now: T0 + 75_000, nameOf });
+  ok(J(first) === J({ tone: 'ok', what: 'File updated', n: '1:15', sub: 'File set up, Theme applied, Cover page drawn. Details in Activity.' }), `verdict/cover: a first run's last step reads "Cover page drawn" (${J(first)})`);
 }
 
 // ── Apply Theme and the build queue ──

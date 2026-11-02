@@ -140,7 +140,7 @@ export const STRIP_COPY = {
   stopAfter: (what: string): string => `Stop after ${what}`,
   stopping: (what: string): string => `Stopping after ${what}…`,
   /** Each step's words once it is done, for the verdict line. */
-  done: { setup: 'File set up', theme: 'Theme applied', sets: 'Sets added', guides: 'Style guides drawn', cover: 'Cover drawn' } as Record<Exclude<StepKey, 'update'>, string>,
+  done: { setup: 'File set up', theme: 'Theme applied', sets: 'Sets added', guides: 'Style guides drawn', cover: 'Cover page drawn' } as Record<Exclude<StepKey, 'update'>, string>,
   updated: (n: number): string => `${sets(n)} updated`,
   fileUpdated: 'File updated',
   stoppedAfter: (what: string): string => `Stopped after ${what}`,
