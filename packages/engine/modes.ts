@@ -1537,13 +1537,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // (`BODY_TEXT_FLOOR`, the owner's bar; HC's flat grounds already clear it). Only the page sets: the inverse
   // band's twins are not placed on these grounds. Names do not move; values do.
   //
-  // NOT every ground (Q419 A): no component places these inks on `background.secondary` / `.tertiary` or
-  // `foreground.secondary` / `.tertiary`, and holding them there cost ΔE 8–15 in nearly every brand. A def that
+  // NOT every ground (Q419 A): no component places these inks on `background.tertiary` or `foreground.secondary` /
+  // `.tertiary`, and holding them on all four then cost ΔE 8–15 in nearly every brand. A def that
   // places them on another ground adds it here; `test.ts` (#2817 block) derives the grounds from the defs and
   // fails by name if one is missing from its own literal list, and measures every ink × surface cell from the
   // emitted hexes against those literals, never this list, so dropping a ground here fails it by name.
+  // #3225 (owner Q-BN3.1 A): Banner's neutral tone fills with `background.secondary` and carries the primary action and
+  // the inline link, so that ground joins. Measured before it did: every ink cleared 4.5:1 on it in all 20 example
+  // cells (lowest 4.56), so no example brand's value moves.
   const INK_SURFACES = [
-    'background.primary', 'foreground.raised',
+    'background.primary', 'foreground.raised', 'background.secondary',
     ...SEMANTICS.map((r) => `foreground.${r}-subtle`),
   ];
   const inkSurfaceRgbs = (): RGB[] => INK_SURFACES.map((k) => asGround(k, rgbByRole.get(k)!));

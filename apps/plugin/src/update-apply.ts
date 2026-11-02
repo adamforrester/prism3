@@ -62,9 +62,10 @@ import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furnitur
 import { docPanelReaches, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { rereadAfter, withRoot } from './run-read';
 import { isLiveSpecPanel, readSpecTag } from './spec-tag';
-import { REACTIONS, breakingClause, nestedMemberFaults, nestFaultLine, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, breakingClause, nestedMemberFaults, nestFaultLine, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, renamedComponent, runHost, setUpToDate, slotMigrationFor, slotTextMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
-import { slotMigrationOf } from '@prism3/engine/component-renames';
+import { slotMigrationOf, slotTextMigrationOf } from '@prism3/engine/component-renames';
+import { fillSlotText, type SlotTextOutcome, type TextMigNode } from './slot-text-migration';
 import { saveVersion } from './version-title';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 import { ABOUT_NAME, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
@@ -169,6 +170,8 @@ export type SetOutcome = {
   furniture?: FurnitureDue;
   /** #2649 — the placed instances whose rows were carried into the set's new slot. A miss is also in `content`. */
   carried?: FillOutcome;
+  /** #3225 — the placed instances whose slot text was carried into the set's new TEXT property. A miss is also in `content`. */
+  carriedText?: SlotTextOutcome;
   /** #2831 — what this update broke for library consumers, as its dry run listed it (`breakingOf`). Absent for a set
    *  that is not published, or where nothing broke. */
   breaking?: Breaking[];
@@ -918,6 +921,8 @@ export const applyUpdate = async (
     // REPEATING ROWS INTO A SLOT (#2649): the placed instances are read BEFORE the set changes under them, the same read
     // the dry run listed (its hash checked above), and filled after.
     const mig = p.slotMigration ? await slotMigrationFor(t, fresh as unknown as MigNode, opts.ledger, opts.breathe) : null;
+    // #3225: a slot whose plain text moves out to a TEXT property, read the same way, before the set changes.
+    const tmig = p.slotTextMigration ? await slotTextMigrationFor(t, fresh as unknown as TextMigNode, opts.ledger, opts.breathe) : null;
     const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, chunk: opts.chunk, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set), ledger: opts.ledger });
     if (p.furniture && !o.refused && !o.stopped) o.furniture = p.furniture;
     // #2831: the confirm names what it broke for library consumers, as the check listed it.
@@ -926,6 +931,12 @@ export const applyUpdate = async (
     if (mig && entry && !o.stopped && !o.refused) {
       o.carried = await fillSlots(p.set, entry, mig.live, mig.migration, opts.breathe);
       o.content.push(...o.carried.misses);
+    }
+    const tentry = slotTextMigrationOf(t.def, opts.ledger);
+    if (tmig && tentry && !o.stopped && !o.refused) {
+      // The slot's layer may be renamed in this same update (its `part` entry), so the fill finds it by its new name.
+      o.carriedText = await fillSlotText(p.set, tentry, partRenames(t.def, opts.ledger).get(tentry.slot) ?? tentry.slot, tmig.live, tmig.migration, opts.breathe);
+      o.content.push(...o.carriedText.misses);
     }
     res.outcomes.push(o);
     // #3177: the members this set gained are on its page (a single-component def's, on its components' pages); the
@@ -1050,6 +1061,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     // for a set the dry run doesn't call up to date (one Adopt could claim a member of, #2495).
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : o.asPreviewed && !o.asPreviewed.upToDate ? o.asPreviewed.line : `${o.set}: already up to date.`);
     // DRAFT wording for the owner (#2649): the placed instances whose rows became slot items.
+    if (o.carriedText) lines.push(`${o.set}: ${n(o.carriedText.instances, 'instance')} carried: ${n(o.carriedText.moved, 'body', 'bodies')} moved into the text property, ${o.carriedText.rich} kept in the slot, ${o.carriedText.emptied} left empty.`);
     if (o.carried) lines.push(`${o.set}: ${n(o.carried.instances, 'instance')} carried into the slot, ${n(o.carried.items, 'item')} in all.${o.carried.limits.length ? ` Outside the slot's limits: ${o.carried.limits.join('; ')}.` : ''}`);
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still ${o.content.length === 1 ? 'differs' : 'differ'} from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
