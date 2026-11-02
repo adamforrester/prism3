@@ -1,5 +1,5 @@
 ---
-engine: patch
+engine: minor
 ---
 The agent link answers a read-only `context` command (#3300): what the open file is, for an agent's first read. It names
 the stored brand and its modes, the variable collections, whether the file is themed, the sets Prism3 built and which
