@@ -17511,6 +17511,48 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+// Q3298/3294 compose A (owner, 2026-11-02): O2 B's minimum is the wide tier's alone. At 380 the Inspect menu is #3298's
+// cap (the preview header less 12px a side), and the note sets the width up to it, so it wraps to the lines that width
+// allows, not to the items' width. ORACLE: the browser's rects and the note's computed line height, typed bounds
+// here: 12 is the decision's number; 8 lines is a test bound, not a design one (7 measured at the 296px cap on both
+// hosts, 14 on web with `width: 0` at every tier). Mutation: `.p3-menu-privacy`'s `width: 0; min-width: 100%`
+// back at every tier (the `:not([data-w="narrow"])` scope dropped) → `§47 web light 380 Inspect: … reaches the narrow
+// cap …` (the figma host lays out the same either way: its build stamp already sets the menu to the cap).
+for (const host of ['web', 'figma']) {
+  const where = `§47 ${host} light 380`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 380, h: 800 });
+  let step = 'open';
+  try {
+    step = 'Brand'; await goPlace(page, 'brand');
+    step = 'the Preview pane'; await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    step = 'open Inspect';
+    await hooks.need(page, '[data-p3="inspect-open"]', { timeout: 10000 });
+    await hooks.click(page.locator('[data-p3="inspect-open"]'));
+    await hooks.need(page, '[data-p3="inspect-menu"]', { timeout: 10000 });
+    await page.waitForTimeout(300);
+    step = 'Inspect: the open menu, measured';
+    const box = await page.evaluate(() => {
+      const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { left: Math.round(b.left), right: Math.round(b.right), width: Math.round(b.width) } : null; };
+      const menu = document.querySelector('[data-p3="inspect-menu"]');
+      const n = menu?.querySelector('[data-p3="privacy-note"]');
+      let lines = null;
+      if (n) {
+        const cs = getComputedStyle(n);
+        const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+        const h = n.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+        lines = { height: Math.round(h * 10) / 10, lineHeight: lh, lines: Math.round(h / lh) };
+      }
+      return { vw: window.innerWidth, menu: r(menu), note: r(n), head: r(document.querySelector('[data-p3="preview-head"]')), lines };
+    });
+    ok(!!box.menu && !!box.note && box.menu.left >= 0 && box.menu.right <= box.vw && box.note.width <= box.menu.width,
+      `${where} Inspect: the open menu, privacy note and all, stays inside the ${box.vw} px viewport (${JSON.stringify(box)})`);
+    ok(!!box.menu && !!box.head && Math.abs(box.menu.left - (box.head.left + 12)) <= 1 && Math.abs(box.menu.right - (box.head.right - 12)) <= 1 && !!box.lines && box.lines.lines <= 8,
+      `${where} Inspect: the open menu reaches the narrow cap (the preview header less 12px a side) and its privacy note is at most 8 lines (${JSON.stringify({ menu: box.menu, head: box.head, note: box.lines })})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 } // 47-menu
 // =============================================================================================
 // IA v2 phase 2 (#2909): the tiers, one home per lever, the engine's warnings on their levers, and what is due
@@ -19896,6 +19938,54 @@ if (runs('3044')) {
   ok(child.status === 1 && named && took < 30000,
     `3044: a section that never returns fails by name at its limit, with the last check it reached (exit ${child.status}, signal ${child.signal}, ${took}ms; stderr ${JSON.stringify(String(child.stderr ?? '').trim().slice(-220))})`);
 } // 3044
+// 3298. THE INSPECT MENU STAYS INSIDE THE WINDOW (#3298, owner decision Q3298.1 A). Sized to its longest unwrapped line
+//     and hung from Inspect's right edge, the open menu ran off the window's left edge at 380 on both hosts (the privacy
+//     note on one line set a 529px menu; left edge −161), where the page cannot scroll to it. At the narrow tier the
+//     preview header now holds the menu: Inspect's right edge, capped at the header less 12px a side, the note and the
+//     stamp wrapping inside it. 1280 is unchanged. EXPECTED is the window (`innerWidth`) and the button's own rect;
+//     ACTUAL is the open menu's `getBoundingClientRect()`, and the note's and the stamp's, as the browser lays them out.
+//     Mutation this fails by name: the narrow rules under `#3298` in `chrome.css` removed → `3298 figma 380: …` and
+//     `3298 web 380: …` (the menu's left edge below 0). A cap on the right only (`max-width: calc(100% - 12px)`) →
+//     `3298 <host> 380: the menu is capped at the preview header less 12px a side` (the menu at the header's left edge).
+if (runs('3298')) {
+  console.log(`\nThe Inspect menu inside the window (#3298)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 380, h: 800 }, { w: 1280, h: 900 }]) {
+    const where = `3298 ${host} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    let step = 'open';
+    try {
+      step = 'Brand';
+      await goPlace(page, 'brand');
+      if (w <= 560) { step = 'the Preview pane'; await hooks.click(page.locator('[data-p3="pane-toggle-preview"]')); }
+      step = 'open Inspect';
+      await hooks.need(page, '[data-p3="inspect-open"]', { timeout: 10000 });
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      await hooks.need(page, '[data-p3="inspect-menu"]', { timeout: 10000 });
+      await page.waitForTimeout(300);
+      const m = await page.evaluate(() => {
+        const r = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { l: +b.left.toFixed(1), r: +b.right.toFixed(1), t: +b.top.toFixed(1), b: +b.bottom.toFixed(1), w: +b.width.toFixed(1) } : null; };
+        return { iw: innerWidth, sw: document.documentElement.scrollWidth, menu: r('[data-p3="inspect-menu"]'), btn: r('[data-p3="inspect-open"]'),
+          note: r('[data-p3="privacy-note"]'), stamp: r('[data-p3="build-stamp"]'), head: r('[data-p3="preview-head"]') };
+      });
+      const inside = (a, b) => !!a && !!b && a.l >= b.l - 0.5 && a.r <= b.r + 0.5 && a.t >= b.t - 0.5 && a.b <= b.b + 0.5;
+      ok(!!m.menu && m.menu.l >= 0 && m.menu.r <= m.iw, `${where}: the open Inspect menu stays inside the window, [0, ${m.iw}] (${JSON.stringify(m.menu)}, scrollWidth ${m.sw})`);
+      ok(inside(m.note, m.menu) && inside(m.stamp, m.menu), `${where}: the privacy note and the build stamp sit inside the menu (note ${JSON.stringify(m.note)}, stamp ${JSON.stringify(m.stamp)}, menu ${JSON.stringify(m.menu)})`);
+      ok(!!m.menu && !!m.btn && Math.abs(m.menu.r - m.btn.r) <= 0.5 && m.menu.t >= m.btn.b, `${where}: the menu keeps Inspect's right edge and hangs below it (menu ${JSON.stringify(m.menu)}, Inspect ${JSON.stringify(m.btn)})`);
+      // Q3298.1 A's cap, from both sides: at narrow the menu sits inside the preview header less 12px a side. The window
+      // alone would pass a menu reaching the header's edge, or the rail. 12 is the decision's number, typed here.
+      if (w <= 560) ok(!!m.menu && !!m.head && m.menu.l >= m.head.l + 12 - 0.5 && m.menu.r <= m.head.r - 12 + 0.5,
+        `${where}: the menu is capped at the preview header less 12px a side (menu ${JSON.stringify(m.menu)}, header ${JSON.stringify(m.head)})`);
+      // Q3298/3294 compose A (owner, 2026-11-02): at narrow the cap decides, not #3294's `width: 0` on the note, so the
+      // note sets the menu's width up to the cap and the menu reaches the header's left edge less 12. Mutation: that
+      // rule's wide-tier scope dropped → `3298 web 380: the privacy note sets the menu's width up to the cap` (~164px).
+      if (w <= 560) ok(!!m.menu && !!m.head && Math.abs(m.menu.l - (m.head.l + 12)) <= 0.5,
+        `${where}: the privacy note sets the menu's width up to the cap, the preview header less 12px a side (menu ${JSON.stringify(m.menu)}, header ${JSON.stringify(m.head)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3298
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
