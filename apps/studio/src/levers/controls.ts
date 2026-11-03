@@ -7,14 +7,13 @@
  * test proved a rule nothing followed (review finding A17).
  */
 /** The one list of palettes a palette-ref picker offers (#1835): `primary`, `neutral`, then the
- *  brand colors in their declared order. Every palette picker in the studio reads this.
+ *  brand colors in their declared order. Every palette picker in the studio, and so the plugin, reads this.
  *
- *  One exception, kept so this change moves no behavior: the Action palette select has never offered
- *  `neutral`. #1811 decides that it should, and its fix (#1827) lands as the removal of this line. */
-export const paletteRefOptions = (key: string, brandColorNames: readonly string[]): string[] => {
-  const neutral = key === 'actionPalette' ? [] : ['neutral'];
-  return ['primary', ...neutral, ...brandColorNames];
-};
+ *  The Action palette select offers `neutral` too since #3365 (owner, 2026-11-03): a brand whose buttons and links
+ *  are near-black picks `neutral` directly instead of adding a duplicate gray. The engine has always accepted it
+ *  (`theme.ts` checks `actionPalette` against every defined palette), and it moves only the action family. */
+export const paletteRefOptions = (_key: string, brandColorNames: readonly string[]): string[] =>
+  ['primary', 'neutral', ...brandColorNames];
 
 /** The `data-p3` hook for a lever's control group: `lever-<key>` in kebab-case, so
  *  `motionPersonality.tempo` is `lever-motion-personality-tempo`. */

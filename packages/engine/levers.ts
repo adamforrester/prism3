@@ -89,8 +89,10 @@ export const leverManifest: Lever[] = [
     description: 'Optional. A pre-defined brand gray, pinned verbatim at its lightness step; the ramp is built around it (hue/chroma from the anchor) instead of the cast. Set for a client that ships their own neutral; omit to derive from hue + chroma.' },
   { key: 'brandColors', group: 'color', kind: 'value', label: 'Additional brand colors', control: 'list', itemLabel: 'brand color (name + OKLCH)',
     description: 'Secondary / tertiary / accents — any number; each becomes its own ramp and can drive actions.' },
+  // #3365 — the description is a DRAFT for the owner (Q3365.1 on the build PR): it names neutral, which the Studio and
+  // the plugin now offer, and says what choosing it leaves alone (held by test.ts's #3365 block).
   { key: 'actionPalette', group: 'color', kind: 'value', label: 'Action palette', control: 'palette-ref', default: 'primary',
-    description: 'Which palette drives interactive/action color. Defaults to primary; point at an accent when the hero color is a poor CTA.' },
+    description: 'Which palette drives interactive/action color. Defaults to primary; point at neutral for near-black or gray actions (text, surfaces and borders stay as they are), or at an accent when the hero color is a poor CTA.' },
   { key: 'linkPalette', group: 'color', kind: 'value', label: 'Link palette', control: 'palette-ref',
     description: 'Which palette drives link color. Defaults to following the action color, including a roleColors.action override; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role.' },
   { key: 'status.success', group: 'color', kind: 'value', label: 'Success color', control: 'color', advanced: true,
