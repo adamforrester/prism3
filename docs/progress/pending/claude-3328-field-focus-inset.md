@@ -1,7 +1,7 @@
 ## (2026-11-03) — Field focus drawn inside the field, at its own radius (#3328)
 
 **Status:** engine + plugin, built as the owner decided (Q3328.1 A, the "A′" geometry; Q3328.2 A). ENGINE minor
-(change note). `EXECUTOR_REVISION` 48 → 49, reaching the nine sets that draw a field ring. No token moves, so
+(change note). `EXECUTOR_REVISION` 49 → 50 (taken second, after #3369 took 49), reaching the nine sets that draw a field ring. No token moves, so
 CONTRACT is unchanged.
 
 ### What changed
@@ -29,11 +29,11 @@ CONTRACT is unchanged.
 
 ### Traps
 
-- **The paste shell has 11 B of headroom.** The ring code runs in every paste chunk's shell, and #1798 caps the
-  indivisible unit at 37,800 B. Main was at 37,718, and this change landed at 37,789 after trimming four of the ring
-  loop's paste-side miss strings (the plugin executor keeps its long ones). The next shell addition will need the
-  ceiling argued, or bytes found elsewhere. icon-button re-pins from 17 to 18 chunks. With #3369 also on main the
-  two together reach 37,858 B. #3369 frees 115 B elsewhere in the shell, so the pair fits in either merge order.
+- **The paste shell has 57 B of headroom.** The ring code runs in every paste chunk's shell, and #1798 caps the
+  indivisible unit at 37,800 B. This change trimmed four of the ring loop's paste-side miss strings to fit (the
+  plugin executor keeps its long ones). Merged onto main after #3369, whose review fix freed 115 B of shell, the
+  unit measures 37,743 B (provider-logo), and icon-button stays at 17 chunks. The next shell addition will need the
+  ceiling argued, or bytes found elsewhere.
 - The corner binding on an instance is a host write that has not yet been run on a live Figma host. The shim reads it
   back. The first Update of a file holding a focused field is that probe.
 
