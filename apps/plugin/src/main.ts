@@ -90,6 +90,7 @@ import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ReadHost } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
+import { dropFor as dropViewsFor, dropViews, keepView, keptView, viewEpoch, watchViews } from './member-views';
 import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
@@ -1243,10 +1244,13 @@ const watchSets = (): void => {
   if (watchingSets) return;
   try {
     figma.on('documentchange', (e) => {
+      // #3313: a change to any component or set, or any style, has the next Update check read every set again (`member-views.ts`).
+      dropViewsFor(e.documentChanges as Parameters<typeof dropViewsFor>[0]);
       if (presentCache === null || !movesSets(e.documentChanges as readonly SetChange[])) return;
       presentCache = null; panelCache = null; presentRead = null; presentGen++;
     });
     watchingSets = true;
+    watchViews(true);
   } catch { /* a host that refuses the listener: the sets are read again after each write, as before #3091 */ }
 };
 /**
@@ -1541,7 +1545,9 @@ const handEditsPass = async (): Promise<void> => {
       await breathe();
       if (stale()) return;
       let r: { members: number; edited: number } | null = null;
-      try { r = await handEditsOf(host, t, breathe); } catch { r = null; }
+      // #3313: the set's read kept for the Update check, unless the file changed while it was read.
+      const since = viewEpoch();
+      try { r = await handEditsOf(host, t, breathe, (view) => keepView(view, since)); } catch { r = null; }
       if (stale()) return;
       if (r) postToUi({ type: 'hand-edits', def: t.def, members: r.members, edited: r.edited });
       await breathe();
@@ -1559,7 +1565,8 @@ const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<v
   try {
     const { targets, refused } = updateTargets(defs, input);
     // #3177: `previewUpdate` loads and searches the file a page per turn, once, for every set it reads.
-    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
+    // #3313: each set the hand-edit pass read, and nothing has changed in since, is laid against as that pass read it.
+    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe, undefined, keptView);
     r.refused.push(...refused);
     // `previewUpdate` adds a preview for each target it found, in the targets' order, and names the rest as missing or
     // refused, so the found targets pair with the previews one to one.
@@ -2048,8 +2055,8 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
     if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
-    presentCache = null; panelCache = null; presentRead = null; presentGen++;
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; });
+    presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews();
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews(); });
   };
 
 /**

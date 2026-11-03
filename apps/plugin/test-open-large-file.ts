@@ -239,12 +239,14 @@ Object.assign(root, {
 });
 
 const posted: { at: number; loads: number; msg: any }[] = [];
+const listeners: Record<string, ((e: unknown) => void)[]> = {};
 const t0 = { at: 0 };
 Object.assign(shim, {
   showUI: () => undefined,
   ui: { postMessage: (m: unknown) => { posted.push({ at: Date.now() - t0.at, loads, msg: m }); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
   clientStorage: { getAsync: async () => undefined, setAsync: async () => undefined },
-  on: () => undefined,
+  // #3313: the listeners `main.ts` registers, kept so the template's check arms can fire a hand edit's `documentchange`.
+  on: (ev: string, fn: (e: unknown) => void) => { (listeners[ev] ??= []).push(fn); },
   loadAllPagesAsync: async () => { for (const p of pages) loadOne(p); allCalled = true; },
   setCurrentPageAsync: async () => undefined,
   // No variable in the stand-in: prune and the style guide read the collections before their page loads.
@@ -267,6 +269,8 @@ timings.push = (...e: { stage: string; ms: number }[]) => Array.prototype.push.c
 g.PRISM3_OPEN_TIMINGS = timings;
 
 const { ACTIONS } = await import('./src/main');
+const { dropViews, keepView, keptCount, keptView, viewEpoch } = await import('./src/member-views');
+const { freshView, readSetView } = await import('./src/update-plan');
 
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
 
@@ -777,6 +781,8 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   persistInput(root as never, tbrand!);
   const tmat = materializerFor(tbrand);
   const tdefs = componentDefs.filter((d) => d.figmaProperties);
+  const unedited = tdefs.map((d, n) => ({ d, n })).filter(({ d, n }) => n % EDIT_EVERY !== 0 && !d.figmaProperties!.emitAsComponents).map(({ n }) => n);
+  const GLYPH_AT = unedited[0];
   const plansOf = new Map(tdefs.map((d) => [d.id, figmaAnatomySet(tmat(d), { swapTarget: SWAP_TARGET })]));
   const valueOf = (p: AnatomyPlanT): string => { const n = planComponentName(p); return n.slice(n.indexOf('=') + 1); };
   type AnatomyPlanT = ReturnType<typeof figmaAnatomySet>[number];
@@ -815,7 +821,10 @@ console.log('\n  Capture baseline and Adopt (#3189)');
       for (const p of plans) { const c = tnode('COMPONENT', `${d.id}/${valueOf(p)}`, [partNodes(p.root)]); singleComps.push(c); allMembers.push({ def: d.id, node: c }); }
       continue;
     }
-    const members = plans.map((p) => tnode('COMPONENT', planComponentName(p), p.root.children.map(partNodes)));
+    // #3313: one member of the first unedited set carries a glyph frame whose vector reaches past it, a fault only the
+    // member's live read finds (`drawnFaults`), so a check that lays its plans against a kept read must read it again.
+    const glyph = (i: number): any[] => (n === GLYPH_AT && i === 0 ? [tnode('FRAME', 'glyph', [tnode('VECTOR', 'path', [], { x: -4, y: 0, width: 30, height: 20 })], { width: 24, height: 24 })] : []);
+    const members = plans.map((p, i) => tnode('COMPONENT', planComponentName(p), [...p.root.children.map(partNodes), ...glyph(i)]));
     for (const m of members) allMembers.push({ def: d.id, node: m });
     const set = tnode('COMPONENT_SET', d.id, members, { componentPropertyDefinitions: {} });
     const panel = tnode('FRAME', `${d.id} usage`, [caption(), ...members.slice(0, PANEL_INSTANCES).map((m) => tnode('INSTANCE', raws.get(m)!.name, [caption()], { getMainComponentAsync: async () => m })), caption()]);
@@ -907,6 +916,77 @@ console.log('\n  Capture baseline and Adopt (#3189)');
     if (xs.length) console.log(`    stage ${st.padEnd(22)}${xs.map((t) => t.ms.toFixed(0)).join(', ')} ms`);
   }
   console.log(`    projections at open         ${prints.length}, ${prints.reduce((a, t) => a + t.ms, 0).toFixed(0)} ms in all`);
+
+  // #3313: THE UPDATE CHECK ON THE TEMPLATE, after the open above, every set the template holds ticked. On `main` it made
+  // 2.6M host calls: every member read again, and every component's name read once per set (`fileBlockers`).
+  //   · `check/calls`: the check makes at most `CHECK_CAP` host calls. Mutations, each → `check/calls`: `fileBlockers`
+  //     reading every component's name per set again; the check not given the pass's reads (`keptView` dropped).
+  //   · `check/same`: the check's answer is the same, whole, whether it lays its plans against the pass's reads, against
+  //     them a second time, or against a fresh read of every set.
+  //   · `check/views`: every set the pass read is kept, and each kept read, as the check hands it on (`freshView`), is a
+  //     fresh read of the set field for field. Mutation: a kept view handed on without its `drawn` read again →
+  //     `check/views` (the stand-in's one glyph past its frame goes unreported).
+  //   · `check/drops`: a hand edit made after the pass, heard as Figma's `documentchange`, is in the check's answer: the
+  //     edited set is read again. Mutation: the listener's drop removed → `check/drops`.
+  // Measured, not asserted: the check's host calls on a fresh read of every set.
+  const CHECK_CAP = 900_000;
+  const checkOf = async (): Promise<{ msg: any; calls: number }> => {
+    const at = posted.length;
+    calls = 0; callsIn.clear();
+    counting = true;
+    send({ type: 'update-check-request', defs: tdefs.map((d) => d.id), input: tbrand });
+    const got = () => posted.slice(at).find((p) => p.msg?.type === 'update-check');
+    for (let i = 0; i < 24000 && !got(); i++) await new Promise((res) => realTimeout(res, 5));
+    counting = false;
+    return { msg: got()?.msg ?? null, calls };
+  };
+  const kept = await checkOf();
+  const again = await checkOf();
+  const tsets = tdefs.filter((d) => !d.figmaProperties!.emitAsComponents).map((d) => ({ id: d.id, set: tpages.find((p) => p.name === d.id)!.children[0] }));
+  const noVars = new Map();
+  const viewWrong: string[] = [];
+  let keptN = 0;
+  for (const { id, set } of tsets) {
+    const kv = keptView(raws.get(set)!.id);
+    if (!kv) continue;
+    keptN++;
+    if (JSON.stringify(await freshView(kv, set, noVars)) !== JSON.stringify(await readSetView(set, undefined, noVars))) viewWrong.push(id);
+  }
+  ok(keptN === tsets.length && viewWrong.length === 0,
+    `check/views: the pass's read of each of the ${tsets.length} sets is kept, and as the check hands it on is the set's fresh read, field for field (${keptN} kept${viewWrong.length ? `; differ: ${viewWrong.slice(0, 5).join(', ')}` : ''})`);
+  // A hand edit after the pass, on a set the stand-in left unedited, heard as Figma reports it.
+  const touched = tdefs[unedited[1]].id;
+  const tset = tpages.find((p) => p.name === touched)!.children[0];
+  const tmember = raws.get(tset)!.children[0];
+  raws.get(tmember)!.opacity = 0.25;
+  for (const fn of listeners.documentchange ?? []) fn({ documentChanges: [{ type: 'PROPERTY_CHANGE', node: tmember, properties: ['opacity'] }] });
+  const edited2 = await checkOf();
+  dropViews();
+  const fresh = await checkOf();
+  const text = (m: any): string => JSON.stringify(m);
+  ok(!!kept.msg && !kept.msg.error && kept.msg.sets.length > 0 && kept.calls <= CHECK_CAP,
+    `check/calls: the Update check over the template's ${kept.msg?.sets?.length ?? 0} sets makes at most ${CHECK_CAP} host calls (${kept.calls}; on a fresh read of every set, ${fresh.calls})`);
+  const others = (m: any): string => text({ ...m, previewHash: '', sets: (m?.sets ?? []).filter((x: any) => x.def !== touched) });
+  ok(!!kept.msg && text(kept.msg) === text(again.msg) && others(edited2.msg) === others(fresh.msg) && others(kept.msg) === others(fresh.msg),
+    `check/same: the check's answer is the same over the pass's reads, over them again, and over a fresh read of every set (hash ${kept.msg?.previewHash}, ${again.msg?.previewHash}; the unedited sets ${others(kept.msg) === others(fresh.msg) ? 'match' : 'differ'})`);
+  const setIn = (m: any): string => text((m?.sets ?? []).find((x: any) => x.def === touched));
+  ok(!!edited2.msg && text(edited2.msg) === text(fresh.msg) && setIn(edited2.msg) !== setIn(kept.msg),
+    `check/drops: a hand edit to ${touched} after the pass is in the next check's answer, as a fresh read gives it (${setIn(edited2.msg) === setIn(kept.msg) ? 'the edit is missing' : 'the edit is there'}; ${text(edited2.msg) === text(fresh.msg) ? 'same as fresh' : 'differs from fresh'})`);
+  console.log(`    the check's host calls: ${kept.calls} over the pass's reads, ${fresh.calls} reading every set`);
+
+  // #3348: A WRITE DROPS EVERY KEPT VIEW, as it starts and as it ends (`guarded`): a write moves members with no change
+  // the views hear in time. Each set's read is kept again here, then a write runs: one the guard brackets (an update of
+  // a def this build doesn't know, refused inside the run). The sink's first post lands inside the run.
+  //   · `check/write start`: no view is kept inside the run. Mutation: `guarded`'s drop at the start removed.
+  //   · `check/write end`: a view kept inside the run is gone after it. Mutation: `guarded`'s drop at the end removed.
+  for (const { set } of tsets) keepView(await readSetView(set, undefined, noVars), viewEpoch());
+  const keptBefore = keptCount();
+  const inRun = await readSetView(tsets[0].set, undefined, noVars);
+  let during: number | null = null;
+  const probe = (): void => { if (during !== null) return; during = keptCount(); keepView(inRun, viewEpoch()); };
+  await ACTIONS.updateComponents(['no-such-def'], 'no-such-hash', {}, tbrand, { post: probe, data: probe });
+  ok(keptBefore === tsets.length && during === 0, `check/write start: a write drops every kept view as it starts (${keptBefore} kept before it, ${during} inside it)`);
+  ok(during !== null && keptCount() === 0, `check/write end: a view kept while a write runs is dropped as it ends (${keptCount()} kept after it)`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
