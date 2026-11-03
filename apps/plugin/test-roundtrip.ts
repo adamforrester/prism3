@@ -798,8 +798,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/xs/default', medium: 'body/sm/default', large: 'body/md/default' } as Record<string, string>)[c.size!] },
     'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/xs/default', medium: 'body/sm/default', large: 'body/md/default' } as Record<string, string>)[c.size!] },
     // #2715: List.Item's text, and an ordered item's number, read in the body style of the item's size (body small,
-    // medium or large, its brief's size prop).
-    'list-item':     { parts: (c) => (c.type === 'ordered' ? ['number', 'label'] : ['label']), style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    // medium or large, its brief's size prop; body extra-small at x-small, #3330).
+    'list-item':     { parts: (c) => (c.type === 'ordered' ? ['number', 'label'] : ['label']), style: (c) => ({ 'x-small': 'body/xs/default', small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'field-label':   { parts: ['label', 'indicator'], style: (c) => (({
       // #2266: re-laddered 12 / 14 / 16.
       'small/regular': 'body/xs/default', 'small/bold': 'body/xs/strong',
