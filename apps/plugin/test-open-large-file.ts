@@ -234,6 +234,8 @@ Object.assign(root, {
   },
 });
 
+/** The stand-in's local variables (#3364): none until `check/values`. */
+const standVars: { id: string; name: string; resolvedType: string; valuesByMode: Record<string, unknown> }[] = [];
 const posted: { at: number; loads: number; msg: any }[] = [];
 const listeners: Record<string, ((e: unknown) => void)[]> = {};
 const t0 = { at: 0 };
@@ -245,8 +247,9 @@ Object.assign(shim, {
   on: (ev: string, fn: (e: unknown) => void) => { (listeners[ev] ??= []).push(fn); },
   loadAllPagesAsync: async () => { for (const p of pages) loadOne(p); allCalled = true; },
   setCurrentPageAsync: async () => undefined,
-  // No variable in the stand-in: prune and the style guide read the collections before their page loads.
-  variables: { ...(shim.variables as object), getLocalVariableCollectionsAsync: async () => [], getLocalVariablesAsync: async () => [] },
+  // No variable in the stand-in: prune and the style guide read the collections before their page loads. #3364's arm
+  // (`check/values`) adds one, late, and edits its value: `standVars`.
+  variables: { ...(shim.variables as object), getLocalVariableCollectionsAsync: async () => [], getLocalVariablesAsync: async () => standVars },
   getNodeByIdAsync: async () => null,
   listAvailableFontsAsync: async () => [],
   getLocalPaintStylesAsync: shim.getLocalPaintStylesAsync ?? (async () => []),
@@ -265,7 +268,7 @@ timings.push = (...e: { stage: string; ms: number }[]) => Array.prototype.push.c
 g.PRISM3_OPEN_TIMINGS = timings;
 
 const { ACTIONS } = await import('./src/main');
-const { dropViews, keepView, keptCount, keptView, viewEpoch } = await import('./src/member-views');
+const { dropViews, keepView, keptCount, keptView, noteVariables, variablesPrint, viewEpoch } = await import('./src/member-views');
 const { freshView, readSetView } = await import('./src/update-plan');
 
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
@@ -983,6 +986,30 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   await ACTIONS.updateComponents(['no-such-def'], 'no-such-hash', {}, tbrand, { post: probe, data: probe });
   ok(keptBefore === tsets.length && during === 0, `check/write start: a write drops every kept view as it starts (${keptBefore} kept before it, ${during} inside it)`);
   ok(during !== null && keptCount() === 0, `check/write end: a view kept while a write runs is dropped as it ends (${keptCount()} kept after it)`);
+
+  // #3364: A VARIABLE'S VALUE EDITED BETWEEN TWO CHECKS, through `main.ts`'s own check. Figma hears no document change for
+  // a value edited in the Variables panel, yet a member bound to it re-resolves. The stand-in gains one float variable,
+  // and every set's read is kept under the file's print, as the pass keeps it. A first check reuses them; then the
+  // variable's value is edited, and a member of an unedited set re-resolves (its opacity, which a variable can bind),
+  // with no `documentchange` sent. The second check must be a fresh read's answer, whole.
+  //   · `check/values`. Mutation: `checkSets` not printing the variables as the check starts (`under` a no-op) →
+  //     `check/values` (the second check lays its plans against the stale read).
+  standVars.push({ id: 'V:3364', name: 'stand/opacity', resolvedType: 'FLOAT', valuesByMode: { 'm:0': 1 } });
+  noteVariables(await variablesPrint(shim as never));
+  for (const { set } of tsets) keepView(await readSetView(set, undefined, noVars), viewEpoch());
+  const vKept = keptCount();
+  const vFirst = await checkOf();
+  const vDef = tdefs[unedited[2]].id;
+  const vMember = raws.get(tpages.find((p) => p.name === vDef)!.children[0])!.children[0];
+  standVars[0].valuesByMode = { 'm:0': 0.5 };
+  raws.get(vMember)!.opacity = 0.5;
+  const vSecond = await checkOf();
+  dropViews();
+  const vFresh = await checkOf();
+  const vSet = (m: any): string => text((m?.sets ?? []).find((x: any) => x.def === vDef));
+  ok(vKept === tsets.length && !!vSecond.msg && vSet(vFirst.msg) !== vSet(vFresh.msg) && text(vSecond.msg) === text(vFresh.msg),
+    `check/values: a variable's value edited between two checks, with no document change, is in the second check's answer, as a fresh read gives it (${vKept} kept; ${vDef} ${vSet(vFirst.msg) === vSet(vFresh.msg) ? 'did not move' : 'moved'}; second ${text(vSecond.msg) === text(vFresh.msg) ? 'same as fresh' : 'differs from fresh'})`);
+  standVars.length = 0;
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

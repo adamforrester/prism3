@@ -1200,6 +1200,9 @@ export const freshView = async (view: HostSetView, set: LiveSet, drawVars?: Read
 
 /** A kept read of a set by its node id, or `undefined` to read the set (`member-views.ts`, #3313). */
 export type KeptView = (setId: string) => HostSetView | undefined;
+/** The kept reads a check may lay its plans against (`member-views.ts`): `view` looks one up, and `under` is told how the
+ *  file's variables print as the check starts (#3364), so a value edited with no document change drops every view. */
+export type KeptViews = { view: KeptView; under: (host: UpdateHost) => Promise<void> };
 
 const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, kept?: KeptView): Promise<Viewed> => {
   if (t.single) {
@@ -1363,7 +1366,10 @@ const pageViews = (found: readonly PageSet[], reach: PanelReach = 0) => {
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
  *  because which one an update should touch is not this command's call. */
-export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, kept?: KeptView): Promise<UpdatePreview> => {
+export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, keptViews?: KeptViews): Promise<UpdatePreview> => {
+  // #3364: before any kept read is looked up, the file's variables as they are now, so an edited value drops them.
+  if (keptViews) await keptViews.under(file);
+  const kept = keptViews?.view;
   // #3177: every set below is found in one read of the file, never by a search of the whole file per set.
   const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
