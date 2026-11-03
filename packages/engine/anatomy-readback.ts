@@ -388,6 +388,11 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `clipsContent ${String(p)}`,
     check: (p, n) => (n.clipsContent === p ? null : str(n.clipsContent)),
   },
+  // The scroll region (#3163): carried only as VERTICAL, and the host echoes it on the same property.
+  overflowDirection: {
+    show: (p) => `overflowDirection ${String(p)}`,
+    check: (p, n) => (n.overflowDirection === p ? null : str(n.overflowDirection)),
+  },
   // ── auto-layout width floor (#1343a, #1345) ────────────────────────────────────────────────────
   // A literal min-width the executor sets on an auto-layout frame; the host echoes it back on the same
   // property, so this compares directly. Only `select`'s control carries it today.
@@ -573,6 +578,7 @@ export const FIELDS: Record<string, FieldCheck> = {
     },
   },
   absoluteStrokeInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic, not a property the host holds separately' },
+  absoluteBorderInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic (the ring sited inside the host\'s border, #3328); its result is geometry, and the corner bindings it writes are read back as bindings' },
   absoluteCenterOn: { reason: 'names the node to center ON; the resulting coordinates are geometry, which `docs/40` §7 step 6 checks visually' },
 
   zeroOpacity: {

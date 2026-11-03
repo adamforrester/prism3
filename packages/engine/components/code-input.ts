@@ -175,8 +175,10 @@ export const codeInputCell: ComponentDef = {
         nests: 'focus-ring',
         inset: 'ring-offset',
         strokeInset: 'ring-width',
+        // Inside the cell's border, at its own radius (#3328, Q3328.1 A), as on Text field.
+        borderInset: 'border-width',
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'The shared focus ring on the active cell, where the next character goes.',
+        note: 'The shared focus ring on the active cell, where the next character goes, drawn inside the cell\'s border at its own radius.',
       },
     },
     codeOnly: [
@@ -209,7 +211,7 @@ export const codeInputCell: ComponentDef = {
       '2.4.13 Focus Appearance (the shared focus ring, as intent)',
     ],
     keyboard: 'None of its own: the code input\'s input takes every key.',
-    focus: 'Never focused itself. While the code input\'s input has focus, the active cell shows the focus ring.',
+    focus: 'Never focused itself. While the code input\'s input has focus, the active cell shows the focus ring, drawn inside the cell: its border takes the focus color and a 2px band sits inside it, at the cell\'s radius.',
     aria: 'aria-hidden="true". A screen reader meets the code input\'s one input and its whole value, never a cell.',
   },
 
