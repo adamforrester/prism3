@@ -45,7 +45,7 @@ import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  SCRIM_ROLE, SURFACE_TOKENS, brandScrimStrength, setScrimStrength, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
+  SCRIM_ROLE, SURFACE_TOKENS, brandScrimStrength, setScrimStrength, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, floorGroups, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
 import { floorNoneText } from '../state/floor-refusal';
@@ -64,8 +64,17 @@ const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly Page
 /** The page the Continue button opens: the next Color sub-page, by the store's page key. */
 const NEXT = { label: 'Interactive', page: 'interactive' } as const;
 
-/** The contrast floor row's info text (S4f, the owner's QA-B6, APPROVED). */
-const FLOOR_INFO = 'The background most text, icon and fill colors are checked against for contrast. Auto uses background.secondary.';
+/** The contrast floor's own sub-heading (#3366, owner decisions Q3366.1 A and Q3366.6 A: the DRAFT copy as rendered).
+ *  It replaces QA-B6's info text, which said "most text, icon and fill colors" behind a button: the line is always
+ *  shown, and names the count the engine measures in the previewed mode. */
+export const FLOOR_COPY = {
+  heading: 'Contrast floor',
+  label: 'Measured on',
+  sub: 'A setting, not a token',
+  line: (n: number): string => `The background ${n} text, icon and fill colors are checked against for contrast. A step further from the page moves them further from it too. Auto uses background.secondary.`,
+  group: (label: string, n: number): string => `${label} (${n})`,
+  notChecked: 'Field borders, button borders and the focus ring are not checked against it.',
+} as const;
 /** The contrast floor row's `data-role`: it sets a setting, not a token, so it names the setting. */
 const FLOOR_ROW = 'surfaces.floorStep';
 
@@ -139,7 +148,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
      *  picker under the row while it is open. `key` is the picker's slot in `openRole`. `info` adds the row's own
      *  info button beside its name, its note drawn under the row (QA-B6). */
     const surfRow = (o: { key: string; id: string; hk: string; label: string; token: string | null; rowRole: string; hex: string; now: string;
-      full?: string; follows?: string | null; info?: string; picker: Omit<StepPickerOpts, 'modeLabel' | 'onClose' | 'role'> & { role?: string } }): HTMLElement => {
+      full?: string; follows?: string | null; info?: string; sub?: string; ax?: string; picker: Omit<StepPickerOpts, 'modeLabel' | 'onClose' | 'role'> & { role?: string } }): HTMLElement => {
       const wrap = h('div', 'p3-fillrow-wrap');
       // Every row is the one grid: swatch, name, and the picker on the right (#2179: the contrast floor's picker sat
       // under its name).
@@ -165,6 +174,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
           line.append(t.button);
         }
         nm.append(line);
+        // #3366: a setting says so where a row's token sits (Q3366.6 A), in the page's secondary line, not in mono.
+        if (o.sub) nm.append(hook(h('span', 'p3-sub', o.sub), 'surface-floor-sub'));
       } else nm = tokenLabel(o.token, o.label, o.id);
       const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), o.hk);
       btn.type = 'button';
@@ -174,7 +185,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       // The accessible name starts with the visible label, word for word (WCAG 2.5.3). An Auto floor on a tier's step adds
       // the role it follows (owner, option 1 on #2193): "Contrast floor, Light: Auto · neutral 050, follows
       // background.secondary. Pick a step". `full` is the tooltip (FL1 A: the floor's full sentence, or its step).
-      btn.setAttribute('aria-label', `${o.label}, ${modeLabel(currentMode)}: ${o.now}${o.follows ? `, follows ${o.follows}` : ''}. Pick a step`);
+      btn.setAttribute('aria-label', `${o.ax ?? o.label}, ${modeLabel(currentMode)}: ${o.now}${o.follows ? `, follows ${o.follows}` : ''}. Pick a step`);
       if (o.full) btn.title = o.full;
       btn.append(h('span', 'p3-btn-label', o.now), glyph('chev'));
       btn.disabled = !editable;
@@ -240,22 +251,30 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     for (const [tier, label] of [['secondary', 'Secondary'], ['tertiary', 'Tertiary']] as const) {
       def.append(tierRow(tier, label, `surface-${tier}-pick`, [{ palette: nPal, steps: pageSteps() }], (_p, step) => setSurfaceTier(m, tier, step)));
     }
-    // The contrast floor, as a row (QA-B1), with its own info text (QA-B6, APPROVED). It is a setting, not a token,
-    // so the row names none. Auto names the floor the engine derives, and the tier when it is that tier's step
-    // (`floorAutoLabel`, S4e). A step writes what the floor select wrote for it (`setSurfaceFloor`, the step's
-    // number), and Return to Auto what its Auto option wrote (`''`, which unsets `floorStep`).
+    // ── Contrast floor (#3366, owner decision Q3366.1 A): its own sub-heading between Default and Inverse, so it no
+    // longer reads as a fourth page tier. The row is "Measured on", and "A setting, not a token" sits where a tier's
+    // token does. Under it, always shown: the line naming how many colors it checks, the groups those colors fall in
+    // with a sample of each, and what it does not check (Q3366.5 A). The count and the groups are read now, from the
+    // engine's resolved roles in the previewed mode (Q3366.4 A, `floorGroups`). The step button keeps the name the owner
+    // chose for it (option 1 on #2193: "Contrast floor, Light: Auto · …"), so it says what it sets out of context too.
+    // Auto names the floor the engine derives, and the tier when it is that tier's step (`floorAutoLabel`, S4e). A step
+    // writes what the floor select wrote for it (`setSurfaceFloor`, the step's number), and Return to Auto what its Auto
+    // option wrote (`''`, which unsets `floorStep`).
+    const flr = hook(h('div', 'p3-fillrows'), 'surface-floor-rows');
+    const flrHead = h('h3', 'p3-rows-sub', FLOOR_COPY.heading);
+    flr.append(flrHead);
     const floorSteps = stepsOf(nPal);
     const floorGround = floorGroundSteps(m);
     const floorKey = cur?.floorStep == null ? null : floorSteps.find((s) => Number(s) === Number(cur.floorStep)) ?? String(cur.floorStep);
     const autoFloor = stepOfPath(`palette.${roles['foreground.brand']?.against ?? ''}`);
     const floorAt = floorKey != null ? { palette: nPal, step: floorKey } : autoFloor && autoFloor.palette === nPal ? autoFloor : null;
-    def.append(surfRow({
-      key: 'surface:floor', id: 'p3-surf-floor', hk: 'surface-floor-pick', label: 'Contrast floor', token: null, rowRole: FLOOR_ROW,
+    flr.append(surfRow({
+      key: 'surface:floor', id: 'p3-surf-floor', hk: 'surface-floor-pick', label: FLOOR_COPY.label, token: null, rowRole: FLOOR_ROW,
       hex: (floorAt && stepHex(floorAt.palette, floorAt.step)) ?? roles[SURFACE_TOKENS.secondary]?.hex ?? '#ffffff',
       now: floorKey != null ? `${nPal} ${floorKey}` : floorAutoShortLabel(m),
       full: floorKey != null ? `${nPal} ${floorKey}` : floorAutoLabel(m),
       follows: floorKey != null ? null : floorAutoFollows(m),
-      info: FLOOR_INFO,
+      sub: FLOOR_COPY.sub, ax: FLOOR_COPY.heading,
       picker: {
         role: 'Contrast floor', palettes: [{ palette: nPal, steps: floorGround }], current: floorAt,
         against: null, overridden: floorKey != null,
@@ -264,9 +283,28 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     }));
     // No ground on a neutral step (Q70 A): the picker offers Auto alone, and the line says why. A background that
     // moved off a set floor reset it to Auto (Q69 A), and the line says so until the next edit.
-    if (!floorGround.length) def.append(hook(stateLine(floorNoneText(m)), 'surface-floor-none'));
+    if (!floorGround.length) flr.append(hook(stateLine(floorNoneText(m)), 'surface-floor-none'));
     const reset = floorResetNotice(m);
-    if (reset) def.append(hook(stateLine(reset), 'surface-floor-reset'));
+    if (reset) flr.append(hook(stateLine(reset), 'surface-floor-reset'));
+    // What it checks, in the mode the preview shows (a custom or derived mode is resolved in its own right).
+    const gov = floorGroups(rolesIn(currentMode));
+    const shown = gov.other.length ? [...gov.groups, { id: 'other', label: 'Other', roles: gov.other, sample: gov.other[0] }] : gov.groups;
+    const what = hook(h('div', 'p3-floor-what'), 'surface-floor-what');
+    what.append(hook(h('p', 'p3-sub', FLOOR_COPY.line(gov.total)), 'surface-floor-line'));
+    const list = hook(h('ul', 'p3-floor-groups'), 'surface-floor-groups');
+    const live = rolesIn(currentMode);
+    for (const g of shown) {
+      const li = h('li', 'p3-floor-group');
+      li.dataset.group = g.id;
+      const sw = h('span', 'p3-floor-sw');
+      sw.setAttribute('aria-hidden', 'true');
+      sw.dataset.content = '';   // the brand's color, as a fill row's swatch: content, not chrome
+      sw.style.backgroundColor = live[g.sample]?.hex ?? 'transparent';
+      li.append(sw, h('span', undefined, FLOOR_COPY.group(g.label, g.roles.length)));
+      list.append(li);
+    }
+    what.append(list, hook(h('p', 'p3-sub', FLOOR_COPY.notChecked), 'surface-floor-not'));
+    flr.append(what);
 
     // ── Inverse (BG1 A, approved copy) ──
     const inv = hook(h('div', 'p3-fillrows'), 'surface-inverse-rows');
@@ -300,9 +338,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     for (const [tier, label] of [['inverseSecondary', 'Inverse secondary'], ['inverseTertiary', 'Inverse tertiary']] as const) {
       inv.append(tierRow(tier, label, `surface-${tier === 'inverseSecondary' ? 'inverse-secondary' : 'inverse-tertiary'}-pick`, bandSteps, (p, step) => setInverseTier(m, tier, p, step)));
     }
-    grp.append(def, inv);
+    grp.append(def, flr, inv);
     b.ctl.append(grp);
-    return [{ el: b.el, said: `${b.said} default inverse background fills primary secondary tertiary contrast floor inverse fill palette ${Object.values(SURFACE_TOKENS).join(' ')}`, key: 'surfaces', block: b }];
+    return [{ el: b.el, said: `${b.said} default inverse background fills primary secondary tertiary contrast floor measured on inverse fill palette ${Object.values(SURFACE_TOKENS).join(' ')}`, key: 'surfaces', block: b }];
   };
 
   /** The Scrim section (S4f, QA-B10): out of Background fills into its own section, as the preview's Scrim section is.

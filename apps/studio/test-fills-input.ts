@@ -802,5 +802,53 @@ ok(store.brandState.surfaces?.light?.floorStep === undefined && store.lastError 
   `#2250 floor 200 on Secondary 200, Secondary back to Auto: the floor resets, with the notice (floorStep ${store.brandState.surfaces?.light?.floorStep}, notice ${JSON.stringify(F.floorResetNotice('light'))})`);
 ok(F.floorResetNotice('dark') === null, '#2250 and the notice is Light\'s alone');
 
+// ── 12. #3366: what the contrast floor checks, read from the engine, held to a literal list ───────────────
+// Owner decision Q3366.4 A. EXPECTED is typed here, group by group, from the issue's measured table: never derived
+// from `FLOOR_GROUPS` or from `floorGroups`, so a group dropped from the module, a rule that stops matching, and a
+// role the engine stops measuring on the floor each fail, by the group's name (docs/34 shape 1). ACTUAL is
+// `floorGroups` over the engine's own `resolveAllModes`, for every mode of every example brand, so the count the
+// page prints ("The background 47 …") is the one asserted. A role the engine starts measuring on the floor fails
+// too, through `other` and the total. Then the "not checked" line (Q3366.5 A) is held to the engine: no field
+// border, no button border and no focus ring is measured on the floor in any of those modes.
+// Mutations (each fails here by name): drop `disabled` from FLOOR_GROUPS → `… the "disabled" group (Disabled text and
+// icon) holds exactly …`; a field border measured on the floor → `… the "not checked" line …`.
+console.log('\n12. The contrast floor\'s groups: every role the engine measures on the floor, in six groups (#3366, Q3366.4 A; oracle: literals)');
+const FLOOR_EXPECTED: Record<string, { label: string; roles: string[] }> = {
+  links: { label: 'Links', roles: ['text.link.default', 'text.link.hover', 'text.link.visited', 'text.link.focused', 'text.link.pressed',
+    'icon.link.default', 'icon.link.hover', 'icon.link.visited', 'icon.link.focused', 'icon.link.pressed'] },
+  status: { label: 'Brand and status text, icons', roles: ['text.brand', 'text.success', 'text.warning', 'text.danger', 'text.info',
+    'icon.brand', 'icon.success', 'icon.warning', 'icon.danger', 'icon.info'] },
+  secondary: { label: 'Secondary and tertiary text, placeholder', roles: ['text.secondary', 'text.tertiary', 'icon.secondary', 'icon.tertiary', 'field.placeholder'] },
+  disabled: { label: 'Disabled text and icon', roles: ['disabled.text', 'disabled.icon'] },
+  bold: { label: 'Bold fills', roles: ['foreground.brand', 'foreground.success', 'foreground.warning', 'foreground.info', 'foreground.danger'] },
+  buttons: { label: 'Button fills', roles: ['primary', 'destructive', 'neutral'].flatMap((c) => ['rest', 'hover', 'pressed', 'focused', 'selected'].map((st) => `interactive.${c}.fill.${st}`)) },
+};
+const FLOOR_ORDER = ['links', 'status', 'secondary', 'disabled', 'bold', 'buttons'];
+const FLOOR_TOTAL = 47;
+const sortJ = (xs: readonly string[]): string => JSON.stringify([...xs].sort());
+let floorModes = 0;
+for (const brand of ['prism3', 'aurora', 'harbor']) {
+  for (const md of resolveAllModes(brandTheme(structuredClone((exampleBrands as Record<string, BrandInput>)[brand])))) {
+    floorModes++;
+    const at = `${brand} ${md.mode}`;
+    const g = F.floorGroups(md.roles as Record<string, F.FillRole | undefined>);
+    ok(JSON.stringify(g.groups.map((x) => x.id)) === JSON.stringify(FLOOR_ORDER), `${at}: the floor's groups are the six, in order — read ${JSON.stringify(g.groups.map((x) => x.id))}`);
+    for (const id of FLOOR_ORDER) {
+      const want = FLOOR_EXPECTED[id];
+      const got = g.groups.find((x) => x.id === id);
+      ok(!!got && got.label === want.label && sortJ(got.roles) === sortJ(want.roles) && want.roles.includes(got.sample),
+        `${at}: the "${id}" group (${want.label}) holds exactly its ${want.roles.length} roles — read ${JSON.stringify(got ? { label: got.label, roles: got.roles, sample: got.sample } : null)}`);
+    }
+    ok(g.other.length === 0 && g.total === FLOOR_TOTAL, `${at}: every role measured on the floor is in a group, ${FLOOR_TOTAL} in all — read total ${g.total}, ungrouped ${JSON.stringify(g.other)}`);
+    const floor = (md.roles as Record<string, { against?: string }>)['foreground.brand']?.against;
+    const notChecked = Object.keys(md.roles).filter((k) => /^(inverse\.)?(field\.border\.|interactive\.[^.]+\.border\.|border\.focus$)/.test(k));
+    const onFloor = notChecked.filter((k) => (md.roles as Record<string, { against?: string }>)[k]?.against === floor);
+    ok(notChecked.some((k) => k.startsWith('field.border.')) && notChecked.some((k) => /^interactive\.[^.]+\.border\./.test(k)) && notChecked.includes('border.focus') && onFloor.length === 0,
+      `${at}: the "not checked" line holds: no field border, button border or focus ring is measured on the floor (${floor}) — on it: ${JSON.stringify(onFloor)}; seen ${notChecked.length}`);
+  }
+}
+// Floor (docs/34 shape 9): the sweep ran over every mode it claims to, three brands with four modes each.
+ok(floorModes === 12, `the floor's groups were checked in 12 brand modes — checked ${floorModes}`);
+
 console.log(`\n${executed - failed}/${executed} Surfaces & fills write assertions passed.`);
 if (failed) process.exit(1);
