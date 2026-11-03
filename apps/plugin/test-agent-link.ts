@@ -28,6 +28,8 @@
  *     the panel, and never the agent: the agent's verdict has exactly the keys, in order, its kind had before #2177 (a
  *     literal list here), so what the link sends is unchanged. (mutations: `forAgent` returning the message whole →
  *     every `#2177 agent/<cmd>` and `parity/<cmd>` of the three kinds fails; the panel's `lines` dropped → `#2177 panel/<cmd>`)
+ *   · #3326 causes/<cmd>: a verdict's `causes` (the drawer's marks) reach the panel and never the agent. (mutation:
+ *     `forAgent` keeping `causes` → `#3326 causes/build-components` and `parity/build-components`)
  *   · brackets/<cmd>: the panel is told the agent's command started and finished, around its verdict (S11)
  *     (mutation: the dispatcher's `onStart` call removed → every `brackets/<cmd>` fails, by name)
  *   · brackets/throw: a handler that throws still sends agent-finished, so the panel's row cannot stick
@@ -248,7 +250,8 @@ type Case = { cmd: string; args: Record<string, unknown>; ui: Record<string, unk
 /** The panel's post less the drawer's `lines` (#2177): what the agent link has always been sent. */
 const withoutLines = (m: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
   if (!m) return m;
-  const { lines: _drawer, ...rest } = m;
+  // #3326: `causes` is the drawer's too, dropped with `lines` (`forAgent`).
+  const { lines: _drawer, causes: _marks, ...rest } = m;
   return rest;
 };
 /** Each verdict kind's keys as the agent link read them before #2177, in order: typed here, never read from the code. */
@@ -299,6 +302,11 @@ for (const c of CASES) {
     const lines = uiVerdict?.lines as unknown;
     ok(Array.isArray(lines) && lines.length > 0 && lines.every((l) => typeof l === 'string' && l !== '' && String(uiVerdict.summary).includes(l)),
       `#2177 panel/${c.cmd}: the panel's verdict carries its summary's items as lines, each in the summary's words (${JSON.stringify(lines)})`);
+  }
+  // #3326: a verdict's causes reach the panel, and never the agent (its envelope keeps the keys it had).
+  if (uiVerdict && 'causes' in uiVerdict) {
+    ok(Array.isArray(uiVerdict.causes) && !('causes' in (r.result?.verdict ?? {})),
+      `#3326 causes/${c.cmd}: the panel's verdict carries its causes, the agent's does not (${JSON.stringify(uiVerdict.causes)})`);
   }
   // PILLS (the owner's call): the panel shows an agent's verdict as it shows a button's — the same message,
   // except that a prune PREVIEW goes pill-only, so it can never open the confirm dialog on the owner's screen.

@@ -43,27 +43,27 @@ accepts('apply-result without a headline (older host)', { type: 'apply-result', 
 // `completed` (UI redesign S8.2, owner decision C1): carried as the host sends it, and never inferred from `ok`: a
 // post without it (a contract break, since `messages.ts` requires it) reads as a build that did not finish.
 accepts('component-result', { type: 'component-result', ok: true, completed: true, headline: '✓ 48 built', summary: 's' },
-  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: true , lines: null });
+  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: true , lines: null, causes: null });
 accepts('component-result without completed is not read off ok', { type: 'component-result', ok: true, headline: '✓ 48 built', summary: 's' },
-  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: false , lines: null });
+  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: false , lines: null, causes: null });
 accepts('component-result without a headline', { type: 'component-result', ok: true, completed: true, summary: 's' },
-  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true , lines: null });
+  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true , lines: null, causes: null });
 accepts('component-result that completed with misses', { type: 'component-result', ok: false, completed: true, headline: '⚠ 48, 2 missed', summary: 's' },
-  { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true , lines: null });
+  { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true , lines: null, causes: null });
 // #2265: the update check's verdict, its own kind, so it can never be read as a build's.
 accepts('component-update-result', { type: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'] },
-  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'], publish: null });
+  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'], publish: null, causes: null });
 accepts('component-update-result without a headline', { type: 'component-update-result', ok: false, summary: 's' },
-  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null, publish: null });
+  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null, publish: null, causes: null });
 // #2858: an Update's publish description is carried; anything but a non-empty string is dropped.
 accepts('component-update-result with a publish description', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.' },
-  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.' });
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.', causes: null });
 accepts('component-update-result with a malformed publish description', { type: 'component-update-result', ok: true, headline: 'h', summary: 's', publish: 42 },
-  { kind: 'component-update-result', ok: true, headline: 'h', summary: 's', lines: null, publish: null });
+  { kind: 'component-update-result', ok: true, headline: 'h', summary: 's', lines: null, publish: null, causes: null });
 accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
-  { kind: 'component-result', ok: false, headline: '✗ unknown def', summary: 's', completed: false , lines: null });
+  { kind: 'component-result', ok: false, headline: '✗ unknown def', summary: 's', completed: false , lines: null, causes: null });
 accepts('component-result with a malformed completed', { type: 'component-result', ok: false, completed: 'yes', headline: '✗ x', summary: 's' },
-  { kind: 'component-result', ok: false, headline: '✗ x', summary: 's', completed: false , lines: null });
+  { kind: 'component-result', ok: false, headline: '✗ x', summary: 's', completed: false , lines: null, causes: null });
 accepts('file-setup-result', { type: 'file-setup-result', ok: true, headline: '✓ 9 pages', summary: 'p' },
   { kind: 'file-setup-result', ok: true, headline: '✓ 9 pages', summary: 'p' });
 accepts('file-setup-result without a headline', { type: 'file-setup-result', ok: false, summary: 'p' },
@@ -74,8 +74,18 @@ accepts('style-guide-result', { type: 'style-guide-result', ok: true, headline: 
 // the drawer shows the summary as its one line.
 accepts('apply-result with its lines', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 'b'] },
   { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 'b'] });
+// #3326: a verdict's causes, each field checked; a list with one malformed entry is dropped whole, and an empty list kept.
+const CAUSE = { kind: 'warn', subject: 'badge', what: 'built with problems', reasons: ['No usage panels drawn.'] };
+accepts('component-result with its causes', { type: 'component-result', ok: false, completed: true, headline: '⚠ built', summary: 's', lines: ['s'], causes: [CAUSE, { kind: 'bad', subject: null, what: 'check failed', reasons: [], todo: 'Run it again.' }] },
+  { kind: 'component-result', ok: false, headline: '⚠ built', summary: 's', completed: true, lines: ['s'], causes: [CAUSE, { kind: 'bad', subject: null, what: 'check failed', reasons: [], todo: 'Run it again.' }] });
+accepts('component-update-result with no causes found', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], causes: [] },
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], publish: null, causes: [] });
+for (const [label, bad] of [['an unknown kind', { ...CAUSE, kind: 'note' }], ['a numeric subject', { ...CAUSE, subject: 3 }], ['a reason not a string', { ...CAUSE, reasons: ['a', 2] }], ['no what', { ...CAUSE, what: undefined }], ['a todo not a string', { ...CAUSE, todo: 1 }]] as const) {
+  accepts(`component-result whose causes hold ${label}`, { type: 'component-result', ok: false, completed: true, headline: '⚠ built', summary: 's', lines: ['s'], causes: [CAUSE, bad] },
+    { kind: 'component-result', ok: false, headline: '⚠ built', summary: 's', completed: true, lines: ['s'], causes: null });
+}
 accepts('component-result with its lines', { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: 's. t', lines: ['s', 't'] },
-  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's. t', completed: true, lines: ['s', 't'] });
+  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's. t', completed: true, lines: ['s', 't'], causes: null });
 accepts('style-guide-result with its lines', { type: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'] },
   { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'], retired: [] });
 accepts('apply-result with a malformed lines leaves them off', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 2] },

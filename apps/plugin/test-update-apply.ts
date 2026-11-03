@@ -436,6 +436,9 @@ section('hash — a confirm over a file that moved since the check writes nothin
   const stamps = membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join();
   const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
   ok(!!res.refusedAll && /changed since the check/.test(res.refusedAll), `hash/refused: ${res.refusedAll}`);
+  // #3326: a refusal of the whole run is the run's own cause, the refusal its reason.
+  ok(JSON.stringify(applyVerdict(res).causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'update refused', reasons: [res.refusedAll] }]),
+    `causes/refused all: the run's cause, with the refusal as its reason (${JSON.stringify(applyVerdict(res).causes)})`);
   ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps && w.api._versions.length === 0, 'hash/nothing written: no stamp moved, no version saved');
 }
 
@@ -850,6 +853,19 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place',
     `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
 
+  // #3326 PR 1 (Q3326.1 A): CAUSES, from the facts `ok` reads, never from the lines' words. A clean run has none; a set
+  // not verified, or not updated, is one cause whose reasons are the clauses its lines print after its name. The same
+  // outcome, its facts replaced. Mutations: the not-verified cause dropped → `causes/not verified`; its reasons taken
+  // from the wrong lines → the same; the refused cause dropped → `causes/refused set`; causes on a clean run → `causes/clean`.
+  ok(Array.isArray(v.causes) && v.causes.length === 0, `causes/clean: an ok run names no cause (${JSON.stringify(v.causes)})`);
+  const unverified = applyVerdict({ ...res, outcomes: [{ ...o, content: ['dot.width 14 → 16'] }] });
+  ok(!unverified.ok && JSON.stringify(unverified.causes) === JSON.stringify([{ kind: 'warn', subject: 'radio-control', what: 'not verified',
+    reasons: ['1 field still differs from the plan — dot.width 14 → 16.'] }]),
+    `causes/not verified: one cause for the set, its line's clause as the reason (${JSON.stringify(unverified.causes)})`);
+  const refusedSet = applyVerdict({ ...res, outcomes: [{ ...o, refused: 'the set moved since the check' }] });
+  ok(JSON.stringify(refusedSet.causes) === JSON.stringify([{ kind: 'bad', subject: 'radio-control', what: 'not updated', reasons: ['the set moved since the check.'] }]),
+    `causes/refused set: a set not updated is a cause with its reason (${JSON.stringify(refusedSet.causes)})`);
+
   // EVERY BOUND FIELD IN PLAIN WORDS (owner Q826 A): the layer name first, then the property as a designer says it, the
   // per-side fields merged into one word. The same outcome, its kept bindings replaced, read through the verdict. Each
   // family's word is typed here. Mutation: a family's word falling through to the field's key → that family's arm and
@@ -996,6 +1012,8 @@ section('stop — a run that stops part-way finishes when the update runs again'
   const { res } = await confirm(w, [{ def: TAG, plans: next }]);
   ok(!!res.outcomes[0]?.stopped && /the host stopped/.test(res.outcomes[0].stopped!), `premise: the run stopped (${res.outcomes[0]?.stopped})`);
   ok(/^✗ update stopped at /.test(applyVerdict(res).headline), `stop/verdict: ${applyVerdict(res).headline}`);
+  ok(JSON.stringify(applyVerdict(res).causes) === JSON.stringify([{ kind: 'bad', subject: TAG, what: 'stopped', reasons: [res.outcomes[0].stopped] }]),
+    `causes/stopped: the set the run stopped at is its cause, the host's words its reason (${JSON.stringify(applyVerdict(res).causes)})`);
   const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
   ok(mid.counts.current === 0 && mid.counts.update === 45 && mid.handEdits.length === 0,
     `stop/out of date: every member still reads out of date, and none as a hand edit (${JSON.stringify(mid.counts)}, ${mid.handEdits.length} edits)`);

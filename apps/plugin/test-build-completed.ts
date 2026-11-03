@@ -40,7 +40,8 @@
  * (`withFurnitureItems(applyVerdict(r), …)`) → `templates/update verdict`. The warning (Q284.3 A) dropped from the
  * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
  * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
- * `templates/update clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
+ * `templates/update clean`. #3326: `withTemplateWarning`'s causes dropped (its `templateCauses`) → `causes/build`,
+ * `causes/update`; the build's own causes sent on a clean run → `causes/clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
  * `furnish` hook without `panelFor` → `panel/update drawn`. Documentation's switches (#2995, the file's
  * `prism3:docSettings`): Build ignoring Usage panels off (`main.ts`, the `readDocSettings(figma.root).panels` before
  * `panelBeside` read as `true`) → `docs/panels off`; Update ignoring it (`main.ts` `updateTargets`, its
@@ -437,6 +438,13 @@ ok(!!first && first.ok === false && first.completed === true && String(first.hea
   `templates/build warns: no _Label makes the build's verdict ⚠, ok false, completed (ok ${first?.ok}, "${first?.headline}")`);
 ok(!!applied && applied.ok === false && String(applied.headline).startsWith('⚠'),
   `templates/update warns: no _Label makes the Update's verdict ⚠, ok false (ok ${applied?.ok}, "${applied?.headline}")`);
+// #3326 PR 1 (Q3326.1 A): the posted verdicts name the warning's cause as data, Badge with the template line for it as
+// its reason, so the drawer never finds it by position (the owner's run showed a per-set line as the reason). Literal.
+const causeOf = (m: Record<string, any> | undefined) => JSON.stringify(m?.causes);
+ok(causeOf(first) === JSON.stringify([{ kind: 'warn', subject: 'badge', what: 'built with problems', reasons: [`${NO_LABEL}.`] }]),
+  `causes/build: the build's verdict names Badge as built with problems, the template line its reason (${causeOf(first)})`);
+ok(causeOf(applied) === JSON.stringify([{ kind: 'warn', subject: 'badge', what: 'updated with problems', reasons: [`${NO_LABEL_UPDATE}.`] }]),
+  `causes/update: the Update's verdict names Badge as updated with problems, the template line its reason (${causeOf(applied)})`);
 // Then Set up file's own template builder makes them, as the line asks, and the same build and Update read ✓ again.
 const { ensureFurnitureTemplates } = await import('./src/furniture-templates');
 const componentsPage = mkPage(false);
@@ -468,6 +476,8 @@ const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', ha
   .find((m) => m?.type === 'component-update-result');
 ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('✓') && !String(applied2.summary).includes('No canvas labels') && !String(applied2.summary).includes('No usage panels'),
   `templates/update clean: with the templates in the file, the same Update stays ✓ (ok ${applied2?.ok}, "${applied2?.headline}", ${JSON.stringify(applied2?.summary)})`);
+ok(causeOf(withTemplates) === '[]' && causeOf(applied2) === '[]',
+  `causes/clean: with the templates in the file, the build and the Update name no cause (${causeOf(withTemplates)}; ${causeOf(applied2)})`);
 // #846: the real Update's dry run reads the panel (`updateTargets` gives each target its def) and its apply redraws it
 // (the per-def `furnish` hook passes `panelFor`). The panel is nudged off its spot, so it is the set's only work.
 const livePanel = () => (badgePage?.children ?? []).filter((c) => { try { return JSON.parse(String((c as any).getSharedPluginData?.('prism3', 'docPanel') || 'null'))?.state === 'live'; } catch { return false; } });
