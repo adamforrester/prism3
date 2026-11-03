@@ -667,7 +667,7 @@
     },
     "password-field": {
       "members": 84,
-      "sha256": "c53426c642663867cb53df341716812c44809ff15902048fbf069ba4d6273473",
+      "sha256": "81339cd45a95ab251a374c4a954a0bfb6b0843f9ffea161f9d811c54aa257afb",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",

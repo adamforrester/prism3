@@ -1229,6 +1229,13 @@ export type PartDef = {
    *  instance override, not a default: the nested set keeps its own, and a designer can still change it on the
    *  host. Each key must be a text property the nested def declares (`test.ts`, against the registry). */
   nestTexts?: Record<string, string>;
+  /** For a `nest` part: the binding key for the nested INSTANCE's own top and bottom padding (#3347), written onto the
+   *  instance as an override, so the nested set keeps its own. Figma only: the host floors a hugging row at a
+   *  stretched child's own content height (its padding plus its content), measured on a real file on 2026-11-02 —
+   *  Password field's Show button, a small Button with 6px above and below its 14px line, held the label row at 26
+   *  where the label is 21. Zeroing the instance's block padding takes that floor down to the button's one text line,
+   *  so the row is the label's line again. The text stays centered on the row, so nothing it draws moves. */
+  nestPaddingBlock?: string;
   /** For `absolute`: the binding key giving the size of the VISIBLE GAP between this part's inner edge
    *  and its parent's bounds. The focus ring's `focus.ring.offset` — at offset 2 an unbroken 2px sliver
    *  of background separates the ring from the control's own border (WCAG 1.4.11, target 3:1).
@@ -4389,7 +4396,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
   // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
@@ -5230,6 +5237,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (p.builtSize !== undefined || p.center !== undefined || p.placementWidth !== undefined || p.placementHeight !== undefined)
         e.push(`anatomy part '${n}' declares 'sizingWhen' beside builtSize, center or a placement size — each already sets the member's sizing, and two rules would race`);
     }
+    if (p.nestPaddingBlock !== undefined && p.kind !== 'nest')
+      e.push(`anatomy part '${n}' declares 'nestPaddingBlock' but is kind '${p.kind}' — only a nested instance takes its padding as an override; a box states its own 'padding'`);
     if (p.nestTexts && p.kind !== 'nest')
       e.push(`anatomy part '${n}' declares 'nestTexts' but is kind '${p.kind}' — only an in-flow nested instance carries text overrides`);
     if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.follow) {
