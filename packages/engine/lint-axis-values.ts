@@ -258,6 +258,21 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'for a label on a photo or any busy ground. Still disjoint: it names a paint treatment, not a text role.',
   },
   {
+    axis: 'emphasis',
+    values: ['bold', 'subtle'],
+    defs: ['divider'],
+    relation: 'disjoint',
+    reason:
+      'How strongly a divider\'s rule reads (#3382, owner Q15 revised A): `bold` on `color.border.secondary`, `subtle` on '
+      + '`color.border.primary`. It REUSES `emphasis` for the reason badge did — the same question, how prominent the '
+      + 'thing reads against what is around it — and with badge\'s own two words, which mean the same here: the stronger '
+      + 'and the quieter paint of one element. DISJOINT from canonical, as badge\'s is: a paint strength, not a text role. '
+      + 'It differs from badge\'s set in ORDER and in having no `surface`: `bold` LEADS because it is the code default '
+      + 'and Figma\'s default member, the color every divider had before the axis, so placed dividers and every nesting '
+      + 'host keep their color; and a rule never brings its own background, so `surface` has nothing to name. The axis '
+      + 'name is held for the owner on the PR (the routing said `strength`).',
+  },
+  {
     axis: 'type',
     values: ['status', 'count', 'dot'],
     defs: ['badge'],

@@ -12278,8 +12278,9 @@ arm: {
   const tokOf = (def: any, k: string) => def.tokens?.[k];
   const BIND_2569: [string, any, string, string][] = [
     ['badge subtle neutral edge', componentDefs.find((d) => d.id === 'badge'), 'neutral.status.contained.subtle.border', 'color.border.tertiary'],
-    ['divider separator (decorative=false)', divider, 'separator.fill', 'color.border.tertiary'],
-    ['divider decorative default', divider, 'fill', 'color.border.secondary'],
+    ['divider separator (decorative=false)', divider, 'separator.rule.border', 'color.border.tertiary'],
+    // #3382: the default strength, bold, keeps the decorative rung the divider always painted.
+    ['divider decorative default', divider, 'bold.border', 'color.border.secondary'],
     ['tab hover bar', tab, 'unselected.fill.hover', 'color.border.secondary'],
   ];
   const wrongBind = BIND_2569.filter(([, def, k, want]) => tokOf(def, k) !== want).map(([what, def, k, want]) => `${what}: ${k} → ${tokOf(def, k) ?? 'unbound'} (want ${want})`);
@@ -31821,8 +31822,9 @@ arm: {
           wrong.push(`${planComponentName(plan)} ${line.name}: across ${across}, along ${along}, grow ${line.layoutGrow}`);
       }
     }
-    ok(seen === 4 && wrong.length === 0,
-      `#3143 divider build check 1: each line binds the hairline across its root and nothing along it, where it grows — a row binds height only, a column width only (${seen} lines over the two labeled members${wrong.length ? `; WRONG: ${wrong.join('; ')}` : ''})`);
+    // #3382: four labeled members now (two per strength), so eight lines.
+    ok(seen === 8 && wrong.length === 0,
+      `#3143 divider build check 1: each line binds the hairline across its root and nothing along it, where it grows — a row binds height only, a column width only (${seen} lines over the four labeled members, two per strength${wrong.length ? `; WRONG: ${wrong.join('; ')}` : ''})`);
   }
   // #3157 item 3: the token-usage report no longer lists a key as drawn when no plan writes it. The grow rule drops
   // `horizontal.line.width` and `vertical.line.height` (build check 1, above), and the labeled column's hug drops
@@ -37721,16 +37723,16 @@ arm: {
     'vertical/middle-inset': ['space/100', 'space/0', 'space/100', 'space/0'],
   };
   // #3051 added the third axis, `labeled` (its own arm below); the five plain members are read at labeled=false.
-  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'], inset: ['none', 'inset', 'middle-inset'], labeled: ['false', 'true'] }),
-    `#2455 divider: three axes, orientation = [horizontal, vertical], inset = [none, inset, middle-inset] and labeled = [false, true] (#3051), each default first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
+  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'], inset: ['none', 'inset', 'middle-inset'], labeled: ['false', 'true'], emphasis: ['bold', 'subtle'] }),
+    `#2455 divider: four axes, orientation = [horizontal, vertical], inset = [none, inset, middle-inset], labeled = [false, true] (#3051) and emphasis = [bold, subtle] (#3382), each default first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
   ok(divider.states.length === 0, `#2455 divider: no states, because it is not interactive (got [${divider.states.join(', ')}])`);
-  ok(figmaVariantCount(divider) === 7,
-    `#2455 divider inset: the Figma set is seven members — five plain (vertical takes none and middle-inset only) and two labeled, one each way (#3051, #3143) (got ${figmaVariantCount(divider)})`);
+  ok(figmaVariantCount(divider) === 14,
+    `#2455 divider inset: the Figma set is fourteen members — per strength (#3382), five plain (vertical takes none and middle-inset only) and two labeled, one each way (#3051, #3143) (got ${figmaVariantCount(divider)})`);
   // #3143: the root's direction follows the member — a row horizontal, a column vertical — so the rule grows along it.
   const MODE: Record<string, string> = { horizontal: 'HORIZONTAL', vertical: 'VERTICAL' };
   for (const [coord, pad] of Object.entries(INSET)) {
     const [o, inset] = coord.split('/');
-    const root = figmaAnatomyPlan(divider, undefined, { orientation: o, inset, labeled: 'false' } as never).root as any;
+    const root = figmaAnatomyPlan(divider, undefined, { orientation: o, inset, labeled: 'false', emphasis: 'bold' } as never).root as any;
     const rule = (root.children ?? [])[0];
     const got = [root.bound?.paddingTop, root.bound?.paddingRight, root.bound?.paddingBottom, root.bound?.paddingLeft];
     ok(JSON.stringify(got) === JSON.stringify(pad),
@@ -37739,11 +37741,12 @@ arm: {
       `#2455 divider ${o} inset=${inset}: the root binds height ${FOOT[o].height} and width ${FOOT[o].width} — the hairline is its thickness, the other axis its nominal length (got h ${root.bound?.height} / w ${root.bound?.width})`);
     ok(root.layoutMode === MODE[o] && !root.paints?.fills && (root.children ?? []).length === 1 && rule?.name === 'rule',
       `#2455 divider ${o} inset=${inset}: the root is a row horizontal and a column vertical (#3143) that paints nothing, with one child, the rule (got layoutMode ${root.layoutMode}, fills ${root.paints?.fills}, children [${(root.children ?? []).map((c: any) => c.name).join(', ')}])`);
-    ok(rule?.paints?.fills === 'color/border/secondary' && rule?.layoutGrow === 1 && rule?.layoutAlign === 'STRETCH',
-      `#2455 divider ${o} inset=${inset}: the rule's color is color/border/secondary and it fills the root's content box (grow along, stretch across) (got fills ${rule?.paints?.fills}, grow ${rule?.layoutGrow}, align ${rule?.layoutAlign})`);
+    // #3382: the rule is a STROKE at the default strength (its own arm below holds both strengths).
+    ok(rule?.paints?.strokes === 'color/border/secondary' && !rule?.paints?.fills && rule?.layoutGrow === 1 && rule?.layoutAlign === 'STRETCH',
+      `#2455 divider ${o} inset=${inset}: the rule's stroke is color/border/secondary, with no fill, and it fills the root's content box (grow along, stretch across) (got strokes ${rule?.paints?.strokes}, fills ${rule?.paints?.fills}, grow ${rule?.layoutGrow}, align ${rule?.layoutAlign})`);
   }
   let threw = false;
-  try { figmaAnatomyPlan(divider, undefined, { orientation: 'vertical', inset: 'inset', labeled: 'false' } as never); } catch { threw = true; }
+  try { figmaAnatomyPlan(divider, undefined, { orientation: 'vertical', inset: 'inset', labeled: 'false', emphasis: 'bold' } as never); } catch { threw = true; }
   ok(threw, '#2455 divider inset: vertical × inset is not a member, so it has no plan');
   const inset = divider.props.find((p) => p.name === 'inset');
   ok(inset?.default === 'none' && JSON.stringify(inset?.values) === JSON.stringify(['none', 'inset', 'middle-inset']),
@@ -37764,7 +37767,8 @@ arm: {
 {
   const D3051 = '#3051 divider labeled';
   const findIn = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findIn(c, name)).find(Boolean));
-  const set = figmaAnatomySet(divider);
+  // #3382: read at the default strength; the emphasis arm below holds the two strengths against each other.
+  const set = figmaAnatomySet(divider).filter((p) => (p.coord as any).emphasis === 'bold');
   const labeledPlans = set.filter((p) => (p.coord as any).labeled === 'true');
   const plainPlans = set.filter((p) => (p.coord as any).labeled === 'false');
   // Q3051.3 A + Q3051.6 A: a labeled member takes inset none and is centered (no alignment axis). #3143 (Q3143.4 A)
@@ -37800,9 +37804,9 @@ arm: {
     // Lines FILL and never overlap the label: in flow, on either side of it, each growing along the row while the
     // label hugs, with the 24px gap between each line and the label, and the row centering all three across.
     const lineOk = (l: any) => l?.type === 'FRAME' && l?.layoutGrow === 1 && l?.layoutPositioning !== 'ABSOLUTE' && l?.layoutAlign !== 'STRETCH'
-      && l?.paints?.fills === 'color/border/secondary' && l?.bound?.height === 'border-width/hairline';
+      && l?.paints?.strokes === 'color/border/secondary' && !l?.paints?.fills && l?.bound?.height === 'border-width/hairline';
     ok(lineOk(lead) && lineOk(trail),
-      `${D3051}: both lines fill (grow along the row), stay in flow, keep the rule's color/border/secondary and the border-width/hairline thickness (got lead grow ${lead?.layoutGrow} fill ${lead?.paints?.fills} h ${lead?.bound?.height}; trail grow ${trail?.layoutGrow} fill ${trail?.paints?.fills} h ${trail?.bound?.height})`);
+      `${D3051}: both lines fill (grow along the row), stay in flow, keep the rule's color/border/secondary stroke (#3382) and the border-width/hairline thickness (got lead grow ${lead?.layoutGrow} stroke ${lead?.paints?.strokes} h ${lead?.bound?.height}; trail grow ${trail?.layoutGrow} stroke ${trail?.paints?.strokes} h ${trail?.bound?.height})`);
     ok(!label?.layoutGrow && label?.layoutPositioning !== 'ABSOLUTE' && label?.layoutAlign !== 'STRETCH' && !label?.textAutoResize?.startsWith?.('NONE'),
       `${D3051}: the label hugs its word in flow, between the two lines, so neither line runs under it (got grow ${label?.layoutGrow}, positioning ${label?.layoutPositioning}, align ${label?.layoutAlign})`);
     ok(root.layoutMode === 'HORIZONTAL' && root.counterAxisAlignItems === 'CENTER' && root.bound?.itemSpacing === 'space/300'
@@ -37862,7 +37866,7 @@ arm: {
 {
   const D3143 = '#3143 divider vertical labeled';
   const findIn = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findIn(c, name)).find(Boolean));
-  const vp = figmaAnatomySet(divider).find((p) => (p.coord as any).orientation === 'vertical' && (p.coord as any).labeled === 'true');
+  const vp = figmaAnatomySet(divider).find((p) => (p.coord as any).orientation === 'vertical' && (p.coord as any).labeled === 'true' && (p.coord as any).emphasis === 'bold');
   ok(!!vp && (vp.coord as any).inset === 'none',
     `${D3143}: the member exists, at inset none (Q3143.4 A) (got ${JSON.stringify(vp?.coord)})`);
   if (vp) {
@@ -37880,9 +37884,9 @@ arm: {
     ok(root.bound?.itemSpacing === 'space/150' && root.bound?.height === 'size/xl/height',
       `${D3143}: space/150 between the label and each line (Q3143.3 A) and size/xl/height tall (Q3143.5 A) (got gap ${root.bound?.itemSpacing}, h ${root.bound?.height})`);
     // The lines: the rule's ink and the hairline across, growing down the column. The label keeps #3051's style and ink.
-    const lineOk = (l: any) => l?.type === 'FRAME' && l?.layoutGrow === 1 && l?.paints?.fills === 'color/border/secondary' && l?.bound?.width === 'border-width/hairline';
+    const lineOk = (l: any) => l?.type === 'FRAME' && l?.layoutGrow === 1 && l?.paints?.strokes === 'color/border/secondary' && l?.bound?.width === 'border-width/hairline';
     ok(lineOk(lead) && lineOk(trail) && label?.paints?.fills === 'color/text/secondary' && label?.textStyle === 'label/md/default' && label?.characters === 'Or',
-      `${D3143}: both lines grow down the column in color/border/secondary, a hairline wide, around an "Or" label in color/text/secondary at label/md/default (got lead ${lead?.layoutGrow}/${lead?.paints?.fills}/${lead?.bound?.width}, label ${label?.paints?.fills}/${label?.textStyle}/"${label?.characters}")`);
+      `${D3143}: both lines grow down the column in color/border/secondary, a hairline wide, around an "Or" label in color/text/secondary at label/md/default (got lead ${lead?.layoutGrow}/${lead?.paints?.strokes}/${lead?.bound?.width}, label ${label?.paints?.fills}/${label?.textStyle}/"${label?.characters}")`);
   }
   // Q3143.3 A: the vertical gap follows density, 8 / 12 / 16, and the horizontal one is unchanged at comfortable.
   const gaps = ['compact', 'comfortable', 'spacious'].map((d) => applySpacingDensity(divider, d as never).tokens);
@@ -37991,6 +37995,53 @@ arm: {
   ok(refuses(rootWith({ ...C, placementWidth: 0 }), /declares a 'center\.placementWidth' that is not a positive number of px/),
     '#2518 schema: a center build width of no size is refused by name');
   ok(validateComponentDef(tabsDef).errors.length === 0, '#2518 schema: Tabs\' own center validates clean');
+}
+
+// ------------------------------------------------------------------- #3382: the divider's strength, drawn as a stroke
+// The owner's decision on #3382 (Q15 revised A): subtle and bold, each bound to its own border role, and the rule drawn
+// as a STROKE so the border role shows in Figma's stroke picker. EXPECTED is typed here from the decision and the roles
+// it names, never read off the def (docs/34 shape 1); ACTUAL is every projected member's plan. Mutations: the rule back
+// to `paintSlots: ['fill']` fails "#3382 divider stroke" by name; `subtle.border` bound to `color.border.secondary`
+// fails "#3382 divider strength" by name.
+{
+  const D3382 = '#3382 divider';
+  const RULE_STROKE: Record<string, string> = { bold: 'color/border/secondary', subtle: 'color/border/primary' };
+  const RULE_PARTS = ['rule', 'leadingRule', 'trailingRule'];
+  const set = figmaAnatomySet(divider);
+  const byStrength: Record<string, number> = {};
+  const notStroke: string[] = [], wrongRole: string[] = [];
+  let rules = 0;
+  for (const plan of set) {
+    const strength = (plan.coord as any).emphasis as string;
+    byStrength[strength] = (byStrength[strength] ?? 0) + 1;
+    for (const part of ((plan.root as any).children ?? []).filter((c: any) => RULE_PARTS.includes(c.name))) {
+      rules++;
+      if (part.paints?.fills !== undefined || part.paints?.strokes === undefined || part.bound?.strokeWeight !== 'border-width/hairline')
+        notStroke.push(`${planComponentName(plan)} ${part.name}: fills ${part.paints?.fills}, strokes ${part.paints?.strokes}, weight ${part.bound?.strokeWeight}`);
+      if (part.paints?.strokes !== RULE_STROKE[strength])
+        wrongRole.push(`${planComponentName(plan)} ${part.name}: ${part.paints?.strokes} (want ${RULE_STROKE[strength]})`);
+    }
+  }
+  ok(JSON.stringify(byStrength) === JSON.stringify({ bold: 7, subtle: 7 }),
+    `${D3382} strength: the set holds the seven members once per strength, bold and subtle (got ${JSON.stringify(byStrength)})`);
+  // 10 plain rules (5 per strength) + 8 labeled lines (2 members × 2 lines per strength).
+  ok(rules === 18 && notStroke.length === 0,
+    `${D3382} stroke: every rule and labeled line is a stroke at border-width/hairline with no fill, so its border role shows in the stroke picker (${rules} parts, want 18${notStroke.length ? `; NOT A STROKE: ${notStroke.slice(0, 4).join('; ')}` : ''})`);
+  ok(wrongRole.length === 0,
+    `${D3382} strength: bold strokes color/border/secondary and subtle strokes color/border/primary, on every rule and line${wrongRole.length ? ` — WRONG: ${wrongRole.slice(0, 4).join('; ')}` : ''}`);
+  // The default is bold, so a divider placed before #3382 and every host that nests one keep their color.
+  const prop = divider.props.find((p) => p.name === 'emphasis');
+  ok(prop?.default === 'bold' && JSON.stringify(prop?.values) === JSON.stringify(['bold', 'subtle']),
+    `${D3382} strength: the code prop is emphasis = bold | subtle, default bold (got ${JSON.stringify(prop?.values)} default ${prop?.default})`);
+  // Same pixels as the fill: the plain rule's box is one hairline thick across its root, so the inside stroke covers it.
+  const thick: string[] = [];
+  for (const plan of set.filter((p) => (p.coord as any).labeled === 'false')) {
+    const root = plan.root as any;
+    const across = root.layoutMode === 'HORIZONTAL' ? root.bound?.height : root.bound?.width;
+    if (across !== 'border-width/hairline') thick.push(`${planComponentName(plan)}: ${across}`);
+  }
+  ok(thick.length === 0,
+    `${D3382} stroke: every plain member stays one hairline thick across, the width of its inside stroke, so the rule draws the pixels the fill drew${thick.length ? ` — ${thick.join('; ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2417: the accordion and its indicator

@@ -414,6 +414,14 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     "status `error` maps to the `danger` border role — text-field's filled coordinate, through the shared field factory",
   'card-number-field|error.border.focus-visible-filled':
     "status `error` maps to the `danger` border role — text-field's focused filled coordinate, through the shared field factory",
+  // `divider` (#3382, owner Q15 revised A): `emphasis` leads the rule's stroke key, and its two values are two RUNGS of the
+  // one neutral edge ladder, not two families. The tier emits no `color.bold.*` or `color.subtle.*` and must not, so arm 1's
+  // premise has nothing to be true of; each key is named rather than the axis exempted, because Badge's `emphasis` paints
+  // from tone families and stays checked.
+  'divider|bold.border':
+    "emphasis `bold` maps to `border.secondary`, the stronger neutral edge, the decorative rung every divider drew before #3382",
+  'divider|subtle.border':
+    "emphasis `subtle` maps to `border.primary`, the lighter neutral edge — a rung of the same ladder as bold, not a family",
   // `textarea` took text-field's status axis and its border keys verbatim (#1623 sign-off, C1/TA-4), so it
   // carries the same `error` → `danger` mapping at the same five coordinates, and for the same reason.
   'textarea|error.border.rest':
@@ -953,7 +961,7 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'the tenth ring nomination, the same shape as `pagination-item|focus-ring`: it names the colour the nested `focus-ring` draws around a slider thumb at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
   'field-message|default.icon':
     'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT status, and that status deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation statuses carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default status gains a glyph, which is a def decision. The three validation-status glyph inks are reached normally and are not listed.',
-  'divider|separator.fill':
+  'divider|separator.rule.border':
     'CATEGORY (b), the second code-only paint. A divider with decorative=false (a separator) paints `color.border.tertiary`, the neutral edge contracted at 3:1 on every page and surface tier, while the decorative default paints `color.border.secondary` (#2569, owner Q259 3A: "a meaningful divider binds border.tertiary in code"). `decorative` is a code prop with no Figma property (the def\'s `anatomy.codeOnly`), so no member is a separator and the projector never asks for this key. Nothing is missing from the projector; it goes red only if `decorative` becomes a projected axis, which is a def decision, and then this entry is DELETED.',
 };
 

@@ -1550,7 +1550,8 @@ section('accordion title weight — a file built with the emphasis title takes t
   const styleOf = (m: Node): string => String(styles.get(String(labelOf(m).textStyleId)) ?? labelOf(m).textStyleId);
   const sizeOf = (m: Node): string => /(?:^|, )size=(\w+)/.exec(String(m.name))![1];
   const members = membersOf(w.set());
-  ok(members.length === 48 && members.every((m) => styleOf(m) === `label/${RUNG[sizeOf(m)]}/emphasis`) && plans.every((p) => !/emphasis/.test(JSON.stringify(p.root))),
+  // The STYLE path only (#3382): the nested divider's variant now names an `emphasis` axis, which is not a text style.
+  ok(members.length === 48 && members.every((m) => styleOf(m) === `label/${RUNG[sizeOf(m)]}/emphasis`) && plans.every((p) => !/label\/\w+\/emphasis/.test(JSON.stringify(p.root))),
     `accordion weight/premise: the file's 48 titles are on label/{rung}/emphasis, and today's plans name no emphasis style (${[...new Set(members.map(styleOf))].join(', ')})`);
   // The designer's edit, on 30 members: the header's block padding bound to `space/0`, a step the plan does not name there.
   const zero = await varIdOf(w, 'space/0');

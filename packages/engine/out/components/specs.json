@@ -30789,7 +30789,7 @@
     "divider": {
       "id": "divider",
       "name": "Divider",
-      "members": 7,
+      "members": 14,
       "axes": [
         {
           "name": "orientation",
@@ -30818,6 +30818,15 @@
             "true"
           ],
           "kind": "variant"
+        },
+        {
+          "name": "emphasis",
+          "figmaName": "emphasis",
+          "values": [
+            "bold",
+            "subtle"
+          ],
+          "kind": "variant"
         }
       ],
       "codeOnlyStates": [],
@@ -30825,12 +30834,12 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 7
+          "members": 14
         },
         {
           "part": "container/rule",
           "kind": "frame",
-          "members": 5,
+          "members": 10,
           "when": {
             "labeled": [
               "false"
@@ -30840,7 +30849,7 @@
         {
           "part": "container/leadingRule",
           "kind": "frame",
-          "members": 2,
+          "members": 4,
           "when": {
             "labeled": [
               "true"
@@ -30850,7 +30859,7 @@
         {
           "part": "container/label",
           "kind": "text",
-          "members": 2,
+          "members": 4,
           "when": {
             "labeled": [
               "true"
@@ -30860,7 +30869,7 @@
         {
           "part": "container/trailingRule",
           "kind": "frame",
-          "members": 2,
+          "members": 4,
           "when": {
             "labeled": [
               "true"
@@ -31164,19 +31173,21 @@
       "colorKey": [
         "orientation",
         "inset",
-        "labeled"
+        "labeled",
+        "emphasis"
       ],
       "colors": [
         {
           "where": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
             }
           ]
         },
@@ -31184,12 +31195,27 @@
           "where": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "true"
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "none",
+            "labeled": "true",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/leadingRule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
             },
             {
               "part": "container/label",
@@ -31197,7 +31223,29 @@
             },
             {
               "part": "container/trailingRule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "none",
+            "labeled": "true",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/leadingRule",
+              "stroke": "color.border.primary"
+            },
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/trailingRule",
+              "stroke": "color.border.primary"
             }
           ]
         },
@@ -31205,12 +31253,27 @@
           "where": {
             "orientation": "horizontal",
             "inset": "inset",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "inset",
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
             }
           ]
         },
@@ -31218,12 +31281,27 @@
           "where": {
             "orientation": "horizontal",
             "inset": "middle-inset",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "middle-inset",
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
             }
           ]
         },
@@ -31231,12 +31309,13 @@
           "where": {
             "orientation": "vertical",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
             }
           ]
         },
@@ -31244,12 +31323,27 @@
           "where": {
             "orientation": "vertical",
             "inset": "none",
-            "labeled": "true"
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "vertical",
+            "inset": "none",
+            "labeled": "true",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/leadingRule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
             },
             {
               "part": "container/label",
@@ -31257,7 +31351,29 @@
             },
             {
               "part": "container/trailingRule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "vertical",
+            "inset": "none",
+            "labeled": "true",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/leadingRule",
+              "stroke": "color.border.primary"
+            },
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/trailingRule",
+              "stroke": "color.border.primary"
             }
           ]
         },
@@ -31265,12 +31381,27 @@
           "where": {
             "orientation": "vertical",
             "inset": "middle-inset",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "vertical",
+            "inset": "middle-inset",
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
             }
           ]
         }
@@ -32367,7 +32498,8 @@
           "variant": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "follows": [],
           "exposes": []
@@ -38590,7 +38722,8 @@
           "variant": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "follows": [],
           "exposes": []
@@ -38607,7 +38740,8 @@
           "variant": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "follows": [],
           "exposes": []

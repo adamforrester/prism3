@@ -554,8 +554,8 @@
       ]
     },
     "divider": {
-      "members": 7,
-      "sha256": "a6a3dd582f85b13e6ebf399257eee679f83efe4d3f0ba084e40c94ff570c8998",
+      "members": 14,
+      "sha256": "c82f55435e388e7107338d0b38a5a99c426dd03e57afe93730459fc707a58cb1",
       "properties": [
         "label:TEXT"
       ]
@@ -567,7 +567,7 @@
     },
     "accordion": {
       "members": 48,
-      "sha256": "145b52647b4b5b9799b8395690a7023ef31ba57d7c891b8675d1ab56d49caa48",
+      "sha256": "21cc54dfc220854a42b20d420086c3866dd6cdfff8c634d4834df9db7e5c4f1d",
       "properties": [
         "content:SLOT",
         "divider:BOOLEAN",
@@ -655,7 +655,7 @@
     },
     "dialog": {
       "members": 24,
-      "sha256": "a4810dfd3869e24b9bd8a092ad9a3875c2ade328cc81ab4ceb1eb8497e256304",
+      "sha256": "07e3277379101123f27fee8b8f06e346cd492bef2e9a1a71eabfe9ac50565776",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",

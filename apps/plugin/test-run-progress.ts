@@ -238,12 +238,12 @@ const hashFor = async (): Promise<string> => {
   if (J([...due].sort()) !== J([...SETS].sort())) throw new Error(`premise: the check reads ${J(due)} out of date, not all three (${J(c)?.slice(0, 300)})`);
   return c.previewHash as string;
 };
-/** The update wrote all 102 members (7 + 50 + 45; badge 50 since #3199). Its headline carries "⚠" here only for the template warning: the stand-in
+/** The update wrote all 109 members (14 + 50 + 45; badge 50 since #3199, divider 14 since #3382). Its headline carries "⚠" here only for the template warning: the stand-in
  *  never ran Set up file, so it has no `_Label` component. */
-const ALL = 102;
+const ALL = 109;
 const wroteAll = (v: any): boolean => v?.type === 'component-update-result' && new RegExp(`^[✓⚠] updated ${ALL} in place$`).test(v.headline);
 const readings = (from: readonly any[]): any[] => from.filter((m) => m?.type === 'run-progress' && m.run === 'update');
-ok(J(SETS.map((id) => membersOf(id).length)) === J([7, 50, 45]), `premise: the three sets are built (${SETS.map((id) => membersOf(id).length).join(', ')} members)`);
+ok(J(SETS.map((id) => membersOf(id).length)) === J([14, 50, 45]), `premise: the three sets are built (${SETS.map((id) => membersOf(id).length).join(', ')} members)`);
 
 // ── one update, start to end ──
 {

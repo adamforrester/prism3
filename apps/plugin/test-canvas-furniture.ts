@@ -644,7 +644,8 @@ section('thin row — Divider: a 1px row draws its label centered, with no brack
 {
   // Divider's PLAIN members (#3051): since the labeled member (16px, one label line box) joined the horizontal row, no
   // row of the real set is thinner than its label, so the rule is held on the five plain members, the set as it stood.
-  const { plans, page, set } = await buildOnPage('divider', (p) => (p.coord as Record<string, string>).labeled !== 'true');
+  // #3382: at one strength (bold), so the emphasis axis adds no outer row band around them.
+  const { plans, page, set } = await buildOnPage('divider', (p) => (p.coord as Record<string, string>).labeled !== 'true' && (p.coord as Record<string, string>).emphasis !== 'subtle');
   // The shim sizes a member from its bindings, not their values, so the live sizes are written here: the horizontal
   // rule is `border-width.hairline` (1px) tall, the vertical one its nominal length, and the labeled rule (#3051) one
   // label line box, `type.label.md.line-box` (16px). Literals, as measured live.
