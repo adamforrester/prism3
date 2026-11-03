@@ -100,7 +100,7 @@
       "label": "Action palette",
       "control": "palette-ref",
       "default": "primary",
-      "description": "Which palette drives interactive/action color. Defaults to primary; point at an accent when the hero color is a poor CTA."
+      "description": "Which palette drives interactive/action color. Defaults to primary; point at neutral for near-black or gray actions (text, surfaces and borders stay as they are), or at an accent when the hero color is a poor CTA."
     },
     {
       "key": "linkPalette",

@@ -7236,6 +7236,41 @@ if (runs('19')) {
     ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 19-outline-hover
+// #3365 (owner, 2026-11-03): the Action palette select offers Neutral, on BOTH hosts (the plugin's UI is the studio's,
+// imported whole), and choosing it writes `actionPalette: 'neutral'`. EXPECTED: the option list typed here for the boot
+// brand (prism3 declares one brand color, `accent`), never read from `paletteRefOptions`; the primary fill's row names
+// the neutral ramp after the pick (the panel is redrawn whole from the brand, so a select that kept its own value
+// without a write would still fail it); on the web host the stored brand carries the value.
+// Mutations, each failing here by name:
+//   (a) `paletteRefOptions` drops neutral for actionPalette → `#3365 <host>: the Action palette select offers Primary, Neutral, Accent …`
+//   (b) the select writes 'primary' whatever is chosen      → `#3365 <host>: choosing Neutral puts the primary fill on the neutral ramp …`
+if (runs('19')) {
+  const SEL = '[data-p3="levers-pane"] [data-p3="action-palette-select"]';
+  const FILL = '[data-p3="levers-pane"] [data-p3="int-pick"][data-role="interactive.primary.fill.rest"]';
+  for (const host of ['web', 'figma']) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'color-interactive');
+      await hooks.need(page, SEL);
+      const opts = await page.evaluate((s) => [...document.querySelector(s).options].map((o) => `${o.value}=${o.textContent}`), SEL);
+      ok(JSON.stringify(opts) === JSON.stringify(['primary=Primary', 'neutral=Neutral', 'accent=Accent']),
+        `#3365 ${host}: the Action palette select offers Primary, Neutral, Accent, in that order (${opts.join(', ')})`);
+      const before = await page.locator(FILL).textContent();
+      await page.locator(SEL).selectOption('neutral');
+      await page.waitForFunction((f) => /neutral/i.test(document.querySelector(f)?.textContent ?? ''), FILL, { timeout: 5000 }).catch(() => {});
+      const after = { fill: (await page.locator(FILL).textContent())?.trim(), sel: await page.locator(SEL).inputValue() };
+      ok(/primary/i.test(before ?? '') && /neutral/i.test(after.fill ?? '') && after.sel === 'neutral',
+        `#3365 ${host}: choosing Neutral puts the primary fill on the neutral ramp, and the select reads it back after the redraw (${JSON.stringify({ before: before?.trim(), ...after })})`);
+      if (host === 'web') {
+        const p = await persisted(page);
+        ok(p?.actionPalette === 'neutral', `#3365 web: choosing Neutral stores actionPalette 'neutral' (${JSON.stringify(p?.actionPalette)})`);
+      }
+      ok(errors.length === 0, `#3365 ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#3365 ${host} Action palette: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 19-action-palette-neutral
 // #3115: the Outline hover chips (four since #3105) keep their rows whatever is selected. The selected chip is bold, and
 // a chip is never narrower than its label (`.p3-choice`, #1975), so where the four only just fit on one row (the owner's
 // window, about 1650 wide) the bold "Neutral overlay wash" pushed "No hover fill" onto a second. Each option is picked in
