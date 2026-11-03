@@ -21,7 +21,8 @@
  *   3. `no ask`: panels on, a build posted without the ask (the Components page's, or an agent's) builds none of them.
  *   4. `some held` (review S1): a file that already holds Badge, built with the panels off, then the panels on and Link
  *      queued. The file's read names only the three it lacks, "Also builds" lists them and not Badge, and Link's build
- *      builds them and `_Doc-block`, leaving the file's one Badge set as it was.
+ *      builds them and `_Doc-block`, leaving the file's one Badge set as it was. The file's next read, now that it
+ *      holds `_Doc-block`, posts no `docBlockLacks` at all.
  *
  * THE HOST is #3323's (`test-update-owner-run.ts`): the shared component shim with its strict default (#3215), a fresh
  * file's pages added as properties the host lacks, and the shim's own `liveRoot` search over every page (`pages`), so a
@@ -36,7 +37,8 @@
  * run order`; `docBlockAlsoOf` ignoring the switch → `panels/off: also builds`; the file's read ignoring presence
  * (`fileSets`' `docBlockLacks` filter) → `some held: the file's read …` and `some held: also builds`; the block-first
  * loop ignoring presence (its `presentNames` skip) → `some held: sets/link: builds …` (its "Also built" names Badge;
- * the rebuild is in place, so the Badge set's id alone would not show it).
+ * the rebuild is in place, so the Badge set's id alone would not show it); the file's read ignoring whether the file
+ * holds `_Doc-block` (its `findDocBlock` check) → `some held: once the file holds _Doc-block …`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -274,6 +276,11 @@ ok(JSON.stringify(queued) === JSON.stringify(['button', 'button-destructive', 'b
   ok(badgeBefore.length === 1 && JSON.stringify(badgeSets()) === JSON.stringify(badgeBefore),
     `some held: Badge is not rebuilt: the file's one Badge set is the one it held (${JSON.stringify(badgeBefore)} → ${JSON.stringify(badgeSets())})`);
   ok(setNamed('_Doc-block') && livePanels().includes('link'), `some held: _Doc-block is in the file and Link has its usage panel (${[...new Set(livePanels())].join(', ')})`);
+  // Once the file holds `_Doc-block` (#3311), its read names nothing to build first, so To add lists no "Also builds".
+  // The key itself is absent: an empty list would still be posted under a read that ignored the template.
+  const held = await fileRead();
+  ok(held?.type === 'file-sets' && !('docBlockLacks' in held),
+    `some held: once the file holds _Doc-block, its read names nothing to build first (${JSON.stringify(held?.docBlockLacks)})`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

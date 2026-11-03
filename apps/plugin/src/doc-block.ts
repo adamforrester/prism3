@@ -321,8 +321,8 @@ export const ensureDocBlock = async (api: DocBlockApi, page: TemplatesPage): Pro
   return { ...out, status: 'built' };
 };
 
-/** #3308 (Q3308.3 A): a build's clause when it built the template first, for the usage panels. Empty otherwise. DRAFT
- *  wording for the owner. */
+/** #3308 (Q3308.3 A): a build's clause when it built the template first, for the usage panels. Empty otherwise. The
+ *  wording is the owner's (2026-11-02, A): it names the set it built, as the other set lines do. */
 export const builtDocBlockItem = (r: DocBlockResult | null): string =>
   r?.status === 'built' ? `Built ${DOC_BLOCK_SET}${r.misses.length ? ` (⚠ not found: ${r.misses.slice(0, 3).join('; ')})` : ''}` : '';
 
