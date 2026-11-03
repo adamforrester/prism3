@@ -85,6 +85,13 @@ const WHITE_PAGE_BACKGROUND: readonly unknown[] = [
 const findNamed = (api: PagesApi, name: string): PageLike | null =>
   api.root.children.find((p) => !isDivider(p) && p.name === name) ?? null;
 
+/** #3308 (Q3308.3 A): the File Components page Set up file made, found by its name, or null. Never created here: a
+ *  build that needs `_Doc-block` on a file not set up says so through `ensureDocBlock`'s caller. */
+export const fileComponentsPageOf = (api: Pick<PagesApi, 'root'>, taxonomy: Taxonomy = TAXONOMY): PageLike | null => {
+  for (const section of taxonomy.sections) for (const leaf of section.leaves) if (leaf.fileComponents) return findNamed(api as PagesApi, leafPageName(leaf));
+  return null;
+};
+
 /** Find-or-create a named page. A created page is appended at the end (Figma's `createPage` semantics);
  *  positioning is the caller's job via `placeAfter`. (The field is `page`, not `node`, so the bundled
  *  main thread carries no `node:`-prefixed token — `build.mjs`'s sandbox scan rejects that substring.) */

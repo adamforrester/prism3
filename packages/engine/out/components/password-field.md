@@ -167,6 +167,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
 | `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
@@ -179,6 +180,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
 | `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
@@ -191,6 +193,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/labelRow/toggle` | `space.0` / — / `space.0` / — | — | — | — | — | — |
 | `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | — |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
