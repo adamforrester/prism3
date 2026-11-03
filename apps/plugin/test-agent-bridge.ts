@@ -19,7 +19,7 @@
  * resources/list · resources/resolve · resources/public-only · served/no-file-keys (#3300) · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
- * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp (#3300 B)
+ * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B)
  *
  * #3147 Phase 2a: each read-only node command (inspect, component-keys, audit-frames, snapshot) through figma_run, against
  * the same `NodeShim` fixture and literal expectations as `test-agent-link.ts`; its shim write log must stay empty
@@ -954,7 +954,12 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
     // #3300 B: what `context` points an agent at must exist, read from sources `agent-reads.ts` does not import.
     {
       const cx = ((await call('figma_run', { cmd: 'context', args: {}, timeoutMs: 8000 })).value as AgentResult).result?.data as
-        { commands: { read: string[]; write: string[] }; engineMcp: { server: string; tools: string[] } };
+        { commands: { read: string[]; write: string[] }; engineMcp: { server: string; tools: string[] }; readFirst: string[] };
+      // #3300 B (review follow-up): each URI `context` sends an agent to read first is one the bridge serves (`RESOURCES`,
+      // from `server.ts`, which `agent-reads.ts` does not import), so a renamed or dropped resource fails here by name.
+      const served = new Set<string>(RESOURCES.map((r) => r.uri));
+      ok(Array.isArray(cx.readFirst) && cx.readFirst.length > 0 && cx.readFirst.every((u) => served.has(u)),
+        `context/read-first: every URI context names is a resource the bridge serves (${(cx.readFirst ?? []).map((u) => `${u}${served.has(u) ? '' : ' (not served)'}`).join(', ')})`);
       // `commands.json`'s `writes` is authored per command in `emit-agent-reference.ts` (WRITES): "Nothing." opens each
       // command that writes nothing. `context`'s read list is exactly those, and its write list every other one.
       const ref = JSON.parse(readFileSync(resolve(HERE, '../../docs/public/reference/commands.json'), 'utf8')) as
