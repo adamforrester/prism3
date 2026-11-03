@@ -168,6 +168,8 @@ export interface CompNode {
    *  just set, so a `mixed` reads as "not the id" and is reported. Set through `setTextStyleIdAsync`. */
   readonly textStyleId?: string | symbol;
   clipsContent?: boolean;
+  /** The prototype scroll region (#3163): `FramePrototypingMixin`, on a frame, a component and a slot, never a set. */
+  overflowDirection?: string;
   strokesIncludedInLayout?: boolean;
   readonly width?: number;
   readonly height?: number;
@@ -1553,6 +1555,9 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     // executor either way, so `lint-unclaimed-defaults`'s `clipsContent` row stays satisfied; what
     // changed is that the decision now comes from the def rather than a hardcoded literal.
     set('clipsContent', n?.clipsContent ?? false);
+    // THE SCROLL REGION (#3163), threaded the same way, default NONE (Figma's own). A FRAME only: a set has no
+    // `overflowDirection` (`ComponentSetNode` lacks FramePrototypingMixin), and a slot takes it at creation below.
+    if (t === 'FRAME') set('overflowDirection', n?.overflowDirection ?? 'NONE');
     // PARENT-SIDE auto-layout properties, and these DO need the applicability test: Figma documents them
     // as "applicable only on auto-layout frames". Gated on the plan's `layoutMode` rather than a live
     // read for the reason in the header — and when there is no auto-layout there is no gap and no
@@ -2226,7 +2231,11 @@ const writeComponentSet = async (
       node = ex ?? wr(api.createFrame());
       // THREADED FROM THE PLAN (#1316), default false — unchanged for every existing box, which omits the
       // field. Only `image-placeholder`'s frame opts into clipping, so a dropped photo cannot overflow it.
-      if (!kept) node.clipsContent = n.clipsContent ?? false;
+      if (!kept) {
+        node.clipsContent = n.clipsContent ?? false;
+        // THE SCROLL REGION (#3163), default NONE: only a box whose def declares `scroll` (Dialog's body) scrolls.
+        node.overflowDirection = n.overflowDirection ?? 'NONE';
+      }
     }
     // THE LITERAL GLYPH SIZE (#1340), for a glyph and, since #2380, for the icon INSTANCE an icon-set glyph
     // builds as (image-placeholder's 180px marker). Neither binds a `size` variable, so each stays at its 24px

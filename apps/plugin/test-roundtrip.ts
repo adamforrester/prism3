@@ -712,6 +712,68 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── THE DIALOG BODY, READ BACK (G14, #3163; Q3130.8 A) — A PINNED FOOTER NEVER COVERS THE BODY ─────────────
+//
+// The diff above holds the plan's promise for the body: it carries `clipsContent` and `overflowDirection` as the plan
+// says. It cannot see a plan that stopped saying them, since the plan follows the def. This block authors the owner's
+// rule HERE and nowhere else: at every placement the body clips and scrolls vertically, and with 1,200px of content in
+// the 360 × 640 full member (and the 480 × 800 end member) the footer's top sits at or below the body's visible bottom.
+//
+// THE GEOMETRY IS THIS BLOCK'S OWN MODEL OF FIGMA'S AUTO LAYOUT, read off the host's fields and not the plan's: a
+// column whose height is FIXED gives a child with `layoutGrow: 1` the height its padding, its gaps and its other flow
+// children leave. The shim models a hug height but not a grow, so the box is computed here from what the host holds
+// (the member's height and sizing mode, the body's grow, each sibling's height). What a frame that does NOT clip shows
+// is its content's extent, so with the crop off the visible bottom is the content's and the footer covers it.
+//
+// Mutations, each failing by name: the def's `clipsContent` off (the plan follows, so the diff agrees) fails
+// `roundtrip/dialog body clips`; the executor's `overflowDirection` write dropped fails `roundtrip/dialog body scrolls`.
+{
+  const def = componentDefs.find((d) => d.id === 'dialog');
+  ok(!!def, 'roundtrip/dialog body: the dialog def is registered and projects');
+  if (def) {
+    const r = await roundTrip(def);
+    type Geo = HostNode & { height?: number; layoutGrow?: number; layoutPositioning?: string; visible?: boolean; clipsContent?: boolean; overflowDirection?: string; primaryAxisSizingMode?: string; layoutMode?: string; paddingTop?: number; paddingBottom?: number; itemSpacing?: number; boundVariables?: Record<string, { value?: number }> };
+    const num = (n: Geo, k: 'paddingTop' | 'paddingBottom' | 'itemSpacing'): number => n.boundVariables?.[k]?.value ?? (typeof n[k] === 'number' ? n[k] as number : 0);
+    const flow = (n: Geo): Geo[] => ((n.children ?? []) as Geo[]).filter((c) => c.visible !== false && c.layoutPositioning !== 'ABSOLUTE');
+    const h = (n: Geo): number => (typeof n.height === 'number' ? n.height : 0);
+    const bodyOf = (m: Geo): Geo | undefined => ((m.children ?? []) as Geo[]).find((c) => c.name === 'body');
+    const members = r.hostMembers as Geo[];
+    const noClip: string[] = [], noScroll: string[] = [];
+    for (const m of members) {
+      const b = bodyOf(m);
+      if (!b || b.clipsContent !== true) noClip.push(`${String(m.name)} (${b ? `clipsContent ${String(b.clipsContent)}` : 'no body'})`);
+      if (!b || b.overflowDirection !== 'VERTICAL') noScroll.push(`${String(m.name)} (${b ? `overflowDirection ${String(b.overflowDirection)}` : 'no body'})`);
+    }
+    // SCOPE FLOOR: every member of the set was read, so a dropped member is not a quieter pass.
+    ok(members.length === 24, `roundtrip/dialog body: every member was read (${members.length} of 24)`);
+    ok(noClip.length === 0, `roundtrip/dialog body clips: the body crops its overflow at every placement (Q3130.8 A)${noClip.length ? ` — ${noClip.join(', ')}` : ''}`);
+    ok(noScroll.length === 0, `roundtrip/dialog body scrolls: the body scrolls vertically at every placement (Q3130.8 A)${noScroll.length ? ` — ${noScroll.join(', ')}` : ''}`);
+    for (const placement of ['full', 'end'] as const) {
+      const m = members.find((x) => String(x.name) === `placement=${placement}, footer=inline, size=medium`);
+      const b = m && bodyOf(m);
+      if (!m || !b) { ok(false, `roundtrip/dialog body clips: the ${placement} member with an inline footer was built (scope floor)`); continue; }
+      // 1,200px of content in the body, as #3163's long form: a FIXED frame a designer dropped into the slot.
+      (b.children as unknown[]).push({ name: 'long form', type: 'FRAME', height: 1200, visible: true, children: [] });
+      const kids = flow(m), i = kids.indexOf(b), f = kids.findIndex((k) => k.name === 'footer');
+      const gap = num(m, 'itemSpacing'), padT = num(m, 'paddingTop'), padB = num(m, 'paddingBottom');
+      // PREMISES: the member holds its height, the body takes what is left, and the footer comes after it.
+      const premise = m.layoutMode === 'VERTICAL' && m.primaryAxisSizingMode === 'FIXED' && h(m) > 0 && b.layoutGrow === 1 && i >= 0 && f > i;
+      ok(premise, `roundtrip/dialog body: the ${placement} member is a fixed ${h(m)}px column whose body grows, with the footer after it (premise: ${String(m.layoutMode)} ${String(m.primaryAxisSizingMode)}, grow ${String(b.layoutGrow)}, body #${i}, footer #${f})`);
+      if (!premise) continue;
+      const others = kids.filter((k) => k !== b).reduce((a, k) => a + h(k), 0);
+      const box = h(m) - padT - padB - others - gap * (kids.length - 1);
+      const top = padT + kids.slice(0, i).reduce((a, k) => a + h(k), 0) + gap * i;
+      const footerTop = top + box + gap + kids.slice(i + 1, f).reduce((a, k) => a + h(k) + gap, 0);
+      const bk = flow(b);
+      const content = num(b, 'paddingTop') + num(b, 'paddingBottom') + bk.reduce((a, k) => a + h(k), 0) + num(b, 'itemSpacing') * Math.max(0, bk.length - 1);
+      ok(box > 0 && content > box, `roundtrip/dialog body: the ${placement} body overflows (premise: ${content}px of content in a ${box}px body)`);
+      const visibleBottom = top + (b.clipsContent === true ? box : Math.max(box, content));
+      ok(visibleBottom <= footerTop, `roundtrip/dialog body clips: at ${placement}, the footer's top (${footerTop}) is at or below the body's visible bottom (${visibleBottom})`);
+      ok(b.overflowDirection === 'VERTICAL', `roundtrip/dialog body scrolls: at ${placement}, the ${content - box}px the body cannot show is reachable by a vertical scroll (overflowDirection ${String(b.overflowDirection)})`);
+    }
+  }
+}
+
 // ── THE PAYMENT TILE, READ BACK (#2343 PR 4) — THE INDEPENDENT ORACLE FOR A SLOT'S LOCK ───────────
 //
 // The diff above holds the plan's promise for the Card number field's tile: the instance is locked. What the plan does

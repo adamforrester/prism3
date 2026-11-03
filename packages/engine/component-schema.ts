@@ -671,6 +671,16 @@ export type PartDef = {
    *  reason: only the frame-creating branch reads it, so on a text/vector/slot it would validate clean
    *  and reach no node. */
   clipsContent?: boolean;
+  /** For `box` parts: the direction the frame SCROLLS when its content overflows it — Figma's prototype
+   *  `overflowDirection` (#3163, G14 on #3130). Only `'vertical'` exists, because the one region that needs it is
+   *  a dialog body that scrolls between a fixed header and a pinned footer. Absent means no scrolling, which is
+   *  Figma's default and what every existing box keeps: the plan omits the field, and both executors write
+   *  `n.overflowDirection ?? 'NONE'` on every frame, so `lint-unclaimed-defaults` has an address for the value.
+   *
+   *  It REQUIRES `clipsContent: true`. A frame that scrolls without cropping draws its overflow over whatever
+   *  follows it (the pinned footer, in #3163's measurement) and only scrolls in a prototype, so the pair is the
+   *  scroll region and either half alone is the defect. Refused on every kind but `box`, as `clipsContent` is. */
+  scroll?: 'vertical';
   /** For `box` parts: a LITERAL minimum horizontal width in px — Figma's auto-layout `minWidth` (#1343a,
    *  #1345). A COMFORTABLE PROJECTION FLOOR, not a token: 320 is where `select` sits by default so the
    *  field reads at a usable width in Figma, chosen in 8px increments — and the owner's #1343 decision was
@@ -5435,6 +5445,16 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // it, so on any other kind it validates clean, is silently ignored, and reaches no node.
     if (p.kind !== 'box' && p.clipsContent !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'clipsContent' — only a 'box' becomes a frame that can crop its overflow; every other kind is a leaf whose content is its own`);
+    // ---- `scroll`, the BOX kind's scroll region (#3163) ----
+    // The same wrong-kind rule, and the pairing: a box that scrolls without clipping draws its overflow anyway.
+    if (p.scroll !== undefined) {
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'scroll' — only a 'box' becomes a frame that can scroll its overflow`);
+      else if (p.scroll !== 'vertical')
+        e.push(`anatomy part '${n}' declares scroll '${String(p.scroll)}' — the one scroll direction is 'vertical'`);
+      else if (p.clipsContent !== true)
+        e.push(`anatomy part '${n}' declares scroll 'vertical' without 'clipsContent: true' — a frame that scrolls but does not crop draws its overflow over the parts after it`);
+    }
     // ---- `tileEdge`, the full-bleed artwork's host-drawn edge (#2343, Q720 A) ----
     // The vector form of a box's radius, stroke and crop, so it gets their wrong-kind rule, and a gate in
     // `presentWhen`'s grammar (variant axes only, declared values, never every value).

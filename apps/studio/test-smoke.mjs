@@ -3046,13 +3046,15 @@ console.log(`\nControls\n${'='.repeat(78)}`);
 // takes the same posture at section 3).
 const ENGINE_MODES = join(ROOT, '..', '..', 'packages', 'engine', 'modes.ts');
 const modesSrc = await readFile(ENGINE_MODES, 'utf8');
+// #3335 (Q3335.3 A): the wash's steps became a brand input, `outlineWash`, and its neutral default moved to
+// `OUTLINE_WASH_DEFAULTS` in `theme.ts`. No brand this suite sweeps sets the input, so the default is what renders;
+// it is still read from the engine's source, and selected still follows pressed (`modes.ts`, OVERLAY_ALPHA).
+const WASH_THEME_SRC = await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'theme.ts'), 'utf8');
 const OVERLAY_STEPS = (() => {
-  const m = /const OVERLAY_ALPHA[^=]*=\s*\[(.*?)\];/s.exec(modesSrc);
-  if (!m) throw new Error('OVERLAY_ALPHA not found in packages/engine/modes.ts — this suite\'s oracle reads the wash steps from there');
-  const out = {};
-  for (const pair of m[1].matchAll(/\[\s*'([\w-]+)'\s*,\s*(\d+)\s*\]/g)) out[pair[1]] = pair[2];
-  if (!out.hover || !out.pressed) throw new Error(`OVERLAY_ALPHA parsed to ${JSON.stringify(out)} — the oracle needs hover and pressed`);
-  return out;
+  const m = /export const OUTLINE_WASH_DEFAULTS\s*=\s*\{\s*neutral:\s*\{\s*hover:\s*(\d+),\s*pressed:\s*(\d+)\s*\}/.exec(WASH_THEME_SRC);
+  if (!m) throw new Error('OUTLINE_WASH_DEFAULTS.neutral not found in packages/engine/theme.ts — this suite\'s oracle reads the wash steps from there');
+  if (!/\['selected', wash\.pressed\]/.test(modesSrc)) throw new Error('OVERLAY_ALPHA in packages/engine/modes.ts no longer gives selected the pressed step — the oracle needs restating');
+  return { hover: m[1], pressed: m[2], selected: m[2] };
 })();
 const OVERLAY_PAL = (() => {
   const m = /const overlayPal\s*=\s*cfg\.family === 'light' \? '([\w-]+)' : '([\w-]+)'/.exec(modesSrc);
@@ -3112,8 +3114,10 @@ const READ_OVERLAY_ROWS = () => {
     swatch: readSwatch(row?.querySelector('.p3-fill-sw')),
   });
   return [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow[data-role$=".overlay.hover"]')].map((row) => {
+    // #3335 (the owner's amendment): a wash group has no rest row, so its Pressed is the hover row's sibling, at the
+    // group's own level; nothing is nested under a wash.
     const group = row.closest('[data-p3="int-row-group"]');
-    return { ...readRow(row), states: [...(group?.querySelectorAll('[data-p3="int-row-states"] .p3-fillrow') ?? [])].map(readRow) };
+    return { ...readRow(row), nested: !!group?.querySelector('[data-p3="int-row-states"]'), states: [...(group?.querySelectorAll(':scope > .p3-fillrow-wrap > .p3-fillrow') ?? [])].filter((n) => n !== row).map(readRow) };
   });
 };
 /** The preview's Outline row in one column, as drawn: per state, the ink and the ground of its button. */
@@ -3221,7 +3225,7 @@ s5aArm: for (const brand of BRANDS) {
       ok(row.swatch?.underOpaque === true, `${where}: the swatch layer sits on an opaque underlay (${row.swatch?.underColor}) instead of on whatever chrome is behind it (#1210b)`);
       ok(rgbHex(row.swatch?.underColor) === ground, `${where}: the swatch's underlay is the ground the wash is measured on, the emitted background.primary ${ground} (drew ${row.swatch?.underColor})`);
       ok((row.swatch?.deltaLum ?? 0) > 0.005, `${where}: the composited wash is visible against that ground (Δluminance ${row.swatch?.deltaLum?.toFixed(4)}) — a wash pinned to the wrong polarity's ground would read 0`);
-      ok(row.states.length === 1 && row.states[0].role === row.role.replace(/\.hover$/, '.pressed'), `${where}: its Pressed row sits under it (${row.states.map((s) => s.role).join(', ')})`);
+      ok(row.states.length === 1 && !row.nested && row.states[0].role === row.role.replace(/\.hover$/, '.pressed'), `${where}: its Pressed row sits beside it, at the group's level (#3335) (${row.states.map((s) => s.role).join(', ')}, nested ${row.nested})`);
       for (const st of row.states) {
         hooks.absent(ok, { seen: st.text !== null, state: 'the Pressed row\'s read-out' }, st.pickers === 0, `${where} / Pressed: offers no ramp-step picker (#1210a)`);
         ok(st.text === `${expectPal} ${OVERLAY_STEPS.pressed ?? '?'}`, `${where} / Pressed: reads "${expectPal} ${OVERLAY_STEPS.pressed}" — got "${st.text}" (#1210a)`);
