@@ -33,6 +33,7 @@
  * delete the gate and report that as a pass, which is the shape this whole file exists to prevent.
  */
 
+import { readFileSync } from 'node:fs';
 import { applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
 import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -2918,6 +2919,76 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     && read('emptied', 'body') === false && read('emptied', 'rich body') === false
     && read('untouched', 'body text') === OLD_COPY && read('untouched', 'body') === true,
     `#3225 fill: the edited text lands in body text and its old slot copy is cleared, the rich instance shows rich body and hides body, the emptied one hides body, and the untouched one keeps the defaults (${out.instances} carried, ${out.misses.length} misses${out.misses.length ? `: ${out.misses.join('; ')}` : ''})`);
+}
+
+// ── #3347 — PASSWORD FIELD'S LABEL ROW IS THE LABEL'S LINE, BUILT AND MEASURED ────────────────────────────────────
+// Q380 A: the label row is one label line tall. Measured on a real file on 2026-11-02 (#3014's check, build 89c83809),
+// it was 26 on every member where the label is 21: the host floors a hugging row at a STRETCHED child's own content
+// height, and the small Button's is its 6px above and below its "Show" line. The shim models that floor
+// (`stretchFloorsHug`, from the measurement). Every number the host model needs (the space and size variables, each
+// text style's line box) is the default brand's emission, as the host would resolve it; EXPECTED is typed here, the
+// size's label line: 18 / 21 / 24. A self-check first proves the model reproduces the measured 26 on the unfixed
+// shape, so the arm can fail at all (docs/34).
+{
+  const emitted = JSON.parse(readFileSync(new URL('../../packages/engine/out/prism3.tokens.json', import.meta.url), 'utf8')) as Record<string, unknown>;
+  const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!] as Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a DTCG tree walked by path
+  const at = (path: string[]): any => path.reduce((n: any, k) => n?.[k], eRoot);
+  const deref = (v: unknown): unknown => {
+    let g = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- an alias resolved against the whole tree
+    while (typeof v === 'string' && v.startsWith('{') && g++ < 10) v = v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value;
+    return v;
+  };
+  const px = (v: unknown): number => { const x = String(deref(v)); return x.endsWith('rem') ? parseFloat(x) * 16 : parseFloat(x); };
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const varPx = Object.fromEntries([...new Set(all.flatMap((p) => planBoundVars(p.root)))]
+    .map((name) => [name, px(at(name.split('/'))?.$value)] as const).filter(([, v]) => Number.isFinite(v)));
+  const lineBox = Object.fromEntries([...new Set(all.flatMap((p) => planTextStyles(p.root)))].map((style) => {
+    const t = deref(at(['type', ...style.split('/')])?.$value) as { fontSize?: unknown; lineHeight?: unknown } | undefined;
+    return [style, px(t?.fontSize) * Number(deref(t?.lineHeight))] as const;
+  }).filter(([, v]) => Number.isFinite(v)));
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true, stretchFloorsHug: true, varPx, textLineBox: lineBox });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  const pw = componentDefs.find((x) => x.id === 'password-field')!;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  await prebuildDependencies(pw, { defs: componentDefs, project, host: shim as any, build });
+  const r = await build(pw);
+  ok(r.misses.length === 0, `#3347 seed: password-field builds on the measured-floor shim with 0 misses (${r.misses[0] ?? 'none'})`);
+  const members = ((page.children.find((c) => c.name === 'password-field' && c.type === 'COMPONENT_SET')?.children ?? []) as Node[]);
+  const kid = (n: Node | undefined, name: string): Node | undefined => ((n?.children ?? []) as Node[]).find((c) => c.name === name);
+  const H = (n: Node | undefined): number => Number(n?.height);
+  const ROW: Record<string, number> = { small: 18, medium: 21, large: 24 };
+  const MEASURED_UNFIXED = 26; // the real file's label row, every member, before #3347 (Show's 14px line plus 6 + 6)
+  const off: string[] = [];
+  const seen: Record<string, number> = {};
+  let selfCheck: number | undefined;
+  for (const m of members) {
+    const size = /size=(\w+)/.exec(String(m.name))?.[1] ?? '';
+    const row = kid(m, 'labelRow');
+    const toggle = kid(row, 'toggle');
+    if (!row || !toggle || !(size in ROW)) { off.push(`${String(m.name)}: no label row or toggle`); continue; }
+    seen[size] = H(row);
+    if (Math.abs(H(row) - ROW[size]) > 0.01) off.push(`${String(m.name)}: the label row is ${H(row)}, not ${ROW[size]}`);
+    if (Math.abs(H(toggle) - H(row)) > 0.01) off.push(`${String(m.name)}: the toggle is ${H(toggle)} in a ${H(row)} row`);
+    if (row.counterAxisSizingMode !== 'AUTO') off.push(`${String(m.name)}: the label row's height is ${String(row.counterAxisSizingMode)}, not hugging`);
+    // THE SELF-CHECK, once: the instance's padding override cleared, the model must read the measured 26 back.
+    if (selfCheck === undefined && size === 'medium') {
+      const bv = toggle.boundVariables as Record<string, unknown>;
+      const saved = { top: bv.paddingTop, bottom: bv.paddingBottom };
+      delete bv.paddingTop; delete bv.paddingBottom;
+      selfCheck = H(row);
+      if (saved.top !== undefined) bv.paddingTop = saved.top;
+      if (saved.bottom !== undefined) bv.paddingBottom = saved.bottom;
+    }
+  }
+  ok(selfCheck !== undefined && Math.round(selfCheck) === MEASURED_UNFIXED,
+    `#3347 self-check: with the toggle's padding override cleared, the measured-floor shim reads the label row the real file did, ${MEASURED_UNFIXED} (got ${selfCheck})`);
+  ok(members.length === 84 && off.length === 0,
+    `#3347 password-field label row: on all ${members.length} members the row is the size's label line, small 18 / medium 21 / large 24, hugging, with the stretched Show button as tall as the row (Q380 A) (${off.length} off — ${off.slice(0, 3).join(' | ') || `measured ${JSON.stringify(seen)}`})`);
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');

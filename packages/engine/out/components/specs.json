@@ -38858,6 +38858,17 @@
               }
             },
             {
+              "part": "container/labelRow/toggle",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
               "part": "container/control",
               "values": {
                 "paddingTop": {
@@ -38953,6 +38964,17 @@
               }
             },
             {
+              "part": "container/labelRow/toggle",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
               "part": "container/control",
               "values": {
                 "paddingTop": {
@@ -39044,6 +39066,17 @@
               "values": {
                 "gap": {
                   "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/labelRow/toggle",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
                 }
               }
             },

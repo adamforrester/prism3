@@ -39223,10 +39223,12 @@ arm: {
     `#2317 password-field properties: value "••••••••", placeholder "Placeholder", the leading icon and message toggles, and no trailing icon (got ${JSON.stringify(pw.figmaProperties?.texts)}, ${JSON.stringify(Object.keys(pw.figmaProperties?.booleans ?? {}))})`);
 
   // THE FACTORY (Q301.8 A): the two fields bind one token block, key for key, and TextField keeps its trailing slot.
-  ok(JSON.stringify(pw.tokens) === JSON.stringify(textField.tokens) && textField.anatomy?.parts.trailingVisual !== undefined
+  // Password adds exactly ONE key, typed here: the toggle instance's zero block padding (#3347), which holds the label
+  // row to the label's line. Any other key the toggle edge adds, or one TextField loses, fails here by name.
+  ok(JSON.stringify(pw.tokens) === JSON.stringify({ ...textField.tokens, 'toggle.pad-block': 'space.0' }) && textField.anatomy?.parts.trailingVisual !== undefined
     && JSON.stringify(textField.anatomy?.parts.control.children) === JSON.stringify(['content', 'trailingVisual', 'focusRing'])
     && textField.anatomy?.parts.labelRow === undefined && textField.anatomy?.parts.toggle === undefined,
-    `#2317 field factory: Password and TextField bind the same token block, and TextField keeps its own anatomy (a trailing slot in the box, no label row, no toggle)`);
+    `#2317 field factory: Password binds TextField's token block plus the toggle's one padding key (#3347), and TextField keeps its own anatomy (a trailing slot in the box, no label row, no toggle)`);
 
   // THE KEYBOARD MODEL is the Password field's own, not the shared entry: TextField's names Escape-to-clear, and this
   // field has no clear button (review on #2648).

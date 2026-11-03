@@ -60,7 +60,8 @@ import { ComponentDef, PartDef, PropDef } from '../component-schema';
  *   · `trailing-glyph` — TextField's optional trailing glyph inside the box, beside the value (a clear or reveal
  *     glyph; its action is code-only).
  *   · `toggle` — the Password field's Show/Hide button. The box loses its trailing slot, and the label sits in a
- *     row with a nested Button at its end, outside the box (owner decision Q301.2 B).
+ *     row with a nested Button at its end, outside the box (owner decision Q301.2 B). It adds one key,
+ *     `toggle.pad-block`, the nested Button's zero block padding (#3347).
  * The Search field (#2888) adds three more, each spreading nothing when absent: `leading` and `trailing` start the glyph
  * slots at a named glyph (and `leading` may build its glyph shown), and `labelSwitch` puts the nested label behind a
  * Figma-only `label` switch.
@@ -71,7 +72,7 @@ import { ComponentDef, PartDef, PropDef } from '../component-schema';
  *     names (`mark.start`, the generic tile). Its presence is the `card mark` switch, built shown.
  * Everything else a field says about itself (props, the code-only list, accessibility, docs, the agent fields)
  * is the caller's, because that is where two fields differ. `test.ts` pins that TextField is byte-identical to
- * the def it was before the factory, and that the two outputs share the token block exactly.
+ * the def it was before the factory, and that Password binds TextField's token block plus `toggle.pad-block`.
  */
 export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'description' | 'accessibility' | 'content' | 'docs' | 'ai' | 'composition' | 'motion' | 'notes'> & {
   aliases: string[];
@@ -336,6 +337,9 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       'size.medium.mark-height': 'icon.size.sm',
       'size.large.mark-height': 'icon.size.md',
     } : {}),
+    // THE SHOW/HIDE BUTTON'S BLOCK PADDING (`edge: 'toggle'` only, #3347): zero on the nested instance, so the label row
+    // is the label's line (Q380 A). See the `toggle` part.
+    ...(toggle ? { 'toggle.pad-block': 'space.0' } : {}),
   },
 
   // ── ANATOMY (#1494) — a column composing the two nested field parts around the input control ─────
@@ -374,7 +378,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // (#2804, Q380 A, which replaced Q301's "the label row grows to fit the toggle"): the button stretches to the
       // row. The label's cell grows across the row and the button hugs its text. The
       // row's gap is the control's own `size.{size}.gap`, so the field adds no spacing key: Password binds
-      // TextField's token block exactly.
+      // TextField's token block, plus only the toggle instance's zero block padding (#3347).
       ...(toggle ? {
       labelRow: {
         kind: 'box',
@@ -427,6 +431,14 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // hover and pressed fire inside a prototype (docs/18 §3). Status never reaches it: the field has no status
       // axis to pass, and Button has none to receive.
       //
+      // NO BLOCK PADDING ON THE INSTANCE (#3347). The stretch alone did not hold the row to the label: measured on a
+      // real file (2026-11-02), the host floors a hugging row at a stretched child's own content height, and the small
+      // Button's is its 6px above and below its 14px "Show" line, so the row read 26 where the label is 21, at every
+      // size. The instance's top and bottom padding are bound to `space.0` (`nestPaddingBlock`), an instance override
+      // that leaves Button's own set alone. The floor is then the "Show" line, under every label line, so the row is
+      // 18 / 21 / 24. "Show" stays centered on the row, where it sat before; the button's own hit area is code's
+      // (the flush rule, `codeOnly`), and Figma draws none.
+      //
       // NEST-EXPOSED FOR ITS TEXT. Marking the instance exposed surfaces Button's `label` text property on the
       // field's panel, which is how a designer sets "Hide" for the shown look (Q301.6 A). `expose` names that
       // text property, the one thing the field gives a designer to drive; the instance's own text is set to
@@ -442,6 +454,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
           variantWhen: { state: { disabled: { state: 'disabled' } } },
         },
         crossAxisFill: true,
+        nestPaddingBlock: 'toggle.pad-block',
         nestTexts: { label: 'Show' },
         note: 'The Show/Hide button: a small flush text Button in the emphasis weight, at the end of the label row, at every field size. It reads "Show" on every member; set it to "Hide" for the shown look. Disabled with the field, live when read-only, never colored by status. It stretches to the row, so the row is as tall as the label.',
       },
