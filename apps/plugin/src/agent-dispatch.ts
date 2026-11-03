@@ -55,7 +55,8 @@ export const forAgent = (m: MainToUi): MainToUi => {
 /** The main-thread handlers the UI's buttons reach — built by `main.ts` from its own functions. */
 export type AgentActions = {
   applyTheme(input: BrandInput, sink: ActionSink): Promise<void>;
-  buildComponents(def: string | undefined, sink: ActionSink): Promise<void>;
+  /** `options.docBlock`: the panel's Update file only (#3308 Q3308.3 A); the agent's build never passes it. */
+  buildComponents(def: string | undefined, sink: ActionSink, options?: { readonly docBlock?: boolean }): Promise<void>;
   fileSetup(sink: ActionSink): Promise<void>;
   styleGuide(options: StyleGuideOptions, sink: ActionSink): Promise<void>;
   prune(input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void>;
