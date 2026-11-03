@@ -189,6 +189,27 @@ decision for the owner (section 6), and most become component work.
   If none matches, apply the raw value, flag it and propose a token. Never snap it, and never add a token
   to the library yourself.
 
+### Building a local component: a variant only when layout or structure changes
+
+Where Prism3 has no component and you build a local one (section 1), give it a **variant only when its
+layout or structure changes** (#3383, owner decision Q3 A). Variant counts multiply, so one needless axis
+doubles the set: in one rebuild, an order row came out at 23 variants where this rule gives 6, and a bag
+line item at 32 where it gives 4. Before you combine the frames into a set, sort what differs:
+
+| What differs | Use |
+|---|---|
+| Layout or structure: stacked versus side by side, a part replaced | A variant |
+| One part shown or hidden | A boolean property on that layer |
+| Text content | A text property |
+| A choice inside a nested component | The nested instance, exposed (its own properties surface on the parent) |
+| Width only | No variant. The component fills its container; the parent, or the spacing inside it, sets the width |
+| Color only, for a state or a status | A variant: an override would break the no-overrides rule |
+
+Desktop and mobile are a variant only where the layout really differs at the two widths. Where the
+mobile member is the desktop one at a narrower width, build one member and let each breakpoint's
+container set the width. Count the members before you combine them, and record the count, with each
+axis and its reason, in the log.
+
 ## 4. Plugin-API traps
 
 | Trap | What happens | Do instead |
@@ -499,3 +520,10 @@ chose, so each write replaces a decision, and the owner needs to see each one an
    the recorded values ready for when the library restores it. Never rebuild it as a lookalike. After every
    accept, also screenshot one instance of each state variant: a dropped feature loses no override, so
    only the picture shows it.
+8. **Audit each local component set against the variant rule** (section 3, "Building a local
+   component"), read-only first. For every axis, compare the members that differ only on it, and name
+   what changes: layout or structure, color for a state or a status, or something the rule sends
+   elsewhere (one part's visibility, text, a nested choice, width). Report each set as its variant count
+   now against the count the rule gives, with the axes to fold and what each becomes. Reducing a set
+   replaces the designers' instances, so it waits for the owner's go-ahead, and then follows steps 5 and 6:
+   snapshot every instance first, and restore by diffing.
