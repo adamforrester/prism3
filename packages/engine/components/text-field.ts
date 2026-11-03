@@ -60,7 +60,8 @@ import { ComponentDef, PartDef, PropDef } from '../component-schema';
  *   · `trailing-glyph` — TextField's optional trailing glyph inside the box, beside the value (a clear or reveal
  *     glyph; its action is code-only).
  *   · `toggle` — the Password field's Show/Hide button. The box loses its trailing slot, and the label sits in a
- *     row with a nested Button at its end, outside the box (owner decision Q301.2 B).
+ *     row with a nested Button at its end, outside the box (owner decision Q301.2 B). It adds one key,
+ *     `toggle.pad-block`, the nested Button's zero block padding (#3347).
  * The Search field (#2888) adds three more, each spreading nothing when absent: `leading` and `trailing` start the glyph
  * slots at a named glyph (and `leading` may build its glyph shown), and `labelSwitch` puts the nested label behind a
  * Figma-only `label` switch.
@@ -71,7 +72,7 @@ import { ComponentDef, PartDef, PropDef } from '../component-schema';
  *     names (`mark.start`, the generic tile). Its presence is the `card mark` switch, built shown.
  * Everything else a field says about itself (props, the code-only list, accessibility, docs, the agent fields)
  * is the caller's, because that is where two fields differ. `test.ts` pins that TextField is byte-identical to
- * the def it was before the factory, and that the two outputs share the token block exactly.
+ * the def it was before the factory, and that Password binds TextField's token block plus `toggle.pad-block`.
  */
 export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'description' | 'accessibility' | 'content' | 'docs' | 'ai' | 'composition' | 'motion' | 'notes'> & {
   aliases: string[];
