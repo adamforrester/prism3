@@ -61,7 +61,7 @@ import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot 
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
-import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -876,7 +876,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       // THE AS-BUILT LEDGER (#2909 Q2909.8 A): a set this build landed whole, every member fresh or already this plan's,
       // is recorded as built from the def it was materialized to. A set holding a member from another plan (`stale`) is
       // not: it still is what it was, and its entry says so. CAUGHT: the set is built, and the record is bookkeeping.
-      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: entryFor(materializeForBrand(target, brandInput), project(target)) }); } catch { /* read as unrecorded */ } }
+      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: { ...entryFor(materializeForBrand(target, brandInput), project(target)), ...panelFormatOf()(target.id) } }); } catch { /* read as unrecorded */ } }
       // #3129 Q833 A: and its add-queue key is cleared in the same place, so a set that fails, or is stopped before it
       // runs, stays queued. A set made first as a nested set (#1633), or by the agent's build, clears here too.
       if (built.id && built.stale === 0) { try { clearQueued(queueRoot(), [target.id]); } catch { /* cleared by the next queue write */ } }
@@ -1330,14 +1330,14 @@ const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
  *  brand's theme is built once for every def (`materializerFor`); a def the engine cannot plan has none, and reads
  *  unrecorded. */
 const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
-  const mat = materializerFor(brandOf(input));
+  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(); // #3205: on a lead set, today's panel format
   // #3301: each def's entry worked out once per read (`needsPrint` and `dueOf` both ask for every set's).
   const memo = new Map<string, LedgerEntry | null>();
   return (id) => {
     if (memo.has(id)) return memo.get(id)!;
     const d = componentDefs.find((x) => x.id === id);
     let e: LedgerEntry | null = null;
-    try { e = d ? entryFor(mat(d)) : null; } catch { e = null; }
+    try { e = d ? { ...entryFor(mat(d)), ...panel(id) } : null; } catch { e = null; }
     memo.set(id, e);
     return e;
   };
@@ -2385,3 +2385,12 @@ onUiMessage((msg: UiToMain) => {
       assertNever(msg); // compile error if a UiToMain variant is added but not handled here
   }
 });
+
+/** THE PANEL FORMAT A SET'S ENTRY CARRIES (#3205): `PANEL_FORMAT` on a family's lead set while Documentation has the
+ *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
+ *  The file's switch is read once per call. Defined here, at the end, so the lines public guides cite above stay put;
+ *  it is called only once the module has loaded. */
+const panelFormatOf = (): ((def: string) => { panel?: number }) => {
+  const on = readDocSettings(figma.root).panels;
+  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
+};
