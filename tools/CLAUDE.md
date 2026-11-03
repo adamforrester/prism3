@@ -315,11 +315,14 @@ checkout or a build is not the one to record. Its gate lives in the plugin: the 
 
 ## `tools/figma-canary/`
 
-The real-Figma canary (#3215, owner decisions of 2026-11-01): before the owner is told "ready to rebuild", one
-read-only round trip through the agent link on a scratch file, with a plugin built from that exact `main` commit on
-the always-on Mac. `needs-check.ts` applies the owner's path rule (a literal list) to two commits; `judge.ts` reads the
-raw result envelopes and prints `safe to rebuild from <commit>` or `held: <reason>`; `selftest.ts` runs the judge over
-recorded envelopes, #3209's error among them, which must be held by name. **No gate sibling, and the reason is the
+The real-Figma canary (#3215, owner decisions of 2026-11-01 and 2026-11-03): before the owner is told "ready to
+rebuild", one read-only round trip through the agent link on a scratch file, with a plugin built from that exact `main`
+commit on the always-on Mac and the link switched on by the owner. `needs-check.ts` applies the owner's path rule (a
+literal list) to two commits; `job.ts` is the Mac's half (`prepare` builds the commit in a checkout of its own,
+`collect` gathers the saved responses into one run file keyed by command); `judge.ts` reads that run file and prints
+`checked, safe to rebuild from <commit>` or `held: <reason>`, against protocol shapes written as literals, never read
+from the plugin; `selftest.ts` runs the judge over a good run and one bad run per check, #3209's error among them,
+each held by name. **No gate sibling, and the reason is the
 subject:** a live Figma host is not in CI. Its CI-side counterpart is the shim's strict host (`apps/plugin/test-loose-host.ts`,
 #3295), which catches the same class of bug without a host. The judge is the orchestrator's, never the Mac's: the Mac
 returns envelopes verbatim and does not say PASS.

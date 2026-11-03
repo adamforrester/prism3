@@ -1,41 +1,62 @@
 /**
- * THE CANARY'S JUDGE (#3215, owner decisions of 2026-11-01): reads the raw result envelopes the Mac returned from a
- * read-only run on the scratch file, and says whether the owner can be told to rebuild.
+ * THE CANARY'S JUDGE (#3215, owner decisions of 2026-11-01 and 2026-11-03): reads the run file the Mac's job wrote
+ * (`job.ts collect`) from a read-only run on the scratch file, and says whether the owner can be told to rebuild.
  *
- *   npx tsx tools/figma-canary/judge.ts <envelopes.json> --expect <commit> [--file-name '<scratch file name>']
+ *   npx tsx tools/figma-canary/judge.ts <run.json> --expect <commit> [--file-name '<scratch file name>']
  *   npx tsx tools/figma-canary/judge.ts --commands     # the commands the Mac sends, as JSON, the house brand filled in
  *
- * `<envelopes.json>` is a JSON array of the plugin's result envelopes (`apps/plugin/src/agent-protocol.ts`
- * `AgentResult`), verbatim, as `figma_run` returned them. `--expect` is the main commit the Mac was asked to build.
- * It prints a per-command PASS/FAIL table, then one line: `safe to rebuild from <commit>` or `held: <reason>`.
+ * `<run.json>` is `{ format, commit, stamp, builtFrom, responses }`: `responses` is keyed by command (`status`,
+ * `readback`, `update-components`, `prune`, `run-code`, then `status-after`, the closing `status`), each the plugin's
+ * result envelope verbatim, as `figma_run` returned it. `--expect` is the main commit the Mac was asked to build.
+ * `--file-name` defaults to `SCRATCH_FILE`. It prints a per-command PASS/FAIL table, then one line:
+ * `checked, safe to rebuild from <commit>` or `held: <reason>; <reason>…`.
  *
  * A TOOL, NOT A GATE (`tools/CLAUDE.md`): a live Figma host is not in CI, so this answers and exits 0 either way. It
  * exits 2 only when it cannot answer at all (no file, not JSON, no `--expect`).
  *
- * The orchestrator runs this on the envelopes itself; the Mac never reports PASS (Q-C1 A). Each check is written
+ * The orchestrator runs this on the run file itself; the Mac never reports PASS (Q-C1 A). Each check is written
  * against the envelope as the plugin sends it, never against anything the Mac summarized.
  *
- * WHAT IT HOLDS ON, per command:
- *   · the envelope is missing, or there are two for one command;
- *   · a host error: `error` is set (`handler-threw`, `bad-args`, `unknown-command`, `busy`, `link-off`, …);
- *   · `ok` is not true, or the dispatcher marked the result (`data.noVerdict`, `data.earlierVerdicts`);
- *   · an exception's text in the verdict, a refusal reason, a blocker or a log line (`EXCEPTION`, below; #3209's
- *     `'get' on proxy` is the one that started this);
- *   · `status`: the build stamp's commit (#3253's stamp, `<ISO> tree-<8 hex> <commit>`) is not `--expect`, or is
- *     `-dirty` or `git-unavailable`, or is missing; the build does not list a command the canary sends; with
- *     `--file-name`, the file is not the scratch file;
- *   · a write: `update-components` came back as an apply rather than a dry run, or `prune` as applied.
+ * INDEPENDENCE (`docs/34`): the protocol shapes below (`PROTOCOL_V`, `TRANSPORTS`, `ERROR_CODES`, the envelope's
+ * fields) are LITERALS copied from what the plugin declared when this was written, never read from
+ * `apps/plugin/src/agent-protocol.ts` at judge time. A judge that imported the plugin's own types would agree with any
+ * build by construction. When the protocol moves on purpose, these move in the same PR, by hand. (`--commands` does
+ * import the plugin's brand compiler, to build an ARGUMENT; nothing it returns is an expectation.)
+ *
+ * WHAT IT HOLDS ON:
+ *   · the run: not the run format; its `commit` is not `--expect`; its `stamp` (what the build printed) is not the
+ *     stamp `status` reports, so the plugin Figma ran is not the one this job built;
+ *   · per command: the response is missing; it does not parse as a result envelope (the shape below); its `cmd` is not
+ *     its key; it carries a host `error` (`handler-threw`, `bad-args`, `unknown-command`, `busy`, `link-off`, …); `ok` is
+ *     not true, or the dispatcher marked the result (`data.noVerdict`, `data.earlierVerdicts`); an exception's text in
+ *     the verdict, a refusal reason, a blocker or a log line (`EXCEPTION`; #3209's `'get' on proxy` started this);
+ *   · `status` and `status-after`: the build stamp's commit (#3253's `<ISO> tree-<8 hex> <commit>`) is not `--expect`,
+ *     or is `-dirty`, `git-unavailable` or missing; the build does not list a command the canary sends; the open file
+ *     is not the scratch file. Both bracket the run, so a bridge that moved to another plugin mid-run (#3297) is
+ *     caught on the way out; `status-after` must also report the same build as `status`;
+ *   · a write: `update-components` came back as an apply rather than a dry run, or `prune` as applied;
+ *   · a response under a key the canary does not send.
  * `run-code` (the host-descriptor read, dev builds only) is RECORDED, never judged: it measures, it cannot fail.
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** The read-only commands the Mac sends, in order. `prune` carries the house brand (filled in by `--commands`). */
+/** The read-only commands the Mac sends, in order, and the closing `status` it sends again. */
 export const CANARY_COMMANDS = ['status', 'readback', 'update-components', 'prune'] as const;
 export type CanaryCmd = (typeof CANARY_COMMANDS)[number];
 /** Recorded, not judged. */
 export const RECORDED_COMMANDS = ['run-code'] as const;
+/** The keys of `responses`, in the order the Mac runs them. `status-after` is a second `status`. */
+export const RUN_KEYS = ['status', 'readback', 'update-components', 'prune', 'run-code', 'status-after'] as const;
+/** The scratch file the owner created (#3215 Q-C3 A). A name, not a key: the key never enters this repo. */
+export const SCRATCH_FILE = 'Prism3 canary (scratch)';
+export const RUN_FORMAT = 'prism3-figma-canary-run/1';
+
+/** THE PROTOCOL, AS LITERALS (see INDEPENDENCE above). */
+export const PROTOCOL_V = 1;
+export const TRANSPORTS = ['mailbox', 'bridge'];
+export const ERROR_CODES = ['bad-envelope', 'bad-version', 'unknown-command', 'bad-args', 'stale', 'handler-threw', 'busy', 'link-off'];
 
 /** Text that means something threw, wherever it turns up in a verdict, a refusal, a blocker or a log line. */
 export const EXCEPTION = [
@@ -60,6 +81,36 @@ const strings = (x: unknown, out: string[] = []): string[] => {
   else if (x && typeof x === 'object') for (const y of Object.values(x)) strings(y, out);
   return out;
 };
+const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
+
+/**
+ * Does it parse as a result envelope? The first field that does not, or null. Written from the plugin's declared shape
+ * (`v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport`, then exactly one of `result {verdict, data, logs}`
+ * and `error {code, message}`; `ok` false whenever `error` is set), as literals.
+ */
+export const shapeFault = (e: unknown): string | null => {
+  if (!isObj(e)) return 'not an object';
+  if (e.v !== PROTOCOL_V) return `v is ${JSON.stringify(e.v)}, not ${PROTOCOL_V}`;
+  for (const k of ['id', 'cmd', 'startedAt', 'finishedAt', 'engineVersion']) if (typeof e[k] !== 'string' || e[k] === '') return `${k} is not a non-empty string`;
+  if (typeof e.ok !== 'boolean') return 'ok is not a boolean';
+  if (!TRANSPORTS.includes(e.transport as string)) return `transport is ${JSON.stringify(e.transport)}, not one of ${TRANSPORTS.join(', ')}`;
+  const hasResult = 'result' in e && e.result !== undefined;
+  const hasError = 'error' in e && e.error !== undefined;
+  if (hasResult === hasError) return hasResult ? 'carries both result and error' : 'carries neither result nor error';
+  if (hasError) {
+    const err = e.error;
+    if (!isObj(err) || typeof err.code !== 'string' || typeof err.message !== 'string') return 'error is not {code, message}';
+    if (!ERROR_CODES.includes(err.code)) return `error.code ${JSON.stringify(err.code)} is not a code the protocol declares`;
+    if (e.ok !== false) return 'ok is true beside an error';
+    return null;
+  }
+  const r = e.result;
+  if (!isObj(r)) return 'result is not an object';
+  if (!(r.verdict === null || isObj(r.verdict))) return 'result.verdict is neither an object nor null';
+  if (!isObj(r.data)) return 'result.data is not an object';
+  if (!Array.isArray(r.logs) || r.logs.some((l) => typeof l !== 'string')) return 'result.logs is not a list of strings';
+  return null;
+};
 
 /** The commit field of a build stamp, or why there is none. */
 export const stampCommit = (build: unknown): { commit: string } | { why: string } => {
@@ -73,54 +124,72 @@ export const stampCommit = (build: unknown): { commit: string } | { why: string 
 };
 const sameCommit = (a: string, b: string): boolean => a.length >= 7 && b.length >= 7 && (a.startsWith(b) || b.startsWith(a));
 
-/** Judge one run. Pure: the envelopes, the expected commit, and the scratch file's name when it is known. */
-export const judge = (envelopes: unknown, expect: string, opts: { fileName?: string } = {}): Judgement => {
+/** Judge one run. Pure: the run file, the expected commit, and the scratch file's name. */
+export const judge = (run: unknown, expect: string, opts: { fileName?: string } = {}): Judgement => {
+  const fileName = opts.fileName ?? SCRATCH_FILE;
   const rows: Row[] = [];
-  const list = (Array.isArray(envelopes) ? envelopes : []) as Envelope[];
-  if (!Array.isArray(envelopes)) rows.push({ cmd: '(input)', status: 'FAIL', why: 'the envelopes are not a JSON array' });
-  for (const cmd of CANARY_COMMANDS) {
-    const mine = list.filter((e) => e && e.cmd === cmd);
-    const fail = (why: string) => rows.push({ cmd, status: 'FAIL', why });
-    if (mine.length === 0) { fail('no envelope came back for this command'); continue; }
-    if (mine.length > 1) { fail(`${mine.length} envelopes came back for one command`); continue; }
-    const e = mine[0];
-    if (e.error) { fail(`host error ${e.error.code ?? '?'}: ${e.error.message ?? ''}`); continue; }
+  const fail = (cmd: string, why: string) => rows.push({ cmd, status: 'FAIL', why });
+  const r = isObj(run) ? run : {};
+  const responses = isObj(r.responses) ? r.responses : {};
+  if (!isObj(run) || r.format !== RUN_FORMAT || !isObj(r.responses)) {
+    fail('(run)', `not a canary run file: expected {format: "${RUN_FORMAT}", commit, stamp, builtFrom, responses}`);
+  } else {
+    if (typeof r.commit !== 'string' || !sameCommit(r.commit, expect)) fail('(run)', `the job built ${JSON.stringify(r.commit)}, not ${expect}`);
+    const st = isObj(responses.status) ? (responses.status as Envelope).result?.data?.status as { build?: unknown } | undefined : undefined;
+    if (typeof r.stamp !== 'string') fail('(run)', 'the job recorded no build stamp');
+    else if (st && typeof st.build === 'string' && st.build !== r.stamp) fail('(run)', `the plugin Figma ran is not the one this job built: status says "${st.build}", the build printed "${r.stamp}"`);
+  }
+  // The opening `status`'s build, read raw: `status-after` is held to it only when there is one to compare.
+  const firstBuild = isObj(responses.status) ? ((responses.status as Envelope).result?.data?.status as { build?: unknown } | undefined)?.build : undefined;
+  for (const key of RUN_KEYS) {
+    const cmd = key === 'status-after' ? 'status' : key;
+    const raw = responses[key];
+    if (key === 'run-code') {
+      if (raw === undefined) continue;
+      const e = raw as Envelope;
+      rows.push({ cmd: key, status: 'RECORDED', why: isObj(e) && e.error ? `not measured: ${e.error.code} ${e.error.message ?? ''}` : 'measured; see result.data.value' });
+      continue;
+    }
+    const no = (why: string) => fail(key, why);
+    if (raw === undefined) { no('no response came back for this command'); continue; }
+    const fault = shapeFault(raw);
+    if (fault) { no(`does not parse as a result envelope: ${fault}`); continue; }
+    const e = raw as Envelope;
+    if (e.cmd !== cmd) { no(`the response is for "${e.cmd}", not "${cmd}"`); continue; }
+    if (e.error) { no(`host error ${e.error.code ?? '?'}: ${e.error.message ?? ''}`); continue; }
     const verdict = e.result?.verdict ?? null;
     const data = e.result?.data ?? {};
     const headline = verdict && typeof verdict.headline === 'string' ? verdict.headline : '';
     // The headline names the outcome (#3209's: `✗ check failed`); the exception's own text is in the summary or lines.
     const quoted = firstMatch([...strings(verdict).filter((t) => t !== headline), ...(e.result?.logs ?? [])]) ?? firstMatch([headline]);
-    if (e.ok !== true) { fail(`ok: ${String(e.ok)}${headline ? ` — ${headline}` : ''}${quoted && quoted !== headline ? ` — ${quoted}` : ''}`); continue; }
-    if ('noVerdict' in data) { fail(`no verdict: ${String(data.noVerdict)}`); continue; }
-    if ('earlierVerdicts' in data) { fail('more than one verdict came back'); continue; }
+    if (e.ok !== true) { no(`ok: ${String(e.ok)}${headline ? ` — ${headline}` : ''}${quoted && quoted !== headline ? ` — ${quoted}` : ''}`); continue; }
+    if ('noVerdict' in data) { no(`no verdict: ${String(data.noVerdict)}`); continue; }
+    if ('earlierVerdicts' in data) { no('more than one verdict came back'); continue; }
     const update = data.update as { mode?: string; refused?: { reason?: string }[]; sets?: { blockers?: string[] }[] } | undefined;
     const thrown = quoted ?? firstMatch([...strings(update?.refused ?? []), ...strings((update?.sets ?? []).map((s) => s.blockers ?? []))]);
-    if (thrown) { fail(`an exception's text: ${thrown}`); continue; }
+    if (thrown) { no(`an exception's text: ${thrown}`); continue; }
     if (cmd === 'status') {
       const s = (data.status ?? {}) as { build?: unknown; file?: { name?: unknown }; commands?: unknown };
+      if (s.file?.name !== fileName) { no(`the open file is "${String(s.file?.name)}", not the scratch file "${fileName}"`); continue; }
       const c = stampCommit(s.build);
-      if ('why' in c) { fail(c.why); continue; }
-      if (!sameCommit(c.commit, expect)) { fail(`the plugin was built from ${c.commit}, not ${expect}: a stale or wrong build proves nothing`); continue; }
+      if ('why' in c) { no(c.why); continue; }
+      if (!sameCommit(c.commit, expect)) { no(`the plugin was built from ${c.commit}, not ${expect}: a stale or wrong build proves nothing`); continue; }
+      if (key === 'status-after' && typeof firstBuild === 'string' && s.build !== firstBuild) { no(`the build changed during the run: "${String(firstBuild)}" then "${String(s.build)}"`); continue; }
       const listed = Array.isArray(s.commands) ? (s.commands as string[]) : [];
       const absent = CANARY_COMMANDS.filter((x) => !listed.includes(x));
-      if (absent.length) { fail(`the build does not answer ${absent.join(', ')}`); continue; }
-      if (opts.fileName !== undefined && s.file?.name !== opts.fileName) { fail(`the open file is "${String(s.file?.name)}", not the scratch file "${opts.fileName}"`); continue; }
-      rows.push({ cmd, status: 'PASS', why: `built from ${c.commit}${opts.fileName !== undefined ? `, in "${opts.fileName}"` : ''}` });
+      if (absent.length) { no(`the build does not answer ${absent.join(', ')}`); continue; }
+      rows.push({ cmd: key, status: 'PASS', why: `built from ${c.commit}, in "${fileName}"` });
       continue;
     }
-    if (cmd === 'update-components' && update?.mode !== 'preview') { fail(`not a dry run: data.update.mode is ${JSON.stringify(update?.mode)}, not "preview"`); continue; }
-    if (cmd === 'prune' && (verdict?.applied !== false || 'pruneApplied' in data)) { fail('not a preview: the prune was applied'); continue; }
-    rows.push({ cmd, status: 'PASS', why: headline || (typeof verdict?.summary === 'string' ? verdict.summary : '') || 'ok' });
+    if (cmd === 'update-components' && update?.mode !== 'preview') { no(`not a dry run: data.update.mode is ${JSON.stringify(update?.mode)}, not "preview"`); continue; }
+    if (cmd === 'prune' && (verdict?.applied !== false || 'pruneApplied' in data)) { no('not a preview: the prune was applied'); continue; }
+    rows.push({ cmd: key, status: 'PASS', why: headline || (typeof verdict?.summary === 'string' ? verdict.summary : '') || 'ok' });
   }
-  for (const cmd of RECORDED_COMMANDS) {
-    const e = list.find((x) => x && x.cmd === cmd);
-    if (e) rows.push({ cmd, status: 'RECORDED', why: e.error ? `not measured: ${e.error.code} ${e.error.message ?? ''}` : 'measured; see result.data.value' });
-  }
-  const unknown = list.filter((e) => !e || ![...CANARY_COMMANDS, ...RECORDED_COMMANDS].includes(e.cmd as CanaryCmd));
-  if (unknown.length) rows.push({ cmd: '(other)', status: 'FAIL', why: `envelopes for commands the canary does not send: ${unknown.map((e) => e?.cmd ?? '?').join(', ')}` });
-  const failed = rows.filter((r) => r.status === 'FAIL');
+  const unknown = Object.keys(responses).filter((k) => !(RUN_KEYS as readonly string[]).includes(k));
+  if (unknown.length) fail('(other)', `responses for commands the canary does not send: ${unknown.join(', ')}`);
+  const failed = rows.filter((x) => x.status === 'FAIL');
   const safe = failed.length === 0;
-  return { rows, safe, line: safe ? `safe to rebuild from ${expect}` : `held: ${failed.map((r) => `${r.cmd} — ${r.why}`).join('; ')}` };
+  return { rows, safe, line: safe ? `checked, safe to rebuild from ${expect}` : `held: ${failed.map((x) => `${x.cmd} — ${x.why}`).join('; ')}` };
 };
 
 export const render = (j: Judgement): string => {
@@ -151,8 +220,8 @@ if (isMain) {
   }
   const file = argv.find((a, i) => !a.startsWith('--') && !(i > 0 && argv[i - 1].startsWith('--')));
   const expect = opt('expect');
-  if (!file || !expect) { console.error('usage: judge.ts <envelopes.json> --expect <commit> [--file-name <name>] · judge.ts --commands'); process.exit(2); }
-  let envelopes: unknown;
-  try { envelopes = JSON.parse(readFileSync(resolve(process.cwd(), file), 'utf8')); } catch (e) { console.error(`judge.ts: cannot read ${file}: ${(e as Error).message}`); process.exit(2); }
-  console.log(render(judge(envelopes, expect, { fileName: opt('file-name') })));
+  if (!file || !expect) { console.error('usage: judge.ts <run.json> --expect <commit> [--file-name <name>] · judge.ts --commands'); process.exit(2); }
+  let run: unknown;
+  try { run = JSON.parse(readFileSync(resolve(process.cwd(), file), 'utf8')); } catch (e) { console.error(`judge.ts: cannot read ${file}: ${(e as Error).message}`); process.exit(2); }
+  console.log(render(judge(run, expect, { fileName: opt('file-name') })));
 }
