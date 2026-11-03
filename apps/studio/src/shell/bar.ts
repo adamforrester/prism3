@@ -322,6 +322,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     left.append(seg, h('p', 'p3-bardlg-desc', x.desc));
     if (x.settings.length) {
       left.append(h('div', 'p3-menu-div'));
+      // #3337: the settings are one list, a grid at the row rhythm (`.p3-export-sets`).
+      const sets = h('div', 'p3-export-sets');
       for (const s of x.settings) {
         const row = h('div', 'p3-export-set');
         row.append(h('div', 'p3-export-lab', s.label));
@@ -335,8 +337,9 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
           sseg.append(b);
         }
         row.append(sseg, h('p', 'p3-bardlg-note', s.desc));
-        left.append(row);
+        sets.append(row);
       }
+      left.append(sets);
     } else if (x.none) left.append(h('p', 'p3-bardlg-note', x.none));
     for (const blk of x.right) {
       if (blk.kind === 'cap') right.append(h('div', 'p3-menu-cap', blk.text));
