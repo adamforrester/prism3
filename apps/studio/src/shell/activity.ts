@@ -42,6 +42,7 @@
  */
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
+import type { Cause } from '../../../plugin/src/messages';
 import type { Host } from './pages';
 import { armEnter, enterMark, glyph, h, hook, leave, tile } from './dom';
 
@@ -178,6 +179,9 @@ export type OpReading = {
   readonly lines?: readonly string[] | null;
   /** #2858: an Update's library publish description, offered with a Copy button under the result's lines. */
   readonly publish?: string | null;
+  /** #3326 (Q3326.1 A): why the result is not clean, as the writer sent it. Drawn first, one disclosure per cause; the
+   *  drawer never finds a cause in `lines`. */
+  readonly causes?: readonly Cause[] | null;
   readonly phase: string | null;
   readonly progress: { readonly done: number; readonly total: number } | null;
   readonly agent: boolean;
@@ -199,6 +203,8 @@ export type ActivitySource = () => ActivityReading;
  *  no new message: `can` says whether it may start now (nothing else in its way), `run` starts it. Absent, no
  *  operation offers to run again. */
 export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void;
+  /** #3326: a cause's subject (a def id) in the panel's words, the set's name. Absent, the id is shown. */
+  readonly nameOf?: (id: string) => string;
   readonly again?: { readonly can: (k: OpKey) => boolean; readonly run: (k: OpKey) => void } };
 
 /** Q3113.4 A: a bad result's next step that runs it again, by operation (DRAFT wording). The boot read-back has none:
@@ -241,10 +247,11 @@ const statusWords = (running: number, failures: number, warnings: number, unread
  *  its reason, the first line of the host's detail (or its headline, without the leading mark, when it sent none). A
  *  warning reads "finished with a warning", since the run did finish; a failure reads "failed", told apart as the Activity
  *  button counts them (a "⚠" verdict is a warning unless the run reports something it was asked to make failed). */
-export const finishLine = (k: OpKey, o: Pick<OpReading, 'state' | 'verdict' | 'summary' | 'lines' | 'failed'>): string => {
+export const finishLine = (k: OpKey, o: Pick<OpReading, 'state' | 'verdict' | 'summary' | 'lines' | 'failed' | 'causes'>): string => {
   if (o.state !== 'bad') return `${OP_TITLE[k]} finished.`;
   const bare = (o.verdict ?? '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
-  const reason = (o.lines?.find((l) => l.trim()) ?? o.summary?.split('\n').find((l) => l.trim()) ?? bare).trim().replace(/[.\s]+$/, '');
+  // #3326: the first cause's first reason, when the writer named one; else, as before, the first line.
+  const reason = (o.causes?.find((c) => c.reasons.length)?.reasons[0] ?? o.lines?.find((l) => l.trim()) ?? o.summary?.split('\n').find((l) => l.trim()) ?? bare).trim().replace(/[.\s]+$/, '');
   const warning = kindOf(false, o.verdict, o.failed) === 'warn';
   return `${OP_TITLE[k]} ${warning ? 'finished with a warning' : 'failed'}${reason ? `: ${reason}` : ''}.`;
 };
@@ -254,7 +261,8 @@ const clock = (d: Date): string => d.toTimeString().slice(0, 5);
 
 /** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
  *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
-type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly publish?: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true;
+type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly publish?: string | null;
+  readonly causes?: readonly Cause[] | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true;
   /** What the run reported as failed, as data (`OpReading.failed`), so a "⚠" result with a failed item is a failure. */
   readonly failed?: number };
 /** A recorded result's kind. A declined request (#1957) is not a failure: the running write goes on. */
@@ -267,11 +275,12 @@ const markOf = (state: Kind | 'run'): HTMLElement => {
   if (state !== 'run') m.append(glyph(KIND_GLYPH[state]));
   return m;
 };
-/** Where a bad result's details split (Q3113.5 A): its reason, the first line, set in the UI face; the rest, mono. */
-const splitLines = (r: Pick<Result, 'summary' | 'lines'>): { reason: string | null; rest: readonly string[] } => {
-  const all = (r.lines?.length ? r.lines : r.summary ? [r.summary] : []).filter((l) => l.trim());
-  return { reason: all[0] ?? null, rest: all.slice(1) };
-};
+/** A result's lines, in the writer's order (#2177): the summary as one line when the host sent none. #3326 (Q3326.1 A):
+ *  no line is picked out as the reason by its place any more. The reason is a cause the writer names (`causesOf`). */
+const allLines = (r: Pick<Result, 'summary' | 'lines'>): readonly string[] =>
+  (r.lines?.length ? r.lines : r.summary ? [r.summary] : []).filter((l) => l.trim());
+/** #3326: the labels before a cause's what-stays and what-to-do (owner-approved wording, Q3326 copy). */
+export const CAUSE_COPY = { stays: 'What stays:', todo: 'What to do:', step: (s: string): string => `Step: ${s}` } as const;
 /** One operation's record: what the drawer has seen of it this session. */
 type Rec = { t: string; result: Result | null; history: Result[] };
 
@@ -290,6 +299,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const { narrow } = opts;
   const now = opts.now ?? (() => new Date());
   const { read, closeDetail } = opts.lend;
+  const nameOf = opts.lend.nameOf ?? ((id: string) => id);
 
   // ── the button, in the top bar ─────────────────────────────────────────────────────────────────
   // A bar tile (the owner's top-bar decision, 2026-10-05): the glyph and its status dot over "Activity", the glyph
@@ -491,14 +501,55 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     return box;
   };
 
+  /**
+   * #3326 (Q3326.1 A, Q3326.5 A; #3308 Q3308.1 A): a result's causes, first, one disclosure each, the first open. Closed,
+   * a cause reads its mark, the set in emphasis, what happened, then `· <first reason>` clipped to one line; open, every
+   * reason one per line, wrapping, then its why, what stays and what to do. Drawn from the writer's `causes` only.
+   */
+  const causesEl = (res: Result, hookOf: string): HTMLElement | null => {
+    const causes = kindOfResult(res) === 'ok' ? [] : res.causes ?? [];
+    if (!causes.length) return null;
+    const ul = hook(h('ul', 'p3-op-causes'), hookOf);
+    causes.forEach((c, i) => {
+      const d = hook(h('details', 'p3-op-cause'), 'op-cause') as HTMLDetailsElement;
+      d.dataset.kind = c.kind;
+      if (i === 0) d.open = true;
+      const sum = h('summary');
+      const subj = hook(h('span', 'p3-op-cause-subj', c.subject === null ? '' : `${nameOf(c.subject)}:`), 'op-cause-subject');
+      subj.hidden = c.subject === null;
+      sum.append(glyph('chevr'), markOf(c.kind), subj, hook(h('span', 'p3-op-cause-what', c.what), 'op-cause-what'));
+      if (c.reasons.length) sum.append(h('span', 'p3-op-cause-first', `· ${c.reasons[0]}`));
+      if (c.step) sum.append(h('span', 'p3-op-cause-step', c.step));
+      const body = h('div', 'p3-op-cause-body');
+      if (c.step) body.append(h('p', 'p3-op-cause-say p3-op-cause-steptext', CAUSE_COPY.step(c.step)));
+      if (c.reasons.length) {
+        const rs = hook(h('ul', 'p3-op-cause-reasons'), 'op-cause-reasons');
+        for (const r of c.reasons) rs.append(hook(h('li', undefined, r), 'op-cause-reason'));
+        body.append(rs);
+      }
+      if (c.why) body.append(h('p', 'p3-op-cause-say p3-op-cause-why', c.why));
+      for (const [label, text] of [[CAUSE_COPY.stays, c.stays], [CAUSE_COPY.todo, c.todo]] as const) {
+        if (!text) continue;
+        const p = h('p', 'p3-op-cause-say');
+        p.append(h('b', undefined, `${label} `), text);
+        body.append(p);
+      }
+      d.append(sum, body);
+      const li = h('li');
+      li.append(d);
+      ul.append(li);
+    });
+    return ul;
+  };
+
   /** A result's lines (#2177): one per item, each in the chrome's mono font, a long one wrapping inside the drawer. A
-   *  list, so a screen reader reads them in order and says how many. A bad result's first line is its reason, set apart
-   *  in the UI face (Q3113.5 A). */
-  const linesOf = (res: Result, hookOf: { list: string; line: string; reason: string }): HTMLElement[] => {
-    const bad = kindOfResult(res) !== 'ok';
-    const { reason, rest } = bad ? splitLines(res) : { reason: null, rest: (res.lines?.length ? res.lines : res.summary ? [res.summary] : []) };
+   *  list, so a screen reader reads them in order and says how many. #3326: a bad result's causes come first
+   *  (`causesEl`); no line is set apart as the reason by its place. */
+  const linesOf = (res: Result, hookOf: { list: string; line: string; causes: string }): HTMLElement[] => {
+    const rest = allLines(res);
     const out: HTMLElement[] = [];
-    if (reason) out.push(hook(h('p', 'p3-op-reason', reason), hookOf.reason));
+    const causes = causesEl(res, hookOf.causes);
+    if (causes) out.push(causes);
     if (rest.length) {
       const list = hook(h('ul', 'p3-op-summary'), hookOf.list);
       for (const line of rest) list.append(hook(h('li', 'p3-op-line', line), hookOf.line));
@@ -554,7 +605,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       // True of this plugin: the build lands each set on its own page and shows it (v6's line).
       if (k === 'components') parts.push(h('p', 'p3-note', "Build set switches Figma to the set's page."));
     } else if (res) {
-      parts.push(...linesOf(res, { list: 'op-summary', line: 'op-line', reason: 'op-reason' }));
+      parts.push(...linesOf(res, { list: 'op-summary', line: 'op-line', causes: 'op-causes' }));
       if (res.publish) parts.push(publishBlock(res.publish));
       if (!res.ok) parts.push(nextSteps(k, res));
     }
@@ -574,7 +625,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         const head = hook(h('span', 'p3-op-entry-head'), 'op-history-head');
         head.append(markOf(kindOfResult(x)), h('span', 'p3-op-when', x.t), h('span', undefined, x.refused ? x.verdict : verdictWords(x.verdict)));
         if (x.agent) { const tag = h('span', 'p3-op-agent'); tag.append(glyph('agent'), 'Agent'); head.append(tag); }
-        const lines = x.summary ? linesOf(x, { list: 'op-history-lines', line: 'op-history-line', reason: 'op-history-reason' }) : [];
+        const lines = x.summary ? linesOf(x, { list: 'op-history-lines', line: 'op-history-line', causes: 'op-history-causes' }) : [];
         if (lines.length) {
           head.prepend(glyph('chevr'));
           const one = h('details', 'p3-op-entry') as HTMLDetailsElement;
@@ -766,7 +817,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     if (!r) { r = { t: '', result: null, history: [] }; recs.set(k, r); }
     return r;
   };
-  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, agent: o.agent, t, ref: o.ref, failed: o.failed ?? 0 });
+  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, causes: o.causes ?? null, agent: o.agent, t, ref: o.ref, failed: o.failed ?? 0 });
   /** The previous result moves to the history, newest first, at most `HISTORY_MAX`. */
   const retire = (rec: Rec): void => {
     if (rec.result) rec.history = [rec.result, ...rec.history].slice(0, HISTORY_MAX);

@@ -1124,7 +1124,9 @@ const mountView = (view: RootView): void => {
       frame = mountFrame(app, {
         host: commit.isFigma ? 'figma' : 'web',
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
-        activity: { read: activityReading, closeDetail: closeOpenDetail, again: commit.isFigma ? activityAgain : undefined },
+        activity: { read: activityReading, closeDetail: closeOpenDetail, again: commit.isFigma ? activityAgain : undefined,
+          // #3326: a cause names its set by def id; the drawer shows the set's name.
+          nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id },
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
         documentation: commit.isFigma ? documentationLend : null,
@@ -1615,7 +1617,7 @@ const opReading = (k: OpKey, busy: boolean, settled: Omit<OpReading, 'phase' | '
 };
 /** A write slot's verdict, as a settled reading. */
 const verdictOf = (st: HostSession['applyState']): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
-  st === null || st === 'pending' ? null : { state: st.ok ? 'ok' : 'bad', ref: st, verdict: st.headline, summary: st.summary, lines: st.lines ?? null, publish: st.publish ?? null };
+  st === null || st === 'pending' ? null : { state: st.ok ? 'ok' : 'bad', ref: st, verdict: st.headline, summary: st.summary, lines: st.lines ?? null, publish: st.publish ?? null, causes: st.causes ?? null };
 /** The short verdicts Read-back and Prune stale show on their rows (owner decision #3 on #1956): a word or
  *  a count, with the host's full sentence in the row's details. The other rows' verdicts are already short
  *  headlines. */
