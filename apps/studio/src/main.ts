@@ -1791,7 +1791,8 @@ const postCurrent = (): void => {
   const id = run ? currentOf(run) : null;
   if (!id) return;
   setHost({ componentState: 'pending', componentProgress: null, openDetail: null, componentDef: id });
-  commit.postComponents(id);
+  // #3308 (Q3308.3 A): Update file's sets step asks each build to make `_Doc-block` first, when the file lacks it.
+  commit.postComponents(id, !!updateRun && stepOf(updateRun) === 'sets');
 };
 /** Build these sets (#2700: the action bar's selection, or Subcomponents' "Build all"), one after another. Refuses
  *  while a build runs, the panel's or an agent's (the one re-fire guard, #1956 decision 4), and drops a set the catalog
@@ -2104,7 +2105,7 @@ const updateFileLend: UpdateFileLend = {
     fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: writeOff(),
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
-    handEdits: host.handEdits, updateCheck: host.updateCheck, queue: host.addQueue,
+    handEdits: host.handEdits, updateCheck: host.updateCheck, queue: host.addQueue, panels: host.docSettings?.panels !== false,
     rowState: (id) => rowState(stripRun, id), stopLabel: () => { const v = statusLend.read(); return v.kind === 'running' ? v.stop.label : null; },
     panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean,
   }),
