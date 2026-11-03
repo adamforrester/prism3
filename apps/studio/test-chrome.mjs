@@ -18129,7 +18129,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 //     Buttons splits …`; the held marking dropped (`box()`'s `aria-disabled` line) → `3129 figma … Q3306.2 A, Q3306.4 A:
 //     a needed set is ticked and held …`; the Also line not drawn → `3129 figma … Q3306.5 A: To add's one Also adds
 //     line …`; the line split in two again (the needed sets and #3308's `_Doc-block` sets each drawn on its own
-//     `update-add-also`, against the owner's call A on the review) → the same arm and `3129 … #3308, #3306: panels on …`.
+//     `update-add-also`, against the owner's call A on the review) → `figma … #3308, #3306: panels on …` (section 10;
+//     this section's fixture has no `_Doc-block` sets, so its arm reads one line either way).
 //     The click guard on a held box is belt and braces: the model writes nothing for it (`toggleSets`), which
 //     `test-component-groups.ts` holds by name, so removing the guard alone leaves this arm green;
 //   · R6: Due drawn as an item of its own again → `3129 figma … R6: one Components section …`;

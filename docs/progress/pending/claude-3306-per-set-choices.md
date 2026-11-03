@@ -58,10 +58,10 @@ section box is the row's (R5), and that is the box that shows held when Banner i
   families, the held box (its state, name, title and Needed tag), a held tick that posts nothing, Buttons with only
   Button.Group chosen (a box per set at the section's edge, Button held, the badge counting 1 chosen set plus 2 due), and
   To add's Also line. Mutations fail by name: set boxes off in a family row; set boxes off in a flat section; held marking
-  dropped; Also line not drawn; the line split in two again.
+  dropped; Also line not drawn.
 - The review's fix round: a private part named in the line fails `Also adds (owner, A and B): one line …`; the line split
-  in two fails `3129 … Q3306.5 A: To add's one Also adds line …` and `#3308, #3306: panels on …`, which now read every
-  `update-add-also` in the dialog, not the first. The vacuous private-root fixture gains one nothing nests (`rootsOf`
+  in two (needed sets and `_Doc-block` sets each on its own `update-add-also`) fails `#3308, #3306: panels on …` at all
+  six viewports. That arm and §3129's now read every `update-add-also` in the dialog, not the first. The vacuous private-root fixture gains one nothing nests (`rootsOf`
   without `isPrivate` fails by name), `neededOf`'s `buildable` skip is pinned by a planted set with no geometry, and
   Select all's needed-set behavior has its own arm.
 - **One mutation stayed green, on purpose.** With the held box's click guard removed, the model still writes nothing for
