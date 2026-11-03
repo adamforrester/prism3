@@ -597,8 +597,11 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         nests: 'focus-ring',
         inset: 'ring-offset',
         strokeInset: 'ring-width',
+        // INSIDE THE FIELD'S BORDER (#3328, owner decision Q3328.1 A): the border goes to the focus ink and the ring's
+        // band sits inside it, at the field's own radius, so the focus reads as one 3px edge with no outer frame.
+        borderInset: 'border-width',
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke — so the focus signal never contends with the input\'s own border.',
+        note: 'An absolutely-positioned sibling nesting the shared `focus-ring`, drawn inside the field\'s border at the field\'s own radius (#3328): the border takes the focus ink and the ring\'s band sits inside it, so the focus reads as one edge with no outer frame. Takes no cell, so no text moves.',
       },
       // THE NESTED MESSAGE (nest-fixed, FOLLOWING status). An in-flow instance of `field-message` whose single
       // projected axis, `status`, is DRIVEN by text-field's `status` axis via `follow` — a same-name,
@@ -759,7 +762,7 @@ export const textField: ComponentDef = makeTextField({
       '3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste',
     ],
     keyboard: 'Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are separate tab stops with their own accessible names. Escape clears when clearable.',
-    focus: ':focus-visible ring, boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.',
+    focus: ':focus-visible ring, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field\'s own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.',
     aria: 'The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.',
   },
 

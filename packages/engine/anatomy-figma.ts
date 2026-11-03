@@ -338,6 +338,13 @@ export type FigmaNodePlan = {
    *  sibling is — a name this projection references without binding, and an unresolvable one silently
    *  returns the ring to flush. */
   absoluteStrokeInset?: string;
+  /** The variable name of the HOST's border width the part sits INSIDE (#3328, owner decision Q3328.1 A). Where it
+   *  resolves above 0, both executors site the part that far inside the host on every side instead of outside it,
+   *  skip the `absoluteStrokeInset` compensation (nothing is drawn outward), and bind the part's four corners to the
+   *  host's own corner variables, so the focus band runs inside the field's border at the field's radius token and
+   *  no radius is written as a literal. Where it resolves to 0 (the Counter's ghost) the part is sited as without
+   *  it. A NAME for `absoluteInset`'s reason: the plan stays brand-invariant and the number freezes at paste. */
+  absoluteBorderInset?: string;
   /** Taken out of the auto-layout flow and CENTERED, rather than inset from its parent's bounds.
    *
    *  A separate field from `absoluteInset` even though both end in `layoutPositioning='ABSOLUTE'`,
@@ -2393,6 +2400,9 @@ export const figmaAnatomyPlan = (
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
       ...(p.kind === 'absolute' && p.inset && p.strokeInset ? { absoluteStrokeInset: varOf(p.strokeInset) } : {}),
+      // The host border the ring sits inside (#3328), projected only alongside an inset, so every other plan is
+      // byte-identical.
+      ...(p.kind === 'absolute' && p.inset && p.borderInset ? { absoluteBorderInset: varOf(p.borderInset) } : {}),
       // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
       // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
       ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
@@ -2692,7 +2702,7 @@ export const fieldStyleFor = (defId: string, input: { fieldStyle?: FieldStyle; s
  *     the node, so the thicker line moves no box. The color is the def's own border paint, unchanged: rest, hover,
  *     focus, the status swaps and read-only all keep their roles (Q9).
  *   · THE RING (Q3): the nested focus ring's inset takes `focus.ring.offset` (2px), since no side edge now separates
- *     it from the value.
+ *     it from the value, and it drops `borderInset` (#3328): with no side border, there is no border to sit inside.
  *   · THE EDGES (Q5, Q6, Q10): the inline padding binds `space.0`, so the label, value, message and line share one
  *     start edge and a trailing glyph (Select's chevron) sits flush with the line's end; the corner binds
  *     `radius.none`, whatever Control shape chose, so this runs after `applyControlShape`.
@@ -2729,7 +2739,12 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
   for (const c of frame.children ?? []) {
     const child = a.parts[c];
     if (!child?.inset) continue;
-    if (child.kind === 'absolute' && child.nests === 'focus-ring') tokens[child.inset] = 'focus.ring.offset';
+    if (child.kind === 'absolute' && child.nests === 'focus-ring') {
+      tokens[child.inset] = 'focus.ring.offset';
+      // THE RING LEAVES THE BORDER (#3328): the outline edge's ring sits inside the field's border, and the underline
+      // has no side border to sit inside, so the ring goes back outside, at the control offset (Q3 above).
+      if (child.borderInset !== undefined) { const { borderInset: _inside, ...outside } = child; parts[c] = outside; }
+    }
     else if (child.kind === 'absolute' || child.corner) tokens[child.inset] = 'border-width.thick';
   }
   const { strokeWidth: _outline, ...rest } = frame;
@@ -3532,7 +3547,7 @@ const paintVarsOwn = (n: FigmaNodePlan): string[] =>
  *  and both executors fall back to the offset alone when it misses, which is a legible ring rather than a
  *  broken one, and therefore the kind of failure only a gate notices. */
 const readVarsOwn = (n: FigmaNodePlan): string[] =>
-  [n.absoluteInset, n.absoluteStrokeInset, n.cornerInset].filter((x): x is string => !!x);
+  [n.absoluteInset, n.absoluteStrokeInset, n.absoluteBorderInset, n.cornerInset].filter((x): x is string => !!x);
 
 /** Every paint variable a plan binds, depth-first. Exported for the gate that asserts a skinned plan
  *  actually carries paints — the check that a coordinate resolved to something. */
@@ -5142,7 +5157,7 @@ ${CORNER_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is
     // \`resolveForConsumer\` rather than reading \`valuesByMode\`: the value is itself an ALIAS to a
     // dimension primitive, and the raw map hands back a VARIABLE_ALIAS object rather than a number.
     const gap=v.resolveForConsumer(kid).value;
-    if(typeof gap!=='number'){misses.push(c.name+'.absoluteInset -> '+c.absoluteInset+' resolved to '+JSON.stringify(gap)+', not a number');continue;}
+    if(typeof gap!=='number'){misses.push(c.name+'.absoluteInset -> '+c.absoluteInset+' not a number');continue;}
     // THE STROKE THE GAP HAS TO CLEAR (#801). \`strokeAlign\` is INSIDE above — correct for a border,
     // since a stroke outside would grow the auto-layout footprint — so the nested ring draws its own
     // stroke back inward across the gap. At 2px offset and a 2px ring the outer edge lands exactly on the
@@ -5152,13 +5167,20 @@ ${CORNER_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is
     let inset=gap;
     if(c.absoluteStrokeInset){
       const sv=byName.get(c.absoluteStrokeInset);
-      if(!sv)misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' (positioned at the offset alone; the ring will sit flush against the border it must be distinguishable from — #801)');
+      if(!sv)misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' (#801)');
       else{
         const sw=sv.resolveForConsumer(kid).value;
-        if(typeof sw!=='number')misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' resolved to '+JSON.stringify(sw)+', not a number (positioned at the offset alone — the ring will sit flush, #801)');
+        if(typeof sw!=='number')misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' not a number (#801)');
         else inset=gap+sw;
       }
     }
+    // INSIDE THE HOST'S BORDER (#3328, Q3328.1 A). A field's ring is the focus band INSIDE its 1px border: sited the
+    // border's width in from the host's edge on every side, uncompensated (nothing is drawn outward), so the border
+    // recolored to the focus ink plus the ring's band read as one indicator with no outer frame. A width of 0 (the
+    // Counter's ghost, which draws no edge) leaves the outside ring above as it was. Lockstep with the plugin executor.
+    // Terse on purpose: this runs in every paste chunk's shell, which #1798's unit ceiling holds.
+    let inside=0;
+    if(c.absoluteBorderInset){const bw=byName.get(c.absoluteBorderInset)?.resolveForConsumer(kid).value;if(typeof bw!=='number')misses.push(c.name+'.absoluteBorderInset');else if(bw>0){inside=1;inset=gap-bw;}}
     // CLEAR THE INHERITED NOMINAL SIDE (#1388, #1290's prediction). The nested component's root binds
     // width AND height to its \`nominal-side\` (\`size.md.height\`, present only so it builds alone), and an
     // INSTANCE inherits that binding. \`resize\` clears the bindings this payload set but not one inherited
@@ -5180,9 +5202,12 @@ ${CORNER_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is
     // formula, three cases: a radius-0 host → \`inset\` (a rounded-rect ring, not a hard square); a full-round
     // host (radio, radius ≥ half its side) → \`host + inset ≥ ringSide/2\`, which Figma clamps to a circle;
     // an ordinary rounded host stays concentric at the constant gap. Frozen at paste like \`x\`/\`y\`/inset.
+    // INSIDE THE BORDER (#3328) the ring takes the HOST'S OWN corner variables instead: it runs at the field's radius
+    // token, so a brand re-runging its corner moves the ring with the field, and no radius is a literal.
     for(const corner of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius']){
       const hostR=node[corner];
-      if(typeof hostR==='number')kid[corner]=hostR+inset;
+      if(inside){const rv=byName.get(n.bound[corner]);rv?kid.setBoundVariable(corner,rv):misses.push(c.name+'.'+corner);}
+      else if(typeof hostR==='number')kid[corner]=hostR+inset;
     }
     // STRETCH on both axes so the ring tracks its target when a designer resizes a variant. Without it
     // the ring keeps the size it was pasted at and widening the button leaves it behind — silently,
@@ -5191,7 +5216,7 @@ ${CORNER_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is
     // READ BACK, the same discipline as every other setter here. \`layoutPositioning\` is rejected on a
     // child of a non-auto-layout parent, and an absolute child that quietly stayed in the flow ADDS a
     // cell to the row — the one thing the ring must not do to its host's geometry.
-    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
+    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (reads '+kid.layoutPositioning+'; the ring takes a cell)');
   }
 ${FOOT_PLACE_SLOT}  // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
 ${PIN_SLOT}${INSET_SLOT}
