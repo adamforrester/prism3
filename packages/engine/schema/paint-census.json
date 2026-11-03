@@ -447,24 +447,24 @@
     },
     "list-item": {
       "set": {
-        "members": 9,
-        "assignments": 18,
-        "sha256": "5491889b59c5b85fd01cfc07d08fb5a07ad7a31c01e755c5960c2101bb20a9bc"
+        "members": 12,
+        "assignments": 24,
+        "sha256": "013e37e856260b81e55000083677cdd75622e1411755b83737234675a861fc91"
       },
       "grid": {
-        "members": 9,
-        "assignments": 18,
-        "sha256": "1fb0f2a9b608e7f62660c6f669c9e3e08c7b136a94f3b8328c82ad064bd34451"
+        "members": 12,
+        "assignments": 24,
+        "sha256": "57b34105df5787a65b0b026256b2d31906ae8742e681129ebafac4459a363be9"
       }
     },
     "list": {
       "set": {
-        "members": 9,
+        "members": 12,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "grid": {
-        "members": 9,
+        "members": 12,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }

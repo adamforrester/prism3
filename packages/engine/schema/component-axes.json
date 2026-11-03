@@ -898,7 +898,8 @@
       "size": [
         "large",
         "medium",
-        "small"
+        "small",
+        "x-small"
       ],
       "type": [
         "icon",
@@ -906,7 +907,7 @@
         "unordered"
       ]
     },
-    "members": 9,
+    "members": 12,
     "properties": {
       "items": "SLOT"
     }
@@ -916,7 +917,8 @@
       "size": [
         "large",
         "medium",
-        "small"
+        "small",
+        "x-small"
       ],
       "type": [
         "icon",
@@ -924,7 +926,7 @@
         "unordered"
       ]
     },
-    "members": 9,
+    "members": 12,
     "properties": {
       "number": "TEXT",
       "swap icon": "INSTANCE_SWAP",

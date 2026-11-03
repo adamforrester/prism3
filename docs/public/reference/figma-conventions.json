@@ -2263,7 +2263,7 @@
         "kind": "component set",
         "page": "↳ List",
         "section": "Components",
-        "members": 9,
+        "members": 12,
         "variantProperties": [
           {
             "name": "type",
@@ -2277,6 +2277,7 @@
             "name": "size",
             "values": [
               "medium",
+              "x-small",
               "small",
               "large"
             ]
@@ -2306,7 +2307,7 @@
         "kind": "component set",
         "page": "↳ List",
         "section": "Components",
-        "members": 9,
+        "members": 12,
         "variantProperties": [
           {
             "name": "type",
@@ -2320,6 +2321,7 @@
             "name": "size",
             "values": [
               "medium",
+              "x-small",
               "small",
               "large"
             ]

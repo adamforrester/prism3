@@ -154,6 +154,12 @@ export const memberOf = (set: DNode | undefined, want: Readonly<Record<string, s
 const byTail = <T extends { name: string }>(all: readonly T[], tail: string): T | undefined =>
   all.find((v) => v.name === tail || v.name.endsWith(`/${tail}`));
 
+/** #3308 (Q3308.3 A): the def ids `_Doc-block` is built from, in the order a build makes them first. */
+export const DOC_BLOCK_DEFS: readonly string[] = [...new Set(Object.values(BLOCK_PARTS).map((p) => p.set))];
+/** Whether the file holds the theme `_Doc-block` binds (its primary text color), the one need besides its sets. */
+export const docBlockThemed = async (api: Pick<DocBlockApi, 'variables'>): Promise<boolean> =>
+  !!byTail(api.variables ? await api.variables.getLocalVariablesAsync() : [], BLOCK_COLORS.primary);
+
 /**
  * Build `_Doc-block` on `page` unless it is there already, from the file's Badge, Tag, List.Item and Divider sets and
  * its semantic variables. Never throws for a missing piece: what the build needs and the file lacks is returned.
@@ -314,6 +320,11 @@ export const ensureDocBlock = async (api: DocBlockApi, page: TemplatesPage): Pro
   out.misses = [...new Set(out.misses)];
   return { ...out, status: 'built' };
 };
+
+/** #3308 (Q3308.3 A): a build's clause when it built the template first, for the usage panels. Empty otherwise. The
+ *  wording is the owner's (2026-11-02, A): it names the set it built, as the other set lines do. */
+export const builtDocBlockItem = (r: DocBlockResult | null): string =>
+  r?.status === 'built' ? `Built ${DOC_BLOCK_SET}${r.misses.length ? ` (⚠ not found: ${r.misses.slice(0, 3).join('; ')})` : ''}` : '';
 
 /** Set up file's clause for the template: what it built, or what it needs first. Empty when it was already there.
  *  DRAFT wording for the owner. */

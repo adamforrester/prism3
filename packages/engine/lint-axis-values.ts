@@ -564,7 +564,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -602,13 +602,15 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'x-small', 'small', 'large'],
-    defs: ['link'],
+    defs: ['link', 'list-item', 'list'],
     relation: 'superset',
     reason:
       'The canonical ladder plus a 12px rung below `small` (#3179, owner decision D-A5 A): a link in dense metadata, '
       + 'such as an order row or a legal line, set in `type.body.xs`. The word is `x-small`, the one Icon and Spinner '
       + 'already use for the rung below `small` (Q3179.1 A), so it is not a new vocabulary. Led by `medium`, the code '
-      + 'default, then the ladder small to large (#2752, Q1 B); the code enum keeps the ladder\'s own order.',
+      + 'default, then the ladder small to large (#2752, Q1 B); the code enum keeps the ladder\'s own order. List and List.Item '
+      + 'join it (#3330, owner decisions Q1–Q4 A): a tight rule list, such as password requirements, in `type.body.xs`, '
+      + 'with every type at the step and the item following the list\'s size by name.',
   },
   {
     axis: 'size',

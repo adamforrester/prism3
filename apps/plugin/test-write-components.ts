@@ -3737,7 +3737,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // MAIN.TS RUNS IT, before the parent's own build.
   const pre = mainSrc.indexOf('await prebuildDependencies(def,');
-  const own = mainSrc.indexOf('await buildOne(def, reports, landed)');   // #1750: the call now passes `landed`
+  const own = mainSrc.indexOf('await buildOne(def, reports, landed');   // #1750: the call passes `landed`; #3308: and whether its panel waits
   ok(pre >= 0 && own > pre, '#1633 main.ts pre-builds the nests before building the def it was asked for');
 }
 
