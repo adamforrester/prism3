@@ -68,8 +68,8 @@ ok(t2.setup && t2.theme && t2.guides && !('sets' in t2),
 
 ok(same(stepsOf(t1, SET_UP, []), ['theme']), 'steps: a set-up file with the defaults and an empty queue writes the theme only');
 ok(same(stepsOf({ ...t1, setup: true }, SET_UP, []), ['theme']), 'steps: Set up file is never a step on a set-up file');
-ok(same(stepsOf(t2, FRESH, ['tag']), ['setup', 'theme', 'sets', 'guides']), 'steps: the first run sets up, then writes the theme, the queued sets and the style guides, in that order');
-ok(same(stepsOf(t2, FRESH, []), ['setup', 'theme', 'guides']), 'Q3129.10 A steps: a fresh file with nothing queued adds no set; the sets step runs while the queue holds a set');
+ok(same(stepsOf(t2, FRESH, ['tag']), ['setup', 'theme', 'sets', 'guides', 'cover']), 'steps: the first run sets up, then writes the theme, the queued sets and the style guides, in that order, and ends with the cover (#3308 Q3308.4 A)');
+ok(same(stepsOf(t2, FRESH, []), ['setup', 'theme', 'guides', 'cover']), 'Q3129.10 A steps: a fresh file with nothing queued adds no set; the sets step runs while the queue holds a set');
 ok(same(stepsOf({ ...t2, theme: false }, FRESH, []), ['setup', 'guides']), 'steps: an unticked item is not a step');
 
 let r = startUpdate(['setup', 'theme', 'sets'], ['tag']);

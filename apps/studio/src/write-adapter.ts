@@ -105,7 +105,7 @@ export type HostMessage =
   | { kind: 'update-check-progress'; done: number; total: number; next: string | null; set: CheckedSetView | null };
 
 /** A set as the as-built ledger reads it (#2909 Q2909.8 A, `apps/plugin/src/as-built-ledger.ts`). */
-export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'executor' }
+export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
   | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: MovedView };
 /** What an engine update moved in a set's plans (#3082 Q811 A, `Moved` in `as-built-ledger.ts`), for its reason line. */
 export type MovedView = {
@@ -309,7 +309,7 @@ const dueOf = (x: unknown): Record<string, SetDueView> => {
     const d = v as { state?: unknown; reason?: unknown } | null;
     if (!d || typeof d !== 'object') continue;
     if (d.state === 'current' || d.state === 'unrecorded') out[id] = { state: d.state };
-    else if (d.state === 'due' && (d.reason === 'definition' || d.reason === 'executor')) out[id] = { state: 'due', reason: d.reason };
+    else if (d.state === 'due' && (d.reason === 'definition' || d.reason === 'executor' || d.reason === 'panel')) out[id] = { state: 'due', reason: d.reason };
     // #3082 Q811 A: an engine update names what moved; a reading that names nothing usable still counts the set due. No
     // list at all is an entry from before Q811 A, with no print to compare (`as-built-ledger.ts`, finding 1).
     else if (d.state === 'due' && d.reason === 'engine') {
