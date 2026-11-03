@@ -11929,7 +11929,8 @@ for (const host of ['web', 'figma']) {
 // smoke §9 seeds it: the studio persists an example, and only the override (a ground on a tier, refused) is typed here.
 // MUTATIONS, each failing here by name: the narrow rule removed → `… 380: the notice is not cut off: it does not scroll,
 // and both buttons sit inside it …`; the legacy card back (`errbar`, `barbtn`) → `… the notice is the chrome's error strip …`
-// and the chrome probe's unclassified-control arm.
+// and the chrome probe's unclassified-control arm; the lines in plain text ink (`.p3-start .p3-errstrip-text { color:
+// var(--p3-text) }`) → `… the notice's three lines are in danger ink and its glyph is the warning glyph …`.
 for (const { w, h } of START_SIZES) {
   for (const theme of ['light', 'dark']) {
     const where = `#1999 web ${theme} ${w}`;
@@ -11964,10 +11965,28 @@ for (const { w, h } of START_SIZES) {
           row: btns.every((b) => b?.classList.contains('p3-btn') && b.parentElement?.classList.contains('p3-confirm-row') && b.parentElement.parentElement?.classList.contains('p3-errstrip-text')),
           scrolls: e ? e.scrollHeight > e.clientHeight + 1 : true,
           strip_: r(e), btns: btns.map(r),
+          ink: (() => {
+            // The expected side is the theme's own danger and plain-text tokens, resolved on a probe in the same column,
+            // not read off the strip: a rule that moves the lines' ink moves their color and leaves these alone.
+            const col = e?.parentElement;
+            if (!col) return null;
+            const probe = (v) => { const s = document.createElement('span'); s.style.color = `var(${v})`; col.append(s); const c = getComputedStyle(s).color; s.remove(); return c; };
+            const svg = e.querySelector(':scope > svg');
+            return {
+              bad: probe('--p3-bad-text'), badIcon: probe('--p3-bad-icon'), plain: probe('--p3-text'),
+              lines: [...e.querySelectorAll('.p3-errstrip-text > p')].map((p) => getComputedStyle(p).color),
+              glyph: svg?.dataset.glyph ?? null, glyphInk: svg ? getComputedStyle(svg).color : null,
+            };
+          })(),
         };
       });
       ok(n.strip && n.inStart && n.glyph && n.lines === 3 && n.row,
         `${where}: the notice is the chrome's error strip, first in the start window's body: the glyph, three lines, Export and Clear as buttons in a confirm row (Q1999.1 A) — ${JSON.stringify({ strip: n.strip, inStart: n.inStart, glyph: n.glyph, lines: n.lines, row: n.row })}`);
+      // Q1999.1 A's two marks that set it apart from option B: the lines in danger ink and the warning glyph in danger icon
+      // ink. Danger ink must differ from plain text ink here, or the arm could not tell the two apart.
+      const k = n.ink;
+      ok(!!k && k.bad !== k.plain && k.lines.length === 3 && k.lines.every((c) => c === k.bad) && k.glyph === 'warn' && k.glyphInk === k.badIcon,
+        `${where}: the notice's three lines are in danger ink and its glyph is the warning glyph in danger icon ink (Q1999.1 A) — ${JSON.stringify(k)}`);
       const inside = n.strip_ && n.btns.every((b) => b && b.t >= n.strip_.t - 0.5 && b.b <= n.strip_.b + 0.5);
       ok(!n.scrolls && inside, `${where}: the notice is not cut off: it does not scroll, and both buttons sit inside it — scrolls ${n.scrolls}, strip ${JSON.stringify(n.strip_)}, buttons ${JSON.stringify(n.btns)}`);
       const m = await measure(page, `${where} / refused`, 'web', w);
