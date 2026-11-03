@@ -212,6 +212,36 @@ export const floorGroundSteps = (mode: SurfaceMode): Array<{ key: string; hex: s
   const pal = theme.palettes.find((p) => p.palette === nPal);
   return (pal?.steps ?? []).filter((s) => on.has(s.key)).map((s) => ({ key: s.key, hex: s.hex }));
 };
+/** The contrast floor's groups (#3366, owner decision Q3366.4 A; labels are the DRAFT copy as rendered, Q3366.6 A):
+ *  each names a family of the roles the engine measures against the floor, by the role's name. A role matches the
+ *  first group whose rule takes it. */
+export const FLOOR_GROUPS: ReadonlyArray<{ id: string; label: string; takes: (role: string) => boolean }> = [
+  { id: 'links', label: 'Links', takes: (r) => /^(text|icon)\.link\./.test(r) },
+  { id: 'status', label: 'Brand and status text, icons', takes: (r) => /^(text|icon)\.(brand|success|warning|danger|info)$/.test(r) },
+  { id: 'secondary', label: 'Secondary and tertiary text, placeholder', takes: (r) => /^(text|icon)\.(secondary|tertiary)$/.test(r) || r === 'field.placeholder' },
+  { id: 'disabled', label: 'Disabled text and icon', takes: (r) => /^disabled\.(text|icon)$/.test(r) },
+  { id: 'bold', label: 'Bold fills', takes: (r) => /^foreground\./.test(r) },
+  { id: 'buttons', label: 'Button fills', takes: (r) => /^interactive\.[^.]+\.fill\./.test(r) },
+];
+export type FloorGroup = { id: string; label: string; roles: string[]; sample: string };
+/** What the contrast floor governs in a mode's resolved roles (#3366, Q3366.4 A): every role whose `against` is the
+ *  floor, read at draw time, so the count and the groups move with the engine. The floor is the one the engine
+ *  measures `foreground.brand` on, the page's existing reading of it (`floorAutoLabel`). `groups` keeps
+ *  `FLOOR_GROUPS`' order and leaves out an empty one; `other` holds a governed role no group takes, so the total
+ *  never hides one. `test-fills-input.ts` §12 holds this against a literal role list. */
+export const floorGroups = (roles: Record<string, FillRole | undefined>): { floor: string | null; total: number; groups: FloorGroup[]; other: string[] } => {
+  const floor = roles['foreground.brand']?.against ?? null;
+  if (!floor) return { floor, total: 0, groups: [], other: [] };
+  const governed = Object.keys(roles).filter((k) => roles[k]?.against === floor);
+  const by = new Map<string, string[]>(FLOOR_GROUPS.map((g) => [g.id, []]));
+  const other: string[] = [];
+  for (const r of governed) {
+    const g = FLOOR_GROUPS.find((x) => x.takes(r));
+    if (g) by.get(g.id)!.push(r); else other.push(r);
+  }
+  const groups = FLOOR_GROUPS.filter((g) => by.get(g.id)!.length).map((g) => ({ id: g.id, label: g.label, roles: by.get(g.id)!, sample: by.get(g.id)![0] }));
+  return { floor, total: governed.length, groups, other };
+};
 /** The palettes the inverse band can draw from (#898): neutral first, then every declared non-status
  *  palette. Status, alpha and the white and black keywords are excluded. */
 export const bandPalettes = (): string[] => {

@@ -36,7 +36,7 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { resolvePreview } from '@prism3/engine/resolve-preview';
 import examples from '@prism3/engine/schema/example-brands.json';
 import type { BrandInput } from '@prism3/engine/theme';
-import { breadthLine, healthLine, isDerived, modeLine, verdictLine, verdictOf } from './src/state/verdict';
+import { FLOOR_POINTER, breadthLine, healthLine, isDerived, modeLine, verdictLine, verdictOf } from './src/state/verdict';
 
 let failed = 0;
 let executed = 0;
@@ -62,7 +62,10 @@ ok(verdictOf(theme, modes) === v, 'the verdict is cached per theme (one resolve 
 
 // The copy, verbatim from concept v6.
 ok(verdictLine(v) === 'All 884 pairs at or above floor', `the bar reads "All 884 pairs at or above floor" — read "${verdictLine(v)}"`);
-ok(healthLine(v) === 'All 884 pairs at or above floor.', `Health reads "All 884 pairs at or above floor." — read "${healthLine(v)}"`);
+// #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps v6's "floor". Literal.
+ok(healthLine(v) === 'All 884 pairs at or above their minimum.', `Health reads "All 884 pairs at or above their minimum." (Q3366.3 A) — read "${healthLine(v)}"`);
+ok(FLOOR_POINTER.line([['Light', 'neutral.050'], ['Dark', 'neutral.900']]) === 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.'
+  && FLOOR_POINTER.link === 'Change the contrast floor', `Health's pointer to the contrast floor reads as rendered (Q3366.2 A) — read ${JSON.stringify([FLOOR_POINTER.line([['Light', 'neutral.050'], ['Dark', 'neutral.900']]), FLOOR_POINTER.link])}`);
 ok(breadthLine(v, (m) => m) === '221 per mode × 4 modes', `Health's breadth reads "221 per mode × 4 modes" — read "${breadthLine(v, (m) => m)}"`);
 ok(modeLine(v.per[0], 'Light') === 'Light: 221 of 221 at or above', `a passing mode reads "Light: 221 of 221 at or above" — read "${modeLine(v.per[0], 'Light')}"`);
 
@@ -91,7 +94,7 @@ if (badTheme) {
 // High contrast light and dark are resolved on their own and carry no override. So: 2 failures, 1 in Light
 // and 1 in Dark, 2 modes failing, out of the same 884.
 const TWO_MODES_LINE = '2 of 884 below floor, 2 modes';
-const TWO_MODES_HEALTH = '2 of 884 pairs below floor in 2 modes.';
+const TWO_MODES_HEALTH = '2 of 884 pairs below their minimum in 2 modes.';
 const TWO_MODES_PER = ['Light: 1 of 221 below', 'Dark: 1 of 221 below', 'High contrast light: 221 of 221 at or above', 'High contrast dark: 221 of 221 at or above'];
 const LABELS: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark' };
 const two = structuredClone(input) as BrandInput;

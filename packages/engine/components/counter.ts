@@ -142,6 +142,10 @@ export const counter: ComponentDef = {
     'ring-width': 'focus.ring.width',
     'outline.ring-offset': 'focus.ring.offset-field',
     'ghost.ring-offset': 'focus.ring.offset',
+    // #3328 (Q3328.2 A): outline's ring sits inside its edge, at its radius, as Text field's does; ghost draws no edge,
+    // so it has none to sit inside and keeps the outside ring.
+    'outline.ring-border': 'border-width.hairline',
+    'ghost.ring-border': 'border-width.none',
 
     // ── PAINT ──
     // Outline: Text field's fill and edge. The edge is the field's own 3:1 role.
@@ -224,8 +228,9 @@ export const counter: ComponentDef = {
         nests: 'focus-ring',
         inset: '{appearance}.ring-offset',
         strokeInset: 'ring-width',
+        borderInset: '{appearance}.ring-border',
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'The shared focus ring, around the whole row while the value has keyboard focus: on the edge for outline, 2px outside the round buttons for ghost.',
+        note: 'The shared focus ring, around the whole row while the value has keyboard focus: inside the edge, at its radius, for outline (#3328); 2px outside the round buttons for ghost.',
       },
       message: {
         kind: 'nest',
@@ -273,7 +278,7 @@ export const counter: ComponentDef = {
       '2.5.5 Target Size (Enhanced) (targets 44×44 for each button at every size, through its code-side hit area)',
     ],
     keyboard: 'The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex="-1").',
-    focus: 'One focus ring around the whole row while the value has keyboard focus: on the edge for outline, 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.',
+    focus: 'One focus ring around the whole row while the value has keyboard focus: inside the edge for outline, where the edge takes the focus color and a 2px band sits inside it at the row\'s radius; 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.',
     aria: 'The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, aria-valuetext where the number is shown formatted ("3 items"), and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. The buttons are not aria-hidden: they keep their names for pointer and touch users of assistive technology, as the ARIA Authoring Practices spin button example does. Every name is translatable, and the row mirrors right to left.',
   },
 
