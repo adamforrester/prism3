@@ -19,6 +19,9 @@
  *   · Style guides: drawn with Documentation's saved settings (Q2909.23 A), ticked on a file that is not set up.
  * The cover is not an item of its own: it follows Documentation's switch, drawn by Set up file. Nor is a panel a set gains
  * by being added or updated: its build or update draws it.
+ * A run that sets the file up and writes its theme ends with one more step, `cover` (#3308, Q3308.4 A): Set up file,
+ * run first, has no brand to draw the cover with, so the run draws the cover and About this library last, through the
+ * in-place update over no sets, whose finish draws both (`finishAbout` in the plugin).
  *
  * WHAT IS DUE (Q2909.8 A): the as-built ledger says, from one root read (`file-sets`' `due`). A set the ledger holds no
  * entry for (built before it, or by hand) reads "Not checked yet", and the checklist offers to check it. As the checklist
@@ -33,10 +36,11 @@ import type { Catalog } from './component-catalog';
 import { inListOrder } from './component-groups';
 import type { CheckedSetView, FacetView, MovedView, SetDueView } from '../write-adapter';
 
-/** `update` is the in-place update of the due sets (Q2909.8 A); `sets` builds the add queue (#3129). */
-export type StepKey = 'setup' | 'theme' | 'update' | 'sets' | 'guides';
+/** `update` is the in-place update of the due sets (Q2909.8 A); `sets` builds the add queue (#3129); `cover` draws the
+ *  cover and About this library at the end of a run that sets the file up and writes its theme (#3308, Q3308.4 A). */
+export type StepKey = 'setup' | 'theme' | 'update' | 'sets' | 'guides' | 'cover';
 /** Run order. */
-export const STEP_ORDER: readonly StepKey[] = ['setup', 'theme', 'update', 'sets', 'guides'];
+export const STEP_ORDER: readonly StepKey[] = ['setup', 'theme', 'update', 'sets', 'guides', 'cover'];
 
 /** What the checklist reads when it opens: the file's sets, whether it is set up, and what the ledger says is due
  *  (`file-sets`). */
@@ -140,9 +144,10 @@ export const defaultTicks = (catalog: Catalog, f: FileSets, queue: readonly stri
 };
 
 /** The steps a set of ticks runs, in order. Set up file is a step only on a file that is not set up; `sets` only while
- *  the add queue holds a set (`queuedOf`). */
+ *  the add queue holds a set (`queuedOf`); `cover` only after Set up file and Theme both run (#3308, Q3308.4 A). */
 export const stepsOf = (t: Ticks, f: FileSets, queued: readonly string[]): StepKey[] =>
-  STEP_ORDER.filter((k) => (k === 'setup' ? !f.setUp && t.setup : k === 'sets' ? queued.length > 0 : k === 'update' ? t.update.size > 0 : t[k]));
+  STEP_ORDER.filter((k) => (k === 'setup' ? !f.setUp && t.setup : k === 'sets' ? queued.length > 0 : k === 'update' ? t.update.size > 0
+    : k === 'cover' ? !f.setUp && t.setup && t.theme : t[k]));
 
 /** The brand Update file's due read, its check and its update measure against (Q699 A, #3023 Q701 B): the panel's when
  *  the run's steps include Theme, which stores it before the update; else nothing, and the host reads the file's stored
@@ -260,7 +265,7 @@ export const UPDATE_COPY = {
   updateStep: 'Update sets in place',
   /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
   dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? (d.moved ? engineWhy(d.moved) : UPDATE_COPY.engineUnprinted)
-    : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently' : 'Due · its settings changed'),
+    : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently' : d.reason === 'panel' ? 'Engine update: Prism3 draws usage panels differently' : 'Due · its settings changed'),
   /** #3090 finding 1: an engine update over a set recorded before Prism3 kept a print of its drawing, so nothing can be
    *  named; the next update records the print. DRAFT (Q2909.10 A). */
   engineUnprinted: 'Engine update: recorded before Prism3 noted what it drew',
@@ -288,6 +293,8 @@ export const UPDATE_COPY = {
   cleanPanelsKeep: 'Panels edited by hand stay. Turning panels on again draws them back.',
   removePanels: (n: number): string => `Remove ${n} panel${n === 1 ? '' : 's'}`,
   guides: 'Style guides',
+  /** #3308 (Q3308.4 A): the last step of a run that sets the file up and writes its theme. DRAFT. */
+  coverStep: 'Cover and About this library',
   guidesSub: 'Drawn with the settings in Documentation. A rerun updates each table in place.',
   go: 'Update file',
   goFresh: 'Set up and update',
@@ -306,4 +313,4 @@ export const UPDATE_COPY = {
 } as const;
 
 /** Each step's name in the checklist and in the run line. */
-export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides };
+export const STEP_TITLE: Readonly<Record<StepKey, string>> = { setup: UPDATE_COPY.setup, theme: UPDATE_COPY.theme, update: UPDATE_COPY.updateStep, sets: UPDATE_COPY.toAdd, guides: UPDATE_COPY.guides, cover: UPDATE_COPY.coverStep };
