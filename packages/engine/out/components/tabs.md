@@ -24,7 +24,7 @@ Shown on the default member: size `medium`, alignment `start`.
 3. **Tab1** — The first tab, selected.
 4. **Tab2** — A second tab.
 5. **Tab3** — A third tab.
-6. **Baseline** — The 1px line under the tabs, which the selected underline sits on.
+6. **Baseline** — The 1px line along the bottom of the tab list. The selected underline overlaps it: their bottom edges line up, and the underline paints over the line.
 
 ## Styles
 
@@ -113,11 +113,11 @@ Generated from the plan that builds the design-file component: 6 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `container` | frame | every member |
+| `container/baseline` | frame | every member |
 | `container/items` | slot | every member |
 | `container/items/tab1` | instance | every member |
 | `container/items/tab2` | instance | every member |
 | `container/items/tab3` | instance | every member |
-| `container/baseline` | frame | every member |
 
 ### Spacing and size
 
@@ -129,49 +129,49 @@ Keyed by `size`, `alignment`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | — |
-| `container/items` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
 
 **size=small, alignment=start**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | — |
-| `container/items` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
 
 **size=large, alignment=start**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | — |
-| `container/items` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` | `space.0` | — | — | — | — |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
 
 **size=medium, alignment=center**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | build width 480px (literal) |
-| `container/items` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` | `space.0` | — | — | — | build width 480px (literal) |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
 
 **size=small, alignment=center**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | build width 480px (literal) |
-| `container/items` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` | `space.0` | — | — | — | build width 480px (literal) |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
 
 **size=large, alignment=center**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.0` / `space.0` / `border-width.hairline` / `space.0` | `space.0` | — | — | — | build width 480px (literal) |
-| `container/items` | — | `space.0` | — | — | — | — |
+| `container` | `space.0` | `space.0` | — | — | — | build width 480px (literal) |
 | `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
 
 ### Color
 

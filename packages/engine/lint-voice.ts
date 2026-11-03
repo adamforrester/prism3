@@ -253,7 +253,7 @@ import { brandTheme } from './theme';
 import { voiceHits, enGb } from './prose-rules.ts';
 import type { RawHit } from './prose-rules.ts';
 // The MCP tools/list as served (#1806): acquisition only, see the block below `gatedHits`.
-import { servedToolsList, servedStrings } from './mcp-served';
+import { servedToolsList, servedStrings, servedBridgeInstructions } from './mcp-served';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -1048,6 +1048,25 @@ else {
     }
   }
 }
+// ---- The desktop bridge's connect note, AS SERVED (#3300) -----------------------------------------------
+// The `instructions` an agent reads on connecting to `tools/figma-bridge/server.ts` (the same string is its
+// `figma_status` `readFirst`). Not a file: `mcp-served.ts` spawns the bridge and reads the `initialize` reply.
+// Represented, not merely present: the note must come back and must name `figma_status`, so a reply that lost it, or
+// carried some other text, makes this gate blind rather than clean.
+const bridgeNote = servedBridgeInstructions(repo);
+let bridgeNotesScanned = 0;
+if ('error' in bridgeNote) blind.push(`the figma-bridge connect note — ${bridgeNote.error}`);
+else if (!bridgeNote.text.includes('figma_status')) blind.push('the figma-bridge connect note — the served instructions do not name figma_status, so they are not the bridge note');
+else {
+  bridgeNotesScanned++;
+  gatedHits.push(...[...voiceHits(bridgeNote.text), ...normativeHits(bridgeNote.text)].map(({ rule, match, index }) => ({
+    file: 'figma-bridge initialize instructions (served)',
+    line: 'instructions',
+    rule,
+    match,
+    context: bridgeNote.text.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+  })));
+}
 const byFile = new Map<string, Hit[]>();
 for (const h of gatedHits) byFile.set(h.file, [...(byFile.get(h.file) ?? []), h]);
 
@@ -1063,6 +1082,7 @@ if (blind.length) {
 console.log(`Voice lint gate — ${gated.length} shipped files scanned:`);
 for (const s of REQUIRED_SURFACES) console.log(`    ${String(gated.filter(s.test).length).padStart(3)}  ${s.label}`);
 console.log(`    ${String(mcpToolsScanned).padStart(3)}  MCP tools/list, as the server returns it (tools, #1806)`);
+console.log(`    ${String(bridgeNotesScanned).padStart(3)}  the figma-bridge connect note, as initialize returns it (#3300)`);
 if (gatedHits.length) {
   console.error(`\n❌ ${gatedHits.length} voice-standard §2 violation(s) in SHIPPED text:\n`);
   for (const [f, hs] of byFile) {
