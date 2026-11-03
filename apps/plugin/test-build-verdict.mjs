@@ -813,7 +813,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#1845 the run starts with Set up file alone, Update file busy and the setup row running — posted ${JSON.stringify(await posts())}, busy ${pending.busy}, row ${pending.state}`);
   await reopen(page);
   const line = await page.locator('[data-p3="update-running"]').textContent().catch(() => null);
-  ok(line === 'Step 1 of 4 · Set up file', `#2909 reopened while it runs, Update file says the step it is on — read ${JSON.stringify(line)}`);
+  // #3308 (Q3308.4 A): Set up file, Theme, To add, Style guides, then the cover.
+  ok(line === 'Step 1 of 5 · Set up file', `#2909 reopened while it runs, Update file says the step it is on — read ${JSON.stringify(line)}`);
   await hooks.click(page.locator('[data-p3="update-close"]'));
   await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added, 2 template assets built' });
   await page.waitForFunction(() => window.__posts.includes('apply-theme'), null, { timeout: 4000 }).catch(() => {});

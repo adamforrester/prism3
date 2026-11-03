@@ -359,8 +359,11 @@
 .p3-export-seg, .p3-export-oseg { align-self: flex-start; max-width: 100%; }
 .p3-export-oseg { flex-wrap: wrap; }
 .p3-export-oseg .p3-seg-tab { flex: 0 1 auto; padding: 0 var(--p3-space-150); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
-.p3-export-set { display: grid; gap: var(--p3-space-075); }
-.p3-export-lab { font-weight: var(--p3-fw-emphasis); }
+.p3-export-sets { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-rhythm-row); }
+/* #3337 (Q3337.4 A): Export's settings join the rhythm: rows a row apart, an L3 label space-050 above its control, the
+   control's note the hint rhythm under it. */
+.p3-export-set { display: grid; gap: var(--p3-rhythm-hint); }
+.p3-export-lab { font-weight: var(--p3-fw-emphasis); margin-block-end: calc(var(--p3-space-050) - var(--p3-rhythm-hint)); }
 .p3-export-files { margin: 0; font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); white-space: pre-line; overflow-wrap: anywhere; }
 .p3-export-prevs { display: grid; gap: var(--p3-space-075); min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; align-content: start; }
 .p3-export-pname { color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); overflow-wrap: anywhere; }
@@ -833,18 +836,27 @@ html[data-strip="true"] body > :not(.p3-strip, .p3-sr) { display: none; }
 .p3-strip > [hidden] { display: none; }
 
 /* ── the levers panel (S2 on): sections as white cards on the gray panel (IA-2, V7) ────────── */
+/* THE SETTINGS RHYTHM (#3337, the owner's Q3337.1 A): five named chrome tokens over the space scale, the values the Theme
+   pages already used. Every list of settings is a grid at --p3-rhythm-row, so a row never takes its spacing from a margin
+   on itself, and a new container of settings reads the name rather than skipping it.
+     --p3-rhythm-label    a setting's name to its control at L2 (space-150; an L3 field label keeps space-050, TY2 A)
+     --p3-rhythm-hint     a control to its hint or readout, and a note to its link (space-100)
+     --p3-rhythm-row      one setting row to the next (space-300)
+     --p3-rhythm-group    one group to the next (space-500), then its hairline and space-200 under it
+     --p3-rhythm-section  one card to the next (space-200)
+   test:chrome section 3337 measures row → row as drawn, against the emission's space.300, on every place. */
 /* N-3 A, RX2 A (#1984): the region that holds a page's levers draws no box of its own. The read-only line above it is
    Build style guides' boxed note (`.p3-sg-note.p3-sg-warn`, unchanged); this places it on the panel's own inset. */
 .p3-levers-region { display: contents; }
 .p3-levers > .p3-levers-note { margin: var(--p3-space-300) var(--p3-space-300) 0; font-family: var(--p3-font-ui); }
 .p3-levers-note:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-levers-body {
-  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-200); align-content: start;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-rhythm-section); align-content: start;
   padding: var(--p3-space-300) var(--p3-space-300) var(--p3-space-500); color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
 }
 .p3-intro { margin: 0 0 var(--p3-space-100); color: var(--p3-text-2); line-height: var(--p3-lh-cozy); }
 .p3-lsec {
-  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); padding: var(--p3-space-300); border-radius: var(--p3-radius-xl);
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-rhythm-row); padding: var(--p3-space-300); border-radius: var(--p3-radius-xl);
   background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
 .p3-lsec[hidden], .p3-lever[hidden], .p3-levers-body [hidden] { display: none; }
@@ -885,7 +897,7 @@ html[data-strip="true"] body > :not(.p3-strip, .p3-sr) { display: none; }
 /* The head row is as tall as its line: the lever's gap (space-100) plus space-050 makes the L2's space-150. A group
    lever's head is a <legend>, which the fieldset's grid gap does not reach, so it carries the whole space-150. */
 .p3-lever-head { padding-block-end: var(--p3-space-050); }
-fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150); }
+fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-label); }
 /* A lever inside a group (Color › Interactive's Neutral emphasis, inside Neutral) reads as a field: L3's weight, and its
    control space-050 after it (its head is a <legend>, so the legend's padding is the whole space). */
 .p3-icol .p3-lever-name { font-weight: var(--p3-fw-emphasis); }
@@ -895,6 +907,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-icol div.p3-lever > .p3-lever-head { padding-block-end: 0; margin-block-end: calc(var(--p3-space-050) - var(--p3-space-100)); }
 /* A lever's own one-line description belongs to its head: space-050 under the name, not space-150. */
 .p3-lever-ctl > .p3-sub:first-child { margin-block-start: calc(-1 * var(--p3-space-100)); }
+/* #3337 (Q3337.3 A): in a group, a div lever's control already starts space-050 under its head (the rule above it), so its
+   description takes no second pull: three pulls stacked put a read-only row's note on its name. */
+.p3-icol div.p3-lever > .p3-lever-ctl > .p3-sub:first-child { margin-block-start: 0; }
 .p3-readout { margin-left: auto; color: var(--p3-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* #1975: in a snug pane a long readout (Layout's container max, "1440px · 90rem") wraps under itself, set right. */
 .p3-levers[data-fit="snug"] .p3-readout { white-space: normal; text-align: right; }
@@ -914,7 +929,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 :is(.p3-lsec-titlerow > .p3-info, .p3-lsec-end > *) { margin-block: calc(-1 * var(--p3-hit-min)); }
 .p3-lever .p3-btn-ghost:where(:not(:disabled, [aria-disabled="true"])):hover, .p3-picker .p3-btn-ghost:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-edge); }
 .p3-tip { margin: 0; padding: var(--p3-space-150) var(--p3-space-200); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
-.p3-lever-ctl { display: grid; gap: var(--p3-space-100); min-width: 0; }
+.p3-lever-ctl { display: grid; gap: var(--p3-rhythm-hint); min-width: 0; }
 .p3-lever-state:empty { display: none; }
 .p3-sub { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
 .p3-state { display: flex; gap: var(--p3-space-100); align-items: flex-start; margin: 0; font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
@@ -1101,6 +1116,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-cp-optstoggle { min-height: var(--p3-ctl-h-xs); max-width: 100%; justify-content: flex-start; }
 .p3-cp-optstoggle[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
 .p3-icol.p3-cp-optsec[hidden] { display: none; }
+/* #3337: the root every option block draws its rows into (`button-options.ts` and the eight others): a list of settings,
+   so a grid at the row rhythm, as `.p3-lsec` and `.p3-icol` are. With no rule here its rows touched. */
+.p3-bopts { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-rhythm-row); min-width: 0; }
 .p3-btn.p3-cp-name { flex: 0 1 auto; min-width: 0; justify-content: flex-start; padding-inline: var(--p3-space-075); font-weight: var(--p3-fw-default); }
 .p3-cp-name > .p3-btn-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .p3-cp-family > .p3-cp-name { font-weight: var(--p3-fw-emphasis); }
@@ -1336,8 +1354,8 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 
 /* ── Color › Interactive (S5.2): the column groups, rows grouped under their rest row (its jump links are above) ── */
 /* S5.3 (the owner's QA-I7): more room between button sets, one step up the spacing scale from S5.2's. */
-.p3-icols { display: grid; gap: var(--p3-space-500); }
-.p3-icol { display: grid; gap: var(--p3-space-300); padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-icols { display: grid; gap: var(--p3-rhythm-group); }
+.p3-icol { display: grid; gap: var(--p3-rhythm-row); padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-icol[hidden], .p3-irow-group[hidden], .p3-icol-add[hidden] { display: none; }
 .p3-icol:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 .p3-icol-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--p3-space-100); }
@@ -1404,7 +1422,11 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-btn.p3-pick[data-set="true"] { border-color: var(--p3-ctl-edge); }
 /* A picker button whose value is long ("Auto: follows Light (160px)") wraps inside its cell rather than run past it. */
 :is(.p3-tsizes-cells, .p3-tweight, .p3-tspace-ctl) > .p3-btn.p3-pick { min-width: 0; white-space: normal; }
-.p3-btn.p3-deplink { justify-self: start; white-space: normal; text-align: left; text-decoration: underline; text-underline-offset: var(--p3-space-025); }
+/* #3337 (Q3337.2 A): a "Set it in …" link is a text link flush with the column: no inline padding and no edge, so its words
+   start on the row's edge; still a whole target tall, underlined, the chevron after it. Its hover is the underline it
+   already draws: with no edge, the ghost button's hover edge has nothing to color. */
+.p3-btn.p3-deplink { justify-self: start; padding-inline: 0; border-width: 0; white-space: normal; text-align: left; text-decoration: underline; text-underline-offset: var(--p3-space-025); }
+
 .p3-vpick-list { display: grid; gap: var(--p3-space-050); max-height: calc(var(--p3-ctl-h) * 9); overflow-y: auto; }
 .p3-vpick {
   display: grid; grid-template-columns: minmax(var(--p3-step-w), auto) minmax(0, 1fr); gap: var(--p3-space-050) var(--p3-space-150);
