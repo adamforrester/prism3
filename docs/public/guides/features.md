@@ -22,7 +22,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
 | Export a `design.md` brief | ✓ | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:168-219 --> <!-- src: apps/studio/src/shell/pages.ts:115-117 --> <!-- src: apps/studio/src/persist-local.ts:40-79 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35 --> <!-- src: apps/studio/src/export-settings.ts:111-115 --> <!-- src: packages/engine/mcp.ts:236-382 -->
+<!-- src: apps/studio/src/shell/start.ts:168-219 --> <!-- src: apps/studio/src/shell/pages.ts:116-118 --> <!-- src: apps/studio/src/persist-local.ts:40-79 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35 --> <!-- src: apps/studio/src/export-settings.ts:111-115 --> <!-- src: packages/engine/mcp.ts:236-382 -->
 
 ## Figma file
 
@@ -37,7 +37,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Draw spec panels | – | ✓ Documentation › Specs | ✓ `draw-specs` | – |
 | Read the file back | – | ✓ when the plugin opens | ✓ `readback`, `status` | – |
 
-<!-- src: apps/studio/src/state/update-file.ts:256-279 --> <!-- src: apps/plugin/src/agent-protocol.ts:41 --> <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 --> <!-- src: apps/studio/src/shell/pages.ts:511-516 -->
+<!-- src: apps/studio/src/state/update-file.ts:256-279 --> <!-- src: apps/plugin/src/agent-protocol.ts:41 --> <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 --> <!-- src: apps/studio/src/shell/pages.ts:526-531 -->
 
 ## Tokens
 

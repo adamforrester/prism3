@@ -75,9 +75,20 @@ const plural = (n: number, one: string): string => `${n} ${n === 1 ? one : `${on
 export const verdictLine = (v: Verdict): string =>
   v.fail ? `${v.fail} of ${v.total} below floor, ${plural(v.modesFailing, 'mode')}` : `All ${v.total} pairs at or above floor`;
 
-/** Health's summary sentence (concept v6's `healthHtml`, verbatim). */
+/** Health's summary sentence (concept v6's `healthHtml`). #3366 (owner decision Q3366.3 A): Health says "minimum" for
+ *  a pair's own ratio, so "floor" names one thing on this panel, the contrast floor setting its pointer leads to. The bar's
+ *  line (`verdictLine`) is not Health and keeps v6's words. */
 export const healthLine = (v: Verdict): string =>
-  v.fail ? `${v.fail} of ${v.total} pairs below floor in ${plural(v.modesFailing, 'mode')}.` : `All ${v.total} pairs at or above floor.`;
+  v.fail ? `${v.fail} of ${v.total} pairs below their minimum in ${plural(v.modesFailing, 'mode')}.` : `All ${v.total} pairs at or above their minimum.`;
+
+/** Health's pointer to the contrast floor setting (#3366, owner decision Q3366.2 A; the DRAFT copy as rendered for
+ *  option C): the floor in each standard mode, named as the floor's picker names a step, then the way to it. `floors`
+ *  is `[mode label, floor]` in the mode control's order, the floor as the engine names it (`neutral.050`). */
+export const FLOOR_POINTER = {
+  line: (floors: ReadonlyArray<readonly [string, string]>): string =>
+    `Most text, icon and fill colors are checked against the contrast floor: ${floors.map(([m, f]) => `${f.split('.').join(' ')} in ${m}`).join(', ')}.`,
+  link: 'Change the contrast floor',
+} as const;
 
 /** Health's breadth note: "221 per mode × 4 modes" when every mode gates the same count (v5 Q2). */
 export const breadthLine = (v: Verdict, label: (m: string) => string): string => {
