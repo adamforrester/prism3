@@ -33631,6 +33631,113 @@ arm: {
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
 
+// ---- #3336 (owner, 2026-11-03, Q3336.1–.4 A): THE REFERENCE BRAND ON ONE NEUTRAL PALETTE ----------------------
+//
+// The reference brand drops its `brand-neutral` brand color and puts its action family on the default `neutral`
+// ramp, which #3365 made selectable as the action palette. The decided migration: `actionPalette: 'neutral'` with
+// `actionAnchorStep: 950` kept; every light override that named `brand-neutral` repointed to `neutral` at the SAME
+// step, except `interactive.primary.border.rest`, which moves 350 → 400 (Q3336.2 A: `neutral.350` gives 2.81:1 and
+// misses its 3:1 floor); `brandColors` removed (the issue's step 4). The hue shift is accepted (Q3336.1 A).
+//
+// The fixture below is the 2026-09-28 copy (`NB_MASTER`, frozen: it records the file as it was) with that
+// migration applied, written out as a LITERAL so this check does not move when either the file or the old copy
+// does. Every expectation is a literal from the decided mapping (#3336's proposal, §2), never read from the engine;
+// (f) alone compares two builds, both of literal inputs:
+//   (a) the palette is gone: no `brand-neutral` palette, no brand colors, and the action family resolves to neutral;
+//   (b) no role in any mode aliases `brand-neutral`;
+//   (c) every mode contract passes, and the count is the literal 214, so a contract dropping out is seen;
+//   (d) `interactive.primary.border.rest` is `neutral.400` `#8f8d8d` at 3.30:1 on `background.primary`;
+//   (e) the action family resolves to the decided step and hex, role by role (52 roles, the six subtle fills
+//       included, which carry the fill's ramp step);
+//   (f) every role outside that table is byte-identical (hex and alias path) to the 2026-09-28 build: the neutral
+//       role already sat on `neutral`, so only the 52 decided roles may move (an action-family role that does not
+//       sit on the action ramp, like `interactive.primary.on-fill`, is held here too);
+//   (g) premise, the mutation held in the test: the same fixture with `border.rest` back on step 350 fails its
+//       contract, so (c) can see the floor this migration had to clear.
+//
+// Mutations, each failing here by name:
+//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 214 contracts pass on the neutral palette (want 214) —
+//       FAILED: interactive.primary.border.rest 2.81<3`, `#3336 light: interactive.primary.border.rest is neutral.400 #8f8d8d
+//       at 3.30:1 …` and `#3336 light: the action family resolves to the decided neutral step and hex …`
+//   (2) the `brand-neutral` brand color restored to the fixture → `#3336 the reference brand carries no brand-neutral palette …`
+//   (3) one override (`fill.hover`) left on `brand-neutral`, its brand color kept so the input still builds →
+//       `#3336 light: no role aliases brand-neutral — interactive.primary.fill.hover`, with (2)'s failure and the premise
+{
+  const REF_NEUTRAL_3336: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "neutral", "step": "400"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+  // The decided mapping, role → `<neutral step> <hex>`, light (the brand's only mode). Input overrides and the
+  // engine's own derived picks alike: a later engine change that moves either fails here by name.
+  const WANT: Record<string, string> = {
+    'interactive.primary.fill.rest': '950 #0e0d0d', 'interactive.primary.fill.focused': '950 #0e0d0d', 'interactive.primary.fill.selected': '950 #0e0d0d',
+    'interactive.primary.fill.hover': '800 #2d2c2c', 'interactive.primary.fill.pressed': '700 #444343',
+    'interactive.primary.text.rest': '950 #0e0d0d', 'interactive.primary.icon.rest': '950 #0e0d0d',
+    'interactive.primary.text.hover': '800 #2d2c2c', 'interactive.primary.icon.hover': '800 #2d2c2c',
+    'interactive.primary.text.pressed': '700 #444343', 'interactive.primary.icon.pressed': '700 #444343',
+    'interactive.primary.border.rest': '400 #8f8d8d', 'interactive.primary.border.hover': '700 #444343', 'interactive.primary.border.pressed': '800 #2d2c2c',
+    'interactive.primary.subtle-fill.hover': '950 #0e0d0d', 'interactive.primary.subtle-fill.pressed': '950 #0e0d0d', 'interactive.primary.subtle-fill.selected': '950 #0e0d0d',
+    'inverse.interactive.primary.fill.rest': '025 #f7f7f7', 'inverse.interactive.primary.text.rest': '025 #f7f7f7',
+    'inverse.interactive.primary.icon.rest': '025 #f7f7f7', 'inverse.interactive.primary.border.rest': '025 #f7f7f7',
+    'inverse.interactive.primary.text.hover': '350 #9b9a9a', 'inverse.interactive.primary.icon.hover': '350 #9b9a9a', 'inverse.interactive.primary.border.hover': '350 #9b9a9a',
+    'inverse.interactive.primary.text.pressed': '250 #b4b3b3', 'inverse.interactive.primary.icon.pressed': '250 #b4b3b3', 'inverse.interactive.primary.border.pressed': '250 #b4b3b3',
+    'inverse.interactive.primary.subtle-fill.hover': '025 #f7f7f7', 'inverse.interactive.primary.subtle-fill.pressed': '025 #f7f7f7', 'inverse.interactive.primary.subtle-fill.selected': '025 #f7f7f7',
+    'text.link.default': '950 #0e0d0d', 'text.link.focused': '950 #0e0d0d', 'text.link.hover': '800 #2d2c2c', 'text.link.pressed': '700 #444343', 'text.link.visited': '600 #5d5b5b',
+    'icon.link.default': '950 #0e0d0d', 'icon.link.focused': '950 #0e0d0d', 'icon.link.hover': '800 #2d2c2c', 'icon.link.pressed': '700 #444343', 'icon.link.visited': '600 #5d5b5b',
+    'inverse.text.link.default': '450 #838181', 'inverse.text.link.focused': '450 #838181', 'inverse.text.link.hover': '350 #9b9a9a', 'inverse.text.link.pressed': '250 #b4b3b3', 'inverse.text.link.visited': '100 #dcdbdb',
+    'inverse.icon.link.default': '450 #838181', 'inverse.icon.link.focused': '450 #838181', 'inverse.icon.link.hover': '350 #9b9a9a', 'inverse.icon.link.pressed': '250 #b4b3b3', 'inverse.icon.link.visited': '100 #dcdbdb',
+    'border.focus': '950 #0e0d0d', 'inverse.border.focus': '450 #838181',
+  };
+  type R = { hex: string; path: string; ratio: number; min: number; against?: string };
+  const contracts = (roles: Record<string, R>) => {
+    const checked = Object.entries(roles).filter(([, r]) => r.min > 0);
+    return { checked, broken: checked.filter(([, r]) => r.ratio < r.min) };
+  };
+  const failed = (b: [string, R][]): string => b.map(([k, r]) => `${k} ${r.ratio.toFixed(2)}<${r.min}`).join(', ');
+  const t = exampleTheme('the reference brand on neutral (#3336)', () => brandTheme(REF_NEUTRAL_3336));
+  const was = exampleTheme('the reference brand, 2026-09-28 (#3336 baseline)', () => brandTheme(NB_MASTER));
+  if (t && was) {
+    // (a)
+    const pals = t.palettes.map((p) => p.palette);
+    ok(!pals.includes('brand-neutral') && !((REF_NEUTRAL_3336 as any).brandColors?.length),
+      `#3336 the reference brand carries no brand-neutral palette and no brand colors (palettes ${pals.join(', ')})`);
+    ok(t.roleToPalette.action === 'neutral', `#3336 the reference brand's action family resolves to the neutral palette (got '${t.roleToPalette.action}')`);
+    const wasModes = new Map(resolveAllModes(was).map((m) => [m.mode, m.roles as Record<string, R>]));
+    const modes = resolveAllModes(t);
+    ok(modes.map((m) => m.mode).join(',') === 'light', `#3336 the reference brand builds its one mode, light (got ${modes.map((m) => m.mode).join(',')})`);
+    for (const m of modes) {
+      const roles = m.roles as Record<string, R>;
+      // (b)
+      const stale = Object.entries(roles).filter(([, r]) => /brand-neutral/.test(r.path)).map(([k]) => k);
+      ok(stale.length === 0, `#3336 ${m.mode}: no role aliases brand-neutral${stale.length ? ` — ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ` and ${stale.length - 5} more` : ''}` : ''}`);
+      // (c)
+      const { checked, broken } = contracts(roles);
+      ok(checked.length === 214 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 214)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
+      // (d)
+      const b = roles['interactive.primary.border.rest'];
+      ok(!!b && b.hex === '#8f8d8d' && /\.palette\.neutral\.400$/.test(b.path) && Math.abs(b.ratio - 3.30) < 0.005 && b.min === 3 && b.against === 'background.primary',
+        `#3336 ${m.mode}: interactive.primary.border.rest is neutral.400 #8f8d8d at 3.30:1 on background.primary (Q3336.2 A) (got ${b ? `${b.path} ${b.hex} ${b.ratio.toFixed(2)}:1 on ${b.against}` : 'missing'})`);
+      // (e)
+      const off = Object.entries(WANT).filter(([k, v]) => {
+        const r = roles[k];
+        return !r || !r.path.endsWith(`.palette.neutral.${v.split(' ')[0]}`) || r.hex !== v.split(' ')[1];
+      }).map(([k, v]) => `${k}: ${roles[k] ? `${roles[k].path.replace(/^.*\.palette\./, '')} ${roles[k].hex}` : 'missing'} ≠ neutral.${v}`);
+      ok(off.length === 0, `#3336 ${m.mode}: the action family resolves to the decided neutral step and hex, role by role (${Object.keys(WANT).length} roles)${off.length ? ` — ${off.slice(0, 4).join(' | ')}` : ''}`);
+      // (f)
+      const before = wasModes.get(m.mode);
+      if (!before) { ok(false, `#3336 ${m.mode}: the 2026-09-28 build resolves the same mode`); continue; }
+      const keys = new Set([...Object.keys(roles), ...Object.keys(before)]);
+      const moved = [...keys].filter((k) => !(k in WANT) && (roles[k]?.hex !== before[k]?.hex || roles[k]?.path !== before[k]?.path));
+      ok(moved.length === 0, `#3336 ${m.mode}: every role outside the decided table is byte-identical to the 2026-09-28 build${moved.length ? ` — moved ${moved.slice(0, 5).join(', ')}${moved.length > 5 ? ` and ${moved.length - 5} more` : ''}` : ''}`);
+      ok(Object.keys(WANT).every((k) => roles[k]?.path !== before[k]?.path), `#3336 ${m.mode}: premise: every role in the decided table moves off the 2026-09-28 build's alias, so (f) compares builds that differ`);
+    }
+    // (g)
+    const at350 = structuredClone(REF_NEUTRAL_3336) as any;
+    at350.overrides.light['interactive.primary.border.rest'] = { palette: 'neutral', step: '350' };
+    const m350 = resolveAllModes(brandTheme(at350)).find((m) => m.mode === 'light');
+    const b350 = m350 ? contracts(m350.roles as Record<string, R>).broken : [];
+    ok(b350.length === 1 && b350[0][0] === 'interactive.primary.border.rest' && Math.abs(b350[0][1].ratio - 2.81) < 0.005,
+      `#3336 premise: border.rest on neutral.350 misses its 3:1 floor at 2.81:1, the miss the decided step 400 clears (FAILED: ${failed(b350) || 'nothing'})`);
+  }
+}
+
 // ---- #3077 (owner decisions 2026-10-27): THE REFERENCE BRAND'S TYPE TABLE ------------------------------------
 //
 // The reference brand's typography patch: titleFloor 16, sizes.title.2xs 20 (18 on mobile, Q802 A),
