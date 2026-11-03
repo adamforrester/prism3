@@ -2705,7 +2705,9 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
 const VERDICT_LINE = 'All 884 pairs at or above floor';
-const HEALTH_LINE = 'All 884 pairs at or above floor.';
+// #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
+const HEALTH_LINE = 'All 884 pairs at or above their minimum.';
+const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
 const HEALTH_MODES = ['Light: 221 of 221 at or above', 'Dark: 221 of 221 at or above', 'High contrast light: 221 of 221 at or above', 'High contrast dark: 221 of 221 at or above'];
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
  *  (section "IA v2 phase 2" holds them). The notes still ship: the committed default theme still records them. */
@@ -2797,6 +2799,10 @@ for (const host of ['web', 'figma']) {
       const health = await page.evaluate(() => ({ line: document.querySelector('[data-p3="health-summary"]')?.textContent, modes: [...document.querySelectorAll('[data-p3="health-modes"] li')].map((l) => l.textContent) }));
       ok(health.line === HEALTH_LINE, `${where}: Health reads "${HEALTH_LINE}" — reads "${health.line}"`);
       ok(JSON.stringify(health.modes) === JSON.stringify(HEALTH_MODES), `${where}: Health lists each mode — ${JSON.stringify(health.modes)}`);
+      // #3366 (Q3366.2 A): under the modes, the pointer to the contrast floor: the floor in Light and Dark, then the way to it.
+      // Literal: prism3's floors, neutral 050 in Light and neutral 900 in Dark (the issue's measure, and the emission's).
+      const ptr = await page.evaluate(() => ({ line: document.querySelector('[data-p3="health-floor"] .p3-note')?.textContent ?? null, link: document.querySelector('[data-p3="health-floor-link"]')?.textContent ?? null }));
+      ok(ptr.line === HEALTH_FLOOR_LINE && ptr.link === 'Change the contrast floor', `${where}: #3366: Health points to the contrast floor, "${HEALTH_FLOOR_LINE}" and "Change the contrast floor" — read ${JSON.stringify(ptr)}`);
       const table = await page.locator('[data-p3="inspect-contrast-table"] table').count();
       ok(table === 1, `${where}: Inspect › Contrast carries the contrast contract table (${table} table(s))`);
       const ct = await tableText(page, 'inspect-contrast-table');
@@ -2857,6 +2863,24 @@ for (const host of ['web', 'figma']) {
   await goPlace(page, 'type');
   const s = await inspectState(page);
   ok(!s.open && s.page && s.view === 'type', `a tab change closes Inspect and shows the new page, Type in the two panes (${JSON.stringify({ open: s.open, page: s.page, view: s.view })})`);
+  await ctx.close();
+}
+// #3366 (Q3366.2 A): Health's pointer opens the setting. From another page (Type), on both hosts, wide and narrow: Inspect
+// closes, Color › Surfaces & fills opens, and focus is on the contrast floor's step button, which is shown (at 380 the
+// Settings pane, not the Preview pane Inspect covered). MUTATION: `toFloor` without `pane = 'settings'` → `… at 380 …
+// the contrast floor's step button has focus and is shown`.
+for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+  const { ctx, page } = await open({ host, theme: 'light', w, h });
+  await goPlace(page, 'type');
+  if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));   // the verdict is on the Preview pane there
+  await hooks.click(page.locator('[data-p3="verdict"]'));
+  await hooks.need(page, '[data-p3="health-floor-link"]');
+  await hooks.click(page.locator('[data-p3="health-floor-link"]'));
+  await page.waitForFunction(() => document.activeElement?.getAttribute('data-p3') === 'surface-floor-pick', null, { timeout: 10000 }).catch(() => {});
+  const s = await inspectState(page);
+  const shown = await page.evaluate(() => { const n = document.activeElement; const r = n?.getBoundingClientRect(); return !!r && r.width > 0 && r.height > 0 && r.top < innerHeight && r.bottom > 0; });
+  ok(!s.open && s.place === 'color-fills' && s.focus === 'surface-floor-pick' && shown,
+    `#3366 ${host} at ${w}: Health's "Change the contrast floor" closes Inspect, opens Surfaces & fills, and the contrast floor's step button has focus and is shown — read ${JSON.stringify({ open: s.open, place: s.place, focus: s.focus, shown })}`);
   await ctx.close();
 }
 } // 8
@@ -3692,6 +3716,37 @@ for (const host of ['web', 'figma']) {
           const px = await takePosts(page);
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
+        }
+        // #3308 (Q3308.4 A): a run that sets the file up and writes its theme ends by drawing the cover and About this
+        // library. After Theme, the run's last step checks the in-place update over no sets, then applies it with the
+        // check's hash; the plugin's finish of that update draws both, and its verdict ends the run. Style guides unticked
+        // and nothing queued, so the steps are Set up file, Theme and the cover.
+        // (mutations: `stepsOf` with no `cover` step → this arm; `startStep` posting nothing for `cover` → this arm)
+        {
+          if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+          // The update's two posts are reads and a write `recordPosts` does not keep, so this arm listens for them itself.
+          await page.evaluate(() => { if (window.__cv3308) return; window.__cv3308 = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['update-check-request', 'update-sets'].includes(m.type)) window.__cv3308.push(JSON.parse(JSON.stringify(m))); }); });
+          const takeCv = (type) => page.evaluate((t) => new Promise((r) => setTimeout(() => { const got = window.__cv3308.filter((m) => m.type === t); window.__cv3308.length = 0; r(got); }, 50)), type);
+          await openUpdate({ present: [], setUp: false, queued: [] });
+          await hooks.click(page.locator('[data-p3="update-check-guides"]'), WAIT);
+          await takeWrites(page);
+          await takeCv('none');
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          const cv1 = (await takeWrites(page)).map(keyOf);
+          await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+          const cv2 = (await takeWrites(page)).map(keyOf);
+          await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+          const cv3 = await takeCv('update-check-request');
+          await postMsg(page, { type: 'update-check', previewHash: 'H-3308', missing: [], refused: [], sets: [] });
+          const cv4 = await takeCv('update-sets');
+          const cvRun = await updBtn();
+          await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ About this library drawn', summary: 'Cover: drawn. About this library: drawn on the Cover page.', lines: ['Cover: drawn.', 'About this library: drawn on the Cover page.'] });
+          await settle(page);
+          const cvEnd = await updBtn();
+          ok(cv1.includes('file-setup') && cv2.includes('apply-theme') && !cv2.includes('update-check-request')
+            && cv3.length === 1 && canon(cv3[0].defs) === '[]' && cv4.length === 1 && canon(cv4[0].defs) === '[]' && cv4[0].previewHash === 'H-3308' && cvRun.busy && !cvEnd.busy,
+            `${where}: #3308: a run that sets the file up and writes its theme ends with the cover: after Theme it checks and applies the update over no sets, and that verdict ends the run (posted ${JSON.stringify(cv1)}, ${JSON.stringify(cv2)}, then ${JSON.stringify(cv3)} and ${JSON.stringify(cv4)}; Update file ${JSON.stringify(cvRun)} → ${JSON.stringify(cvEnd)})`);
+          await takeWrites(page);
         }
         // #3128: a set the build queue posts that the host refuses (the plugin's run guard still held) gets no verdict.
         // The run ends on the refusal: Update file is free again, the Build set row is not left running, and its result
@@ -5237,15 +5292,16 @@ for (const host of ['web', 'figma']) {
   // contrast floor (no token: a setting); the inverse fill's three tiers. The inverse names are the brief's (DRAFT).
   const WANT_SURF_ROWS = [
     ['background.primary', 'Primary', 'background.primary', 'surface-base-pick'], ['background.secondary', 'Secondary', 'background.secondary', 'surface-secondary-pick'],
-    ['background.tertiary', 'Tertiary', 'background.tertiary', 'surface-tertiary-pick'], ['surfaces.floorStep', 'Contrast floor', null, 'surface-floor-pick'],
+    ['background.tertiary', 'Tertiary', 'background.tertiary', 'surface-tertiary-pick'], ['surfaces.floorStep', 'Measured on', null, 'surface-floor-pick'],
     ['inverse.background.primary', 'Inverse primary', 'inverse.background.primary', 'surface-band-step-pick'],
     ['inverse.background.secondary', 'Inverse secondary', 'inverse.background.secondary', 'surface-inverse-secondary-pick'],
     ['inverse.background.tertiary', 'Inverse tertiary', 'inverse.background.tertiary', 'surface-inverse-tertiary-pick'],
   ].map(([role, label, token, pick]) => ({ role, label, token, swatch: true, pick }));
   ok(JSON.stringify(c.surfRows) === JSON.stringify(WANT_SURF_ROWS), `${host}: QA-B1/QA-B3: Background fills draws its rows in the Foreground pattern, Primary first — read ${JSON.stringify(c.surfRows)}`);
   // BG1 A (#2181, approved 2026-10-06) shortened QA-B7's "Default background fills" and "Inverse background fills".
-  ok(JSON.stringify(c.surfSubs) === JSON.stringify(['Default', 'Inverse']),
-    `${host}: QA-B7, BG1 A: Background fills' sub-sections are "Default" and "Inverse" — read ${JSON.stringify(c.surfSubs)}`);
+  // #3366 (Q3366.1 A): the contrast floor has its own sub-heading, between the two.
+  ok(JSON.stringify(c.surfSubs) === JSON.stringify(['Default', 'Contrast floor', 'Inverse']),
+    `${host}: QA-B7, BG1 A, #3366: Background fills' sub-sections are "Default", "Contrast floor" and "Inverse" — read ${JSON.stringify(c.surfSubs)}`);
   for (const [key, hk] of FILLS_LEVERS) ok(c.levers[hk] === 1, `${host}: Surfaces & fills lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${c.levers[hk]}`);
   for (const r of [...SURFACE_ROW_ROLES, ...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
   // The focus rings (S4d, #1966): read-only rows, no control.
@@ -5297,11 +5353,21 @@ for (const host of ['web', 'figma']) {
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return lab?.textContent ?? null;
     })(),
-    // QA-B6: the contrast floor row's own info text, the toggletip its info button controls.
-    floorTip: (() => {
-      const info = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-row"][data-role="surfaces.floorStep"] [data-p3="lever-info"]');
-      const id = info?.getAttribute('aria-controls');
-      return id ? document.getElementById(id)?.textContent ?? null : null;
+    // #3366 (Q3366.1, .5, .6 A): the contrast floor's own block, as rendered: the row's name and the line under it, the
+    // always-shown line, each group's words and whether its swatch is painted, and what it does not check. Its info
+    // button (QA-B6) is gone: the line under the row says it, always.
+    floor: (() => {
+      const box = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-floor-rows"]');
+      const row = box?.querySelector('[data-p3="surface-row"][data-role="surfaces.floorStep"]');
+      return box ? {
+        head: box.querySelector('.p3-rows-sub')?.textContent ?? null,
+        label: row?.querySelector('.p3-fill-label')?.textContent ?? null,
+        sub: row?.querySelector('[data-p3="surface-floor-sub"]')?.textContent ?? null,
+        info: !!row?.querySelector('[data-p3="lever-info"]'),
+        line: box.querySelector('[data-p3="surface-floor-line"]')?.textContent ?? null,
+        groups: [...box.querySelectorAll('[data-p3="surface-floor-groups"] li')].map((li) => [li.dataset.group, li.textContent, getComputedStyle(li.querySelector('.p3-floor-sw')).backgroundColor !== 'rgba(0, 0, 0, 0)']),
+        not: box.querySelector('[data-p3="surface-floor-not"]')?.textContent ?? null,
+      } : null;
     })(),
     // QA-I10: the icon contrast block's info text, its toggletip.
     iconTip: (() => {
@@ -5321,8 +5387,17 @@ for (const host of ['web', 'figma']) {
   ok(JSON.stringify(copy.tierNames) === JSON.stringify(['Secondary', 'Tertiary', 'Inverse secondary', 'Inverse tertiary']),
     `${host}: the four tier controls are named Secondary, Tertiary, Inverse secondary, Inverse tertiary (#2001, approved) — read ${JSON.stringify(copy.tierNames)}`);
   ok(copy.inverseName === 'Inverse fill palette', `${host}: the inverse fill's palette select is named "Inverse fill palette" (S4f, draft; "fill", the owner's rename) — read ${JSON.stringify(copy.inverseName)}`);
-  ok(copy.floorTip === 'The background most text, icon and fill colors are checked against for contrast. Auto uses background.secondary.',
-    `${host}: QA-B6: the contrast floor's info text is the owner's — read ${JSON.stringify(copy.floorTip)}`);
+  // #3366: the DRAFT copy as rendered (Q3366.6 A), literal. The count and the groups are prism3's in Light, from the
+  // issue's measured table: 47 roles in six groups, typed here, never read off the module (docs/34 shape 1).
+  const WANT_FLOOR = {
+    head: 'Contrast floor', label: 'Measured on', sub: 'A setting, not a token', info: false,
+    line: 'The background 47 text, icon and fill colors are checked against for contrast. A step further from the page moves them further from it too. Auto uses background.secondary.',
+    groups: [['links', 'Links (10)', true], ['status', 'Brand and status text, icons (10)', true], ['secondary', 'Secondary and tertiary text, placeholder (5)', true],
+      ['disabled', 'Disabled text and icon (2)', true], ['bold', 'Bold fills (5)', true], ['buttons', 'Button fills (15)', true]],
+    not: 'Field borders, button borders and the focus ring are not checked against it.',
+  };
+  ok(JSON.stringify(copy.floor) === JSON.stringify(WANT_FLOOR),
+    `${host}: #3366: the contrast floor has its own sub-heading, its row "Measured on", and says what it checks (six groups, each with its swatch) and what it does not — read ${JSON.stringify(copy.floor)}`);
   ok(copy.iconTip === 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.',
     `${host}: QA-I10: the icon contrast block carries Interactive's Icons description (ICONS_DESC) — read ${JSON.stringify(copy.iconTip)}`);
   const FILLS_COPY = {
@@ -5348,7 +5423,7 @@ for (const host of ['web', 'figma']) {
     ['inverse.foreground.primary', 'Primary'], ['inverse.foreground.secondary', 'Secondary'], ['inverse.foreground.tertiary', 'Tertiary']];
   ok(JSON.stringify(copy.fgLabels) === JSON.stringify(FG_LABELS), `${host}: the Foreground section's rows are labeled Primary, Secondary, Tertiary (Q44) — read ${JSON.stringify(copy.fgLabels)}`);
   // S4f (QA-B7): Background fills' two sub-headings come first, the APPROVED words (BG1 A: "Default" and "Inverse").
-  ok(JSON.stringify(copy.subs) === JSON.stringify(['Default', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']),
+  ok(JSON.stringify(copy.subs) === JSON.stringify(['Default', 'Contrast floor', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']),
     `${host}: Background fills heads its two groups (QA-B7), and Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
@@ -6014,7 +6089,7 @@ if (runs('18-s4f')) {
   /** The computed accessible name of every Default background fills picker, in row order. */
   const axNames = async (cdp) => {
     const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
-    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-p3="levers-pane"] [data-p3="surface-default-rows"] [data-p3="surface-row"] .p3-pick' });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-p3="levers-pane"] :is([data-p3="surface-default-rows"], [data-p3="surface-floor-rows"]) [data-p3="surface-row"] .p3-pick' });
     const out = [];
     for (const nodeId of nodeIds) {
       const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
@@ -6029,7 +6104,8 @@ if (runs('18-s4f')) {
   const brands = (await p0.locator('[data-p3="start-example"]').allTextContents()).map((n) => n.trim());
   await ctx0.close();
   ok(brands.length >= 2, `#2179: the start screen offers the corpus brands (found ${brands.length}: ${brands.join(', ')})`);
-  const FLOOR_ROW_PROBE = () => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="surface-default-rows"] [data-p3="surface-row"]')].map((r) => {
+  // #3366 moved the floor's row under its own sub-heading (`surface-floor-rows`); it is still measured against the three tiers.
+  const FLOOR_ROW_PROBE = () => [...document.querySelectorAll('[data-p3="levers-pane"] :is([data-p3="surface-default-rows"], [data-p3="surface-floor-rows"]) [data-p3="surface-row"]')].map((r) => {
     const box = (n) => { const b = n?.getBoundingClientRect(); return b && b.width > 0 ? { top: b.top, bottom: b.bottom, left: b.left, right: b.right } : null; };
     const pk = r.querySelector('.p3-pick'), lab = pk?.querySelector('.p3-btn-label');
     return { role: r.dataset.role, label: box(r.querySelector('.p3-fill-label')), name: box(r.querySelector('.p3-fill-label')?.closest('.p3-fill-name') ?? r.querySelector('.p3-fill-label')), pick: box(pk),
@@ -6071,7 +6147,7 @@ if (runs('18-s4f')) {
         const floor = rows.find((r) => r.role === 'surfaces.floorStep');
         const others = rows.filter((r) => ['background.primary', 'background.secondary', 'background.tertiary'].includes(r.role));
         const drawn = floor?.pick && floor.label && floor.name && others.length === 3 && others.every((r) => r.pick && r.label && r.name);
-        ok(drawn, `${where}: Default background fills draws Primary, Secondary, Tertiary and Contrast floor, each with its name and its picker — read ${JSON.stringify(rows.map((r) => [r.role, { name: !!r.name, label: !!r.label, pick: !!r.pick }]))}`);
+        ok(drawn, `${where}: Background fills draws Primary, Secondary, Tertiary and, under its own heading, the contrast floor, each with its name and its picker — read ${JSON.stringify(rows.map((r) => [r.role, { name: !!r.name, label: !!r.label, pick: !!r.pick }]))}`);
         if (!drawn) continue;
         measured++;
         const besideOf = (r) => r.pick.left >= r.name.right - ALIGN_TOLERANCE && r.pick.top < r.label.bottom;
@@ -7232,6 +7308,41 @@ if (runs('19')) {
     ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 19-outline-hover
+// #3365 (owner, 2026-11-03): the Action palette select offers Neutral, on BOTH hosts (the plugin's UI is the studio's,
+// imported whole), and choosing it writes `actionPalette: 'neutral'`. EXPECTED: the option list typed here for the boot
+// brand (prism3 declares one brand color, `accent`), never read from `paletteRefOptions`; the primary fill's row names
+// the neutral ramp after the pick (the panel is redrawn whole from the brand, so a select that kept its own value
+// without a write would still fail it); on the web host the stored brand carries the value.
+// Mutations, each failing here by name:
+//   (a) `paletteRefOptions` drops neutral for actionPalette → `#3365 <host>: the Action palette select offers Primary, Neutral, Accent …`
+//   (b) the select writes 'primary' whatever is chosen      → `#3365 <host>: choosing Neutral puts the primary fill on the neutral ramp …`
+if (runs('19')) {
+  const SEL = '[data-p3="levers-pane"] [data-p3="action-palette-select"]';
+  const FILL = '[data-p3="levers-pane"] [data-p3="int-pick"][data-role="interactive.primary.fill.rest"]';
+  for (const host of ['web', 'figma']) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'color-interactive');
+      await hooks.need(page, SEL);
+      const opts = await page.evaluate((s) => [...document.querySelector(s).options].map((o) => `${o.value}=${o.textContent}`), SEL);
+      ok(JSON.stringify(opts) === JSON.stringify(['primary=Primary', 'neutral=Neutral', 'accent=Accent']),
+        `#3365 ${host}: the Action palette select offers Primary, Neutral, Accent, in that order (${opts.join(', ')})`);
+      const before = await page.locator(FILL).textContent();
+      await page.locator(SEL).selectOption('neutral');
+      await page.waitForFunction((f) => /neutral/i.test(document.querySelector(f)?.textContent ?? ''), FILL, { timeout: 5000 }).catch(() => {});
+      const after = { fill: (await page.locator(FILL).textContent())?.trim(), sel: await page.locator(SEL).inputValue() };
+      ok(/primary/i.test(before ?? '') && /neutral/i.test(after.fill ?? '') && after.sel === 'neutral',
+        `#3365 ${host}: choosing Neutral puts the primary fill on the neutral ramp, and the select reads it back after the redraw (${JSON.stringify({ before: before?.trim(), ...after })})`);
+      if (host === 'web') {
+        const p = await persisted(page);
+        ok(p?.actionPalette === 'neutral', `#3365 web: choosing Neutral stores actionPalette 'neutral' (${JSON.stringify(p?.actionPalette)})`);
+      }
+      ok(errors.length === 0, `#3365 ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#3365 ${host} Action palette: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 19-action-palette-neutral
 // #3115: the Outline hover chips (four since #3105) keep their rows whatever is selected. The selected chip is bold, and
 // a chip is never narrower than its label (`.p3-choice`, #1975), so where the four only just fit on one row (the owner's
 // window, about 1650 wide) the bold "Neutral overlay wash" pushed "No hover fill" onto a second. Each option is picked in
@@ -12935,7 +13046,7 @@ const PROMOTED = {
 };
 if (runs('30')) ok(Object.values(PROMOTED).every((p) => Object.values(p).every((t) => typeof t === 'string' && t.length > 20)), `BG1 A: every promoted lever's help text is typed or read from the manifest (${JSON.stringify(PROMOTED)})`);
 /** BG1 A's subgroup labels, the owner's approved words, exactly (not by their start). */
-const BG1_SUBS = ['Default', 'Inverse'];
+const BG1_SUBS = ['Default', 'Contrast floor', 'Inverse'];   // #3366 added the middle one (Q3366.1 A)
 /** TY1 A: each Type section and the lever hook it must hold (and the one it must not); HP2: the old title and description,
  *  which no levers section may draw. */
 const TY1_SECTIONS = [

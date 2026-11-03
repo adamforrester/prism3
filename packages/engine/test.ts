@@ -1123,6 +1123,56 @@ for (const b of brands) {
   }
 }
 
+// ---- #3365 (owner, 2026-11-03): THE NEUTRAL PALETTE AS THE ACTION PALETTE ------------------------------------
+//
+// The Studio and the plugin offer `neutral` in the Action palette select, so a brand whose buttons and links are
+// near-black picks it directly instead of adding a duplicate gray (the reference brand, #3336). Three promises, per
+// example brand, each held against the SAME brief built with `actionPalette: 'primary'`:
+//   (a) the engine accepts it and the action family sits on the neutral ramp;
+//   (b) every mode contract passes;
+//   (c) the neutral role does not move: every role outside the action family, and the neutral ramp itself, is
+//       byte-identical (hex and alias path) to the primary build.
+// The action family is a LITERAL list (the primary column, its inverse, the four link families and the two focus
+// rings), typed here from the owner's issue and #3336's inventory, never read from `modes.ts`. A premise checks the
+// comparison can see a move at all: the action family itself must differ between the two builds.
+//
+// Mutations, each failing here by name:
+//   (1) `theme.ts` resolves a neutral action palette back to primary → `#3365 <id>: the engine resolves actionPalette 'neutral' …`
+//   (2) `theme.ts` darkens the neutral ramp when it drives actions → `#3365 <id>: the neutral ramp is unchanged …` and
+//       `#3365 <id>/<mode>: … every role outside the action family is unchanged …`
+//   (3) `modes.ts` `chromatic` takes a neutral action anchor as pinned (`exact`), so no action role is moved to clear its
+//       floor → `#3365 <id>/<mode>: all … contracts pass with a neutral action palette — FAILED: …`
+{
+  const ACTION_PREFIXES = ['interactive.primary.', 'inverse.interactive.primary.', 'text.link.', 'icon.link.', 'inverse.text.link.', 'inverse.icon.link.'];
+  const ACTION_ROLES = new Set(['border.focus', 'inverse.border.focus']);
+  const isAction = (k: string): boolean => ACTION_ROLES.has(k) || ACTION_PREFIXES.some((p) => k.startsWith(p));
+  for (const id of ['prism3', 'aurora', 'harbor']) {
+    const input = parseDesignMd(readFileSync(resolve(HERE, `./examples/${id}.design.md`), 'utf8')).input;
+    const base = exampleTheme(`${id} (actionPalette primary)`, () => brandTheme({ ...structuredClone(input), actionPalette: 'primary' }));
+    const t = exampleTheme(`${id} (actionPalette neutral)`, () => brandTheme({ ...structuredClone(input), actionPalette: 'neutral' }));
+    if (!base || !t) continue;
+    ok(t.roleToPalette.action === 'neutral', `#3365 ${id}: the engine resolves actionPalette 'neutral' onto the neutral ramp (got '${t.roleToPalette.action}')`);
+    const ramp = (x: Theme): string => (x.palettes.find((p) => p.palette === 'neutral')?.steps ?? []).map((s) => `${s.num}:${s.hex}`).join(' ');
+    ok(ramp(t) !== '' && ramp(t) === ramp(base), `#3365 ${id}: the neutral ramp is unchanged when it drives actions`);
+    const baseModes = new Map(resolveAllModes(base).map((m) => [m.mode, m.roles]));
+    for (const m of resolveAllModes(t)) {
+      const was = baseModes.get(m.mode) as Record<string, { hex: string; path: string }> | undefined;
+      if (!was) { ok(false, `#3365 ${id}/${m.mode}: the primary build resolves the same mode`); continue; }
+      const roles = m.roles as Record<string, { hex: string; path: string; ratio: number; min: number }>;
+      const fill = roles['interactive.primary.fill.rest']?.path ?? '';
+      ok(/\.palette\.neutral\.\d+$/.test(fill), `#3365 ${id}/${m.mode}: interactive.primary.fill.rest aliases the neutral ramp (${fill || 'missing'})`);
+      const checked = Object.entries(roles).filter(([, r]) => r.min > 0);
+      const broken = checked.filter(([, r]) => r.ratio < r.min);
+      ok(checked.length > 0 && broken.length === 0, `#3365 ${id}/${m.mode}: all ${checked.length} contracts pass with a neutral action palette${broken.length ? ` — FAILED: ${broken.map(([k, r]) => `${k} ${r.ratio.toFixed(2)}<${r.min}`).join(', ')}` : ''}`);
+      const keys = new Set([...Object.keys(roles), ...Object.keys(was)]);
+      const differs = (k: string): boolean => roles[k]?.hex !== was[k]?.hex || roles[k]?.path !== was[k]?.path;
+      const moved = [...keys].filter((k) => !isAction(k) && differs(k));
+      ok(moved.length === 0, `#3365 ${id}/${m.mode}: with a neutral action palette, every role outside the action family is unchanged (text, surfaces, borders)${moved.length ? ` — moved ${moved.slice(0, 5).join(', ')}${moved.length > 5 ? ` and ${moved.length - 5} more` : ''}` : ''}`);
+      ok([...keys].some((k) => isAction(k) && differs(k)), `#3365 ${id}/${m.mode}: premise: the action family itself moves between the two builds, so the comparison can see a move`);
+    }
+  }
+}
+
 // L-04 (#1486) — LINK STATE PERCEPTIBILITY. Engaged link states walk the action ramp by a PERCEPTUAL
 // interval, not a fixed rung count, so hover/pressed/visited stay clearly distinct even where `linkBase`
 // is pinned deep (a saturated brand red must clear 4.5:1 AS TEXT, which lands it near the ramp end where
