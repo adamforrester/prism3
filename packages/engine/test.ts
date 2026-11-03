@@ -1123,6 +1123,56 @@ for (const b of brands) {
   }
 }
 
+// ---- #3365 (owner, 2026-11-03): THE NEUTRAL PALETTE AS THE ACTION PALETTE ------------------------------------
+//
+// The Studio and the plugin offer `neutral` in the Action palette select, so a brand whose buttons and links are
+// near-black picks it directly instead of adding a duplicate gray (the reference brand, #3336). Three promises, per
+// example brand, each held against the SAME brief built with `actionPalette: 'primary'`:
+//   (a) the engine accepts it and the action family sits on the neutral ramp;
+//   (b) every mode contract passes;
+//   (c) the neutral role does not move: every role outside the action family, and the neutral ramp itself, is
+//       byte-identical (hex and alias path) to the primary build.
+// The action family is a LITERAL list (the primary column, its inverse, the four link families and the two focus
+// rings), typed here from the owner's issue and #3336's inventory, never read from `modes.ts`. A premise checks the
+// comparison can see a move at all: the action family itself must differ between the two builds.
+//
+// Mutations, each failing here by name:
+//   (1) `theme.ts` resolves a neutral action palette back to primary → `#3365 <id>: the engine resolves actionPalette 'neutral' …`
+//   (2) `theme.ts` darkens the neutral ramp when it drives actions → `#3365 <id>: the neutral ramp is unchanged …` and
+//       `#3365 <id>/<mode>: … every role outside the action family is unchanged …`
+//   (3) `modes.ts` `chromatic` takes a neutral action anchor as pinned (`exact`), so no action role is moved to clear its
+//       floor → `#3365 <id>/<mode>: all … contracts pass with a neutral action palette — FAILED: …`
+{
+  const ACTION_PREFIXES = ['interactive.primary.', 'inverse.interactive.primary.', 'text.link.', 'icon.link.', 'inverse.text.link.', 'inverse.icon.link.'];
+  const ACTION_ROLES = new Set(['border.focus', 'inverse.border.focus']);
+  const isAction = (k: string): boolean => ACTION_ROLES.has(k) || ACTION_PREFIXES.some((p) => k.startsWith(p));
+  for (const id of ['prism3', 'aurora', 'harbor']) {
+    const input = parseDesignMd(readFileSync(resolve(HERE, `./examples/${id}.design.md`), 'utf8')).input;
+    const base = exampleTheme(`${id} (actionPalette primary)`, () => brandTheme({ ...structuredClone(input), actionPalette: 'primary' }));
+    const t = exampleTheme(`${id} (actionPalette neutral)`, () => brandTheme({ ...structuredClone(input), actionPalette: 'neutral' }));
+    if (!base || !t) continue;
+    ok(t.roleToPalette.action === 'neutral', `#3365 ${id}: the engine resolves actionPalette 'neutral' onto the neutral ramp (got '${t.roleToPalette.action}')`);
+    const ramp = (x: Theme): string => (x.palettes.find((p) => p.palette === 'neutral')?.steps ?? []).map((s) => `${s.num}:${s.hex}`).join(' ');
+    ok(ramp(t) !== '' && ramp(t) === ramp(base), `#3365 ${id}: the neutral ramp is unchanged when it drives actions`);
+    const baseModes = new Map(resolveAllModes(base).map((m) => [m.mode, m.roles]));
+    for (const m of resolveAllModes(t)) {
+      const was = baseModes.get(m.mode) as Record<string, { hex: string; path: string }> | undefined;
+      if (!was) { ok(false, `#3365 ${id}/${m.mode}: the primary build resolves the same mode`); continue; }
+      const roles = m.roles as Record<string, { hex: string; path: string; ratio: number; min: number }>;
+      const fill = roles['interactive.primary.fill.rest']?.path ?? '';
+      ok(/\.palette\.neutral\.\d+$/.test(fill), `#3365 ${id}/${m.mode}: interactive.primary.fill.rest aliases the neutral ramp (${fill || 'missing'})`);
+      const checked = Object.entries(roles).filter(([, r]) => r.min > 0);
+      const broken = checked.filter(([, r]) => r.ratio < r.min);
+      ok(checked.length > 0 && broken.length === 0, `#3365 ${id}/${m.mode}: all ${checked.length} contracts pass with a neutral action palette${broken.length ? ` — FAILED: ${broken.map(([k, r]) => `${k} ${r.ratio.toFixed(2)}<${r.min}`).join(', ')}` : ''}`);
+      const keys = new Set([...Object.keys(roles), ...Object.keys(was)]);
+      const differs = (k: string): boolean => roles[k]?.hex !== was[k]?.hex || roles[k]?.path !== was[k]?.path;
+      const moved = [...keys].filter((k) => !isAction(k) && differs(k));
+      ok(moved.length === 0, `#3365 ${id}/${m.mode}: with a neutral action palette, every role outside the action family is unchanged (text, surfaces, borders)${moved.length ? ` — moved ${moved.slice(0, 5).join(', ')}${moved.length > 5 ? ` and ${moved.length - 5} more` : ''}` : ''}`);
+      ok([...keys].some((k) => isAction(k) && differs(k)), `#3365 ${id}/${m.mode}: premise: the action family itself moves between the two builds, so the comparison can see a move`);
+    }
+  }
+}
+
 // L-04 (#1486) — LINK STATE PERCEPTIBILITY. Engaged link states walk the action ramp by a PERCEPTUAL
 // interval, not a fixed rung count, so hover/pressed/visited stay clearly distinct even where `linkBase`
 // is pinned deep (a saturated brand red must clear 4.5:1 AS TEXT, which lands it near the ramp end where
@@ -5133,6 +5183,11 @@ arm: {
     const isInv = (p: string) => p.startsWith('color.inverse.');
     const guaranteedInv = Object.keys(readBaseline().guaranteed).filter(isInv);
     const removable = new Set<string>();
+    // #3335: three settings are refused on this brand, each by its own message: `outlineWash.pressed` 5 and 10 (under the
+    // neutral wash's default hover of 10) and `outlineWash.hover` 40 (no step above it for pressed). The lever sweep holds
+    // each refusal by message (`lint-lever-sweep.ts` REFUSALS); here they are counted, exactly, so any other throw still
+    // ends the run.
+    const refused3335: string[] = [];
     for (const l of leverManifest) {
       const vals: unknown[] = l.control === 'toggle' ? [true, false]
         : l.control === 'enum' ? (l.options ?? []).map((o) => o.value)
@@ -5140,10 +5195,17 @@ arm: {
       for (const v of vals) {
         const input = structuredClone(MINIMAL_BRAND) as any;
         setPath(input, l.key, v);
-        const emitted = pathsOf(brandTheme(input));
+        let built: Theme;
+        try { built = brandTheme(input); } catch (e) {
+          if (l.key.startsWith('outlineWash.') && /^outlineWash: pressed \d+ must be above hover \d+ /.test((e as Error).message)) { refused3335.push(`${l.key}=${v}`); continue; }
+          throw e;
+        }
+        const emitted = pathsOf(built);
         for (const p of guaranteedInv) if (!emitted.has(p)) removable.add(p);
       }
     }
+    ok(JSON.stringify(refused3335) === JSON.stringify(['outlineWash.hover=40', 'outlineWash.pressed=5', 'outlineWash.pressed=10']),
+      `#3335: the inverse sweep's only refusals are the three outlineWash settings that leave pressed on or under hover (${refused3335.join(', ')})`);
     // KNOWN IS NOW EMPTY, AND THAT IS THE FIX THIS ARM ASKED FOR (#957, landing with #1102).
     //
     // It used to hold 9 paths — `inverse.interactive.<c>.overlay.{hover,pressed,selected}` — with the note
@@ -7703,6 +7765,56 @@ arm: {
   // UNSELECTED, as before: the label and the 1px edge on the page.
   measureTag('unselected label on the page', ref('unselected.label'), [], 4.5);
   measureTag('unselected edge on the page', ref('unselected.border'), [], 3);
+
+  // #3328 (owner decisions Q3328.1 A, Q3328.2 A): THE FIELD FOCUS PASSES WCAG 2.4.13, IN EVERY CORPUS BRAND AND MODE. A
+  // focused field's band inside its border changes from the field's fill over the page (what an unfocused field shows
+  // there) to `border.focus`, so the criterion's two numbers are measured on those pixels, against LITERAL thresholds:
+  // the change is at least 3:1, and the band is at least 2px thick, read off each brand's emitted `focus.ring.width`.
+  // That the band sits INSIDE the border (so the border's own rest→focus change, about 1.5:1, is not what is counted)
+  // is the executor arm `#3328 field focus geometry`'s claim. Each listed control's own fill key, so a control rebound
+  // to another fill is measured on it. 5 brands × 4 modes = 20 cells per control, a literal.
+  {
+    const FOCUS_FIELDS: [string, string][] = [
+      ['text-field', 'fill'], ['textarea', 'fill'], ['select', 'fill'], ['password-field', 'fill'], ['search-field', 'fill'],
+      ['card-number-field', 'fill'], ['code-input-cell', 'fill'], ['counter', 'outline.fill'],
+    ];
+    const low: string[] = [];
+    let cells = 0;
+    let min = Infinity;
+    for (const [id, key] of FOCUS_FIELDS) {
+      const fd = componentDefs.find((d) => d.id === id);
+      const fill = fd?.tokens[key]?.replace(/^color\./, '');
+      if (!fd || !fill) { low.push(`${id}: no '${key}' fill`); continue; }
+      let n = 0;
+      for (const [brand, th] of tagThemes()) for (const m of resolveAllModes(th)) {
+        const page = m.roles['background.primary']?.hex ? hexToRgb(m.roles['background.primary'].hex) : undefined;
+        // A transparent fill resolves to the palette's `transparent` primitive, emitted as #000000 with no alpha, so it is
+        // read as what it paints, nothing: the page shows through.
+        const clear = String(m.roles[fill]?.path ?? '').endsWith('.transparent');
+        const under = page && (clear ? page : colorOf(m.roles, fill, page));
+        const focus = under && colorOf(m.roles, 'border.focus', under);
+        if (!under || !focus) { low.push(`${id} ${brand}/${m.mode}: missing ${!under ? fill : 'border.focus'}`); continue; }
+        const r = contrast(focus, under);
+        n++; cells++;
+        min = Math.min(min, r);
+        if (r < 3) low.push(`${id} ${brand}/${m.mode} ${r.toFixed(2)}`);
+      }
+      if (n !== TAG_CELLS) low.push(`${id}: ${n} of ${TAG_CELLS} cells`);
+    }
+    const widths: string[] = [];
+    for (const brand of ['nb', 'aurora', 'harbor', 'prism3', 'wendys']) {
+      const t = JSON.parse(readFileSync(resolve(HERE, `out/${brand}.tokens.json`), 'utf8'));
+      const root = Object.keys(t).find((k) => !k.startsWith('$'))!;
+      // The resolved px the emission states beside the alias (`$extensions.prism3.px`), so the literal 2 is read off
+      // what a consumer gets, not off the def.
+      const v = t[root]?.focus?.ring?.width?.$extensions?.prism3?.px;
+      const px = typeof v === 'number' ? v : NaN;
+      widths.push(`${brand} ${px}`);
+      if (!(px >= 2)) low.push(`${brand}: focus.ring.width ${JSON.stringify(v)}, under the 2px band 2.4.13 asks for`);
+    }
+    ok(cells === FOCUS_FIELDS.length * TAG_CELLS && low.length === 0,
+      `#3328 field focus 2.4.13: on all ${FOCUS_FIELDS.length} field controls the band inside the border changes from the field's fill over the page to border.focus at ≥3:1 in all ${cells} of ${FOCUS_FIELDS.length * TAG_CELLS} brand × mode cells (lowest ${min.toFixed(2)}), and the band is ≥2px in every corpus brand (${widths.join(', ')})${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''}`);
+  }
 }
 
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
@@ -17692,6 +17804,33 @@ arm: {
     ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
       "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
+    // ---- #3163: `PartDef.scroll`, the scroll region, and its two refusal arms, each pinned BY NAME (docs/34) ----
+    // SUBJECT: Dialog's body as committed, then mutated. EXPECTED: the projection Q3130.8 A asks for (the body clips and
+    // scrolls vertically on every member) and the authored refusal shapes. Delete either refusal from `anatomyErrors`
+    // and its line fails here; the round-trip arms (`roundtrip/dialog body clips`, `roundtrip/dialog body scrolls`) hold
+    // what the host keeps.
+    {
+      const dlg = componentDefs.find((x) => x.id === 'dialog')!;
+      const dPlans = figmaAnatomySet(dlg, { swapTarget: 'FPO-default-icon' });
+      const bodies = dPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
+      ok(dPlans.length === 24 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
+        `#3163 dialog body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${bodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${dPlans.length})`);
+      const others = componentDefs.filter((d) => d.figmaProperties && d.id !== 'dialog').flatMap((d) => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }));
+      const walk = (n: { overflowDirection?: string; children: unknown[] }): number => (n.overflowDirection ? 1 : 0) + (n.children as (typeof n)[]).reduce((a, c) => a + walk(c), 0);
+      ok(others.length > 0 && others.every((pl) => walk(pl.root) === 0), '#3163 scope: no other def plans an overflowDirection, so every other plan is byte-identical');
+      const body = dlg.anatomy.parts.body;
+      const scrollOnText = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, placeholder: { ...dlg.anatomy.parts.placeholder, scroll: 'vertical' } } } };
+      ok(validateComponentDef(scrollOnText as ComponentDef).errors.some((e) => /declares 'scroll'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
+        "#3163 a NON-box part declaring scroll is refused BY NAME — only a frame can scroll its overflow");
+      const scrollNoClip = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, body: { ...body, clipsContent: undefined } } } };
+      ok(validateComponentDef(scrollNoClip as ComponentDef).errors.some((e) => /declares scroll 'vertical' without 'clipsContent: true'/.test(e)),
+        "#3163 a box declaring scroll without clipsContent is refused BY NAME — it would draw its overflow over the pinned footer");
+      const scrollSideways = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, body: { ...body, scroll: 'horizontal' } } } };
+      ok(validateComponentDef(scrollSideways as unknown as ComponentDef).errors.some((e) => /the one scroll direction is 'vertical'/.test(e)),
+        "#3163 a scroll direction other than vertical is refused BY NAME");
+      ok(validateComponentDef(dlg).errors.length === 0, '#3163 premise: the committed Dialog validates clean with its scrolling body');
+    }
+
     // ---- the message-row footprint fix: field-message's row FLOORS its height at the glyph's size ----
     // EXPECTED is authored here: the row binds its minimum height to the glyph's OWN key, so the floor is the
     // glyph in every brand. Read off the plan the executor receives. Drop `minHeight` from the def and this
@@ -24224,6 +24363,35 @@ arm: {
         `#2872 plugin leg: Link's current-page bar is ${WANT_BAR} (got '${barFacts(plugPage)}'; misses ${JSON.stringify(plugged.misses)})`);
     }
 
+    // ---- #3163: Dialog's scrolling body, on the PASTE leg ------------------------------------------------
+    // The paste payload builds the body as a frame and carries its fields onto the native slot through
+    // `__SLOT_FIELDS`. The round-trip arms (`roundtrip/dialog body clips|scrolls`) drive only the plugin
+    // executor, so an agent-pasted Dialog could lose its scroll with nothing saying so. SUBJECT: what the
+    // stub host holds after every Dialog member is pasted. EXPECTED: the literals typed here (Q3130.8 A).
+    // Mutation: drop 'overflowDirection' from `__SLOT_FIELDS` → this line fails by name.
+    {
+      const dlgDef = componentDefs.find((d) => d.id === 'dialog')!;
+      const members = figmaAnatomySet(dlgDef, { swapTarget: 'FPO-default-icon' });
+      const nested = (n: AnatomyPlan['root']): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.children ?? []).flatMap(nested)];
+      const find = (n: Record<string, unknown>, name: string): Record<string, unknown> | undefined =>
+        n.name === name ? n : ((n.children as Record<string, unknown>[] | undefined) ?? []).map((c) => find(c, name)).find(Boolean);
+      const WANT_BODY = 'SLOT VERTICAL clips';
+      const got: string[] = [];
+      for (const m of members) {
+        const page: StubPage = { children: [] };
+        const opts: StubOpts = { vars: [...planBoundVars(m.root), ...planPaintVars(m.root)], styles: planTextStyles(m.root), comps: ['FPO-default-icon', 'focus-ring', ...nested(m.root)], page };
+        const run = await runPayload(planToPluginJs(m), opts);
+        const root = page.children.map((c) => find(c as Record<string, unknown>, planComponentName(m))).find(Boolean);
+        const body = root && find(root, 'body');
+        const facts = body ? `${String(body.type)} ${String(body.overflowDirection)} ${body.clipsContent === true ? 'clips' : 'spills'}` : 'no body';
+        // Only the body's own misses count: this stub holds no effect styles and no swap-ready close button, which other arms own.
+        const bodyMisses = run.misses.filter((x) => /(^|\/)body\./.test(x));
+        if (facts !== WANT_BODY || bodyMisses.length) got.push(`${planComponentName(m)}: ${facts}${bodyMisses.length ? ` misses ${JSON.stringify(bodyMisses.slice(0, 2))}` : ''}`);
+      }
+      ok(members.length === 24 && got.length === 0,
+        `#3163 paste leg: every pasted Dialog member's body is ${WANT_BODY} (${members.length - got.length}/${members.length})${got.length ? ` — ${got.slice(0, 3).join('; ')}` : ''}`);
+    }
+
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
     // The accessor used to sit in `mkNode`'s object spread, which reads the getter once and drops the setter,
     // so a FRAME took the write silently and every gate leaning on "the wrong node type throws" was testing
@@ -27146,6 +27314,106 @@ arm: {
             `parity #1388: both executors write the SAME non-zero concentric ring radius — a hard-square (radius 0) ring or a divergence between the two derivations fails here (plugin ${ringCorners(fvPlugPage)} vs paste ${ringCorners(fvPastePage)})`);
         }
 
+        // #3328 (owner decisions Q3328.1 A, Q3328.2 A): A FOCUSED FIELD DRAWS ITS FOCUS INSIDE ITSELF, AT ITS OWN RADIUS.
+        // Every listed control's focus-visible member (the Counter's outline one), built through BOTH executors, read
+        // off the pages. The expected numbers are LITERALS from the decision, not read off the def or the plan: the
+        // field's border is 1px (`border-width/hairline`, pinned at 1 here as it is in every corpus brand), so the ring
+        // sits exactly 1px inside the field on every side, 2px smaller than the field on each axis; its four corners
+        // are BOUND to the very variable the field's corners are (the field's radius token, never a literal number);
+        // and the band that changes from the page to the focus ink, the ring's 2px stroke less any of it lying over the
+        // border, is the 2px WCAG 2.4.13 counts. An outer ring, a literal radius and a 2px-total focus each fail here.
+        {
+          const FIELD_BORDER = 1;
+          const RING = 2;
+          const FOCUS_CONTROLS: [string, Record<string, string>][] = [
+            ['text-field', {}], ['textarea', {}], ['select', {}], ['password-field', {}], ['search-field', {}],
+            ['card-number-field', {}], ['code-input-cell', {}], ['counter', { appearance: 'outline' }],
+          ];
+          const walkN = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walkN))];
+          const targetsOf = (n: FigmaNodePlan): string[] => [n.nestTarget, n.swapTarget, ...(n.children ?? []).flatMap(targetsOf)].filter((x): x is string => typeof x === 'string');
+          const wrong: string[] = [];
+          let measured = 0;
+          for (const [id, coord] of FOCUS_CONTROLS) {
+            const fd = componentDefs.find((d) => d.id === id);
+            const plan = fd && figmaAnatomySet(fd, { swapTarget: 'FPO-default-icon' })
+              .find((p) => (p.coord as Record<string, string>).state === 'focus-visible' && Object.entries(coord).every(([k, v]) => (p.coord as Record<string, string>)[k] === v));
+            if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
+            const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': FIELD_BORDER, 'focus/ring/offset-field': 0, 'focus/ring/width': RING } };
+            const pastePage: StubPage = { children: [] };
+            const plugPage: StubPage = { children: [] };
+            await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
+            await plugRun([plan], { ...opts, page: plugPage });
+            for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
+              const all = (page.children as Record<string, unknown>[]).flatMap(walkN);
+              const ring = all.find((n) => n.name === 'focusRing');
+              const host = all.find((n) => ((n.children as Record<string, unknown>[]) ?? []).includes(ring as Record<string, unknown>));
+              if (!ring || !host) { wrong.push(`${id} ${path}: no ring or host`); continue; }
+              const [W, H] = [host.width as number, host.height as number];
+              if (!(ring.x === FIELD_BORDER && ring.y === FIELD_BORDER && ring.width === W - 2 * FIELD_BORDER && ring.height === H - 2 * FIELD_BORDER))
+                wrong.push(`${id} ${path}: ring at ${ring.x},${ring.y} ${ring.width}×${ring.height} in a ${W}×${H} field, not ${FIELD_BORDER}px inside it on every side (an outer ring sits at a negative offset)`);
+              const hb = (host.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+              const rb = (ring.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+              for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) {
+                if (!hb[corner]?.id) wrong.push(`${id} ${path}: the field binds no ${corner}, so the claim is unfalsifiable`);
+                else if (rb[corner]?.id !== hb[corner]!.id) wrong.push(`${id} ${path}: ring ${corner} is ${rb[corner]?.id ? `bound to ${rb[corner]!.id}` : `the literal ${String(ring[corner])}`}, not the field's own ${hb[corner]!.id}`);
+              }
+              // 2.4.13's band: the ring's stroke runs inward from its edge; what lies over the field's border changes
+              // from the rest border, not from the page, and does not count.
+              const band = (ring.x as number) + RING - Math.max(ring.x as number, FIELD_BORDER);
+              if (band < 2) wrong.push(`${id} ${path}: ${band}px of the focus band changes from the page (WCAG 2.4.13 asks 2px); the rest lies over the border`);
+              measured++;
+            }
+          }
+          ok(measured === FOCUS_CONTROLS.length * 2 && wrong.length === 0,
+            `#3328 field focus geometry: on all ${FOCUS_CONTROLS.length} field controls, through both executors (${measured} of ${FOCUS_CONTROLS.length * 2} builds), the focus ring sits ${FIELD_BORDER}px inside the field on every side, takes the field's own corner variables, and leaves a 2px band inside the border${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+        }
+
+        // #3328 Q-F1 A (owner, 2026-11-03): AN UNDERLINE-EDGE FIELD KEEPS THE OUTSIDE FOCUS RING. The underline has no
+        // side border to sit inside, so `applyFieldStyle` drops `borderInset` and the ring goes back outside at the
+        // control offset (#2695 Q3). Every field the lever reaches, Search's own underline style included, drawn under
+        // underline and built through BOTH executors. EXPECTED is typed here: the plan carries no absoluteBorderInset,
+        // and the ring sits OUTSIDE the field by the control offset plus its own stroke, compensated outward
+        // (2 + 2 = 4px on every side, at the pinned values below). The outline edge's inside ring sits at +1, and a ring
+        // that kept the border inset under underline sits at -(offset - border) = -1; both fail here.
+        // Mutation: `applyFieldStyle` keeps `borderInset` under underline → this line fails by name.
+        {
+          const UNDERLINE_FIELDS = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input-cell'];
+          const OFFSET = 2;
+          const RING = 2;
+          const OUT = OFFSET + RING;
+          const walkN = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walkN))];
+          const targetsOf = (n: FigmaNodePlan): string[] => [n.nestTarget, n.swapTarget, ...(n.children ?? []).flatMap(targetsOf)].filter((x): x is string => typeof x === 'string');
+          const planRing = (n: FigmaNodePlan): FigmaNodePlan | undefined => n.name === 'focusRing' ? n : (n.children ?? []).map(planRing).find(Boolean);
+          const wrong: string[] = [];
+          let measured = 0;
+          for (const id of UNDERLINE_FIELDS) {
+            const fd = componentDefs.find((d) => d.id === id);
+            const plan = fd && figmaAnatomySet(applyFieldStyle(fd, 'underline'), { swapTarget: 'FPO-default-icon' })
+              .find((p) => (p.coord as Record<string, string>).state === 'focus-visible');
+            if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
+            const pr = planRing(plan.root);
+            if (!pr) { wrong.push(`${id}: the plan carries no focusRing`); continue; }
+            if (pr.absoluteBorderInset !== undefined) wrong.push(`${id} plan: the underline ring carries absoluteBorderInset '${pr.absoluteBorderInset}', so it is sited inside an edge with no side border`);
+            const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': 1, 'focus/ring/offset': OFFSET, 'focus/ring/width': RING } };
+            const pastePage: StubPage = { children: [] };
+            const plugPage: StubPage = { children: [] };
+            await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
+            await plugRun([plan], { ...opts, page: plugPage });
+            for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
+              const all = (page.children as Record<string, unknown>[]).flatMap(walkN);
+              const ring = all.find((n) => n.name === 'focusRing');
+              const host = all.find((n) => ((n.children as Record<string, unknown>[]) ?? []).includes(ring as Record<string, unknown>));
+              if (!ring || !host) { wrong.push(`${id} ${path}: no ring or host`); continue; }
+              const [x, y, w, h, W, H] = [ring.x, ring.y, ring.width, ring.height, host.width, host.height] as number[];
+              if (!(x === -OUT && y === -OUT && w === W + 2 * OUT && h === H + 2 * OUT))
+                wrong.push(`${id} ${path}: ring at ${x},${y} ${w}×${h} in a ${W}×${H} field, not ${OUT}px outside it on every side`);
+              measured++;
+            }
+          }
+          ok(measured === UNDERLINE_FIELDS.length * 2 && wrong.length === 0,
+            `#3328 Q-F1 underline keeps the outside ring: on all ${UNDERLINE_FIELDS.length} underline-edge fields, through both executors (${measured} of ${UNDERLINE_FIELDS.length * 2} builds), the focus ring carries no border inset and sits 4px outside the field on every side${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+        }
+
         // #1009 ACROSS BOTH PATHS. The paste path's write is one line in a generated string, which no
         // typechecker reads and no plugin test reaches — so without this the codegen half of half 2 would
         // be unverified while the plugin half looked complete. Read off the two PAGES, not off the plans.
@@ -27709,6 +27977,19 @@ arm: {
       // NOW 17, AS OF #2343 PR 2 — a shell-byte move: the paste script gained the aspect-locked instance (`aspectLock`,
       // a slot that reads its main's proportion before its height binds), in every chunk's shell. icon-button does not
       // use it. Re-pinned per the same standing instruction; every chunk stays under budget.
+      //
+      // NOW 18, AS OF #3163 — a shell-byte move: the paste script's claim now writes every FRAME's `overflowDirection`
+      // (`NONE` unless the plan scrolls, Dialog's body), in every chunk's shell. icon-button does not scroll. Re-pinned per
+      // the same standing instruction; every chunk stays under budget.
+      //
+      // BACK TO 17, ALSO AS OF #3163 — the same PR's review fix names the four per-side stroke weights once (`__SIDE`),
+      // which frees 115 B in every chunk's shell, more than the `overflowDirection` write took. Re-pinned per the same
+      // standing instruction.
+      //
+      // STILL 17, AS OF #3328 — a shell-byte move: the paste script gained the ring sited inside its host's border
+      // (`absoluteBorderInset`, the field focus), with its corners bound to the host's radius variables, in every
+      // chunk's shell. icon-button does not use it. Against the main before #3163 it packed into 18; on top of #3163's
+      // trim it packs into 17. Measured on the merge; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
       ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
@@ -31190,9 +31471,11 @@ arm: {
   // `strokeEdges` (#2695) IS argued for here, and it is the same field split by side rather than a third thing: the
   // WIDTH of this part's own stroke, one key per side, so the underline field can leave three sides at 0. Color stays
   // with `paintSlots` and style with codeOnly; the two width fields are refused together on one part.
-  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset');
-  ok(partDefFields.includes('strokeInset'),
-    'focus-ring wall 1b: the exclusion below is REPRESENTED — `strokeInset` is really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
+  // `borderInset` (#3328) is excluded for `strokeInset`'s reason: it names the width of the HOST's border, which a ring
+  // sits inside, not a stroke of the part's own.
+  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset' && f !== 'borderInset');
+  ok(partDefFields.includes('strokeInset') && partDefFields.includes('borderInset'),
+    'focus-ring wall 1b: the exclusions below are REPRESENTED — `strokeInset` and `borderInset` are really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
   ok(declaresOwnStroke.join(',') === 'strokeWidth,strokeEdges',
     `focus-ring wall 1b: PartDef declares EXACTLY TWO fields for a part's own stroke, both its WIDTH: 'strokeWidth' (#1266) and its per-side form 'strokeEdges' (#2695 — got [${declaresOwnStroke.join(', ')}]). A ring IS a stroke, and a stroke is three things: its color left for 'paintSlots' in #933, its WIDTH is this field, and its STYLE has no Figma property to bind to (a dash rhythm is a 'dashPattern', not a keyword) so it stays in codeOnly under #740. The geometry vocabulary beside it is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'width', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names ANOTHER component's stroke to compensate for (#801), not this part's own`);
   // AND THE CONSEQUENCE, measured rather than inferred from the declaration above: the def projects and
@@ -34627,6 +34910,100 @@ arm: {
     refuses('a generate-only mode', { modes: ['light', 'hc-light'], outlineInteraction: 'opaque-fill', outlineHoverFill: { 'hc-light': { hover: 'neutral.050' } } }, /outlineHoverFill\.hc-light: .*generate-only/);
     refuses('an unknown step', { outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.051' } } }, /outlineHoverFill\.light\.hover: 'neutral\.051' is not a palette step/, true);
     refuses('an override on the fill', { outlineInteraction: 'opaque-fill', overrides: { light: { 'interactive.primary.hover-fill.hover': { palette: 'neutral', step: '100' } } } }, /'interactive\.primary\.hover-fill\.hover' is the opaque outline hover fill/, true);
+  }
+}
+
+// ---- #3335: THE OUTLINE WASH'S OPACITY AND PER-SET SOLID FILLS (the owner's Q3335.3 A and Q3335.5 A) ------------------
+// Two new inputs: `outlineWash: { hover, pressed }` in place of the wash constants, and `outlineHoverFill.<mode>.sets` beside
+// the mode-wide pick. ORACLES (docs/34), none read off the subject: the defaults are LITERALS typed here from the owner's
+// decision (10/20 neutral, 20/30 tinted), never `OUTLINE_WASH_DEFAULTS`; "unchanged" is the same brand resolved with the
+// input unset, compared role by role; the per-set step is a literal.
+//   (A) A PER-SET PICK REACHES ONLY ITS SET — the reference brand (opaque-fill, mode-wide `neutral.050`) with one set
+//       picked: that set's page `hover-fill.{hover,pressed}` take the pick, and no other role in any mode moves except
+//       that set's own outline inks (their clamp onto the new fill). BY-NAME MUTATION: `pickFor` reading the mode-wide
+//       pick first → (A) fails.
+//   (B) BYTE-IDENTICAL WITHOUT THEM — every corpus brand and the reference brand, under each wash method: the method's
+//       default steps given explicitly resolve identically to the input unset, and a `sets` entry restating the
+//       mode-wide pick resolves identically to the mode-wide pick alone. And the unset neutral wash is 10% hover and
+//       20% pressed and selected, as literals. BY-NAME MUTATION: the neutral default hover 10 → 5 → (B) fails.
+//   (C) THE WASH MOVES — a pick of 5/30 makes the neutral wash 5% hover, 30% pressed and selected; a tinted start of
+//       5/10 moves at least one set's tinted hover off its default (a start of 30 steps back to 20 under the label's
+//       guard on every corpus brand, so it could not show the start moving).
+//   (D) REFUSED, BY NAME — a set the brand does not have; pressed on or under hover; a step off the scale.
+{
+  const base3335 = nbTheme();
+  const roles3335 = (t: Theme) => resolveAllModes(t).map((m) => [m.mode, m.roles] as const);
+  const diff3335 = (a: ReturnType<typeof roles3335>, b: ReturnType<typeof roles3335>): string[] => {
+    const out: string[] = [];
+    a.forEach(([mode, ra], i) => {
+      const rb = b[i]?.[1] ?? {};
+      for (const k of new Set([...Object.keys(ra), ...Object.keys(rb)])) if (JSON.stringify(ra[k]) !== JSON.stringify(rb[k])) out.push(`${mode} ${k}`);
+    });
+    return out;
+  };
+  // (A)
+  {
+    const pal = base3335.roleToPalette.danger;
+    const pick = { hover: `${pal}.050`, pressed: `${pal}.100` };
+    const before = roles3335(base3335);
+    const after = roles3335({ ...base3335, outlineHoverFill: { light: { hover: 'neutral.050', sets: { destructive: pick } } } });
+    const moved = diff3335(before, after);
+    const allowed = /^light interactive\.destructive\.(hover-fill|text|icon)\.(hover|pressed)$/;
+    const stray = moved.filter((k) => !allowed.test(k));
+    const light = after.find(([m]) => m === 'light')![1];
+    const got = ['hover', 'pressed'].map((st) => light[`interactive.destructive.hover-fill.${st}`]?.path.split('.').slice(-2).join('.'));
+    const others = ['primary', 'neutral'].map((c) => light[`interactive.${c}.hover-fill.hover`]?.path.split('.').slice(-2).join('.'));
+    ok(stray.length === 0 && got[0] === pick.hover && got[1] === pick.pressed && others.every((x) => x === 'neutral.050')
+      && moved.includes('light interactive.destructive.hover-fill.hover'),
+      `#3335 (A) a per-set pick (destructive ${pick.hover} / ${pick.pressed}) reaches only that set's hover-fill: destructive reads ${got.join(' / ')}, primary and neutral keep ${others.join(', ')}${stray.length ? ` — STRAY (${stray.length}): ${stray.slice(0, 6).join('; ')}` : ''}`);
+  }
+  // (B)
+  {
+    const LITERAL: Record<string, { hover: number; pressed: number }> = { 'overlay-neutral': { hover: 10, pressed: 20 }, 'opaque-fill': { hover: 10, pressed: 20 }, 'solid-tint': { hover: 20, pressed: 30 } };
+    const brands = [...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })), { id: 'nb', theme: base3335 }];
+    const moved: string[] = [];
+    let built = 0;
+    for (const { id, theme } of brands) for (const method of Object.keys(LITERAL) as (keyof typeof LITERAL)[]) {
+      const t = { ...theme, outlineInteraction: method as Theme['outlineInteraction'] };
+      const unset = roles3335(t);
+      const d = diff3335(unset, roles3335({ ...t, outlineWash: LITERAL[method] }));
+      built++;
+      if (d.length) moved.push(`${id} ${method}: ${d.slice(0, 3).join(', ')}`);
+    }
+    // A `sets` entry that restates the mode-wide pick.
+    const wide = { light: { hover: 'neutral.050' } };
+    const same = diff3335(roles3335({ ...base3335, outlineHoverFill: wide }),
+      roles3335({ ...base3335, outlineHoverFill: { light: { hover: 'neutral.050', sets: { primary: { hover: 'neutral.050' }, neutral: { hover: 'neutral.050' }, destructive: { hover: 'neutral.050' } } } } }));
+    const light = resolveAllModes({ ...corpus()[0].theme, outlineInteraction: 'overlay-neutral' }).find((m) => m.mode === 'light')!.roles;
+    const alphas = ['hover', 'pressed', 'selected'].map((st) => light[`interactive.primary.overlay.${st}`]?.alpha);
+    ok(moved.length === 0 && same.length === 0 && JSON.stringify(alphas) === JSON.stringify([0.1, 0.2, 0.2]),
+      `#3335 (B) brands that don't set the new inputs are unchanged: ${built} brand × method builds resolve identically with the default steps given (10/20 neutral, 20/30 tinted, typed here), a restated per-set pick changes nothing, and the unset neutral wash is ${alphas.join(' / ')} (want 0.1 / 0.2 / 0.2)${moved.length ? ` — MOVED: ${moved.slice(0, 3).join('; ')}` : ''}${same.length ? ` — SETS MOVED: ${same.slice(0, 3).join('; ')}` : ''}`);
+  }
+  // (C)
+  {
+    const t0 = { ...corpus()[0].theme, outlineInteraction: 'overlay-neutral' as const };
+    const light = resolveAllModes({ ...t0, outlineWash: { hover: 5, pressed: 30 } }).find((m) => m.mode === 'light')!.roles;
+    const alphas = ['hover', 'pressed', 'selected'].map((st) => light[`interactive.primary.overlay.${st}`]?.alpha);
+    const tint = (w?: { hover: number; pressed: number }) => corpus().flatMap(({ theme }) => resolveAllModes({ ...theme, outlineInteraction: 'solid-tint', ...(w ? { outlineWash: w } : {}) })
+      .map((m) => ['primary', 'neutral', 'destructive'].map((c) => m.roles[`interactive.${c}.subtle-fill.hover`]?.tint?.opacity).join(',')));
+    const d = tint(), w = tint({ hover: 5, pressed: 10 });
+    const movedTint = d.filter((x, i) => x !== w[i]).length;
+    ok(JSON.stringify(alphas) === JSON.stringify([0.05, 0.3, 0.3]) && movedTint > 0,
+      `#3335 (C) the wash follows the pick: neutral 5/30 reads ${alphas.join(' / ')} (want 0.05 / 0.3 / 0.3); a tinted start of 5/10 moves the tinted hover in ${movedTint} of ${d.length} brand-modes`);
+  }
+  // (D)
+  {
+    const raw = readExampleBrand('./examples/nb-redesign.design.md');
+    const refuses = (patch: object, re: RegExp): string => {
+      try { resolveAllModes(brandTheme({ ...raw, ...patch } as typeof raw)); return 'accepted'; } catch (e) { return re.test(String((e as Error).message)) ? '' : String((e as Error).message).slice(0, 120); }
+    };
+    const bad = [
+      refuses({ outlineHoverFill: { light: { hover: 'neutral.050', sets: { teal: { hover: 'neutral.100' } } } } }, /outlineHoverFill\.light\.sets\.teal: 'teal' is not one of this brand's button sets/),
+      refuses({ outlineWash: { hover: 20, pressed: 20 } }, /outlineWash: pressed 20 must be above hover 20/),
+      refuses({ outlineWash: { pressed: 10 } }, /outlineWash: pressed 10 must be above hover 10/),
+      refuses({ outlineWash: { hover: 15 } }, /outlineWash\.hover: 15 is not an opacity step/),
+    ].filter(Boolean);
+    ok(bad.length === 0, `#3335 (D) refused by name: an unknown set, pressed on hover, pressed under the default hover, a step off the scale${bad.length ? ` — ${bad.join(' | ')}` : ''}`);
   }
 }
 

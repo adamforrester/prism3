@@ -684,7 +684,9 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `disabledStrategy` | value |  |
 | `disabledMin` | value |  |
 | `outlineInteraction` | value | rebinds the outline and text overlay tokens to another fill family, or drops them under none; no element or state is added. `opaque-fill` rebinds them on Button, Icon button and Flush icon button only (`OPAQUE_FILL_DEFS`); every other def keeps the wash |
-| `outlineHoverFill` | value | picks the step of the `opaque-fill` hover fill per mode; a def binds the outline overlay ref, never `hover-fill` by name |
+| `outlineHoverFill` | value | picks the step of the `opaque-fill` hover fill per mode, and per button set (`sets`, #3335); a def binds the outline overlay ref, never `hover-fill` by name |
+| `outlineWash.hover` | value | moves the outline wash's hover opacity step (#3335): the same overlay and subtle-fill names alias another alpha step; no element or state is added |
+| `outlineWash.pressed` | value | moves the outline wash's pressed (and selected) opacity step (#3335), as `outlineWash.hover` does |
 | `neutralEmphasis` | value |  |
 | `interactivePalettes` | value | adds token columns; a component offers them only through its own axis |
 | `gradients` | value |  |

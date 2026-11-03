@@ -23,7 +23,7 @@ Shown on the default member: size `medium`.
 2. **Content** — Centers the character, or the caret on the active empty cell.
 3. **Caret** — The insertion point on the active empty cell, in the character ink, as tall as the character.
 4. **Digit** — The character, in its size's text style, centered in the cell. Tabular figures in code, so every digit is one width.
-5. **Focus ring** — The shared focus ring on the active cell, where the next character goes.
+5. **Focus ring** — The shared focus ring on the active cell, where the next character goes, drawn inside the cell's border at its own radius.
 
 ## Styles
 
@@ -52,7 +52,7 @@ Use inside CodeInput only, one cell per character of the code. In a design, add 
 ## Accessibility
 
 - **Keyboard:** None of its own: the code input's input takes every key.
-- **Focus:** Never focused itself. While the code input's input has focus, the active cell shows the focus ring.
+- **Focus:** Never focused itself. While the code input's input has focus, the active cell shows the focus ring, drawn inside the cell: its border takes the focus color and a 2px band sits inside it, at the cell's radius.
 - **Screen readers:** none: an aria-hidden drawing; the code input's one input carries the role, the name and the value
 
   aria-hidden="true". A screen reader meets the code input's one input and its whole value, never a cell.

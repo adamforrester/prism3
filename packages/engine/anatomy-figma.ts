@@ -338,6 +338,13 @@ export type FigmaNodePlan = {
    *  sibling is — a name this projection references without binding, and an unresolvable one silently
    *  returns the ring to flush. */
   absoluteStrokeInset?: string;
+  /** The variable name of the HOST's border width the part sits INSIDE (#3328, owner decision Q3328.1 A). Where it
+   *  resolves above 0, both executors site the part that far inside the host on every side instead of outside it,
+   *  skip the `absoluteStrokeInset` compensation (nothing is drawn outward), and bind the part's four corners to the
+   *  host's own corner variables, so the focus band runs inside the field's border at the field's radius token and
+   *  no radius is written as a literal. Where it resolves to 0 (the Counter's ghost) the part is sited as without
+   *  it. A NAME for `absoluteInset`'s reason: the plan stays brand-invariant and the number freezes at paste. */
+  absoluteBorderInset?: string;
   /** Taken out of the auto-layout flow and CENTERED, rather than inset from its parent's bounds.
    *
    *  A separate field from `absoluteInset` even though both end in `layoutPositioning='ABSOLUTE'`,
@@ -485,6 +492,10 @@ export type FigmaNodePlan = {
    *  Carried onto the plan ONLY when `true`, so every existing box's plan is byte-identical (both
    *  executors read `n.clipsContent ?? false`, which is the literal they hardcoded before this field). */
   clipsContent?: boolean;
+  /** For a `box`: Figma's `overflowDirection`, the scroll region (#3163). Carried ONLY when the def declares
+   *  `scroll`, so every other box's plan is byte-identical; both executors write `n.overflowDirection ?? 'NONE'`
+   *  on every frame. `PartDef.scroll` has why it comes only with `clipsContent`. */
+  overflowDirection?: 'VERTICAL';
   /** For a `box`: the literal auto-layout `minWidth` floor in px (#1343a, #1345). Carried ONLY when the
    *  def sets it, so every existing box's plan is byte-identical; both executors write it inside the
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
@@ -2303,6 +2314,8 @@ export const figmaAnatomyPlan = (
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...((p.kind === 'box' && p.clipsContent) || tileEdge ? { clipsContent: true as const } : {}),
+      // The scroll region (#3163), carried ONLY when declared — see `PartDef.scroll`.
+      ...(p.kind === 'box' && p.scroll === 'vertical' ? { overflowDirection: 'VERTICAL' as const } : {}),
       // THE ROOT'S BUILD WIDTH (#1757), carried ONLY on a root that declares it — see `placementWidth`.
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
       // ITS HEIGHT TWIN (#2609), carried ONLY on a root built at a height too — see `PartDef.builtSize`.
@@ -2408,6 +2421,9 @@ export const figmaAnatomyPlan = (
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
       ...(p.kind === 'absolute' && p.inset && p.strokeInset ? { absoluteStrokeInset: varOf(p.strokeInset) } : {}),
+      // The host border the ring sits inside (#3328), projected only alongside an inset, so every other plan is
+      // byte-identical.
+      ...(p.kind === 'absolute' && p.inset && p.borderInset ? { absoluteBorderInset: varOf(p.borderInset) } : {}),
       // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
       // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
       ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
@@ -2707,7 +2723,7 @@ export const fieldStyleFor = (defId: string, input: { fieldStyle?: FieldStyle; s
  *     the node, so the thicker line moves no box. The color is the def's own border paint, unchanged: rest, hover,
  *     focus, the status swaps and read-only all keep their roles (Q9).
  *   · THE RING (Q3): the nested focus ring's inset takes `focus.ring.offset` (2px), since no side edge now separates
- *     it from the value.
+ *     it from the value, and it drops `borderInset` (#3328): with no side border, there is no border to sit inside.
  *   · THE EDGES (Q5, Q6, Q10): the inline padding binds `space.0`, so the label, value, message and line share one
  *     start edge and a trailing glyph (Select's chevron) sits flush with the line's end; the corner binds
  *     `radius.none`, whatever Control shape chose, so this runs after `applyControlShape`.
@@ -2744,7 +2760,12 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
   for (const c of frame.children ?? []) {
     const child = a.parts[c];
     if (!child?.inset) continue;
-    if (child.kind === 'absolute' && child.nests === 'focus-ring') tokens[child.inset] = 'focus.ring.offset';
+    if (child.kind === 'absolute' && child.nests === 'focus-ring') {
+      tokens[child.inset] = 'focus.ring.offset';
+      // THE RING LEAVES THE BORDER (#3328): the outline edge's ring sits inside the field's border, and the underline
+      // has no side border to sit inside, so the ring goes back outside, at the control offset (Q3 above).
+      if (child.borderInset !== undefined) { const { borderInset: _inside, ...outside } = child; parts[c] = outside; }
+    }
     else if (child.kind === 'absolute' || child.corner) tokens[child.inset] = 'border-width.thick';
   }
   const { strokeWidth: _outline, ...rest } = frame;
@@ -3547,7 +3568,7 @@ const paintVarsOwn = (n: FigmaNodePlan): string[] =>
  *  and both executors fall back to the offset alone when it misses, which is a legible ring rather than a
  *  broken one, and therefore the kind of failure only a gate notices. */
 const readVarsOwn = (n: FigmaNodePlan): string[] =>
-  [n.absoluteInset, n.absoluteStrokeInset, n.cornerInset, n.firstLine?.glyph].filter((x): x is string => !!x);
+  [n.absoluteInset, n.absoluteStrokeInset, n.absoluteBorderInset, n.cornerInset, n.firstLine?.glyph].filter((x): x is string => !!x);
 
 /** Every paint variable a plan binds, depth-first. Exported for the gate that asserts a skinned plan
  *  actually carries paints — the check that a coordinate resolved to something. */
@@ -4721,7 +4742,7 @@ const PAYLOAD_SLOTS = `// #2417 — NATIVE SLOTS, the paste twin of the plugin e
 // frame's own fields are carried over, its size BEFORE any binding (a \`resize\` clears them), and its variables
 // re-bound from the plan by name. Called once per member, before the combine, which merges slots by name; a member a
 // later chunk appends to the set merges into its slot property the same way (measured), so no duplicate arises here.
-const __SLOT_FIELDS=['layoutMode','primaryAxisSizingMode','counterAxisSizingMode','primaryAxisAlignItems','counterAxisAlignItems','layoutWrap','itemSpacing','counterAxisSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','minWidth','maxWidth','minHeight','maxHeight','clipsContent','fills','strokes','strokeWeight','strokeAlign','cornerRadius','opacity','visible','layoutAlign','layoutGrow','layoutPositioning'];
+const __SLOT_FIELDS=['layoutMode','primaryAxisSizingMode','counterAxisSizingMode','primaryAxisAlignItems','counterAxisAlignItems','layoutWrap','itemSpacing','counterAxisSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','minWidth','maxWidth','minHeight','maxHeight','clipsContent','overflowDirection','fills','strokes','strokeWeight','strokeAlign','cornerRadius','opacity','visible','layoutAlign','layoutGrow','layoutPositioning'];
 const __slotsNow=(comp,member)=>{
   for(const [frame,n] of __slots){
     const parent=frame.parent;
@@ -4799,6 +4820,8 @@ const __exposeNow=(member)=>{
 // FIGMA'S OWN COMPONENT-SET BORDER, written because the API does not supply its paint. Probed live
 // (2026-09-27): \`combineAsVariants\` returns strokes [], weight 1, INSIDE, dashPattern [10,5], radius 5,
 // fills [] — a dash with nothing to draw. Twin of \`SET_BORDER\` in the plugin's write-components.ts.
+// The four per-side stroke weights, named once: three checks below read them, and every chunk ships this shell (#1798).
+const __SIDE=['strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'];
 const SET_BORDER={r:0x97/255,g:0x47/255,b:1,weight:1,align:'INSIDE',dash:[10,5],radius:5};
 const claimDefaults=(node,n,mode,layerOp)=>{
   const t=node.type,isSet=!n,m=n||{},P=m.paints||{},B=m.bound||{},where=n?n.name:'set';
@@ -4822,13 +4845,16 @@ const claimDefaults=(node,n,mode,layerOp)=>{
       // A TEXT fill has no neutral value — \`[]\` is invisible text — so an unpainted label is REPORTED.
       if(!P.fills${GRADIENT_CLAIM_SLOT}${LITERAL_FILL_CLAIM_SLOT}){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
       // The weight is gated on the plan's binding (#1228): a literal write after the bind loop UNBINDS it.
-      if(!P.strokes${LITERAL_STROKE_CLAIM_SLOT}){set('strokes',[]);if(!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>k in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
+      if(!P.strokes${LITERAL_STROKE_CLAIM_SLOT}){set('strokes',[]);if(!['strokeWeight',...__SIDE].some(k=>k in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
       set('dashPattern',[]);
     }
   }
   if(t==='FRAME'||t==='COMPONENT_SET'){
     for(const k of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'])if(isSet)w(k,S.radius,0);else if(!(k in B))set(k,0);
     set('clipsContent',!!m.clipsContent);
+    // The scroll region (#3163): a FRAME's prototype overflow, NONE unless the plan says. Not on a set, which has no
+    // \`overflowDirection\` (\`ComponentSetNode\` lacks FramePrototypingMixin).
+    if(t==='FRAME')set('overflowDirection',m.overflowDirection||'NONE');
     // Parent-side auto-layout properties apply only on an auto-layout frame, and Figma THROWS on
     // \`strokesIncludedInLayout\` elsewhere — so gated on the PLAN's \`layoutMode\`.
     if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B||k in(m.paddingPx||B)))set(k,0);set('strokesIncludedInLayout',false);}
@@ -5068,7 +5094,7 @@ ${LITERAL_FILL_SLOT}
     // The border-box motive is moot on an absolute node anyway: with no auto-layout there is no footprint
     // for the stroke to grow. \`&&node.layoutMode\` so an undefined layoutMode (a non-auto-layout frame) is
     // skipped, not compared true against \`'NONE'\`.
-    if(p){node.strokes=[p];${LITERAL_STROKE_MARK_SLOT}painted.strokes=1;if(!node.strokeWeight&&!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>wrote.indexOf(k)>=0))node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
+    if(p){node.strokes=[p];${LITERAL_STROKE_MARK_SLOT}painted.strokes=1;if(!node.strokeWeight&&!['strokeWeight',...__SIDE].some(k=>wrote.indexOf(k)>=0))node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is a
@@ -5086,7 +5112,7 @@ ${LITERAL_FILL_SLOT}
   // (the 2026-09-09 host-truth audit) — so a weight counts as held when EITHER the scalar OR all four
   // per-side keys are present, and a genuinely unbound weight is still reported.
   const got=node.boundVariables||{};
-  const held=(prop)=>!!got[prop]||(prop==='strokeWeight'&&['strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].every(k=>!!got[k]));
+  const held=(prop)=>!!got[prop]||(prop==='strokeWeight'&&__SIDE.every(k=>!!got[k]));
   for(const prop of wrote)
     if(!held(prop))misses.push(n.name+'.'+prop+' -> DISCARDED (resolved, set, not retained)');
   // Paints read back too, and from the ARRAY rather than the node — a paint binding lives on the
@@ -5180,7 +5206,7 @@ ${CORNER_SLOT}${FIRST_LINE_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because 
     // \`resolveForConsumer\` rather than reading \`valuesByMode\`: the value is itself an ALIAS to a
     // dimension primitive, and the raw map hands back a VARIABLE_ALIAS object rather than a number.
     const gap=v.resolveForConsumer(kid).value;
-    if(typeof gap!=='number'){misses.push(c.name+'.absoluteInset -> '+c.absoluteInset+' resolved to '+JSON.stringify(gap)+', not a number');continue;}
+    if(typeof gap!=='number'){misses.push(c.name+'.absoluteInset -> '+c.absoluteInset+' not a number');continue;}
     // THE STROKE THE GAP HAS TO CLEAR (#801). \`strokeAlign\` is INSIDE above — correct for a border,
     // since a stroke outside would grow the auto-layout footprint — so the nested ring draws its own
     // stroke back inward across the gap. At 2px offset and a 2px ring the outer edge lands exactly on the
@@ -5190,13 +5216,20 @@ ${CORNER_SLOT}${FIRST_LINE_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because 
     let inset=gap;
     if(c.absoluteStrokeInset){
       const sv=byName.get(c.absoluteStrokeInset);
-      if(!sv)misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' (positioned at the offset alone; the ring will sit flush against the border it must be distinguishable from — #801)');
+      if(!sv)misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' (#801)');
       else{
         const sw=sv.resolveForConsumer(kid).value;
-        if(typeof sw!=='number')misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' resolved to '+JSON.stringify(sw)+', not a number (positioned at the offset alone — the ring will sit flush, #801)');
+        if(typeof sw!=='number')misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' not a number (#801)');
         else inset=gap+sw;
       }
     }
+    // INSIDE THE HOST'S BORDER (#3328, Q3328.1 A). A field's ring is the focus band INSIDE its 1px border: sited the
+    // border's width in from the host's edge on every side, uncompensated (nothing is drawn outward), so the border
+    // recolored to the focus ink plus the ring's band read as one indicator with no outer frame. A width of 0 (the
+    // Counter's ghost, which draws no edge) leaves the outside ring above as it was. Lockstep with the plugin executor.
+    // Terse on purpose: this runs in every paste chunk's shell, which #1798's unit ceiling holds.
+    let inside=0;
+    if(c.absoluteBorderInset){const bw=byName.get(c.absoluteBorderInset)?.resolveForConsumer(kid).value;if(typeof bw!=='number')misses.push(c.name+'.absoluteBorderInset');else if(bw>0){inside=1;inset=gap-bw;}}
     // CLEAR THE INHERITED NOMINAL SIDE (#1388, #1290's prediction). The nested component's root binds
     // width AND height to its \`nominal-side\` (\`size.md.height\`, present only so it builds alone), and an
     // INSTANCE inherits that binding. \`resize\` clears the bindings this payload set but not one inherited
@@ -5218,9 +5251,12 @@ ${CORNER_SLOT}${FIRST_LINE_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because 
     // formula, three cases: a radius-0 host → \`inset\` (a rounded-rect ring, not a hard square); a full-round
     // host (radio, radius ≥ half its side) → \`host + inset ≥ ringSide/2\`, which Figma clamps to a circle;
     // an ordinary rounded host stays concentric at the constant gap. Frozen at paste like \`x\`/\`y\`/inset.
+    // INSIDE THE BORDER (#3328) the ring takes the HOST'S OWN corner variables instead: it runs at the field's radius
+    // token, so a brand re-runging its corner moves the ring with the field, and no radius is a literal.
     for(const corner of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius']){
       const hostR=node[corner];
-      if(typeof hostR==='number')kid[corner]=hostR+inset;
+      if(inside){const rv=byName.get(n.bound[corner]);rv?kid.setBoundVariable(corner,rv):misses.push(c.name+'.'+corner);}
+      else if(typeof hostR==='number')kid[corner]=hostR+inset;
     }
     // STRETCH on both axes so the ring tracks its target when a designer resizes a variant. Without it
     // the ring keeps the size it was pasted at and widening the button leaves it behind — silently,
@@ -5229,7 +5265,7 @@ ${CORNER_SLOT}${FIRST_LINE_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because 
     // READ BACK, the same discipline as every other setter here. \`layoutPositioning\` is rejected on a
     // child of a non-auto-layout parent, and an absolute child that quietly stayed in the flow ADDS a
     // cell to the row — the one thing the ring must not do to its host's geometry.
-    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
+    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (reads '+kid.layoutPositioning+'; the ring takes a cell)');
   }
 ${FOOT_PLACE_SLOT}  // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
 ${PIN_SLOT}${INSET_SLOT}

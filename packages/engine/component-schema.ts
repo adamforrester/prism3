@@ -683,6 +683,16 @@ export type PartDef = {
    *  reason: only the frame-creating branch reads it, so on a text/vector/slot it would validate clean
    *  and reach no node. */
   clipsContent?: boolean;
+  /** For `box` parts: the direction the frame SCROLLS when its content overflows it — Figma's prototype
+   *  `overflowDirection` (#3163, G14 on #3130). Only `'vertical'` exists, because the one region that needs it is
+   *  a dialog body that scrolls between a fixed header and a pinned footer. Absent means no scrolling, which is
+   *  Figma's default and what every existing box keeps: the plan omits the field, and both executors write
+   *  `n.overflowDirection ?? 'NONE'` on every frame, so `lint-unclaimed-defaults` has an address for the value.
+   *
+   *  It REQUIRES `clipsContent: true`. A frame that scrolls without cropping draws its overflow over whatever
+   *  follows it (the pinned footer, in #3163's measurement) and only scrolls in a prototype, so the pair is the
+   *  scroll region and either half alone is the defect. Refused on every kind but `box`, as `clipsContent` is. */
+  scroll?: 'vertical';
   /** For `box` parts: a LITERAL minimum horizontal width in px — Figma's auto-layout `minWidth` (#1343a,
    *  #1345). A COMFORTABLE PROJECTION FLOOR, not a token: 320 is where `select` sits by default so the
    *  field reads at a usable width in Figma, chosen in 8px increments — and the owner's #1343 decision was
@@ -1296,6 +1306,19 @@ export type PartDef = {
    *  resolve to 0 in every brand, which `lint-absolute-inset.ts` asserts (`MUST_DRAW_INSIDE`): a ring offset outward
    *  while declaring itself inside would be neither. */
   drawnInside?: true;
+  /** For `absolute` (a nested focus ring): the binding key of the HOST's border width the part sits INSIDE (#3328,
+   *  owner decision Q3328.1 A, the "A′" geometry). Where the key resolves above 0, the part is placed that far inside
+   *  its host's edge on every side, so the nested ring's inside stroke draws a band that starts where the host's own
+   *  border ends: the field's border recolored to the focus ink plus the ring's band inside it, one indicator, with no
+   *  outer frame. Its corners take the host's own corner bindings (the field's radius token, never a literal), and
+   *  `strokeInset` is not applied, since nothing is drawn outward.
+   *
+   *  A KEY, not a flag, so it can follow an axis: the Counter's outline sits inside its edge and its ghost, which draws
+   *  no edge, keys it to `border-width.none` and keeps the outside ring its `strokeInset` sites. Where it resolves to
+   *  0 the part is placed exactly as without it. The underline Field style drops it (`applyFieldStyle`): that edge has
+   *  no side border to sit inside, and its ring stays outside (#2695 Q3). `lint-absolute-inset.ts` holds each field
+   *  ring to it (`MUST_SIT_INSIDE_BORDER`). */
+  borderInset?: string;
   /** For `vector` parts: PIN the glyph into a corner of its parent, OUT of the auto-layout flow, `inset`
    *  (a binding key, like `absolute`'s) in from both edges of that corner. The textarea's resize grip is the
    *  case: a small glyph that sits at the control's bottom-right corner and must not take a cell — in the
@@ -5062,6 +5085,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // `drawnInside` (#2417, Q257 A) is `strokeInset`'s stated alternative: an absolute part only, and never with it.
     if (p.drawnInside !== undefined && p.kind !== 'absolute')
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'drawnInside' — only an 'absolute' part is sited against its host's edge, so only it can be drawn inside it`);
+    // `borderInset` (#3328): an absolute part only, nesting the ring, and never beside `drawnInside`, which sits ON the edge.
+    if (p.borderInset !== undefined && p.kind !== 'absolute')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'borderInset' — only an 'absolute' part is sited against its host's edge, so only it can sit inside the host's border`);
+    if (p.borderInset !== undefined && p.drawnInside)
+      e.push(`anatomy part '${n}' declares both 'drawnInside' and 'borderInset' — one sits on the host's edge, the other inside its border; declare one`);
     if (p.drawnInside && p.strokeInset !== undefined)
       e.push(`anatomy part '${n}' declares both 'drawnInside' and 'strokeInset' — drawn inside the host's edge means the stroke is NOT compensated outward, and 'strokeInset' compensates it; declare one`);
     // `strokeEdges` (#2695): the four sides apart, read by the box branch only, and never beside `strokeWidth`.
@@ -5450,6 +5478,16 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // it, so on any other kind it validates clean, is silently ignored, and reaches no node.
     if (p.kind !== 'box' && p.clipsContent !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'clipsContent' — only a 'box' becomes a frame that can crop its overflow; every other kind is a leaf whose content is its own`);
+    // ---- `scroll`, the BOX kind's scroll region (#3163) ----
+    // The same wrong-kind rule, and the pairing: a box that scrolls without clipping draws its overflow anyway.
+    if (p.scroll !== undefined) {
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'scroll' — only a 'box' becomes a frame that can scroll its overflow`);
+      else if (p.scroll !== 'vertical')
+        e.push(`anatomy part '${n}' declares scroll '${String(p.scroll)}' — the one scroll direction is 'vertical'`);
+      else if (p.clipsContent !== true)
+        e.push(`anatomy part '${n}' declares scroll 'vertical' without 'clipsContent: true' — a frame that scrolls but does not crop draws its overflow over the parts after it`);
+    }
     // ---- `tileEdge`, the full-bleed artwork's host-drawn edge (#2343, Q720 A) ----
     // The vector form of a box's radius, stroke and crop, so it gets their wrong-kind rule, and a gate in
     // `presentWhen`'s grammar (variant axes only, declared values, never every value).

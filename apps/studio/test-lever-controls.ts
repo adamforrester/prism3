@@ -22,8 +22,9 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 // #1835 — the palette lists, one source. Literal expectations.
 ok(JSON.stringify(paletteRefOptions('linkPalette', ['accent', 'sun'])) === JSON.stringify(['primary', 'neutral', 'accent', 'sun']),
   'linkPalette offers primary, neutral, then the brand colors in order');
-ok(JSON.stringify(paletteRefOptions('actionPalette', ['accent', 'sun'])) === JSON.stringify(['primary', 'accent', 'sun']),
-  'actionPalette offers primary, then the brand colors (neutral pending #1811)');
+// #3365 (owner, 2026-11-03): the Action palette offers neutral, second, as the Link palette does. Literal.
+ok(JSON.stringify(paletteRefOptions('actionPalette', ['accent', 'sun'])) === JSON.stringify(['primary', 'neutral', 'accent', 'sun']),
+  '#3365 actionPalette offers primary, neutral, then the brand colors in order');
 ok(JSON.stringify(paletteRefOptions('someFuturePalette', [])) === JSON.stringify(['primary', 'neutral']),
   'a palette-ref lever with no picker of its own offers the Link palette set (#1835)');
 

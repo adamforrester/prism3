@@ -944,6 +944,10 @@ export const makeShim = (opts: ShimOpts = {}) => {
       ...(type === 'FRAME'
         ? { strokeWeight: 0, _strokesInLayout: true, fills: [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }] as unknown[] }
         : {}),
+      // #3163 — A FRAME STARTS WITH FIGMA'S `overflowDirection: 'NONE'` (`FramePrototypingMixin`; a slot is made from a
+      // frame here, so it carries it too). Modelled so that writing the default reads as no change, and a body that
+      // scrolls reads VERTICAL only because the executor wrote it.
+      ...(type === 'FRAME' ? { overflowDirection: 'NONE' as string } : {}),
       // #1009: `textAlignVertical` is a `TextNode` property. A TEXT node starts at Figma's default
       // `'TOP'` — so a node that reads back `CENTER` proves the executor WROTE it, rather than the shim
       // having defaulted helpfully. Every other node type THROWS on the write, installed with
