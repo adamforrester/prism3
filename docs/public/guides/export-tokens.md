@@ -9,7 +9,7 @@ There are two ways to get token files out, and they start from different places:
 
 ## Export from the studio
 
-1. Open **Export** in the rail. <!-- src: apps/studio/src/shell/pages.ts:497 -->
+1. Open **Export** in the rail. <!-- src: apps/studio/src/shell/pages.ts:502 -->
 2. Choose **Design tokens**: "The token set in the W3C design-token format, aliases intact: a base file and one overlay per mode. These are the files a build reads." <!-- src: apps/studio/src/export-settings.ts:104-109 -->
 3. Set the options. The file list and a preview beside them update as you change them. <!-- src: apps/studio/src/main.ts:1452-1456 -->
 4. Choose **↓ Download tokens**. <!-- src: apps/studio/src/main.ts:1484 -->

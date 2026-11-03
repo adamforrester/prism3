@@ -15,7 +15,7 @@ Write the theme first if you want the color tables to show contrast. The contras
 
 ## Choose what to draw
 
-1. Open **Docs** in the rail, then the **Style guides** tab. <!-- src: apps/studio/src/shell/pages.ts:496 --> <!-- src: apps/studio/src/shell/pages.ts:511-516 -->
+1. Open **Docs** in the rail, then the **Style guides** tab. <!-- src: apps/studio/src/shell/pages.ts:501 --> <!-- src: apps/studio/src/shell/pages.ts:516-521 -->
 2. Under **What to draw**, choose a **Collection** (or **Every collection**) and the **Kinds** to include, then tick the groups you want. One button works on the list in view: it reads **Select all**, or **Deselect all** once anything in view is ticked. <!-- src: apps/studio/src/shell/style-guides.ts:318-363 -->
 3. To draw only some tables, open **Draw by table title** and enter one title per line. Empty draws every table. <!-- src: apps/studio/src/shell/style-guides.ts:382-399 -->
 4. Set the **Options**. <!-- src: apps/studio/src/shell/style-guides.ts:585 --> Documentation keeps your choices in the file. <!-- src: apps/studio/src/shell/documentation.ts:1-10 -->

@@ -21,14 +21,14 @@ To come back to these later, open the brand menu at the left of the top bar and 
 
 ## Set the levers
 
-A lever is one brand setting, such as the primary color, the type scale or the corner radius. The **Theme** area of the rail groups them into tabs. <!-- src: apps/studio/src/shell/pages.ts:493 -->
+A lever is one brand setting, such as the primary color, the type scale or the corner radius. The **Theme** area of the rail groups them into tabs. <!-- src: apps/studio/src/shell/pages.ts:498 -->
 
 | Tab | What it holds |
 |---|---|
 | **Brand** | The brand's name and namespace (**Identity**), **Personality** and **Modes**. <!-- src: apps/studio/src/shell/pages.ts:148-152 --> |
 | **Color** › **Palettes** | **Primary**, **Brand colors**, **Neutrals** and **Status colors**: the ramps every color role draws from. <!-- src: apps/studio/src/shell/pages.ts:160-167 --> |
-| **Color** › **Surfaces & fills** | Background and foreground fills, scrim, glass, text, borders, icons, fields and gradients. <!-- src: apps/studio/src/shell/pages.ts:184 --> |
-| **Color** › **Interactive** | How actions, links and disabled states draw from the palettes. <!-- src: apps/studio/src/shell/pages.ts:217 --> |
+| **Color** › **Surfaces & fills** | Background and foreground fills, scrim, glass, text, borders, icons, fields and gradients. <!-- src: apps/studio/src/shell/pages.ts:186 --> |
+| **Color** › **Interactive** | How actions, links and disabled states draw from the palettes. <!-- src: apps/studio/src/shell/pages.ts:219 --> |
 | **Type** | A typeface library, a font family for each text type, and the scale. <!-- src: apps/studio/src/shell/pages.ts:264-273 --> |
 | **Shape** | **Density**, **Radius** and the base radius. <!-- src: apps/studio/src/shell/pages.ts:319-325 --> |
 | **Depth & motion** | **Elevation**, **Motion** and the shadow tint. <!-- src: apps/studio/src/shell/pages.ts:336-340 --> |
@@ -38,8 +38,8 @@ Component settings, such as how buttons place their icons, are in the **Componen
 
 Some sections start folded. Open them with the "Show N advanced" button under the section list. <!-- src: apps/studio/src/domains/color-palettes.ts:319 -->
 
-**Personality** words fill the settings you have not set yet. Settings you set win. <!-- src: apps/studio/src/shell/pages.ts:151 -->
-On **Palettes**, your colors are pinned as anchors on their ramps and never shifted. <!-- src: apps/studio/src/shell/pages.ts:160 -->
+**Personality** words fill the settings you have not set yet. Settings you set win. <!-- src: apps/studio/src/shell/pages.ts:153 -->
+On **Palettes**, your colors are pinned as anchors on their ramps and never shifted. <!-- src: apps/studio/src/shell/pages.ts:162 -->
 
 ## Read the preview
 
@@ -48,9 +48,9 @@ Each tab shows its levers on one side and a preview on the other. <!-- src: apps
 - **Preview mode** switches the preview between the brand's modes. <!-- src: apps/studio/src/shell/preview.ts:78 -->
 - The **Palettes** tab always shows Light, and the mode control is off while it is open: "Palettes always show Light. Ramps are the same in every mode." <!-- src: apps/studio/src/preview/palettes.ts:32 -->
 - A derived mode, such as a high-contrast one, is shown but not edited. The studio says "is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit." <!-- src: apps/studio/src/shell/frame.ts:123 -->
-- **Inspect** opens two views over any tab: **Contrast**, each pair against its floor, and **Tokens**. <!-- src: apps/studio/src/shell/pages.ts:117 --> <!-- src: apps/studio/src/shell/preview.ts:245 -->
+- **Inspect** opens two views over any tab: **Contrast**, each pair against its floor, and **Tokens**. <!-- src: apps/studio/src/shell/pages.ts:119 --> <!-- src: apps/studio/src/shell/preview.ts:245 -->
 
-A contrast miss is reported, never blocked. On **Foreground fills**, for example, a pick below its floor is marked, not refused. <!-- src: apps/studio/src/shell/pages.ts:198 -->
+A contrast miss is reported, never blocked. On **Foreground fills**, for example, a pick below its floor is marked, not refused. <!-- src: apps/studio/src/shell/pages.ts:200 -->
 
 ## Where your work is kept
 

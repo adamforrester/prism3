@@ -332,7 +332,9 @@
           "_slider-thumb",
           "slider",
           "code-input-cell",
-          "code-input"
+          "code-input",
+          "page-nav-item",
+          "page-nav"
         ]
       }
     },
