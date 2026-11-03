@@ -245,7 +245,7 @@ const readSurfaces = (page) => page.evaluate(() => {
   const row = document.querySelector('[data-p3="activity-op"][data-op="components"]');
   const pill = row?.querySelector('[data-p3="op-verdict"]');
   // #3113 (Q3113.5 A): a bad result's first line is its reason, set apart before the mono lines; the detail is both.
-  const parts = row ? [...row.querySelectorAll('[data-p3="op-body"] > :is([data-p3="op-reason"], [data-p3="op-summary"])')] : [];
+  const parts = row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-summary"]')] : [];
   const drawer = document.querySelector('[data-p3="activity-drawer"]');
   const preview = document.querySelector('[data-p3="components-style-guide"]');
   return {
@@ -1320,7 +1320,7 @@ for (const how of ['pointer', 'focus']) {
   await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="readback"]'), null, { timeout: 5000 }).catch(() => {});
   const rb = await page.evaluate(() => {
     const row = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
-    const sums = row ? [...row.querySelectorAll('[data-p3="op-body"] > :is([data-p3="op-reason"], [data-p3="op-summary"])')] : [];
+    const sums = row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-summary"]')] : [];
     return { state: row?.dataset.state, verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sums.length && sums.every((n) => n.checkVisibility()) ? sums.map((n) => n.textContent).join('') : null };
   });
   ok(rb.state === 'bad' && rb.verdict === '2 mismatches' && (rb.summary ?? '').includes(SENTENCE),
@@ -1353,7 +1353,7 @@ for (const how of ['pointer', 'focus']) {
 {
   const readOp = (page, k) => page.evaluate((key) => {
     const row = document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`);
-    const sums = row ? [...row.querySelectorAll('[data-p3="op-body"] > :is([data-p3="op-reason"], [data-p3="op-summary"])')] : [];
+    const sums = row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-summary"]')] : [];
     return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sums.length ? sums.map((n) => n.textContent).join('') : null };
   }, k);
   const until = (page, k, want) => page.waitForFunction(([key, w]) => document.querySelector(`[data-p3="activity-op"][data-op="${key}"] [data-p3="op-verdict"]`)?.textContent === w, [k, want], { timeout: 5000 }).catch(() => {});
@@ -2163,9 +2163,9 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     ok(shown, `#2177 ${k.op} ${w}: the run's details are shown in the drawer`);
     const seen = await page.evaluate((s) => {
       const list = document.querySelector(s);
-      // #3113 (Q3113.5 A): a bad result's first item is its reason, set apart before the list in the UI face.
-      const reason = list?.closest('[data-p3="op-body"]')?.querySelector(':scope > [data-p3="op-reason"]') ?? null;
-      const lines = [...(reason ? [reason] : []), ...(list ? [...list.children] : [])];
+      // #3326 (Q3326.1 A): no line is set apart as the reason by its place, so every item is a line of the list.
+      const reason = list?.closest('[data-p3="op-body"]')?.querySelector(':scope > .p3-op-reason') ?? null;
+      const lines = list ? [...list.children] : [];
       const body = document.querySelector('[data-p3="activity-body"]');
       const b = body?.getBoundingClientRect();
       const mono = getComputedStyle(document.documentElement).getPropertyValue('--p3-font-mono').trim();
@@ -2179,8 +2179,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
         clientWidth: body?.clientWidth ?? null,
         widestRight: lines.length ? r1(Math.max(...lines.map((n) => n.getBoundingClientRect().right))) : null,
         texts: lines.map((n) => n.textContent),
-        fonts: lines.slice(1).map((n) => getComputedStyle(n).fontFamily),
-        reasonFont: reason ? getComputedStyle(reason).fontFamily : null,
+        fonts: lines.map((n) => getComputedStyle(n).fontFamily),
+        positional: reason !== null,
         mono,
         // Each line inside the drawer's body, which scrolls no wider than it is.
         inside: !!b && lines.length > 0 && lines.every((n) => { const r = n.getBoundingClientRect(); return r.left >= b.left - 0.5 && r.right <= b.right + 0.5; }),
@@ -2191,8 +2191,9 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     ok(JSON.stringify(seen.texts) === JSON.stringify(items),
       `#2177 ${k.op} ${w}: ${items.length} items show as ${items.length} lines, in order, in the host's words — read ${seen.texts.length} lines ${JSON.stringify(seen.texts.map((t) => (t ?? '').slice(0, 40)))}`);
     ok(seen.mono !== '' && seen.fonts.length > 0 && seen.fonts.every((f) => f === seen.mono),
-      `#2177 ${k.op} ${w}: every line after the reason is set in the chrome's mono font (${seen.mono}) — read ${JSON.stringify([...new Set(seen.fonts)])}`);
-    ok(!!seen.reasonFont && seen.reasonFont !== seen.mono, `#3113 Q3113.5 A ${k.op} ${w}: the first item, the reason, is set in the UI face, not mono — read ${JSON.stringify(seen.reasonFont)}`);
+      `#2177 ${k.op} ${w}: every line is set in the chrome's mono font (${seen.mono}) — read ${JSON.stringify([...new Set(seen.fonts)])}`);
+    // #3326 (Q3326.1 A) replaces Q3113.5 A's positional reason: the first line is not set apart, whatever its place.
+    ok(!seen.positional, `#3326 ${k.op} ${w}: no line is picked out as the reason by its place (no op-reason)`);
     ok(seen.inside && seen.noSideScroll,
       `#2177 ${k.op} ${w}: every line stays inside the drawer, which does not scroll sideways — inside ${seen.inside}, no side scroll ${seen.noSideScroll}; `
       + `tier ${seen.tier}, body ${seen.bodyWidth}px wide (right edge ${seen.bodyRight}), scrollWidth ${seen.scrollWidth} of clientWidth ${seen.clientWidth}, `
@@ -2218,8 +2219,9 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
       }
       ax = { role, read };
     } finally { await cdp.detach(); }
-    ok(ax.role === 'list' && ax.read.length === items.length - 1 && ax.read.every((r, i) => r.role === 'listitem' && r.words === items[i + 1]),
-      `#2177 ${k.op} ${w}: a screen reader reads the lines after the reason in order, as a list of ${items.length - 1} items — read ${ax.role}, ${JSON.stringify(ax.read.map((r) => `${r.role}: ${r.words.slice(0, 30)}`))}`);
+    // #3326: every line is in the list now, the first included (no positional reason before it).
+    ok(ax.role === 'list' && ax.read.length === items.length && ax.read.every((r, i) => r.role === 'listitem' && r.words === items[i]),
+      `#2177 ${k.op} ${w}: a screen reader reads the lines in order, as a list of ${items.length} items — read ${ax.role}, ${JSON.stringify(ax.read.map((r) => `${r.role}: ${r.words.slice(0, 30)}`))}`);
     ok(errors.length === 0, `#2177 ${k.op} ${w}: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -2229,7 +2231,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     const summary = 'file setup failed: a page named Components already exists';
     await post(page, { type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary });
     // #3113 (Q3113.5 A): on a bad result that one line is its reason.
-    const sel = '[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-body"] > :is([data-p3="op-reason"], [data-p3="op-summary"])';
+    const sel = '[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-body"] > [data-p3="op-summary"]';
     await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, sel, { timeout: 5000 }).catch(() => {});
     const texts = await page.evaluate((s) => [...document.querySelectorAll(s)].flatMap((n) => (n.tagName === 'UL' ? [...n.children] : [n])).map((n) => n.textContent), sel);
     ok(JSON.stringify(texts) === JSON.stringify([summary]), `#2177 a summary sent without items shows as its one line, in its own words — read ${JSON.stringify(texts)}`);
@@ -2303,7 +2305,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
       const status = document.querySelector('[data-p3="activity-status"]');
       return {
         heads: entries.map((e) => e.querySelector('[data-p3="op-history-head"]')?.textContent ?? null),
-        texts: entries.map((e) => [...e.querySelectorAll('[data-p3="op-history-reason"], [data-p3="op-history-line"]')].map((n) => n.textContent)),
+        texts: entries.map((e) => [...e.querySelectorAll('[data-p3="op-history-line"]')].map((n) => n.textContent)),
         mono,
         fonts: lines.map((n) => getComputedStyle(n).fontFamily),
         bullets: [...document.querySelectorAll(`${r} [data-p3="op-history-lines"]`)].map((n) => getComputedStyle(n).listStyleType),
@@ -2337,7 +2339,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
         read.push({ role, items });
       }
     } finally { await cdp.detach(); }
-    ok(read.length === 2 && read.every((l, i) => l.role === 'list' && l.items.length === want[i].items.length - 1 && l.items.every((x, j) => x.role === 'listitem' && x.words === want[i].items[j + 1][1])),
+    ok(read.length === 2 && read.every((l, i) => l.role === 'list' && l.items.length === want[i].items.length && l.items.every((x, j) => x.role === 'listitem' && x.words === want[i].items[j][1])),
       `#2281 ${k.op} ${w}: a screen reader reads each earlier result's lines in order, as a list — read ${JSON.stringify(read.map((l) => `${l.role}: ${l.items.map((x) => `${x.role} ${x.words.slice(0, 20)}`).join(' | ')}`))}`);
     ok(errors.length === 0, `#2281 ${k.op} ${w}: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
@@ -2350,8 +2352,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]'), null, { timeout: 5000 }).catch(() => {});
     await post(page, { type: 'file-setup-result', ok: false, headline: '✗ setup failed again', summary: 'again' });
     // #3113 (Q3113.5 A): a bad earlier result's one line is its reason.
-    await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"] :is([data-p3="op-history-reason"], [data-p3="op-history-line"])'), null, { timeout: 5000 }).catch(() => {});
-    const texts = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] :is([data-p3="op-history-reason"], [data-p3="op-history-line"])')].map((n) => n.textContent));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-line"]'), null, { timeout: 5000 }).catch(() => {});
+    const texts = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-line"]')].map((n) => n.textContent));
     ok(JSON.stringify(texts) === JSON.stringify([summary]), `#2281 an earlier result sent without items shows as its one line, in its own words — read ${JSON.stringify(texts)}`);
     ok(errors.length === 0, `#2281 no items: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
