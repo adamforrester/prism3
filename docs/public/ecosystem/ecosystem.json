@@ -1483,7 +1483,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Components: one box per family the file lacks a set of, with section boxes and each tier's Select all and Deselect all, kept in the file as a queue that Update file lists under Components › To add and builds",
+          "via": "Components: one box per family the file lacks a set of, and one per set in a family with two or more roots, with the sets a chosen set needs ticked and held, section boxes and each tier's Select all and Deselect all, kept in the file as a queue that Update file lists under Components › To add and builds",
           "sources": [
             "apps/plugin/src/add-queue.ts",
             "apps/studio/src/domains/components.ts",

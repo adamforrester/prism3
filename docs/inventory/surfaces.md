@@ -316,11 +316,11 @@ The main thread handles every `UiToMain` variant exhaustively (apps/plugin/src/m
 | Fact | Source |
 |---|---|
 | No URL routing. The only `location`/`URLSearchParams` read is the `?p3-test-hooks` flag. | `apps/studio/src/entry.ts:191` (grep of `apps/studio/src/` for `location.`/`pushState`/`hashchange`) |
-| The current page is store state: `page` holds a `NewPageKey` or `MenuPageKey`. | `apps/studio/src/shell/pages.ts:358-361` |
-| Pages are data: `DOMAINS` (7 tabs; Color has 3 sub-pages), so there are 9 places. | `apps/studio/src/shell/pages.ts:123-341`, `PLACES` `:400` |
-| Each place has exactly one "home" view, from `VIEWS` (9). | `apps/studio/src/shell/pages.ts:94-97`, `homeOf` `:416` |
-| Inspect views (`contrast`, `tokens`, `log`) open over any preview and are never a home. | `apps/studio/src/shell/pages.ts:99` |
-| Menu pages (no tab): `styleGuides` (plugin only, Figma menu "Build style guides…"). | `apps/studio/src/shell/pages.ts:345`; `apps/studio/src/main.ts:1785` |
+| The current page is store state: `page` holds a `NewPageKey` or `MenuPageKey`. | `apps/studio/src/shell/pages.ts:373-376` |
+| Pages are data: `DOMAINS` (7 tabs; Color has 3 sub-pages), so there are 9 places. | `apps/studio/src/shell/pages.ts:124-356`, `PLACES` `:400` |
+| Each place has exactly one "home" view, from `VIEWS` (9). | `apps/studio/src/shell/pages.ts:95-98`, `homeOf` `:416` |
+| Inspect views (`contrast`, `tokens`, `log`) open over any preview and are never a home. | `apps/studio/src/shell/pages.ts:100` |
+| Menu pages (no tab): `styleGuides` (plugin only, Figma menu "Build style guides…"). | `apps/studio/src/shell/pages.ts:360`; `apps/studio/src/main.ts:1785` |
 | Each page's levers and preview modules are wired in `NEW_PAGES`. | `apps/studio/src/shell/frame.ts:87-110` |
 
 ### Studio — pages (tabs), panels, levers
@@ -763,13 +763,13 @@ No contradiction found in root README.md (its plugin line, README.md:23, matches
 
 | # | Doc (file:line) says | Code fact (file:line) |
 |---|---|---|
-| 1 | `apps/studio/README.md:15-36`: "Shell — a four-stage build order" (Brand primitives / Semantic colours / Typography / Form factor) | 7 tabs, 9 places: Brand, Color (Palettes, Surfaces & fills, Interactive), Type, Shape, Depth & motion, Layout, Components (`apps/studio/src/shell/pages.ts:123-341`) |
+| 1 | `apps/studio/README.md:15-36`: "Shell — a four-stage build order" (Brand primitives / Semantic colours / Typography / Form factor) | 7 tabs, 9 places: Brand, Color (Palettes, Surfaces & fills, Interactive), Type, Shape, Depth & motion, Layout, Components (`apps/studio/src/shell/pages.ts:124-356`) |
 | 2 | `apps/studio/README.md:29-32,129-130`: preview renders "on every lever stage (2–4)"; mode selector "lives with the preview" | each page has its own preview module and one home view (`apps/studio/src/shell/frame.ts:100-110`; `pages.ts:94-97`); mode control is in the preview header on every page (`apps/studio/src/shell/preview.ts:5-8`) |
 | 3 | `apps/studio/README.md:7,12-13`: knobs come "from the lever manifest"; a lever added in the core "appears here … without touching either UI" | studio groups levers by hand-placed `DOMAINS` rows; a manifest lever without a home row fails `test-pages.ts` (`apps/studio/test-pages.ts:7-13`); `leverGroups` is unused in studio (grep) |
 | 4 | `apps/studio/README.md:41`: "`npm install` … or from web/" | no `web/` dir; studio is `apps/studio` (`ls`) |
 | 5 | `apps/studio/README.md:48`: "Imports reach the engine by relative path (`../../packages/engine/…`)"; `:207` "`src/main.ts` imports `../../packages/engine/*`" | imports are by name `@prism3/engine/...` (`apps/studio/src/main.ts:22-27`; `apps/studio/src/state/store.ts:29-33`) |
 | 6 | `apps/studio/README.md:131-132`: "Next: promote the engine to a named `@prism3/engine` workspace package" | already done (`packages/engine/package.json:8` `exports`; `apps/studio/src/main.ts:22`) |
-| 7 | `apps/studio/README.md:79-80`: "the `'legacy'` kind remains in the type, but no page uses it" | `status` type is `'new'` only (`apps/studio/src/shell/pages.ts:118`) |
+| 7 | `apps/studio/README.md:79-80`: "the `'legacy'` kind remains in the type, but no page uses it" | `status` type is `'new'` only (`apps/studio/src/shell/pages.ts:119`) |
 | 8 | `apps/studio/README.md:87-88`: Brand and Palettes "stay editable in every mode" | Palettes `pinsLight`: always shows Light and the mode control is disabled while it is up (`apps/studio/src/shell/frame.ts:97-102`) |
 | 9 | `apps/studio/README.md:115-123`: brand selector menu holds New brand ("minimal known-good starter"), Name + Namespace fields, Modes toggles | menu holds examples, "+ New brand" (reopens the start window), "↑ Import design.md…" (`apps/studio/src/shell/bar.ts:288`; `apps/studio/src/main.ts:1467`); Name/Namespace/Modes are the Brand tab (`pages.ts:127-129`; `apps/studio/src/domains/brand.ts:4-6`) |
 | 10 | `apps/studio/README.md:124`: Export is "from the menu" | Export is its own top-bar tile + modal dialog (`apps/studio/src/shell/bar.ts:157-166,380-445`) |
@@ -777,7 +777,7 @@ No contradiction found in root README.md (its plugin line, README.md:23, matches
 | 12 | `apps/studio/README.md:144`: "The rail's foot carries `engine <version> · <commit>`" | no rail; the build stamp is at the foot of the Inspect menu (`apps/studio/src/shell/preview.ts:243-251`) |
 | 13 | `apps/studio/README.md:181`: uncertainty includes "a shallow clone with no `HEAD^`" | diff base is `VERCEL_GIT_PREVIOUS_SHA`, explicitly "Not `HEAD^`" (`apps/studio/vercel-ignore.sh:86-94`) |
 | 14 | `apps/studio/README.md:188-191`: "Only 13 of the engine's 44 `.ts` files … names the other 31 as exclusions" | script comment says 26 of 52 (`vercel-ignore.sh:20`); `EXCLUDED` lists 26 (`vercel-ignore.sh:53-80`); `packages/engine/*.ts` count is 107 (`ls`) |
-| 15 | `README.md:55` (root): studio README has "what each stage of the shell does" | no stages; tabs/pages (`apps/studio/src/shell/pages.ts:123`) |
+| 15 | `README.md:55` (root): studio README has "what each stage of the shell does" | no stages; tabs/pages (`apps/studio/src/shell/pages.ts:124`) |
 | 16 | `docs/23-…:46-75` (§2) target IA: Palettes · Surfaces/fills · Interactive · Typography · Elevation · Size & radius · Layout · Motion · Preview · Output | built IA: Brand · Color(3) · Type · Shape · Depth & motion · Layout · Components; no Preview tab (`pages.ts:123-341`) |
 | 17 | `docs/23-…:65-69,232-235` (§2, §7): Preview is a rail leaf with sub-views UI preview / Contrast contracts / Style guide / Token list | no rail or Preview tab; Contrast, Tokens, Decisions log are Inspect views over any page; Style guide is Brand's home view (`pages.ts:95-99,125`) |
 | 18 | `docs/23-…:221-226` (§7): header tier 2 is a persistent mode-selector strip with "⚙ Edit modes" | mode control is a radio group in the preview header (`apps/studio/src/shell/preview.ts:5-8`); modes are edited on Brand tab (`pages.ts:129`) |

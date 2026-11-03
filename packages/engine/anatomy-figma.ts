@@ -485,6 +485,10 @@ export type FigmaNodePlan = {
    *  Carried onto the plan ONLY when `true`, so every existing box's plan is byte-identical (both
    *  executors read `n.clipsContent ?? false`, which is the literal they hardcoded before this field). */
   clipsContent?: boolean;
+  /** For a `box`: Figma's `overflowDirection`, the scroll region (#3163). Carried ONLY when the def declares
+   *  `scroll`, so every other box's plan is byte-identical; both executors write `n.overflowDirection ?? 'NONE'`
+   *  on every frame. `PartDef.scroll` has why it comes only with `clipsContent`. */
+  overflowDirection?: 'VERTICAL';
   /** For a `box`: the literal auto-layout `minWidth` floor in px (#1343a, #1345). Carried ONLY when the
    *  def sets it, so every existing box's plan is byte-identical; both executors write it inside the
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
@@ -2295,6 +2299,8 @@ export const figmaAnatomyPlan = (
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...((p.kind === 'box' && p.clipsContent) || tileEdge ? { clipsContent: true as const } : {}),
+      // The scroll region (#3163), carried ONLY when declared — see `PartDef.scroll`.
+      ...(p.kind === 'box' && p.scroll === 'vertical' ? { overflowDirection: 'VERTICAL' as const } : {}),
       // THE ROOT'S BUILD WIDTH (#1757), carried ONLY on a root that declares it — see `placementWidth`.
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
       // ITS HEIGHT TWIN (#2609), carried ONLY on a root built at a height too — see `PartDef.builtSize`.
@@ -4687,7 +4693,7 @@ const PAYLOAD_SLOTS = `// #2417 — NATIVE SLOTS, the paste twin of the plugin e
 // frame's own fields are carried over, its size BEFORE any binding (a \`resize\` clears them), and its variables
 // re-bound from the plan by name. Called once per member, before the combine, which merges slots by name; a member a
 // later chunk appends to the set merges into its slot property the same way (measured), so no duplicate arises here.
-const __SLOT_FIELDS=['layoutMode','primaryAxisSizingMode','counterAxisSizingMode','primaryAxisAlignItems','counterAxisAlignItems','layoutWrap','itemSpacing','counterAxisSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','minWidth','maxWidth','minHeight','maxHeight','clipsContent','fills','strokes','strokeWeight','strokeAlign','cornerRadius','opacity','visible','layoutAlign','layoutGrow','layoutPositioning'];
+const __SLOT_FIELDS=['layoutMode','primaryAxisSizingMode','counterAxisSizingMode','primaryAxisAlignItems','counterAxisAlignItems','layoutWrap','itemSpacing','counterAxisSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','minWidth','maxWidth','minHeight','maxHeight','clipsContent','overflowDirection','fills','strokes','strokeWeight','strokeAlign','cornerRadius','opacity','visible','layoutAlign','layoutGrow','layoutPositioning'];
 const __slotsNow=(comp,member)=>{
   for(const [frame,n] of __slots){
     const parent=frame.parent;
@@ -4764,6 +4770,8 @@ const __exposeNow=(member)=>{
 // FIGMA'S OWN COMPONENT-SET BORDER, written because the API does not supply its paint. Probed live
 // (2026-09-27): \`combineAsVariants\` returns strokes [], weight 1, INSIDE, dashPattern [10,5], radius 5,
 // fills [] — a dash with nothing to draw. Twin of \`SET_BORDER\` in the plugin's write-components.ts.
+// The four per-side stroke weights, named once: three checks below read them, and every chunk ships this shell (#1798).
+const __SIDE=['strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'];
 const SET_BORDER={r:0x97/255,g:0x47/255,b:1,weight:1,align:'INSIDE',dash:[10,5],radius:5};
 const claimDefaults=(node,n,mode,layerOp)=>{
   const t=node.type,isSet=!n,m=n||{},P=m.paints||{},B=m.bound||{},where=n?n.name:'set';
@@ -4787,13 +4795,16 @@ const claimDefaults=(node,n,mode,layerOp)=>{
       // A TEXT fill has no neutral value — \`[]\` is invisible text — so an unpainted label is REPORTED.
       if(!P.fills${GRADIENT_CLAIM_SLOT}${LITERAL_FILL_CLAIM_SLOT}){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
       // The weight is gated on the plan's binding (#1228): a literal write after the bind loop UNBINDS it.
-      if(!P.strokes${LITERAL_STROKE_CLAIM_SLOT}){set('strokes',[]);if(!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>k in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
+      if(!P.strokes${LITERAL_STROKE_CLAIM_SLOT}){set('strokes',[]);if(!['strokeWeight',...__SIDE].some(k=>k in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
       set('dashPattern',[]);
     }
   }
   if(t==='FRAME'||t==='COMPONENT_SET'){
     for(const k of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'])if(isSet)w(k,S.radius,0);else if(!(k in B))set(k,0);
     set('clipsContent',!!m.clipsContent);
+    // The scroll region (#3163): a FRAME's prototype overflow, NONE unless the plan says. Not on a set, which has no
+    // \`overflowDirection\` (\`ComponentSetNode\` lacks FramePrototypingMixin).
+    if(t==='FRAME')set('overflowDirection',m.overflowDirection||'NONE');
     // Parent-side auto-layout properties apply only on an auto-layout frame, and Figma THROWS on
     // \`strokesIncludedInLayout\` elsewhere — so gated on the PLAN's \`layoutMode\`.
     if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B||k in(m.paddingPx||B)))set(k,0);set('strokesIncludedInLayout',false);}
@@ -5033,7 +5044,7 @@ ${LITERAL_FILL_SLOT}
     // The border-box motive is moot on an absolute node anyway: with no auto-layout there is no footprint
     // for the stroke to grow. \`&&node.layoutMode\` so an undefined layoutMode (a non-auto-layout frame) is
     // skipped, not compared true against \`'NONE'\`.
-    if(p){node.strokes=[p];${LITERAL_STROKE_MARK_SLOT}painted.strokes=1;if(!node.strokeWeight&&!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>wrote.indexOf(k)>=0))node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
+    if(p){node.strokes=[p];${LITERAL_STROKE_MARK_SLOT}painted.strokes=1;if(!node.strokeWeight&&!['strokeWeight',...__SIDE].some(k=>wrote.indexOf(k)>=0))node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is a
@@ -5051,7 +5062,7 @@ ${LITERAL_FILL_SLOT}
   // (the 2026-09-09 host-truth audit) — so a weight counts as held when EITHER the scalar OR all four
   // per-side keys are present, and a genuinely unbound weight is still reported.
   const got=node.boundVariables||{};
-  const held=(prop)=>!!got[prop]||(prop==='strokeWeight'&&['strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].every(k=>!!got[k]));
+  const held=(prop)=>!!got[prop]||(prop==='strokeWeight'&&__SIDE.every(k=>!!got[k]));
   for(const prop of wrote)
     if(!held(prop))misses.push(n.name+'.'+prop+' -> DISCARDED (resolved, set, not retained)');
   // Paints read back too, and from the ARRAY rather than the node — a paint binding lives on the
