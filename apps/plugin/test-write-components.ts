@@ -5192,6 +5192,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['dialogTitleSize', 'medium'], ['dialogTitleSize', 'small'],
     // #2924 (Q707 A): "Banner style: Outlined" adds no token; it moves only the materialized Banner def.
     ['bannerStyle', 'outlined'],
+    // #3345: "Current page indicator: Partial" adds no token; it moves only the materialized Link def's bar.
+    ['currentIndicator', 'partial'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {

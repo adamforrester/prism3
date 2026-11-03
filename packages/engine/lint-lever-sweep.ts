@@ -94,7 +94,7 @@ import { componentDefs } from './components';
 import type { ComponentDef } from './component-schema';
 import { sizeRefPx } from './scale';
 import {
-  figmaAnatomySet, applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT,
+  figmaAnatomySet, applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT,
   planBindingErrors, planComponentName, planBoundVars, planTextStyles, planEffectStyles, type AnatomyPlan,
 } from './anatomy-figma';
 
@@ -179,7 +179,7 @@ const figmaEmitted = (theme: Theme): Emitted => {
 // off the raw input like `controlShape`, with the brand's own size ladder; the ratio floor (Tag's) is last.
 const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): ComponentDef =>
   applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input.tagStyle ?? 'pill'), input.dialogTitleSize ?? 'large'), input.bannerStyle ?? 'tinted'), weightAvailability(theme.typography)), theme.outlineInteraction), theme.dims.density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input.tagStyle ?? 'pill'), input.dialogTitleSize ?? 'large'), input.bannerStyle ?? 'tinted'), input.currentIndicator ?? 'full'), weightAvailability(theme.typography)), theme.outlineInteraction), theme.dims.density),
     {
       icons: input.buttonIcons ?? DEFAULT_BUTTON_LAYOUT.icons,
       content: input.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,

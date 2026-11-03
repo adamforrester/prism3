@@ -24,8 +24,8 @@
  */
 import type { AxisKind, ComponentDef, LiteralEntry, LiteralFont, NestVariantWhen, NestVariantWhere, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ICON_SIZES, ratioMinWidth, spacePx, visibleGapStep } from './scale';
+import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, CurrentIndicator, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import { buttonMinWidth, CURRENT_INDICATOR_PARTIAL_SHARE, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ICON_SIZES, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
@@ -387,6 +387,12 @@ export type FigmaNodePlan = {
    *  `absoluteCenter`'s reason: nothing brand-varying to carry, since the thickness is the node's own bound height.
    *  Carried ONLY on such a box, so every other plan is byte-identical. */
   footPin?: boolean;
+  /** For a `footPin` bar drawn at a SHARE of its parent's width (`PartDef.footShare`, #3345, the brand's current-page
+   *  indicator at Partial): the bar is round(share × the parent's width) wide, centered (`x = (parent − bar) / 2`),
+   *  and constrained `SCALE`/`MAX`, so a longer label keeps it at the same share and centered. A number, not a
+   *  variable: the share is a brand setting the materializer writes, and `x`/`y`/width take no binding anyway.
+   *  Carried ONLY on such a bar, so a full-width bar's plan is byte-identical to before. */
+  footShare?: number;
   /** Rendered at zero opacity — in the flow and in the accessibility tree, but not visible.
    *
    *  The only node property here that exists to preserve GEOMETRY rather than to express a design
@@ -2399,6 +2405,8 @@ export const figmaAnatomyPlan = (
       // THE FOOT PIN (#2872, Link's current-page bar): a box lifted out of the flow across its parent's bottom edge.
       // Only on such a box, so every other plan is byte-identical.
       ...(p.kind === 'box' && p.foot ? { footPin: true } : {}),
+      // A PARTIAL foot bar (#3345): its share of the parent's width. Only on such a bar.
+      ...(p.kind === 'box' && p.foot && p.footShare !== undefined ? { footShare: p.footShare } : {}),
       // A GLYPH THAT SCALES WITH ITS ASPECT-LOCKED PARENT (#2345, `PartDef.scaleWithParent`): lifted and
       // centered by the overlay's own path, then constrained SCALE/SCALE. Only on such a vector, so every
       // other plan is byte-identical.
@@ -2916,6 +2924,29 @@ export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): Compone
     tokens[key] = 'color.background.primary';
   }
   return { ...def, tokens };
+};
+
+/** The parts the brand's `currentIndicator` lever reaches (#3345): Link's current-page bar, which every current link
+ *  draws, a Page navigation item's included (it nests Link). Held as a literal so a renamed part fails loudly. */
+export const CURRENT_INDICATOR_PARTS: Readonly<Record<string, string>> = { link: 'bar' };
+
+/**
+ * Materialize a def for the brand's `currentIndicator` lever (#3345, owner decision 2026-11-03). The IDENTITY under
+ * `full` and for any def not in `CURRENT_INDICATOR_PARTS`: it returns the same object, so every Full plan is
+ * byte-identical to before. Under `partial` Link's foot bar takes `footShare` = `CURRENT_INDICATOR_PARTIAL_SHARE`
+ * (0.5), which both executors draw as round(0.5 × the title's width), centered under it. The thickness (the bar's
+ * bound height, `border-width.thick`) is untouched: 2px either way.
+ * THROWS when the part is not a foot bar: writing a share onto anything else is the silent-loss shape.
+ */
+export const applyCurrentIndicator = (def: ComponentDef, style: CurrentIndicator): ComponentDef => {
+  if (style === 'full') return def;
+  const name = CURRENT_INDICATOR_PARTS[def.id];
+  const a = def.anatomy;
+  if (!name || !a) return def;
+  const part = a.parts[name];
+  if (!part || part.kind !== 'box' || part.foot !== true)
+    throw new Error(`${def.id}: "Current page indicator" draws ${name} at a share of the title's width, and the def has no foot bar named ${name}`);
+  return { ...def, anatomy: { ...a, parts: { ...a.parts, [name]: { ...part, footShare: CURRENT_INDICATOR_PARTIAL_SHARE } } } };
 };
 
 // ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────
@@ -4550,7 +4581,8 @@ const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || 
  * corner pin's budget reason (#1798). LIFTED before the ring's pass, so the ring is sized off a parent that no longer
  * holds the bar's cell; SIZED and PLACED after it, so the bar is measured off a parent that no longer holds the ring's.
  * Sized to the parent's width at the bar's height, with the height bound again since `resize` writes both; flush with
- * the bottom, `STRETCH`/`MAX`. Lockstep with the plugin executor (`write-components.ts`), miss wording included.
+ * the bottom, `STRETCH`/`MAX`. A partial bar (`footShare`, #3345) is round(share × the parent's width), centered, and
+ * `SCALE` across. Lockstep with the plugin executor (`write-components.ts`), miss wording included.
  */
 const FOOT_SLOT = '__FOOT__';
 const PAYLOAD_FOOT = `  const feet=[];
@@ -4565,11 +4597,12 @@ const PAYLOAD_FOOT = `  const feet=[];
 `;
 const FOOT_PLACE_SLOT = '__FOOT_PLACE__';
 const PAYLOAD_FOOT_PLACE = `  for(const [c,kid] of feet){
-    kid.resize(node.width,kid.height);
+    const fw=node.width,bw=c.footShare!==undefined?Math.round(fw*c.footShare):fw;
+    kid.resize(bw,kid.height);
     const hv=c.bound&&c.bound.height?byName.get(c.bound.height):undefined;
     if(hv){try{kid.setBoundVariable('height',hv);}catch(e){misses.push(c.name+'.height -> '+c.bound.height+" REFUSED after the foot pin's resize ("+(e&&e.message?e.message:String(e))+')');}}
-    kid.x=0;kid.y=node.height-kid.height;
-    kid.constraints={horizontal:'STRETCH',vertical:'MAX'};
+    kid.x=(fw-bw)/2;kid.y=node.height-kid.height;
+    kid.constraints={horizontal:c.footShare!==undefined?'SCALE':'STRETCH',vertical:'MAX'};
   }
 `;
 const hasFoot = (n: FigmaNodePlan): boolean => n.footPin === true || n.children.some(hasFoot);

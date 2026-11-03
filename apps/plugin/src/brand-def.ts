@@ -35,7 +35,7 @@
  * before. A persisted brand whose theme fails to build falls back the same way — the build still runs,
  * against the defaults, which is what the `controlShape` read already did on an untrusted input.
  */
-import { applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
+import { applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
 import type { WeightAvailability, ButtonLayout } from '@prism3/engine/anatomy-figma';
 import { componentSizes, sizeRefPx, SPACE_BASE } from '@prism3/engine/scale';
 import type { SizeStep, Density } from '@prism3/engine/scale';
@@ -85,6 +85,6 @@ export const materializeForBrand = (def: ComponentDef, input: BrandInput | null)
 export const materializerFor = (input: BrandInput | null): ((def: ComponentDef) => ComponentDef) => {
   const { avail, outline, sizes, density } = brandLevers(input);
   return (def) => applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input?.tagStyle ?? 'pill'), input?.dialogTitleSize ?? 'large'), input?.bannerStyle ?? 'tinted'), avail), outline), density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input?.tagStyle ?? 'pill'), input?.dialogTitleSize ?? 'large'), input?.bannerStyle ?? 'tinted'), input?.currentIndicator ?? 'full'), avail), outline), density),
     brandButtonLayout(input), sizeRefPx(sizes)), sizeRefPx(sizes));
 };

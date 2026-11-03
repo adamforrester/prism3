@@ -563,15 +563,19 @@ export const FIELDS: Record<string, FieldCheck> = {
   // plain properties the host echoes, so both are read: a bar left in the flow reads `AUTO`, and one lifted without
   // `STRETCH`/`MAX` stays where it was placed when a longer label resizes the instance. Its x/y/width are geometry
   // against the parent's live size, gated in `apps/plugin/test-write-components.ts`.
+  // A partial bar (`footShare`, #3345) is constrained SCALE across instead, so the predicate reads the plan's share.
   footPin: {
-    show: () => 'ABSOLUTE, constraints STRETCH/MAX',
-    check: (_p, n) => {
+    show: () => 'ABSOLUTE, constraints STRETCH/MAX (SCALE/MAX for a partial bar)',
+    check: (_p, n, _ports, _isRoot, plan) => {
       const c = n.constraints as { horizontal?: unknown; vertical?: unknown } | undefined;
-      return n.layoutPositioning === 'ABSOLUTE' && c?.horizontal === 'STRETCH' && c?.vertical === 'MAX'
+      return n.layoutPositioning === 'ABSOLUTE' && c?.horizontal === (plan?.footShare !== undefined ? 'SCALE' : 'STRETCH') && c?.vertical === 'MAX'
         ? null
         : `${str(n.layoutPositioning)}, constraints ${str(c)}`;
     },
   },
+  // A PARTIAL foot bar (#3345): its share decides the constraint, read by `footPin` above. The width and the centering
+  // are geometry against the parent's live size, gated by `#3345 page-nav indicator` in `packages/engine/test.ts`.
+  footShare: { reason: 'a modifier on `footPin`: it picks the SCALE constraint `footPin` reads back, and sets the bar\'s width and x, which are geometry gated in `packages/engine/test.ts` (#3345)' },
   absoluteStrokeInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic, not a property the host holds separately' },
   absoluteCenterOn: { reason: 'names the node to center ON; the resulting coordinates are geometry, which `docs/40` §7 step 6 checks visually' },
 
