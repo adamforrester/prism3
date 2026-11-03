@@ -388,6 +388,11 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `clipsContent ${String(p)}`,
     check: (p, n) => (n.clipsContent === p ? null : str(n.clipsContent)),
   },
+  // The scroll region (#3163): carried only as VERTICAL, and the host echoes it on the same property.
+  overflowDirection: {
+    show: (p) => `overflowDirection ${String(p)}`,
+    check: (p, n) => (n.overflowDirection === p ? null : str(n.overflowDirection)),
+  },
   // ── auto-layout width floor (#1343a, #1345) ────────────────────────────────────────────────────
   // A literal min-width the executor sets on an auto-layout frame; the host echoes it back on the same
   // property, so this compares directly. Only `select`'s control carries it today.

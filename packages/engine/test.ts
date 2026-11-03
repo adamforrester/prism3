@@ -17754,6 +17754,33 @@ arm: {
     ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
       "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
+    // ---- #3163: `PartDef.scroll`, the scroll region, and its two refusal arms, each pinned BY NAME (docs/34) ----
+    // SUBJECT: Dialog's body as committed, then mutated. EXPECTED: the projection Q3130.8 A asks for (the body clips and
+    // scrolls vertically on every member) and the authored refusal shapes. Delete either refusal from `anatomyErrors`
+    // and its line fails here; the round-trip arms (`roundtrip/dialog body clips`, `roundtrip/dialog body scrolls`) hold
+    // what the host keeps.
+    {
+      const dlg = componentDefs.find((x) => x.id === 'dialog')!;
+      const dPlans = figmaAnatomySet(dlg, { swapTarget: 'FPO-default-icon' });
+      const bodies = dPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
+      ok(dPlans.length === 24 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
+        `#3163 dialog body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${bodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${dPlans.length})`);
+      const others = componentDefs.filter((d) => d.figmaProperties && d.id !== 'dialog').flatMap((d) => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }));
+      const walk = (n: { overflowDirection?: string; children: unknown[] }): number => (n.overflowDirection ? 1 : 0) + (n.children as (typeof n)[]).reduce((a, c) => a + walk(c), 0);
+      ok(others.length > 0 && others.every((pl) => walk(pl.root) === 0), '#3163 scope: no other def plans an overflowDirection, so every other plan is byte-identical');
+      const body = dlg.anatomy.parts.body;
+      const scrollOnText = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, placeholder: { ...dlg.anatomy.parts.placeholder, scroll: 'vertical' } } } };
+      ok(validateComponentDef(scrollOnText as ComponentDef).errors.some((e) => /declares 'scroll'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
+        "#3163 a NON-box part declaring scroll is refused BY NAME — only a frame can scroll its overflow");
+      const scrollNoClip = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, body: { ...body, clipsContent: undefined } } } };
+      ok(validateComponentDef(scrollNoClip as ComponentDef).errors.some((e) => /declares scroll 'vertical' without 'clipsContent: true'/.test(e)),
+        "#3163 a box declaring scroll without clipsContent is refused BY NAME — it would draw its overflow over the pinned footer");
+      const scrollSideways = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, body: { ...body, scroll: 'horizontal' } } } };
+      ok(validateComponentDef(scrollSideways as unknown as ComponentDef).errors.some((e) => /the one scroll direction is 'vertical'/.test(e)),
+        "#3163 a scroll direction other than vertical is refused BY NAME");
+      ok(validateComponentDef(dlg).errors.length === 0, '#3163 premise: the committed Dialog validates clean with its scrolling body');
+    }
+
     // ---- the message-row footprint fix: field-message's row FLOORS its height at the glyph's size ----
     // EXPECTED is authored here: the row binds its minimum height to the glyph's OWN key, so the floor is the
     // glyph in every brand. Read off the plan the executor receives. Drop `minHeight` from the def and this
@@ -24141,6 +24168,35 @@ arm: {
         `#2872 plugin leg: Link's current-page bar is ${WANT_BAR} (got '${barFacts(plugPage)}'; misses ${JSON.stringify(plugged.misses)})`);
     }
 
+    // ---- #3163: Dialog's scrolling body, on the PASTE leg ------------------------------------------------
+    // The paste payload builds the body as a frame and carries its fields onto the native slot through
+    // `__SLOT_FIELDS`. The round-trip arms (`roundtrip/dialog body clips|scrolls`) drive only the plugin
+    // executor, so an agent-pasted Dialog could lose its scroll with nothing saying so. SUBJECT: what the
+    // stub host holds after every Dialog member is pasted. EXPECTED: the literals typed here (Q3130.8 A).
+    // Mutation: drop 'overflowDirection' from `__SLOT_FIELDS` → this line fails by name.
+    {
+      const dlgDef = componentDefs.find((d) => d.id === 'dialog')!;
+      const members = figmaAnatomySet(dlgDef, { swapTarget: 'FPO-default-icon' });
+      const nested = (n: AnatomyPlan['root']): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.children ?? []).flatMap(nested)];
+      const find = (n: Record<string, unknown>, name: string): Record<string, unknown> | undefined =>
+        n.name === name ? n : ((n.children as Record<string, unknown>[] | undefined) ?? []).map((c) => find(c, name)).find(Boolean);
+      const WANT_BODY = 'SLOT VERTICAL clips';
+      const got: string[] = [];
+      for (const m of members) {
+        const page: StubPage = { children: [] };
+        const opts: StubOpts = { vars: [...planBoundVars(m.root), ...planPaintVars(m.root)], styles: planTextStyles(m.root), comps: ['FPO-default-icon', 'focus-ring', ...nested(m.root)], page };
+        const run = await runPayload(planToPluginJs(m), opts);
+        const root = page.children.map((c) => find(c as Record<string, unknown>, planComponentName(m))).find(Boolean);
+        const body = root && find(root, 'body');
+        const facts = body ? `${String(body.type)} ${String(body.overflowDirection)} ${body.clipsContent === true ? 'clips' : 'spills'}` : 'no body';
+        // Only the body's own misses count: this stub holds no effect styles and no swap-ready close button, which other arms own.
+        const bodyMisses = run.misses.filter((x) => /(^|\/)body\./.test(x));
+        if (facts !== WANT_BODY || bodyMisses.length) got.push(`${planComponentName(m)}: ${facts}${bodyMisses.length ? ` misses ${JSON.stringify(bodyMisses.slice(0, 2))}` : ''}`);
+      }
+      ok(members.length === 24 && got.length === 0,
+        `#3163 paste leg: every pasted Dialog member's body is ${WANT_BODY} (${members.length - got.length}/${members.length})${got.length ? ` — ${got.slice(0, 3).join('; ')}` : ''}`);
+    }
+
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
     // The accessor used to sit in `mkNode`'s object spread, which reads the getter once and drops the setter,
     // so a FRAME took the write silently and every gate leaning on "the wrong node type throws" was testing
@@ -27625,6 +27681,14 @@ arm: {
       // NOW 17, AS OF #2343 PR 2 — a shell-byte move: the paste script gained the aspect-locked instance (`aspectLock`,
       // a slot that reads its main's proportion before its height binds), in every chunk's shell. icon-button does not
       // use it. Re-pinned per the same standing instruction; every chunk stays under budget.
+      //
+      // NOW 18, AS OF #3163 — a shell-byte move: the paste script's claim now writes every FRAME's `overflowDirection`
+      // (`NONE` unless the plan scrolls, Dialog's body), in every chunk's shell. icon-button does not scroll. Re-pinned per
+      // the same standing instruction; every chunk stays under budget.
+      //
+      // BACK TO 17, ALSO AS OF #3163 — the same PR's review fix names the four per-side stroke weights once (`__SIDE`),
+      // which frees 115 B in every chunk's shell, more than the `overflowDirection` write took. Re-pinned per the same
+      // standing instruction.
       const ibChunks = planSetChunks(ibSet);
       ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
