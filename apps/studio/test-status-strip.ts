@@ -113,6 +113,10 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
   steps: ['setup', 'theme', 'sets', 'guides'], stopped: false, run: startStripRun(T0), now: T0 + 95_000, nameOf });
   ok(J(warned) === J({ tone: 'warn', what: 'File updated', n: '1:35', sub: 'File set up, Theme applied, Sets added, Style guides drawn. Built 9 sets · 5 with problems. Details in Activity.' }),
     `verdict/warn: a run whose sets step had problems ends "File updated" as a warning, naming them (${J(warned)})`);
+  // #3308 Q3308.4, the owner's copy decision (2026-11-02): the cover step's verdict reads "Cover page drawn", true with
+  // Documentation's cover off too, when the step draws About this library alone.
+  const first = stripVerdict({ results: [{ step: 'setup', ok: true, headline: '✓' }, { step: 'theme', ok: true, headline: '✓' }, { step: 'cover', ok: true, headline: '✓' }], steps: ['setup', 'theme', 'cover'], stopped: false, run: startStripRun(T0), now: T0 + 75_000, nameOf });
+  ok(J(first) === J({ tone: 'ok', what: 'File updated', n: '1:15', sub: 'File set up, Theme applied, Cover page drawn. Details in Activity.' }), `verdict/cover: a first run's last step reads "Cover page drawn" (${J(first)})`);
 }
 
 // ── Apply Theme and the build queue ──
