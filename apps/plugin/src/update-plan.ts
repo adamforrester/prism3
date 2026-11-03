@@ -1179,7 +1179,29 @@ export const renamedComponent = (name: string, rename: { from: string; to: strin
 
 /** A target's view, set or single, or why there is none to read. */
 type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView; from?: string };
-const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<Viewed> => {
+/**
+ * #3313: A SET'S MEMBERS AS A READ MADE EARLIER LEFT THEM (`member-views.ts`), with what that read did not keep read again:
+ * how each member draws against the file's variables (`drawn`), when the caller reads that, and the set's publish status.
+ * Each member is the earlier read's, field for field, in the order `readMember` gives them.
+ */
+export const freshView = async (view: HostSetView, set: LiveSet, drawVars?: ReadonlyMap<string, DrawVar>): Promise<HostSetView> => {
+  const byId = new Map<string, unknown>();
+  if (drawVars) for (const c of set.children ?? []) byId.set(String((c as { id?: unknown }).id ?? ''), c);
+  const members = view.members.map((m) => {
+    if (!drawVars) return m;
+    const { earlierRecord, drawn: _drawn, ...head } = m;
+    const node = byId.get(m.id);
+    return { ...head, drawn: node ? drawnFaults(node, drawVars) : [], ...(earlierRecord ? { earlierRecord } : {}) };
+  });
+  const { publish: _publish, ...rest } = view;
+  const publish = await publishOf(set);
+  return { ...rest, members, ...(publish ? { publish } : {}) };
+};
+
+/** A kept read of a set by its node id, or `undefined` to read the set (`member-views.ts`, #3313). */
+export type KeptView = (setId: string) => HostSetView | undefined;
+
+const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, kept?: KeptView): Promise<Viewed> => {
   if (t.single) {
     const { view, set, from } = await readSingleView(host, t, breathe, drawVars, ledger);
     return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view, ...(from ? { from } : {}) } : { kind: 'missing' };
@@ -1187,7 +1209,9 @@ const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Pro
   const { found, name, from } = locateSets(host, t, ledger);
   if (found.length === 0) return { kind: 'missing' };
   if (found.length > 1) return { kind: 'refused', reason: `${found.length} sets are named ${from ?? name}` };
-  return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars), ...(from ? { from } : {}) };
+  const before = kept?.(String((found[0] as { id?: unknown }).id ?? ''));
+  const view = before ? await freshView(before, found[0], drawVars) : await readSetView(found[0], breathe, drawVars);
+  return { kind: 'found', name, set: found[0], view, ...(from ? { from } : {}) };
 };
 
 /**
@@ -1197,9 +1221,11 @@ const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Pro
  * check the ledger cannot answer. A preview of the status, never what an update acts on: the full check scoped to the
  * flagged sets reads every member again before anything is written. `null` for a set the file does not hold.
  */
-export const handEditsOf = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>): Promise<{ members: number; edited: number } | null> => {
+export const handEditsOf = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, onView?: (view: HostSetView) => void): Promise<{ members: number; edited: number } | null> => {
   const v = await locateView(host, t, breathe);
   if (v.kind !== 'found') return null;
+  // #3313: the read handed on, so the Update check can lay its plans against it instead of reading the set again.
+  onView?.(v.view);
   let edited = 0;
   for (const m of v.view.members) {
     if (!m.stamp || !m.baseline) continue;
@@ -1337,7 +1363,7 @@ const pageViews = (found: readonly PageSet[], reach: PanelReach = 0) => {
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
  *  because which one an update should touch is not this command's call. */
-export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
+export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, kept?: KeptView): Promise<UpdatePreview> => {
   // #3177: every set below is found in one read of the file, never by a search of the whole file per set.
   const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
@@ -1349,11 +1375,13 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   const blockedPanels: { preview: SetPreview; set: LiveSet; due: FurnitureDue; by: PNode[] }[] = [];
   // Every set first, so a set this update renames (#2759) counts as present for the sets that nest it.
   const viewed: { t: UpdateTarget; v: Viewed }[] = [];
-  for (const t of targets) viewed.push({ t, v: await locateView(host, t, breathe, ports.drawVars, ledger) });
+  for (const t of targets) viewed.push({ t, v: await locateView(host, t, breathe, ports.drawVars, ledger, kept) });
   // A single-component def renamed (#3148) is present as each of its components under the new id.
   const renamedInto = new Set(viewed.flatMap(({ t, v }) => (v.kind !== 'found' || !v.from ? []
     : t.single ? ((v.set as { children?: readonly unknown[] }).children ?? []).map((c) => renamedComponent(String((c as { name?: unknown }).name ?? ''), { from: v.from!, to: v.name }))
     : [v.name])));
+  // #3313: every component's and set's name in the file, read once for the check, not once per set (`fileBlockers`).
+  const have = new Set([...host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')), ...renamedInto]);
   // Its old name → its new one, so a set nesting it reads an instance of it as the planned set's, not the wrong one.
   const renames = new Map(viewed.flatMap(({ v }) => (v.kind === 'found' && v.from ? [[v.from, v.name] as const] : [])));
   // A single-component def's nodes are `<id>/<value>` (#3148): an instance of `<old id>/<value>` is the renamed one's.
@@ -1375,7 +1403,7 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     // drew its glyphs inline. The executor would report a miss for each and leave the old glyph where it
     // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
     // (`prebuildDependencies`); an update does not build other components.
-    preview.blockers.push(...await fileBlockers(host, t.plans, v.set, renamedInto));
+    preview.blockers.push(...await fileBlockers(host, t.plans, v.set, have));
     // THE CANVAS FURNITURE (#2803): what the page lacks of the set's labels and backdrops is a change, so "update again"
     // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
     if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {
@@ -1497,9 +1525,8 @@ const absentNests = (have: ReadonlySet<string>, plans: readonly AnatomyPlan[]): 
  * the rest and report each as a miss; an update would leave a published set half-changed, which is worse (§7).
  * A host with no `loadFontAsync` checks no font: the plugin's host is `figma`, which always has it.
  */
-const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, renamedInto: ReadonlySet<string> = new Set()): Promise<string[]> => {
+const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, have: ReadonlySet<string>): Promise<string[]> => {
   const out: string[] = [];
-  const have = new Set([...host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')), ...renamedInto]);
   const absent = absentNests(have, plans);
   if (absent.length) out.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
   const roots = plans.map((x) => x.root);
