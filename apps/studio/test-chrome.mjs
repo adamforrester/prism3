@@ -6490,6 +6490,66 @@ for (const host of ['web', 'figma']) {
     ok(false, `S5.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+// #2907 (owner decision Q2907.3 A): EVERY ROLE THE COLOR EDITOR OFFERS IS DRAWN ON THE PREVIEW, by role, on the default
+// ground, in both hosts. Two lists of what must be drawn, each independent of the preview: the editor's own rows as
+// rendered (each column's `.p3-fillrow[data-role]`, which is `interactiveRowsFor` drawn) and the literal `COLUMN_ROWS`
+// above. A role is drawn when a shown specimen in its column's block names it in `data-sg-binds` AND paints it: the
+// specimen's computed ink, edge or fill (the property the bind names) is the emission's hex for that role in that mode,
+// so a bind with nothing behind it fails too. The two new rows (Q2907.1 A, Q2907.2 A) sit on their own band, whose ground
+// is the emission's `inverse.background.primary`. MUTATIONS, each failing here by name: both new rows dropped (the bug as
+// filed) → `… inverse.interactive.primary.text.hover is drawn … — is not drawn`, for each of the 18 inverse text and border
+// roles; the "Inverse text" row alone dropped → `… "Inverse text" row draws rest, hover and pressed on its own band … read
+// []` (its roles stay drawn, as the Inverse outline row's ink); the "Inverse outline" row's edge read off the page twin →
+// `… inverse.interactive.primary.border.rest is drawn … — bound by 1, painted by 0`.
+const readDrawn = (page) => page.evaluate(() => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const editor = Object.fromEntries([...pane.querySelectorAll('[data-p3="interactive-column"]')].map((g) => [g.dataset.column, [...g.querySelectorAll('.p3-fillrow[data-role]')].map((n) => n.dataset.role)]));
+  const blocks = Object.fromEntries([...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="style-guide-palette"]')].map((b) => [b.querySelector('.sg-rn')?.textContent,
+    [...b.querySelectorAll('[data-p3="style-guide-button"][data-sg-binds]')].filter((x) => x.getClientRects().length).map((x) => {
+      const cs = getComputedStyle(x);
+      const band = x.closest('[data-p3="style-guide-buttons"]');
+      return { binds: x.dataset.sgBinds.split(' ').map((kv) => kv.split('=')), row: x.closest('.sg-trow')?.querySelector('.sg-tlab')?.firstChild?.textContent ?? null,
+        ink: cs.color, fill: cs.backgroundColor, edge: Number.parseFloat(cs.borderTopWidth) > 0 ? cs.borderTopColor : null, band: band ? getComputedStyle(band).backgroundColor : null };
+    })]));
+  return { editor, blocks };
+});
+if (runs('19')) {
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-interactive');
+    for (const mode of ['light', 'dark']) {
+      await chooseMode(page, mode);
+      const d = await readDrawn(page);
+      const where = `#2907 ${host}, previewing ${mode}`;
+      const sixHex = (h) => (h && h.length === 9 && h.endsWith('ff') ? h.slice(0, 7) : h);
+      for (const [col, name] of INTERACTIVE_COLUMNS) {
+        const specs = d.blocks[name] ?? [];
+        const editorRoles = (d.editor[col] ?? []).filter((r) => r.startsWith(`interactive.${col}.`) || r.startsWith(`inverse.interactive.${col}.`));
+        ok(editorRoles.length >= COLUMN_ROWS(col).length, `${where}: the editor's ${col} rows are read (${editorRoles.length}, literal ${COLUMN_ROWS(col).length})`);
+        const want = [...new Set([...editorRoles, ...COLUMN_ROWS(col)])];
+        for (const role of want) {
+          const by = specs.filter((x) => x.binds.some(([, r]) => r === role));
+          const painted = by.filter((x) => x.binds.filter(([, r]) => r === role).every(([prop]) => {
+            const hex = EMIT(mode, role)?.hex;
+            const got = sixHex(cssHex(prop === 'ink' ? x.ink : prop === 'edge' ? x.edge : x.fill));
+            return !!hex && got === sixHex(hex);
+          }));
+          ok(painted.length > 0, `${where}: ${role} is drawn on the ${name} preview, by a specimen that paints it — ${by.length ? `bound by ${by.length}, painted by ${painted.length} (${by.slice(0, 2).map((x) => `${x.row}: ink ${cssHex(x.ink)} edge ${cssHex(x.edge)} fill ${cssHex(x.fill)}`).join('; ')}; emitted ${EMIT(mode, role)?.hex})` : 'is not drawn'}`);
+        }
+        const band = EMIT(mode, 'inverse.background.primary')?.hex;
+        for (const row of ['Inverse outline', 'Inverse text']) {
+          const rs = specs.filter((x) => x.row === row);
+          ok(rs.length === 3 && rs.every((x) => cssHex(x.band) === band), `${where}: ${name}'s "${row}" row draws rest, hover and pressed on its own band, inverse.background.primary ${band} — read ${JSON.stringify(rs.map((x) => cssHex(x.band)))}`);
+        }
+      }
+    }
+    ok(errors.length === 0, `${host} #2907: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2907 drawn ${host}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+}
 // The Text row (Q32), on Interactive and on Brand's Style guide, against the emission: per column and state the
 // ink is `interactive.‹c›.text.‹s›`, there is no edge, and the ground is the outline hover wash (none at rest).
 // Then every ratio badge on the page against the engine's own measured contrast.
