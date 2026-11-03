@@ -21,13 +21,15 @@
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import type { CheckedSetView, HostMessage, SetDueView } from '../write-adapter';
-import type { StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/src/messages';
+import type { Cause, StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/src/messages';
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';
 import type { HostTopic } from './store';
 
 /** A terminal verdict on a host action: the pill's headline and the detail behind it. `lines` is the detail's items, one
  *  per line in the Activity drawer (#2177), when the host sent them; absent, the summary is one line. */
 export type Verdict = { ok: boolean; headline: string; summary: string; lines?: readonly string[] | null;
+  /** #3326: why the run is not clean, as the writer sent it (`Cause`, the plugin's `messages.ts`). Absent or `null`: none sent. */
+  causes?: readonly Cause[] | null;
   /** #2858: an Update's library publish description, which the Activity drawer offers to copy. */
   publish?: string | null };
 /** An action's slot: `null` = never run this session, `pending` = posted and not answered yet, else the
@@ -383,14 +385,14 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       const own = s.componentState === 'pending' && s.componentDef !== null;
       const result: SetBuild = m.ok ? 'ok' : m.completed ? 'issues' : 'failed';
       const setBuilds = own ? new Map([...s.setBuilds, [s.componentDef as string, result]]) : s.setBuilds;
-      return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds, componentLatest: 'build' };
+      return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, causes: m.causes }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds, componentLatest: 'build' };
     }
     case 'component-update-result':
       // Draw specs' verdict, the panel's or an agent's, is Specs' alone (Q713 A): the components row never shows it.
       if (s.specsState === 'pending' || (prev.agentRun?.op === 'specs' && !prev.agentRun.settled))
-        return { ...s, specsState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines } };
+        return { ...s, specsState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, causes: m.causes } };
       // The build's slot, its progress and its set record are left alone: a check is not a build.
-      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, publish: m.publish }, componentLatest: 'update' };
+      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, publish: m.publish, causes: m.causes }, componentLatest: 'update' };
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result': {

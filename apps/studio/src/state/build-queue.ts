@@ -18,12 +18,14 @@
  */
 import type { Catalog } from './component-catalog';
 import type { SetBuild } from './host-session';
+import type { Cause } from '../../../plugin/src/messages';
 import { entryOf, GROUPS_COPY } from './component-groups';
 
 /** What started a run: the action bar's selection, or the Subcomponents section's "Build all" (call 10 A). */
 export type RunKind = 'selection' | 'subcomponents';
 
-export type RunResult = { readonly id: string; readonly result: SetBuild; readonly headline: string };
+/** `causes` (#3326): the set's own build verdict's causes, as the plugin sent them; absent when it sent none. */
+export type RunResult = { readonly id: string; readonly result: SetBuild; readonly headline: string; readonly causes?: readonly Cause[] | null };
 
 export type BuildRun = {
   readonly kind: RunKind;
@@ -106,9 +108,37 @@ export const RUN_COPY = {
   notBuilt: (names: readonly string[]): string => `Not built: ${names.join(', ')}.`,
 } as const;
 
+/**
+ * THE RUN'S CAUSES (#3326 PR 1, Q3326.1 A; #3308 Q3308.1 A): one per set that failed or had problems, carrying the
+ * reasons its own build sent, so "Badge: built with problems." is no longer a line with no reason behind it. A set whose
+ * build sent no cause still gets one, with no reasons, as the run's line names it; a cause from a set's build about
+ * another set (one it nested) is kept as that set's. Then one for the sets a stop left unbuilt.
+ */
+export const runCauses = (r: BuildRun): Cause[] => {
+  const out: Cause[] = [];
+  const add = (c: Cause): void => {
+    const at = out.findIndex((x) => x.subject === c.subject);
+    if (at < 0) { out.push({ ...c, reasons: [...c.reasons] }); return; }
+    const x = out[at];
+    const worse = x.kind === 'warn' && c.kind === 'bad';
+    out[at] = { ...x, kind: worse ? 'bad' : x.kind, what: worse ? c.what : x.what, reasons: [...new Set([...x.reasons, ...c.reasons])] };
+  };
+  for (const x of r.results) {
+    if (x.result === 'ok') continue;
+    const own = x.causes ?? [];
+    if (!own.some((c) => c.subject === x.id)) add({ kind: x.result === 'failed' ? 'bad' : 'warn', subject: x.id, what: x.result === 'failed' ? CAUSE_WORDS.failed : CAUSE_WORDS.built, reasons: [] });
+    for (const c of own) add(c);
+  }
+  // A stop is the person's: each set it left is not built, and is a cause of its own with no reason but the stop.
+  for (const id of r.ids.slice(r.results.length)) add({ kind: 'warn', subject: id, what: CAUSE_WORDS.notBuilt, reasons: [] });
+  return out;
+};
+/** The phrases a cause the queue makes prints after the set, matching the plugin's (`CAUSE_WHAT`, `causes.ts`). */
+const CAUSE_WORDS = { built: 'built with problems', failed: 'could not be built', notBuilt: 'not built' } as const;
+
 /** The verdict a run of several sets ends with: one headline and one line per page built, per set that failed or had
  *  problems, and for the sets a stop left unbuilt. `ok` only when every set built cleanly and none was left. */
-export const runVerdict = (r: BuildRun, catalog: Catalog): { ok: boolean; headline: string; summary: string; lines: string[] } => {
+export const runVerdict = (r: BuildRun, catalog: Catalog): { ok: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
   const name = (id: string): string => entryOf(catalog, id)?.name ?? id;
   const ok = r.results.filter((x) => x.result === 'ok');
   const left = r.ids.slice(r.results.length);
@@ -131,5 +161,5 @@ export const runVerdict = (r: BuildRun, catalog: Catalog): { ok: boolean; headli
     else if (x.result === 'issues') lines.push(RUN_COPY.problems(name(x.id)));
   }
   if (left.length) lines.push(RUN_COPY.notBuilt(left.map(name)));
-  return { ok: ok.length === r.ids.length, headline, summary: lines.join(' '), lines };
+  return { ok: ok.length === r.ids.length, headline, summary: lines.join(' '), lines, causes: runCauses(r) };
 };

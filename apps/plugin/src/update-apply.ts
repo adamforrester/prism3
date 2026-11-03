@@ -70,6 +70,8 @@ import { saveVersion } from './version-title';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 import { ABOUT_NAME, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
 import { publishDescription } from './library-about';
+import type { Cause } from './messages';
+import { cause, runCause, mergeCauses, CAUSE_WHAT } from './causes';
 import { COVER_NAME, coverIsWork, coverLine, coverPageOnlyLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -1006,10 +1008,13 @@ const haltedLine = (h: NonNullable<ApplyResult['halted']>): string =>
 /** Whether the run wrote to the cover. */
 const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'none';
 
-export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
+/** A set the apply entered and wrote nothing to (see `idle` in `applyVerdict`). */
+const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved;
+
+export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
   if (r.refusedAll) {
     const lines = [`Nothing was updated: ${r.refusedAll}.`];
-    return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines };
+    return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   // A miss from the build's own pass is a set not verified, as an identity or content difference is (#2477): the set
@@ -1019,7 +1024,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
   // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
   // Furniture drawn for it does not change that (#2803 review): its members still hold what the dry run listed.
-  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved).length;
+  const idle = r.outcomes.filter((o) => isIdle(o)).length;
   const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
   // A member not finished is not counted as updated: the next dry run reads it out of date (#2477).
   const done = (o: SetOutcome): number => o.updated.length - unfinishedOf(o).members.length;
@@ -1035,9 +1040,13 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   const tablesMoved = r.relocatedTables?.length ?? 0;
   const headers = r.headers?.length ?? 0;
   const lines: string[] = [];
+  // #3326 PR 1 (Q3326.1 A): why the run is not clean, per set, from the same facts its `ok` reads: a set stopped, one
+  // not verified, one not updated. Each reason is the clause its line already prints after the set's name.
+  const causes: Cause[] = [];
   for (const o of r.outcomes) {
-    if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
+    if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); causes.push(cause('bad', o.def, CAUSE_WHAT.notUpdated, [`${o.refused}.`])); continue; }
     if (o.stopped) {
+      causes.push(cause('bad', o.def, CAUSE_WHAT.stopped, [o.stopped]));
       lines.push(`${o.set}: stopped (${o.stopped}). ${n(o.updated.length, 'member')} updated; the rest are unchanged and still read as out of date. Run the update again to finish, or undo once to revert it.`);
       continue;
     }
@@ -1060,9 +1069,11 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     // A set the apply entered with nothing to write reads as its dry run read it (Q205 A): never "already up to date"
     // for a set the dry run doesn't call up to date (one Adopt could claim a member of, #2495).
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : o.asPreviewed && !o.asPreviewed.upToDate ? o.asPreviewed.line : `${o.set}: already up to date.`);
+    if (isIdle(o)) causes.push(cause('bad', o.def, CAUSE_WHAT.notUpdated, o.skipped.map((x) => `${x.member}: ${x.reason}`)));
     // DRAFT wording for the owner (#2649): the placed instances whose rows became slot items.
     if (o.carriedText) lines.push(`${o.set}: ${n(o.carriedText.instances, 'instance')} carried: ${n(o.carriedText.moved, 'body', 'bodies')} moved into the text property, ${o.carriedText.rich} kept in the slot, ${o.carriedText.emptied} left empty.`);
     if (o.carried) lines.push(`${o.set}: ${n(o.carried.instances, 'instance')} carried into the slot, ${n(o.carried.items, 'item')} in all.${o.carried.limits.length ? ` Outside the slot's limits: ${o.carried.limits.join('; ')}.` : ''}`);
+    const at = lines.length;
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still ${o.content.length === 1 ? 'differs' : 'differ'} from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
     // DRAFT wording for the owner (#2477, the issue's option A): a member written but not finished, by name.
@@ -1074,10 +1085,14 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     }
     // DRAFT wording for the owner (#2477): any other miss the build's pass reported, with its own reason.
     if (others.length) lines.push(`${o.set}: ${n(others.length, 'part')} not written as planned — ${others.slice(0, 3).join('; ')}${others.length > 3 ? '; …' : ''}.`);
+    // The set is not verified by exactly the lines above (identity, content, a member not finished, a part not written).
+    if (o.identity.length || o.content.length || o.misses.length) {
+      causes.push(cause('warn', o.def, CAUSE_WHAT.notVerified, lines.slice(at).map((l) => l.slice(`${o.set}: `.length))));
+    }
   }
   // #2831: what the update broke for library consumers, in its own section, as the dry run's.
   lines.push(...breakingSection(r.outcomes, true));
-  for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
+  for (const x of r.refused) { lines.push(`${x.def}: not updated. ${x.reason}.`); causes.push(cause('bad', x.def, CAUSE_WHAT.notUpdated, [`${x.reason}.`])); }
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   // #2989: the sets moved to their pages, and any page the move left empty, for the owner to delete by hand.
@@ -1085,7 +1100,11 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   lines.push(...blockHeadersLines(r.headers, true));
   if (r.emptied?.length) lines.push(emptiedLine(r.emptied));
   // #3170 Q3170.4 A (DRAFT wording): the stop the person asked for, and the sets it left as they were.
-  if (r.halted) lines.push(haltedLine(r.halted));
+  if (r.halted) {
+    lines.push(haltedLine(r.halted));
+    // A stop the person asked for: each set it left is not updated, and the stop is the reason.
+    for (const set of r.halted.left) causes.push(cause('warn', r.outcomes.find((o) => o.set === set)?.def ?? set, CAUSE_WHAT.notUpdated, [haltedLine(r.halted)]));
+  }
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.
   // #2859: the library cover, kept current before it.
@@ -1118,5 +1137,6 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                         : r.about?.drawn ? `✓ ${ABOUT_NAME} drawn`
                           // DRAFT wording for the owner (#2859): a run whose only work was the cover.
                           : coverDid(r.cover) ? `✓ ${COVER_NAME} ${r.cover!.did === 'drawn' ? 'drawn' : 'updated'}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
-  return { ok: !stopped && !r.halted && !failed.length && !refused, headline: `${headline}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines };
+  const ok = !stopped && !r.halted && !failed.length && !refused;
+  return { ok, headline: `${headline}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
 };
