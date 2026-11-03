@@ -1,0 +1,126 @@
+// SCRATCH (not committed): renders for #3345. Draws the PROJECTED Figma plans of PageNav and PageNav.Item (with the
+// nested Link resolved to its own projected member) as HTML, binding every variable and text style from the committed
+// Figma emission for one brand and mode, and places a foot bar by the executors' own rule:
+// width = round(share × parent width), x = (parent − width) / 2. Then a semantic web PageNav reading the same values.
+import { readFileSync, writeFileSync } from 'node:fs';
+import { componentDefs } from './components/index';
+import { figmaAnatomySet, applyCurrentIndicator, type AnatomyPlan, type FigmaNodePlan } from './anatomy-figma';
+import type { CurrentIndicator } from './scale';
+
+const BRAND = 'prism3';
+const dir = `packages/engine/out/figma/${BRAND}`;
+const load = (f: string) => JSON.parse(readFileSync(`${dir}/${f}`, 'utf8'));
+const single = ['space.json', 'border-width.json', 'size.json', 'icon.json', 'focus.json', 'core.font.json', 'core.dimension.json', 'type-sets.desktop.json', 'radius.json'];
+const varsFor = (mode: string): Map<string, any> => {
+  const m = new Map<string, any>();
+  for (const f of [...single, `color.${mode}.json`]) for (const v of load(f).variables) m.set(v.name.replace(/^[a-z0-9]+\//, ''), v.value);
+  return m;
+};
+const styles = new Map<string, any>((load('text-styles.json').styles as any[]).map((s) => [s.name, s.properties]));
+const css = (c: any) => `rgba(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)},${c.a})`;
+const def = (id: string) => componentDefs.find((d) => d.id === id)!;
+
+type Ctx = { vars: Map<string, any>; ind: CurrentIndicator; labels: string[] };
+const setsCache = new Map<string, AnatomyPlan[]>();
+const setOf = (id: string, ind: CurrentIndicator) => {
+  const k = `${id}|${ind}`;
+  if (!setsCache.has(k)) setsCache.set(k, figmaAnatomySet(applyCurrentIndicator(def(id), ind), { swapTarget: 'FPO' }));
+  return setsCache.get(k)!;
+};
+const member = (id: string, v: Record<string, string>, ind: CurrentIndicator): AnatomyPlan => {
+  const hit = setOf(id, ind).find((p) => Object.entries(v).every(([a, x]) => (a === 'size' ? p.size === x : (p.coord as any)[a] === x)));
+  if (!hit) throw new Error(`${id} ${JSON.stringify(v)}`);
+  return hit;
+};
+const textCss = (name: string, vars: Map<string, any>): string => {
+  const p = styles.get(name); if (!p) return '';
+  const val = (q: any) => (q.bound ? vars.get(q.variable.replace(/^[a-z0-9]+\//, '')) : q.value);
+  const fs = val(p.fontSize); const lh = p.lineHeight.value;
+  const style = String(val(p.fontStyle));
+  const weight = /bold|semi/i.test(style) ? (/semi/i.test(style) ? 600 : 700) : p.fontWeight?.value ?? 400;
+  return `font-family:'${val(p.fontFamily)}',system-ui,sans-serif;font-size:${fs}px;font-weight:${weight};line-height:${lh.unit === 'PERCENT' ? lh.value / 100 : `${lh.value}px`};text-decoration:${p.textDecoration.value === 'UNDERLINE' ? 'underline' : 'none'};text-underline-offset:auto;`;
+};
+const align = (a?: string) => ({ MIN: 'flex-start', CENTER: 'center', MAX: 'flex-end', SPACE_BETWEEN: 'space-between' } as any)[a ?? 'MIN'] ?? 'flex-start';
+let labelIx = 0;
+const node = (n: FigmaNodePlan, ctx: Ctx, state: string, coordState?: string): string => {
+  const b = n.bound as Record<string, string>;
+  const px = (k: string) => (b[k] ? `${ctx.vars.get(b[k])}px` : '');
+  if (n.visible === false) return '';
+  if (n.type === 'NESTED_INSTANCE') {
+    if (n.nestTarget === 'focus-ring') return '';
+    const v = { ...(n.nestVariant as Record<string, string>) };
+    if ((n as any).nestExpose?.includes('state')) v.state = state;
+    const m = member(n.nestTarget!, v, ctx.ind);
+    return node(m.root, ctx, state);
+  }
+  if (n.type === 'TEXT') {
+    const fill = n.paints?.fills ? css(ctx.vars.get(n.paints.fills)) : 'inherit';
+    const text = n.name === 'label' && ctx.labels.length ? ctx.labels[labelIx++ % ctx.labels.length] : (n as any).characters;
+    return `<span style="${textCss(n.textStyle!, ctx.vars)}color:${fill};white-space:nowrap">${text}</span>`;
+  }
+  if ((n as any).footPin) {
+    const share = (n as any).footShare ?? 1;
+    const fill = css(ctx.vars.get(n.paints!.fills!));
+    return `<div data-foot="${share}" style="position:absolute;bottom:0;height:${px('height')};background:${fill}"></div>`;
+  }
+  const flow = n.children.filter((c) => !(c as any).footPin);
+  const feet = n.children.filter((c) => (c as any).footPin);
+  const dirn = n.layoutMode === 'VERTICAL' ? 'column' : 'row';
+  const st = `position:relative;display:${n.layoutMode ? 'flex' : 'block'};flex-direction:${dirn};justify-content:${align(n.primaryAxisAlignItems)};align-items:${align(n.counterAxisAlignItems)};gap:${px('itemSpacing') || 0};padding:${px('paddingTop') || 0} ${px('paddingRight') || 0} ${px('paddingBottom') || 0} ${px('paddingLeft') || 0};${n.paints?.fills ? `background:${css(ctx.vars.get(n.paints.fills))};` : ''}width:max-content;`;
+  return `<div data-name="${n.name}" style="${st}">${flow.map((c) => node(c, ctx, state)).join('')}${feet.map((c) => node(c, ctx, state)).join('')}</div>`;
+};
+
+const PLACE = `<script>for(const b of document.querySelectorAll('[data-foot]')){const W=b.parentElement.getBoundingClientRect().width,s=+b.dataset.foot,w=s===1?W:Math.round(W*s);b.style.width=w+'px';b.style.left=((W-w)/2)+'px';}</script>`;
+
+const panel = (mode: string, ind: CurrentIndicator): string => {
+  const vars = varsFor(mode);
+  const bg = css(vars.get('color/background/primary'));
+  const ink = css(vars.get('color/text/secondary'));
+  const cap = (t: string) => `<div style="font:12px system-ui;color:${ink};margin:18px 0 6px">${t}</div>`;
+  let h = `<section style="background:${bg};padding:20px 24px;border-radius:8px;min-width:560px">`;
+  h += `<div style="font:600 14px system-ui;color:${css(vars.get('color/text/primary'))}">${mode === 'light' ? 'Light' : 'Dark'} · Current page indicator: ${ind === 'full' ? 'Full width' : 'Partial (50%)'}</div>`;
+  h += cap('PageNav — size=medium and size=small (the set\'s two members, items relabeled as a designer would)');
+  for (const size of ['medium', 'small']) {
+    labelIx = 0;
+    h += `<div style="margin:8px 0">${node(member('page-nav', { size }, ind).root, { vars, ind, labels: ['Overview', 'Orders', 'Profile'] }, 'rest')}</div>`;
+  }
+  labelIx = 0;
+  { const r = member('page-nav', { size: 'medium' }, ind).root; const two = { ...r, children: r.children.map((c) => (c.name === 'items' ? { ...c, children: c.children.slice(0, 2) } : c)) };
+    h += cap('PageNav with two items (Log in / Create account), the slot\'s minimum');
+    h += `<div style="margin:8px 0">${node(two, { vars, ind, labels: ['Log in', 'Create account'] }, 'rest')}</div>`; }
+  h += cap('PageNav.Item — selection × state (the nested Link\'s exposed state), size=medium');
+  h += `<div style="display:grid;grid-template-columns:110px repeat(4,auto);gap:10px 22px;align-items:end;font:11px system-ui;color:${ink}"><div></div>${['rest', 'hover', 'pressed', 'focus-visible'].map((s) => `<div>${s}</div>`).join('')}`;
+  for (const selection of ['unselected', 'selected']) {
+    h += `<div>${selection}</div>`;
+    for (const state of ['rest', 'hover', 'pressed', 'focus-visible']) { labelIx = 0; h += `<div>${node(member('page-nav-item', { selection, size: 'medium' }, ind).root, { vars, ind, labels: ['Orders'] }, state)}</div>`; }
+  }
+  h += `</div></section>`;
+  return h;
+};
+
+// The WEB PageNav: semantic markup, CSS reading the same resolved values.
+const web = (mode: string, ind: CurrentIndicator): string => {
+  const vars = varsFor(mode);
+  const c = (k: string) => css(vars.get(k));
+  const body = textCss('body/md/default', vars);
+  const cls = `w-${mode}-${ind}`;
+  return `<style>
+.${cls}{background:${c('color/background/primary')};padding:20px 24px;border-radius:8px;min-width:560px}
+.${cls} h4{font:600 14px system-ui;color:${c('color/text/primary')};margin:0 0 12px}
+.${cls} ul{display:flex;flex-wrap:wrap;column-gap:${vars.get('space/300')}px;list-style:none;margin:0 0 14px;padding:0}
+.${cls} a{${body}color:${c('color/text/link/default')};text-decoration:underline;position:relative;display:inline-block}
+.${cls} a:hover{color:${c('color/text/link/hover')}}
+.${cls} a[aria-current=page]{text-decoration:none}
+.${cls} a[aria-current=page]::after{content:"";position:absolute;bottom:0;height:${vars.get('border-width/thick')}px;inset-inline:${ind === 'full' ? '0' : '25%'};background:${c('color/icon/link/default')}}
+.${cls} code{font:11px ui-monospace,monospace;color:${c('color/text/secondary')}}
+</style><section class="${cls}"><h4>Web · ${mode === 'light' ? 'Light' : 'Dark'} · ${ind === 'full' ? 'Full width' : 'Partial (50%)'}</h4>
+<nav aria-label="Account"><ul><li><a href="/account" aria-current="page">Overview</a></li><li><a href="/account/orders">Orders</a></li><li><a href="/account/profile">Profile</a></li><li><a href="/account/wishlist">Wishlist</a></li></ul></nav>
+<nav aria-label="Account"><ul><li><a href="/login" aria-current="page">Log in</a></li><li><a href="/register">Create account</a></li></ul></nav>
+<code>&lt;nav aria-label="Account"&gt; › &lt;ul&gt; › &lt;li&gt; › &lt;a href aria-current="page"&gt; — no tab roles, Tab moves link to link</code></section>`;
+};
+
+const page = (title: string, body: string, sub = 'Engine default brand. Drawn from the projected plans and the committed emission; the bar placed by the executors\' rule (round(share × title width), centered). Fonts fall back to the system sans. The focus ring is not drawn.') => `<!doctype html><meta charset=utf-8><title>${title}</title><body style="margin:0;padding:24px;background:#8a8a8a;font-family:system-ui"><h2 style="font:600 16px system-ui;margin:0 0 4px;color:#fff">${title}</h2><div style="font:12px system-ui;color:#f2f2f2;margin:0 0 16px">${sub}</div><div style="display:grid;grid-template-columns:auto auto;gap:16px">${body}</div>${PLACE}</body>`;
+const out = process.argv[2];
+writeFileSync(`${out}/figma-members.html`, page('#3345 Page navigation — Figma members', ['full', 'partial'].flatMap((ind) => ['light', 'dark'].map((m) => panel(m, ind as CurrentIndicator))).join('')));
+writeFileSync(`${out}/web.html`, page('#3345 Page navigation — web', ['full', 'partial'].flatMap((ind) => ['light', 'dark'].map((m) => web(m, ind as CurrentIndicator))).join(''), 'Engine default brand. Semantic markup with CSS reading the same emitted values: the bar is an ::after with inset-inline 0 (Full) or 25% (Partial). Fonts fall back to the system sans.'));
+console.log('wrote');
