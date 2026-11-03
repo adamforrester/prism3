@@ -7,8 +7,13 @@
  * brief's "read" genre, `<ul>` / `<ol>`). Not a listbox, a menu or a navigation, and not the brief's rich data row
  * (avatar, two lines, trailing actions), which joins the family later under the same name (owner decision Q273.1).
  *
- * Shape (Q273.2, Q273.3, Q273.4): `type` [unordered, ordered, icon] × `size` [medium, small, large] = 9 members. No
- * state axis and no reactions: a read list is not interactive.
+ * Shape (Q273.2, Q273.3, Q273.4): `type` [unordered, ordered, icon] × `size` [medium, x-small, small, large] = 12 members.
+ * No state axis and no reactions: a read list is not interactive.
+ *
+ * THE EXTRA-SMALL SIZE (#3330, owner decisions Q1–Q4 A). `x-small` sets `type.body.xs` (12/18) for tight rule lists such
+ * as password requirements: a 16px (`space.200`) bullet or number column, a 6px bullet, and a 16px check (`icon.size.xs`)
+ * in a 24px (`space.300`) icon column. Its line box is `type.body.xs.line-box`, because there is no `control.size.xs`
+ * (checkbox-row's xs construction). The word is Link's, Icon's and Spinner's for the rung below `small` (Q3179.1 A).
  *
  * THE MARKER COLUMN. `markerBox` is a FIXED width per type (`size.{size}.{type}.marker-column`): 20/24/32 for a bullet or
  * a number (owner decision Q340 A, one step tighter than Q280.1 A's 24/32/40) and 32/40/48 for an icon (#3155, Q3155.2 A,
@@ -41,7 +46,7 @@ export const listItem: ComponentDef = {
   props: [
     { name: 'children', type: 'node', required: true, description: 'The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by this item\'s marker column, so it starts at this item\'s text edge.' },
     { name: 'type', type: "enum: 'unordered' | 'ordered' | 'icon'", values: ['unordered', 'ordered', 'icon'], default: 'unordered', required: false, description: 'Which marker the item shows. Set by the List from its own type; do not set it on an item inside a List.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The text size (body small, medium or large) and the marker sized to it. Set by the List.' },
+    { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large'", values: ['x-small', 'small', 'medium', 'large'], default: 'medium', required: false, description: 'The text size, 12, 14, 16 or 18px, and the marker sized to it. Set by the List.' },
     { name: 'value', type: 'number', required: false, description: 'In an ordered list, the number this item shows; the items after it count on from it. Leave it unset to let the list count.' },
     { name: 'icon', type: 'slot', required: false, description: 'The marker glyph when type is icon. A check by default. Decorative: the item text carries the meaning.' },
   ],
@@ -54,7 +59,7 @@ export const listItem: ComponentDef = {
   // then run smallest to largest (#2752, owner decision Q1 B), as every sized def's do. The `type` value set is declared in `lint-axis-values.ts`.
   variants: {
     type: ['unordered', 'ordered', 'icon'],
-    size: ['medium', 'small', 'large'],
+    size: ['medium', 'x-small', 'small', 'large'],
   },
   axisKinds: { type: 'authoring', size: 'authoring' },
 
@@ -75,6 +80,10 @@ export const listItem: ComponentDef = {
     // than Q280.1 A's 24/32/40, which owner QA found too wide between the marker and the text. Icon (#3155, Q3155.2 A):
     // 32/40/48, one step wider than Q280.1 A's 24/32/40, so the icon sits 12/16/16 from the text, not 4/8/8. FIXED: not in `densitySpacing`, because the column is a width the text edge is aligned to, not
     // a space between two things.
+    // x-small (#3330, Q2 A): a 16px bullet or number column, and a 24px icon column for a 16px check.
+    'size.x-small.unordered.marker-column': 'space.200',
+    'size.x-small.ordered.marker-column': 'space.200',
+    'size.x-small.icon.marker-column': 'space.300',
     'size.small.unordered.marker-column': 'space.250',
     'size.medium.unordered.marker-column': 'space.300',
     'size.large.unordered.marker-column': 'space.400',
@@ -86,6 +95,8 @@ export const listItem: ComponentDef = {
     'size.large.icon.marker-column': 'space.600',
 
     // ONE BODY LINE TALL, per rung: the baked `body.{rung}` line box (checkbox-row's #1201 construction).
+    // x-small (#3330): there is no `control.size.xs`, so the 12px body's own baked line box, 18px (checkbox-row's xs).
+    'size.x-small.line-box': 'type.body.xs.line-box',
     'size.small.line-box': 'control.size.sm.line-box',
     'size.medium.line-box': 'control.size.md.line-box',
     'size.large.line-box': 'control.size.lg.line-box',
@@ -93,17 +104,20 @@ export const listItem: ComponentDef = {
     // THE BULLET (#3155, Q3155.1 A): 6/8/8, half the 14/16/18 body text snapped to the space ladder, which has no 10.
     // Medium's 8 is the owner's. FIXED, like the text it sits beside: not the radio dot (`control.size.*.dot`), which
     // follows density and the radio dot setting and is 14 at medium on the reference brand.
+    'size.x-small.bullet': 'space.075',
     'size.small.bullet': 'space.075',
     'size.medium.bullet': 'space.100',
     'size.large.bullet': 'space.100',
 
     // THE ICON MARKER (owner decision Q280.5 A, noted): the icon ladder at the item's rung, 16/20/24, inside the 21/24/27 line box.
     // The proposal's one-rung-smaller 16/16/20 would be an `ICON_OFFSET_DEFS` exception, which is the owner's to grant.
+    'size.x-small.icon': 'icon.size.xs',
     'size.small.icon': 'icon.size.sm',
     'size.medium.icon': 'icon.size.md',
     'size.large.icon': 'icon.size.lg',
 
     // THE TEXT, and the number in the same style, so the numeral matches the text.
+    'size.x-small.text': 'type.body.xs.default',
     'size.small.text': 'type.body.sm.default',
     'size.medium.text': 'type.body.md.default',
     'size.large.text': 'type.body.lg.default',
@@ -243,6 +257,7 @@ export const listItem: ComponentDef = {
       'Whether the number glyph and the text\'s first line share one baseline on a real host: both bind the same type style and the number sits in a box one line tall, so they should; not measured on a built file.',
     ],
     evolution: [
+      '2026-11-03 (#3330): owner decisions Q1–Q4 A — an `x-small` size below `small`, for every type: `type.body.xs` 12/18 (Q3 A), a 16px bullet or number column (`space.200`), a 6px bullet (`space.075`), and a 16px check (`icon.size.xs`) in a 24px column (`space.300`, Q2 A). Named `x-small`, Link\'s word for the rung (Q1 A).',
       '2026-10-29 (#3155): owner decisions — the bullet smaller, 6/8/8 (`space.075` / `100` / `100`, medium 8 the owner\'s, small and large Q3155.1 A), bound to the space ladder rather than the radio dot, so it no longer follows density or the radio dot setting; and the icon column one step wider, 32/40/48 (`space.400` / `500` / `600`, medium 40 the owner\'s, small and large Q3155.2 A), revising Q280.1 A\'s 24/32/40. The bullet and number column keeps Q340 A\'s 20/24/32.',
       '2026-10-13 (#2319): owner decisions Q273 — the read list now as List and List.Item (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type starting at check (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), category data (Q273.7), markers at the text\'s strength (Q273.8), native text lists for running text (Q273.9).',
       '2026-10-15 (#2727): owner decision Q340 A — the bullet and number marker column one step tighter, 20/24/32 (`space.250` / `300` / `400`), revising Q280.1 A\'s 24/32/40 for those two types; the icon column keeps 24/32/40, so the column is fixed per type rather than in every type, and an icon item\'s text edge sits further in.',

@@ -1907,6 +1907,9 @@ export const figmaAnatomyPlan = (
       ? p.tileEdge : undefined;
     // THE EDGE ALONE (#3134): a tile `edgeWhen` does not name keeps its corners and crop, and draws no stroke.
     const tileStroke = !!tileEdge && Object.entries(tileEdge.edgeWhen ?? {}).every(([ax, vs]) => vs.includes(String(axisValue(ax))));
+    // A NESTED INSTANCE'S BLOCK PADDING (#3347, `PartDef.nestPaddingBlock`): bound on the instance as an override. Both
+    // executors bind `bound` on every node they make, an instance included, so this needs no executor change.
+    if (p.kind === 'nest' && p.nestPaddingBlock) { bound.paddingTop = varOf(p.nestPaddingBlock); bound.paddingBottom = varOf(p.nestPaddingBlock); }
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
       if (p.height) bound.height = varOf(p.height);

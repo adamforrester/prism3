@@ -19,6 +19,8 @@
  *                   nothing is named (`moved` absent) and the set reads due as it did before Q811 A;
  *                   `executor` when `EXECUTOR_REVISION` moved by a revision that reaches the set, whatever the plans
  *                   say (Q811.1 and #3101, below);
+ *                   `panel` (#3205) when the set is otherwise current but its usage panel was last checked at another
+ *                   panel format (`PANEL_FORMAT`, `doc-panel.ts`) than today's: the entry's `panel` against `now`'s;
  *   · `unrecorded`  no entry: a set built before the ledger existed, or by hand. Only the full check can tell.
  *
  * WHY A PRINT-LESS ENTRY UNDER A MOVED ENGINE IS DUE, NOT UNRECORDED (#3090 review, finding 1). An unrecorded set the
@@ -63,7 +65,9 @@ export type Facet = typeof FACETS[number];
  *  chunk per facet in `FACETS` order, plus `set` for the plans' own fields (names, coordinates, axes), and only words
  *  the reason. */
 export type PlanPrint = { readonly plan: string; readonly parts: Readonly<Record<string, string>>; readonly set: string };
-export type LedgerEntry = { readonly def: string; readonly rev: number; readonly engine: string; readonly print?: PlanPrint };
+/** `panel` (#3205): the usage-panel format (`PANEL_FORMAT`) the set's panel was last checked at, on a family's lead set
+ *  while Documentation has the panels on. Absent on any other set, and on an entry from before it. */
+export type LedgerEntry = { readonly def: string; readonly rev: number; readonly engine: string; readonly print?: PlanPrint; readonly panel?: number };
 export type Ledger = Readonly<Record<string, LedgerEntry>>;
 
 type DataRoot = { getPluginData?(key: string): string; setPluginData?(key: string, value: string): void };
@@ -152,7 +156,8 @@ const isPrint = (v: unknown): v is PlanPrint => !!v && typeof v === 'object' && 
 
 const isEntry = (v: unknown): v is LedgerEntry => !!v && typeof v === 'object'
   && typeof (v as LedgerEntry).def === 'string' && typeof (v as LedgerEntry).rev === 'number' && typeof (v as LedgerEntry).engine === 'string'
-  && ((v as LedgerEntry).print === undefined || isPrint((v as LedgerEntry).print));
+  && ((v as LedgerEntry).print === undefined || isPrint((v as LedgerEntry).print))
+  && ((v as LedgerEntry).panel === undefined || typeof (v as LedgerEntry).panel === 'number');
 
 /** The file's ledger, by def id. */
 export const readLedger = (root: DataRoot): Ledger => {
@@ -166,10 +171,13 @@ export const readLedger = (root: DataRoot): Ledger => {
   } catch { return {}; }
 };
 
-/** Record `entries` in the file, over what it holds for those defs. A refused write throws, for the caller to catch. */
+/** Record `entries` in the file, over what it holds for those defs. A refused write throws, for the caller to catch.
+ *  An entry with no `panel` keeps the one the file holds (#3205): a write with the panels off did not touch the panel. */
 export const recordSets = (root: DataRoot, entries: Ledger): void => {
   if (!Object.keys(entries).length) return;
-  root.setPluginData?.(LEDGER_KEY, JSON.stringify({ v: LEDGER_V, sets: { ...readLedger(root), ...entries } }));
+  const was = readLedger(root);
+  const merged = Object.fromEntries(Object.entries(entries).map(([id, e]) => [id, e.panel === undefined && was[id]?.panel !== undefined ? { ...e, panel: was[id].panel } : e]));
+  root.setPluginData?.(LEDGER_KEY, JSON.stringify({ v: LEDGER_V, sets: { ...was, ...merged } }));
 };
 
 /** What moved between two prints, for the reason line: each part whose facets moved, each part added or dropped, and
@@ -194,9 +202,9 @@ export const movedOf = (was: PlanPrint, is: PlanPrint): Moved => {
   };
 };
 
-export type DueReason = 'definition' | 'engine' | 'executor';
+export type DueReason = 'definition' | 'engine' | 'executor' | 'panel';
 export type SetDue = { readonly state: 'current' | 'unrecorded' }
-  | { readonly state: 'due'; readonly reason: 'definition' | 'executor' }
+  | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
   | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: Moved };
 
 /** The sets whose read needs their plans printed now: the engine moved past an entry that carries a print, and the
@@ -227,6 +235,15 @@ export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: str
     out[id] = !p ? { state: 'unrecorded' }
       : p.plan === was.print.plan ? { state: 'current' }
       : { state: 'due', reason: 'engine', moved: movedOf(was.print, p) };
+  }
+  // THE FORMAT-DUE CREDIT (#3205): a set otherwise current is due when its usage panel was last checked at another
+  // panel format than today's. The panel's drawing moved, not the set's, so nothing else here sees it; without this the
+  // set is never in Update file's check, and its panel is never offered or redrawn. A set due for another reason is
+  // checked anyway, and the check reads the panel's own plan (`docPanelDue`).
+  for (const id of present) {
+    const was = ledger[id];
+    const is = now(id);
+    if (out[id].state === 'current' && is?.panel !== undefined && was?.panel !== is.panel) out[id] = { state: 'due', reason: 'panel' };
   }
   return out;
 };

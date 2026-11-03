@@ -5650,7 +5650,7 @@
           ],
           "parts": {
             "bullet": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "type": [
                   "unordered"
@@ -5658,7 +5658,7 @@
               }
             },
             "icon": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "type": [
                   "icon"
@@ -15458,11 +15458,11 @@
           ],
           "parts": {
             "label": {
-              "members": 9,
+              "members": 12,
               "where": {}
             },
             "number": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "type": [
                   "ordered"
@@ -20768,6 +20768,24 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "size.x-small.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "x-small"
+                ],
+                "type": [
+                  "icon"
+                ]
+              }
+            }
+          }
+        },
         "pagination-item": {
           "keys": [
             "size.small.icon"
@@ -21454,7 +21472,7 @@
           ],
           "parts": {
             "bullet": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "type": [
                   "unordered"
@@ -23274,7 +23292,7 @@
           ],
           "parts": {
             "row": {
-              "members": 9,
+              "members": 12,
               "where": {}
             }
           }
@@ -23348,6 +23366,17 @@
                   "page"
                 ]
               }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "toggle.pad-block"
+          ],
+          "parts": {
+            "toggle": {
+              "members": 84,
+              "where": {}
             }
           }
         },
@@ -23689,6 +23718,29 @@
             }
           }
         },
+        "list": {
+          "keys": [
+            "size.x-small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "x-small"
+                ]
+              }
+            },
+            "items": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "x-small"
+                ]
+              }
+            }
+          }
+        },
         "pagination": {
           "keys": [
             "gap"
@@ -23921,14 +23973,16 @@
         },
         "list-item": {
           "keys": [
-            "size.small.bullet"
+            "size.small.bullet",
+            "size.x-small.bullet"
           ],
           "parts": {
             "bullet": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
-                  "small"
+                  "small",
+                  "x-small"
                 ],
                 "type": [
                   "unordered"
@@ -25415,6 +25469,26 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "size.x-small.ordered.marker-column",
+            "size.x-small.unordered.marker-column"
+          ],
+          "parts": {
+            "markerBox": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "x-small"
+                ],
+                "type": [
+                  "ordered",
+                  "unordered"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "size.medium.pad-x",
@@ -25847,18 +25921,16 @@
         "list-item": {
           "keys": [
             "size.medium.ordered.marker-column",
-            "size.medium.unordered.marker-column"
+            "size.medium.unordered.marker-column",
+            "size.x-small.icon.marker-column"
           ],
           "parts": {
             "markerBox": {
-              "members": 2,
+              "members": 3,
               "where": {
                 "size": [
-                  "medium"
-                ],
-                "type": [
-                  "ordered",
-                  "unordered"
+                  "medium",
+                  "x-small"
                 ]
               }
             }
@@ -27939,6 +28011,32 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "size.x-small.text"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "x-small"
+                ]
+              }
+            },
+            "number": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "x-small"
+                ],
+                "type": [
+                  "ordered"
+                ]
+              }
+            }
+          }
+        },
         "radio-row": {
           "keys": [
             "description.medium.text",
@@ -28056,6 +28154,21 @@
               "where": {
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "list-item": {
+          "keys": [
+            "size.x-small.line-box"
+          ],
+          "parts": {
+            "markerBox": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "x-small"
                 ]
               }
             }
@@ -31623,12 +31736,13 @@
       ]
     },
     "list": {
-      "members": 9,
+      "members": 12,
       "axes": {
         "size": [
           "large",
           "medium",
-          "small"
+          "small",
+          "x-small"
         ],
         "type": [
           "icon",
@@ -31637,6 +31751,7 @@
         ]
       },
       "tokens": [
+        "space.050",
         "space.150",
         "space.200",
         "space.250"
@@ -31645,12 +31760,13 @@
       "drawnNotDeclared": []
     },
     "list-item": {
-      "members": 9,
+      "members": 12,
       "axes": {
         "size": [
           "large",
           "medium",
-          "small"
+          "small",
+          "x-small"
         ],
         "type": [
           "icon",
@@ -31667,10 +31783,12 @@
         "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.round",
         "space.0",
         "space.075",
         "space.100",
+        "space.200",
         "space.250",
         "space.300",
         "space.400",
@@ -31678,7 +31796,9 @@
         "space.600",
         "type.body.lg.default",
         "type.body.md.default",
-        "type.body.sm.default"
+        "type.body.sm.default",
+        "type.body.xs.default",
+        "type.body.xs.line-box"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
@@ -31834,6 +31954,7 @@
         "radius.sm",
         "size.lg.height",
         "size.md.min-height",
+        "space.0",
         "space.075",
         "space.100",
         "space.200",

@@ -634,8 +634,8 @@ Type: color. Bound by 9 component(s).
 |---|---|---|---|
 | card-number-field | `icon` | leadingVisual | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 | icon | `icon`, `tone.primary` (not drawn) | glyph | every member (46 of 46) |
-| list-item | `icon`, `indicator` | bullet | type: unordered (3 of 9) |
-|  |  | icon | type: icon (3 of 9) |
+| list-item | `icon`, `indicator` | bullet | type: unordered (4 of 12) |
+|  |  | icon | type: icon (4 of 12) |
 | pagination-item | `unselected.ellipsis.icon` | gapGlyph | labeled: false · selection: unselected · state: rest · style: border · type: ellipsis (3 of 87) |
 | password-field | `icon` | leadingVisual | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 | search-field | `icon` | leadingVisual | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
@@ -1984,8 +1984,8 @@ Type: color. Bound by 21 component(s).
 |  |  | title | every member (24 of 24) |
 | field-label | `primary.indicator`, `primary.label` | indicator | emphasis: primary · state: rest (6 of 24) |
 |  |  | label | emphasis: primary · state: rest (6 of 24) |
-| list-item | `label` | label | every member (9 of 9) |
-|  |  | number | type: ordered (3 of 9) |
+| list-item | `label` | label | every member (12 of 12) |
+|  |  | number | type: ordered (4 of 12) |
 | pagination | `label` | status | style: border · type: compact (3 of 12) |
 | password-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
@@ -2171,7 +2171,7 @@ Type: dimension. Bound by 6 component(s).
 |---|---|---|---|
 | card-number-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
-| list-item | `size.large.line-box` | markerBox | size: large (3 of 9) |
+| list-item | `size.large.line-box` | markerBox | size: large (3 of 12) |
 | password-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
 | search-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
@@ -2243,7 +2243,7 @@ Type: dimension. Bound by 6 component(s).
 |---|---|---|---|
 | card-number-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
-| list-item | `size.medium.line-box` | markerBox | size: medium (3 of 9) |
+| list-item | `size.medium.line-box` | markerBox | size: medium (3 of 12) |
 | password-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
 | search-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
@@ -2335,7 +2335,7 @@ Type: dimension. Bound by 6 component(s).
 |---|---|---|---|
 | card-number-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
-| list-item | `size.small.line-box` | markerBox | size: small (3 of 9) |
+| list-item | `size.small.line-box` | markerBox | size: small (3 of 12) |
 | password-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
 | search-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
@@ -2484,7 +2484,7 @@ Type: dimension. Bound by 8 component(s).
 |  |  | spinner | size: large · state: pending (12 of 216) |
 | icon-button-neutral | `size.large.icon` | icon | size: large · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: large · state: pending (12 of 216) |
-| list-item | `size.large.icon` | icon | size: large · type: icon (1 of 9) |
+| list-item | `size.large.icon` | icon | size: large · type: icon (1 of 12) |
 | provider-logo | `size.large` | (not drawn) | — |
 | spinner | `size.large` | frame | size: large (1 of 4) |
 |  |  | ringGlyph | size: large (1 of 4) |
@@ -2529,7 +2529,7 @@ Type: dimension. Bound by 24 component(s).
 |  |  | spinner | size: medium · state: pending (12 of 216) |
 | icon-button-neutral | `size.medium.icon` | icon | size: medium · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: medium · state: pending (12 of 216) |
-| list-item | `size.medium.icon` | icon | size: medium · type: icon (1 of 9) |
+| list-item | `size.medium.icon` | icon | size: medium · type: icon (1 of 12) |
 | pagination-item | `size.large.icon` | gapGlyph | labeled: false · selection: unselected · size: large · state: rest · style: border · type: ellipsis (1 of 87) |
 |  |  | nextGlyph | selection: unselected · size: large · style: border · type: next (10 of 87) |
 |  |  | previousGlyph | selection: unselected · size: large · style: border · type: previous (10 of 87) |
@@ -2586,7 +2586,7 @@ Type: dimension. Bound by 28 component(s).
 | icon-button-neutral | `size.small.icon` | icon | size: small · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: small · state: pending (12 of 216) |
 | link | `size.large.icon` | trailingVisual | size: large · style: standalone (32 of 192) |
-| list-item | `size.small.icon` | icon | size: small · type: icon (1 of 9) |
+| list-item | `size.small.icon` | icon | size: small · type: icon (1 of 12) |
 | pagination-item | `size.medium.icon` | gapGlyph | labeled: false · selection: unselected · size: medium · state: rest · style: border · type: ellipsis (1 of 87) |
 |  |  | nextGlyph | selection: unselected · size: medium · style: border · type: next (10 of 87) |
 |  |  | previousGlyph | selection: unselected · size: medium · style: border · type: previous (10 of 87) |
@@ -2623,7 +2623,7 @@ Type: dimension. Bound by 2 component(s).
 
 ### `icon.size.xs`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2652,6 +2652,7 @@ Type: dimension. Bound by 17 component(s).
 |  |  | warningGlyph | status: warning (1 of 4) |
 | icon | `size.x-small` | (not drawn) | — |
 | link | `size.medium.icon`, `size.small.icon`, `size.x-small.icon` | trailingVisual | size: medium, small, x-small · style: standalone (96 of 192) |
+| list-item | `size.x-small.icon` | icon | size: x-small · type: icon (1 of 12) |
 | pagination-item | `size.small.icon` | gapGlyph | labeled: false · selection: unselected · size: small · state: rest · style: border · type: ellipsis (1 of 87) |
 |  |  | nextGlyph | selection: unselected · size: small · style: border · type: next (10 of 87) |
 |  |  | previousGlyph | selection: unselected · size: small · style: border · type: previous (10 of 87) |
@@ -2739,7 +2740,7 @@ Type: dimension. Bound by 13 component(s).
 | icon-button | `radius.circular` | container | shape: circular (108 of 216) |
 | icon-button-destructive | `radius.circular` | container | shape: circular (108 of 216) |
 | icon-button-neutral | `radius.circular` | container | shape: circular (108 of 216) |
-| list-item | `radius` | bullet | type: unordered (3 of 9) |
+| list-item | `radius` | bullet | type: unordered (4 of 12) |
 | radio-control | `radius` | control | every member (60 of 60) |
 |  |  | dot | selection: checked (30 of 60) |
 | slider | `radius` | track | every member (30 of 30) |
@@ -2905,7 +2906,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `space.0`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2925,11 +2926,12 @@ Type: dimension. Bound by 22 component(s).
 |  |  | header | every member (24 of 24) |
 |  |  | panel | every member (24 of 24) |
 | divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block` (not drawn), `vertical.inset.pad-end` (not drawn), `vertical.inset.pad-start` (not drawn), `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | container | every member (7 of 7) |
-| list-item | `gap` | row | every member (9 of 9) |
+| list-item | `gap` | row | every member (12 of 12) |
 | pagination-item | `balance-width`, `pad-y`, `reserve-height` | balance | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
 |  |  | container | every member (87 of 87) |
 |  |  | reserve | labeled: false · state: focus-visible, hover, pressed, rest · type: page (24 of 87) |
 |  |  | underlineReserve | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
+| password-field | `toggle.pad-block` | toggle | every member (84 of 84) |
 | radio-group | `gap`, `pad-x` | container | every member (6 of 6) |
 |  |  | items | every member (6 of 6) |
 | radio-row | `pad-x` | row | every member (6 of 6) |
@@ -2959,7 +2961,7 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 14 component(s).
+Type: dimension. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2975,6 +2977,8 @@ Type: dimension. Bound by 14 component(s).
 | counter | `size.medium.value-pad`, `size.small.value-pad` | entry | size: medium, small (12 of 18) |
 | field-label | `gap` | container | every member (24 of 24) |
 | link | `size.medium.gap`, `size.small.gap`, `size.x-small.gap` | container | size: medium, small, x-small (144 of 192) |
+| list | `size.x-small.gap` | container | size: x-small (3 of 12) |
+|  |  | items | size: x-small (3 of 12) |
 | pagination | `gap` | items | type: numbered (6 of 12) |
 |  |  | row | type: compact, numbered (9 of 12) |
 |  |  | simpleRow | style: border · type: simple (3 of 12) |
@@ -2998,7 +3002,7 @@ Type: dimension. Bound by 20 component(s).
 | card-number-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | checkbox-row | `size.small.pad-y` | row | size: small (2 of 6) |
 | field-message | `gap` | message | every member (4 of 4) |
-| list-item | `size.small.bullet` | bullet | size: small · type: unordered (1 of 9) |
+| list-item | `size.small.bullet`, `size.x-small.bullet` | bullet | size: small, x-small · type: unordered (2 of 12) |
 | password-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | progress | `gap` | container | every member (12 of 12) |
 | radio-row | `size.small.pad-y` | row | size: small (2 of 6) |
@@ -3043,7 +3047,7 @@ Type: dimension. Bound by 34 component(s).
 | dialog | `title-gap` | titleBox | every member (24 of 24) |
 | divider | `vertical.middle-inset.pad-block` | container | inset: middle-inset · labeled: false · orientation: vertical (1 of 7) |
 | link | `size.large.gap` | container | size: large (48 of 192) |
-| list-item | `size.large.bullet`, `size.medium.bullet` | bullet | size: large, medium · type: unordered (2 of 9) |
+| list-item | `size.large.bullet`, `size.medium.bullet` | bullet | size: large, medium · type: unordered (2 of 12) |
 | pagination-item | `padding-x` | container | every member (87 of 87) |
 | password-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
@@ -3099,8 +3103,8 @@ Type: dimension. Bound by 19 component(s).
 |  |  | row | size: large (2 of 6) |
 | counter | `outline.size.medium.pad-x`, `outline.size.small.pad-x` | control | appearance: outline · size: medium, small (6 of 18) |
 | divider | `vertical.gap` | container | inset: middle-inset, none · orientation: vertical (3 of 7) |
-| list | `size.small.gap` | container | size: small (3 of 9) |
-|  |  | items | size: small (3 of 9) |
+| list | `size.small.gap` | container | size: small (3 of 12) |
+|  |  | items | size: small (3 of 12) |
 | radio-row | `size.large.gap`, `size.large.pad-y`, `size.medium.gap` | content | size: large, medium (4 of 6) |
 |  |  | row | size: large (2 of 6) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
@@ -3113,7 +3117,7 @@ Type: dimension. Bound by 19 component(s).
 
 ### `space.200`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3131,8 +3135,9 @@ Type: dimension. Bound by 20 component(s).
 |  |  | header | every member (24 of 24) |
 |  |  | panel | every member (24 of 24) |
 | divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | container | inset: inset, middle-inset · labeled: false · orientation: horizontal (2 of 7) |
-| list | `size.medium.gap` | container | size: medium (3 of 9) |
-|  |  | items | size: medium (3 of 9) |
+| list | `size.medium.gap` | container | size: medium (3 of 12) |
+|  |  | items | size: medium (3 of 12) |
+| list-item | `size.x-small.ordered.marker-column`, `size.x-small.unordered.marker-column` | markerBox | size: x-small · type: ordered, unordered (2 of 12) |
 | password-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | search-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | segmented-control-segment | `size.medium.padding-x` | content | size: medium (10 of 30) |
@@ -3152,9 +3157,9 @@ Type: dimension. Bound by 5 component(s).
 |---|---|---|---|
 | accordion | `size.large.pad-x` | content | expansion: expanded · size: large (8 of 48) |
 |  |  | header | size: large (16 of 48) |
-| list | `size.large.gap` | container | size: large (3 of 9) |
-|  |  | items | size: large (3 of 9) |
-| list-item | `size.small.ordered.marker-column`, `size.small.unordered.marker-column` | markerBox | size: small · type: ordered, unordered (2 of 9) |
+| list | `size.large.gap` | container | size: large (3 of 12) |
+|  |  | items | size: large (3 of 12) |
+| list-item | `size.small.ordered.marker-column`, `size.small.unordered.marker-column` | markerBox | size: small · type: ordered, unordered (2 of 12) |
 | segmented-control-segment | `size.large.padding-x` | content | size: large (10 of 30) |
 | tab-item | `size.large.padding-x` | content | size: large (10 of 30) |
 
@@ -3174,7 +3179,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | header | placement: center, end (16 of 24) |
 |  |  | panel | placement: center, end (16 of 24) |
 | divider | `horizontal.gap` | container | orientation: horizontal (4 of 7) |
-| list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column` | markerBox | size: medium · type: ordered, unordered (2 of 9) |
+| list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column`, `size.x-small.icon.marker-column` | markerBox | size: medium, x-small (3 of 12) |
 | password-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | search-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | select | `size.large.pad-x` | control | size: large (28 of 84) |
@@ -3188,7 +3193,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: large, small (3 of 9) |
+| list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: large, small (3 of 12) |
 
 ### `space.500`
 
@@ -3196,7 +3201,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.medium.icon.marker-column` | markerBox | size: medium · type: icon (1 of 9) |
+| list-item | `size.medium.icon.marker-column` | markerBox | size: medium · type: icon (1 of 12) |
 
 ### `space.600`
 
@@ -3204,7 +3209,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.large.icon.marker-column` | markerBox | size: large · type: icon (1 of 9) |
+| list-item | `size.large.icon.marker-column` | markerBox | size: large · type: icon (1 of 12) |
 
 ### `type.body.lg.default`
 
@@ -3217,8 +3222,8 @@ Type: typography. Bound by 10 component(s).
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
 | counter | `size.large.type` | value | size: large (6 of 18) |
 | link | `size.large.type.default.standalone.selected.focus-visible`, `size.large.type.default.standalone.selected.hover`, `size.large.type.default.standalone.selected.pressed`, `size.large.type.default.standalone.selected.rest`, `size.large.type.default.standalone.unselected.rest` | label | size: large · style: standalone · weight: default (10 of 192) |
-| list-item | `size.large.text` | label | size: large (3 of 9) |
-|  |  | number | size: large · type: ordered (1 of 9) |
+| list-item | `size.large.text` | label | size: large (3 of 12) |
+|  |  | number | size: large · type: ordered (1 of 12) |
 | password-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
 | search-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3274,8 +3279,8 @@ Type: typography. Bound by 18 component(s).
 | field-label | `size.large.regular.text` | indicator | size: large · weight: regular (4 of 24) |
 |  |  | label | size: large · weight: regular (4 of 24) |
 | link | `size.medium.type.default.standalone.selected.focus-visible`, `size.medium.type.default.standalone.selected.hover`, `size.medium.type.default.standalone.selected.pressed`, `size.medium.type.default.standalone.selected.rest`, `size.medium.type.default.standalone.unselected.rest` | label | size: medium · style: standalone · weight: default (10 of 192) |
-| list-item | `size.medium.text` | label | size: medium (3 of 9) |
-|  |  | number | size: medium · type: ordered (1 of 9) |
+| list-item | `size.medium.text` | label | size: medium (3 of 12) |
+|  |  | number | size: medium · type: ordered (1 of 12) |
 | password-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | radio-row | `size.large.text` | label | size: large (2 of 6) |
@@ -3341,8 +3346,8 @@ Type: typography. Bound by 19 component(s).
 | field-label | `size.medium.regular.text` | indicator | size: medium · weight: regular (4 of 24) |
 |  |  | label | size: medium · weight: regular (4 of 24) |
 | link | `size.small.type.default.standalone.selected.focus-visible`, `size.small.type.default.standalone.selected.hover`, `size.small.type.default.standalone.selected.pressed`, `size.small.type.default.standalone.selected.rest`, `size.small.type.default.standalone.unselected.rest` | label | size: small · style: standalone · weight: default (10 of 192) |
-| list-item | `size.small.text` | label | size: small (3 of 9) |
-|  |  | number | size: small · type: ordered (1 of 9) |
+| list-item | `size.small.text` | label | size: small (3 of 12) |
+|  |  | number | size: small · type: ordered (1 of 12) |
 | password-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | progress | `value-type` | ringValue | shape: circular · status: active, error · type: determinate (4 of 12) |
@@ -3404,7 +3409,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.xs.default`
 
-Type: typography. Bound by 6 component(s).
+Type: typography. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3413,6 +3418,8 @@ Type: typography. Bound by 6 component(s).
 | field-label | `size.small.regular.text` | indicator | size: small · weight: regular (4 of 24) |
 |  |  | label | size: small · weight: regular (4 of 24) |
 | link | `size.x-small.type.default.standalone.selected.focus-visible`, `size.x-small.type.default.standalone.selected.hover`, `size.x-small.type.default.standalone.selected.pressed`, `size.x-small.type.default.standalone.selected.rest`, `size.x-small.type.default.standalone.unselected.rest` | label | size: x-small · style: standalone · weight: default (10 of 192) |
+| list-item | `size.x-small.text` | label | size: x-small (3 of 12) |
+|  |  | number | size: x-small · type: ordered (1 of 12) |
 | radio-row | `description.medium.text`, `description.small.text`, `size.small.text` | description | size: medium, small (4 of 6) |
 |  |  | label | size: small (2 of 6) |
 | slider | `milestone-type` | maxLabel | every member (30 of 30) |
@@ -3430,11 +3437,12 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.xs.line-box`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
+| list-item | `size.x-small.line-box` | markerBox | size: x-small (3 of 12) |
 | radio-row | `size.small.control-box` | controlCell | size: small (2 of 6) |
 | switch-row | `size.small.control-box` | controlCell | size: small (2 of 4) |
 
@@ -3892,15 +3900,15 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 
 ### list
 
-3 token(s); 9 design-file member(s).
+4 token(s); 12 design-file member(s).
 
-`space.150`, `space.200`, `space.250`
+`space.050`, `space.150`, `space.200`, `space.250`
 
 ### list-item
 
-20 token(s); 9 design-file member(s).
+24 token(s); 12 design-file member(s).
 
-`color.icon.primary`, `color.text.primary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.075`, `space.100`, `space.250`, `space.300`, `space.400`, `space.500`, `space.600`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.icon.primary`, `color.text.primary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.round`, `space.0`, `space.075`, `space.100`, `space.200`, `space.250`, `space.300`, `space.400`, `space.500`, `space.600`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.body.xs.default`, `type.body.xs.line-box`
 
 ### pagination
 
@@ -3918,9 +3926,9 @@ Declared, not drawn: `color.border.focus`
 
 ### password-field
 
-30 token(s); 84 design-file member(s).
+31 token(s); 84 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### progress
 
