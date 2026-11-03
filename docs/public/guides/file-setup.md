@@ -3,13 +3,13 @@
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Update file checklist for #3264). -->
 
 Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1798-1868 -->
-It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet: "The pages, the templates and the style-guide cells. The cover too, while Documentation has it on." <!-- src: apps/studio/src/state/update-file.ts:258 -->
+It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet: "The pages, the templates and the style-guide cells. The cover too, while Documentation has it on." <!-- src: apps/studio/src/state/update-file.ts:262-263 -->
 
 ## Set up a new file
 
-1. Choose **Update file** in the plugin's top bar. On a file that isn't set up, the dialog says "This file isn't set up for Prism3 yet. This first update sets it up." <!-- src: apps/studio/src/state/update-file.ts:255 -->
-2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:257 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:145-151 -->
-3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:307 -->
+1. Choose **Update file** in the plugin's top bar. On a file that isn't set up, the dialog says "This file isn't set up for Prism3 yet. This first update sets it up." <!-- src: apps/studio/src/state/update-file.ts:260 -->
+2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:262 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:149-155 -->
+3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:314 -->
 
 Once the file is set up, the checklist no longer lists the setup item. <!-- src: apps/studio/src/shell/update-file.ts:241 -->
 Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:95-102 --> If a setup failed, the Activity drawer offers **Set up again**. <!-- src: apps/studio/src/shell/activity.ts:207 -->

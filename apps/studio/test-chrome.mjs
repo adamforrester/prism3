@@ -3689,6 +3689,37 @@ for (const host of ['web', 'figma']) {
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
         }
+        // #3308 (Q3308.4 A): a run that sets the file up and writes its theme ends by drawing the cover and About this
+        // library. After Theme, the run's last step checks the in-place update over no sets, then applies it with the
+        // check's hash; the plugin's finish of that update draws both, and its verdict ends the run. Style guides unticked
+        // and nothing queued, so the steps are Set up file, Theme and the cover.
+        // (mutations: `stepsOf` with no `cover` step → this arm; `startStep` posting nothing for `cover` → this arm)
+        {
+          if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+          // The update's two posts are reads and a write `recordPosts` does not keep, so this arm listens for them itself.
+          await page.evaluate(() => { if (window.__cv3308) return; window.__cv3308 = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['update-check-request', 'update-sets'].includes(m.type)) window.__cv3308.push(JSON.parse(JSON.stringify(m))); }); });
+          const takeCv = (type) => page.evaluate((t) => new Promise((r) => setTimeout(() => { const got = window.__cv3308.filter((m) => m.type === t); window.__cv3308.length = 0; r(got); }, 50)), type);
+          await openUpdate({ present: [], setUp: false, queued: [] });
+          await hooks.click(page.locator('[data-p3="update-check-guides"]'), WAIT);
+          await takeWrites(page);
+          await takeCv('none');
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          const cv1 = (await takeWrites(page)).map(keyOf);
+          await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+          const cv2 = (await takeWrites(page)).map(keyOf);
+          await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+          const cv3 = await takeCv('update-check-request');
+          await postMsg(page, { type: 'update-check', previewHash: 'H-3308', missing: [], refused: [], sets: [] });
+          const cv4 = await takeCv('update-sets');
+          const cvRun = await updBtn();
+          await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ About this library drawn', summary: 'Cover: drawn. About this library: drawn on the Cover page.', lines: ['Cover: drawn.', 'About this library: drawn on the Cover page.'] });
+          await settle(page);
+          const cvEnd = await updBtn();
+          ok(cv1.includes('file-setup') && cv2.includes('apply-theme') && !cv2.includes('update-check-request')
+            && cv3.length === 1 && canon(cv3[0].defs) === '[]' && cv4.length === 1 && canon(cv4[0].defs) === '[]' && cv4[0].previewHash === 'H-3308' && cvRun.busy && !cvEnd.busy,
+            `${where}: #3308: a run that sets the file up and writes its theme ends with the cover: after Theme it checks and applies the update over no sets, and that verdict ends the run (posted ${JSON.stringify(cv1)}, ${JSON.stringify(cv2)}, then ${JSON.stringify(cv3)} and ${JSON.stringify(cv4)}; Update file ${JSON.stringify(cvRun)} → ${JSON.stringify(cvEnd)})`);
+          await takeWrites(page);
+        }
         // #3128: a set the build queue posts that the host refuses (the plugin's run guard still held) gets no verdict.
         // The run ends on the refusal: Update file is free again, the Build set row is not left running, and its result
         // carries the host's words. Two sets queued (#3129, the file's add queue), the theme not; the first lands, the
@@ -7206,6 +7237,41 @@ if (runs('19')) {
     ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 19-outline-hover
+// #3365 (owner, 2026-11-03): the Action palette select offers Neutral, on BOTH hosts (the plugin's UI is the studio's,
+// imported whole), and choosing it writes `actionPalette: 'neutral'`. EXPECTED: the option list typed here for the boot
+// brand (prism3 declares one brand color, `accent`), never read from `paletteRefOptions`; the primary fill's row names
+// the neutral ramp after the pick (the panel is redrawn whole from the brand, so a select that kept its own value
+// without a write would still fail it); on the web host the stored brand carries the value.
+// Mutations, each failing here by name:
+//   (a) `paletteRefOptions` drops neutral for actionPalette → `#3365 <host>: the Action palette select offers Primary, Neutral, Accent …`
+//   (b) the select writes 'primary' whatever is chosen      → `#3365 <host>: choosing Neutral puts the primary fill on the neutral ramp …`
+if (runs('19')) {
+  const SEL = '[data-p3="levers-pane"] [data-p3="action-palette-select"]';
+  const FILL = '[data-p3="levers-pane"] [data-p3="int-pick"][data-role="interactive.primary.fill.rest"]';
+  for (const host of ['web', 'figma']) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'color-interactive');
+      await hooks.need(page, SEL);
+      const opts = await page.evaluate((s) => [...document.querySelector(s).options].map((o) => `${o.value}=${o.textContent}`), SEL);
+      ok(JSON.stringify(opts) === JSON.stringify(['primary=Primary', 'neutral=Neutral', 'accent=Accent']),
+        `#3365 ${host}: the Action palette select offers Primary, Neutral, Accent, in that order (${opts.join(', ')})`);
+      const before = await page.locator(FILL).textContent();
+      await page.locator(SEL).selectOption('neutral');
+      await page.waitForFunction((f) => /neutral/i.test(document.querySelector(f)?.textContent ?? ''), FILL, { timeout: 5000 }).catch(() => {});
+      const after = { fill: (await page.locator(FILL).textContent())?.trim(), sel: await page.locator(SEL).inputValue() };
+      ok(/primary/i.test(before ?? '') && /neutral/i.test(after.fill ?? '') && after.sel === 'neutral',
+        `#3365 ${host}: choosing Neutral puts the primary fill on the neutral ramp, and the select reads it back after the redraw (${JSON.stringify({ before: before?.trim(), ...after })})`);
+      if (host === 'web') {
+        const p = await persisted(page);
+        ok(p?.actionPalette === 'neutral', `#3365 web: choosing Neutral stores actionPalette 'neutral' (${JSON.stringify(p?.actionPalette)})`);
+      }
+      ok(errors.length === 0, `#3365 ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#3365 ${host} Action palette: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 19-action-palette-neutral
 // #3115: the Outline hover chips (four since #3105) keep their rows whatever is selected. The selected chip is bold, and
 // a chip is never narrower than its label (`.p3-choice`, #1975), so where the four only just fit on one row (the owner's
 // window, about 1650 wide) the bold "Neutral overlay wash" pushed "No hover fill" onto a second. Each option is picked in

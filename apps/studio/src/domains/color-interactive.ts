@@ -29,8 +29,8 @@
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/interactive-input.ts`, which writes what the
  * legacy page wrote, byte for byte on the persisted brand. The option sets are the legacy page's (owner
- * decision Q35): every anchor step, the promotable palettes without Primary, the action palette without
- * Neutral (#1811). Two writes the legacy page had no control for: the link palette's Auto (Q36), which UNSETS
+ * decision Q35): every anchor step, the promotable palettes without Primary. The action palette offers Neutral
+ * since #3365 (it did not before, #1811). Two writes the legacy page had no control for: the link palette's Auto (Q36), which UNSETS
  * the key, and the strict contrast switch, whose off UNSETS it, so an untouched brand stays byte-identical.
  *
  * HOW IT REPAINTS: by store subscription only (plan §5), as `domains/color-fills.ts`: a control writes and
