@@ -98,9 +98,9 @@ const WIRE_SUBS: [string, string[]][] = [
 ];
 const groups = groupsOf(catalog);
 const drawn = (kind: string) => (groups.find((g) => g.kind === kind)?.rows ?? []).map((r) => [r.label, r.ids.map(name)] as [string, string[]]);
-ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents']),
-  `#2905 Q548, Q10 A, #2931 Q579 A, #2958, #2924, #2942, #3086: nine sections, Buttons, Fields, Tag, Dialog, Banner, Link, Radio, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
-ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, true, true, true, true, true, false, false]),
+ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Page navigation', 'Other components', 'Subcomponents']),
+  `#2905 Q548, Q10 A, #2931 Q579 A, #2958, #2924, #2942, #3086, #3345: ten sections, Buttons, Fields, Tag, Dialog, Banner, Link, Radio, Page navigation, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
+ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, true, true, true, true, true, true, false, false]),
   `#2905 Q8 A: the sections with settings list their sets flat; Other components and Subcomponents keep their family rows (${JSON.stringify(groups.map((g) => g.flat))})`);
 ok(JSON.stringify(drawn('buttons')) === JSON.stringify(WIRE_BUTTONS), `#2905 Q548: Buttons holds the Buttons family's four sets (${JSON.stringify(drawn('buttons'))})`);
 const fieldIds = (groups.find((g) => g.kind === 'fields')?.rows ?? []).flatMap((r) => r.ids).sort();
@@ -138,8 +138,12 @@ ok(JSON.stringify(drawn('radios')) === JSON.stringify(WIRE_RADIOS) && JSON.strin
 ok(JSON.stringify(dotDefs.map((d) => d.id).sort()) === JSON.stringify(['radio-control']),
   `#3086, #3155, #3226: the one def that binds control.size.*.dot is Radio.Control, the one Radio dot size moves (${dotDefs.map((d) => d.id).sort().join(', ')})`);
 // #2952 (#2905 Q5 A, Q7 A): a section holds an ordered LIST of settings blocks, not one. Typed from the decisions: Fields
+// #3345: Page navigation holds the row and its item, the sets whose current page's bar Current page indicator sets
+// (typed here; the bar itself is Link's, which keeps its own section).
+const WIRE_PAGENAVS: [string, string[]][] = [['Page navigation', ['PageNav', 'PageNav.Item']]];
+ok(JSON.stringify(drawn('pagenavs')) === JSON.stringify(WIRE_PAGENAVS), `#3345: Page navigation holds PageNav and PageNav.Item on its page's row (${JSON.stringify(drawn('pagenavs'))})`);
 // draws Field options, then Search options below it; Buttons, Tag, Dialog, Banner, Link and Radio one each; Other components and Subcomponents none.
-const WIRE_BLOCKS: Record<string, string[]> = { buttons: ['buttons'], fields: ['fields', 'search'], tags: ['tags'], dialogs: ['dialogs'], banners: ['banners'], links: ['links'], radios: ['radios'], components: [], subcomponents: [] };
+const WIRE_BLOCKS: Record<string, string[]> = { buttons: ['buttons'], fields: ['fields', 'search'], tags: ['tags'], dialogs: ['dialogs'], banners: ['banners'], links: ['links'], radios: ['radios'], pagenavs: ['pagenavs'], components: [], subcomponents: [] };
 const blocksOf = Object.fromEntries(groups.map((g) => [g.kind, [...(SECTION_BLOCKS[g.kind] ?? [])]]));
 ok(JSON.stringify(blocksOf) === JSON.stringify(WIRE_BLOCKS),
   `#2952 Q5 A: each section's settings blocks, in order: Fields draws Field options then Search options below it (${JSON.stringify(blocksOf)})`);
@@ -154,8 +158,8 @@ ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JS
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
 ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.ids.includes('icon') && r.page === 'Icons & assets') === true,
   'call 11: Icon lists under Subcomponents, and still lands on ↳ Icons & assets');
-ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 60,
-  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, and Sign-in button since #2343 PR 5)`);
+ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 62,
+  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, and Page navigation with its item since #3345)`);
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
 ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'
@@ -297,7 +301,7 @@ const tierOfSet = (id: string): string | undefined => tiers.find((t) => t.sectio
 const misplaced = catalog.filter((e) => (sectionOf(e.id) === 'Components' ? 'components' : 'subcomponents') !== tierOfSet(e.id)).map((e) => `${e.id} → ${tierOfSet(e.id)} (file: ${sectionOf(e.id)})`);
 ok(catalog.length > 40 && !misplaced.length, `every set (${catalog.length}) sits in the tier its file section names${misplaced.length ? ` — ${misplaced.join(', ')}` : ''}`);
 ok(tierOfSet('icon') === 'subcomponents', 'Icon, on its Foundations page, lists under Subcomponents (call 11 A)');
-ok(JSON.stringify(tiers[0].sections.map((sec) => sec.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components']) && JSON.stringify(tiers[1].sections.map((sec) => sec.title)) === JSON.stringify(['Subcomponents']),
+ok(JSON.stringify(tiers[0].sections.map((sec) => sec.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Page navigation', 'Other components']) && JSON.stringify(tiers[1].sections.map((sec) => sec.title)) === JSON.stringify(['Subcomponents']),
   `the sections sit under their tier, settings first (${tiers.map((t) => `${t.title}: ${t.sections.map((sec) => sec.title).join(', ')}`).join(' | ')})`);
 ok(tiers[2].sections.length === 0 && tiers[3].sections.length === 0, 'Content components and Blocks hold nothing: no definition names either');
 ok(GROUPS_COPY.tiersEmpty(['Content components', 'Blocks']).startsWith('Content components and Blocks'), 'the empty tiers are named in one line');
