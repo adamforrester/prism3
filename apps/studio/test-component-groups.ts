@@ -16,8 +16,18 @@
  *   · a box queuing a set that can't be built (`buildableOf` bypassed) → `G4 under call 8…`.
  *   · #3129: `addableOf` keeping the sets the file holds → `Q3129.6 A: a box acts on the sets the file could add …`; a
  *     mixed box re-queuing its queued sets (`toggleSets` without its filter) → `a mixed box queues the rest, and only the rest …`.
- *   · #3129 R5: `familyBox` returning `boxOfSets`' state (three-state again) → `R5: a family's box is on only while …`;
- *     R1: `selectAllOf` without its queued filter → `R1: Select all queues the sets the file could add …`.
+ *   · #3129 R1: `selectAllOf` without its queued filter → `R1: Select all queues the sets the file could add …`.
+ *   · #3306 (Q3306.1–6 A, section 2b), one per rule:
+ *     .1 `splitsOf` true for every family (`row.family` alone) → `Q3306.1 A: the families that split …`; and a hand list
+ *        (`splitsOf` keyed on the four labels) → `Q3306.1 A: a planted family with two roots splits …`.
+ *     .2 `boxOfSets` counting queued sets only (needed ignored) → `Q3306.2 A: a needed set counts toward its family's …`;
+ *        `heldBy` returning null → `Q3306.2 A: a needed set's box is held …`.
+ *     .3 the needed sets STORED in the queue (`toggleSets` writing the chosen set's `neededOf` with it) →
+ *        `Q3306.3 A: a tick writes the chosen set alone …`; `neededOf` descending into a set the file holds →
+ *        `Q3306.3 A: a set the file holds is not descended into …`.
+ *     .4 the needing set's name dropped from the held name (`neededBy` returning the name alone) → `Q3306.4 A: …`.
+ *     .5 the badge counting needed sets (`badgeParts.add` + `neededNamesOf`) → `Q3306.5 A: the badge counts chosen …`.
+ *     .6 an on box taking out every set it could add (`toggleSets` without its chosen filter) → `Q3306.6 A: …`.
  *   · search keeping a family only on its own label → `search: a family stays while any of its sets matches`.
  *   · Stop ending the run at once (before the current set's result) → `call 16: Stop waits for the set being built…`.
  *   · "Also builds" by component name again (`displayNameOf` bypassed) → `idea 7: the sets a build makes first…`.
@@ -40,12 +50,13 @@
  */
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
-import { addableOf, alsoBuilds, boxOfSets, costOf, deselectAllOf, displayNameOf, familiesToOpen, familyBox, groupsOf, inListOrder, rowMatches, rowOfFocus, selectAllOf, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
+import { addableOf, alsoBuilds, boxOfSets, costOf, deselectAllOf, displayNameOf, familiesToOpen, groupsOf, heldBy, neededOf, rootsOf, splitsOf, inListOrder, rowMatches, rowOfFocus, selectAllOf, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
 import { TAXONOMY } from '../plugin/src/file-taxonomy';
 import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS, BANNER_STYLE_FILL_KEYS } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
+import { badgeParts, neededNamesOf, queuedOf, UPDATE_COPY } from './src/state/update-file';
 
 let failed = 0;
 let executed = 0;
@@ -199,14 +210,13 @@ ok(picked.ids.join() === 'badge' && boxOfSets(withOff, ['planted-off'], new Set(
   `G4 under call 8: a box over a set that can't be built never queues it (${JSON.stringify(picked)})`);
 ok(GROUPS_COPY.addSet('Badge') === 'Add Badge to file' && GROUPS_COPY.addAllOf('Radio') === 'Add all of Radio to file' && GROUPS_COPY.addAll('Fields') === 'Add all Fields to file',
   'Q3129.4 A: the boxes\' names, as the wireframe words them (DRAFT)');
-// R5 (the owner, 2026-10-28): a row's box is two-state. Planted: Radio's control in the file, its group queued, its row
-// not, so the family is partly in the file and partly queued.
+// #3306 Q3306.2 A (narrowing R5's two-state row box): a family's box is three-state. Planted: Radio's control in the
+// file, its row queued, its group not, so the family is partly in the file and partly queued.
 const radio = ['radio-control', 'radio-group', 'radio-row'];
-ok(familyBox(catalog, radio, new Set(['radio-group']), ['radio-control']) === 'off' && boxOfSets(catalog, radio, new Set(['radio-group']), ['radio-control']) === 'mixed'
-  && familyBox(catalog, radio, new Set(['radio-group', 'radio-row']), ['radio-control']) === 'on',
-  'R5: a family\'s box is on only while every part the file lacks is queued; partly queued it reads off, where a section\'s reads mixed');
-const rw = toggleSets(catalog, radio, new Set(['radio-group']), ['radio-control']);
-ok(rw.on && JSON.stringify(rw.ids) === JSON.stringify(['radio-row']),
+ok(boxOfSets(catalog, radio, new Set(['radio-row']), ['radio-control']) === 'mixed' && boxOfSets(catalog, radio, new Set(['radio-group', 'radio-row']), ['radio-control']) === 'on',
+  'Q3306.2 A: a family\'s box is three-state again: partly queued it reads mixed, every part the file lacks queued reads on');
+const rw = toggleSets(catalog, radio, new Set(['radio-row']), ['radio-control']);
+ok(rw.on && JSON.stringify(rw.ids) === JSON.stringify(['radio-group']),
   `R5: a family partly in the file and partly queued: its tick queues the missing part left, never one the file holds (${JSON.stringify(rw)})`);
 // R1: a tier's Select all and Deselect all, over the planted ids.
 const tierIds = ['badge', 'counter', 'divider', 'planted-off'];
@@ -217,6 +227,80 @@ ok(selectAllOf(catalog, ['badge'], new Set(['badge']), []).length === 0 && desel
   'R1: each action is empty when it would change nothing');
 ok(GROUPS_COPY.selectAll === 'Select all' && GROUPS_COPY.deselectAll === 'Deselect all' && GROUPS_COPY.settingsTier === 'Component settings',
   'R1, R2: the tier actions and the settings tier\'s caption, in the owner\'s words');
+
+console.log('\n2b. A box per set, needed sets (#3306, Q3306.1–6 A)');
+// Q3306.1 A: the families with two or more roots, typed from the proposal's table (2026-11-02), never read back from the
+// rule: [label, its roots].
+const WIRE_SPLITS: [string, string[]][] = [
+  ['Buttons', ['button-destructive', 'button-group', 'button-neutral']],
+  ['Icon button', ['icon-button', 'icon-button-destructive', 'icon-button-neutral']],
+  ['Flush icon button', ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral']],
+  ['Icons & assets', ['icon', 'provider-logo']],
+];
+const allRows = groups.flatMap((g) => g.rows);
+const splits = allRows.filter((r) => splitsOf(catalog, r)).map((r) => [r.label, rootsOf(catalog, r.ids)] as [string, string[]]);
+ok(JSON.stringify(splits) === JSON.stringify(WIRE_SPLITS),
+  `Q3306.1 A: the families that split are those with two or more roots, Buttons, Icon button, Flush icon button and Icons & assets, each with its roots (${JSON.stringify(splits)})`);
+ok(['Checkbox', 'Radio', 'Switch', 'Tabs', 'Accordion', 'Breadcrumbs', 'Code input'].every((l) => { const r = allRows.find((x) => x.label === l); return r && r.family && !splitsOf(catalog, r); })
+  && JSON.stringify(rootsOf(catalog, ['_accordion-indicator', 'accordion'])) === JSON.stringify(['accordion']),
+  'Q3306.1 A: a family with one root keeps one box (Checkbox, Radio, Switch, Tabs, Accordion, Breadcrumbs, Code input), and a private part is never a root');
+// The rule is the catalog's: a planted family whose second set stops nesting the first gains a root, and splits.
+const plantedCheckbox: Catalog = catalog.map((e) => (e.id === 'checkbox-row' ? { ...e, nests: [] } : e));
+const plantedRow = groupsOf(plantedCheckbox).flatMap((g) => g.rows).find((r) => r.label === 'Checkbox')!;
+ok(splitsOf(plantedCheckbox, plantedRow) && JSON.stringify(rootsOf(plantedCheckbox, plantedRow.ids)) === JSON.stringify(['checkbox-control', 'checkbox-group']),
+  `Q3306.1 A: a planted family with two roots splits, so the rule is computed from the catalog's nests, not listed (${JSON.stringify(rootsOf(plantedCheckbox, plantedRow.ids))})`);
+
+// Q3306.3 A: the needed sets, derived on read. The proposal's sample: the queue holds Button.Group, the file holds Icon
+// and Focus ring; Button.Group nests Button, which nests Spinner.
+const sample = new Set(['button-group']);
+const has = ['icon', 'focus-ring'];
+const need = neededOf(catalog, sample, has);
+ok(JSON.stringify([...need]) === JSON.stringify([['button', ['button-group']], ['spinner', ['button-group']]]),
+  `Q3306.3 A: the needed sets are what the chosen sets nest, transitively, that the file lacks, each with the chosen sets that need it (${JSON.stringify([...need])})`);
+ok(neededOf(catalog, new Set(['button-group']), ['button']).size === 0,
+  `Q3306.3 A: a set the file holds is not descended into, as build-deps does not (${JSON.stringify([...neededOf(catalog, new Set(['button-group']), ['button'])])})`);
+const tick = toggleSets(catalog, ['button-group'], new Set(), has);
+let q6 = apply(new Set(), tick);
+const untick = toggleSets(catalog, ['button-group'], q6, has);
+q6 = apply(q6, untick);
+ok(tick.on && JSON.stringify(tick.ids) === JSON.stringify(['button-group']) && !untick.on && JSON.stringify(untick.ids) === JSON.stringify(['button-group']) && q6.size === 0 && neededOf(catalog, q6, has).size === 0,
+  `Q3306.3 A: a tick writes the chosen set alone, never the sets it needs, so unticking it leaves nothing behind (tick ${JSON.stringify(tick)}, untick ${JSON.stringify(untick)}, queue after ${JSON.stringify([...q6])})`);
+
+// Q3306.2 A: a needed set is ticked and held, and counts toward its family's and its section's mixed state.
+const buttons4 = ['button', 'button-destructive', 'button-group', 'button-neutral'];
+ok(boxOfSets(catalog, ['button'], sample, has) === 'on' && boxOfSets(catalog, buttons4, sample, has) === 'mixed'
+  && boxOfSets(catalog, buttons4, new Set(['button-group', 'button-destructive', 'button-neutral']), has) === 'on',
+  'Q3306.2 A: a needed set counts toward its family\'s mixed state: Button ticked by Button.Group, the family mixed, then on with the other two chosen');
+ok(JSON.stringify(heldBy(catalog, ['button'], sample, has)) === JSON.stringify(['button-group']) && JSON.stringify(heldBy(catalog, ['spinner'], sample, has)) === JSON.stringify(['button-group'])
+  && heldBy(catalog, ['button-group'], sample, has) === null && heldBy(catalog, buttons4, sample, has) === null
+  && JSON.stringify(heldBy(catalog, ['spinner'], new Set(['button-group', 'icon-button']), has)) === JSON.stringify(['button-group', 'icon-button'])
+  && toggleSets(catalog, ['button'], sample, has).ids.length === 0,
+  'Q3306.2 A: a needed set\'s box is held by the chosen sets that need it (Button and Spinner by Button.Group; Spinner by two once Icon button is chosen too), a chosen set\'s is not, and a tick on a held box writes nothing');
+
+// Q3306.4 A: the tag reads Needed; the needing set is in the box's name and title.
+ok(UPDATE_COPY.status.needed === 'Needed' && GROUPS_COPY.neededBy('Button', ['Button.Group']) === 'Button, needed by Button.Group'
+  && GROUPS_COPY.neededBy('Spinner', ['Button.Group', 'IconButton', 'Tag']) === 'Spinner, needed by 3 sets',
+  `Q3306.4 A: the tag reads "${UPDATE_COPY.status.needed}", the held name "${GROUPS_COPY.neededBy('Button', ['Button.Group'])}" or "${GROUPS_COPY.neededBy('Spinner', ['a', 'b', 'c'])}" (DRAFT)`);
+
+// Q3306.5 A: the badge counts chosen sets only; To add's Also line names the needed ones, in and out of the family.
+const sampleQueue = ['button-group', 'tag', 'icon-button'];
+const bp = badgeParts(catalog, { present: has, setUp: true, error: null, due: {} }, null, sampleQueue);
+const also = neededNamesOf(catalog, { present: has }, sampleQueue);
+ok(bp.add === 3 && queuedOf(catalog, { present: has }, sampleQueue).length === 3 && JSON.stringify(also) === JSON.stringify(['Button', 'Spinner'])
+  && UPDATE_COPY.alsoAdded(also) === 'Also added, because the sets above nest them: Button, Spinner.' && neededNamesOf(catalog, { present: has }, ['tag']).length === 0,
+  `Q3306.5 A: the badge counts the 3 chosen sets, matching To add's rows; the Also line names the needed ones ("${UPDATE_COPY.alsoAdded(also)}"), and there is none when nothing is needed (badge ${bp.add})`);
+
+// Q3306.6 A: an on family box takes out only the sets chosen in it; a set a chosen set elsewhere needs stays held.
+const icons = ['icon', 'provider-logo'];
+const elsewhere = new Set(['button', 'provider-logo']);
+const off6 = toggleSets(catalog, icons, elsewhere, []);
+ok(boxOfSets(catalog, icons, elsewhere, []) === 'on' && !off6.on && JSON.stringify(off6.ids) === JSON.stringify(['provider-logo'])
+  && JSON.stringify(heldBy(catalog, ['icon'], apply(elsewhere, off6), [])) === JSON.stringify(['button']),
+  `Q3306.6 A: Icons & assets on (Icon needed by Button, Provider logo chosen): its tick takes out Provider logo alone, and Icon stays held by Button (${JSON.stringify(off6)})`);
+const on6 = new Set(['button-group', 'button-destructive', 'button-neutral']);
+const off6b = toggleSets(catalog, buttons4, on6, has);
+ok(!off6b.on && JSON.stringify(off6b.ids) === JSON.stringify(['button-destructive', 'button-group', 'button-neutral']) && apply(on6, off6b).size === 0,
+  `Q3306.6 A: Buttons on, Button needed: the family's tick takes out the three chosen sets, and Button goes with what needed it (${JSON.stringify(off6b)})`);
 
 console.log('\n3. Search (the Studio\'s search, #2700\'s edge state)');
 const checkbox = groups.flatMap((g) => g.rows).find((r) => r.label === 'Checkbox')!;

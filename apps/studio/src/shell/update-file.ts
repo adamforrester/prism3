@@ -23,7 +23,8 @@
  * TO ADD (#3129, Q832 A, Q3129.7–10 A; the owner's revisions R6 and R7): the file's add queue, in Components' order and
  * with its names (`queuedOf`, `displayNameOf`). To add and Due are the two subtitles of one section, Components, at
  * Theme's level (R6). Each To add row has Remove (×), and from two rows up the subtitle's line has Remove all; there is
- * no tick, so a queued set runs. Each removal is a queue write, as Components' boxes are, so a teammate sees it. An
+ * no tick, so a queued set runs. Under the rows, one line names the sets they nest that the file lacks, which the build
+ * makes first (#3306 Q3306.5 A, `neededNamesOf`); the badge counts the queued sets only. Each removal is a queue write, as Components' boxes are, so a teammate sees it. An
  * empty queue shows no To add at all (R7); a file that is not set up starts empty and still offers Add all, which
  * writes every set it lacks into the queue (Q3129.9 A, Q3129.10 A, kept). With neither group, no Components section.
  *
@@ -48,7 +49,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, newSetsOf, panelSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, neededNamesOf, newSetsOf, panelSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
 
@@ -305,6 +306,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
           list.append(row);
         });
         grp.append(list);
+        // #3306 Q3306.5 A: the sets the rows above nest that the file lacks, in or out of their family, on one line.
+        const also = neededNamesOf(r.catalog, f, r.queue);
+        if (also.length) grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.alsoAdded(also)), 'update-add-also'));
       } else {
         // Q3129.9 A, Q3129.10 A: a file that is not set up starts with nothing queued; Add all writes every set it lacks
         // into the queue, as Components' Select all does.
