@@ -3049,10 +3049,9 @@ const modesSrc = await readFile(ENGINE_MODES, 'utf8');
 // #3335 (Q3335.3 A): the wash's steps became a brand input, `outlineWash`, and its neutral default moved to
 // `OUTLINE_WASH_DEFAULTS` in `theme.ts`. No brand this suite sweeps sets the input, so the default is what renders;
 // it is still read from the engine's source, and selected still follows pressed (`modes.ts`, OVERLAY_ALPHA).
-const ENGINE_THEME = join(ROOT, '..', '..', 'packages', 'engine', 'theme.ts');
-const themeSrc = await readFile(ENGINE_THEME, 'utf8');
+const WASH_THEME_SRC = await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'theme.ts'), 'utf8');
 const OVERLAY_STEPS = (() => {
-  const m = /export const OUTLINE_WASH_DEFAULTS\s*=\s*\{\s*neutral:\s*\{\s*hover:\s*(\d+),\s*pressed:\s*(\d+)\s*\}/.exec(themeSrc);
+  const m = /export const OUTLINE_WASH_DEFAULTS\s*=\s*\{\s*neutral:\s*\{\s*hover:\s*(\d+),\s*pressed:\s*(\d+)\s*\}/.exec(WASH_THEME_SRC);
   if (!m) throw new Error('OUTLINE_WASH_DEFAULTS.neutral not found in packages/engine/theme.ts — this suite\'s oracle reads the wash steps from there');
   if (!/\['selected', wash\.pressed\]/.test(modesSrc)) throw new Error('OVERLAY_ALPHA in packages/engine/modes.ts no longer gives selected the pressed step — the oracle needs restating');
   return { hover: m[1], pressed: m[2], selected: m[2] };
