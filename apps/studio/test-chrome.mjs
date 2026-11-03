@@ -9919,13 +9919,15 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   // #2924: Banner options draws Banner style the same way, its home Components › Banner.
   'lever-banner-style',
   // #3086: Radio options draws Radio dot size the same way, its home Components › Radio.
-  'lever-radio-dot'];
+  'lever-radio-dot',
+  // #3345: Page navigation options draws Current page indicator the same way, its home Components › Page navigation.
+  'lever-current-indicator'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
 // #2909 Q2909.4 A: the shared block is the list's first section.
-const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Shared by every component', 'Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Page navigation', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -10116,8 +10118,8 @@ const Q59_WORDS = "is auto-derived and can't be edited here.";
           // options (below). The list is the rest.
           // #2909: the shared block holds Control shape's chips itself, as the options do.
           shared: [...document.querySelectorAll('[data-p3="shared-options"] [data-p3^="control-shape-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="shared-options"]')).length,
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="page-nav-options"], [data-p3="shared-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"], [data-p3="banner-options"], [data-p3="radio-options"], [data-p3="page-nav-options"], [data-p3="shared-options"]')).length,
           search: {
             line: lineIn('search-options'),
             chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -10502,7 +10504,7 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents']),
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Page navigation', 'Other components', 'Subcomponents']),
         `#2905 Q548, #2931 Q579 A, #2958, #2924, #2942, #3086: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Banner, Link, Radio, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
       const D = r.dialogs;
       ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
@@ -12791,7 +12793,7 @@ const EXPECT_HEADINGS = {
     // #2924: Banner, its Banner options (L2) and Banner style (L3), Dialog options' way.
     // #3086: Radio, its Radio options (L2) and Radio dot size (L3), Banner options' way.
     // #2942: Link, its Link options (L2), holding one read-only line and no lever.
-    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components', 'Subcomponents'],
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Page navigation', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
     L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options', 'Banner options', 'Link options', 'Radio options'],
     L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size', 'Banner style', 'Radio dot size'],
@@ -17608,7 +17610,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       shared: document.querySelector('[data-p3="components-list"] > [data-p3="cp-settings-tier"] > [data-p3="cp-shared"]') ? [...document.querySelector('[data-p3="components-list"]').children].indexOf(document.querySelector('[data-p3="cp-settings-tier"]')) : -1,
     }));
     ok(JSON.stringify(tiers.caps.map((c) => c.tier)) === JSON.stringify(['components', 'subcomponents']) && tiers.caps.every((c) => c.role === 'group' && /^(Components|Subcomponents) · \d+ sets$/.test(c.named ?? ''))
-      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
+      && JSON.stringify(tiers.caps[0]?.sections) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Banner', 'Link', 'Radio', 'Page navigation', 'Other components']) && JSON.stringify(tiers.caps[1]?.sections) === JSON.stringify(['Subcomponents']),
       `${where}: Q2909.17 A: Components lists its sections under the tiers, each a group named by its caption, Components then Subcomponents (${JSON.stringify(tiers.caps)})`);
     ok(tiers.empty === 'Content components and Blocks: no component sets yet.', `${where}: Q2909.17 A: the two tiers no definition is in yet are named in one line ("${tiers.empty}")`);
     // The shared block, first in the list after the intro (in its own tier since #3129 R2): Density's read-only line, then Control shape's chips.
