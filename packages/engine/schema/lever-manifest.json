@@ -404,7 +404,7 @@
       "kind": "value",
       "label": "Current page indicator",
       "control": "enum",
-      "default": "full",
+      "default": "partial",
       "options": [
         {
           "value": "full",

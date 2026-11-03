@@ -765,7 +765,7 @@ export type BrandInput = {
   tagStyle?: TagStyle;               // 'pill' (default) | 'underline' — the shape every tag draws (#2887)
   dialogTitleSize?: DialogTitleSize; // 'large' (default) | 'medium' | 'small' — the title size of every dialog (#2958)
   bannerStyle?: BannerStyle;         // 'tinted' (default) | 'outlined' — the surface every banner draws (#2924)
-  currentIndicator?: CurrentIndicator; // 'full' (default) | 'partial' — the current page's 2px bar: the title's width, or half of it centered (#3345)
+  currentIndicator?: CurrentIndicator; // 'partial' (default, Q10 B) | 'full' — the current page's 2px bar: the title's width, or half of it centered (#3345)
   /** RETIRED (#2053, owner 2026-10-04). `radius.hairline` (1px) is always emitted, so this changes nothing.
    *  Still ACCEPTED, so brand files that set it keep loading; a note says it is ignored. It was the opt-in
    *  for that rung (#1362): the scaled ramp rides an even 2px sub-grid, so 1px is otherwise unreachable. */

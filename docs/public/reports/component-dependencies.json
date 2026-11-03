@@ -1025,7 +1025,7 @@
       "partKind": "nest",
       "relation": "nest-exposed",
       "variant": {
-        "style": "inline",
+        "style": "standalone",
         "weight": "default",
         "size": "medium",
         "surface": "default",

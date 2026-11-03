@@ -10711,8 +10711,8 @@ arm: {
       ['dialogTitleSize', 'medium'], ['dialogTitleSize', 'small'],
       // #2924 (Q707 A): "Banner style: Outlined" adds no token; it moves only the materialized Banner def.
       ['bannerStyle', 'outlined'],
-      // #3345: "Current page indicator: Partial" adds no token; it moves only the materialized Link def's bar.
-      ['currentIndicator', 'partial'],
+      // #3345 (Q10 B: Partial is the default): "Current page indicator: Full width" adds no token; it moves only the materialized Link def's bar.
+      ['currentIndicator', 'full'],
     ];
     const pairName = ([k, v]: [string, unknown]): string => `${k}=${JSON.stringify(v)}`;
     const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
@@ -24116,21 +24116,57 @@ arm: {
         ].filter(Boolean);
         ok(refs.length === 0, `#3345 tabs ↔ page-nav cross-reference: each names the other by id and in avoidWhen (${refs.join('; ') || 'both ways'})`);
       }
-      // ARM 3a — EVERY ITEM IS A LINK, the current one Link's current page (Q2). Each PageNav.Item member nests Link: the
-      // other pages at style=inline (underlined) and selection=unselected, the current page at style=standalone,
-      // selection=selected (the member that draws the bar). PageNav's default items: the first current, the rest not.
+      // ARM 3a — EVERY ITEM IS A LINK, the current one Link's current page (Q2). Each PageNav.Item member nests Link at
+      // style=standalone (Q7 B: plain at rest, underlined at hover): the other pages at selection=unselected, the current
+      // page at selection=selected (the member that draws the bar). PageNav's default items: the first current, the rest
+      // not.
       {
         const off: string[] = [];
         for (const m of figmaAnatomySet(pageNavItem, { swapTarget: 'FPO-default-icon' })) {
           const n = m.root.children.find((c) => c.name === 'link') as { nestTarget?: string; nestVariant?: Record<string, string> } | undefined;
           const cur = m.coord.selection === 'selected';
           const v = n?.nestVariant ?? {};
-          if (n?.nestTarget !== 'link' || v.style !== (cur ? 'standalone' : 'inline') || v.selection !== (cur ? 'selected' : 'unselected'))
+          if (n?.nestTarget !== 'link' || v.style !== 'standalone' || v.selection !== (cur ? 'selected' : 'unselected'))
             off.push(`${planComponentName(m)}: ${JSON.stringify({ target: n?.nestTarget, style: v.style, selection: v.selection })}`);
         }
         const navItems = figmaAnatomySet(pageNav, { swapTarget: 'FPO-default-icon' }).map((m) => (m.root.children.find((c) => c.name === 'items')?.children ?? []).map((c) => `${(c as { nestTarget?: string }).nestTarget}:${(c as { nestVariant?: Record<string, string> }).nestVariant?.selection}`).join(','));
         ok(off.length === 0 && navItems.length === 2 && navItems.every((s) => s === 'page-nav-item:selected,page-nav-item:unselected,page-nav-item:unselected'),
-          `#3345 page-nav items: every item nests Link, the current page at standalone/selected and the others inline/unselected; PageNav's defaults are one current and two others (${off.length} off — ${off.slice(0, 2).join('; ') || 'none'}; rows ${JSON.stringify(navItems)})`);
+          `#3345 page-nav items: every item nests Link, the current page at standalone/selected and the others standalone/unselected; PageNav's defaults are one current and two others (${off.length} off — ${off.slice(0, 2).join('; ') || 'none'}; rows ${JSON.stringify(navItems)})`);
+      }
+      // ARM 3a′ — THE OTHER PAGES ARE PLAIN AT REST, UNDERLINED AT HOVER (owner decision Q7 B, 2026-11-03: "plain at rest,
+      // underlined on hover", not "underlined always"). Each unselected item's nested Link is resolved to the Link member
+      // it lands on — at rest, and at hover with the same coordinate — and that member's label text style is read: a
+      // `-link` style is the underlined twin. The oracle is the decision's two literals (rest: no `-link`; hover: `-link`),
+      // never the item def's own claim. Mutation: the item's nested variant back to style=inline → this arm, by name.
+      {
+        const linkMembers = figmaAnatomySet(componentDefs.find((d) => d.id === 'link')!, { swapTarget: 'FPO-default-icon' });
+        const off: string[] = [];
+        let seen = 0;
+        for (const m of figmaAnatomySet(pageNavItem, { swapTarget: 'FPO-default-icon' }).filter((q) => q.coord.selection === 'unselected')) {
+          const v = ((m.root.children.find((c) => c.name === 'link') as { nestVariant?: Record<string, string> } | undefined)?.nestVariant) ?? {};
+          for (const [state, underlined] of [['rest', false], ['hover', true]] as const) {
+            const want = { ...v, state };
+            const lm = linkMembers.find((q) => q.size === want.size && Object.entries(want).every(([k, x]) => k === 'size' || q.coord[k] === x));
+            const label = lm?.root.children.find((c) => c.name === 'label');
+            const styles = label ? planTextStyles(label) : [];
+            seen++;
+            if (!lm || styles.length !== 1 || styles[0].endsWith('-link') !== underlined)
+              off.push(`${planComponentName(m)} at ${state}: ${lm ? styles.join('|') || 'no style' : `no Link member for ${JSON.stringify(want)}`}`);
+          }
+        }
+        ok(seen >= 4 && off.length === 0,
+          `#3345 page-nav items: the other pages are plain at rest and underlined at hover (Q7 B) (${seen} checked, ${off.length} off — ${off.slice(0, 2).join('; ') || 'none'})`);
+      }
+      // ARM 3a″ — PARTIAL IS THE ENGINE DEFAULT (owner decision Q10 B, 2026-11-03). Two legs, each against the literal
+      // 'partial' / 0.5 typed from the decision: the lever's declared default, and the def the null brand materializes
+      // (`specMaterialize`, which `apps/plugin/test-roundtrip.ts` holds equal to the plugin's `materializeForBrand(def,
+      // null)`) drawing Link's bar at half the title. Mutation: the lever's default, or the null chain's value, set to
+      // `full` → `#3345 page-nav indicator: Partial is the engine default`.
+      {
+        const lever = leverManifest.find((l) => l.key === 'currentIndicator');
+        const bar = (specMaterialize(componentDefs.find((d) => d.id === 'link')!).anatomy?.parts.bar ?? {}) as { footShare?: number };
+        ok(lever?.default === 'partial' && bar.footShare === 0.5,
+          `#3345 page-nav indicator: Partial is the engine default (Q10 B) — the lever's default and the null brand's Link bar (lever default ${JSON.stringify(lever?.default)}; bar share ${JSON.stringify(bar.footShare)})`);
       }
       // ARM 3b — THE INDICATOR IS 2px (Q2). The current Link's bar binds border-width/thick under both settings, and that
       // variable is 2px in every committed brand's emission. Mutation: bind Link's bar-height to border-width.hairline →

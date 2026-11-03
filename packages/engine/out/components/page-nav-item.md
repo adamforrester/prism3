@@ -1,6 +1,6 @@
 # PageNav.Item
 
-> One link in a page navigation: another page, underlined, or the current page, with its bar.
+> One link in a page navigation: another page, plain until hover, or the current page, with its bar.
 
 - **ID:** `page-nav-item`
 - **Category:** navigation
@@ -9,9 +9,9 @@
 
 ## Overview
 
-One link in a PageNav row. A link to another page is underlined at every state. The link to the page the user is on is the current page: plain text with a 2px bar under it, and at hover only its color changes, so it never reads as one more link. Both are real links with their own address. Items live inside PageNav and are never placed on their own.
+One link in a PageNav row. A link to another page is plain at rest and shows its underline at hover and keyboard focus. The link to the page the user is on is the current page: plain text with a 2px bar under it, and at hover only its color changes, so it never reads as one more link. The bar's width is the brand's Current page indicator: the title's width, or half of it centered. Both are real links with their own address. Items live inside PageNav and are never placed on their own.
 
-- **Purpose:** One link in a row of sibling pages: another page, underlined, or the current page, marked with a bar and aria-current="page".
+- **Purpose:** One link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current="page".
 - **Use when:** Only as a child of PageNav. Generate PageNav, which places one item per sibling page and marks the current one.
 - **Avoid when:** Anywhere outside PageNav: a link on its own is Link, and a tab that shows a panel in place is Tab.Item inside Tabs.
 
@@ -20,7 +20,7 @@ One link in a PageNav row. A link to another page is underlined at every state. 
 Shown on the default member: selection `unselected`, size `medium`.
 
 1. **Container** — The item: a row that hugs its link, with no padding and no fill.
-2. **Link** — The link at the item's size. Another page is underlined; the current page is plain, with the 2px bar under it. Its state is set on the item.
+2. **Link** — The link at the item's size. Another page is plain until hover, pressed or focus shows its underline; the current page is plain, with the 2px bar under it. Its state is set on the item.
 
 ## Styles
 
@@ -55,7 +55,7 @@ Items make up a PageNav row and are set inside it: one current page and links to
 ### WCAG
 
 - 1.3.1 Info and Relationships (each page is a list item)
-- 1.4.1 Use of Color (the other pages are underlined, the current page carries a bar)
+- 1.4.1 Use of Color (the current page carries a bar, not only a color)
 - 1.4.3 Contrast (targets 4.5:1 for the link text against the page)
 - 1.4.11 Non-text Contrast (targets 3:1 for the current-page bar against the page)
 - 2.4.4 Link Purpose (the link text is the page's name)
@@ -128,7 +128,7 @@ Keyed by `selection`.
 
 ### Nesting and properties
 
-- `container/link` nests `link` at `style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest`; `selection=selected` takes `style=standalone, selection=selected`; follows `size`; exposes `state`
+- `container/link` nests `link` at `style=standalone, weight=default, size=medium, surface=default, selection=unselected, state=rest`; `selection=selected` takes `selection=selected`; follows `size`; exposes `state`
 
 ---
 

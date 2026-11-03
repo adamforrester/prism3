@@ -187,7 +187,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | page-nav | item1 | nest | page-nav-item | nest-fixed | selection=selected, size=medium | size | — |
 | page-nav | item2 | nest | page-nav-item | nest-fixed | selection=unselected, size=medium | size | — |
 | page-nav | item3 | nest | page-nav-item | nest-fixed | selection=unselected, size=medium | size | — |
-| page-nav-item | link | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |
+| page-nav-item | link | nest | link | nest-exposed | style=standalone, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |
 | pagination | item1 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
 | pagination | item2 | nest | pagination-item | nest-fixed | type=ellipsis, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
 | pagination | item3 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |

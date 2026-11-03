@@ -9,7 +9,7 @@
 
 ## Overview
 
-A navigation between two to six related pages, such as Log in and Create account, or the pages of an account. Each item is a link to its own address; the link to the page the user is on carries a 2px bar and is marked as the current page for assistive technology. The other links are underlined. Tab moves from link to link, and the browser's back button and bookmarks work as they do for any link. Use Tabs instead when the content switches in place on one page.
+A navigation between two to six related pages, such as Log in and Create account, or the pages of an account. Each item is a link to its own address; the link to the page the user is on carries a 2px bar and is marked as the current page for assistive technology. The bar's width is the brand's Current page indicator: the title's width, or half of it centered. The other links are plain and show their underline at hover and keyboard focus. Tab moves from link to link, and the browser's back button and bookmarks work as they do for any link. Use Tabs instead when the content switches in place on one page.
 
 - **Purpose:** Move between sibling pages: a navigation of links, each to its own address, with the current page marked by a bar and aria-current="page".
 - **Use when:** Two to about six sibling pages of one area, such as Log in and Create account, or an account's Overview, Orders and Profile, where each page has its own address and the current one is marked.
@@ -22,8 +22,8 @@ Shown on the default member: size `medium`.
 1. **Container** — The navigation: a row that hugs its items, with no padding, no fill and no baseline.
 2. **Items** — The pages: a native slot holding PageNav.Item instances in a row, three by default, the first the current page.
 3. **Item1** — The current page: plain, with the 2px bar under it.
-4. **Item2** — A sibling page: an underlined link.
-5. **Item3** — A sibling page: an underlined link.
+4. **Item2** — A sibling page: a link, plain until hover.
+5. **Item3** — A sibling page: a link, plain until hover.
 
 ## Styles
 
@@ -60,7 +60,7 @@ Use page navigation to move between two to six sibling pages that share a headin
 ### WCAG
 
 - 1.3.1 Info and Relationships (a list of links inside a named navigation landmark)
-- 1.4.1 Use of Color (the other pages are underlined, the current page carries a bar)
+- 1.4.1 Use of Color (the current page carries a bar, not only a color)
 - 1.4.3 Contrast (targets 4.5:1 for the links against the page)
 - 1.4.11 Non-text Contrast (targets 3:1 for the current-page bar against the page)
 - 2.4.4 Link Purpose (each link is its page's name)

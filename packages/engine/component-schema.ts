@@ -1332,7 +1332,7 @@ export type PartDef = {
   /** For a `foot` bar: draw it at this SHARE of the parent's width, centered, rather than across it (#3345, owner
    *  decision 2026-11-03: the brand's current-page indicator at Partial is round(0.5 × the title's width), centered
    *  under the title). Absent is the full width. No def authors it: `applyCurrentIndicator` writes it onto Link's
-   *  bar for a brand set to Partial, so a default brand's plans are byte-identical.
+   *  bar for a brand set to Partial, the engine default (#3345 Q10 B); a brand set to Full width draws it across.
    *
    *  PROJECTED as `FigmaNodePlan.footShare`. Both executors size the bar to round(share × the parent's width), place
    *  it at `x = (parent − bar) / 2`, and constrain it `SCALE`/`MAX`, so a designer's longer label keeps it at the same

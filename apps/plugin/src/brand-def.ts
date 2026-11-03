@@ -85,6 +85,6 @@ export const materializeForBrand = (def: ComponentDef, input: BrandInput | null)
 export const materializerFor = (input: BrandInput | null): ((def: ComponentDef) => ComponentDef) => {
   const { avail, outline, sizes, density } = brandLevers(input);
   return (def) => applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input?.tagStyle ?? 'pill'), input?.dialogTitleSize ?? 'large'), input?.bannerStyle ?? 'tinted'), input?.currentIndicator ?? 'full'), avail), outline), density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input?.tagStyle ?? 'pill'), input?.dialogTitleSize ?? 'large'), input?.bannerStyle ?? 'tinted'), input?.currentIndicator ?? 'partial'), avail), outline), density),
     brandButtonLayout(input), sizeRefPx(sizes)), sizeRefPx(sizes));
 };

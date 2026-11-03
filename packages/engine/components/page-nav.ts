@@ -12,7 +12,8 @@
  *   - Q1 A — page-to-page switches use a <nav> of links, the current one aria-current="page". Tabs stays for panels.
  *   - Q2 — a LINK look, not the tab look: built from link items (PageNav.Item, which nests Link), no baseline. The
  *     current page carries a 2px bar, distinct from a link's 1px underline; its width is a brand setting
- *     (`currentIndicator`): Full, the engine default, or Partial, half the title's width, centered.
+ *     (`currentIndicator`): Partial, the engine default (Q10 B), half the title's width, centered, or Full, the title's width.
+ *   - Q7 B — the other pages are Link's standalone look: plain at rest, underlined at hover, pressed and focus.
  *   - Q3 A (amended) — the name is Page navigation, id `page-nav`. The engine's name rule makes the code name `PageNav`
  *     (the id in PascalCase); the Figma page is titled "Page navigation".
  *   - Q4 A — the Log in and Create account pages, and the account Overview / Orders / Profile / Wishlist row, use it.
@@ -42,7 +43,7 @@ export const pageNav: ComponentDef = {
   status: 'draft',
   summary: 'A row of links between sibling pages, with the current page marked. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
-    'A navigation between two to six related pages, such as Log in and Create account, or the pages of an account. Each item is a link to its own address; the link to the page the user is on carries a 2px bar and is marked as the current page for assistive technology. The other links are underlined. Tab moves from link to link, and the browser\'s back button and bookmarks work as they do for any link. Use Tabs instead when the content switches in place on one page.',
+    'A navigation between two to six related pages, such as Log in and Create account, or the pages of an account. Each item is a link to its own address; the link to the page the user is on carries a 2px bar and is marked as the current page for assistive technology. The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered. The other links are plain and show their underline at hover and keyboard focus. Tab moves from link to link, and the browser\'s back button and bookmarks work as they do for any link. Use Tabs instead when the content switches in place on one page.',
 
   props: [
     { name: 'items', type: 'slot', anyOf: ['page-nav-item'], minItems: 2, maxItems: 6, required: true, description: 'The pages, each a PageNav.Item with a label and an href, in order. One is current. At least two, six at most.' },
@@ -90,13 +91,14 @@ export const pageNav: ComponentDef = {
         note: 'The pages: a native slot holding PageNav.Item instances in a row, three by default, the first the current page.',
       },
       item1: item('selected', 'The current page: plain, with the 2px bar under it.'),
-      item2: item('unselected', 'A sibling page: an underlined link.'),
-      item3: item('unselected', 'A sibling page: an underlined link.'),
+      item2: item('unselected', 'A sibling page: a link, plain until hover.'),
+      item3: item('unselected', 'A sibling page: a link, plain until hover.'),
     },
     codeOnly: [
       'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
       'The landmark — <nav aria-label="…">, named by label (such as "Account"), translated and without the word "navigation", which assistive technology adds. The name tells this landmark apart from the main and footer navigations.',
       'The list — a <ul> with each page in an <li> holding one <a href>, so "list, 3 items" is announced. The current page\'s <a href> carries aria-current="page" and keeps its href.',
+      'The links\' look — each is Link\'s standalone look: the other pages are plain at rest and show the underline at :hover, :active and :focus-visible; the current page is plain with Link\'s 2px bar, and the bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered.',
       'Keyboard — every link is an ordinary tab stop: Tab moves link to link and Enter follows. No arrow keys, no roving tabindex, no activation modes and no panels: each item goes to its own page, which has its own URL, title and h1.',
       'Router integration — renderLink renders each item through the router\'s own link (Link\'s asChild), so one <a href> renders per page.',
       'Separate pages, separate forms — on account pages such as Log in and Create account, each page carries its own form with its own name and id, and the password field its own autocomplete: current-password on Log in, new-password on Create account.',
@@ -115,7 +117,7 @@ export const pageNav: ComponentDef = {
     role: 'navigation landmark named by its label, holding a list of links',
     wcag: [
       '1.3.1 Info and Relationships (a list of links inside a named navigation landmark)',
-      '1.4.1 Use of Color (the other pages are underlined, the current page carries a bar)',
+      '1.4.1 Use of Color (the current page carries a bar, not only a color)',
       '1.4.3 Contrast (targets 4.5:1 for the links against the page)',
       '1.4.11 Non-text Contrast (targets 3:1 for the current-page bar against the page)',
       '2.4.4 Link Purpose (each link is its page\'s name)',
@@ -178,10 +180,11 @@ export const pageNav: ComponentDef = {
       'The sizes, the item gap and the slot limits (two to six) are the build lane\'s DRAFT values, held for the owner on the PR.',
     ],
     unverified: [
-      'The owner\'s screens set the reference brand\'s current-page bar at about 50% of the title; Partial is round(0.5 × the title\'s width). Whether the reference fixture sets Partial is held for the owner.',
+      'The owner\'s screens set the reference brand\'s current-page bar at about 50% of the title; Partial is round(0.5 × the title\'s width). Partial is the engine default (Q10 B), and the reference fixture sets it in a follow-up (Q6 A).',
     ],
     evolution: [
       '2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A amended, Q4 A): built as a navigation of links (PageNav.Item, nesting Link) in a native items slot, with the current page\'s bar width a brand setting, Full by default.',
+      '2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover, and the bar is Partial by default.',
     ],
   },
 };

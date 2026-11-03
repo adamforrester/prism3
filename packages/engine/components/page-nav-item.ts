@@ -11,14 +11,14 @@
  * Shape (owner decisions on #3345, 2026-11-03; the item itself is the build lane's DRAFT, Q-block on the PR):
  *   - Q2: a LINK look, not the tab look. The item nests Link, so its ink, type, underline, hover, focus ring and
  *     current-page bar are Link's by construction, and a brand's Link changes reach the row with no extra work.
- *   - A page that is not the current one is Link's INLINE look (underlined at every state, 1px): the owner's account
- *     and Wishlist rows draw the other pages underlined. The current page is Link's STANDALONE look at
- *     `selection=selected`: plain text and the 2px bar, which hover never joins (Link's Q507.4). So the current page is
- *     never mistaken for a link: a 1px underline beside a 2px bar.
- *   - The bar's width is the brand's `currentIndicator` setting (Q2 A): Full (the engine default) is the title's width;
- *     Partial is round(0.5 × the title's width), centered. `applyCurrentIndicator` writes it onto Link's bar, so every
+ *   - Q7 B (owner decision 2026-11-03, revising the DRAFT's inline look): a page that is not the current one is Link's
+ *     STANDALONE look at `selection=unselected`: plain at rest, its 1px underline at hover, pressed and focus. The
+ *     current page is the same standalone Link at `selection=selected`: plain text and the 2px bar, which hover never
+ *     joins (Link's Q507.4). At rest only the bar marks the current page.
+ *   - The bar's width is the brand's `currentIndicator` setting (Q2 A): Partial (the engine default, Q10 B) is
+ *     round(0.5 × the title's width), centered; Full is the title's width. `applyCurrentIndicator` writes it onto Link's bar, so every
  *     current link in a brand draws the same bar (Q-scope on the PR).
- *   - One axis the designer sets, `selection`, mapped onto Link's coordinate by `variantWhen`, rather than two Link
+ *   - One axis the designer sets, `selection`, passed to Link's own `selection` by `variantWhen`, rather than two Link
  *     axes (style and selection) set by hand. Link's `state` is exposed, as BreadcrumbItem exposes it.
  *   - Weight `default` on both values (DRAFT): a constant weight, so making a page current never moves its neighbors.
  *   - Sizes medium and small (DRAFT), Breadcrumbs' pair: the 16px and 14px body type.
@@ -31,9 +31,9 @@ export const pageNavItem: ComponentDef = {
   aliases: ['page-nav-link'],
   category: 'navigation',
   status: 'draft',
-  summary: 'One link in a page navigation: another page, underlined, or the current page, with its bar.',
+  summary: 'One link in a page navigation: another page, plain until hover, or the current page, with its bar.',
   description:
-    'One link in a PageNav row. A link to another page is underlined at every state. The link to the page the user is on is the current page: plain text with a 2px bar under it, and at hover only its color changes, so it never reads as one more link. Both are real links with their own address. Items live inside PageNav and are never placed on their own.',
+    'One link in a PageNav row. A link to another page is plain at rest and shows its underline at hover and keyboard focus. The link to the page the user is on is the current page: plain text with a 2px bar under it, and at hover only its color changes, so it never reads as one more link. The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered. Both are real links with their own address. Items live inside PageNav and are never placed on their own.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The page\'s name, as the page titles itself. It is the link text.' },
@@ -71,24 +71,25 @@ export const pageNavItem: ComponentDef = {
       link: {
         kind: 'nest',
         nests: 'link',
-        // Another page: Link inline (underlined at every state), default weight. The current page: Link standalone at
-        // `selection=selected` (plain, with the bar). Link's `state` is the designer's, set on the item.
+        // Another page: Link standalone at `selection=unselected` (plain at rest, underlined at hover, Q7 B), default
+        // weight. The current page: Link standalone at `selection=selected` (plain, with the bar). Link's `state` is the
+        // designer's, set on the item.
         nesting: {
           kind: 'nest-exposed',
-          variant: { style: 'inline', weight: 'default', size: 'medium', surface: 'default', selection: 'unselected', state: 'rest' },
+          variant: { style: 'standalone', weight: 'default', size: 'medium', surface: 'default', selection: 'unselected', state: 'rest' },
           expose: ['state'],
           follow: ['size'],
-          variantWhen: { selection: { selected: { style: 'standalone', selection: 'selected' } } },
+          variantWhen: { selection: { selected: { selection: 'selected' } } },
         },
-        note: 'The link at the item\'s size. Another page is underlined; the current page is plain, with the 2px bar under it. Its state is set on the item.',
+        note: 'The link at the item\'s size. Another page is plain until hover, pressed or focus shows its underline; the current page is plain, with the 2px bar under it. Its state is set on the item.',
       },
     },
     codeOnly: [
       'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
       'The element — each item is an <li> in the row\'s <ul>, holding one <a href>. PageNav renders it from its items.',
       'The current page in code — current renders aria-current="page" on the <a>. It stays a real link with its href, in the Tab order, with hover, focus and the focus ring: a person can follow it to reload the page. The bar is Link\'s current-page bar, drawn inside the line box (a positioned pseudo-element or an inset shadow), never a border that adds height.',
-      'The bar\'s width — the brand\'s current page indicator setting: Full spans the title (inset-inline: 0); Partial is half the title\'s width, centered (inset-inline: 25%). 2px either way.',
-      'The underline on the other pages — Link\'s inline underline, shown at every state, so the other pages are never told apart from the current one by color alone.',
+      'The bar\'s width — 2px tall, and the bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered. Partial, the default, is half the title\'s width, centered (inset-inline: 25%); Full width spans the title (inset-inline: 0). 2px either way.',
+      'The underline on the other pages — Link\'s standalone underline: none at rest, shown at :hover, :active and :focus-visible. The current page is told apart by its bar and aria-current, never by color alone.',
       'RTL — the row mirrors with the document; a centered partial bar stays centered.',
       'text expansion — labels never truncate and never wrap inside an item; the row wraps whole items instead (see PageNav).',
     ],
@@ -104,7 +105,7 @@ export const pageNavItem: ComponentDef = {
     role: 'listitem, holding a link',
     wcag: [
       '1.3.1 Info and Relationships (each page is a list item)',
-      '1.4.1 Use of Color (the other pages are underlined, the current page carries a bar)',
+      '1.4.1 Use of Color (the current page carries a bar, not only a color)',
       '1.4.3 Contrast (targets 4.5:1 for the link text against the page)',
       '1.4.11 Non-text Contrast (targets 3:1 for the current-page bar against the page)',
       '2.4.4 Link Purpose (the link text is the page\'s name)',
@@ -136,7 +137,7 @@ export const pageNavItem: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One link in a row of sibling pages: another page, underlined, or the current page, marked with a bar and aria-current="page".',
+    primaryPurpose: 'One link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current="page".',
     whenToUse: 'Only as a child of PageNav. Generate PageNav, which places one item per sibling page and marks the current one.',
     avoidWhen: 'Anywhere outside PageNav: a link on its own is Link, and a tab that shows a panel in place is Tab.Item inside Tabs.',
     commonPartners: ['page-nav', 'link'],
@@ -161,13 +162,14 @@ export const pageNavItem: ComponentDef = {
   notes: {
     contested: [
       'The item axis is the build lane\'s DRAFT (Q-block on #3345): one `selection` switch mapped onto Link, rather than a slot that takes Link instances directly (a designer would set Link\'s style and selection by hand).',
-      'The other pages\' look (inline, underlined at rest) and the weight (default on both) are DRAFT, read from the owner\'s description of the account rows, not measured off a file.',
+      'The weight (default on both) is DRAFT, read from the owner\'s description of the account rows, not measured off a file.',
     ],
     unverified: [
       'Contrast is Link\'s: the link roles\' own contracts. No arm here re-measures it.',
     ],
     evolution: [
       '2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A, Q4 A): built as PageNav\'s item, nesting Link, with the current page\'s bar width a brand setting.',
+      '2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover (Link standalone, not inline), and the bar is Partial by default.',
     ],
   },
 };

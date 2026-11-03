@@ -36,7 +36,7 @@ export const brandTagStyle = (): TagStyle => (getPath(brandState, 'tagStyle') ??
 export const brandDialogTitleSize = (): DialogTitleSize => (getPath(brandState, 'dialogTitleSize') ?? defaultOf('dialogTitleSize') ?? 'large') as DialogTitleSize;
 export const brandBannerStyle = (): BannerStyle => (getPath(brandState, 'bannerStyle') ?? defaultOf('bannerStyle') ?? 'tinted') as BannerStyle;
 export const brandRaisedSurface = (): RaisedSurface => (getPath(brandState, 'raisedSurface') ?? defaultOf('raisedSurface') ?? 'card') as RaisedSurface;
-export const brandCurrentIndicator = (): CurrentIndicator => (getPath(brandState, 'currentIndicator') ?? defaultOf('currentIndicator') ?? 'full') as CurrentIndicator;
+export const brandCurrentIndicator = (): CurrentIndicator => (getPath(brandState, 'currentIndicator') ?? defaultOf('currentIndicator') ?? 'partial') as CurrentIndicator;
 export const brandRadioDot = (): RadioDotShare => Number(getPath(brandState, 'radioDot') ?? defaultOf('radioDot') ?? 50) as RadioDotShare;
 export const brandBaseMd = (): number => Number(getPath(brandState, 'baseMd') ?? defaultOf('baseMd') ?? 4);
 

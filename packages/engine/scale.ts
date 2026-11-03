@@ -96,8 +96,8 @@ export type DialogTitleSize = 'large' | 'medium' | 'small';
  *  before projection, like `dialogTitleSize` — see `applyBannerStyle`. */
 export type BannerStyle = 'tinted' | 'outlined';
 /** The `currentIndicator` FORM lever (#3345, owner decision 2026-11-03, Q2 A: a brand setting): how wide the 2px bar
- *  under the current page's link is. `full` (the default) runs under the whole title, as every brand's current link drew
- *  it before; `partial` is round(0.5 × the title's width), centered under the title. The thickness is 2px either way.
+ *  under the current page's link is. `partial` (the default, Q10 B) is round(0.5 × the title's width), centered under
+ *  the title; `full` runs under the whole title, as every brand's current link drew it before #3345. The thickness is 2px either way.
  *  One brand-wide value, never a per-instance variant. Applied to a def before projection, like `bannerStyle` — see
  *  `applyCurrentIndicator`. Key name, label and Studio placement are DRAFT for the owner (#3345). */
 export type CurrentIndicator = 'full' | 'partial';

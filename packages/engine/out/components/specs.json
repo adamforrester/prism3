@@ -50659,7 +50659,7 @@
           "kind": "instance",
           "component": "link",
           "variant": {
-            "style": "inline",
+            "style": "standalone",
             "weight": "default",
             "size": "medium",
             "surface": "default",
@@ -50669,7 +50669,6 @@
           "when": {
             "selection": {
               "selected": {
-                "style": "standalone",
                 "selection": "selected"
               }
             }

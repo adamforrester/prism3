@@ -132,7 +132,7 @@ export const GEOMETRY: Readonly<Record<string, SpecProperty>> = {
 export const specMaterialize = (def: ComponentDef): ComponentDef => {
   const px = sizeRefPx(componentSizes('comfortable', SPACE_BASE));
   return applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, 'rounded'), 'outline'), 'pill'), 'large'), 'tinted'), 'full'), DEFAULT_WEIGHT_AVAILABILITY), 'overlay-neutral'), 'comfortable'),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, 'rounded'), 'outline'), 'pill'), 'large'), 'tinted'), 'partial'), DEFAULT_WEIGHT_AVAILABILITY), 'overlay-neutral'), 'comfortable'),
     DEFAULT_BUTTON_LAYOUT, px), px);
 };
 

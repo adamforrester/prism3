@@ -2938,7 +2938,8 @@ export const CURRENT_INDICATOR_PARTS: Readonly<Record<string, string>> = { link:
  * `full` and for any def not in `CURRENT_INDICATOR_PARTS`: it returns the same object, so every Full plan is
  * byte-identical to before. Under `partial` Link's foot bar takes `footShare` = `CURRENT_INDICATOR_PARTIAL_SHARE`
  * (0.5), which both executors draw as round(0.5 × the title's width), centered under it. The thickness (the bar's
- * bound height, `border-width.thick`) is untouched: 2px either way.
+ * bound height, `border-width.thick`) is untouched: 2px either way. Partial is the engine default (Q10 B, every
+ * materializer's `?? 'partial'`), so a brand that sets nothing draws the half-width bar.
  * THROWS when the part is not a foot bar: writing a share onto anything else is the silent-loss shape.
  */
 export const applyCurrentIndicator = (def: ComponentDef, style: CurrentIndicator): ComponentDef => {
