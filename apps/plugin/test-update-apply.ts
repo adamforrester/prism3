@@ -243,6 +243,10 @@
  *                  existing `itemSpacing` binding → `rows3173/verdict`, `rows3173/gap`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
+ *   views/…        the hand-edit pass's reads the Update check reuses (#3313) are all dropped on a style change, and on
+ *                  any change to a component or set, since Figma reports neither a re-flow from a style nor an instance
+ *                  resized by its main (#3348). Mutations: `STYLE_*` skipped → `views/style`; a component change kept →
+ *                  `views/main …`; `keepView` ignoring its epoch → `views/epoch`.
  *
  * And `hash/refused` fails with the hash check dropped, `hand/still reported` with an updated member's record
  * taken whole from the host, `stop/out of date` with the in-progress marker ignored by the dry run.
@@ -5979,6 +5983,70 @@ section('message default off — Update flips the set\'s `message` default to of
     const post = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
     ok(post.counts.current === post.counts.members && !post.properties.edit.length, `${id} message/settled: a second dry run reads every member current and lists no property edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.properties.edit)})`);
   }
+}
+
+section('kept views — the pass\'s reads the Update check reuses are dropped by every change that can move them (#3313, #3348)');
+{
+  // #3313 KEEPS THE HAND-EDIT PASS'S MEMBER READS for the Update check (`member-views.ts`). Figma never reports a node
+  // updated by a style change, nor an instance sublayer updated by its main component (`documentchange`, "Special
+  // cases"), so a member can resize with only the style's or the main's own change heard. Each arm keeps the set's read,
+  // resizes a member through the shim with no change of its own (as Figma re-flows it), sends the one change Figma would,
+  // and lays the check against the kept read: the answer must be the fresh read's, whole. The premise shows the kept read
+  // is stale: laid against it with no drop, the check reads no move where the fresh read reads some.
+  //   · `views/style`: a `STYLE_PROPERTY_CHANGE`. Mutation: `STYLE_*` changes skipped by `dropFor` → `views/style`.
+  //   · `views/main …`: a change on a main component outside every set, on one inside another set, and on a node inside
+  //     another set's member. Mutation: `dropFor` dropping only the touched set's view → `views/main …`.
+  //   · `views/canvas`: a change outside every component and set keeps the view (the reuse is not given up for nothing).
+  //   · `views/epoch`: a read that ran across a drop is not kept. Mutation: `keepView` ignoring its epoch → `views/epoch`.
+  const { dropFor, dropViews, keepView, keptCount, keptView, viewEpoch, watchViews } = await import('./src/member-views');
+  watchViews(true);
+  const answer = (pre: Awaited<ReturnType<typeof previewUpdate>>): string => JSON.stringify(pre);
+  const page = { type: 'PAGE', id: 'p:0', parent: { type: 'DOCUMENT', id: '0:0' } };
+  const otherSet = { type: 'COMPONENT_SET', id: 'B:set', parent: page };
+  const otherMember = { type: 'COMPONENT', id: 'B:m', parent: otherSet };
+  const CASES: [string, unknown[]][] = [
+    ['views/style: a text style\'s font size edited', [{ type: 'STYLE_PROPERTY_CHANGE', properties: ['fontSize'] }]],
+    ['views/main single: a main component outside every set resized', [{ type: 'PROPERTY_CHANGE', node: { type: 'COMPONENT', id: 'C:1', parent: page }, properties: ['width', 'height'] }]],
+    ['views/main set: a member of another set resized', [{ type: 'PROPERTY_CHANGE', node: otherMember, properties: ['width', 'height'] }]],
+    ['views/main inside: a text inside another set\'s member edited', [{ type: 'PROPERTY_CHANGE', node: { type: 'TEXT', id: 'B:t', parent: otherMember }, properties: ['characters'] }]],
+  ];
+  for (const [label, changes] of CASES) {
+    const w = await world(TAG);
+    const targets = [{ def: TAG, plans: w.plans }];
+    dropViews();
+    keepView(await readSetView(w.set() as never), viewEpoch());
+    const id = String(w.set().id);
+    const m = membersOf(w.set())[0];
+    // Grown as a re-flow grows it: the shim's live size getters replaced, since the node's own setters would be a change.
+    const [w0, h0] = [Number(m.width), Number(m.height)];
+    Object.defineProperty(m, 'width', { configurable: true, get: () => w0 + 300 });
+    Object.defineProperty(m, 'height', { configurable: true, get: () => h0 + 30 });
+    const fresh = await previewUpdate(w.host, targets);
+    const stale = await previewUpdate(w.host, targets, undefined, undefined, keptView);
+    dropFor(changes as never);
+    const after = await previewUpdate(w.host, targets, undefined, undefined, keptView);
+    ok((fresh.sets[0].counts.move ?? 0) > 0 && answer(stale) !== answer(fresh) && keptView(id) === undefined && answer(after) === answer(fresh),
+      `${label}: every kept view is dropped, and the check's answer is a fresh read's (move ${fresh.sets[0].counts.move ?? 0} fresh, ${stale.sets[0].counts.move ?? 0} against the stale read, ${after.sets[0].counts.move ?? 0} after the change; view ${keptView(id) ? 'still kept' : 'dropped'})`);
+  }
+  {
+    const w = await world(TAG);
+    dropViews();
+    keepView(await readSetView(w.set() as never), viewEpoch());
+    dropFor([{ type: 'PROPERTY_CHANGE', node: { type: 'FRAME', id: 'F:1', name: 'tag usage', parent: page }, properties: ['width'] }] as never);
+    ok(keptView(String(w.set().id)) !== undefined, `views/canvas: a change to a frame outside every component and set keeps the view (${keptCount()} kept)`);
+    const since = viewEpoch();
+    const view = await readSetView(w.set() as never);
+    dropViews();
+    keepView(view, viewEpoch());
+    ok(keptCount() === 1, `premise: a read begun after the last drop is kept (${keptCount()})`);
+    dropViews();
+    const before = viewEpoch();
+    const read = await readSetView(w.set() as never);
+    dropFor([{ type: 'PROPERTY_CHANGE', node: otherMember, properties: ['width'] }] as never);
+    keepView(read, before);
+    ok(since !== before && keptCount() === 0, `views/epoch: a read that ran across a drop is not kept (${keptCount()} kept)`);
+  }
+  dropViews(); watchViews(false);
 }
 
 void STYLE_FONT; void BASELINE_KEY;
