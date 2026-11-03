@@ -2928,6 +2928,85 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "page-nav",
+      "name": "PageNav",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "renderLink"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "page-nav-item",
+      "name": "PageNav.Item",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "selection": [
+          "unselected",
+          "selected"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "current",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "pagination",
       "name": "Pagination",
       "category": "navigation",
@@ -5345,6 +5424,7 @@
       "name": "*.Item",
       "members": [
         "list-item",
+        "page-nav-item",
         "pagination-item",
         "tab-item"
       ],
@@ -5931,6 +6011,7 @@
         ],
         "components": [
           "link",
+          "page-nav-item",
           "pagination-item",
           "segmented-control-segment",
           "tab-item",
@@ -6069,6 +6150,8 @@
           "badge",
           "breadcrumb-item",
           "breadcrumbs",
+          "page-nav",
+          "page-nav-item",
           "progress",
           "switch-control",
           "switch-row"
@@ -6679,6 +6762,10 @@
       {
         "id": "link",
         "default": false
+      },
+      {
+        "id": "page-nav-item",
+        "default": false
       }
     ],
     "decorative": [
@@ -7082,6 +7169,9 @@
         "id": "link"
       },
       {
+        "id": "page-nav-item"
+      },
+      {
         "id": "pagination-item"
       }
     ],
@@ -7386,6 +7476,9 @@
         "id": "list"
       },
       {
+        "id": "page-nav"
+      },
+      {
         "id": "radio-group"
       },
       {
@@ -7464,6 +7557,12 @@
       },
       {
         "id": "link"
+      },
+      {
+        "id": "page-nav"
+      },
+      {
+        "id": "page-nav-item"
       },
       {
         "id": "pagination",
@@ -8176,6 +8275,9 @@
     "renderLink": [
       {
         "id": "breadcrumbs"
+      },
+      {
+        "id": "page-nav"
       }
     ],
     "required": [
@@ -8703,6 +8805,22 @@
           "small",
           "medium",
           "large"
+        ]
+      },
+      {
+        "id": "page-nav",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
+        "id": "page-nav-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
         ]
       },
       {
@@ -9709,9 +9827,12 @@
       "kind": "state set",
       "subject": "role peers: *.Item",
       "components": [
-        "list-item"
+        "list-item",
+        "page-nav-item",
+        "pagination-item",
+        "tab-item"
       ],
-      "detail": "list-item differs from the group's common set [disabled, focus-visible, hover, pressed, rest] — lacks disabled, focus-visible, hover, pressed, rest"
+      "detail": "no state set is shared by most of the group — list-item []; page-nav-item []; pagination-item [rest, hover, pressed, focus-visible, disabled]; tab-item [rest, hover, pressed, focus-visible, disabled]"
     },
     {
       "kind": "state set",
@@ -9910,6 +10031,7 @@
       "components": [
         "checkbox-control",
         "link",
+        "page-nav-item",
         "pagination-item",
         "radio-control",
         "segmented-control-segment",
@@ -9917,7 +10039,7 @@
         "tab-item",
         "tag"
       ],
-      "detail": "the selection axis takes 4 value sets — [selected, unselected] in link, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
+      "detail": "the selection axis takes 4 value sets — [selected, unselected] in link, page-nav-item, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
     },
     {
       "kind": "axis values",
@@ -9964,6 +10086,8 @@
         "link",
         "list",
         "list-item",
+        "page-nav",
+        "page-nav-item",
         "pagination",
         "pagination-item",
         "password-field",
@@ -9987,7 +10111,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in link, spinner; [large, medium, small, xlarge] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, spinner; [large, medium, small, xlarge] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -10287,6 +10411,22 @@
     },
     {
       "kind": "size order",
+      "subject": "page-nav",
+      "components": [
+        "page-nav"
+      ],
+      "detail": "page-nav declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "page-nav-item",
+      "components": [
+        "page-nav-item"
+      ],
+      "detail": "page-nav-item declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "pagination",
       "components": [
         "pagination"
@@ -10459,7 +10599,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 48 of 49 sized components default to medium"
+      "detail": "field-label defaults size to small; 50 of 51 sized components default to medium"
     },
     {
       "kind": "prop default",
@@ -10594,6 +10734,14 @@
         "link"
       ],
       "detail": "link has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "page-nav-item",
+      "components": [
+        "page-nav-item"
+      ],
+      "detail": "page-nav-item has the variant axis selection and no prop of that name"
     },
     {
       "kind": "axis without prop",

@@ -4763,6 +4763,144 @@
           "reason": "not in the schema yet"
         }
       ]
+    },
+    "page-nav-item": {
+      "codeOnly": [
+        "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
+        "The element — each item is an <li> in the row's <ul>, holding one <a href>. PageNav renders it from its items.",
+        "The current page in code — current renders aria-current=\"page\" on the <a>. It stays a real link with its href, in the Tab order, with hover, focus and the focus ring: a person can follow it to reload the page. The bar is Link's current-page bar, drawn inside the line box (a positioned pseudo-element or an inset shadow), never a border that adds height.",
+        "The bar's width — the brand's current page indicator setting: Full spans the title (inset-inline: 0); Partial is half the title's width, centered (inset-inline: 25%). 2px either way.",
+        "The underline on the other pages — Link's inline underline, shown at every state, so the other pages are never told apart from the current one by color alone.",
+        "RTL — the row mirrors with the document; a centered partial bar stays centered.",
+        "text expansion — labels never truncate and never wrap inside an item; the row wraps whole items instead (see PageNav)."
+      ],
+      "notes": {
+        "contested": [
+          "The item axis is the build lane's DRAFT (Q-block on #3345): one `selection` switch mapped onto Link, rather than a slot that takes Link instances directly (a designer would set Link's style and selection by hand).",
+          "The other pages' look (inline, underlined at rest) and the weight (default on both) are DRAFT, read from the owner's description of the account rows, not measured off a file."
+        ],
+        "unverified": [
+          "Contrast is Link's: the link roles' own contracts. No arm here re-measures it."
+        ],
+        "evolution": [
+          "2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A, Q4 A): built as PageNav's item, nesting Link, with the current page's bar width a brand setting."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
+    "page-nav": {
+      "codeOnly": [
+        "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
+        "The landmark — <nav aria-label=\"…\">, named by label (such as \"Account\"), translated and without the word \"navigation\", which assistive technology adds. The name tells this landmark apart from the main and footer navigations.",
+        "The list — a <ul> with each page in an <li> holding one <a href>, so \"list, 3 items\" is announced. The current page's <a href> carries aria-current=\"page\" and keeps its href.",
+        "Keyboard — every link is an ordinary tab stop: Tab moves link to link and Enter follows. No arrow keys, no roving tabindex, no activation modes and no panels: each item goes to its own page, which has its own URL, title and h1.",
+        "Router integration — renderLink renders each item through the router's own link (Link's asChild), so one <a href> renders per page.",
+        "Separate pages, separate forms — on account pages such as Log in and Create account, each page carries its own form with its own name and id, and the password field its own autocomplete: current-password on Log in, new-password on Create account.",
+        "The row in code — display: flex with column-gap from the size's gap token and flex-wrap: wrap, so a narrow screen wraps whole items onto a second line; items never truncate.",
+        "Figma item count — the native items slot holds three items by default, two at least and six at most; a designer adds, removes and reorders them, and sets which one is current. Items keep the size they were placed at when PageNav changes size.",
+        "RTL — the row mirrors with the document."
+      ],
+      "notes": {
+        "contested": [
+          "The sizes, the item gap and the slot limits (two to six) are the build lane's DRAFT values, held for the owner on the PR."
+        ],
+        "unverified": [
+          "The owner's screens set the reference brand's current-page bar at about 50% of the title; Partial is round(0.5 × the title's width). Whether the reference fixture sets Partial is held for the owner."
+        ],
+        "evolution": [
+          "2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A amended, Q4 A): built as a navigation of links (PageNav.Item, nesting Link) in a native items slot, with the current page's bar width a brand setting, Full by default."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     }
   }
 }

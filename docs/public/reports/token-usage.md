@@ -2896,7 +2896,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `space.0`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2917,6 +2917,7 @@ Type: dimension. Bound by 22 component(s).
 |  |  | panel | every member (24 of 24) |
 | divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block` (not drawn), `vertical.inset.pad-end` (not drawn), `vertical.inset.pad-start` (not drawn), `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | container | every member (7 of 7) |
 | list-item | `gap` | row | every member (9 of 9) |
+| page-nav-item | `gap` | container | every member (4 of 4) |
 | pagination-item | `balance-width`, `pad-y`, `reserve-height` | balance | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
 |  |  | container | every member (87 of 87) |
 |  |  | reserve | labeled: false · state: focus-visible, hover, pressed, rest · type: page (24 of 87) |
@@ -3104,7 +3105,7 @@ Type: dimension. Bound by 19 component(s).
 
 ### `space.200`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3124,6 +3125,7 @@ Type: dimension. Bound by 20 component(s).
 | divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | container | inset: inset, middle-inset · labeled: false · orientation: horizontal (2 of 7) |
 | list | `size.medium.gap` | container | size: medium (3 of 9) |
 |  |  | items | size: medium (3 of 9) |
+| page-nav | `size.small.gap` | items | size: small (1 of 2) |
 | password-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | search-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | segmented-control-segment | `size.medium.padding-x` | content | size: medium (10 of 30) |
@@ -3151,7 +3153,7 @@ Type: dimension. Bound by 5 component(s).
 
 ### `space.300`
 
-Type: dimension. Bound by 14 component(s).
+Type: dimension. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3166,6 +3168,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | panel | placement: center, end (16 of 24) |
 | divider | `horizontal.gap` | container | orientation: horizontal (4 of 7) |
 | list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column` | markerBox | size: medium · type: ordered, unordered (2 of 9) |
+| page-nav | `size.medium.gap` | items | size: medium (1 of 2) |
 | password-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | search-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | select | `size.large.pad-x` | control | size: large (28 of 84) |
@@ -3892,6 +3895,18 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 20 token(s); 9 design-file member(s).
 
 `color.icon.primary`, `color.text.primary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.075`, `space.100`, `space.250`, `space.300`, `space.400`, `space.500`, `space.600`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+
+### page-nav
+
+2 token(s); 2 design-file member(s).
+
+`space.200`, `space.300`
+
+### page-nav-item
+
+1 token(s); 4 design-file member(s).
+
+`space.0`
 
 ### pagination
 

@@ -977,6 +977,69 @@
       ]
     },
     {
+      "from": "page-nav",
+      "to": "page-nav-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "selected",
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "page-nav",
+      "to": "page-nav-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "page-nav",
+      "to": "page-nav-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "page-nav-item",
+      "to": "link",
+      "part": "link",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "selection": "unselected",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
       "from": "pagination",
       "to": "pagination-item",
       "part": "item1",
@@ -2414,6 +2477,8 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "page-nav",
+        "page-nav-item",
         "pagination",
         "pagination-item",
         "password-field",
@@ -2510,12 +2575,15 @@
       "nestedBy": [
         "banner",
         "breadcrumb-item",
-        "breadcrumbs"
+        "breadcrumbs",
+        "page-nav-item"
       ],
       "affectedByChange": [
         "banner",
         "breadcrumb-item",
-        "breadcrumbs"
+        "breadcrumbs",
+        "page-nav",
+        "page-nav-item"
       ],
       "inheritedBy": []
     },
@@ -2538,6 +2606,35 @@
       ],
       "affectedByChange": [
         "list"
+      ],
+      "inheritedBy": []
+    },
+    "page-nav": {
+      "nests": [
+        "page-nav-item"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "link",
+        "page-nav-item"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "page-nav-item": {
+      "nests": [
+        "link"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "link"
+      ],
+      "nestedBy": [
+        "page-nav"
+      ],
+      "affectedByChange": [
+        "page-nav"
       ],
       "inheritedBy": []
     },
@@ -2955,6 +3052,8 @@
     "link": 1,
     "list": 1,
     "list-item": 0,
+    "page-nav": 3,
+    "page-nav-item": 2,
     "pagination": 2,
     "pagination-item": 1,
     "password-field": 2,

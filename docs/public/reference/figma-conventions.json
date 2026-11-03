@@ -222,6 +222,14 @@
             "usagePanelLead": "breadcrumbs"
           },
           {
+            "name": "↳ Page navigation",
+            "components": [
+              "page-nav-item",
+              "page-nav"
+            ],
+            "usagePanelLead": "page-nav"
+          },
+          {
             "name": "↳ Toast",
             "components": [
               "toast"
@@ -3398,6 +3406,53 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input.md"
+      },
+      {
+        "id": "page-nav-item",
+        "name": "PageNav.Item",
+        "figmaName": "page-nav-item",
+        "kind": "component set",
+        "page": "↳ Page navigation",
+        "section": "Components",
+        "members": 4,
+        "variantProperties": [
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/page-nav-item.md"
+      },
+      {
+        "id": "page-nav",
+        "name": "PageNav",
+        "figmaName": "page-nav",
+        "kind": "component set",
+        "page": "↳ Page navigation",
+        "section": "Components",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/page-nav.md"
       }
     ]
   },
@@ -3573,6 +3628,18 @@
         },
         "preferred": [
           "code-input-cell"
+        ]
+      },
+      {
+        "component": "page-nav",
+        "property": "items",
+        "settings": {
+          "minChildren": 2,
+          "maxChildren": 6,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "page-nav-item"
         ]
       }
     ]

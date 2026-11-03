@@ -547,7 +547,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab-item', 'segmented-control-segment', 'link', 'pagination-item'],
+    defs: ['tag', 'tab-item', 'segmented-control-segment', 'link', 'pagination-item', 'page-nav-item'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -629,9 +629,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
     // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
-    // stops reading as secondary wayfinding. Badge joins it (#2983, owner direction 2026-10-24): the status label's
+    // stops reading as secondary wayfinding. Page navigation and its item join it (#3345, DRAFT): Breadcrumbs' pair, one
+    // line of 14 or 16px body text. Badge joins it (#2983, owner direction 2026-10-24): the status label's
     // compact size beside today's, and nothing above it.
-    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress', 'badge'],
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress', 'badge', 'page-nav', 'page-nav-item'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '

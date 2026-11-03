@@ -1,0 +1,31 @@
+## (2026-11-03) — Page navigation: a navigation of links between sibling pages, and the current page's bar width as a brand setting (#3345)
+
+### What landed
+- **PageNav** (`page-nav`) and **PageNav.Item** (`page-nav-item`), built from the owner decisions of 2026-11-03 on #3345. A page-to-page switch is a `<nav>` of links with `aria-current="page"`; Tabs stays for in-place panels (Q1 A). The look is Link's, not the tab look (Q2): the item nests Link, with the other pages underlined (inline) and the current page plain, with Link's 2px current-page bar (standalone at `selection=selected`). There's no baseline. Two components, 6 members.
+- **`currentIndicator: full | partial`**, the brand setting (Q2 A). Full is the engine default, the title's width. Partial is round(0.5 × the title's width), centered. It moves Link's current-page bar, because a nested instance can't differ from its main component, so every current link in a brand draws the same bar.
+- **`footShare`**, a part field. Both executors draw a foot bar at a share of its parent, centered, constrained `SCALE` across so a longer label keeps the share. The readback reads the constraint off the plan's share. `EXECUTOR_REVISION` is raised for it.
+
+### Gates
+Arms in `packages/engine/test.ts`, each with literals typed from the decision comment:
+- `#3345 page-nav code contract`: `<nav`, `<a href` and `aria-current="page"` are present, and no tab role, tablist or aria-selected.
+- `#3345 tabs ↔ page-nav cross-reference`: Tabs and PageNav each name the other.
+- `#3345 page-nav items`: every item nests Link, the current page at standalone/selected.
+- `#3345 page-nav indicator: 2px`: the bar binds `border-width/thick`, which is 2px in every brand.
+- `#3345 page-nav indicator: Full … / Partial …`: on both executor legs, Full is the title's width at x 0, and Partial is round(0.5 × title) at x = (title − bar) / 2 with `SCALE`.
+
+The mutations each failed by name; they're listed on the PR.
+
+### Held for the owner (Q-block on the PR)
+- The item shape.
+- How far the setting reaches (Link-wide).
+- The setting's key, label, kind and Studio home.
+- Whether the reference fixture sets Partial (not set here).
+- The other pages' underline at rest.
+- The DRAFT sizes, gap, slot limits and weight.
+
+### Found while building
+At Full width the 2px bar sits just below the 1px underline's position, so on the engine default brand the current page reads close to an underlined link: thicker and lower, but the same color and length. Partial reads as clearly different. This is a finding in the renders, not a change.
+
+### Trap
+- The early renders were drawn in a browser from the projected plans, not from the plugin shim. The shim measures text as `characters × 6`, which is too crude to show a reviewer. The executors' bar arithmetic is the part the arms hold.
+- `lint-rung-names` wants PageNav's prop ladder small→medium beside variants medium-first, admitted as `DEFAULT_FIRST`, the way Breadcrumbs does it. Putting the prop in variant order fails as a stale admission.

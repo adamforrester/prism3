@@ -40,7 +40,7 @@ export const pageNav: ComponentDef = {
   aliases: ['page-navigation', 'sibling-page-links', 'local-navigation'],
   category: 'navigation',
   status: 'draft',
-  summary: 'A row of links between sibling pages, with the current page marked. Size applies to the items you haven\'t edited.',
+  summary: 'A row of links between sibling pages, with the current page marked. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A navigation between two to six related pages, such as Log in and Create account, or the pages of an account. Each item is a link to its own address; the link to the page the user is on carries a 2px bar and is marked as the current page for assistive technology. The other links are underlined. Tab moves from link to link, and the browser\'s back button and bookmarks work as they do for any link. Use Tabs instead when the content switches in place on one page.',
 

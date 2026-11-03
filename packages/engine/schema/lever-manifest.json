@@ -399,6 +399,25 @@
       "description": "The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1."
     },
     {
+      "key": "currentIndicator",
+      "group": "form",
+      "kind": "value",
+      "label": "Current page indicator",
+      "control": "enum",
+      "default": "full",
+      "options": [
+        {
+          "value": "full",
+          "label": "Full width"
+        },
+        {
+          "value": "partial",
+          "label": "Partial"
+        }
+      ],
+      "description": "The 2px line under the current page in a page navigation. Full width runs under the whole title; Partial is half the title’s width, centered under it."
+    },
+    {
       "key": "radioDot",
       "group": "form",
       "kind": "value",

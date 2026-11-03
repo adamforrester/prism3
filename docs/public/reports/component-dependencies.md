@@ -24,9 +24,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 | field-label | card-number-field, checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea |
 | field-message | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea |
 | flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
-| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, search-field, segmented-control-segment, select, sign-in-button, switch-control, tab-item, tag, text-field, textarea, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast, wallet-button |
-| link | banner, breadcrumb-item, breadcrumbs | banner, breadcrumb-item, breadcrumbs |
+| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, search-field, segmented-control-segment, select, sign-in-button, switch-control, tab-item, tag, text-field, textarea, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, page-nav, page-nav-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast, wallet-button |
+| link | banner, breadcrumb-item, breadcrumbs, page-nav-item | banner, breadcrumb-item, breadcrumbs, page-nav, page-nav-item |
 | list-item | list | list |
+| page-nav-item | page-nav | page-nav |
 | pagination-item | pagination | pagination |
 | provider-logo | sign-in-button, wallet-button | sign-in-button, wallet-button |
 | radio-control | radio-row | radio-group, radio-row |
@@ -78,6 +79,8 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | link | 1 | focus-ring | focus-ring |
 | list | 1 | list-item | list-item |
 | list-item | 0 | — | — |
+| page-nav | 3 | page-nav-item | focus-ring, link, page-nav-item |
+| page-nav-item | 2 | link | focus-ring, link |
 | pagination | 2 | pagination-item | focus-ring, pagination-item |
 | pagination-item | 1 | focus-ring | focus-ring |
 | password-field | 2 | button, field-label, field-message, focus-ring | button, field-label, field-message, focus-ring, spinner |
@@ -181,6 +184,10 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | list | item1 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item2 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item3 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
+| page-nav | item1 | nest | page-nav-item | nest-fixed | selection=selected, size=medium | size | — |
+| page-nav | item2 | nest | page-nav-item | nest-fixed | selection=unselected, size=medium | size | — |
+| page-nav | item3 | nest | page-nav-item | nest-fixed | selection=unselected, size=medium | size | — |
+| page-nav-item | link | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |
 | pagination | item1 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
 | pagination | item2 | nest | pagination-item | nest-fixed | type=ellipsis, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
 | pagination | item3 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
