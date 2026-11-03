@@ -836,6 +836,18 @@
         "items:SLOT",
         "message:BOOLEAN"
       ]
+    },
+    "page-nav-item": {
+      "members": 4,
+      "sha256": "870a833c2e3d5cf781767dee6eec96268192108e0aaa6d3de4a9fa8679e88731",
+      "properties": []
+    },
+    "page-nav": {
+      "members": 2,
+      "sha256": "6497650604336f586e736e11788536e7186d26db34389b2d0a1ad95d5f3491dd",
+      "properties": [
+        "items:SLOT"
+      ]
     }
   }
 }
