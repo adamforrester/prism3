@@ -1288,6 +1288,10 @@ section('badge style — the 40 contained members gain style=contained in place,
     `badge style/properties: the set offers style [contained, inline] (${JSON.stringify(defs.style?.variantOptions)})`);
 }
 
+// The List and List.Item plans without the `x-small` members (#3330): the shape every file built before #3330 holds, and
+// the shape the earlier list migrations below update between. The x-small step has its own arm (`published/list x-small`).
+const pre3330 = (id: string): AnatomyPlan[] => plansOf(id).filter((p) => String(p.size) !== 'x-small');
+
 section('list marker column — a file built at the old 24/32/40 column updates in place to 20/24/32 for bullet and number (#2727, Q340 A)');
 {
   // The file as main built it before Q340: every type's marker column at space/300, 400, 500 (24/32/40px). The
@@ -1299,7 +1303,7 @@ section('list marker column — a file built at the old 24/32/40 column updates 
     // #3155 (Q3155.2 A) moved the icon column to 32/40/48, so every type now updates from the pre-Q340 file.
     icon: { small: 'space/400', medium: 'space/500', large: 'space/600' },
   };
-  const atOld = plansOf('list-item').map((p) => {
+  const atOld = pre3330('list-item').map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
     (planChild(q.root, 'markerBox').bound as Record<string, string>).width = OLD[q.size!];
     return q;
@@ -1313,7 +1317,7 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   ok(membersOf(w.set()).length === 9 && membersOf(w.set()).every((m) => columnOf(m) === OLD[sizeOf(m)]),
     `premise: the 9 members carry the old column, space/300, 400, 500 by size in every type (${membersOf(w.set()).map(columnOf).join(', ')})`);
   const before = identityOf(w.set());
-  const plans = plansOf('list-item');
+  const plans = pre3330('list-item');
   const { pre, res } = await confirm(w, [{ def: 'list-item', plans }]);
   const p = pre.sets[0];
   ok(!!p && !p.blockers.length && p.counts.update === 9 && p.counts.current === 0 && p.counts.add === 0 && p.counts.drop === 0,
@@ -1332,13 +1336,13 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   // measured here. What this PR moves in the List's own plan is the nested-list code note, which the plan carries:
   // a List built with main's note updates in place to the new one, every key and id kept.
   const OLD_NOTE = 'Nested lists — a <ul> or <ol> inside an <li> indents by one marker column and uses the same size. Not drawn in Figma.';
-  const listOld = plansOf('list').map((q) => JSON.parse(JSON.stringify(q).replace(/Nested lists — [^"]*?Not drawn in Figma\./g, OLD_NOTE)) as AnatomyPlan);
-  ok(JSON.stringify(listOld) !== JSON.stringify(plansOf('list')), 'premise: the List built with the old nested-list note differs from the current plan');
+  const listOld = pre3330('list').map((q) => JSON.parse(JSON.stringify(q).replace(/Nested lists — [^"]*?Not drawn in Figma\./g, OLD_NOTE)) as AnatomyPlan);
+  ok(JSON.stringify(listOld) !== JSON.stringify(pre3330('list')), 'premise: the List built with the old nested-list note differs from the current plan');
   // Since #2683 every List plan carries per-item `nestOverrides` (each item's number), so List.Item's TEXT properties are
   // declared on the host, as in `overrides/…` below; without them the build misses every override and `world()` throws.
   const lw = await world('list', listOld, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
   const lbefore = identityOf(lw.set());
-  const lplans = plansOf('list');
+  const lplans = pre3330('list');
   const l = await confirm(lw, [{ def: 'list', plans: lplans }]);
   const lafter = identityOf(lw.set());
   const lmoved = [...lbefore.members].filter(([name, b]) => lafter.members.get(name)?.key !== b.key || lafter.members.get(name)?.id !== b.id).length;
@@ -1356,14 +1360,14 @@ section('list spacing — a file built before #3155 updates in place: the wider 
   const OLD_ICON: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
   const NEW_ICON: Record<string, string> = { small: 'space/400', medium: 'space/500', large: 'space/600' };
   const NEW_BULLET: Record<string, string> = { small: 'space/075', medium: 'space/100', large: 'space/100' };
-  const atMain = plansOf('list-item').map((p) => {
+  const atMain = pre3330('list-item').map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
     const type = (q.coord as Record<string, string>).type, box = planChild(q.root, 'markerBox');
     if (type === 'icon') (box.bound as Record<string, string>).width = OLD_ICON[q.size!];
     if (type === 'unordered') { const b = planChild(box, 'bullet').bound as Record<string, string>; b.width = b.height = `control/size/${RUNG[q.size!]}/dot`; }
     return q;
   });
-  ok(JSON.stringify(atMain) !== JSON.stringify(plansOf('list-item')), 'premise: the List.Item built as main had it differs from the current plan');
+  ok(JSON.stringify(atMain) !== JSON.stringify(pre3330('list-item')), 'premise: the List.Item built as main had it differs from the current plan');
   const w = await world('list-item', atMain, { extraVars: ['space/075', 'space/100', 'space/600'] });
   const typeOf = (m: Node) => /(?:^|, )type=(\w+)/.exec(String(m.name))?.[1] ?? '';
   const sizeOf = (m: Node) => /(?:^|, )size=(\w+)/.exec(String(m.name))?.[1] ?? '';
@@ -1371,7 +1375,7 @@ section('list spacing — a file built before #3155 updates in place: the wider 
   for (const v of ['space/075', 'space/100', 'space/250', 'space/300', 'space/400', 'space/500', 'space/600', 'control/size/sm/dot', 'control/size/md/dot', 'control/size/lg/dot']) ids.set(await varIdOf(w, v), v);
   const boundOf = (n: Node | undefined, f: string) => ids.get(((n?.boundVariables ?? {}) as Record<string, { id: string }>)[f]?.id) ?? 'none';
   const before = identityOf(w.set());
-  const plans = plansOf('list-item');
+  const plans = pre3330('list-item');
   const { pre, res } = await confirm(w, [{ def: 'list-item', plans }]);
   const p = pre.sets[0];
   ok(!!p && !p.blockers.length && p.counts.update === 6 && p.counts.current === 3 && p.counts.add === 0 && p.counts.drop === 0,
@@ -1394,13 +1398,13 @@ section('list spacing — a file built before #3155 updates in place: the wider 
   // THE LIST: built at main's 8/12/16 gap, on the slot and the container, it updates in place to 12/16/20.
   const OLD_GAP: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/200' };
   const NEW_GAP: Record<string, string> = { small: 'space/150', medium: 'space/200', large: 'space/250' };
-  const listMain = plansOf('list').map((p) => {
+  const listMain = pre3330('list').map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
     (q.root.bound as Record<string, string>).itemSpacing = OLD_GAP[q.size!];
     (planChild(q.root, 'items').bound as Record<string, string>).itemSpacing = OLD_GAP[q.size!];
     return q;
   });
-  ok(JSON.stringify(listMain) !== JSON.stringify(plansOf('list')), 'premise: the List built at the old gap differs from the current plan');
+  ok(JSON.stringify(listMain) !== JSON.stringify(pre3330('list')), 'premise: the List built at the old gap differs from the current plan');
   const lw = await world('list', listMain, { extraVars: ['space/250'], componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
   const gids = new Map<string, string>();
   for (const v of ['space/100', 'space/150', 'space/200', 'space/250']) gids.set(await varIdOf(lw, v), v);
@@ -1408,7 +1412,7 @@ section('list spacing — a file built before #3155 updates in place: the wider 
   ok(membersOf(lw.set()).every((m) => gapOf(childNamed(m, 'items')) === OLD_GAP[sizeOf(m)]),
     `premise: the 9 List members carry the old gap, space/100, 150, 200 by size (${membersOf(lw.set()).map((m) => gapOf(childNamed(m, 'items'))).join(', ')})`);
   const lbefore = identityOf(lw.set());
-  const lplans = plansOf('list');
+  const lplans = pre3330('list');
   const l = await confirm(lw, [{ def: 'list', plans: lplans }]);
   const lafter = identityOf(lw.set());
   const lmoved = [...lbefore.members].filter(([name, b]) => lafter.members.get(name)?.key !== b.key || lafter.members.get(name)?.id !== b.id).length;
@@ -5398,8 +5402,8 @@ section('overrides — a nested instance with no override yet gains it in place 
   ok([...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)),
     'overrides/ids: every member and every nested item keeps its key and id: nothing was rebuilt');
   const post = (await previewUpdate(w.host, [{ def: LIST, plans: planned }])).sets[0];
-  ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'items/item2'),
-    `overrides/current: the next dry run reads the other 8 members current and still reports the hand edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.changes).slice(0, 200)})`);
+  ok(post.counts.update === 0 && post.counts.current === 11 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'items/item2'),
+    `overrides/current: the next dry run reads the other 11 members current (12 since #3330) and still reports the hand edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.changes).slice(0, 200)})`);
 }
 
 /* ── the fields' nested label (#2738) ───────────────────────────────────────────────────────────────── */
@@ -5889,6 +5893,31 @@ section('published — on a set in a team library, what breaks consumer files is
     const lost = [...was.members].filter(([name, m]) => { const to = after.members.get(name); return !to || to.id !== m.id || to.key !== m.key; }).map(([n]) => n);
     ok(!res.refusedAll && after.members.size === 192 && lost.length === 0,
       `published/link x-small in place: applied, the 144 existing members keep their names, node ids and keys, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
+  }
+
+  // LIST AND LIST.ITEM GAIN THEIR X-SMALL SIZE (#3330, owner decisions Q1–Q4 A): a published set of 9 members over three
+  // sizes, updated to the plan with `x-small` on the size axis. As for Link (#3179), a value added to an existing axis
+  // renames nothing: the 9 keep their names, node ids and keys, and the 3 x-small members are added. Nothing is dropped
+  // or replaced and nothing breaks library consumers. Counts are typed here.
+  for (const id of ['list-item', 'list']) {
+    const next = plansOf(id);
+    const before = pre3330(id);
+    const props = id === 'list' ? { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT' as const, defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT' as const, defaultValue: '1.' } } } } : {};
+    const w = await world(id, before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))], extraStyles: [...new Set(next.flatMap((p) => planTextStyles(p.root)))], ...props });
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const was = identityOf(w.set());
+    ok(before.length === 9 && next.length === 12 && [...was.members.keys()].every((n) => !n.includes('size=x-small')),
+      `premise: a published ${id} of 9 members with no x-small, and a plan of 12 (${was.members.size} → ${next.length})`);
+    const { pre, res } = await confirm(w, [{ def: id, plans: next }]);
+    const p = pre.sets[0];
+    const added = p?.adds ?? [];
+    ok(p?.publish === 'CURRENT' && added.length === 3 && added.every((x) => x.includes('size=x-small'))
+      && p.drops.length === 0 && p.replacements.length === 0 && (p.breaking ?? []).length === 0,
+      `published/list x-small additive (${id}): the 3 x-small members are added, nothing is dropped or replaced, and nothing breaks library consumers (adds ${added.length}, drops ${JSON.stringify(p?.drops.slice(0, 2))}, replaced ${p?.replacements.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+    const after = identityOf(w.set());
+    const lost = [...was.members].filter(([name, m]) => { const to = after.members.get(name); return !to || to.id !== m.id || to.key !== m.key; }).map(([n]) => n);
+    ok(!res.refusedAll && after.members.size === 12 && lost.length === 0,
+      `published/list x-small in place (${id}): applied, the 9 existing members keep their names, node ids and keys, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
   }
 
   // ACCORDION GAINS ITS `indicator` AXIS (#2878, Q-block A): a published Accordion built before the axis, its 24 members
