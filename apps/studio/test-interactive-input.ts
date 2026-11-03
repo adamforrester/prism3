@@ -21,6 +21,7 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as I from './src/state/interactive-input';
+import * as O from './src/state/outline-hover-input';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -196,6 +197,36 @@ I.setStrictInteractiveContrast(true);
 ok(store.brandState.strictInteractiveContrast === true && takes(), 'setStrictInteractiveContrast(on) writes true');
 I.setStrictInteractiveContrast(false);
 ok(pristine(), `setStrictInteractiveContrast(off) unsets the key, leaving the brand byte-identical to the one loaded (${JSON.stringify(store.brandState.strictInteractiveContrast)})`);
+
+console.log('\n8. #3335: Wash opacity and the per-set Solid fill picks (the owner\'s Q3335.3 A and Q3335.5 A)');
+// EXPECTED literals: the engine's own resolution is the oracle for what a write does; the defaults are typed (10/20).
+reset();
+O.setOutlineWashStep('overlay-neutral', 'hover', 5);
+const wash1 = structuredClone(store.brandState.outlineWash);
+const alphas = (): (number | undefined)[] => {
+  const r = resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === 'light')!.roles as Record<string, { alpha?: number } | undefined>;
+  return ['hover', 'pressed', 'selected'].map((st) => r[`interactive.primary.overlay.${st}`]?.alpha);
+};
+ok(same(wash1, { hover: 5, pressed: 20 }) && takes() && same(alphas(), [0.05, 0.2, 0.2]), `Wash opacity Hover 5% writes outlineWash { hover: 5, pressed: 20 } and the engine draws the wash at 0.05 / 0.2 / 0.2 (${JSON.stringify(wash1)}, ${JSON.stringify(alphas())})`);
+O.setOutlineWashStep('overlay-neutral', 'hover', 30);
+ok(same(store.brandState.outlineWash, { hover: 30, pressed: 40 }) && takes(), `a Hover at or past Pressed takes Pressed one step above it (${JSON.stringify(store.brandState.outlineWash)})`);
+O.setOutlineWashStep('overlay-neutral', 'hover', 10);
+O.setOutlineWashStep('overlay-neutral', 'pressed', 20);
+ok(pristine(), `back on 10 / 20 the key is removed, leaving the brand byte-identical to the one loaded (${JSON.stringify(store.brandState.outlineWash)})`);
+reset();
+O.setOutlineInteraction('opaque-fill');
+O.setOutlineHoverSetStep('light', 'destructive', 'hover', 'neutral.100');
+const fills = (): Record<string, string | undefined> => {
+  const r = resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === 'light')!.roles as Record<string, { path?: string } | undefined>;
+  return Object.fromEntries(['primary', 'neutral', 'destructive'].map((c) => [c, r[`interactive.${c}.hover-fill.hover`]?.path?.split('.').slice(-2).join('.')]));
+};
+const f1 = fills();
+ok(same(store.brandState.outlineHoverFill, { light: { sets: { destructive: { hover: 'neutral.100' } } } }) && takes() && f1.destructive === 'neutral.100' && f1.primary !== 'neutral.100',
+  `a set's Hover pick writes outlineHoverFill.light.sets.destructive.hover, and only Destructive's fill takes it (${JSON.stringify(store.brandState.outlineHoverFill)}, ${JSON.stringify(f1)})`);
+O.setOutlineHoverSetStep('light', 'destructive', 'pressed', 'neutral.200');
+ok(same(store.brandState.outlineHoverFill, { light: { sets: { destructive: { hover: 'neutral.100', pressed: 'neutral.200' } } } }) && takes(), `its Pressed pick joins it (${JSON.stringify(store.brandState.outlineHoverFill)})`);
+O.setOutlineHoverSetStep('light', 'destructive', 'hover', undefined);
+ok(!('outlineHoverFill' in store.brandState), `Auto on the set's Hover removes its entry, its emptied sets and its emptied mode, so the key goes (${JSON.stringify(store.brandState.outlineHoverFill)})`);
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
 if (failed) process.exit(1);

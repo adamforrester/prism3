@@ -300,8 +300,13 @@ export const validGlassRoles = (raw: unknown): Record<string, GlassRoleInput> | 
 /** How an outline or text control shows hover and pressed (docs/20 §10; `opaque-fill` since #3071). */
 export const OUTLINE_INTERACTION_VALUES = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'] as const;
 export type OutlineInteraction = typeof OUTLINE_INTERACTION_VALUES[number];
-/** The opaque outline hover fill's page step per mode (#3071, owner Q824 A): a palette step (`neutral.050`). */
-export type OutlineHoverFill = Partial<Record<ModeName, { hover: string; pressed?: string }>>;
+/** One set's (or the mode-wide) opaque outline hover fill: a palette step per state (`neutral.050`). */
+export type OutlineHoverPick = { hover: string; pressed?: string };
+/** The opaque outline hover fill's page step per mode (#3071, owner Q824 A): a palette step (`neutral.050`). #3335 (the
+ *  owner's Q3335.5 A): a mode may also pick per button set (`sets.<set>`), and the mode-wide pick stays every set's
+ *  default, so a brief that sets only the mode-wide pick resolves as it did. With `sets` the mode-wide `hover` is
+ *  optional: a set it leaves out takes the default rule. */
+export type OutlineHoverFill = Partial<Record<ModeName, { hover?: string; pressed?: string; sets?: Record<string, OutlineHoverPick> }>>;
 
 /**
  * Validate `outlineHoverFill` (#3071): keyed by an editable mode the brand declares, each `{ hover, pressed? }` a
@@ -312,23 +317,84 @@ export type OutlineHoverFill = Partial<Record<ModeName, { hover: string; pressed
 export const validOutlineHoverFill = (raw: unknown, modes: readonly string[], editable: readonly string[]): OutlineHoverFill | undefined => {
   if (raw === undefined) return undefined;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw))
-    throw new Error(`outlineHoverFill: must be a map of mode to { hover, pressed? } (got ${JSON.stringify(raw)})`);
+    throw new Error(`outlineHoverFill: must be a map of mode to { hover, pressed?, sets? } (got ${JSON.stringify(raw)})`);
   const STEP = /^[a-z][a-z0-9-]*\.[0-9]+$/;
+  /** One `{ hover, pressed? }` pick: hover a step (optional only where `hoverOptional`), pressed a step when given. */
+  const pickOf = (at: string, v: Record<string, unknown>, hoverOptional: boolean): Partial<OutlineHoverPick> => {
+    const { hover, pressed } = v;
+    if (hover === undefined && pressed !== undefined) throw new Error(`${at}.pressed: set without ${at}.hover; pressed follows a hover pick`);
+    for (const [k, x] of [['hover', hover], ['pressed', pressed]] as const)
+      if ((k === 'hover' ? !hoverOptional || x !== undefined : x !== undefined) && (typeof x !== 'string' || !STEP.test(x)))
+        throw new Error(`${at}.${k}: ${JSON.stringify(x)} is not a palette step (such as 'neutral.050')`);
+    return { ...(hover !== undefined ? { hover: hover as string } : {}), ...(pressed !== undefined ? { pressed: pressed as string } : {}) };
+  };
   const out: OutlineHoverFill = {};
   for (const [m, v] of Object.entries(raw as Record<string, unknown>)) {
     const at = `outlineHoverFill.${m}`;
     if (!modes.includes(m)) throw new Error(`${at}: mode '${m}' is not in this brand's modes (${modes.join(', ')})`);
     if (!editable.includes(m))
       throw new Error(`${at}: mode '${m}' is generate-only and takes the default rule; only ${editable.join('/')} accept a pick`);
-    if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error(`${at}: must be { hover, pressed? }`);
-    const { hover, pressed, ...rest } = v as Record<string, unknown>;
-    if (Object.keys(rest).length) throw new Error(`${at}: unknown field(s) ${Object.keys(rest).join(', ')} (allowed: hover, pressed)`);
-    for (const [k, x] of [['hover', hover], ['pressed', pressed]] as const)
-      if ((k === 'hover' || x !== undefined) && (typeof x !== 'string' || !STEP.test(x)))
-        throw new Error(`${at}.${k}: ${JSON.stringify(x)} is not a palette step (such as 'neutral.050')`);
-    out[m as ModeName] = { hover: hover as string, ...(pressed !== undefined ? { pressed: pressed as string } : {}) };
+    if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error(`${at}: must be { hover, pressed?, sets? }`);
+    const { hover: _h, pressed: _p, sets, ...rest } = v as Record<string, unknown>;
+    if (Object.keys(rest).length) throw new Error(`${at}: unknown field(s) ${Object.keys(rest).join(', ')} (allowed: hover, pressed, sets)`);
+    // #3335 (Q3335.5 A): the per-set picks. Which sets the brand has is checked where the sets resolve (`modes.ts`).
+    let setPicks: Record<string, OutlineHoverPick> | undefined;
+    if (sets !== undefined) {
+      if (!sets || typeof sets !== 'object' || Array.isArray(sets)) throw new Error(`${at}.sets: must be a map of button set to { hover, pressed? }`);
+      setPicks = {};
+      for (const [c, sv] of Object.entries(sets as Record<string, unknown>)) {
+        const sat = `${at}.sets.${c}`;
+        if (!sv || typeof sv !== 'object' || Array.isArray(sv)) throw new Error(`${sat}: must be { hover, pressed? }`);
+        const { hover: _sh, pressed: _sp, ...srest } = sv as Record<string, unknown>;
+        if (Object.keys(srest).length) throw new Error(`${sat}: unknown field(s) ${Object.keys(srest).join(', ')} (allowed: hover, pressed)`);
+        setPicks[c] = pickOf(sat, sv as Record<string, unknown>, false) as OutlineHoverPick;
+      }
+      if (!Object.keys(setPicks).length) setPicks = undefined;
+    }
+    const wide = pickOf(at, v as Record<string, unknown>, !!setPicks);
+    if (!wide.hover && !setPicks) continue;
+    out[m as ModeName] = { ...wide, ...(setPicks ? { sets: setPicks } : {}) };
   }
   return Object.keys(out).length ? out : undefined;
+};
+
+/** #3335 (the owner's Q3335.3 A): the outline wash's opacity, brand-wide, one step of the opacity scale for hover and one
+ *  for pressed (selected follows pressed, as it always has). Read by the two wash methods: the neutral wash
+ *  (`overlay-neutral`, and `opaque-fill`, whose Tag, Segmented control and Pagination keep the wash, Q3335.4 A) and the
+ *  tinted wash (`solid-tint`, where the pick is the step the engine starts from before its label and visibility guards). */
+export type OutlineWash = { hover?: number; pressed?: number };
+/** The steps a wash may take (#3335, the owner's DRAFT options): the light end of the opacity scale (`OPACITY_STEPS` in
+ *  `modes.ts`), 5 to 40. Past 40 a wash stops reading as a wash over its ground. Typed here, as the scale's own values,
+ *  because `modes.ts` imports this file. */
+export const OUTLINE_WASH_STEPS = [5, 10, 20, 30, 40] as const;
+/** Each wash method's own default, the constants the engine held before the input (`OVERLAY_ALPHA`, `TINT_NOMINAL`). */
+export const OUTLINE_WASH_DEFAULTS = { neutral: { hover: 10, pressed: 20 }, tinted: { hover: 20, pressed: 30 } } as const;
+
+/** Validate `outlineWash` (#3335): `{ hover?, pressed? }`, each an `OUTLINE_WASH_STEPS` value, pressed above hover when both
+ *  are set. Under `none` it is kept and ignored, with a note, as `outlineHoverFill` is under another method. */
+export const validOutlineWash = (raw: unknown): OutlineWash | undefined => {
+  if (raw === undefined) return undefined;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`outlineWash: must be { hover?, pressed? } (got ${JSON.stringify(raw)})`);
+  const { hover, pressed, ...rest } = raw as Record<string, unknown>;
+  if (Object.keys(rest).length) throw new Error(`outlineWash: unknown field(s) ${Object.keys(rest).join(', ')} (allowed: hover, pressed)`);
+  for (const [k, x] of [['hover', hover], ['pressed', pressed]] as const)
+    if (x !== undefined && !(OUTLINE_WASH_STEPS as readonly unknown[]).includes(x))
+      throw new Error(`outlineWash.${k}: ${JSON.stringify(x)} is not an opacity step (${OUTLINE_WASH_STEPS.join(', ')})`);
+  if (typeof hover === 'number' && typeof pressed === 'number' && pressed <= hover)
+    throw new Error(`outlineWash: pressed ${pressed} must be above hover ${hover}, so a press reads as coming forward`);
+  const out: OutlineWash = { ...(hover !== undefined ? { hover: hover as number } : {}), ...(pressed !== undefined ? { pressed: pressed as number } : {}) };
+  return Object.keys(out).length ? out : undefined;
+};
+
+/** The wash's hover and pressed step for a method (#3335): the brand's pick, else the method's default. A pressed left
+ *  unset that would not sit above a picked hover takes the next step above it. `none` has no wash. */
+export const outlineWashSteps = (method: OutlineInteraction, wash: OutlineWash | undefined): { hover: number; pressed: number } | null => {
+  if (method === 'none') return null;
+  const d = method === 'solid-tint' ? OUTLINE_WASH_DEFAULTS.tinted : OUTLINE_WASH_DEFAULTS.neutral;
+  const hover = wash?.hover ?? d.hover;
+  const above = OUTLINE_WASH_STEPS.find((x) => x > hover) ?? hover;
+  const pressed = wash?.pressed ?? (d.pressed > hover ? d.pressed : above);
+  return { hover, pressed };
 };
 
 export type Theme = {
@@ -411,8 +477,11 @@ export type Theme = {
   // hue at low alpha — is scheduled; needs per-colour alpha ramps.)
   outlineInteraction: OutlineInteraction;
   // The opaque hover fill's page step per mode (#3071), read only under 'opaque-fill' (ignored, with a note, otherwise).
-  // Unset modes take the default rule.
+  // Unset modes take the default rule. #3335: per button set too (`sets`), the mode-wide pick their default.
   outlineHoverFill?: OutlineHoverFill;
+  // The outline wash's opacity (#3335), as the brand set it; `outlineWashSteps` resolves it per method. Unset is each
+  // method's own default, so a brand that never sets it is byte-identical.
+  outlineWash?: OutlineWash;
   // Neutral interactive emphasis (docs/20 §10). 'subtle' (default): a light-grey neutral
   // fill; 'strong': a bold near-black (light) / near-white (dark) neutral fill.
   neutralEmphasis: 'subtle' | 'strong';
@@ -655,8 +724,14 @@ export type BrandInput = {
   outlineInteraction?: OutlineInteraction;
   /** The opaque outline hover fill's page step (#3071), per editable mode: `{ light: { hover: 'neutral.050' } }`.
    *  `pressed` defaults to the next step toward the ink. A mode not named, the inverse band and the generate-only
-   *  modes take the default rule (the neutral step nearest 1.15:1 against the ground). Read only under 'opaque-fill'. */
+   *  modes take the default rule (the neutral step nearest 1.15:1 against the ground). Read only under 'opaque-fill'.
+   *  #3335: `{ light: { sets: { primary: { hover: 'primary.050' } } } }` picks one button set's fill; the mode-wide
+   *  pick is every other set's default. */
   outlineHoverFill?: OutlineHoverFill;
+  /** The outline wash's opacity (#3335): `{ hover: 10, pressed: 20 }`, steps of the opacity scale, pressed above hover.
+   *  The neutral wash defaults to 10/20 and the tinted wash to 20/30; under the tinted wash the pick is the step the
+   *  engine starts from, still stepped for the label's floor and for visibility. Selected follows pressed. */
+  outlineWash?: OutlineWash;
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
   neutralEmphasis?: 'subtle' | 'strong';
@@ -2664,6 +2739,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const outlineHoverFill = validOutlineHoverFill(input.outlineHoverFill, modesAll, CUSTOMIZABLE_MODES);
   if (outlineHoverFill && input.outlineInteraction !== 'opaque-fill')
     notes.push(`outlineHoverFill: set, and read only under outlineInteraction: opaque-fill; this brand's outline hover is '${input.outlineInteraction ?? 'overlay-neutral'}', so the picks are ignored.`);
+  const outlineWash = validOutlineWash(input.outlineWash);
+  // One step given: the other is the method's default, which must still leave pressed above hover.
+  const washAt = outlineWashSteps(input.outlineInteraction ?? 'overlay-neutral', outlineWash);
+  if (outlineWash && washAt && washAt.pressed <= washAt.hover)
+    throw new Error(`outlineWash: pressed ${washAt.pressed} must be above hover ${washAt.hover} under '${input.outlineInteraction ?? 'overlay-neutral'}', so a press reads as coming forward (an unset step is the method's default, or the step above hover; 40 has none above it)`);
+  if (outlineWash && input.outlineInteraction === 'none')
+    notes.push(`outlineWash: set, and read only under a wash; this brand's outline hover is 'none', so the opacity is ignored.`);
   if (Object.keys(input.overrides ?? {}).length) notes.push(`overrides: color overrides in ${Object.keys(input.overrides!).join(', ')} — those roles point at the chosen ramp steps; a pick below its contrast floor is warned, not blocked.`);
   // Per-mode interactive anchors (A2b) — same customizable-mode rule as overrides. An anchor
   // re-derives the whole interactive column for that mode (still floor-gated via `chromatic`).
@@ -3526,6 +3608,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     iconContrast: input.iconContrast ?? 'text',
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     ...(outlineHoverFill ? { outlineHoverFill } : {}),
+    ...(outlineWash ? { outlineWash } : {}),
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
     ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),

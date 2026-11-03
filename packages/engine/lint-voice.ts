@@ -711,6 +711,8 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   // #3071: the opaque outline hover fill with a pick, and a pick left under another method.
   ['opaque outline hover fill', { outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.050' } } }],
   ['outline hover fill under the wash', { outlineHoverFill: { light: { hover: 'neutral.050' } } }],
+  // #3335: the wash's opacity set under No hover fill is kept and ignored, with a note.
+  ['outline wash under no hover fill', { outlineInteraction: 'none', outlineWash: { hover: 5 } }],
   ['grid margins off the spacing scale (#3052)', { layout: { marginOverrides: { md: 44, lg: 45 } } }],
   ['caption sizes and letter spacing pins (#3077)', { typography: { sizes: { caption: { md: 10 } }, tracking: { display: 'open', label: 'open' } } }],
   ['a trait pre-empted by another', { personality: ['soft', 'sharp'] }],
@@ -780,6 +782,7 @@ const PRODUCERS: Producer[] = [
   { id: 'overlays: opaque-fill', re: /^interactive overlays: 'opaque-fill' — /, kind: 'site' },
   { id: 'overlays: opaque-fill pick', re: /, picked in [a-z-]+(?:, [a-z-]+)*; the default rule elsewhere/, kind: 'fragment' },
   { id: 'outlineHoverFill ignored', re: /^outlineHoverFill: set, and read only under outlineInteraction: opaque-fill/, kind: 'site' },
+  { id: 'outlineWash ignored', re: /^outlineWash: set, and read only under a wash/, kind: 'site' },
   { id: 'surfaces: page', re: /^surfaces: the \S+ page is /, kind: 'site' },
   { id: 'surfaces: floor', re: /^surfaces: the \S+ contrast floor is set to /, kind: 'site' },
   { id: 'surfaces: second tier, floor follows', re: /^surfaces: the \S+ second tier is .+ — the contrast floor moves with it\.$/, kind: 'site' },
@@ -811,7 +814,7 @@ const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
 // theme.ts: 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 50, 'packages/engine/vocabulary.ts': 2 };
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 51, 'packages/engine/vocabulary.ts': 2 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [
@@ -909,15 +912,28 @@ const setPath = (base: Record<string, unknown>, path: string[], value: unknown):
 // (`tighter` < `tight` < …), so most single values are invalid alone — brandTheme refuses them — and no
 // note prints a rung value. Every other enum path is rendered.
 const ENUM_SKIP = ['typography.lineHeights.', 'typography.letterSpacings.', 'modeLevers.dark.lineHeights.', 'modeLevers.dark.letterSpacings.'];
+// Refused by name (#3335): alone over NOTE_BASE (the neutral wash, 10 hover and 20 pressed) these leave pressed on or under
+// hover, which the engine refuses; a refusal renders no note, so there is nothing to read. Each must still throw that
+// refusal: one that renders, or throws something else, goes blind here.
+const ENUM_REFUSED: Record<string, RegExp> = {
+  'outlineWash.hover=40': /^outlineWash: pressed 40 must be above hover 40 /,
+  'outlineWash.pressed=5': /^outlineWash: pressed 5 must be above hover 10 /,
+  'outlineWash.pressed=10': /^outlineWash: pressed 10 must be above hover 10 /,
+};
 let enumRenders = 0;
 for (const { path, values } of enumLevers) {
   if (ENUM_SKIP.some((p) => path.join('.').startsWith(p))) continue;
   for (const v of values) {
     const label = `enum ${path.join('.')}=${JSON.stringify(v)}`;
+    const refused = ENUM_REFUSED[`${path.join('.')}=${JSON.stringify(v)}`];
     try {
       for (const n of brandTheme(setPath(NOTE_BASE, path, v) as any).notes) decisionNotes.push({ where: `sweep: ${label}`, text: n });
       enumRenders++;
-    } catch (e) { blind.push(`decisions-log sweep '${label}' — did not render (${(e as Error).message})`); }
+      if (refused) blind.push(`decisions-log sweep '${label}' — rendered, though ENUM_REFUSED lists it as refused: drop the entry`);
+    } catch (e) {
+      if (refused?.test((e as Error).message)) continue;
+      blind.push(`decisions-log sweep '${label}' — did not render (${(e as Error).message})`);
+    }
   }
 }
 // Represented, not counted: every producer is reached, and every note is claimed by a site.

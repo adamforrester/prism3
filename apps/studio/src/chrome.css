@@ -480,6 +480,9 @@
 .p3-card-sub, .p3-note { color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
 .p3-stack > .p3-note { margin: 0; }
 .p3-health-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--p3-space-150); margin: 0; }
+/* #3366: Health's pointer to the contrast floor, its line then the way to the setting. */
+.p3-health-floor { display: grid; gap: var(--p3-space-050); justify-items: start; }
+.p3-health-floor > .p3-note { margin: 0; }
 .p3-vpill {
   display: inline-flex; align-items: center; gap: var(--p3-space-075); padding: var(--p3-space-050) var(--p3-space-150);
   border-radius: var(--p3-radius-pill); background: var(--p3-fill-1); color: var(--p3-text);
@@ -1338,6 +1341,15 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 /* S4f: the Background fills sub-headings (QA-B7) at the rows' sub-heading size; the first opens the block, so it
    takes no divider. The contrast floor row's name and its info button share a line (QA-B6). */
 .p3-rows-sub.p3-rows-sub-first { margin-top: 0; padding-top: 0; border-top: none; }
+/* #3366: under the contrast floor's row, what it checks: the line, a list of its groups each with a sample's swatch,
+   and what it does not check. The list's rhythm is Health's mode list (`.p3-health-modes`). */
+.p3-floor-what { display: grid; gap: var(--p3-space-150); }
+.p3-floor-groups { display: grid; gap: var(--p3-space-100); margin: 0; padding: 0; list-style: none; font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
+.p3-floor-group { display: flex; align-items: center; gap: var(--p3-space-100); }
+.p3-floor-sw {
+  flex: none; width: var(--p3-icon-xs); height: var(--p3-icon-xs); border-radius: var(--p3-radius-md);
+  outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
+}
 /* L2: a group heading inside a row list (whose gap is space-300) pulls its first row up to space-150. */
 .p3-fillrows > .p3-rows-sub { margin-block-end: calc(var(--p3-space-150) - var(--p3-space-300)); }
 /* A6 (owner, 2026-10-03): the scrim's wash fills its swatch, over the swatch's checkerboard (`.p3-checker`). */
@@ -1365,8 +1377,18 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); line-height: var(--p3-lh-compact); }
 /* L2: the group's first row starts space-150 after its heading row (the group's gap is space-300). */
 .p3-icol-head { margin-block-end: calc(var(--p3-space-150) - var(--p3-space-300)); }
-.p3-irow-group { display: grid; gap: var(--p3-space-300); }
-.p3-irow-states { display: grid; gap: var(--p3-space-300); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
+.p3-irow-group { display: grid; gap: var(--p3-rhythm-row); }
+.p3-irow-states { display: grid; gap: var(--p3-rhythm-row); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
+/* #3335 (the owner's Q3335.1 A and Q3335.7 A, with the amendment): each button set is a card of its own, its title on one
+   line with its palette and, for an accent, Remove; its state groups below on the group rhythm, the first without the
+   hairline the card's own edge already draws. A group with no rest row (a wash, or Solid fill's pickers) is `.p3-irow-flat`:
+   its Hover and Pressed are its own rows, side by side at its level, with no states column to indent them. */
+.p3-icard:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+.p3-icard-line { display: flex; align-items: center; gap: var(--p3-space-100); }
+.p3-icard-pal { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); letter-spacing: normal; }
+/* An accent's Remove overhangs the title's line, so the row stays as tall as the title (TY2 A). */
+.p3-icard-line > .p3-btn { margin-block: calc(-1 * var(--p3-space-100)); }
+.p3-icard > .p3-icols > .p3-icol:first-child { padding-top: 0; border-top: 0; }
 .p3-irow-states:empty { display: none; }
 .p3-pick-read { color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); white-space: nowrap; }
 /* The add row (S5.3, QA-I4): set apart from the last button set by more than the sets are from each other; the
@@ -2046,7 +2068,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
   /* The brand's color specimens keep their colors: the brand switcher's swatch, Palettes' squares, heroes and role
      dots, each fill row's swatch (the scrim's checkerboard with it), the step picker's chips, the start window's
      example dots, Build style guides' swatches, Layout's samples, and the previews' specimen grounds. */
-  .p3-swatch > span, .p3-sg-swatch > span, .p3-hero, .p3-rolechip-dot, .p3-sqs, .p3-fill-sw, .p3-step-chip, .p3-start-dot,
+  .p3-swatch > span, .p3-sg-swatch > span, .p3-hero, .p3-rolechip-dot, .p3-sqs, .p3-fill-sw, .p3-floor-sw, .p3-step-chip, .p3-start-dot,
   .p3-lsamp-bar, .p3-lsamp-gap, .p3-legacy-card .sg-ground {
     forced-color-adjust: none;
   }
