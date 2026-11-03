@@ -404,46 +404,6 @@
       "description": "Label line height (body lg, 27px) — an option row's control stays on the label's first line.",
       "value": 27,
       "alias": null
-    },
-    {
-      "name": "pds3/type/caption/md/line-box",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT"
-      ],
-      "description": "Caption line height (caption md, 15px) — a status glyph stays on the caption's first line.",
-      "value": 15,
-      "alias": null
-    },
-    {
-      "name": "pds3/type/caption/md/glyph-inset",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Caption inset (caption md, 0.3px) — the caption's first line centers on a status glyph.",
-      "value": 0.3,
-      "alias": null
-    },
-    {
-      "name": "pds3/type/caption/lg/line-box",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT"
-      ],
-      "description": "Caption line height (caption lg, 17px) — a status glyph stays on the caption's first line.",
-      "value": 17,
-      "alias": null
-    },
-    {
-      "name": "pds3/type/caption/lg/glyph-inset",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Caption inset (caption lg, 0px) — the caption's first line centers on a status glyph.",
-      "value": 0,
-      "alias": null
     }
   ]
 }

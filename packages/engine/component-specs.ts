@@ -57,7 +57,10 @@ const SWAP_TARGET = 'FPO-default-icon';
 export type SpecValue =
   | { token: string; px?: number }
   | { px: number; source: 'literal' }
-  | { px: number; source: 'derived'; rule: string };
+  | { px: number; source: 'derived'; rule: string }
+  /** A value the executor COMPUTES per file at paste, from the brand's own numbers (#3360, `PartDef.firstLine`): no px
+   *  here, because the spec is brand-free and no token carries it. `rule` is the formula, as code computes it live. */
+  | { source: 'computed'; rule: string };
 
 /** The redline properties, in reading order. Figma's bound keys map onto them in `GEOMETRY`. */
 export const SPEC_PROPERTIES = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'gap', 'rowGap', 'height', 'minHeight', 'width', 'minWidth', 'maxWidth', 'buildWidth', 'buildHeight'] as const;
@@ -169,11 +172,24 @@ const literalGeometry = (n: FigmaNodePlan, isRoot: boolean, def: ComponentDef, a
   return out;
 };
 
+/** The cells a `firstLine` row pads at paste (#3360), by node path → the formula, as code computes it live from the
+ *  text's own line (`1lh`) and the glyph's size token. */
+const firstLineRules = (n: FigmaNodePlan, path = ''): [string, SpecValue][] => {
+  const p = path ? `${path}/${n.name}` : n.name;
+  const f = n.firstLine;
+  const own: [string, SpecValue][] = f
+    ? [[`${p}/${f.textCell}`, { source: 'computed', rule: `max(0, ${refOfVar(f.glyph)} − one ${f.text} line) ÷ 2` }],
+      [`${p}/${f.glyphCell}`, { source: 'computed', rule: `max(0, one ${f.text} line − ${refOfVar(f.glyph)}) ÷ 2` }]]
+    : [];
+  return [...own, ...n.children.flatMap((c) => firstLineRules(c, p))];
+};
+
 /** One node's redline facts, `prop → JSON value`. A literal overrides a binding on the same property. */
-const geometryOf = (n: FigmaNodePlan, isRoot: boolean, def: ComponentDef, authored: ComponentDef): Map<string, string> => {
+const geometryOf = (n: FigmaNodePlan, isRoot: boolean, def: ComponentDef, authored: ComponentDef, computedTop?: SpecValue): Map<string, string> => {
   const m = new Map<string, string>();
   for (const [k, v] of Object.entries(n.bound)) if (GEOMETRY[k]) m.set(GEOMETRY[k], JSON.stringify({ token: refOfVar(v) }));
   for (const [k, v] of literalGeometry(n, isRoot, def, authored)) m.set(k, JSON.stringify(v));
+  if (computedTop) m.set('paddingTop', JSON.stringify(computedTop));
   return m;
 };
 
@@ -296,7 +312,8 @@ export const componentSpec = (authored: ComponentDef, opts: { def?: ComponentDef
   });
 
   // REDLINES — keyed size × slots, grown until every value is a function of the key.
-  const geo = (n: FigmaNodePlan, path: string) => geometryOf(n, rootOf.has(path), def, authored);
+  const computed = new Map(plans.flatMap((p) => firstLineRules(p.root)));
+  const geo = (n: FigmaNodePlan, path: string) => geometryOf(n, rootOf.has(path), def, authored, computed.get(path));
   const redlineKey = keyAxes(members, geo, all.filter((a) => a === 'size' || slots.includes(a)), all);
   const withPx = (v: SpecValue): SpecValue => ('token' in v && opts.px ? { ...v, ...(opts.px(v.token) === undefined ? {} : { px: opts.px(v.token) }) } : v);
   const redlines = rowsOf(members, redlineKey, geo, (part, f) => {
@@ -375,7 +392,7 @@ export const projectComponentSpecs = (defs: readonly ComponentDef[]) => ({
 const code = (s: string) => `\`${s}\``;
 const whereText = (w: SpecWhere): string => Object.entries(w).map(([a, v]) => `${a}=${v}`).join(', ') || 'every member';
 const valueText = (v: SpecValue): string =>
-  'token' in v ? `${code(v.token)}${v.px === undefined ? '' : ` · ${v.px}px`}` : `${v.px}px (${v.source}${'rule' in v ? `: ${v.rule}` : ''})`;
+  'token' in v ? `${code(v.token)}${v.px === undefined ? '' : ` · ${v.px}px`}` : !('px' in v) ? `computed: ${v.rule}` : `${v.px}px (${v.source}${'rule' in v ? `: ${v.rule}` : ''})`;
 const LABEL: Record<SpecProperty, string> = {
   paddingTop: 'padding top', paddingRight: 'padding right', paddingBottom: 'padding bottom', paddingLeft: 'padding left',
   gap: 'gap', rowGap: 'row gap', height: 'height', minHeight: 'min height', width: 'width', minWidth: 'min width',

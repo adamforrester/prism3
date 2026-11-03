@@ -1,35 +1,33 @@
-## (2026-11-02) — FieldMessage: the status glyph centers on the message's first line (#3360)
+## (2026-11-03) — FieldMessage: the status glyph centers on the message's first line (#3360)
 
-**Owner decision Q-FM1 A.** The field message's status glyph centers on the caption's FIRST line. A one-line message
-reads exactly centered, and a wrapping one keeps the glyph beside its first line. Option B, centering the glyph on
-the whole block, was the simpler answer and floats the glyph between the lines of a two-line message.
+**Owner decisions Q-FM1 A and Q-FM1.1 B.** The field message's status glyph centers on the caption's FIRST line. A
+one-line message reads exactly centered, and a wrapping one keeps the glyph beside its first line. Option B, centering
+the glyph on the whole block, floats the glyph between the lines of a two-line message. Q-FM1.1 B: no new tokens just
+for the field message, so the offset is computed in the component, not baked into `type.caption.*`.
 
 **The diagnosis.** The row was `align: 'start'`, so the glyph's top met the caption's top. That is centered only when the
 caption's line is exactly the glyph's height. Every corpus caption.md line is shorter than the 16px glyph: 15.4px
 (11 × 1.4) in four brands and 14px (10 × 1.4) on the reference brand. So the glyph sat 0.3px, or 1px, above the
-first line's middle. The def's own note had flagged this as unmeasured against a wrapping message (#1009).
+first line's middle.
 
-**The fix reuses #3153's option-row construction** on the caption type, rather than a new mechanism. The glyph sits in
-`glyphCell`, whose floor is one caption line and which hugs the glyph, so it is max(glyph, line) and centers the glyph.
-The caption sits in `captionCell`, set down by `glyph-inset`, which is half the glyph less the line and 0 where the line
-is the taller. The row stays top-aligned, as #1009 half 1 requires. The caption cell is present in every status, so
-the caption starts at one height whatever the status and a validation result moves no text. The row's glyph-height
-floor (2026-09-25, option (a)) is unchanged.
+**The fix.** The glyph sits in `glyphCell` and the caption in `captionCell`. The row's new `PartDef.firstLine` names the
+two cells, the caption and the glyph's size key. At paste, both executors read the caption node's own line height and
+the glyph variable's value, and pad the shorter cell down by half the difference. This is the `minLines` division of
+labor (textarea's rows): the plan carries names and stays brand-invariant, and the number is frozen per file because
+Figma's padding binds one variable and takes no max or half of two. Code computes the same live from `1lh`. The line is
+the unrounded one, as the text renders it, so the two middles agree exactly. The row stays top-aligned, as #1009 half 1
+requires, and its glyph-height floor (2026-09-25, option (a)) is unchanged. `EXECUTOR_REVISION` 49 redraws
+`field-message` only, measured by `lint-executor-reach`.
 
-**Two baked token families, CONTRACT 14.14.0.** `type.caption.{md,lg}.line-box` is the caption twin of the label and
-body line boxes. `type.caption.{md,lg}.glyph-inset` is the caption's inset beside `icon.size.xs`. Both are baked
-because Figma cannot take a max or a half of two variables. The inset is taken off the UNROUNDED line (0.3px, not the
-0.5px the rounded 15px box would give), so on every shipped caption the two middles agree exactly. Where the line is
-the taller (caption.lg, 16.8px), the rounded box leaves the glyph up to 0.25px off, which is #2586's tolerance.
+**The gates.** `test.ts` `#3360 field-message glyph on the first line` runs the paste executor per corpus brand, with the
+stub's text metrics set to that brand's caption composite and the glyph variable to its `icon.size.xs`. It then places
+the glyph and the first line from the built nodes' own layout and paddings, for a one- and a two-line message, at
+caption.md and caption.lg, and does the same from the def as code reads it. Tolerance 0.01px. `#3360 built` in
+`test-write-components.ts` measures the plugin executor in the shim's layout model. The readback (`anatomy-readback.ts`
+`firstLine`) re-derives the agreement from the host's text metrics, glyph height and paddings, and the round-trip
+caught a shim that answered the glyph variable and the glyph's box from different tables. Mutations, each failing by
+name: main's def, `firstLine` dropped, the row centered, and the line taken off `Math.round` in either executor.
 
-**The gate.** `test.ts` `#3360 field-message glyph on the first line` places the glyph and the caption's first line for a
-one- and a two-line message. It runs the placement twice, from the Figma plan and from the def's own keys as code
-reads them, through every corpus brand's emitted tokens. It also runs at caption.lg, by rebinding the def's keys, so
-the branch where the line is the taller is exercised. The line is computed from the composite's font size × line
-height, never read off the two new tokens. Mutations, each failing that assertion by name: main's def (glyphs straight
-in the `start` row), 0.30px off; the inset dropped, 0.30px off; and the row centered, which is option B, 7.55px off on
-two lines. `#3360 field-message caption holds still` checks the caption's top in every status.
-
-**Trap for whoever re-verifies.** The gate models Figma's text node as setting its first line in the top line box of
-its height, the same assumption #3153's option rows make. A built file was not measured. It is recorded in the def's
-`notes.unverified`.
+**Trap for whoever re-verifies.** The shim's `resolveForConsumer` and a bound value come from different tables, so a
+test building field-message must resolve `icon/size/xs` to the size it binds (`varOverrides`), or the inset is computed
+for another glyph. A built Figma file was not measured; the def's `notes.unverified` records the first-line assumption.

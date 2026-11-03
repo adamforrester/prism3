@@ -23,7 +23,7 @@ import { Theme } from './theme';
 import { buildTree, at } from './tree';
 import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
-  figmaControlDescription, figmaLabelLineBoxDescription, figmaBodyLineBoxDescription, figmaCaptionLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription, figmaBlurDescription,
+  figmaControlDescription, figmaLabelLineBoxDescription, figmaBodyLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription, figmaBlurDescription,
   figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
   figmaCurveDescription, figmaEasingRoleDescription, figmaSpringDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
@@ -348,25 +348,6 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       value: px,
       alias: null,
     });
-  }
-
-  // `type/caption/{rung}/line-box` and `glyph-inset` with #3360 (owner Q-FM1 A) — a field message's glyph cell binds the
-  // line box as its minimum height and its caption column binds the inset as its top PADDING (GAP-scoped, as the
-  // option row's `label-inset`), so the status glyph centers on the caption's first line. Beside the twins above.
-  for (const rung of byNumericKey(Object.keys(brand.type?.caption ?? {}))) {
-    for (const field of ['line-box', 'glyph-inset'] as const) {
-      const leaf = brand.type.caption[rung]?.[field];
-      if (!leaf) continue;
-      const px = pxFromValue(tree, leaf.$value);
-      controlVars.push({
-        name: ns(`type/caption/${rung}/${field}`),
-        resolvedType: 'FLOAT',
-        scopes: field === 'glyph-inset' ? SIZE_PADDING_SCOPES : SIZE_HEIGHT_SCOPES,
-        description: figmaCaptionLineBoxDescription(field, rung, px),
-        value: px,
-        alias: null,
-      });
-    }
   }
 
   const borderVars: FigmaVar[] = Object.keys(brand['border-width']).map((key) => {

@@ -18999,15 +18999,17 @@
               "part": "message/captionCell",
               "values": {
                 "paddingTop": {
-                  "token": "type.caption.md.glyph-inset"
+                  "source": "computed",
+                  "rule": "max(0, icon.size.xs − one label line) ÷ 2"
                 }
               }
             },
             {
               "part": "message/glyphCell",
               "values": {
-                "minHeight": {
-                  "token": "type.caption.md.line-box"
+                "paddingTop": {
+                  "source": "computed",
+                  "rule": "max(0, one label line − icon.size.xs) ÷ 2"
                 }
               }
             },

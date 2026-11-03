@@ -311,13 +311,6 @@ export const figmaLabelLineBoxDescription = (rung: string, px: number): string =
 export const figmaBodyLineBoxDescription = (rung: string, px: number): string =>
   `Label line height (body ${rung}, ${px}px) — an option row's control stays on the label's first line.`;
 
-/** `type/caption/<rung>/line-box` and `glyph-inset` (#3360, Q-FM1 A): one line of the caption type, and how far a
- *  caption sets down beside the 16px status glyph, carried in the `control` collection. */
-export const figmaCaptionLineBoxDescription = (field: 'line-box' | 'glyph-inset', rung: string, px: number): string =>
-  field === 'line-box'
-    ? `Caption line height (caption ${rung}, ${px}px) — a status glyph stays on the caption's first line.`
-    : `Caption inset (caption ${rung}, ${px}px) — the caption's first line centers on a status glyph.`;
-
 /** `focus/ring/<key>` (#1623 FG/F-17). */
 export const figmaFocusDescription = (key: string, px: number): string => {
   switch (key) {

@@ -818,28 +818,6 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     labelLineBox[rung] = px;
     labelLineBoxFrom[rung] ??= c.path;
   }
-  // #3360 (owner Q-FM1 A) — the same bake for the CAPTION type, the type a field message is set in. Its status glyph
-  // centers on the caption's FIRST line: the glyph sits in a cell at least one caption line tall, and where the glyph
-  // is the taller (a 16px glyph beside every corpus caption), the caption sets down by half the difference. That is
-  // the option row's construction (#3153), and the inset is baked for #3153's reason: Figma cannot take a max or a
-  // half of two variables. The glyph is `icon.size.xs`, the caption-scale status glyph, so the inset is measured
-  // against it. Same product, same rounding, same agreement assertion as the label and body bakes.
-  const captionLineBox: Record<string, number> = {};
-  const captionLineBoxFrom: Record<string, string> = {};
-  // The UNROUNDED line, for the inset: the caption renders at font size × line height exactly (15.4px at 11 × 1.4), so an
-  // inset taken off the rounded box would leave the first line up to 0.25px off the glyph's middle.
-  const captionLine: Record<string, number> = {};
-  for (const c of theme.typography.composites) {
-    if (c.group !== 'caption') continue;
-    const rung = c.path.split('.')[1]; // 'caption.md.default' → 'md'
-    const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
-    if (captionLineBox[rung] !== undefined && captionLineBox[rung] !== px)
-      throw new Error(`type.caption.${rung}.line-box is ambiguous: ${captionLineBoxFrom[rung]} gives ${captionLineBox[rung]}px but ${c.path} gives ${px}px. Every caption composite at one rung must share a size and line height (#3360, as #1220).`);
-    captionLineBox[rung] = px;
-    captionLine[rung] = c.sizePx * (lhRatio.get(c.lineHeight) ?? 1);
-    captionLineBoxFrom[rung] ??= c.path;
-  }
-  const statusGlyphPx = theme.dims.icons.find((ic) => ic.name === 'xs')?.px;
   for (const c of theme.dims.controls) {
     const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a square control's own dimension: a checkbox square or a radio circle (density: ${theme.dims.density}). A square control reads this on both axes. A switch's track is not square and reads \`track\`/\`width\` instead.`);
     const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.track}px \`track\` height, the common 2:1 track ratio). A square control uses \`height\` on both axes and does not read this.`);
@@ -1187,15 +1165,6 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const [rung, px] of Object.entries(bodyLineBox)) {
     if (!typeGroup.body?.[rung]) continue;
     typeGroup.body[rung]['line-box'] = dimLeaf(px, `type.body.${rung} line-box — ${px}px, the height of one line of the \`body.${rung}\` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps.`);
-  }
-  // #3360 — the caption twin (owner Q-FM1 A), and its inset against the status glyph (see `captionLineBox` above).
-  for (const [rung, px] of Object.entries(captionLineBox)) {
-    if (!typeGroup.caption?.[rung]) continue;
-    typeGroup.caption[rung]['line-box'] = dimLeaf(px, `type.caption.${rung} line-box — ${px}px, the height of one line of the \`caption.${rung}\` type (font size × line height). A status glyph beside a caption sits in a box at least this tall, so it stays on the caption's first line when the caption wraps.`);
-    if (statusGlyphPx === undefined) continue;
-    const line = Math.round(captionLine[rung] * 100) / 100;
-    const inset = Math.max(0, Math.round((statusGlyphPx - captionLine[rung]) * 50) / 100);
-    typeGroup.caption[rung]['glyph-inset'] = dimLeaf(inset, `type.caption.${rung} glyph-inset — ${inset}px, how far a caption starts below the top of its row beside the ${statusGlyphPx}px \`icon.size.xs\` status glyph: half of the glyph less the ${line}px line, and 0 when the line is the taller. Keeps the caption's first line centered on the glyph.`);
   }
 
   // ---- shadow / elevation axis (Phase A) ----

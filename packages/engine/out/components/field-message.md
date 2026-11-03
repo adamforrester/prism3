@@ -19,8 +19,8 @@ The small icon + caption below a form field. In its default status it is persist
 
 Shown on the default member: status `default`.
 
-1. **Glyph cell** — The status glyph's cell: at least one caption line tall, with the glyph centered in it, so the glyph sits on the caption's first line.
-2. **Caption cell** — The caption's column. It fills the row beside the glyph and sets the caption down so its first line centers on the glyph.
+1. **Glyph cell** — The status glyph's cell. Where the caption's line is taller than the glyph, it sets the glyph down so the glyph's middle is the first line's middle.
+2. **Caption cell** — The caption's column. It fills the row beside the glyph and, where the glyph is taller than the caption's line, sets the caption down so its first line centers on the glyph.
 3. **Error glyph**
 4. **Warning glyph**
 5. **Success glyph**
@@ -119,8 +119,8 @@ Keyed by nothing: one row covers every member.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `message` | — | `space.075` | — | — | — | min height `icon.size.xs`; build width 320px (literal) |
-| `message/captionCell` | `type.caption.md.glyph-inset` / — / — / — | — | — | — | — | — |
-| `message/glyphCell` | — | — | — | — | — | min height `type.caption.md.line-box` |
+| `message/captionCell` | computed: max(0, icon.size.xs − one label line) ÷ 2 / — / — / — | — | — | — | — | — |
+| `message/glyphCell` | computed: max(0, one label line − icon.size.xs) ÷ 2 / — / — / — | — | — | — | — | — |
 | `message/glyphCell/errorGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `message/glyphCell/warningGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `message/glyphCell/successGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |

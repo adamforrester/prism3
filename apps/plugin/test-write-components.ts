@@ -4028,10 +4028,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const f = fullFor(all);
     const page: Page = { children: [] };
-    // #3360: the glyph's cell floors at one caption line and the caption sets down by half the glyph less the line. Both
-    // are baked per brand, so here they are worked by hand from this file's own caption line box, as the bake would.
-    const varPx = { 'type/caption/md/line-box': lineBox, 'type/caption/md/glyph-inset': Math.max(0, (GLYPH - lineBox) / 2) };
-    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [CAPTION]: lineBox }, varPx });
+    // #3360: the executor pads the shorter of the glyph's cell and the caption's by half the difference, reading the
+    // caption's line off the text node's own metrics and the glyph off its variable's value. So the caption style's
+    // metrics are this file's line box (font size and a PIXELS line height both at it), and the glyph variable resolves
+    // to the size the shim binds it to, so the two agree with the boxes the layout model draws.
+    const styleMetrics = { [CAPTION]: { fontSize: lineBox, lineHeight: { unit: 'PIXELS' as const, value: lineBox } } };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [CAPTION]: lineBox }, styleMetrics, varOverrides: { 'icon/size/xs': GLYPH } });
     const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
     await prebuildDependencies(host, { defs, project, host: shim as any, build });
     const r = await build(host);
@@ -4099,14 +4101,18 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // real executor and the shim's layout model. The glyph's middle and the first line's middle are summed up the parent
   // chain from each node's own `y` to the member, for a one-line caption and then the same caption made long enough to
   // wrap to two lines (asserted, not assumed). EXPECTED: the two middles agree, worked from this file's own line box
-  // (half a line below the caption's top), never from the def. Both shapes: a line SHORTER than the glyph (the caption
-  // sets down) and TALLER (the cell grows to the line). Mutation: main's def, the glyph straight in the `start` row →
-  // `#3360 built: … first line`, by name.
+  // (half a line below the caption's top), never from the def. Three shapes: a line SHORTER than the glyph (the caption
+  // sets down), TALLER (the glyph sets down) and a FRACTION of a px shorter (the inset is taken off the line as the text
+  // renders it). Mutations, each failing `#3360 built: … first line` by name: main's def, the glyph straight in the
+  // `start` row; the row's `firstLine` dropped; and the executor's line taken off `Math.round` (the fractional shape).
   const yIn = (n: Node, member: Node): number => { let y = 0; for (let c: Node | null = n; c && c !== member; c = c.parent as Node | null) y += (c.y as number) || 0; return y; };
   const walk = (n: Node, f: (x: Node) => void): void => { f(n); ((n.children as Node[]) ?? []).forEach((c) => walk(c, f)); };
   const offLine: string[] = [];
   let measuredBuilt = 0;
-  for (const line of [SHORT, TALL]) {
+  // A FRACTIONAL line too, 0.6px under the glyph as a 15.4px caption sits under a 16px one: the executor must take the
+  // inset off the line as the text renders it, and a line rounded first sets the caption 0.2px off here.
+  const FRACTIONAL = GLYPH - 0.6;
+  for (const line of [SHORT, TALL, FRACTIONAL]) {
     const built = await buildFile(byDef('text-field'), line);
     const members = ((built.setNamed('field-message')?.children as Node[] | undefined) ?? []).filter((m) => !/status=default/.test(String(m.name)));
     const parts = members.map((member) => {
@@ -4128,8 +4134,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       }
     }
   }
-  ok(measuredBuilt === 2 * 3 * 2 && offLine.length === 0,
-    `#3360 built: the field message's glyph centers on the caption's first line, on a one- and a two-line caption, with the line shorter and taller than the glyph (${measuredBuilt} of 12 measured${offLine.length ? ` — OFF: ${offLine.slice(0, 4).join('; ')}` : ''})`);
+  ok(measuredBuilt === 3 * 3 * 2 && offLine.length === 0,
+    `#3360 built: the field message's glyph centers on the caption's first line, on a one- and a two-line caption, with the line shorter, taller and a fraction of a px shorter than the glyph (${measuredBuilt} of 18 measured${offLine.length ? ` — OFF: ${offLine.slice(0, 4).join('; ')}` : ''})`);
 }
 
 // ---- THE TEXTAREA CONTROL IS `rows` LINES TALL, PLUS PADDING (its Figma projection) ----------------
