@@ -485,6 +485,10 @@ export type FigmaNodePlan = {
    *  Carried onto the plan ONLY when `true`, so every existing box's plan is byte-identical (both
    *  executors read `n.clipsContent ?? false`, which is the literal they hardcoded before this field). */
   clipsContent?: boolean;
+  /** For a `box`: Figma's `overflowDirection`, the scroll region (#3163). Carried ONLY when the def declares
+   *  `scroll`, so every other box's plan is byte-identical; both executors write `n.overflowDirection ?? 'NONE'`
+   *  on every frame. `PartDef.scroll` has why it comes only with `clipsContent`. */
+  overflowDirection?: 'VERTICAL';
   /** For a `box`: the literal auto-layout `minWidth` floor in px (#1343a, #1345). Carried ONLY when the
    *  def sets it, so every existing box's plan is byte-identical; both executors write it inside the
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
@@ -2292,6 +2296,8 @@ export const figmaAnatomyPlan = (
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...((p.kind === 'box' && p.clipsContent) || tileEdge ? { clipsContent: true as const } : {}),
+      // The scroll region (#3163), carried ONLY when declared — see `PartDef.scroll`.
+      ...(p.kind === 'box' && p.scroll === 'vertical' ? { overflowDirection: 'VERTICAL' as const } : {}),
       // THE ROOT'S BUILD WIDTH (#1757), carried ONLY on a root that declares it — see `placementWidth`.
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
       // ITS HEIGHT TWIN (#2609), carried ONLY on a root built at a height too — see `PartDef.builtSize`.
@@ -4684,7 +4690,7 @@ const PAYLOAD_SLOTS = `// #2417 — NATIVE SLOTS, the paste twin of the plugin e
 // frame's own fields are carried over, its size BEFORE any binding (a \`resize\` clears them), and its variables
 // re-bound from the plan by name. Called once per member, before the combine, which merges slots by name; a member a
 // later chunk appends to the set merges into its slot property the same way (measured), so no duplicate arises here.
-const __SLOT_FIELDS=['layoutMode','primaryAxisSizingMode','counterAxisSizingMode','primaryAxisAlignItems','counterAxisAlignItems','layoutWrap','itemSpacing','counterAxisSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','minWidth','maxWidth','minHeight','maxHeight','clipsContent','fills','strokes','strokeWeight','strokeAlign','cornerRadius','opacity','visible','layoutAlign','layoutGrow','layoutPositioning'];
+const __SLOT_FIELDS=['layoutMode','primaryAxisSizingMode','counterAxisSizingMode','primaryAxisAlignItems','counterAxisAlignItems','layoutWrap','itemSpacing','counterAxisSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','minWidth','maxWidth','minHeight','maxHeight','clipsContent','overflowDirection','fills','strokes','strokeWeight','strokeAlign','cornerRadius','opacity','visible','layoutAlign','layoutGrow','layoutPositioning'];
 const __slotsNow=(comp,member)=>{
   for(const [frame,n] of __slots){
     const parent=frame.parent;
@@ -4791,6 +4797,9 @@ const claimDefaults=(node,n,mode,layerOp)=>{
   if(t==='FRAME'||t==='COMPONENT_SET'){
     for(const k of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'])if(isSet)w(k,S.radius,0);else if(!(k in B))set(k,0);
     set('clipsContent',!!m.clipsContent);
+    // The scroll region (#3163): a FRAME's prototype overflow, NONE unless the plan says. Not on a set, which has no
+    // \`overflowDirection\` (\`ComponentSetNode\` lacks FramePrototypingMixin).
+    if(t==='FRAME')set('overflowDirection',m.overflowDirection||'NONE');
     // Parent-side auto-layout properties apply only on an auto-layout frame, and Figma THROWS on
     // \`strokesIncludedInLayout\` elsewhere — so gated on the PLAN's \`layoutMode\`.
     if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B||k in(m.paddingPx||B)))set(k,0);set('strokesIncludedInLayout',false);}
