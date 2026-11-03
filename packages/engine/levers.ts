@@ -89,8 +89,10 @@ export const leverManifest: Lever[] = [
     description: 'Optional. A pre-defined brand gray, pinned verbatim at its lightness step; the ramp is built around it (hue/chroma from the anchor) instead of the cast. Set for a client that ships their own neutral; omit to derive from hue + chroma.' },
   { key: 'brandColors', group: 'color', kind: 'value', label: 'Additional brand colors', control: 'list', itemLabel: 'brand color (name + OKLCH)',
     description: 'Secondary / tertiary / accents — any number; each becomes its own ramp and can drive actions.' },
+  // #3365 — the description is a DRAFT for the owner (Q3365.1 on the build PR): it names neutral, which the Studio and
+  // the plugin now offer, and says what choosing it leaves alone (held by test.ts's #3365 block).
   { key: 'actionPalette', group: 'color', kind: 'value', label: 'Action palette', control: 'palette-ref', default: 'primary',
-    description: 'Which palette drives interactive/action color. Defaults to primary; point at an accent when the hero color is a poor CTA.' },
+    description: 'Which palette drives interactive/action color. Defaults to primary; point at neutral for near-black or gray actions (text, surfaces and borders stay as they are), or at an accent when the hero color is a poor CTA.' },
   { key: 'linkPalette', group: 'color', kind: 'value', label: 'Link palette', control: 'palette-ref',
     description: 'Which palette drives link color. Defaults to following the action color, including a roleColors.action override; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role.' },
   { key: 'status.success', group: 'color', kind: 'value', label: 'Success color', control: 'color', advanced: true,
@@ -274,7 +276,16 @@ export const leverManifest: Lever[] = [
     description: 'How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control\'s own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; opaque-fill = a solid palette step you pick (Outline hover fill), with the label and icon kept legible on it, on buttons and icon buttons only, while tags, segmented controls and pagination keep the wash; none = omit.' },
   // #3071 (owner Q824 A): label and description are a DRAFT for the owner (on the build PR). Read only under 'opaque-fill'.
   { key: 'outlineHoverFill', group: 'advanced', kind: 'value', label: 'Outline hover fill', control: 'object', advanced: true,
-    description: 'The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050. Pressed takes the next step unless you pick one. The label and icon move along their own color where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray step closest to their ground.' },
+    description: 'The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050, for every button set, or for one set alone. Pressed takes the next step unless you pick one. The label and icon move along their own color where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray step closest to their ground.' },
+  // #3335 (the owner's Q3335.3 A): the wash's opacity, brand-wide, hover and pressed apart. Two enums rather than one object
+  // so the lever sweep reaches every step. No `default`: it is the method's own (10/20 neutral, 20/30 tinted).
+  // Labels and descriptions are a DRAFT for the owner (on the build PR).
+  { key: 'outlineWash.hover', group: 'advanced', kind: 'value', label: 'Wash opacity: hover', control: 'enum', advanced: true,
+    options: enumOpts([5, '5%'], [10, '10%'], [20, '20%'], [30, '30%'], [40, '40%']),
+    description: 'How strong the hover wash is on outline and text controls, as an opacity step. The neutral wash defaults to 10% and the tinted wash to 20%; the tinted wash steps down per set where a label would drop below 4.5:1, and up where the hover would not show. Ignored under No hover fill.' },
+  { key: 'outlineWash.pressed', group: 'advanced', kind: 'value', label: 'Wash opacity: pressed', control: 'enum', advanced: true,
+    options: enumOpts([5, '5%'], [10, '10%'], [20, '20%'], [30, '30%'], [40, '40%']),
+    description: 'How strong the pressed wash is, above the hover step so a press reads as coming forward; selected follows it. The neutral wash defaults to 20% and the tinted wash to 30%. Ignored under No hover fill.' },
   { key: 'neutralEmphasis', group: 'advanced', kind: 'value', label: 'Neutral emphasis', control: 'enum', default: 'subtle',
     options: enumOpts(['subtle', 'Subtle (light gray)'], ['strong', 'Strong (bold near-black/white)']),
     description: 'The neutral interactive fill boldness — subtle light gray (a surface) or a strong near-black/near-white fill.' },

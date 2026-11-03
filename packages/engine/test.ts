@@ -1123,6 +1123,56 @@ for (const b of brands) {
   }
 }
 
+// ---- #3365 (owner, 2026-11-03): THE NEUTRAL PALETTE AS THE ACTION PALETTE ------------------------------------
+//
+// The Studio and the plugin offer `neutral` in the Action palette select, so a brand whose buttons and links are
+// near-black picks it directly instead of adding a duplicate gray (the reference brand, #3336). Three promises, per
+// example brand, each held against the SAME brief built with `actionPalette: 'primary'`:
+//   (a) the engine accepts it and the action family sits on the neutral ramp;
+//   (b) every mode contract passes;
+//   (c) the neutral role does not move: every role outside the action family, and the neutral ramp itself, is
+//       byte-identical (hex and alias path) to the primary build.
+// The action family is a LITERAL list (the primary column, its inverse, the four link families and the two focus
+// rings), typed here from the owner's issue and #3336's inventory, never read from `modes.ts`. A premise checks the
+// comparison can see a move at all: the action family itself must differ between the two builds.
+//
+// Mutations, each failing here by name:
+//   (1) `theme.ts` resolves a neutral action palette back to primary → `#3365 <id>: the engine resolves actionPalette 'neutral' …`
+//   (2) `theme.ts` darkens the neutral ramp when it drives actions → `#3365 <id>: the neutral ramp is unchanged …` and
+//       `#3365 <id>/<mode>: … every role outside the action family is unchanged …`
+//   (3) `modes.ts` `chromatic` takes a neutral action anchor as pinned (`exact`), so no action role is moved to clear its
+//       floor → `#3365 <id>/<mode>: all … contracts pass with a neutral action palette — FAILED: …`
+{
+  const ACTION_PREFIXES = ['interactive.primary.', 'inverse.interactive.primary.', 'text.link.', 'icon.link.', 'inverse.text.link.', 'inverse.icon.link.'];
+  const ACTION_ROLES = new Set(['border.focus', 'inverse.border.focus']);
+  const isAction = (k: string): boolean => ACTION_ROLES.has(k) || ACTION_PREFIXES.some((p) => k.startsWith(p));
+  for (const id of ['prism3', 'aurora', 'harbor']) {
+    const input = parseDesignMd(readFileSync(resolve(HERE, `./examples/${id}.design.md`), 'utf8')).input;
+    const base = exampleTheme(`${id} (actionPalette primary)`, () => brandTheme({ ...structuredClone(input), actionPalette: 'primary' }));
+    const t = exampleTheme(`${id} (actionPalette neutral)`, () => brandTheme({ ...structuredClone(input), actionPalette: 'neutral' }));
+    if (!base || !t) continue;
+    ok(t.roleToPalette.action === 'neutral', `#3365 ${id}: the engine resolves actionPalette 'neutral' onto the neutral ramp (got '${t.roleToPalette.action}')`);
+    const ramp = (x: Theme): string => (x.palettes.find((p) => p.palette === 'neutral')?.steps ?? []).map((s) => `${s.num}:${s.hex}`).join(' ');
+    ok(ramp(t) !== '' && ramp(t) === ramp(base), `#3365 ${id}: the neutral ramp is unchanged when it drives actions`);
+    const baseModes = new Map(resolveAllModes(base).map((m) => [m.mode, m.roles]));
+    for (const m of resolveAllModes(t)) {
+      const was = baseModes.get(m.mode) as Record<string, { hex: string; path: string }> | undefined;
+      if (!was) { ok(false, `#3365 ${id}/${m.mode}: the primary build resolves the same mode`); continue; }
+      const roles = m.roles as Record<string, { hex: string; path: string; ratio: number; min: number }>;
+      const fill = roles['interactive.primary.fill.rest']?.path ?? '';
+      ok(/\.palette\.neutral\.\d+$/.test(fill), `#3365 ${id}/${m.mode}: interactive.primary.fill.rest aliases the neutral ramp (${fill || 'missing'})`);
+      const checked = Object.entries(roles).filter(([, r]) => r.min > 0);
+      const broken = checked.filter(([, r]) => r.ratio < r.min);
+      ok(checked.length > 0 && broken.length === 0, `#3365 ${id}/${m.mode}: all ${checked.length} contracts pass with a neutral action palette${broken.length ? ` — FAILED: ${broken.map(([k, r]) => `${k} ${r.ratio.toFixed(2)}<${r.min}`).join(', ')}` : ''}`);
+      const keys = new Set([...Object.keys(roles), ...Object.keys(was)]);
+      const differs = (k: string): boolean => roles[k]?.hex !== was[k]?.hex || roles[k]?.path !== was[k]?.path;
+      const moved = [...keys].filter((k) => !isAction(k) && differs(k));
+      ok(moved.length === 0, `#3365 ${id}/${m.mode}: with a neutral action palette, every role outside the action family is unchanged (text, surfaces, borders)${moved.length ? ` — moved ${moved.slice(0, 5).join(', ')}${moved.length > 5 ? ` and ${moved.length - 5} more` : ''}` : ''}`);
+      ok([...keys].some((k) => isAction(k) && differs(k)), `#3365 ${id}/${m.mode}: premise: the action family itself moves between the two builds, so the comparison can see a move`);
+    }
+  }
+}
+
 // L-04 (#1486) — LINK STATE PERCEPTIBILITY. Engaged link states walk the action ramp by a PERCEPTUAL
 // interval, not a fixed rung count, so hover/pressed/visited stay clearly distinct even where `linkBase`
 // is pinned deep (a saturated brand red must clear 4.5:1 AS TEXT, which lands it near the ramp end where
@@ -5137,6 +5187,11 @@ arm: {
     const isInv = (p: string) => p.startsWith('color.inverse.');
     const guaranteedInv = Object.keys(readBaseline().guaranteed).filter(isInv);
     const removable = new Set<string>();
+    // #3335: three settings are refused on this brand, each by its own message: `outlineWash.pressed` 5 and 10 (under the
+    // neutral wash's default hover of 10) and `outlineWash.hover` 40 (no step above it for pressed). The lever sweep holds
+    // each refusal by message (`lint-lever-sweep.ts` REFUSALS); here they are counted, exactly, so any other throw still
+    // ends the run.
+    const refused3335: string[] = [];
     for (const l of leverManifest) {
       const vals: unknown[] = l.control === 'toggle' ? [true, false]
         : l.control === 'enum' ? (l.options ?? []).map((o) => o.value)
@@ -5144,10 +5199,17 @@ arm: {
       for (const v of vals) {
         const input = structuredClone(MINIMAL_BRAND) as any;
         setPath(input, l.key, v);
-        const emitted = pathsOf(brandTheme(input));
+        let built: Theme;
+        try { built = brandTheme(input); } catch (e) {
+          if (l.key.startsWith('outlineWash.') && /^outlineWash: pressed \d+ must be above hover \d+ /.test((e as Error).message)) { refused3335.push(`${l.key}=${v}`); continue; }
+          throw e;
+        }
+        const emitted = pathsOf(built);
         for (const p of guaranteedInv) if (!emitted.has(p)) removable.add(p);
       }
     }
+    ok(JSON.stringify(refused3335) === JSON.stringify(['outlineWash.hover=40', 'outlineWash.pressed=5', 'outlineWash.pressed=10']),
+      `#3335: the inverse sweep's only refusals are the three outlineWash settings that leave pressed on or under hover (${refused3335.join(', ')})`);
     // KNOWN IS NOW EMPTY, AND THAT IS THE FIX THIS ARM ASKED FOR (#957, landing with #1102).
     //
     // It used to hold 9 paths — `inverse.interactive.<c>.overlay.{hover,pressed,selected}` — with the note
@@ -34623,6 +34685,100 @@ arm: {
     refuses('a generate-only mode', { modes: ['light', 'hc-light'], outlineInteraction: 'opaque-fill', outlineHoverFill: { 'hc-light': { hover: 'neutral.050' } } }, /outlineHoverFill\.hc-light: .*generate-only/);
     refuses('an unknown step', { outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.051' } } }, /outlineHoverFill\.light\.hover: 'neutral\.051' is not a palette step/, true);
     refuses('an override on the fill', { outlineInteraction: 'opaque-fill', overrides: { light: { 'interactive.primary.hover-fill.hover': { palette: 'neutral', step: '100' } } } }, /'interactive\.primary\.hover-fill\.hover' is the opaque outline hover fill/, true);
+  }
+}
+
+// ---- #3335: THE OUTLINE WASH'S OPACITY AND PER-SET SOLID FILLS (the owner's Q3335.3 A and Q3335.5 A) ------------------
+// Two new inputs: `outlineWash: { hover, pressed }` in place of the wash constants, and `outlineHoverFill.<mode>.sets` beside
+// the mode-wide pick. ORACLES (docs/34), none read off the subject: the defaults are LITERALS typed here from the owner's
+// decision (10/20 neutral, 20/30 tinted), never `OUTLINE_WASH_DEFAULTS`; "unchanged" is the same brand resolved with the
+// input unset, compared role by role; the per-set step is a literal.
+//   (A) A PER-SET PICK REACHES ONLY ITS SET — the reference brand (opaque-fill, mode-wide `neutral.050`) with one set
+//       picked: that set's page `hover-fill.{hover,pressed}` take the pick, and no other role in any mode moves except
+//       that set's own outline inks (their clamp onto the new fill). BY-NAME MUTATION: `pickFor` reading the mode-wide
+//       pick first → (A) fails.
+//   (B) BYTE-IDENTICAL WITHOUT THEM — every corpus brand and the reference brand, under each wash method: the method's
+//       default steps given explicitly resolve identically to the input unset, and a `sets` entry restating the
+//       mode-wide pick resolves identically to the mode-wide pick alone. And the unset neutral wash is 10% hover and
+//       20% pressed and selected, as literals. BY-NAME MUTATION: the neutral default hover 10 → 5 → (B) fails.
+//   (C) THE WASH MOVES — a pick of 5/30 makes the neutral wash 5% hover, 30% pressed and selected; a tinted start of
+//       5/10 moves at least one set's tinted hover off its default (a start of 30 steps back to 20 under the label's
+//       guard on every corpus brand, so it could not show the start moving).
+//   (D) REFUSED, BY NAME — a set the brand does not have; pressed on or under hover; a step off the scale.
+{
+  const base3335 = nbTheme();
+  const roles3335 = (t: Theme) => resolveAllModes(t).map((m) => [m.mode, m.roles] as const);
+  const diff3335 = (a: ReturnType<typeof roles3335>, b: ReturnType<typeof roles3335>): string[] => {
+    const out: string[] = [];
+    a.forEach(([mode, ra], i) => {
+      const rb = b[i]?.[1] ?? {};
+      for (const k of new Set([...Object.keys(ra), ...Object.keys(rb)])) if (JSON.stringify(ra[k]) !== JSON.stringify(rb[k])) out.push(`${mode} ${k}`);
+    });
+    return out;
+  };
+  // (A)
+  {
+    const pal = base3335.roleToPalette.danger;
+    const pick = { hover: `${pal}.050`, pressed: `${pal}.100` };
+    const before = roles3335(base3335);
+    const after = roles3335({ ...base3335, outlineHoverFill: { light: { hover: 'neutral.050', sets: { destructive: pick } } } });
+    const moved = diff3335(before, after);
+    const allowed = /^light interactive\.destructive\.(hover-fill|text|icon)\.(hover|pressed)$/;
+    const stray = moved.filter((k) => !allowed.test(k));
+    const light = after.find(([m]) => m === 'light')![1];
+    const got = ['hover', 'pressed'].map((st) => light[`interactive.destructive.hover-fill.${st}`]?.path.split('.').slice(-2).join('.'));
+    const others = ['primary', 'neutral'].map((c) => light[`interactive.${c}.hover-fill.hover`]?.path.split('.').slice(-2).join('.'));
+    ok(stray.length === 0 && got[0] === pick.hover && got[1] === pick.pressed && others.every((x) => x === 'neutral.050')
+      && moved.includes('light interactive.destructive.hover-fill.hover'),
+      `#3335 (A) a per-set pick (destructive ${pick.hover} / ${pick.pressed}) reaches only that set's hover-fill: destructive reads ${got.join(' / ')}, primary and neutral keep ${others.join(', ')}${stray.length ? ` — STRAY (${stray.length}): ${stray.slice(0, 6).join('; ')}` : ''}`);
+  }
+  // (B)
+  {
+    const LITERAL: Record<string, { hover: number; pressed: number }> = { 'overlay-neutral': { hover: 10, pressed: 20 }, 'opaque-fill': { hover: 10, pressed: 20 }, 'solid-tint': { hover: 20, pressed: 30 } };
+    const brands = [...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })), { id: 'nb', theme: base3335 }];
+    const moved: string[] = [];
+    let built = 0;
+    for (const { id, theme } of brands) for (const method of Object.keys(LITERAL) as (keyof typeof LITERAL)[]) {
+      const t = { ...theme, outlineInteraction: method as Theme['outlineInteraction'] };
+      const unset = roles3335(t);
+      const d = diff3335(unset, roles3335({ ...t, outlineWash: LITERAL[method] }));
+      built++;
+      if (d.length) moved.push(`${id} ${method}: ${d.slice(0, 3).join(', ')}`);
+    }
+    // A `sets` entry that restates the mode-wide pick.
+    const wide = { light: { hover: 'neutral.050' } };
+    const same = diff3335(roles3335({ ...base3335, outlineHoverFill: wide }),
+      roles3335({ ...base3335, outlineHoverFill: { light: { hover: 'neutral.050', sets: { primary: { hover: 'neutral.050' }, neutral: { hover: 'neutral.050' }, destructive: { hover: 'neutral.050' } } } } }));
+    const light = resolveAllModes({ ...corpus()[0].theme, outlineInteraction: 'overlay-neutral' }).find((m) => m.mode === 'light')!.roles;
+    const alphas = ['hover', 'pressed', 'selected'].map((st) => light[`interactive.primary.overlay.${st}`]?.alpha);
+    ok(moved.length === 0 && same.length === 0 && JSON.stringify(alphas) === JSON.stringify([0.1, 0.2, 0.2]),
+      `#3335 (B) brands that don't set the new inputs are unchanged: ${built} brand × method builds resolve identically with the default steps given (10/20 neutral, 20/30 tinted, typed here), a restated per-set pick changes nothing, and the unset neutral wash is ${alphas.join(' / ')} (want 0.1 / 0.2 / 0.2)${moved.length ? ` — MOVED: ${moved.slice(0, 3).join('; ')}` : ''}${same.length ? ` — SETS MOVED: ${same.slice(0, 3).join('; ')}` : ''}`);
+  }
+  // (C)
+  {
+    const t0 = { ...corpus()[0].theme, outlineInteraction: 'overlay-neutral' as const };
+    const light = resolveAllModes({ ...t0, outlineWash: { hover: 5, pressed: 30 } }).find((m) => m.mode === 'light')!.roles;
+    const alphas = ['hover', 'pressed', 'selected'].map((st) => light[`interactive.primary.overlay.${st}`]?.alpha);
+    const tint = (w?: { hover: number; pressed: number }) => corpus().flatMap(({ theme }) => resolveAllModes({ ...theme, outlineInteraction: 'solid-tint', ...(w ? { outlineWash: w } : {}) })
+      .map((m) => ['primary', 'neutral', 'destructive'].map((c) => m.roles[`interactive.${c}.subtle-fill.hover`]?.tint?.opacity).join(',')));
+    const d = tint(), w = tint({ hover: 5, pressed: 10 });
+    const movedTint = d.filter((x, i) => x !== w[i]).length;
+    ok(JSON.stringify(alphas) === JSON.stringify([0.05, 0.3, 0.3]) && movedTint > 0,
+      `#3335 (C) the wash follows the pick: neutral 5/30 reads ${alphas.join(' / ')} (want 0.05 / 0.3 / 0.3); a tinted start of 5/10 moves the tinted hover in ${movedTint} of ${d.length} brand-modes`);
+  }
+  // (D)
+  {
+    const raw = readExampleBrand('./examples/nb-redesign.design.md');
+    const refuses = (patch: object, re: RegExp): string => {
+      try { resolveAllModes(brandTheme({ ...raw, ...patch } as typeof raw)); return 'accepted'; } catch (e) { return re.test(String((e as Error).message)) ? '' : String((e as Error).message).slice(0, 120); }
+    };
+    const bad = [
+      refuses({ outlineHoverFill: { light: { hover: 'neutral.050', sets: { teal: { hover: 'neutral.100' } } } } }, /outlineHoverFill\.light\.sets\.teal: 'teal' is not one of this brand's button sets/),
+      refuses({ outlineWash: { hover: 20, pressed: 20 } }, /outlineWash: pressed 20 must be above hover 20/),
+      refuses({ outlineWash: { pressed: 10 } }, /outlineWash: pressed 10 must be above hover 10/),
+      refuses({ outlineWash: { hover: 15 } }, /outlineWash\.hover: 15 is not an opacity step/),
+    ].filter(Boolean);
+    ok(bad.length === 0, `#3335 (D) refused by name: an unknown set, pressed on hover, pressed under the default hover, a step off the scale${bad.length ? ` — ${bad.join(' | ')}` : ''}`);
   }
 }
 

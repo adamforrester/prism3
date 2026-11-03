@@ -100,7 +100,7 @@
       "label": "Action palette",
       "control": "palette-ref",
       "default": "primary",
-      "description": "Which palette drives interactive/action color. Defaults to primary; point at an accent when the hero color is a poor CTA."
+      "description": "Which palette drives interactive/action color. Defaults to primary; point at neutral for near-black or gray actions (text, surfaces and borders stay as they are), or at an accent when the hero color is a poor CTA."
     },
     {
       "key": "linkPalette",
@@ -953,7 +953,69 @@
       "label": "Outline hover fill",
       "control": "object",
       "advanced": true,
-      "description": "The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050. Pressed takes the next step unless you pick one. The label and icon move along their own color where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray step closest to their ground."
+      "description": "The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050, for every button set, or for one set alone. Pressed takes the next step unless you pick one. The label and icon move along their own color where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray step closest to their ground."
+    },
+    {
+      "key": "outlineWash.hover",
+      "group": "advanced",
+      "kind": "value",
+      "label": "Wash opacity: hover",
+      "control": "enum",
+      "advanced": true,
+      "options": [
+        {
+          "value": 5,
+          "label": "5%"
+        },
+        {
+          "value": 10,
+          "label": "10%"
+        },
+        {
+          "value": 20,
+          "label": "20%"
+        },
+        {
+          "value": 30,
+          "label": "30%"
+        },
+        {
+          "value": 40,
+          "label": "40%"
+        }
+      ],
+      "description": "How strong the hover wash is on outline and text controls, as an opacity step. The neutral wash defaults to 10% and the tinted wash to 20%; the tinted wash steps down per set where a label would drop below 4.5:1, and up where the hover would not show. Ignored under No hover fill."
+    },
+    {
+      "key": "outlineWash.pressed",
+      "group": "advanced",
+      "kind": "value",
+      "label": "Wash opacity: pressed",
+      "control": "enum",
+      "advanced": true,
+      "options": [
+        {
+          "value": 5,
+          "label": "5%"
+        },
+        {
+          "value": 10,
+          "label": "10%"
+        },
+        {
+          "value": 20,
+          "label": "20%"
+        },
+        {
+          "value": 30,
+          "label": "30%"
+        },
+        {
+          "value": 40,
+          "label": "40%"
+        }
+      ],
+      "description": "How strong the pressed wash is, above the hover step so a press reads as coming forward; selected follows it. The neutral wash defaults to 20% and the tinted wash to 30%. Ignored under No hover fill."
     },
     {
       "key": "neutralEmphasis",

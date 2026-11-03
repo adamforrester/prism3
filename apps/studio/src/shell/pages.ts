@@ -34,7 +34,8 @@ export const ICONS_DESC = 'The icon color set by the icon contrast floor: matche
 /** The Disabled copy, the Style guide's own, shared by the shared Disabled section and the levers' (Q23, Q51). */
 export const DISABLED_DESC = 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.';
 /** The Interactive levers section's intro (owner decision Q53, APPROVED). */
-export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, border and state colors.';
+/** Color › Interactive's settings card (#3335, the owner's Q3335.1 A). DRAFT, for the owner's final read. */
+export const INTERACTIVE_SETTINGS_COPY = { title: 'Interactive Settings', desc: 'Every button set, in every mode.' } as const;
 /** Surfaces & fills' Background copy (S4f), shared by the levers' Background fills section and the preview's
  *  Background section there (Q23): the owner's Q26 intro, APPROVED, now that the scrim has its own section
  *  (QA-B10). The Style guide's own Background section keeps its longer sentence, scrim included. */
@@ -129,7 +130,12 @@ export type InspectId = (typeof INSPECT)[number][0];
 /** One row of the levers panel: its control, the manifest keys it edits, and the schema inputs it edits
  *  that are not manifest levers. `drive` names the preview part the row drives (Q4, deferred). */
 export type Row = { readonly ctl: string; readonly keys?: readonly string[]; readonly schemaOnly?: readonly string[]; readonly drive?: string };
-export type Section = { readonly title: string; readonly desc?: string; readonly advanced?: boolean; readonly rows: readonly Row[] };
+export type Section = {
+  readonly title: string; readonly desc?: string; readonly advanced?: boolean; readonly rows: readonly Row[];
+  /** #3335: the page draws this section as several cards of its own (Color › Interactive's one card per button set), so
+   *  the section's own title is not drawn. */
+  readonly cards?: boolean;
+};
 /** A page: a tab without sub-pages, or a sub-page. */
 export type PageData = {
   readonly id: string; readonly label: string; readonly home: ViewId; readonly intro: string;
@@ -223,15 +229,24 @@ export const DOMAINS = [
         // Icons, and S5.3 removed Icons (the owner's QA-I10): `iconContrast` is homed on Surfaces & fills' Icon.
         sections: [
           {
-            title: 'Interactive', desc: BUTTON_SETS_DESC, rows: [
-              // The page-wide settings first, the strict switch with them (S5.3, the owner's QA-I5).
-              { ctl: 'palette', keys: ['actionPalette'], drive: 'action' },
+            // #3335 (the owner's Q3335.1 A): the brand-wide settings in a card of their own. DRAFT copy (§4 of the proposal).
+            // Room is left here for #3346 option E's setting, being evaluated separately.
+            title: INTERACTIVE_SETTINGS_COPY.title, desc: INTERACTIVE_SETTINGS_COPY.desc, rows: [
               { ctl: 'enum', keys: ['outlineInteraction'], drive: 'action' },
-              // #3071 (owner Q824 A): the opaque fill's steps, per mode, drawn only under 'opaque-fill'.
-              { ctl: 'outlineHoverFill', keys: ['outlineHoverFill'], drive: 'action' },
+              // #3335 (Q3335.3 A, Q3335.4 A): the wash's opacity, under every method that draws a wash.
+              { ctl: 'outlineWash', keys: ['outlineWash.hover', 'outlineWash.pressed'], drive: 'action' },
               { ctl: 'toggle', keys: ['strictInteractiveContrast'], drive: 'inverse' },
+            ],
+          },
+          {
+            // #3335 (Q3335.1 A): one card per button set, drawn by the page itself, each titled "‹Set› Interactive Colors";
+            // this section's title is not drawn. Primary's card opens on the action palette (Q3335.1, "Primary Action
+            // Palette"), Neutral's on its emphasis; under Solid fill each card carries its set's own hover fill
+            // (`outlineHoverFill`, #3071; per set since #3335, Q3335.5 A).
+            title: 'Interactive Colors', cards: true, rows: [
+              { ctl: 'palette', keys: ['actionPalette'], drive: 'action' },
+              { ctl: 'outlineHoverFill', keys: ['outlineHoverFill'], drive: 'action' },
               // S5.2: every per-column color is a row here (owner decision Q33), so the row also edits overrides.
-              // S5.3: the row also draws `neutralEmphasis`, at the top of the Neutral button set (the owner's QA-I6).
               { ctl: 'interactivePalettes', keys: ['interactivePalettes', 'neutralEmphasis'], schemaOnly: ['modeAnchors', 'overrides'], drive: 'action' },
             ],
           },

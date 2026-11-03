@@ -245,15 +245,36 @@
     },
     "outlineHoverFill": {
       "type": "object",
-      "description": "OPTIONAL. The opaque outline hover fill's page step per editable mode (#3071): `{ light: { hover: neutral.050 } }`. Read only under `outlineInteraction: opaque-fill`, and ignored with a note under another method. The editable modes are light, dark and a custom mode. `hover` is a palette step; `pressed` defaults to the next step toward the ink. Unnamed modes, the generate-only modes and every inverse band take the default rule: the neutral step nearest 1.15:1 against the ground, pressed the next step.",
+      "description": "OPTIONAL. The opaque outline hover fill's page step per editable mode (#3071): `{ light: { hover: neutral.050 } }`. Read only under `outlineInteraction: opaque-fill`, and ignored with a note under another method. The editable modes are light, dark and a custom mode. `hover` is a palette step; `pressed` defaults to the next step toward the ink. `sets` (#3335) picks one button set's steps, by its name (`primary`, `neutral`, `destructive` or an interactive palette's), and the mode-wide pick stays every other set's default; with `sets`, the mode-wide `hover` is optional. Unnamed modes, unpicked sets, the generate-only modes and every inverse band take the default rule: the neutral step nearest 1.15:1 against the ground, pressed the next step.",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["hover"],
+        "anyOf": [{ "required": ["hover"] }, { "required": ["sets"] }],
         "properties": {
           "hover": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" },
-          "pressed": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" }
+          "pressed": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" },
+          "sets": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["hover"],
+              "properties": {
+                "hover": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" },
+                "pressed": { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.[0-9]+$" }
+              }
+            }
+          }
         }
+      }
+    },
+    "outlineWash": {
+      "type": "object",
+      "description": "OPTIONAL. The outline wash's opacity (#3335), brand-wide: `{ hover: 10, pressed: 20 }`, each a step of the opacity scale, pressed above hover; selected follows pressed. Read by the neutral wash (`overlay-neutral`, and `opaque-fill`, whose tags, segmented controls and pagination keep the wash), default 10/20, and by the tinted wash (`solid-tint`), default 20/30, where it is the step the engine starts from before it steps a set down for its label's floor or up for visibility. Ignored with a note under `none`.",
+      "additionalProperties": false,
+      "properties": {
+        "hover": { "type": "number", "enum": [5, 10, 20, 30, 40] },
+        "pressed": { "type": "number", "enum": [5, 10, 20, 30, 40] }
       }
     },
     "neutralEmphasis": {

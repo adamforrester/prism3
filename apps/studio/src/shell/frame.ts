@@ -502,7 +502,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     painting = true;   // a legacy view can rebuild the theme as it draws, which notifies `brand` again
     try {
       const keep = inspectBody.scrollTop;
-      paintInspectView(inspecting, inspectBody, opts.inspect, paintInspect);
+      paintInspectView(inspecting, inspectBody, opts.inspect, paintInspect, toFloor);
       inspectBody.scrollTop = keep;
     } finally { painting = false; }
   };
@@ -522,6 +522,16 @@ export const mountFrame = (app: HTMLElement, opts: {
     render();
     if (first) paintInspect();
     inspectTabEls[INSPECT.findIndex(([id]) => id === v)].focus();
+  }
+  /** Health's pointer (#3366, owner decision Q3366.2 A): close Inspect, show the settings pane (the one a narrow
+   *  window shows the levers in), open Color › Surfaces & fills, and put focus on the contrast floor's step button. */
+  function toFloor(): void {
+    closeInspect(false);
+    pane = 'settings';
+    if (page !== 'fills') setPage('fills'); else render();
+    const btn = document.querySelector<HTMLElement>('[data-p3="levers-pane"] [data-p3="surface-floor-pick"]');
+    btn?.closest('[data-p3="surface-floor-rows"]')?.scrollIntoView({ block: 'start' });
+    btn?.focus({ preventScroll: true });
   }
   /** Close Inspect, back to the page's preview, where it was. */
   function closeInspect(refocus = true): void {

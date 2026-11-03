@@ -148,6 +148,15 @@ const REFUSALS: Refusal[] = [
     reason: 'nb-redesign sets caption.md to 10px (#3077), and captionFloor 10 adds a 10px caption.sm below it: two rungs on one px' },
   { brand: 'nb-redesign', lever: 'typography.displayCeiling', value: 'sm', message: /typography\.sizes\.display\.md: that rung is not in this brand's display set \(sm\)/,
     reason: 'nb-redesign sets `sizes.display.md`, and a ceiling of sm trims that rung, so the override names nothing' },
+  // #3335 (Q3335.3 A): pressed must sit above hover. Swept one at a time, the other step is the method's default: every
+  // brand here runs a neutral wash (10 hover, 20 pressed), so a pressed of 5 or 10 lands on or under hover, and a hover
+  // of 40, the top step, leaves no step above it for pressed.
+  ...ALL_BRANDS.flatMap((brand): Refusal[] => [
+    { brand, lever: 'outlineWash.hover', value: 40, message: /^outlineWash: pressed 40 must be above hover 40 /,
+      reason: 'hover 40 is the top wash step, so no pressed step sits above it' },
+    ...[5, 10].map((value): Refusal => ({ brand, lever: 'outlineWash.pressed', value, message: new RegExp(`^outlineWash: pressed ${value} must be above hover 10 `),
+      reason: `the neutral wash's hover defaults to 10, so a pressed of ${value} is not above it` })),
+  ]),
 ];
 
 // ── HELPERS ─────────────────────────────────────────────────────────────────────────────────────────
