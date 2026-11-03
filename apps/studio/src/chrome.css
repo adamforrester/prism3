@@ -1362,8 +1362,18 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); line-height: var(--p3-lh-compact); }
 /* L2: the group's first row starts space-150 after its heading row (the group's gap is space-300). */
 .p3-icol-head { margin-block-end: calc(var(--p3-space-150) - var(--p3-space-300)); }
-.p3-irow-group { display: grid; gap: var(--p3-space-300); }
-.p3-irow-states { display: grid; gap: var(--p3-space-300); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
+.p3-irow-group { display: grid; gap: var(--p3-rhythm-row); }
+.p3-irow-states { display: grid; gap: var(--p3-rhythm-row); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
+/* #3335 (the owner's Q3335.1 A and Q3335.7 A, with the amendment): each button set is a card of its own, its title on one
+   line with its palette and, for an accent, Remove; its state groups below on the group rhythm, the first without the
+   hairline the card's own edge already draws. A group with no rest row (a wash, or Solid fill's pickers) is `.p3-irow-flat`:
+   its Hover and Pressed are its own rows, side by side at its level, with no states column to indent them. */
+.p3-icard:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+.p3-icard-line { display: flex; align-items: center; gap: var(--p3-space-100); }
+.p3-icard-pal { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); letter-spacing: normal; }
+/* An accent's Remove overhangs the title's line, so the row stays as tall as the title (TY2 A). */
+.p3-icard-line > .p3-btn { margin-block: calc(-1 * var(--p3-space-100)); }
+.p3-icard > .p3-icols > .p3-icol:first-child { padding-top: 0; border-top: 0; }
 .p3-irow-states:empty { display: none; }
 .p3-pick-read { color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); white-space: nowrap; }
 /* The add row (S5.3, QA-I4): set apart from the last button set by more than the sets are from each other; the

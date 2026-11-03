@@ -2499,7 +2499,11 @@ const SEARCH_STANDS_IN = {
   'typography.links': 'typography.weights',   // Underlined link styles: the weights table's Link column
   'typography.italicDefault': 'typography.italics', // Italic-only text types: each text type's Only chip
   'outlineHoverFill': 'outlineInteraction',   // Outline hover fill: drawn only under Opaque fill; Outline hover's description names it (#3071)
+  'outlineWash.pressed': 'outlineWash.hover', // #3335: Wash opacity is one block, its Hover and Pressed both, under the hover key
 };
+/** #3335 (Q3335.2 A): a lever with no lever block at all, and the hook that stands in for it: the button sets lever is the
+ *  set cards and Add button set, whose heading and ⓘ went. */
+const SEARCH_STANDS_IN_HOOK = { interactivePalettes: 'column-add' };
 /** Every place a lever can live, in the tab row's order (`PLACE_CLICKS`, typed above). */
 const SEARCH_PLACES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
 if (runs('6b')) {
@@ -2526,7 +2530,7 @@ for (const place of SEARCH_PLACES) {
   if (await page.evaluate(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="search-open"]'));
   await hooks.need(page, '[data-p3="search-input"]');
   for (const l of levers) {
-    const hk = kebabHook(SEARCH_STANDS_IN[l.key] ?? l.key);
+    const hk = SEARCH_STANDS_IN_HOOK[l.key] ?? kebabHook(SEARCH_STANDS_IN[l.key] ?? l.key);
     if ((await shows(l.label, [hk]))[hk]) foundAt.get(l.key).push(place);
   }
   if (place === 'components') {
@@ -6347,8 +6351,10 @@ const EXPECT_INTERACTIVE_SPECIMENS = ['Interactive', 'Disabled', 'Links'];
 /** The manifest keys v6 homes on Interactive, with their hooks. R2: every lever on this page is shown (the floor
  *  chips, `disabledMin`, while the Full contrast switch is off, which it is on the example brands). `iconContrast`
  *  left in S5.3 (QA-I10). */
-const INTERACTIVE_LEVERS = ['actionPalette', 'outlineInteraction', 'neutralEmphasis', 'interactivePalettes', 'strictInteractiveContrast',
-  'linkPalette', 'linkStateRungs', 'disabledStrategy', 'disabledMin'].map((k) => [k, `[data-p3="${kebabHook(k)}"]`]);
+// #3335 (Q3335.2 A): the button sets lever draws no block of its own (its heading and ⓘ went); it is the set cards and Add
+// button set, so its hook is the add row's. `outlineWash` (Q3335.3 A) is one block, under its hover key.
+const INTERACTIVE_LEVERS = [...['actionPalette', 'outlineInteraction', 'outlineWash.hover', 'neutralEmphasis', 'strictInteractiveContrast',
+  'linkPalette', 'linkStateRungs', 'disabledStrategy', 'disabledMin'].map((k) => [k, `[data-p3="${kebabHook(k)}"]`]), ['interactivePalettes', '[data-p3="column-add"]']];
 /** The columns the default theme ships, in the owner's order (Q33): Primary, Neutral, Destructive. */
 const INTERACTIVE_COLUMNS = [['primary', 'Primary'], ['neutral', 'Neutral'], ['destructive', 'Destructive']];
 /** Every row a column draws under the default theme's outline hover (overlay-neutral: the overlay wash, no
@@ -6455,12 +6461,13 @@ for (const host of ['web', 'figma']) {
         visible: Object.fromEntries(lh.map((hk) => [hk, shown(pane.querySelector(hk))])),
         rows: Object.fromEntries(roles.map((r) => [r, pane.querySelectorAll(`.p3-fillrow[data-role="${r}"]`).length])),
         strayLevers: [...pane.querySelectorAll('.p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !lh.includes(`[data-p3="${r}"]`)),
+        // #3335 (Q3335.1 A): a set's card title, without the palette that sits inside it.
         strayRows: [...pane.querySelectorAll('.p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
         advanced: [...pane.querySelectorAll('button, a, [role="button"]')].filter((b) => /advanced/i.test(`${b.textContent} ${b.getAttribute('data-p3') ?? ''} ${b.getAttribute('aria-label') ?? ''}`)).map((b) => b.textContent.trim()),
-        columns: [...pane.querySelectorAll('[data-p3="interactive-column"]')].map((n) => [n.dataset.column, n.querySelector('.p3-icol-title')?.textContent]),
+        columns: [...pane.querySelectorAll('[data-p3="interactive-column"]')].map((n) => [n.dataset.column, n.querySelector('.p3-lsec-title')?.firstChild?.textContent]),
         jumps: [...pane.querySelectorAll('[data-p3="interactive-jump-link"]')].map((a) => {
           const to = a.hash ? document.getElementById(a.hash.slice(1)) : null;
-          return { col: a.dataset.column, text: a.textContent, target: to ? [to.getAttribute('data-p3'), to.dataset.column, to.querySelector('.p3-icol-title')?.textContent] : null };
+          return { col: a.dataset.column, text: a.textContent, target: to ? [to.getAttribute('data-p3'), to.dataset.column, to.querySelector('.p3-lsec-title')?.firstChild?.textContent] : null };
         }),
         preview: [...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="style-guide-palette"] .sg-rn')].map((n) => n.textContent).filter((t) => t !== 'Disabled'),
       };
@@ -6471,11 +6478,11 @@ for (const host of ['web', 'figma']) {
     ok(c.strayLevers.length === 0, `${host}: every lever block on Interactive is one of its ${INTERACTIVE_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
     ok(c.strayRows.length === 0, `${host}: every row on Interactive is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);
     ok(c.advanced.length === 0, `${host}: Color › Interactive shows every lever: it offers no Show advanced${c.advanced.length ? ` — offers Show advanced (${c.advanced.join(', ')})` : ''}`);
-    const wantCols = INTERACTIVE_COLUMNS.map(([col, name]) => [col, name]);
+    const wantCols = INTERACTIVE_COLUMNS.map(([col, name]) => [col, `${name} Interactive Colors`]);
     ok(JSON.stringify(c.columns) === JSON.stringify(wantCols), `${host}: the levers draw the columns in the owner's order, Primary, Neutral, Destructive (Q33) — drew ${JSON.stringify(c.columns)}`);
     ok(JSON.stringify(c.preview) === JSON.stringify(INTERACTIVE_COLUMNS.map(([, n]) => n)), `${host}: the preview draws the columns in the same order — drew ${JSON.stringify(c.preview)}`);
     ok(JSON.stringify(c.jumps.map((j) => j.col)) === JSON.stringify(INTERACTIVE_COLUMNS.map(([col]) => col)), `${host}: a jump link per column, in order — ${JSON.stringify(c.jumps.map((j) => j.col))}`);
-    for (const j of c.jumps) ok(!!j.target && j.target[0] === 'interactive-column' && j.target[1] === j.col && j.target[2] === j.text,
+    for (const j of c.jumps) ok(!!j.target && j.target[0] === 'interactive-column' && j.target[1] === j.col && j.target[2] === `${j.text} Interactive Colors`,
       `${host}: the jump link "${j.text}" resolves to its own column group (${j.col}) — targets ${JSON.stringify(j.target)}`);
     // Following a link moves focus to the group it names, and leaves the preview where it was (V1).
     const view0 = (await previewView(page)).view;
@@ -6619,7 +6626,7 @@ for (const host of ['web', 'plugin']) {
     ok(!closed.open && closed.focus === 'int-pick' && closed.role === 'interactive.primary.fill.rest', `interactive: Escape closes the picker to its button (${JSON.stringify(closed)})`);
     // Q34: previewing Dark, the same row writes Dark's anchor and leaves Light's field alone.
     await chooseMode(page, 'dark');
-    const line = await page.evaluate(() => document.querySelector('[data-p3="interactive-columns"] .p3-sub')?.textContent);
+    const line = await page.evaluate(() => document.querySelector('[data-p3="interactive-mode-line"]')?.textContent);
     ok(line === 'Editing Dark, the mode the preview shows.', `interactive: the columns say which mode they edit ("${line}")`);
     await hooks.click(pick('interactive.primary.fill.rest'));
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="400"]'));
@@ -6674,14 +6681,18 @@ for (const host of ['web', 'plugin']) {
 } // 19
 // Owner copy (Q51, Q53, Q58, Q57, APPROVED, literal): the lever sections are the preview's, in its order; the
 // button-set strings; the Links and Icons descriptions, the same in the levers and the preview.
+// #3335 (the owner's Q3335.1 A): the brand-wide settings are their own card, "Interactive Settings" (DRAFT copy), and each
+// button set a card of its own after it (`EXPECT_SET_CARDS`). The preview keeps its one Interactive section, which those
+// cards together drive; Disabled and Links still pair one for one.
 const EXPECT_INTERACTIVE_SECTIONS = [
-  ['Interactive', 'Each button set is a full set of fill, text, border and state colors.'],
+  ['Interactive Settings', 'Every button set, in every mode.'],
   ['Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.'],
   ['Links', 'The link color in each state, on the page and on the inverse fill.'],
 ];
 /** Which section each lever sits in (Q51), by hook. */
-const EXPECT_LEVER_SECTION = [['actionPalette', 'Interactive'], ['outlineInteraction', 'Interactive'], ['neutralEmphasis', 'Interactive'],
-  ['interactivePalettes', 'Interactive'], ['strictInteractiveContrast', 'Interactive'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
+const EXPECT_PREVIEW_SECTIONS = ['Interactive', 'Disabled', 'Links'];
+const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary Interactive Colors'], ['outlineInteraction', 'Interactive Settings'], ['outlineWash.hover', 'Interactive Settings'],
+  ['neutralEmphasis', 'Neutral Interactive Colors'], ['strictInteractiveContrast', 'Interactive Settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
   ['linkPalette', 'Links'], ['linkStateRungs', 'Links']];
 const EVERY_SET = 'Every button set is shown, including ones you added.';
 const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
@@ -6703,17 +6714,14 @@ if (runs('19')) {
       const prev = (t) => [...document.querySelectorAll('[data-p3="interactive-style-guide"] .psec')].find((s) => s.querySelector('.psec-t')?.textContent === t)?.querySelector('.psec-d')?.textContent ?? null;
       return {
         sections: secs.map((s) => [s.querySelector('.p3-lsec-title')?.textContent, s.querySelector('.p3-lsec-desc')?.textContent ?? null]),
-        leverIn: Object.fromEntries([...pane.querySelectorAll('.p3-lever')].map((n) => [n.getAttribute('data-p3'), n.closest('[data-p3="lever-section"]')?.querySelector('.p3-lsec-title')?.textContent])),
+        leverIn: Object.fromEntries([...pane.querySelectorAll('.p3-lever')].map((n) => [n.getAttribute('data-p3'), n.closest('[data-p3="lever-section"], [data-p3="interactive-column"]')?.querySelector('.p3-lsec-title')?.firstChild?.textContent])),
         preview: { Links: prev('Links'), Disabled: prev('Disabled'), Interactive: prev('Interactive') },
         previewTitles: [...document.querySelectorAll('[data-p3="interactive-style-guide"] .psec-t')].map((n) => n.textContent),
         landmark: pane.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label'),
         add: pane.querySelector('[data-p3="column-add-open"]')?.textContent?.trim() ?? null,
         // The button sets lever's info toggletip, the text its own info button controls (`aria-controls`).
-        setsTip: (() => {
-          const info = pane.querySelector('[data-p3="lever-interactive-palettes"] [data-p3="lever-info"]');
-          const id = info?.getAttribute('aria-controls');
-          return id ? document.getElementById(id)?.textContent ?? null : null;
-        })(),
+        // #3335 (Q3335.2 A): no longer a toggletip, the visible line above Add button set.
+        setsTip: pane.querySelector('[data-p3="column-add-line"]')?.textContent ?? null,
         // The page's own copy and the preview's, with the manifest's descriptions (`.p3-tip`, engine prose) left out.
         visible: [...pane.querySelectorAll('.p3-lsec, .p3-intro, .p3-jump'), document.querySelector('[data-p3="interactive-style-guide"]')].map((n) => {
           const c = n.cloneNode(true); for (const t of c.querySelectorAll('.p3-tip')) t.remove();
@@ -6724,7 +6732,7 @@ if (runs('19')) {
     ok(JSON.stringify(copy.sections) === JSON.stringify(EXPECT_INTERACTIVE_SECTIONS),
       `Q51: Interactive's lever sections are the preview's, Interactive, Disabled, Links, with their approved copy — drew ${JSON.stringify(copy.sections)}`);
     // Q23 and QA-I10 (S5.3): the preview's sections are the levers' sections, one for one, Icons in neither.
-    ok(JSON.stringify(copy.previewTitles) === JSON.stringify(EXPECT_INTERACTIVE_SECTIONS.map(([t]) => t)),
+    ok(JSON.stringify(copy.previewTitles) === JSON.stringify(EXPECT_PREVIEW_SECTIONS),
       `Q23: the Interactive preview's sections are the levers' sections, Icons in neither (QA-I10) — the preview drew ${JSON.stringify(copy.previewTitles)}`);
     for (const [key, sec] of EXPECT_LEVER_SECTION) ok(copy.leverIn[kebabHook(key)] === sec, `Q51: the ${key} lever sits in ${sec} (sits in ${copy.leverIn[kebabHook(key)]})`);
     for (const t of ['Links', 'Disabled']) {
@@ -6735,7 +6743,7 @@ if (runs('19')) {
     ok(copy.landmark === 'Button sets', `Q53: the jump links' landmark is "Button sets" ("${copy.landmark}")`);
     // The button sets lever's info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this
     // page; the engine's description (which says "columns") stays as MCP and the emission read it. Literal.
-    ok(copy.setsTip === 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.', `Q53: the button sets lever's info text is the owner's — read ${JSON.stringify(copy.setsTip)}`);
+    ok(copy.setsTip === 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.', `Q53, Q3335.2 A: the button sets' approved text is the line above Add button set — read ${JSON.stringify(copy.setsTip)}`);
     ok(copy.add === 'Add button set', `Q53: the add row reads "Add button set" (${JSON.stringify(copy.add)})`);
     const stray = ['column', 'band', 'muted'].filter((w) => new RegExp(`\\b${w}`, 'i').test(copy.visible.replace(/\b(?:interactive|inverse)\.[\w.-]+/g, '')));
     ok(stray.length === 0, `Q53, Q57, Q58: no "column", "band" or "muted" in the page's visible copy, labels and titles (the manifest's lever descriptions aside)${stray.length ? ` — found ${stray.join(', ')}` : ''}`);
@@ -6784,7 +6792,8 @@ if (runs('19')) {
     for (const [mode, label] of DERIVED) {
       await chooseAnyMode(page, mode);
       await page.waitForFunction((l) => document.querySelector('[data-p3="levers-derived-note"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
-      const ctls = await page.evaluate(DERIVED_CONTROLS, ['[data-p3="levers-pane"] [data-p3="lever-section"]', DERIVED_CONTROL_QUERY]);
+      // #3335: the set cards and the add row sit beside the lever sections, so they are enumerated too.
+      const ctls = await page.evaluate(DERIVED_CONTROLS, ['[data-p3="levers-pane"] :is([data-p3="lever-section"], [data-p3="interactive-column"], [data-p3="column-add"])', DERIVED_CONTROL_QUERY]);
       const d = {
         n: ctls.length,
         enabled: ctls.filter((c) => !c.disabled).map((c) => c.hook),
@@ -6820,8 +6829,8 @@ const STATUS = (() => {
 })();
 ok(STATUS.ok.every((x) => /^#[0-9a-f]{6}$/.test(x)) && STATUS.bad.every((x) => /^#[0-9a-f]{6}$/.test(x)) && STATUS.ok[0] !== STATUS.bad[0],
   `QA-I2 oracle: the success and danger icon tokens resolve per chrome theme (ok ${STATUS.ok.join(' / ')}, bad ${STATUS.bad.join(' / ')})`);
-/** QA-I7: the gap between two button sets, at least `space.500` (40px), one step past S5.2's `space.300` (24px). */
-const SET_GAP_MIN = 40;
+/** #3335: the set cards' separation, the settings rhythm's section (#3337, space-200), typed here. */
+const CARD_GAP_MIN = 16;
 /** QA-I8, APPROVED verbatim: the switch's label and its caption in each state. */
 const DISABLED_COPY = { label: 'Full contrast', on: 'Disabled controls keep full contrast.', off: 'Disabled controls drop to the floor you pick.' };
 /** QA-I8: the two values the segmented control it replaces wrote, the manifest's option values, literal. */
@@ -6861,21 +6870,25 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
       return {
         top,
         neutralFirst: kids.findIndex((n) => n.matches('[data-p3="lever-neutral-emphasis"]')),
-        neutralRows: kids.findIndex((n) => n.matches('.p3-fillrows')),
+        neutralRows: kids.findIndex((n) => n.matches('.p3-icols')),
         icons: pane.querySelectorAll(`[data-p3="${iconHook}"]`).length,
         iconsTitle: [...pane.querySelectorAll('.p3-lsec-title')].some((t) => /^Icons?$/.test(t.textContent)),
         dashed: states ? getComputedStyle(states).borderLeftStyle : null,
         gaps: groups.slice(1).map((r, i) => r.top - groups[i].bottom),
+        cards: [...pane.querySelectorAll('[data-p3="interactive-column"]')].every((g) => g.matches('section.p3-lsec')),
         addGap: add && groups.length ? add.top - groups[groups.length - 1].bottom : null,
       };
     }, kebabHook('iconContrast'));
-    ok(JSON.stringify(lay.top) === JSON.stringify(['lever-action-palette', 'lever-outline-interaction', 'lever-strict-interactive-contrast', 'lever-interactive-palettes']),
-      `QA-I5: the strict switch sits with the page-wide settings, above the button sets — Interactive draws ${JSON.stringify(lay.top)}`);
+    // #3335 (Q3335.1 A): the page-wide settings are the Interactive Settings card; the action palette opens Primary's card.
+    ok(JSON.stringify(lay.top) === JSON.stringify(['lever-outline-interaction', 'lever-outline-wash-hover', 'lever-strict-interactive-contrast']),
+      `QA-I5, Q3335.1 A: the strict switch sits with the page-wide settings in Interactive Settings, above the button sets — it draws ${JSON.stringify(lay.top)}`);
     ok(lay.neutralFirst === 1 && lay.neutralRows > lay.neutralFirst, `QA-I6: the neutral emphasis opens the Neutral button set, under its heading and above its rows (at ${lay.neutralFirst}, rows at ${lay.neutralRows})`);
     hooks.absent(ok, { seen: lay.top.length > 0, state: "Interactive's levers" }, lay.icons === 0 && !lay.iconsTitle,
       `QA-I10: Interactive draws no icon contrast control and no Icons section (${lay.icons} ${kebabHook('iconContrast')}, Icons title ${lay.iconsTitle})`);
     ok(lay.dashed === 'dashed', `QA-I3: the line beside Hover and Pressed under a rest row is dashed (border-left-style ${lay.dashed})`);
-    ok(lay.gaps.length >= 2 && lay.gaps.every((g) => g >= SET_GAP_MIN - 0.5), `QA-I7: button sets stand at least ${SET_GAP_MIN}px apart (${lay.gaps.map((g) => g.toFixed(1)).join(', ')})`);
+    // #3335 (Q3335.1 A) supersedes QA-I7's 40px between sets in one card: each set is a card of its own, the cards the
+    // settings rhythm's section apart (#3337, space-200, typed here).
+    ok(lay.gaps.length >= 2 && lay.gaps.every((g) => g >= CARD_GAP_MIN - 0.5) && lay.cards, `QA-I7, Q3335.1 A: each button set is a card of its own, at least ${CARD_GAP_MIN}px from the next (${lay.gaps.map((g) => g.toFixed(1)).join(', ')}, cards ${lay.cards})`);
     ok(lay.addGap !== null && lay.addGap > Math.max(...lay.gaps) + 0.5, `QA-I4: Add button set stands further from the last set than the sets stand from each other (${lay.addGap?.toFixed(1)} vs ${Math.max(...lay.gaps).toFixed(1)})`);
 
     // QA-I4: the color select only after Add button set is clicked; Cancel and Escape write nothing.
@@ -7137,40 +7150,54 @@ for (const { w, h } of WIDTHS) {
   }
 }
 } // 19b
-// #3071 (owner Q824 A): Color › Interactive › Outline hover. The "Solid fill" chip writes `outlineInteraction:
-// opaque-fill` and draws Outline hover fill under it: Hover and Pressed selects for the mode the preview shows, Pressed
-// locked until Hover is picked. Picking writes `outlineHoverFill.light.hover`; leaving the method drops the key, so a
-// brand switched back is byte-identical. EXPECTED is typed here; ACTUAL is the persisted brand and the DOM.
+// #3071 (owner Q824 A), per set since #3335 (the owner's Q3335.5 A): Color › Interactive › Outline hover. The "Solid fill"
+// chip writes `outlineInteraction: opaque-fill`, and each set's card draws an "Outline & text hover" group: Hover and
+// Pressed selects for that set, in the mode the preview shows, Pressed locked until that set's Hover is picked, and the
+// set's own worst-label line. Picking writes `outlineHoverFill.light.sets.<set>.hover` for that set alone; leaving the
+// method drops the key, so a brand switched back is byte-identical. The two defects #3335 found are held here too: the
+// mode line is drawn once, and under Solid fill no card draws its overlay wash swatches. EXPECTED is typed here; ACTUAL is
+// the persisted brand and the DOM.
 if (runs('19')) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
-  const lever = '[data-p3="levers-pane"] [data-p3="lever-outline-hover-fill"]';
+  const group = (col) => `[data-p3="levers-pane"] [data-p3="interactive-column"][data-column="${col}"] [data-p3="int-group"][data-group="Outline & text hover"]`;
+  const lever = group('primary');
   try {
     await goPlace(page, 'color-interactive');
-    ok(await page.locator(lever).count() === 0, `#3071: no Outline hover fill control under the default outline hover`);
+    ok(await page.locator(lever).count() === 0, `#3071: no Outline & text hover group under the default outline hover`);
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]'));
     await hooks.need(page, lever);
     const chip = await page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]').textContent();
     const on = await persisted(page);
-    const sel = await page.evaluate((l) => {
+    const read = (l) => page.evaluate((l) => {
       const b = document.querySelector(l);
       const one = (sel) => { const s = b?.querySelector(sel); return s ? { v: s.value, auto: s.options[0]?.textContent ?? null, off: s.disabled } : null; };
       return { hover: one('[data-p3="outline-hover-fill-hover-select"]'), pressed: one('[data-p3="outline-hover-fill-pressed-select"]'),
         ratio: b?.querySelector('[data-p3="outline-hover-fill-ratio"]')?.textContent ?? null };
-    }, lever);
+    }, l);
+    const sel = await read(lever);
     ok(chip === 'Solid fill' && on?.outlineInteraction === 'opaque-fill' && !('outlineHoverFill' in (on ?? {}))
-      && sel.hover?.v === '' && /^Auto: [A-Z][a-z-]* \d{3}$/.test(sel.hover?.auto ?? '') && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),
-      `#3071: "Solid fill" writes opaque-fill and draws Hover on Auto (the default step), Pressed locked, and the worst label ratio (${JSON.stringify({ chip, method: on?.outlineInteraction, sel })})`);
+      && sel.hover?.v === '' && /^Auto · [a-z-]+ \d{3}$/.test(sel.hover?.auto ?? '') && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),
+      `#3071: "Solid fill" writes opaque-fill and draws Primary's Hover on Auto (the default step), Pressed locked, and its worst label ratio (${JSON.stringify({ chip, method: on?.outlineInteraction, sel })})`);
+    const found = await page.evaluate(() => ({
+      // Links' rows keep their own line, inside their section; the found defect was the button sets' line drawn twice.
+      lines: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-sub')].filter((n) => !n.closest('[data-p3="link-rows"]') && /^Editing .*, the mode the preview shows\.$/.test(n.textContent ?? '')).length,
+      washes: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="interactive-column"] .p3-fillrow[data-role*=".overlay."]').length,
+      ratios: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="outline-hover-fill-ratio"]').length,
+    }));
+    ok(found.lines === 1 && found.washes === 0 && found.ratios === 3,
+      `#3335: under Solid fill the mode line is drawn once, no card draws its wash swatches, and each of the 3 sets has its own worst-label line (${JSON.stringify(found)})`);
     await page.locator(`${lever} [data-p3="outline-hover-fill-hover-select"]`).selectOption('neutral.050');
-    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.outlineHoverFill?.light?.hover === 'neutral.050'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.outlineHoverFill?.light?.sets?.primary?.hover === 'neutral.050'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
     const picked = await persisted(page);
-    const pressedOn = await page.evaluate((l) => document.querySelector(`${l} [data-p3="outline-hover-fill-pressed-select"]`)?.disabled === false, lever);
-    ok(JSON.stringify(picked?.outlineHoverFill) === JSON.stringify({ light: { hover: 'neutral.050' } }) && pressedOn,
-      `#3071: picking neutral 050 writes outlineHoverFill.light.hover and unlocks Pressed (${JSON.stringify(picked?.outlineHoverFill)}, pressed enabled ${pressedOn})`);
+    const pressedOn = (await read(lever)).pressed?.off === false;
+    const neutralSel = await read(group('neutral'));
+    ok(JSON.stringify(picked?.outlineHoverFill) === JSON.stringify({ light: { sets: { primary: { hover: 'neutral.050' } } } }) && pressedOn && neutralSel.hover?.v === '' && neutralSel.pressed?.off === true,
+      `#3335: picking neutral 050 for Primary writes outlineHoverFill.light.sets.primary.hover alone, unlocks Primary's Pressed, and leaves Neutral on Auto (${JSON.stringify(picked?.outlineHoverFill)}, pressed enabled ${pressedOn}, neutral ${JSON.stringify(neutralSel)})`);
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-overlay-neutral"]'));
     await page.waitForFunction((l) => !document.querySelector(l), lever, { timeout: 5000 }).catch(() => {});
     const back = await persisted(page);
     ok(back?.outlineInteraction === 'overlay-neutral' && !('outlineHoverFill' in (back ?? {})) && await page.locator(lever).count() === 0,
-      `#3071: back to the neutral wash drops outlineHoverFill and the control (${JSON.stringify({ method: back?.outlineInteraction, fill: back?.outlineHoverFill })})`);
+      `#3071: back to the neutral wash drops outlineHoverFill and the group (${JSON.stringify({ method: back?.outlineInteraction, fill: back?.outlineHoverFill })})`);
     ok(errors.length === 0, `#3071 Outline hover fill: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
@@ -12752,10 +12779,12 @@ const EXPECT_HEADINGS = {
     L3: ['Inverse fill palette', 'Kind', 'Angle', 'Interpolation', 'Stops', 'Kind', 'Shape', 'Center X %', 'Center Y %', 'Interpolation', 'Stops'],
   },
   'color-interactive': {
-    L1: ['Interactive', 'Disabled', 'Links'],
-    L2: ['Action palette', 'Outline hover', 'Strict interactive contrast', 'Interactive palettes', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states', 'Primary', 'Neutral', 'Destructive'],
-    // Held decision 7, approved: a lever inside a group (Neutral emphasis, inside Neutral) reads as a field.
-    L3: ['Neutral emphasis', 'Hover', 'Pressed', 'Visited'],
+    // #3335 (the owner's Q3335.1 A and Q3335.7 A): the settings card, then a card per button set at L1, each opening on its
+    // lever (Primary Action Palette, Neutral emphasis) at L2 and its state groups' small titles at L2.
+    L1: ['Interactive Settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
+    L2: ['Outline hover', 'Wash opacity', 'Strict interactive contrast', 'Primary Action Palette', 'Neutral emphasis', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states',
+      'Fill', 'Fill · inverse', 'Text', 'Text · inverse', 'Border', 'Border · inverse', 'Overlay wash', 'On-fill text', 'On-fill text · inverse'],
+    L3: ['Hover', 'Pressed', 'Hover', 'Pressed', 'Visited'],
   },
   type: {
     // Heading pass 2 (TY1 A and HP2, #2190): the library and the family for each text type are two sections, each titled by
@@ -20017,7 +20046,9 @@ const RHYTHM_BLOCKS = {
  *  note checks only. */
 const RHYTHM_PLACES = {
   brand: { rows: 5, pairs: 1 }, 'color-palettes': { rows: 8, pairs: 4 }, 'color-fills': { rows: 5, pairs: 0 },
-  'color-interactive': { rows: 9, pairs: 5 }, type: { rows: 19, pairs: 12 }, shape: { rows: 4, pairs: 1 }, depth: { rows: 4, pairs: 1 },
+  // #3335: the settings card holds 3 levers (2 pairs), Disabled 1, Links 1; the action palette and the neutral emphasis
+  // each open a set's card alone.
+  'color-interactive': { rows: 9, pairs: 4 }, type: { rows: 19, pairs: 12 }, shape: { rows: 4, pairs: 1 }, depth: { rows: 4, pairs: 1 },
   layout: { rows: 4, pairs: 1 }, components: { rows: 19, pairs: 10 }, export: { rows: 5, pairs: 4 },
 };
 /** Every control the second check holds off a name. */
@@ -20130,6 +20161,59 @@ if (runs('3337')) {
     } finally { await ctx.close(); }
   }
 } // 3337
+// ── #3335: Color › Interactive, a group with no rest row (the owner's amendment to Q3335.7 A, 2026-11-03) ─────────────
+// Rest → Hover → Pressed nesting applies only where a group HAS a rest row. A group with none (the neutral wash, the tinted
+// wash, and Solid fill's per-set pickers) draws its Hover and Pressed side by side at the group's own level: neither nested
+// under the other. Measured as RENDERED, both hosts, both themes, 1280 and 380, under each method that draws such a group,
+// in every button set's card: each state's left edge (its swatch, or its picker's label) is read, and Hover's and Pressed's
+// must agree within 0.5px. Each method must show the group in all three built-in sets, by name (represented, not
+// counted). The control arm holds a group WITH a rest row (Fill) to the nesting it keeps: its Hover sits right of its Rest.
+// MUTATION (fails by name): nest Pressed under Hover (`rowsInGroups` appending a no-rest group's second row into a states
+// column) → `3335 web light 1280 / Neutral overlay wash / primary: "Overlay wash" Pressed sits 25px right of Hover (want one level)`.
+const NO_REST_GROUPS = { 'Neutral overlay wash': 'Overlay wash', 'Tinted wash': 'Tinted wash', 'Solid fill': 'Outline & text hover' };
+const NO_REST_SETS = ['primary', 'neutral', 'destructive'];
+const NO_REST_PROBE = (title) => [...document.querySelectorAll('[data-p3="interactive-column"]')].map((card) => {
+  const g = card.querySelector(`[data-p3="int-group"][data-group="${title}"]`);
+  const leftOf = (n) => { const x = n?.querySelector('.p3-fill-sw, .p3-field-label') ?? n; return x ? +x.getBoundingClientRect().left.toFixed(1) : null; };
+  const states = g ? [...g.querySelectorAll('.p3-fillrow, .p3-ihover')].filter((n) => n.getClientRects().length) : [];
+  const named = (re) => states.find((n) => re.test((n.querySelector('.p3-fill-label, .p3-field-label')?.textContent ?? n.textContent ?? '').trim()));
+  const fill = card.querySelector('[data-p3="int-group"][data-group="Fill"]');
+  const frows = fill ? [...fill.querySelectorAll('.p3-fillrow')] : [];
+  return { col: card.dataset.column, found: !!g, n: states.length, hover: leftOf(named(/^Hover/)), pressed: leftOf(named(/^Pressed/)),
+    restLeft: leftOf(frows[0]), fillHover: leftOf(frows[1]), rest: g?.querySelector('[data-p3="int-row-group"]')?.dataset.rest ?? null };
+});
+if (runs('3335')) {
+  console.log(`\nColor › Interactive: a group with no rest row keeps one level (#3335)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    const where = `3335 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'open';
+    try {
+      if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+      await goPlace(page, 'color-interactive');
+      await showLevers(page, w);
+      for (const [chip, title] of Object.entries(NO_REST_GROUPS)) {
+        step = chip;
+        await hooks.click(page.locator('[data-p3="lever-outline-interaction"] [role="radio"]').filter({ hasText: chip }).first());
+        await page.waitForFunction((t) => !!document.querySelector(`[data-p3="int-group"][data-group="${t}"]`), title, { timeout: 5000 }).catch(() => {});
+        await settle(page);
+        const cards = await page.evaluate(NO_REST_PROBE, title);
+        for (const col of NO_REST_SETS) {
+          const c = cards.find((x) => x.col === col);
+          const at = `${where} / ${chip} / ${col}`;
+          ok(!!c?.found && c.n >= 2 && c.rest === 'false', `${at}: the "${title}" group is drawn, with no rest row, and both its states (${JSON.stringify(c ?? null)})`);
+          if (!c?.found || c.hover === null || c.pressed === null) continue;
+          ok(Math.abs(c.pressed - c.hover) <= 0.5, `${at}: "${title}" Pressed sits ${+(c.pressed - c.hover).toFixed(1)}px right of Hover (want one level)`);
+          // The control arm: Fill has a rest row, so its Hover stays nested under it.
+          ok(c.fillHover !== null && c.restLeft !== null && c.fillHover > c.restLeft + 8, `${at}: Fill keeps its nesting, Hover ${c.fillHover} right of Rest ${c.restLeft}`);
+        }
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3335
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
