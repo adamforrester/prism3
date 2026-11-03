@@ -541,6 +541,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
     c.parent = null;
   };
   const page = opts.page;
+  /** #3308 (Q3308.3 A): a COMPONENT on a page of a several-page file (`pages`), by its own id. Figma takes a live
+   *  component's id as an instance-swap value, as the usage panel's Specimen sets it; without `pages`, none. */
+  const pageComponent = (id: string): boolean => {
+    if (!opts.pages) return false;
+    const walk = (n: Node): boolean => (n.id === id && n.type === 'COMPONENT') || ((n.children as Node[] | undefined) ?? []).some(walk);
+    return opts.pages().some((p) => p.children.some(walk));
+  };
   /** What `liveRoot`'s searches read: the top level of every page (#3308, `pages`), else `page`'s. */
   const liveTop = (): Node[] => (opts.pages ? opts.pages().flatMap((p) => p.children) : (page?.children ?? []));
   /** Charges a `burn` to the run's virtual clock (#1800). No busy-wait fallback: see `ShimOpts.burn`. */
@@ -607,7 +614,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           if (d.type === 'SLOT') throw new Error('in setProperties: cannotSetSlotProperty');
           if ((d.type === 'TEXT' && typeof v !== 'string') || (d.type === 'BOOLEAN' && typeof v !== 'boolean'))
             throw new Error('in setProperties: Property value is incompatible with component property type');
-          if (d.type === 'INSTANCE_SWAP' && (typeof v !== 'string' || !componentIds.has(v)))
+          if (d.type === 'INSTANCE_SWAP' && (typeof v !== 'string' || (!componentIds.has(v) && !pageComponent(v))))
             throw new Error(`in setProperties: Expected a component id, got ${JSON.stringify(v)}`);
         }
         for (const [k, v] of Object.entries(props)) overrides[idOfKey(k)] = v;

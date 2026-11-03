@@ -3740,6 +3740,35 @@ for (const host of ['web', 'figma']) {
         const rfC = (await drawerState(page)).ops['components'];
         ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
           `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
+        // #3308 (Q3308.3 A): usage panels on a first run. With Documentation's panels on and a file with no `_Doc-block`
+        // (`docBlockLacks`), To add lists the sets the run also builds for it, and the sets step posts the queued Badge
+        // first, asking each build to make the template first (`docBlock`). With the panels off, no line and the queue's
+        // own order (#3311). The theme is unticked, so the first write is the sets step's.
+        // (mutations: `postCurrent` not asking → `#3308: … posts`; `runOrderOf` keeping the queue's order → the same arm)
+        for (const panels of [true, false]) {
+          if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+          await postMsg(page, { type: 'doc-settings', settings: { panels, cover: true, styleGuide: null } });
+          const lacks = { present: [], setUp: true, queued: ['link', 'badge'], docBlockLacks: ['badge', 'tag', 'list-item', 'divider'] };
+          await openUpdate(lacks);
+          await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+          await postMsg(page, { type: 'file-sets', ...lacks });
+          await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+          const dbAlso = await page.evaluate(() => document.querySelector('[data-p3="update-dialog"] [data-p3="update-add-also"]')?.textContent ?? null);
+          await takeWrites(page);
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          const dbW1 = (await takeWrites(page)).filter((m) => m.type === 'build-components');
+          await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 1', summary: 'built', lines: ['built'] });
+          const dbW2 = (await takeWrites(page)).filter((m) => m.type === 'build-components');
+          await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 1', summary: 'built', lines: ['built'] });
+          await settle(page);
+          const dbU = await updBtn();
+          const want = panels
+            ? { also: 'Also builds, when the file lacks them: Tag, Divider, List Item.', posts: [{ type: 'build-components', def: 'badge', docBlock: true }, { type: 'build-components', def: 'link', docBlock: true }] }
+            : { also: null, posts: [{ type: 'build-components', def: 'link', docBlock: true }, { type: 'build-components', def: 'badge', docBlock: true }] };
+          ok(dbAlso === want.also && canon([...dbW1, ...dbW2]) === canon(want.posts) && !dbU.busy,
+            `${where}: #3308: panels ${panels ? 'on' : 'off'}, a file with no _Doc-block: To add ${panels ? 'lists the sets the run also builds' : 'lists nothing more'}, and the sets step posts ${panels ? 'the queued Badge first' : 'the queue in its order'}, each asking for the template first (also ${JSON.stringify(dbAlso)}, posted ${JSON.stringify([...dbW1, ...dbW2])}, Update file ${JSON.stringify(dbU)})`);
+        }
+        await postMsg(page, { type: 'doc-settings', settings: { panels: true, cover: true, styleGuide: null } });
         // #3308: the owner's first run, in small. Set up file, then two queued sets, each built with problems (completed,
         // not ok), and Style guides ticked: the run goes on to the style guides (it asks for a fresh catalog) instead of stopping at To add,
         // and Activity reads the queue's result as a warning, not a failure. The guides step is then refused, which ends the
