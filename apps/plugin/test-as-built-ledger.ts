@@ -207,5 +207,22 @@ ok(same(needsPrint(both, ['button', 'sign-in-button'], nowFor(pill, 43)), ['butt
 ok(same(dueOf(both, ['button', 'sign-in-button'], nowFor(pill, 43), printNow), { button: { state: 'current' }, 'sign-in-button': { state: 'due', reason: 'executor' } }),
   'reach/engine: engine and revision moved, the plans did not: the unreached set is current by its print, the reached one due for the executor');
 
+// #3205: THE PANEL FORMAT. A set otherwise current is due for its panel when its entry's format is not today's; a set
+// due for another reason keeps that reason; no format today (panels off, or not a lead) gives no credit. A write with no
+// format keeps the one the file holds: it did not touch the panel.
+{
+  const e = { def: 'a', rev: 1, engine: '1.0.0' };
+  const now = (panel?: number) => (): typeof e & { panel?: number } => ({ ...e, ...(panel === undefined ? {} : { panel }) });
+  ok(same(dueOf({ dialog: e }, ['dialog'], now(6)), { dialog: { state: 'due', reason: 'panel' } }), 'format due/no format: an entry with none reads due for its panel');
+  ok(same(dueOf({ dialog: { ...e, panel: 5 } }, ['dialog'], now(6)), { dialog: { state: 'due', reason: 'panel' } }), 'format due/older: an entry at format 5 reads due for its panel under 6');
+  ok(same(dueOf({ dialog: { ...e, panel: 6 } }, ['dialog'], now(6)), { dialog: { state: 'current' } }), 'format due/same: an entry at today\'s format reads current');
+  ok(same(dueOf({ dialog: { ...e, panel: 5 } }, ['dialog'], now()), { dialog: { state: 'current' } }), 'format due/off: no format today gives no credit');
+  ok(same(dueOf({ dialog: { ...e, def: 'b' } }, ['dialog'], now(6)), { dialog: { state: 'due', reason: 'definition' } }), 'format due/other reason: a set due for its definition keeps that reason');
+  const rr = { data: '', getPluginData() { return this.data; }, setPluginData(_k: string, v: string) { this.data = v; } };
+  recordSets(rr, { dialog: { ...e, panel: 6 } });
+  recordSets(rr, { dialog: { ...e, rev: 2 } });
+  ok(readLedger(rr).dialog.panel === 6 && readLedger(rr).dialog.rev === 2, 'format due/kept: a write with no format keeps the file\'s');
+}
+
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);
