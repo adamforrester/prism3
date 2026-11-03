@@ -151,7 +151,9 @@ const placeOf = (id: string) => { const at = leafForDef(id); return at ? { page:
 const catalog = catalogOf(componentDefs, (d) => figmaAnatomySet(d, { swapTarget: CATALOG_SWAP_TARGET }), placeOf);
 const rows = groupsOf(catalog).flatMap((s) => s.rows);
 // The owner's ticks: the Buttons family's box (its four sets), and Checkbox group, Checkbox row, Icon, Link and Badge.
-const TICKED: readonly (readonly string[])[] = [rows.find((r) => r.label === 'Buttons')?.ids ?? [], ['checkbox-group'], ['checkbox-row'], ['icon'], ['link'], ['badge']];
+// #3306 (Q3306.2 A): a set a queued set nests is held, and a tick on it writes nothing, so Checkbox row and Icon are
+// ticked first, as `test-update-owner-run.ts` does; the same nine sets reach the queue.
+const TICKED: readonly (readonly string[])[] = [['icon'], ['checkbox-row'], rows.find((r) => r.label === 'Buttons')?.ids ?? [], ['checkbox-group'], ['link'], ['badge']];
 let queue: string[] = [];
 for (const ids of TICKED) { const t = toggleSets(catalog, ids, new Set(queue), []); if (t.on) queue = [...queue, ...t.ids]; }
 const queued = queuedOf(catalog, { present: [] }, queue);
