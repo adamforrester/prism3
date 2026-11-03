@@ -42,7 +42,7 @@ import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { saveBeforeBuild, saveVersion } from './version-title';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type ApplyProgress, type UpdateChoices } from './update-apply';
-import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
+import { scaffoldSkeleton, resolveComponentPage, fileComponentsPageOf } from './file-setup';
 import { emptiedLine, pageMovesDue, pageMovesLine, relocateSets, type RelocateOutcome } from './page-moves';
 import { ensureFileComponents } from './file-components';
 import { ensureStyleGuideCells } from './style-guide-cells';
@@ -56,12 +56,12 @@ import type { PageHeaderOutcome, HeaderPage } from './page-header';
 import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { ensureFurnitureTemplates } from './furniture-templates';
-import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
+import { builtDocBlockItem, ensureDocBlock, docBlockNote, docBlockThemed, DOC_BLOCK_DEFS, type DocBlockApi, type DocBlockResult } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
-import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -715,7 +715,9 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
  * before the chunking this function had nothing to report and no moment to report it in. `onProgress`
  * fires at every chunk boundary; the terminal `component-result` still lands exactly once, at the end.
  */
-const buildComponents = async (defId: string | undefined, sink: ActionSink): Promise<void> => {
+/** #3308 (Q3308.3 A): what Update file's sets step asks of each build (`build-components`' `docBlock`). */
+type BuildOptions = { readonly docBlock?: boolean };
+const buildComponents = async (defId: string | undefined, sink: ActionSink, options: BuildOptions = {}): Promise<void> => {
   // EXACTLY ONE VERDICT PER BUILD, and this flag exists because #908's reordering is what made a second one
   // possible. The success verdict now posts BEFORE the console telemetry, so a throw in the telemetry tail
   // would reach the catch below and overwrite a correct "built" verdict with "apply failed" — reporting a
@@ -802,7 +804,25 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // `build-deps.ts`, which says why). `landed` records a page after its build RETURNS, keyed by page name (how
     // `resolveComponentPage` finds a page); the first def wins, since every def on a page reads the same copy.
     type Landed = (key: string, page: { page: HeaderPage; defId: string }) => void;
-    const buildOne = async (target: ComponentDef, reports: ComponentProgress[], landed: Landed) => {
+    // #3308 (Q3308.3 A): USAGE PANELS ON A FIRST RUN. Asked by Update file's sets step, while Documentation has the panels
+    // on, the file has no `_Doc-block` and holds the theme it binds: the sets `_Doc-block` is made from that the file lacks
+    // are built first, as a nested set is, then `_Doc-block`, so this set, and each of those, gets its usage panel in this
+    // build. A set built before `_Doc-block` exists waits for its panel (`deferred`), and is seated again once the panel's
+    // room can be measured. Without the ask, or with the panels off, nothing here changes (#3311).
+    const blockFirst = options.docBlock === true && readDocSettings(figma.root).panels
+      && !findDocBlock(figma as unknown as PanelApi) && await docBlockThemed(figma as unknown as DocBlockApi);
+    const deferred: { defId: string; setId: string; drawn: FurnitureOutcome; placed: boolean }[] = [];
+    let docBlock = null as DocBlockResult | null;
+    const docBlockNow = async (): Promise<void> => {
+      const page = fileComponentsPageOf(figma as unknown as Parameters<typeof fileComponentsPageOf>[0]);
+      // CAUGHT: a refused write leaves no template, and each panel below then says the file has none.
+      if (page) try { docBlock = await ensureDocBlock(figma as unknown as DocBlockApi, page as unknown as Parameters<typeof ensureDocBlock>[1]); } catch { docBlock = null; }
+      for (const d of deferred.splice(0)) {
+        if (d.placed) await seatSet(d.setId, d.defId);
+        await panelBeside(d.drawn, d.setId, d.defId);
+      }
+    };
+    const buildOne = async (target: ComponentDef, reports: ComponentProgress[], landed: Landed, deferPanel = false) => {
       const page = await resolveComponentPage(figma, target.id);
       let targetPage: CompPageTarget | undefined;
       if (page) {
@@ -856,7 +876,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // THE AS-BUILT LEDGER (#2909 Q2909.8 A): a set this build landed whole, every member fresh or already this plan's,
       // is recorded as built from the def it was materialized to. A set holding a member from another plan (`stale`) is
       // not: it still is what it was, and its entry says so. CAUGHT: the set is built, and the record is bookkeeping.
-      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: entryFor(materializeForBrand(target, brandInput), project(target)) }); } catch { /* read as unrecorded */ } }
+      if (built.id && built.stale === 0) { try { recordSets(figma.root, { [target.id]: { ...entryFor(materializeForBrand(target, brandInput), project(target)), ...panelFormatOf()(target.id) } }); } catch { /* read as unrecorded */ } }
       // #3129 Q833 A: and its add-queue key is cleared in the same place, so a set that fails, or is stopped before it
       // runs, stays queued. A set made first as a nested set (#1633), or by the agent's build, clears here too.
       if (built.id && built.stale === 0) { try { clearQueued(queueRoot(), [target.id]); } catch { /* cleared by the next queue write */ } }
@@ -867,7 +887,10 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       if (drawn && built.placed) await seatSet(built.id, target.id);
       // #846: its usage panel LAST, once the set sits where it stays, so the seating never moves the set past its panel.
       // #2909: unless Documentation has the usage panels off for this file.
-      if (drawn && readDocSettings(figma.root).panels) await panelBeside(drawn, built.id, target.id);
+      if (drawn && readDocSettings(figma.root).panels) {
+        if (deferPanel) deferred.push({ defId: target.id, setId: built.id, drawn, placed: !!built.placed });
+        else await panelBeside(drawn, built.id, target.id);
+      }
       // The real `PageNode` (same #1561 reasoning as `targetPage` above), which satisfies `HeaderPage`.
       // Keyed by the header it labels (#3172): a block with its own header is labeled beside its page's.
       if (page) landed(headerFor(target.id, page.name, componentDefs)?.key ?? page.name, { page: page as unknown as PageNode, defId: target.id });
@@ -885,10 +908,24 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
     const { alsoBuilt, r } = await labelAfterBuilds(async (landed: Landed) => {
+      // #3308 (Q3308.3 A): `_Doc-block`'s sets first, each with the sets it nests, their panels waiting for the template.
+      const first: { id: string; misses: number }[] = [];
+      if (blockFirst) for (const id of DOC_BLOCK_DEFS) {
+        const part = componentDefs.find((d) => d.id === id);
+        if (!part || part.id === def.id || presentNames(figma as unknown as DepHost).has(part.id)) continue;
+        first.push(...await prebuildDependencies(part, { defs: componentDefs, project, host: figma as unknown as DepHost, build: (d) => buildOne(d, [], landed, true) }));
+        const p = await buildOne(part, [], landed, true);
+        first.push({ id: part.id, misses: p.misses.length - p.skipped });
+      }
+      // This set is one of them: it too waits, and `_Doc-block` is built once it has landed. Else the template is built now.
+      const isPart = blockFirst && DOC_BLOCK_DEFS.includes(def.id);
+      if (blockFirst && !isPart) await docBlockNow();
       const alsoBuilt = await prebuildDependencies(def, {
-        defs: componentDefs, project, host: figma as unknown as DepHost, build: (d) => buildOne(d, [], landed),
+        defs: componentDefs, project, host: figma as unknown as DepHost, build: (d) => buildOne(d, [], landed, isPart),
       });
-      return { alsoBuilt, r: await buildOne(def, reports, landed) };
+      const r = await buildOne(def, reports, landed, isPart);
+      if (isPart) await docBlockNow();
+      return { alsoBuilt: [...first, ...alsoBuilt], r };
     }, ({ page, defId }) => placeHeader(page, defId));
     // THE SETTLE PROBE (#684), RUN WITHOUT THE VERDICT WAITING ON IT (#908). It still starts at the exact
     // moment the executor returns — the moment the pill says done and the file was previously frozen for
@@ -944,7 +981,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale, r.refsRelinked),
         ...fromClauses([
           ...head.map((x) => [', ', x] as const), [', ', missNote], ['. ', staleItem],
-          ['. ', alsoBuiltItem(alsoBuilt)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
+          ['. ', alsoBuiltItem(alsoBuilt)], ['. ', builtDocBlockItem(docBlock)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
           ...furnitureItems(furniture, 'build').map((x) => ['. ', x] as const),
         ]),
       }, furniture), sink);
@@ -1293,14 +1330,14 @@ const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
  *  brand's theme is built once for every def (`materializerFor`); a def the engine cannot plan has none, and reads
  *  unrecorded. */
 const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
-  const mat = materializerFor(brandOf(input));
+  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(); // #3205: on a lead set, today's panel format
   // #3301: each def's entry worked out once per read (`needsPrint` and `dueOf` both ask for every set's).
   const memo = new Map<string, LedgerEntry | null>();
   return (id) => {
     if (memo.has(id)) return memo.get(id)!;
     const d = componentDefs.find((x) => x.id === id);
     let e: LedgerEntry | null = null;
-    try { e = d ? entryFor(mat(d)) : null; } catch { e = null; }
+    try { e = d ? { ...entryFor(mat(d)), ...panel(id) } : null; } catch { e = null; }
     memo.set(id, e);
     return e;
   };
@@ -1446,7 +1483,9 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
     const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(read) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...unpaneled, ...(atOpen ? { atOpen: true as const } : {}) });
+    // #3308 (Q3308.3 A): what Update file's run would build first for the usage panels, read from the same search.
+    const docBlockLacks = findDocBlock({ root: rootOver(read) } as unknown as PanelApi) ? null : DOC_BLOCK_DEFS.filter((id) => !present.includes(id));
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(read) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(docBlockLacks ? { docBlockLacks } : {}), ...unpaneled, ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
   }
@@ -2262,7 +2301,7 @@ onUiMessage((msg: UiToMain) => {
     case 'build-components':
       // `msg.def` straight through, `undefined` included — the resolution lives in `buildComponents`
       // (absent means Button) rather than being defaulted here, so there is one place that decides it.
-      void ACTIONS.buildComponents(msg.def, uiSink);
+      void ACTIONS.buildComponents(msg.def, uiSink, msg.docBlock === true ? { docBlock: true } : {});
       return;
     case 'prune':
       // #1521 — `confirm` decides preview vs delete; both recompute from a fresh read inside `prune`.
@@ -2346,3 +2385,12 @@ onUiMessage((msg: UiToMain) => {
       assertNever(msg); // compile error if a UiToMain variant is added but not handled here
   }
 });
+
+/** THE PANEL FORMAT A SET'S ENTRY CARRIES (#3205): `PANEL_FORMAT` on a family's lead set while Documentation has the
+ *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
+ *  The file's switch is read once per call. Defined here, at the end, so the lines public guides cite above stay put;
+ *  it is called only once the module has loaded. */
+const panelFormatOf = (): ((def: string) => { panel?: number }) => {
+  const on = readDocSettings(figma.root).panels;
+  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
+};
