@@ -23,7 +23,9 @@
  * TO ADD (#3129, Q832 A, Q3129.7–10 A; the owner's revisions R6 and R7): the file's add queue, in Components' order and
  * with its names (`queuedOf`, `displayNameOf`). To add and Due are the two subtitles of one section, Components, at
  * Theme's level (R6). Each To add row has Remove (×), and from two rows up the subtitle's line has Remove all; there is
- * no tick, so a queued set runs. Each removal is a queue write, as Components' boxes are, so a teammate sees it. An
+ * no tick, so a queued set runs. Under the rows, one "Also adds" line names what the run builds alongside them that the
+ * file lacks: the sets they nest (#3306 Q3306.5 A) and, on a first run with panels on, the sets `_Doc-block` is made from
+ * (#3308 Q3308.3 A), one line by the owner's call, private parts unnamed (`alsoAddsOf`); the badge counts the queued sets only. Each removal is a queue write, as Components' boxes are, so a teammate sees it. An
  * empty queue shows no To add at all (R7); a file that is not set up starts empty and still offers Add all, which
  * writes every set it lacks into the queue (Q3129.9 A, Q3129.10 A, kept). With neither group, no Components section.
  *
@@ -48,8 +50,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { RUN_COPY } from '../state/build-queue';
-import { awaitingRead, badgeParts, checkScopeOf, defaultTicks, docBlockAlsoOf, dueSetsOf, newSetsOf, panelSetsOf, queuedOf, runOrderOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { alsoAddsOf, awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, newSetsOf, panelSetsOf, queuedOf, runOrderOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -315,9 +316,10 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
           list.append(row);
         });
         grp.append(list);
-        // #3308 (Q3308.3 A): the sets the run builds first for the usage panels, named as Components names them.
-        const also = docBlockAlsoOf(r.catalog, f, queue, r.panels);
-        if (also.length) grp.append(hook(h('p', 'p3-sub p3-upd-sub', RUN_COPY.also(also.map(nameOf))), 'update-add-also'));
+        // #3306 Q3306.5 A and #3308 Q3308.3 A, one line by the owner's call: what the run builds alongside the rows above,
+        // the sets they nest and the sets the usage panels' template is made from, each once, private parts unnamed.
+        const also = alsoAddsOf(r.catalog, f, r.queue, r.panels);
+        if (also.length) grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.alsoAdds(also)), 'update-add-also'));
       } else {
         // Q3129.9 A, Q3129.10 A: a file that is not set up starts with nothing queued; Add all writes every set it lacks
         // into the queue, as Components' Select all does.
