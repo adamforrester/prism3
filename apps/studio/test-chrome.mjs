@@ -20038,10 +20038,11 @@ if (runs('3298')) {
 // "Button icons" → "Medium button label & icon" 0px < 24px (row → row, space.300)`, on both hosts, both themes, both
 // widths; `.p3-btn.p3-deplink`'s inline padding restored → `… "Set it in Shape › Density" starts 17px in from its row (≤ 1px)`.
 /** The option blocks a Components page draws, by hook, typed (never read from `components.ts`), each with the floor of rows
- *  it must show, the count measured when this landed. Link options holds one read-only line and no lever. */
+ *  it must show, the count measured when this landed. Link options holds one read-only line and no lever.
+ *  Page navigation options (#3345) holds its one lever, Current page indicator. */
 const RHYTHM_BLOCKS = {
   'shared-options': 2, 'button-options': 8, 'field-options': 2, 'search-options': 1, 'tag-options': 1,
-  'dialog-options': 2, 'banner-options': 1, 'link-options': 1, 'radio-options': 1,
+  'dialog-options': 2, 'banner-options': 1, 'link-options': 1, 'radio-options': 1, 'page-nav-options': 1,
 };
 /** The places, in the order a designer meets them, each with the literal floors of setting rows and of row pairs it must
  *  show (per host, theme and width), the counts measured when this landed. Color › Fills has rows and no pair: each of its
