@@ -2473,6 +2473,22 @@ section('order — a component this run adds counts as present for the set that 
   const pre2 = await previewUpdate(w2.host, short);
   ok(JSON.stringify(pre2.sets.find((p) => p.set === 'wallet-button')?.blockers) === '["Not in this file: provider-logo/button/paypal-gold. Build provider-logo first, then run the update again"]',
     `run adds/unsupplied: a mark the run does not add still blocks wallet-button, named alone (${JSON.stringify(pre2.sets.find((p) => p.set === 'wallet-button')?.blockers)})`);
+  // A BLOCKED PROVIDER CREDITS NOTHING (review should-fix 1): this run's provider-logo is itself blocked — one of its
+  // marks nests a component the file does not have — so the apply refuses it and adds none of its 11 marks. Its marks
+  // must not count as present for wallet-button either, or wallet-button would read unblocked, pass `preflight`, and be
+  // written nesting marks the file lacks. Mutation: the `!preview.blockers.length` guard on the credit removed →
+  // `run adds/blocked provider` fails.
+  const w3 = await runAdds();
+  const LACKED = 'provider-logo-test/not-in-file';
+  const blockedProvider = providerAll.map((p) => (p.coord.name === 'button/paypal-gold' ? { ...p, root: { ...p.root, nestTarget: LACKED } as PlanNode } : p));
+  const blocked: UpdateTarget[] = [{ def: 'wallet-button', plans: walletNow }, { def: 'provider-logo', plans: blockedProvider, single: true }];
+  const pre3 = await previewUpdate(w3.host, blocked);
+  const pl3 = pre3.sets.find((p) => p.set === 'provider-logo');
+  const wb3 = pre3.sets.find((p) => p.set === 'wallet-button');
+  ok(!!pl3 && pl3.blockers.some((b) => b.includes(LACKED)),
+    `premise: provider-logo is blocked by the nest the file lacks (${JSON.stringify(pl3?.blockers)})`);
+  ok(wb3?.blockers.length === 1 && wb3.blockers[0].startsWith('Not in this file: ') && buttons.every((b) => wb3.blockers[0].includes(b)),
+    `run adds/blocked provider: a blocked provider-logo credits none of its 11 marks, so wallet-button is still blocked, naming each (${JSON.stringify(wb3?.blockers)})`);
 }
 
 /* ── replace ─────────────────────────────────────────────────────────────────────────────────────────── */
