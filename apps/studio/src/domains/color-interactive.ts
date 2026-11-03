@@ -43,7 +43,7 @@ import { isDerived, resolvedModes } from '../state/verdict';
 import { overrideOf, rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
   BUILT_IN_COLUMNS, LINK_ROWS, addAccent, isTextLinkRow, linkSurfacesOf, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
-  removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
+  REST_LABEL, removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
   type InteractiveRow, type LinkRungState,
 } from '../state/interactive-input';
 import { paletteRefOptions } from '../levers/controls';
@@ -53,10 +53,26 @@ import { glyph, h, hook } from '../shell/dom';
 import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, pageEdit, markRefused } from '../ui/lever-kit';
 import { scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, worstRatio, type PickerPalette } from '../ui/step-picker';
-import { readOutlineHoverFill, setOutlineHoverStep, setOutlineInteraction } from '../state/outline-hover-input';
+import { WASH_HOVER_STEPS, WASH_PRESSED_STEPS, readOutlineHoverFill, readOutlineWash, setOutlineHoverSetStep, setOutlineInteraction, setOutlineWashStep } from '../state/outline-hover-input';
 import { contrast, hexToRgb } from '@prism3/engine/color';
 
-/** The button sets lever's info text (owner-approved, 2026-10-02). */
+/** #3335 (the proposal's §4, DRAFT for the owner's final read): the per-set card's title, the Primary card's first lever,
+ *  the Solid fill group's title, and the Wash opacity lever. */
+export const SET_CARD_TITLE = (name: string): string => `${name} Interactive Colors`;
+export const PRIMARY_ACTION_PALETTE = 'Primary Action Palette';
+export const HOVER_FILL_GROUP = 'Outline & text hover';
+export const WASH_COPY = {
+  label: 'Wash opacity',
+  info: 'How strong the hover and pressed wash is on outline and text controls, as a step of the opacity scale. Pressed sits above hover; selected follows pressed.',
+  option: (n: number, tinted: boolean): string => (tinted ? `${n}%, stepped per set where needed` : `${n}%`),
+  hint: {
+    'overlay-neutral': 'A black wash on light grounds, a white one on dark. Tags, segmented controls and pagination hover with it too.',
+    'solid-tint': 'Each set\u2019s own fill at this opacity. A set steps it where its label would drop below 4.5:1, or where the hover would not show.',
+    'opaque-fill': 'Buttons take the hover fills set in each color below. Tags, segmented controls and pagination keep this wash.',
+  },
+} as const;
+/** The button sets lever's info text (owner-approved, 2026-10-02). Since #3335 (Q3335.2 A) a visible line above Add
+ *  button set. */
 export const BUTTON_SET_TOOLTIP = 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'interactive')!;
@@ -141,50 +157,77 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     return { el: b.el, said: b.said, key, block: b };
   };
 
-  // ── Outline hover fill (#3071, owner Q824 A; every string a DRAFT for the owner) ─────────────────────
-  /** The hover and pressed step of the opaque outline hover fill, in the mode the preview shows. Drawn only under
-   *  `opaque-fill`. Auto names the step the engine's default rule lands on; the line under it is the worst label on
-   *  each fill across the button sets, read from the resolved roles. */
-  const outlineHoverFill = (): Item[] => {
-    if ((getPath(brandState, 'outlineInteraction') ?? theme.outlineInteraction) !== 'opaque-fill') return [];
-    const b = leverBlock('outlineHoverFill', { group: true });
-    const roles = rolesIn(currentMode);
-    const pick = readOutlineHoverFill()[currentMode];
-    const steps = theme.palettes.flatMap((p) => p.steps.map((st) => ({ v: `${p.palette}.${st.key}`, l: `${capWord(p.palette)} ${st.key}` })));
-    const shown = (st: string): string => (roles[`interactive.primary.hover-fill.${st}`]?.path ?? '').split('.').slice(-2).map((x, i) => (i ? x : capWord(x))).join(' ');
+  // ── Wash opacity (#3335, the owner's Q3335.3 A and Q3335.4 A; every string a DRAFT for the owner) ─────────
+  /** The wash's Hover and Pressed steps, brand-wide, under every method that draws a wash (the tinted wash, the neutral
+   *  wash, and Solid fill, whose tags, segmented controls and pagination keep the neutral wash). Each method's hint says
+   *  what the wash reaches. Pressed offers only the steps above hover (the engine refuses one on or under it). */
+  const washOpacity = (): Item[] => {
+    const method = String(getPath(brandState, 'outlineInteraction') ?? theme.outlineInteraction);
+    if (method === 'none') return [];
+    // One block draws both steps, so search finds it by the pressed lever's words too (`alsoSays`, #2175).
+    const P = leverOf('outlineWash.pressed');
+    const b = leverBlock('outlineWash.hover', { group: true, label: WASH_COPY.label, desc: WASH_COPY.info, alsoSays: `${P?.label ?? ''} ${P?.description ?? ''} outlineWash.pressed` });
+    const now = readOutlineWash(method);
     const said: string[] = [];
-    // One select to a line, as the link states are (the owner's QA-I9).
     const grid = h('div', 'p3-fieldgrid p3-irungs');
-    for (const st of ['hover', 'pressed'] as const) {
-      const f = hook(h('div', 'p3-field'), `outline-hover-fill-${st}`);
-      const id = `p3-outline-hover-${st}`;
+    for (const [st, offered] of [['hover', WASH_HOVER_STEPS], ['pressed', WASH_PRESSED_STEPS.filter((x) => x > now.hover)]] as const) {
+      const f = hook(h('div', 'p3-field'), `outline-wash-${st}`);
+      const id = `p3-outline-wash-${st}`;
       const lab = h('label', 'p3-field-label', capWord(st));
       lab.htmlFor = id;
-      const s = selectField(id, `${capWord(st)} fill`, `outline-hover-fill-${st}-select`, (v) => edit('outlineHoverFill', () => setOutlineHoverStep(currentMode, st, v || undefined)));
-      const auto = `Auto: ${shown(st) || 'default'}`;
-      s.set([{ v: '', l: auto }, ...steps], (st === 'hover' ? pick?.hover : pick?.pressed) ?? '');
-      // Pressed follows hover until hover is picked: its Auto is the next step past it.
-      s.select.disabled = st === 'pressed' && !pick;
-      f.append(lab, s.el);
+      const sel = selectField(id, `${WASH_COPY.label}: ${capWord(st)}`, `outline-wash-${st}-select`, (v) => edit('outlineWash', () => setOutlineWashStep(method, st, Number(v))));
+      sel.set(offered.map((x) => ({ v: String(x), l: WASH_COPY.option(x, method === 'solid-tint') })), String(now[st]));
+      f.append(lab, sel.el);
       grid.append(f);
-      said.push(auto);
+      said.push(capWord(st));
     }
-    b.ctl.append(grid);
+    b.ctl.append(grid, hook(subLine(WASH_COPY.hint[method as keyof typeof WASH_COPY.hint] ?? WASH_COPY.hint['overlay-neutral']), 'outline-wash-hint'));
+    return [{ el: b.el, said: `${b.said} ${said.join(' ')}`.toLowerCase(), key: 'outlineWash', block: b }];
+  };
+
+  // ── Outline & text hover, per button set (#3071; per set since #3335, the owner's Q3335.5 A; DRAFT copy) ───────
+  /** Under Solid fill, a set's own Hover and Pressed fill for the page ground, in the mode the preview shows, in place of
+   *  the wash swatches (which no longer reach that set's buttons). Auto names the step the set takes unpicked: the
+   *  mode-wide pick a brief may carry, else the engine's default rule. The line under it is the set's own worst label
+   *  and icon on each fill, read from the resolved roles. Hover and Pressed sit side by side: the group has no rest row. */
+  const setHoverFill = (col: string): { el: HTMLElement; items: Item[] } => {
+    const roles = rolesIn(currentMode);
+    const own = readOutlineHoverFill()[currentMode]?.sets?.[col];
+    const steps = theme.palettes.flatMap((p) => p.steps.map((st) => ({ v: `${p.palette}.${st.key}`, l: `${p.palette} ${st.key}` })));
+    const shown = (st: string): string => (roles[`interactive.${col}.hover-fill.${st}`]?.path ?? '').split('.').slice(-2).join(' ');
+    const g = hook(h('div', 'p3-irow-group p3-irow-flat'), 'int-row-group');
+    g.dataset.group = HOVER_FILL_GROUP;
+    g.dataset.rest = 'false';
+    const items: Item[] = [];
+    for (const st of ['hover', 'pressed'] as const) {
+      const f = hook(h('div', 'p3-field p3-ihover'), `outline-hover-fill-${st}`);
+      f.dataset.column = col;
+      const id = `p3-outline-hover-${col}-${st}`;
+      const lab = h('label', 'p3-field-label', capWord(st));
+      lab.htmlFor = id;
+      const sel = selectField(id, `${capWord(col)} ${st} fill`, `outline-hover-fill-${st}-select`, (v) => edit('outlineHoverFill', () => setOutlineHoverSetStep(currentMode, col, st, v || undefined)));
+      sel.set([{ v: '', l: `Auto · ${shown(st) || 'default'}` }, ...steps], (st === 'hover' ? own?.hover : own?.pressed) ?? '');
+      // Pressed follows hover until the set's hover is picked: its Auto is the next step past it.
+      sel.select.disabled = st === 'pressed' && !own;
+      f.append(lab, sel.el);
+      g.append(f);
+      items.push({ el: f, said: `${HOVER_FILL_GROUP} ${capWord(st)} ${col} outline hover fill`.toLowerCase(), key: 'outlineHoverFill' });
+    }
     const worst = (st: string): number | undefined => {
-      const rs = columnsInOrder().flatMap(([c]) => ['text', 'icon'].map((part) => [roles[`interactive.${c}.hover-fill.${st}`], roles[`interactive.${c}.${part}.${st}`]] as const))
-        .filter(([f, ink]) => f && ink).map(([f, ink]) => contrast(hexToRgb(ink!.hex), hexToRgb(f!.hex)));
+      const fill = roles[`interactive.${col}.hover-fill.${st}`];
+      const rs = ['text', 'icon'].map((part) => roles[`interactive.${col}.${part}.${st}`]).filter((ink) => fill && ink).map((ink) => contrast(hexToRgb(ink!.hex), hexToRgb(fill!.hex)));
       return rs.length ? Math.min(...rs) : undefined;
     };
     const wh = worst('hover'), wp = worst('pressed');
-    if (wh !== undefined && wp !== undefined) b.ctl.append(hook(subLine(`Labels and icons on it, at worst: ${fmtRatio(wh)} hover, ${fmtRatio(wp)} pressed. They shift where they need to, to stay legible.`), 'outline-hover-fill-ratio'));
-    if (editingLine()) b.ctl.append(editingLine()!);
-    return [{ el: b.el, said: `${b.said} ${said.join(' ')}`.toLowerCase(), key: 'outlineHoverFill', block: b }];
+    if (wh !== undefined && wp !== undefined) g.append(hook(subLine(`Labels and icons on it, at worst: ${fmtRatio(wh)} hover, ${fmtRatio(wp)} pressed. They shift where they need to, to stay legible.`), 'outline-hover-fill-ratio'));
+    return { el: g, items };
   };
 
   // ── Actions ────────────────────────────────────────────────────────────────────────────────────
   const actionPalette = (): Item => {
     const L = leverOf('actionPalette')!;
-    const b = leverBlock('actionPalette', { forId: 'p3-action-palette' });
+    // #3335 (§4, DRAFT): the Studio's label only; the manifest's "Action palette" stays for MCP and the emission.
+    const b = leverBlock('actionPalette', { forId: 'p3-action-palette', label: PRIMARY_ACTION_PALETTE });
     const s = selectField('p3-action-palette', L.label, 'action-palette-select', (v) => edit('actionPalette', () => setLever('actionPalette', v)));
     s.set(paletteRefOptions('actionPalette', (brandState.brandColors ?? []).map((x) => x.name)).map((p) => ({ v: p, l: capWord(p) })), String(brandState.actionPalette ?? 'primary'));
     b.ctl.append(s.el);
@@ -371,48 +414,79 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     return { el: wrap, said, key: `row:${r.role}`, refmark };
   };
 
-  /** Rows in their groups: a rest row, then its hover and pressed under it (Q33). */
-  const rowsInGroups = (rows: readonly InteractiveRow[], into: HTMLElement, out: Item[]): void => {
-    let parent: HTMLElement | null = null;
-    let group = '';
+  /** One state group of a set's card (#3335, the owner's Q3335.7 A and amendment): a small title, then its rows. A group
+   *  with a rest row draws Rest, then its Hover and Pressed nested under it (Q33). A group with no rest row (a wash)
+   *  draws its Hover and Pressed side by side at the group's own level, neither nested under the other. */
+  const stateGroup = (title: string, body: HTMLElement): HTMLElement => {
+    const g = hook(h('section', 'p3-icol p3-igroup'), 'int-group');
+    g.dataset.group = title;
+    const head = h('div', 'p3-icol-head');
+    head.append(h('h3', 'p3-icol-title', title));
+    g.append(head, body);
+    return g;
+  };
+  const rowsInGroups = (rows: readonly InteractiveRow[], col: string, out: Item[]): HTMLElement[] => {
+    const groups: HTMLElement[] = [];
+    const method = String(getPath(brandState, 'outlineInteraction') ?? theme.outlineInteraction);
+    let at: { name: string; list: HTMLElement; group: HTMLElement; states: HTMLElement | null } | null = null;
     for (const r of rows) {
+      // Under Solid fill the wash no longer reaches this set's buttons: its swatches give way to the set's own pickers.
+      if (method === 'opaque-fill' && r.role.includes('.overlay.')) {
+        if (r.label === 'Hover') {
+          const x = setHoverFill(col);
+          out.push(...x.items);
+          const list = h('div', 'p3-fillrows');
+          list.append(x.el);
+          groups.push(stateGroup(HOVER_FILL_GROUP, list));
+        }
+        continue;
+      }
       const child = r.label === 'Hover' || r.label === 'Pressed';
-      const it = rowOf(r, child && r.group === group);
+      const nested = child && !!at?.states && at.name === r.group;
+      const it = rowOf(r, nested);
       if (!it) continue;
       out.push(it);
-      if (child && parent && r.group === group) { parent.append(it.el); continue; }
-      group = r.group;
+      if (at && at.name === r.group) { (nested ? at.states! : at.group).append(it.el); continue; }
+      const list = h('div', 'p3-fillrows');
       const g = hook(h('div', 'p3-irow-group'), 'int-row-group');
       g.dataset.group = r.group;
-      parent = hook(h('div', 'p3-irow-states'), 'int-row-states');
-      g.append(it.el, parent);
-      into.append(g);
+      g.dataset.rest = String(r.label === REST_LABEL);
+      let states: HTMLElement | null = null;
+      g.append(it.el);
+      if (r.label === REST_LABEL) { states = hook(h('div', 'p3-irow-states'), 'int-row-states'); g.append(states); }
+      else g.classList.add('p3-irow-flat');
+      list.append(g);
+      groups.push(stateGroup(r.group, list));
+      at = { name: r.group, list, group: g, states };
     }
+    return groups;
   };
 
-  // ── Interactive palettes: the column groups, the add row, and the strict switch ────────────────────
-  const columns = (): Item[] => {
-    // The engine's description speaks of "columns"; the owner's word is "button set" (Q53), so this page
-    // hands in its own, approved 2026-10-02. The manifest's stays as MCP and the emission read it.
-    const b = leverBlock('interactivePalettes', { desc: BUTTON_SET_TOOLTIP });
+  // ── The button sets: one card each (#3335, the owner's Q3335.1 A), then Add button set ──────────────────────────
+  const setCards = (): { els: HTMLElement[]; items: Item[] } => {
     const out: Item[] = [];
-    const box = hook(h('div', 'p3-icols'), 'interactive-columns');
+    const els: HTMLElement[] = [];
+    // The mode line, once, above the cards it describes (Q3335.2 A): the settings above it are brand-wide.
     const line = editingLine();
-    if (line) box.append(line);
+    if (line) els.push(hook(line, 'interactive-mode-line'));
     (columnsInOrder()).forEach(([col, pk, name]) => {
       const rows = interactiveRowsFor(col, pk);
       const roles = rolesIn(currentMode);
       if (!roles[`interactive.${col}.fill.rest`]) return;
-      const grp = hook(h('section', 'p3-icol'), 'interactive-column');
-      grp.id = idOf(col);
-      grp.tabIndex = -1;
-      grp.dataset.column = col;
-      const head = h('div', 'p3-icol-head');
-      const t = h('h3', 'p3-icol-title', name);
-      t.id = `${grp.id}-t`;
-      // No name, so not a landmark: only Inspect and Activity carry landmark names (Q197, #2487).
+      const card = hook(h('section', 'p3-lsec p3-icard'), 'interactive-column');
+      card.id = idOf(col);
+      card.tabIndex = -1;
+      card.dataset.column = col;
+      const head = h('div', 'p3-lsec-head p3-icard-head');
+      // The palette sits inside the title, as Components' counts do (TY2 A): at 380 it wraps under the name inside the
+      // heading, so the space after the title stays the level's space-300.
       const pal = interactivePaletteOf(rows[0]);
-      head.append(t, h('span', 'p3-sub', `palette ${pal}`), h('span', 'p3-spacer'));
+      const t = h('h2', 'p3-lsec-title', SET_CARD_TITLE(name));
+      t.append(' ', h('span', 'p3-icard-pal', `palette ${pal}`));
+      t.id = `${card.id}-t`;
+      // No name, so not a landmark: only Inspect and Activity carry landmark names (Q197, #2487).
+      const line1 = h('div', 'p3-icard-line');
+      line1.append(t, h('span', 'p3-spacer'));
       const i = (brandState.interactivePalettes ?? []).findIndex((e) => (e.name ?? e.palette) === col);
       // A button set exists across every mode, so it is removed from any editable mode (owner decision Q54).
       if (i >= 0) {
@@ -421,15 +495,17 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         rm.append(h('span', 'p3-btn-label', BUTTON_SET_COPY.remove));
         rm.setAttribute('aria-label', BUTTON_SET_COPY.removeLabel(name));
         rm.onclick = () => edit('interactivePalettes', () => removeAccent(i));
-        head.append(rm);
+        line1.append(rm);
       }
-      grp.append(head);
-      // The neutral emphasis opens the Neutral set (the owner's QA-I6): it sets how bold that set's fill is.
-      if (col === 'neutral') { const ne = enumLever('neutralEmphasis'); grp.append(ne.el); out.push(ne); }
-      const list = h('div', 'p3-fillrows');
-      rowsInGroups(rows, list, out);
-      grp.append(list);
-      box.append(grp);
+      head.append(line1);
+      card.append(head);
+      // The Primary Action Palette opens the Primary card, as the neutral emphasis opens Neutral's (the owner's QA-I6).
+      if (col === 'primary') { const ap = actionPalette(); card.append(ap.el); out.push(ap); }
+      if (col === 'neutral') { const ne = enumLever('neutralEmphasis'); card.append(ne.el); out.push(ne); }
+      const groups = h('div', 'p3-icols');
+      groups.append(...rowsInGroups(rows, col, out));
+      card.append(groups);
+      els.push(card);
     });
     // The add row, in every mode (Q54): the list is mode-independent. The promotable list is the legacy page's (Q35).
     // S5.3 (the owner's QA-I4): the dashed Add button set first; the color select only once it is clicked, with the
@@ -441,46 +517,49 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       const promotable = ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)].filter((p) => !already.has(p) && p !== actionPal && !RESERVED_COLUMNS.has(p));
       const reopen = (): void => root.querySelector<HTMLElement>('[data-p3="column-add-open"]')?.focus();
       if (!promotable.length) { adding = false; add.append(hook(subLine(ADD_COLUMN_HINT), 'column-promote-hint')); }
-      else if (!adding) {
-        add.append(addRowButton('column-add-open', BUTTON_SET_COPY.add, () => {
-          adding = true;
-          render();
-          root.querySelector<HTMLElement>('#p3-promote')?.focus();
-        }));
-      } else {
-        const form = hook(h('div', 'p3-icol-addform'), 'column-add-form');
-        const lab = h('label', 'p3-field-label', BUTTON_SET_COPY.select);
-        lab.htmlFor = 'p3-promote';
-        const s = selectField('p3-promote', BUTTON_SET_COPY.select, 'column-promote-select', () => {});
-        s.set(promotable.map((p) => ({ v: p, l: capWord(p) })), promotable[0]);
-        const go = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote');
-        go.type = 'button';
-        go.append(glyph('plus'), h('span', 'p3-btn-label', BUTTON_SET_COPY.add));
-        // After the add, focus goes back to Add button set. When that color was the last one to add, the button gives
-        // way to the hint, so focus goes to the new set's group instead, as its jump link does.
-        go.onclick = () => {
-          const v = s.select.value;
-          adding = false;
-          edit('interactivePalettes', () => addAccent(v));
-          const back = root.querySelector<HTMLElement>('[data-p3="column-add-open"]') ?? root.querySelector<HTMLElement>(`#${idOf(v)}`);
-          back?.focus();
-        };
-        // "Cancel" is the inline confirm's word (`inlineConfirm`, `ui/lever-kit.ts`), reused.
-        const cancel = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote-cancel');
-        cancel.type = 'button';
-        cancel.append(h('span', 'p3-btn-label', 'Cancel'));
-        const close = (): void => { adding = false; render(); reopen(); };
-        cancel.onclick = close;
-        form.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } });
-        const row = h('div', 'p3-icol-addrow');
-        row.append(s.el, go, cancel);
-        form.append(lab, row);
-        add.append(form);
+      else {
+        // #3335 (Q3335.2 A): the approved tooltip, now a visible line above the button.
+        add.append(hook(subLine(BUTTON_SET_TOOLTIP), 'column-add-line'));
+        if (!adding) {
+          add.append(addRowButton('column-add-open', BUTTON_SET_COPY.add, () => {
+            adding = true;
+            render();
+            root.querySelector<HTMLElement>('#p3-promote')?.focus();
+          }));
+        } else {
+          const form = hook(h('div', 'p3-icol-addform'), 'column-add-form');
+          const lab = h('label', 'p3-field-label', BUTTON_SET_COPY.select);
+          lab.htmlFor = 'p3-promote';
+          const sel = selectField('p3-promote', BUTTON_SET_COPY.select, 'column-promote-select', () => {});
+          sel.set(promotable.map((p) => ({ v: p, l: capWord(p) })), promotable[0]);
+          const go = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote');
+          go.type = 'button';
+          go.append(glyph('plus'), h('span', 'p3-btn-label', BUTTON_SET_COPY.add));
+          // After the add, focus goes back to Add button set. When that color was the last one to add, the button gives
+          // way to the hint, so focus goes to the new set's card instead, as its jump link does.
+          go.onclick = () => {
+            const v = sel.select.value;
+            adding = false;
+            edit('interactivePalettes', () => addAccent(v));
+            const back = root.querySelector<HTMLElement>('[data-p3="column-add-open"]') ?? root.querySelector<HTMLElement>(`#${idOf(v)}`);
+            back?.focus();
+          };
+          // "Cancel" is the inline confirm's word (`inlineConfirm`, `ui/lever-kit.ts`), reused.
+          const cancel = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote-cancel');
+          cancel.type = 'button';
+          cancel.append(h('span', 'p3-btn-label', 'Cancel'));
+          const close = (): void => { adding = false; render(); reopen(); };
+          cancel.onclick = close;
+          form.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } });
+          const row = h('div', 'p3-icol-addrow');
+          row.append(sel.el, go, cancel);
+          form.append(lab, row);
+          add.append(form);
+        }
       }
-      box.append(add);
+      els.push(add);
     }
-    b.ctl.append(box);
-    return [{ el: b.el, said: '', key: 'interactivePalettes', block: b }, ...out];
+    return { els, items: out };
   };
   const strict = (): Item => {
     const L = leverOf('strictInteractiveContrast')!;
@@ -550,8 +629,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   const ROWS: Record<string, (row: { keys?: readonly string[] }) => Item[]> = {
     palette: (row) => [row.keys?.[0] === 'linkPalette' ? linkPalette() : actionPalette()],
     enum: (row) => [enumLever(row.keys![0])],
-    outlineHoverFill,
-    interactivePalettes: columns,
+    outlineWash: washOpacity,
     toggle: one(strict),
     linkStateRungs: one(rungs),
     linkFamilies,
@@ -560,7 +638,9 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   };
 
   // ── the page ──────────────────────────────────────────────────────────────────────────────────
-  const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
+  const section = (s: Section, i: number): { els: HTMLElement[]; items: Item[] } => {
+    // #3335: the button sets' section draws as one card per set, its own title not drawn.
+    if (s.cards) return setCards();
     const el = hook(h('section', 'p3-lsec'), 'lever-section');
     el.id = `p3-lsec-interactive-${i}`;
     const head = h('div', 'p3-lsec-head');
@@ -576,7 +656,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       if (its[0]) el.append(its[0].el);
       out.push(...its);
     }
-    return { el, items: out };
+    return { els: [el], items: out };
   };
 
   /** Jump links to each column group (Q33), at the top of the levers. */
@@ -608,7 +688,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     items = [];
     pickers.clear();
     const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), jumps()];
-    PAGE.sections.forEach((s, i) => { const x = section(s, i); parts.push(x.el); items.push(...x.items); });
+    PAGE.sections.forEach((s, i) => { const x = section(s, i); parts.push(...x.els); items.push(...x.items); });
 
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'interactive-continue');
     next.type = 'button';
@@ -634,17 +714,18 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const shown = items.filter((it) => it.said);
     for (const it of shown) it.el.hidden = !!q && !it.said.includes(q);
     for (const g of root.querySelectorAll<HTMLElement>('.p3-irow-group')) g.hidden = !!q && !g.querySelector('.p3-fillrow-wrap:not([hidden])');
-    for (const g of root.querySelectorAll<HTMLElement>('.p3-icol')) g.hidden = !!q && !g.querySelector(':is(.p3-fillrow-wrap, .p3-lever):not([hidden])');
+    for (const g of root.querySelectorAll<HTMLElement>('.p3-irow-group')) if (!g.hidden && g.querySelector('.p3-ihover')) g.hidden = !!q && !g.querySelector('.p3-ihover:not([hidden])');
+    for (const g of root.querySelectorAll<HTMLElement>('.p3-icol')) g.hidden = !!q && !g.querySelector(':is(.p3-fillrow-wrap, .p3-lever, .p3-ihover):not([hidden])');
     for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) {
-      s.hidden = !!q && !s.querySelector(':is(.p3-lever[data-p3]:not([data-p3="lever-interactive-palettes"]), .p3-fillrow-wrap):not([hidden])');
+      s.hidden = !!q && !s.querySelector(':is(.p3-lever[data-p3], .p3-fillrow-wrap, .p3-ihover):not([hidden])');
     }
-    const cols = root.querySelector<HTMLElement>('[data-p3="lever-interactive-palettes"]');
-    const colsItem = items.find((it) => it.key === 'interactivePalettes');
-    if (cols && colsItem?.block) cols.hidden = !!q && !colsItem.block.said.includes(q) && !cols.querySelector(':is(.p3-fillrow-wrap, .p3-lever):not([hidden])');
-    // #3093: a search that names the columns' own lever (Interactive palettes) shows them, so their section too.
-    if (q && cols && !cols.hidden) { const sec = cols.closest<HTMLElement>('.p3-lsec'); if (sec) sec.hidden = false; }
-    for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-jump, .p3-icol-add')) n.hidden = !!q;
-    setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);
+    for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-jump, [data-p3="interactive-mode-line"]')) n.hidden = !!q;
+    // #3335 (Q3335.2 A): the button sets lever draws no block of its own; it is the set cards and Add button set. A search
+    // in its words (the manifest's, the page's line) shows the add row as its stand-in.
+    const L = leverOf('interactivePalettes');
+    const setsHit = !!q && `${L?.label ?? ''} ${L?.description ?? ''} interactivePalettes ${BUTTON_SET_TOOLTIP} ${BUTTON_SET_COPY.add}`.toLowerCase().includes(q);
+    for (const n of root.querySelectorAll<HTMLElement>('.p3-icol-add')) n.hidden = !!q && !setsHit;
+    setSearchHits(q ? shown.filter((it) => !it.el.hidden).length + (setsHit ? 1 : 0) : null);
   };
 
   cleanups.push(subscribe('brand', render), subscribe('mode', () => { openRole = null; adding = false; render(); }), subscribe('search', filter));
