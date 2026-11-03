@@ -31,7 +31,7 @@ Shown on the default member: type `unordered`, size `medium`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `type` | `unordered`, `ordered`, `icon` | once, when authored | Which marker the item shows. Set by the List from its own type; do not set it on an item inside a List. |
-| `size` | `medium`, `small`, `large` | once, when authored | The text size (body small, medium or large) and the marker sized to it. Set by the List. |
+| `size` | `medium`, `x-small`, `small`, `large` | once, when authored | The text size, 12, 14, 16 or 18px, and the marker sized to it. Set by the List. |
 
 ## Usage guidelines
 
@@ -89,13 +89,13 @@ One phrase or sentence per item, sentence case, parallel with the items around i
 | --- | --- | --- | --- | --- |
 | `children` | node | — | yes | The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by this item's marker column, so it starts at this item's text edge. |
 | `type` | enum: 'unordered' \| 'ordered' \| 'icon' | `unordered` | no | Which marker the item shows. Set by the List from its own type; do not set it on an item inside a List. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The text size (body small, medium or large) and the marker sized to it. Set by the List. |
+| `size` | enum: 'x-small' \| 'small' \| 'medium' \| 'large' | `medium` | no | The text size, 12, 14, 16 or 18px, and the marker sized to it. Set by the List. |
 | `value` | number | — | no | In an ordered list, the number this item shows; the items after it count on from it. Leave it unset to let the list count. |
 | `icon` | slot | — | no | The marker glyph when type is icon. A check by default. Decorative: the item text carries the meaning. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 9 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 12 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -122,6 +122,14 @@ Keyed by `size`, `type`.
 | `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
 | `row/markerBox/bullet` | — | — | `space.100` | `space.100` | — | — |
 
+**size=x-small, type=unordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `type.body.xs.line-box` | `space.200` | — | — |
+| `row/markerBox/bullet` | — | — | `space.075` | `space.075` | — | — |
+
 **size=small, type=unordered**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
@@ -145,6 +153,13 @@ Keyed by `size`, `type`.
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
 
+**size=x-small, type=ordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `type.body.xs.line-box` | `space.200` | — | — |
+
 **size=small, type=ordered**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
@@ -166,6 +181,14 @@ Keyed by `size`, `type`.
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.md.line-box` | `space.500` | — | — |
 | `row/markerBox/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=x-small, type=icon**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `type.body.xs.line-box` | `space.300` | — | — |
+| `row/markerBox/icon` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 **size=small, type=icon**
 
@@ -191,6 +214,8 @@ Keyed by `size`.
 | --- | --- | --- |
 | size=medium | `row/label` | `type.body.md.default` |
 | size=medium | `row/markerBox/number` | `type.body.md.default` |
+| size=x-small | `row/label` | `type.body.xs.default` |
+| size=x-small | `row/markerBox/number` | `type.body.xs.default` |
 | size=small | `row/label` | `type.body.sm.default` |
 | size=small | `row/markerBox/number` | `type.body.sm.default` |
 | size=large | `row/label` | `type.body.lg.default` |

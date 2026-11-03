@@ -191,6 +191,14 @@ export const PRODUCT_VARS = [
   ['motion-reduced', 'motion.duration-reduced.fast', 'motion.duration-reduced.fast', T, 'the crossfade under reduced motion (#3150)'],
   ['ease-enter', 'motion.easing-role.enter', 'motion.easing-role.enter', E, 'the curve a surface enters on (#3150)'],
   ['ease-exit', 'motion.easing-role.exit', 'motion.easing-role.exit', E, 'the curve a surface leaves on (#3150)'],
+  // #3337 (the owner's Q3337.1 A, 2026-11-03): one settings rhythm, the values the Theme pages already used, now named, so a
+  // new container of settings reads a name rather than skipping a rule. Each is the space scale's own role, the same token
+  // in both themes. An L3 field label keeps `space-050` after it (TY2 A), and a group's hairline `space-200` under it.
+  ['rhythm-label', 'space.150', 'space.150', D, 'a setting\'s name to its control, at L2 (#3337, TY2 A)'],
+  ['rhythm-hint', 'space.100', 'space.100', D, 'a control to its hint or readout line, and a note to its link (#3337)'],
+  ['rhythm-row', 'space.300', 'space.300', D, 'one setting row to the next, in every list of settings (#3337)'],
+  ['rhythm-group', 'space.500', 'space.500', D, 'one group of settings to the next, before its hairline (#3337)'],
+  ['rhythm-section', 'space.200', 'space.200', D, 'one card of settings to the next (#3337)'],
 ];
 /** Pairs the product adds beyond the mockup's PAIRS, for PRODUCT_VARS rows the mockup never maps (`build-v6.mjs` reads
  *  PAIRS and would refuse a name it has no row for). Same shape as PAIRS; the product build evaluates both. */
@@ -256,6 +264,8 @@ export const SHELL_VARS = [
   'bar-track-w', 'bar-track-h', 'bar-thumb', 'bar-thumb-inset',
   // #3150: the chrome's motion: the two enter durations, the reduced crossfade, and the enter and exit curves.
   'motion-panel', 'motion-fast', 'motion-reduced', 'ease-enter', 'ease-exit',
+  // #3337: the settings rhythm.
+  'rhythm-label', 'rhythm-hint', 'rhythm-row', 'rhythm-group', 'rhythm-section',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
