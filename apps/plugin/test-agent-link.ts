@@ -1259,15 +1259,16 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
   // #3300 B (review nit 1): `context/ledger` — the ledger-derived fields, from a stored as-built ledger with two sets at
   // different engines. `button` names today's engine and a definition hash no def has, so it is due as `definition moved`;
   // `badge` names an older engine and no print, so it is due as `engine moved`. `lastBuilt` is the NEWER of the two, by
-  // number: a string compare would read '0.9.0' as newer than today's '0.2xx.0'.
+  // number: a string compare would read '0.9.0' as newer than today's '0.2xx.0'. `badge`, the older, is listed FIRST, so
+  // a `lastBuilt` that keeps the first entry it meets, or never replaces it, reads '0.9.0' and fails (review nit, #3355).
   // The ledger is a typed literal in the record's own shape (`{ v: 1, sets }`), not built with `recordSets`.
-  // (mutations: `lastBuilt` keeps the oldest → `context/ledger/lastBuilt`; the two reasons swapped → `context/ledger/due`)
+  // (mutations: `lastBuilt` keeps the oldest, or never replaces the first → `context/ledger/lastBuilt`; the two reasons swapped → `context/ledger/due`)
   {
     const key = k('', 'prism3:asBuilt');
     const had = store.get(key);
     store.set(key, JSON.stringify({ v: 1, sets: {
-      button: { def: 'not-a-def-hash', rev: EXECUTOR_REVISION, engine: ENGINE_VERSION },
       badge: { def: 'not-a-def-hash', rev: EXECUTOR_REVISION, engine: '0.9.0' },
+      button: { def: 'not-a-def-hash', rev: EXECUTOR_REVISION, engine: ENGINE_VERSION },
     } }));
     const d = (await run('context', {})).r.result?.data as { sets?: { present?: number; due?: unknown }; prism3?: { engine?: { lastBuilt?: unknown } } };
     ok(d?.sets?.present === 2, `context/ledger/present: the two sets the ledger names are counted present (${canon(d?.sets)})`);
