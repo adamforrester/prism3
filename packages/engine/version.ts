@@ -688,7 +688,15 @@ export const ENGINE_VERSION = '0.237.0';
  * The second is the label's top inset in that row, max(0, box − line) ÷ 2, baked because Figma cannot take a max or a
  * half of two variables. Seven added paths; an added path cannot break a reference. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.13.0';
+/**
+ * 14.14.0 (#3360, owner Q-FM1 A, 2026-11-02): MINOR. `type.caption.{md,lg}.line-box` and
+ * `type.caption.{md,lg}.glyph-inset` join the guaranteed surface. The first is one line of each caption rung, the
+ * caption twin of `type.label.*.line-box` (14.7.0) and `type.body.*.line-box` (14.13.0): a field message's glyph cell
+ * takes it as its floor, so the status glyph centers on the caption's first line. The second is the caption's top
+ * inset beside the 16px `icon.size.xs` status glyph, max(0, glyph − line) ÷ 2, baked for 14.13.0's reason. Four added
+ * paths; an added path cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.14.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

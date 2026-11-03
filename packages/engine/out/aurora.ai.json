@@ -7687,6 +7687,30 @@
       "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
       "resolves_to": "21px"
     },
+    "type.caption.md.line-box": {
+      "$description": "type.caption.md line-box — 15px, the height of one line of the `caption.md` type (font size × line height). A status glyph beside a caption sits in a box at least this tall, so it stays on the caption's first line when the caption wraps.",
+      "meaning": "Caption line height, md — one line of the caption md type",
+      "when_to_use": "The least height of the box a status glyph beside a caption sits in (a field message's glyph cell), so the glyph stays on the caption's first line.",
+      "resolves_to": "15px"
+    },
+    "type.caption.md.glyph-inset": {
+      "$description": "type.caption.md glyph-inset — 0.3px, how far a caption starts below the top of its row beside the 16px `icon.size.xs` status glyph: half of the glyph less the 15.4px line, and 0 when the line is the taller. Keeps the caption's first line centered on the glyph.",
+      "meaning": "Caption inset beside a status glyph, md — how far the caption md type sets down beside a 16px glyph",
+      "when_to_use": "The top padding of a field message's caption, so the caption's first line centers on the status glyph.",
+      "resolves_to": "0.3px"
+    },
+    "type.caption.lg.line-box": {
+      "$description": "type.caption.lg line-box — 17px, the height of one line of the `caption.lg` type (font size × line height). A status glyph beside a caption sits in a box at least this tall, so it stays on the caption's first line when the caption wraps.",
+      "meaning": "Caption line height, lg — one line of the caption lg type",
+      "when_to_use": "The least height of the box a status glyph beside a caption sits in (a field message's glyph cell), so the glyph stays on the caption's first line.",
+      "resolves_to": "17px"
+    },
+    "type.caption.lg.glyph-inset": {
+      "$description": "type.caption.lg glyph-inset — 0px, how far a caption starts below the top of its row beside the 16px `icon.size.xs` status glyph: half of the glyph less the 16.8px line, and 0 when the line is the taller. Keeps the caption's first line centered on the glyph.",
+      "meaning": "Caption inset beside a status glyph, lg — how far the caption lg type sets down beside a 16px glyph",
+      "when_to_use": "The top padding of a field message's caption, so the caption's first line centers on the status glyph.",
+      "resolves_to": "0px"
+    },
     "blur.glass": {
       "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
       "meaning": "Background-blur radius — glass",

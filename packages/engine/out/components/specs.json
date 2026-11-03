@@ -18923,12 +18923,29 @@
           "members": 4
         },
         {
-          "part": "message/label",
+          "part": "message/captionCell",
+          "kind": "frame",
+          "members": 4
+        },
+        {
+          "part": "message/captionCell/label",
           "kind": "text",
           "members": 4
         },
         {
-          "part": "message/errorGlyph",
+          "part": "message/glyphCell",
+          "kind": "frame",
+          "members": 3,
+          "when": {
+            "status": [
+              "error",
+              "warning",
+              "success"
+            ]
+          }
+        },
+        {
+          "part": "message/glyphCell/errorGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -18938,7 +18955,7 @@
           }
         },
         {
-          "part": "message/warningGlyph",
+          "part": "message/glyphCell/warningGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -18948,7 +18965,7 @@
           }
         },
         {
-          "part": "message/successGlyph",
+          "part": "message/glyphCell/successGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -18979,7 +18996,23 @@
               }
             },
             {
-              "part": "message/errorGlyph",
+              "part": "message/captionCell",
+              "values": {
+                "paddingTop": {
+                  "token": "type.caption.md.glyph-inset"
+                }
+              }
+            },
+            {
+              "part": "message/glyphCell",
+              "values": {
+                "minHeight": {
+                  "token": "type.caption.md.line-box"
+                }
+              }
+            },
+            {
+              "part": "message/glyphCell/errorGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -18990,7 +19023,7 @@
               }
             },
             {
-              "part": "message/warningGlyph",
+              "part": "message/glyphCell/warningGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -19001,7 +19034,7 @@
               }
             },
             {
-              "part": "message/successGlyph",
+              "part": "message/glyphCell/successGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -19020,7 +19053,7 @@
           "where": {},
           "parts": [
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "textStyle": "type.caption.md.default"
             }
           ]
@@ -19036,7 +19069,7 @@
           },
           "parts": [
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "ink": "color.text.secondary"
             }
           ]
@@ -19047,11 +19080,11 @@
           },
           "parts": [
             {
-              "part": "message/errorGlyph",
+              "part": "message/glyphCell/errorGlyph",
               "icon": "color.icon.danger"
             },
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "ink": "color.text.danger"
             }
           ]
@@ -19062,11 +19095,11 @@
           },
           "parts": [
             {
-              "part": "message/warningGlyph",
+              "part": "message/glyphCell/warningGlyph",
               "icon": "color.icon.warning"
             },
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "ink": "color.text.warning"
             }
           ]
@@ -19077,11 +19110,11 @@
           },
           "parts": [
             {
-              "part": "message/successGlyph",
+              "part": "message/glyphCell/successGlyph",
               "icon": "color.icon.success"
             },
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "ink": "color.text.success"
             }
           ]
@@ -19089,7 +19122,7 @@
       ],
       "nesting": [
         {
-          "part": "message/errorGlyph",
+          "part": "message/glyphCell/errorGlyph",
           "kind": "instance",
           "component": "icon/warning-triangle",
           "variant": {},
@@ -19097,7 +19130,7 @@
           "exposes": []
         },
         {
-          "part": "message/warningGlyph",
+          "part": "message/glyphCell/warningGlyph",
           "kind": "instance",
           "component": "icon/error-circle",
           "variant": {},
@@ -19105,7 +19138,7 @@
           "exposes": []
         },
         {
-          "part": "message/successGlyph",
+          "part": "message/glyphCell/successGlyph",
           "kind": "instance",
           "component": "icon/check-circle",
           "variant": {},

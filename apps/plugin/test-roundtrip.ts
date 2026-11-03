@@ -2026,7 +2026,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
   const lineBox = Object.fromEntries([...new Set(all.flatMap((p) => planTextStyles(p.root)))].map((s) => [s, LINE]));
   const page: Page = { children: [] };
-  const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true, textLineBox: lineBox });
+  // #3360: field-message's caption sets down by `glyph-inset`, half the glyph less the caption's line, and its glyph cell
+  // floors at one caption line. A 40px line is taller than any glyph the shim binds, so the bake would be 0 and 40:
+  // given here, so the message's height is its lines alone, as it is on a host whose caption outgrows the glyph.
+  const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true, textLineBox: lineBox, varPx: { 'type/caption/md/glyph-inset': 0, 'type/caption/md/line-box': LINE } });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
   const built = new Set<string>();

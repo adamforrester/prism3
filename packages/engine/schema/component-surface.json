@@ -355,7 +355,7 @@
     },
     "field-message": {
       "members": 4,
-      "sha256": "4d7285a3b74a8e43dd988a5af56f85d7fc88b84e878b09b12a39809eedeac6d6",
+      "sha256": "781e82fc7583e26154dfc5c159279c3c8bec6b79d19c6008a264b9f5976303e7",
       "properties": [
         "message:TEXT"
       ]

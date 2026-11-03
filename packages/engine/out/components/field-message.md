@@ -19,10 +19,12 @@ The small icon + caption below a form field. In its default status it is persist
 
 Shown on the default member: status `default`.
 
-1. **Error glyph**
-2. **Warning glyph**
-3. **Success glyph**
-4. **Label**
+1. **Glyph cell** — The status glyph's cell: at least one caption line tall, with the glyph centered in it, so the glyph sits on the caption's first line.
+2. **Caption cell** — The caption's column. It fills the row beside the glyph and sets the caption down so its first line centers on the glyph.
+3. **Error glyph**
+4. **Warning glyph**
+5. **Success glyph**
+6. **Label**
 
 ## Styles
 
@@ -99,10 +101,12 @@ Generated from the plan that builds the design-file component: 4 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `message` | frame | every member |
-| `message/label` | text | every member |
-| `message/errorGlyph` | instance | status=error |
-| `message/warningGlyph` | instance | status=warning |
-| `message/successGlyph` | instance | status=success |
+| `message/captionCell` | frame | every member |
+| `message/captionCell/label` | text | every member |
+| `message/glyphCell` | frame | status=error or warning or success |
+| `message/glyphCell/errorGlyph` | instance | status=error |
+| `message/glyphCell/warningGlyph` | instance | status=warning |
+| `message/glyphCell/successGlyph` | instance | status=success |
 
 ### Spacing and size
 
@@ -115,9 +119,11 @@ Keyed by nothing: one row covers every member.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `message` | — | `space.075` | — | — | — | min height `icon.size.xs`; build width 320px (literal) |
-| `message/errorGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `message/warningGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `message/successGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/captionCell` | `type.caption.md.glyph-inset` / — / — / — | — | — | — | — | — |
+| `message/glyphCell` | — | — | — | — | — | min height `type.caption.md.line-box` |
+| `message/glyphCell/errorGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/glyphCell/warningGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/glyphCell/successGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 ### Type
 
@@ -125,7 +131,7 @@ Keyed by nothing: one row covers every member.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| every member | `message/label` | `type.caption.md.default` |
+| every member | `message/captionCell/label` | `type.caption.md.default` |
 
 ### Color
 
@@ -135,34 +141,34 @@ Keyed by `status`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `message/label` | — | — | `color.text.secondary` | — |
+| `message/captionCell/label` | — | — | `color.text.secondary` | — |
 
 **status=error**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `message/errorGlyph` | — | — | — | `color.icon.danger` |
-| `message/label` | — | — | `color.text.danger` | — |
+| `message/glyphCell/errorGlyph` | — | — | — | `color.icon.danger` |
+| `message/captionCell/label` | — | — | `color.text.danger` | — |
 
 **status=warning**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `message/warningGlyph` | — | — | — | `color.icon.warning` |
-| `message/label` | — | — | `color.text.warning` | — |
+| `message/glyphCell/warningGlyph` | — | — | — | `color.icon.warning` |
+| `message/captionCell/label` | — | — | `color.text.warning` | — |
 
 **status=success**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `message/successGlyph` | — | — | — | `color.icon.success` |
-| `message/label` | — | — | `color.text.success` | — |
+| `message/glyphCell/successGlyph` | — | — | — | `color.icon.success` |
+| `message/captionCell/label` | — | — | `color.text.success` | — |
 
 ### Nesting and properties
 
-- `message/errorGlyph` nests `icon/warning-triangle`
-- `message/warningGlyph` nests `icon/error-circle`
-- `message/successGlyph` nests `icon/check-circle`
+- `message/glyphCell/errorGlyph` nests `icon/warning-triangle`
+- `message/glyphCell/warningGlyph` nests `icon/error-circle`
+- `message/glyphCell/successGlyph` nests `icon/check-circle`
 
 | Property | Type | Default |
 | --- | --- | --- |

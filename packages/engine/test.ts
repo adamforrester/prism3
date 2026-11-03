@@ -18659,7 +18659,11 @@ arm: {
       const withFm = (over: Record<string, unknown>) => ({ ...fieldMessage, anatomy: { ...fieldMessage.anatomy!, parts: { ...fmParts, ...over } } }) as ComponentDef;
       ok(validateComponentDef(fieldMessage).errors.length === 0 && fmParts.message.placementWidth === 320,
         `#1757 field-message builds its root at 320 and validates (${String(fmParts.message.placementWidth)}; ${validateComponentDef(fieldMessage).errors[0] ?? 'clean'})`);
-      ok(refuses(withFm({ message: { ...fmParts.message, placementWidth: undefined } }), /'label' declares 'wrap'/, /does not bound its main-axis width/, /placementWidth unset/),
+      // Since #3360 the caption sits in `captionCell`, which GROWS across the row: with no build width the root hugs, so the
+      // cell's grow fills nothing (refused naming the root) and the caption inside it has no width to wrap at (refused
+      // naming the cell). Both arms, so neither refusal alone keeps this green.
+      const fmUnbuilt = withFm({ message: { ...fmParts.message, placementWidth: undefined } });
+      ok(refuses(fmUnbuilt, /'label' declares 'wrap'/, /parent 'captionCell' does not bound its main-axis width/) && refuses(fmUnbuilt, /'captionCell' declares 'grow'/, /parent 'message' does not bound its main axis/),
         "#1757 a 'wrap' caption under a FILL root with no build width is refused BY NAME — the root hugs until placed, so the text keeps its default string's width; removing field-message's placementWidth fires this");
       ok(refuses(withFm({ errorGlyph: { ...fmParts.errorGlyph }, label: { ...fmParts.label, placementWidth: 320 } }), /'label' declares 'placementWidth' but is not the anatomy ROOT/),
         "#1757 'placementWidth' off the root is refused BY NAME — a child takes its width from its parent");
@@ -26413,7 +26417,8 @@ arm: {
             /\/control HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/, new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`)]],
           [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /,
             /\/control HORIZONTAL p:FIXED c:FIXED align:STRETCH /, new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`)]],
-          [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/label undefined .*grow:1 text:HEIGHT/]],
+          // #3360: the caption sits in `captionCell`, which grows across the row; the caption stretches across the cell.
+          [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/captionCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/captionCell\/label undefined .*align:STRETCH grow:0 text:HEIGHT/]],
           // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
           // the paste twin's spliced max-width line as well as the plugin's.
           [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/label undefined .*grow:0 text:WIDTH_AND_HEIGHT mw:316$/]],
@@ -39892,6 +39897,140 @@ console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 // 104,698). That is the assertion-site arm at the top of this file, which needs no numeral. The two are
 // complementary: that arm reads V8 coverage and cannot see `ok()` stop counting; this one can.
 const MIN_ASSERTIONS = 1800;
+// ---- #3360: THE FIELD MESSAGE'S STATUS GLYPH CENTERS ON THE CAPTION'S FIRST LINE (owner Q-FM1 A) ----------------
+//
+// Q-FM1 A: a one-line message reads exactly centered, and a wrapping message keeps the glyph beside its first line
+// (not the block's middle, which was option B, and not the caption box's top, which `align: 'start'` gave before).
+// A layout model places the glyph and the caption's FIRST line for a one- and a TWO-line message, twice: once from the
+// Figma PLAN (its frames, alignments, floors, paddings and bound variables), once from the DEF's own parts and token
+// keys as code reads them (`align-items`, `min-block-size`, `padding-block-start`). Each is resolved through every
+// corpus brand's EMITTED tokens.
+//
+// INDEPENDENCE (docs/34). The caption's line is computed HERE, as the caption composite's font size × line height
+// (15.4px at 11 × 1.4; 14px on the reference brand), never read off `type.caption.*.line-box` or `glyph-inset`, the
+// tokens the def binds and this block is checking. The glyph's middle and the first line's middle are compared in px,
+// within 0.25: the line box rounds to a whole px (16.8 → 17), so where the line is the taller the cell's middle can sit
+// up to a quarter px off the line's (#2586's tolerance). Where the glyph is the taller (every shipped caption.md) the
+// inset is taken off the unrounded line and the two middles agree exactly. The caption.lg rung (a 17px line, TALLER than the 16px glyph) is measured too, by rebinding the
+// def's three keys to it, so the branch where the cell grows to the line and the inset is 0 is exercised.
+// Mutations: the def back on main's anatomy (glyphs straight in the `align: 'start'` row) → `#3360 … first line`;
+// the caption cell's inset dropped → `#3360 … first line`; the row centered → `#3360 … first line` (two lines).
+{
+  type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; layoutMode?: string; counterAxisAlignItems?: string; primaryAxisAlignItems?: string; textStyle?: string };
+  const fm = componentDefs.find((d) => d.id === 'field-message')!;
+  ok(!!fm, '#3360: the field-message def is present to measure');
+  const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); const x = String(leaf); return parseFloat(x) * (x.endsWith('rem') ? 16 : 1); };
+  const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' || align === 'center' ? (inH - h) / 2 : align === 'MAX' || align === 'end' ? inH - h : 0);
+  const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+  const worlds = corpus.map((b) => ({ brand: b, root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) }));
+  // The caption's line, from the composite's own font size and line height (not the baked line box).
+  const lineOf = (root: any, typePath: string) => { const t = at(root, typePath).$value; return num(root, t.fontSize) * num(root, t.lineHeight); };
+  // The def at a caption rung: `md` is the shipped def; `lg` rebinds its type and the two first-line keys to caption.lg.
+  const atRung = (rung: string): ComponentDef => rung === 'md' ? fm : ({ ...fm, tokens: Object.fromEntries(Object.entries(fm.tokens).map(([k, v]) => [k, typeof v === 'string' ? v.replace(/^type\.caption\.md\./, `type.caption.${rung}.`) : v])) } as ComponentDef);
+
+  // FIGMA: a layout walk over the plan. Returns each named node's top and height.
+  const figmaPlace = (rootNode: PN, root: any, lines: number) => {
+    const v = (name?: string) => (name ? num(root, at(root, name.replace(/\//g, '.'))) : 0);
+    const heights = new Map<PN, number>(), tops = new Map<string, { top: number; h: number }>();
+    const height = (n: PN): number => {
+      let h: number;
+      if (n.type === 'TEXT') h = lines * lineOf(root, `type.${n.textStyle!.replace(/\//g, '.')}`);
+      else if (!n.layoutMode) h = v(n.bound?.height);
+      else {
+        const kids = n.children.map(height);
+        const content = n.layoutMode === 'VERTICAL' ? kids.reduce((a, b) => a + b, 0) + v(n.bound?.itemSpacing) * Math.max(0, kids.length - 1) : Math.max(0, ...kids);
+        h = n.bound?.height ? v(n.bound.height) : Math.max(v(n.bound?.minHeight), v(n.bound?.paddingTop) + content + v(n.bound?.paddingBottom));
+      }
+      heights.set(n, h);
+      return h;
+    };
+    const lay = (n: PN, top: number) => {
+      const h = heights.get(n)!;
+      tops.set(n.name, { top, h });
+      const padT = v(n.bound?.paddingTop), inner = h - padT - v(n.bound?.paddingBottom);
+      let y = top + padT;
+      for (const c of n.children) {
+        const ch = heights.get(c)!;
+        if (n.layoutMode === 'VERTICAL') { lay(c, y); y += ch + v(n.bound?.itemSpacing); } else lay(c, top + padT + place(n.counterAxisAlignItems, ch, inner));
+      }
+    };
+    height(rootNode); lay(rootNode, 0);
+    return tops;
+  };
+  // CODE: the same walk over the DEF's parts, reading each part's own keys through `def.tokens` (flex `align-items`,
+  // `min-block-size`, `padding-block-start`, the glyph's `size`, the text's `type`).
+  const codePlace = (def: ComponentDef, status: string, root: any, lines: number) => {
+    const ps = def.anatomy!.parts;
+    const v = (key?: string) => (key ? num(root, at(root, def.tokens[key] as string)) : 0);
+    const present = (name: string) => !ps[name].presentWhen || (ps[name].presentWhen as Record<string, string[]>).status?.includes(status);
+    const heights = new Map<string, number>(), tops = new Map<string, { top: number; h: number }>();
+    const kidsOf = (name: string) => (ps[name].children ?? []).filter(present);
+    const height = (name: string): number => {
+      const p = ps[name];
+      let h: number;
+      if (p.kind === 'text') h = lines * lineOf(root, def.tokens[p.type as string] as string);
+      else if (!p.layout) h = v(p.size ?? p.height);
+      else {
+        const kids = kidsOf(name).map(height);
+        const content = p.layout.direction === 'column' ? kids.reduce((a, b) => a + b, 0) + v(p.gap) * Math.max(0, kids.length - 1) : Math.max(0, ...kids);
+        h = Math.max(v(p.minHeight), v(p.paddingTop) + content);
+      }
+      heights.set(name, h);
+      return h;
+    };
+    const lay = (name: string, top: number) => {
+      const p = ps[name], h = heights.get(name)!;
+      tops.set(name, { top, h });
+      let y = top + v(p.paddingTop);
+      for (const c of kidsOf(name)) {
+        const ch = heights.get(c)!;
+        if (p.layout?.direction === 'column') { lay(c, y); y += ch + v(p.gap); } else lay(c, top + v(p.paddingTop) + place(p.layout?.align, ch, h - v(p.paddingTop)));
+      }
+    };
+    height(def.anatomy!.root); lay(def.anatomy!.root, 0);
+    return tops;
+  };
+
+  const GLYPH = /Glyph$/;
+  const off: string[] = [], moved: string[] = [];
+  let measured = 0;
+  for (const rung of ['md', 'lg']) {
+    const def = atRung(rung);
+    const plans = figmaAnatomySet(def, { swapTarget: 'FPO' });
+    for (const w of worlds) {
+      const labelTop: Record<string, number> = {};
+      for (const p of plans) {
+        const status = (p.coord as Record<string, string>).status;
+        const line = lineOf(w.root, def.tokens.type as string);
+        for (const lines of [1, 2]) {
+          const f = figmaPlace(p.root as PN, w.root, lines), c = codePlace(def, status, w.root, lines);
+          const label = f.get('label')!, cLabel = c.get('label')!;
+          if (lines === 1) labelTop[status] = label.top;
+          const glyphName = [...f.keys()].find((n) => GLYPH.test(n));
+          if (!glyphName) continue;   // the default status draws no glyph
+          measured++;
+          const g = f.get(glyphName)!, cg = c.get(glyphName)!;
+          const figmaOff = (g.top + g.h / 2) - (label.top + line / 2), codeOff = (cg.top + cg.h / 2) - (cLabel.top + line / 2);
+          if (!(Math.abs(figmaOff) <= 0.25 && Math.abs(codeOff) <= 0.25))
+            off.push(`${w.brand} caption.${rung} ${status} ${lines}-line: glyph middle off line one's by ${figmaOff.toFixed(2)} in Figma, ${codeOff.toFixed(2)} in code (line ${line.toFixed(2)}px)`);
+        }
+      }
+      // The caption starts at one height in every status, the default included: a validation result moves no text.
+      const tops = Object.values(labelTop);
+      if (Math.max(...tops) - Math.min(...tops) > 0.01) moved.push(`${w.brand} caption.${rung}: ${JSON.stringify(labelTop)}`);
+    }
+  }
+  // Three glyph statuses × one and two lines × two caption rungs × every corpus brand.
+  ok(measured === 3 * 2 * 2 * worlds.length && worlds.length >= 5,
+    `#3360: every glyph status measured at one and two lines, at both caption rungs, in every corpus brand (${measured} of ${3 * 2 * 2 * worlds.length}, ${worlds.length} brands)`);
+  ok(off.length === 0,
+    `#3360 field-message glyph on the first line: the status glyph's middle is the caption's first-line middle, within 0.25px, for a one- and a two-line message, in Figma and in code${off.length ? ` — OFF: ${off.slice(0, 6).join('; ')}` : ''}`);
+  ok(moved.length === 0,
+    `#3360 field-message caption holds still: the caption starts at the same height in every status, so a validation result moves no text${moved.length ? ` — MOVED: ${moved.slice(0, 4).join('; ')}` : ''}`);
+}
+
 // #1019 — NOTHING CLAIMS THAT THIS PACKAGE'S `version` TRACKS `ENGINE_VERSION`. The field is inert (npm
 // requires it; `@prism3/engine` is consumed by workspace name and nothing reads it), like the `0.0.0` of its
 // sibling workspaces. The note once said it tracked `ENGINE_VERSION`, was true for one release, and then
