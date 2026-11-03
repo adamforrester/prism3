@@ -90,7 +90,7 @@ const nodeRefs = (n: FigmaNodePlan): string[] => {
     ...Object.values(n.bound ?? {}),
     n.paints?.fills, n.paints?.strokes, n.descendantFills,
     ...(n.gradientFill?.stops ?? []).map((s) => s.variable),
-    n.absoluteInset, n.absoluteStrokeInset, n.cornerInset,
+    n.absoluteInset, n.absoluteStrokeInset, n.absoluteBorderInset, n.cornerInset,
   ].filter((x): x is string => !!x);
   return [
     ...vars.map((v) => refOfPlanName(v, 'var')),
@@ -109,7 +109,7 @@ type CompUse = { keys: string[]; keysNotDrawn?: string[]; parts: Record<string, 
 const planNames = (n: FigmaNodePlan, out: Set<string>): Set<string> => {
   for (const v of [
     ...Object.values(n.bound ?? {}), n.paints?.fills, n.paints?.strokes, n.descendantFills,
-    ...(n.gradientFill?.stops ?? []).map((s) => s.variable), n.absoluteInset, n.absoluteStrokeInset, n.cornerInset,
+    ...(n.gradientFill?.stops ?? []).map((s) => s.variable), n.absoluteInset, n.absoluteStrokeInset, n.absoluteBorderInset, n.cornerInset,
     n.textStyle, n.effectStyle,
   ]) if (v) out.add(v);
   n.children.forEach((c) => planNames(c, out));

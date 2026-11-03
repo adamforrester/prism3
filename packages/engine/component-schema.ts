@@ -1294,6 +1294,19 @@ export type PartDef = {
    *  resolve to 0 in every brand, which `lint-absolute-inset.ts` asserts (`MUST_DRAW_INSIDE`): a ring offset outward
    *  while declaring itself inside would be neither. */
   drawnInside?: true;
+  /** For `absolute` (a nested focus ring): the binding key of the HOST's border width the part sits INSIDE (#3328,
+   *  owner decision Q3328.1 A, the "A′" geometry). Where the key resolves above 0, the part is placed that far inside
+   *  its host's edge on every side, so the nested ring's inside stroke draws a band that starts where the host's own
+   *  border ends: the field's border recolored to the focus ink plus the ring's band inside it, one indicator, with no
+   *  outer frame. Its corners take the host's own corner bindings (the field's radius token, never a literal), and
+   *  `strokeInset` is not applied, since nothing is drawn outward.
+   *
+   *  A KEY, not a flag, so it can follow an axis: the Counter's outline sits inside its edge and its ghost, which draws
+   *  no edge, keys it to `border-width.none` and keeps the outside ring its `strokeInset` sites. Where it resolves to
+   *  0 the part is placed exactly as without it. The underline Field style drops it (`applyFieldStyle`): that edge has
+   *  no side border to sit inside, and its ring stays outside (#2695 Q3). `lint-absolute-inset.ts` holds each field
+   *  ring to it (`MUST_SIT_INSIDE_BORDER`). */
+  borderInset?: string;
   /** For `vector` parts: PIN the glyph into a corner of its parent, OUT of the auto-layout flow, `inset`
    *  (a binding key, like `absolute`'s) in from both edges of that corner. The textarea's resize grip is the
    *  case: a small glyph that sits at the control's bottom-right corner and must not take a cell — in the
@@ -5039,6 +5052,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // `drawnInside` (#2417, Q257 A) is `strokeInset`'s stated alternative: an absolute part only, and never with it.
     if (p.drawnInside !== undefined && p.kind !== 'absolute')
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'drawnInside' — only an 'absolute' part is sited against its host's edge, so only it can be drawn inside it`);
+    // `borderInset` (#3328): an absolute part only, nesting the ring, and never beside `drawnInside`, which sits ON the edge.
+    if (p.borderInset !== undefined && p.kind !== 'absolute')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'borderInset' — only an 'absolute' part is sited against its host's edge, so only it can sit inside the host's border`);
+    if (p.borderInset !== undefined && p.drawnInside)
+      e.push(`anatomy part '${n}' declares both 'drawnInside' and 'borderInset' — one sits on the host's edge, the other inside its border; declare one`);
     if (p.drawnInside && p.strokeInset !== undefined)
       e.push(`anatomy part '${n}' declares both 'drawnInside' and 'strokeInset' — drawn inside the host's edge means the stroke is NOT compensated outward, and 'strokeInset' compensates it; declare one`);
     // `strokeEdges` (#2695): the four sides apart, read by the box branch only, and never beside `strokeWidth`.

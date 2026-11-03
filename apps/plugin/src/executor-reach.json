@@ -26,6 +26,7 @@
     "46": ["provider-logo"],
     "47": [],
     "48": ["banner"],
-    "49": ["dialog"]
+    "49": ["dialog"],
+    "50": ["card-number-field", "code-input", "code-input-cell", "counter", "password-field", "search-field", "select", "text-field", "textarea"]
   }
 }

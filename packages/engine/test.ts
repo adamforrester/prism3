@@ -7765,6 +7765,56 @@ arm: {
   // UNSELECTED, as before: the label and the 1px edge on the page.
   measureTag('unselected label on the page', ref('unselected.label'), [], 4.5);
   measureTag('unselected edge on the page', ref('unselected.border'), [], 3);
+
+  // #3328 (owner decisions Q3328.1 A, Q3328.2 A): THE FIELD FOCUS PASSES WCAG 2.4.13, IN EVERY CORPUS BRAND AND MODE. A
+  // focused field's band inside its border changes from the field's fill over the page (what an unfocused field shows
+  // there) to `border.focus`, so the criterion's two numbers are measured on those pixels, against LITERAL thresholds:
+  // the change is at least 3:1, and the band is at least 2px thick, read off each brand's emitted `focus.ring.width`.
+  // That the band sits INSIDE the border (so the border's own rest→focus change, about 1.5:1, is not what is counted)
+  // is the executor arm `#3328 field focus geometry`'s claim. Each listed control's own fill key, so a control rebound
+  // to another fill is measured on it. 5 brands × 4 modes = 20 cells per control, a literal.
+  {
+    const FOCUS_FIELDS: [string, string][] = [
+      ['text-field', 'fill'], ['textarea', 'fill'], ['select', 'fill'], ['password-field', 'fill'], ['search-field', 'fill'],
+      ['card-number-field', 'fill'], ['code-input-cell', 'fill'], ['counter', 'outline.fill'],
+    ];
+    const low: string[] = [];
+    let cells = 0;
+    let min = Infinity;
+    for (const [id, key] of FOCUS_FIELDS) {
+      const fd = componentDefs.find((d) => d.id === id);
+      const fill = fd?.tokens[key]?.replace(/^color\./, '');
+      if (!fd || !fill) { low.push(`${id}: no '${key}' fill`); continue; }
+      let n = 0;
+      for (const [brand, th] of tagThemes()) for (const m of resolveAllModes(th)) {
+        const page = m.roles['background.primary']?.hex ? hexToRgb(m.roles['background.primary'].hex) : undefined;
+        // A transparent fill resolves to the palette's `transparent` primitive, emitted as #000000 with no alpha, so it is
+        // read as what it paints, nothing: the page shows through.
+        const clear = String(m.roles[fill]?.path ?? '').endsWith('.transparent');
+        const under = page && (clear ? page : colorOf(m.roles, fill, page));
+        const focus = under && colorOf(m.roles, 'border.focus', under);
+        if (!under || !focus) { low.push(`${id} ${brand}/${m.mode}: missing ${!under ? fill : 'border.focus'}`); continue; }
+        const r = contrast(focus, under);
+        n++; cells++;
+        min = Math.min(min, r);
+        if (r < 3) low.push(`${id} ${brand}/${m.mode} ${r.toFixed(2)}`);
+      }
+      if (n !== TAG_CELLS) low.push(`${id}: ${n} of ${TAG_CELLS} cells`);
+    }
+    const widths: string[] = [];
+    for (const brand of ['nb', 'aurora', 'harbor', 'prism3', 'wendys']) {
+      const t = JSON.parse(readFileSync(resolve(HERE, `out/${brand}.tokens.json`), 'utf8'));
+      const root = Object.keys(t).find((k) => !k.startsWith('$'))!;
+      // The resolved px the emission states beside the alias (`$extensions.prism3.px`), so the literal 2 is read off
+      // what a consumer gets, not off the def.
+      const v = t[root]?.focus?.ring?.width?.$extensions?.prism3?.px;
+      const px = typeof v === 'number' ? v : NaN;
+      widths.push(`${brand} ${px}`);
+      if (!(px >= 2)) low.push(`${brand}: focus.ring.width ${JSON.stringify(v)}, under the 2px band 2.4.13 asks for`);
+    }
+    ok(cells === FOCUS_FIELDS.length * TAG_CELLS && low.length === 0,
+      `#3328 field focus 2.4.13: on all ${FOCUS_FIELDS.length} field controls the band inside the border changes from the field's fill over the page to border.focus at ≥3:1 in all ${cells} of ${FOCUS_FIELDS.length * TAG_CELLS} brand × mode cells (lowest ${min.toFixed(2)}), and the band is ≥2px in every corpus brand (${widths.join(', ')})${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''}`);
+  }
 }
 
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
@@ -27118,6 +27168,106 @@ arm: {
             `parity #1388: both executors write the SAME non-zero concentric ring radius — a hard-square (radius 0) ring or a divergence between the two derivations fails here (plugin ${ringCorners(fvPlugPage)} vs paste ${ringCorners(fvPastePage)})`);
         }
 
+        // #3328 (owner decisions Q3328.1 A, Q3328.2 A): A FOCUSED FIELD DRAWS ITS FOCUS INSIDE ITSELF, AT ITS OWN RADIUS.
+        // Every listed control's focus-visible member (the Counter's outline one), built through BOTH executors, read
+        // off the pages. The expected numbers are LITERALS from the decision, not read off the def or the plan: the
+        // field's border is 1px (`border-width/hairline`, pinned at 1 here as it is in every corpus brand), so the ring
+        // sits exactly 1px inside the field on every side, 2px smaller than the field on each axis; its four corners
+        // are BOUND to the very variable the field's corners are (the field's radius token, never a literal number);
+        // and the band that changes from the page to the focus ink, the ring's 2px stroke less any of it lying over the
+        // border, is the 2px WCAG 2.4.13 counts. An outer ring, a literal radius and a 2px-total focus each fail here.
+        {
+          const FIELD_BORDER = 1;
+          const RING = 2;
+          const FOCUS_CONTROLS: [string, Record<string, string>][] = [
+            ['text-field', {}], ['textarea', {}], ['select', {}], ['password-field', {}], ['search-field', {}],
+            ['card-number-field', {}], ['code-input-cell', {}], ['counter', { appearance: 'outline' }],
+          ];
+          const walkN = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walkN))];
+          const targetsOf = (n: FigmaNodePlan): string[] => [n.nestTarget, n.swapTarget, ...(n.children ?? []).flatMap(targetsOf)].filter((x): x is string => typeof x === 'string');
+          const wrong: string[] = [];
+          let measured = 0;
+          for (const [id, coord] of FOCUS_CONTROLS) {
+            const fd = componentDefs.find((d) => d.id === id);
+            const plan = fd && figmaAnatomySet(fd, { swapTarget: 'FPO-default-icon' })
+              .find((p) => (p.coord as Record<string, string>).state === 'focus-visible' && Object.entries(coord).every(([k, v]) => (p.coord as Record<string, string>)[k] === v));
+            if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
+            const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': FIELD_BORDER, 'focus/ring/offset-field': 0, 'focus/ring/width': RING } };
+            const pastePage: StubPage = { children: [] };
+            const plugPage: StubPage = { children: [] };
+            await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
+            await plugRun([plan], { ...opts, page: plugPage });
+            for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
+              const all = (page.children as Record<string, unknown>[]).flatMap(walkN);
+              const ring = all.find((n) => n.name === 'focusRing');
+              const host = all.find((n) => ((n.children as Record<string, unknown>[]) ?? []).includes(ring as Record<string, unknown>));
+              if (!ring || !host) { wrong.push(`${id} ${path}: no ring or host`); continue; }
+              const [W, H] = [host.width as number, host.height as number];
+              if (!(ring.x === FIELD_BORDER && ring.y === FIELD_BORDER && ring.width === W - 2 * FIELD_BORDER && ring.height === H - 2 * FIELD_BORDER))
+                wrong.push(`${id} ${path}: ring at ${ring.x},${ring.y} ${ring.width}×${ring.height} in a ${W}×${H} field, not ${FIELD_BORDER}px inside it on every side (an outer ring sits at a negative offset)`);
+              const hb = (host.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+              const rb = (ring.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+              for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) {
+                if (!hb[corner]?.id) wrong.push(`${id} ${path}: the field binds no ${corner}, so the claim is unfalsifiable`);
+                else if (rb[corner]?.id !== hb[corner]!.id) wrong.push(`${id} ${path}: ring ${corner} is ${rb[corner]?.id ? `bound to ${rb[corner]!.id}` : `the literal ${String(ring[corner])}`}, not the field's own ${hb[corner]!.id}`);
+              }
+              // 2.4.13's band: the ring's stroke runs inward from its edge; what lies over the field's border changes
+              // from the rest border, not from the page, and does not count.
+              const band = (ring.x as number) + RING - Math.max(ring.x as number, FIELD_BORDER);
+              if (band < 2) wrong.push(`${id} ${path}: ${band}px of the focus band changes from the page (WCAG 2.4.13 asks 2px); the rest lies over the border`);
+              measured++;
+            }
+          }
+          ok(measured === FOCUS_CONTROLS.length * 2 && wrong.length === 0,
+            `#3328 field focus geometry: on all ${FOCUS_CONTROLS.length} field controls, through both executors (${measured} of ${FOCUS_CONTROLS.length * 2} builds), the focus ring sits ${FIELD_BORDER}px inside the field on every side, takes the field's own corner variables, and leaves a 2px band inside the border${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+        }
+
+        // #3328 Q-F1 A (owner, 2026-11-03): AN UNDERLINE-EDGE FIELD KEEPS THE OUTSIDE FOCUS RING. The underline has no
+        // side border to sit inside, so `applyFieldStyle` drops `borderInset` and the ring goes back outside at the
+        // control offset (#2695 Q3). Every field the lever reaches, Search's own underline style included, drawn under
+        // underline and built through BOTH executors. EXPECTED is typed here: the plan carries no absoluteBorderInset,
+        // and the ring sits OUTSIDE the field by the control offset plus its own stroke, compensated outward
+        // (2 + 2 = 4px on every side, at the pinned values below). The outline edge's inside ring sits at +1, and a ring
+        // that kept the border inset under underline sits at -(offset - border) = -1; both fail here.
+        // Mutation: `applyFieldStyle` keeps `borderInset` under underline → this line fails by name.
+        {
+          const UNDERLINE_FIELDS = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input-cell'];
+          const OFFSET = 2;
+          const RING = 2;
+          const OUT = OFFSET + RING;
+          const walkN = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walkN))];
+          const targetsOf = (n: FigmaNodePlan): string[] => [n.nestTarget, n.swapTarget, ...(n.children ?? []).flatMap(targetsOf)].filter((x): x is string => typeof x === 'string');
+          const planRing = (n: FigmaNodePlan): FigmaNodePlan | undefined => n.name === 'focusRing' ? n : (n.children ?? []).map(planRing).find(Boolean);
+          const wrong: string[] = [];
+          let measured = 0;
+          for (const id of UNDERLINE_FIELDS) {
+            const fd = componentDefs.find((d) => d.id === id);
+            const plan = fd && figmaAnatomySet(applyFieldStyle(fd, 'underline'), { swapTarget: 'FPO-default-icon' })
+              .find((p) => (p.coord as Record<string, string>).state === 'focus-visible');
+            if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
+            const pr = planRing(plan.root);
+            if (!pr) { wrong.push(`${id}: the plan carries no focusRing`); continue; }
+            if (pr.absoluteBorderInset !== undefined) wrong.push(`${id} plan: the underline ring carries absoluteBorderInset '${pr.absoluteBorderInset}', so it is sited inside an edge with no side border`);
+            const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': 1, 'focus/ring/offset': OFFSET, 'focus/ring/width': RING } };
+            const pastePage: StubPage = { children: [] };
+            const plugPage: StubPage = { children: [] };
+            await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
+            await plugRun([plan], { ...opts, page: plugPage });
+            for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
+              const all = (page.children as Record<string, unknown>[]).flatMap(walkN);
+              const ring = all.find((n) => n.name === 'focusRing');
+              const host = all.find((n) => ((n.children as Record<string, unknown>[]) ?? []).includes(ring as Record<string, unknown>));
+              if (!ring || !host) { wrong.push(`${id} ${path}: no ring or host`); continue; }
+              const [x, y, w, h, W, H] = [ring.x, ring.y, ring.width, ring.height, host.width, host.height] as number[];
+              if (!(x === -OUT && y === -OUT && w === W + 2 * OUT && h === H + 2 * OUT))
+                wrong.push(`${id} ${path}: ring at ${x},${y} ${w}×${h} in a ${W}×${H} field, not ${OUT}px outside it on every side`);
+              measured++;
+            }
+          }
+          ok(measured === UNDERLINE_FIELDS.length * 2 && wrong.length === 0,
+            `#3328 Q-F1 underline keeps the outside ring: on all ${UNDERLINE_FIELDS.length} underline-edge fields, through both executors (${measured} of ${UNDERLINE_FIELDS.length * 2} builds), the focus ring carries no border inset and sits 4px outside the field on every side${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+        }
+
         // #1009 ACROSS BOTH PATHS. The paste path's write is one line in a generated string, which no
         // typechecker reads and no plugin test reaches — so without this the codegen half of half 2 would
         // be unverified while the plugin half looked complete. Read off the two PAGES, not off the plans.
@@ -27689,6 +27839,11 @@ arm: {
       // BACK TO 17, ALSO AS OF #3163 — the same PR's review fix names the four per-side stroke weights once (`__SIDE`),
       // which frees 115 B in every chunk's shell, more than the `overflowDirection` write took. Re-pinned per the same
       // standing instruction.
+      //
+      // STILL 17, AS OF #3328 — a shell-byte move: the paste script gained the ring sited inside its host's border
+      // (`absoluteBorderInset`, the field focus), with its corners bound to the host's radius variables, in every
+      // chunk's shell. icon-button does not use it. Against the main before #3163 it packed into 18; on top of #3163's
+      // trim it packs into 17. Measured on the merge; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
       ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
@@ -31170,9 +31325,11 @@ arm: {
   // `strokeEdges` (#2695) IS argued for here, and it is the same field split by side rather than a third thing: the
   // WIDTH of this part's own stroke, one key per side, so the underline field can leave three sides at 0. Color stays
   // with `paintSlots` and style with codeOnly; the two width fields are refused together on one part.
-  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset');
-  ok(partDefFields.includes('strokeInset'),
-    'focus-ring wall 1b: the exclusion below is REPRESENTED — `strokeInset` is really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
+  // `borderInset` (#3328) is excluded for `strokeInset`'s reason: it names the width of the HOST's border, which a ring
+  // sits inside, not a stroke of the part's own.
+  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset' && f !== 'borderInset');
+  ok(partDefFields.includes('strokeInset') && partDefFields.includes('borderInset'),
+    'focus-ring wall 1b: the exclusions below are REPRESENTED — `strokeInset` and `borderInset` are really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
   ok(declaresOwnStroke.join(',') === 'strokeWidth,strokeEdges',
     `focus-ring wall 1b: PartDef declares EXACTLY TWO fields for a part's own stroke, both its WIDTH: 'strokeWidth' (#1266) and its per-side form 'strokeEdges' (#2695 — got [${declaresOwnStroke.join(', ')}]). A ring IS a stroke, and a stroke is three things: its color left for 'paintSlots' in #933, its WIDTH is this field, and its STYLE has no Figma property to bind to (a dash rhythm is a 'dashPattern', not a keyword) so it stays in codeOnly under #740. The geometry vocabulary beside it is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'width', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names ANOTHER component's stroke to compensate for (#801), not this part's own`);
   // AND THE CONSEQUENCE, measured rather than inferred from the declaration above: the def projects and
@@ -33630,6 +33787,113 @@ arm: {
 // fixture, not a path, so the test does not move when that file does. Module scope since #1387's block
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+
+// ---- #3336 (owner, 2026-11-03, Q3336.1–.4 A): THE REFERENCE BRAND ON ONE NEUTRAL PALETTE ----------------------
+//
+// The reference brand drops its `brand-neutral` brand color and puts its action family on the default `neutral`
+// ramp, which #3365 made selectable as the action palette. The decided migration: `actionPalette: 'neutral'` with
+// `actionAnchorStep: 950` kept; every light override that named `brand-neutral` repointed to `neutral` at the SAME
+// step, except `interactive.primary.border.rest`, which moves 350 → 400 (Q3336.2 A: `neutral.350` gives 2.81:1 and
+// misses its 3:1 floor); `brandColors` removed (the issue's step 4). The hue shift is accepted (Q3336.1 A).
+//
+// The fixture below is the 2026-09-28 copy (`NB_MASTER`, frozen: it records the file as it was) with that
+// migration applied, written out as a LITERAL so this check does not move when either the file or the old copy
+// does. Every expectation is a literal from the decided mapping (#3336's proposal, §2), never read from the engine;
+// (f) alone compares two builds, both of literal inputs:
+//   (a) the palette is gone: no `brand-neutral` palette, no brand colors, and the action family resolves to neutral;
+//   (b) no role in any mode aliases `brand-neutral`;
+//   (c) every mode contract passes, and the count is the literal 214, so a contract dropping out is seen;
+//   (d) `interactive.primary.border.rest` is `neutral.400` `#8f8d8d` at 3.30:1 on `background.primary`;
+//   (e) the action family resolves to the decided step and hex, role by role (52 roles, the six subtle fills
+//       included, which carry the fill's ramp step);
+//   (f) every role outside that table is byte-identical (hex and alias path) to the 2026-09-28 build: the neutral
+//       role already sat on `neutral`, so only the 52 decided roles may move (an action-family role that does not
+//       sit on the action ramp, like `interactive.primary.on-fill`, is held here too);
+//   (g) premise, the mutation held in the test: the same fixture with `border.rest` back on step 350 fails its
+//       contract, so (c) can see the floor this migration had to clear.
+//
+// Mutations, each failing here by name:
+//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 214 contracts pass on the neutral palette (want 214) —
+//       FAILED: interactive.primary.border.rest 2.81<3`, `#3336 light: interactive.primary.border.rest is neutral.400 #8f8d8d
+//       at 3.30:1 …` and `#3336 light: the action family resolves to the decided neutral step and hex …`
+//   (2) the `brand-neutral` brand color restored to the fixture → `#3336 the reference brand carries no brand-neutral palette …`
+//   (3) one override (`fill.hover`) left on `brand-neutral`, its brand color kept so the input still builds →
+//       `#3336 light: no role aliases brand-neutral — interactive.primary.fill.hover`, with (2)'s failure and the premise
+{
+  const REF_NEUTRAL_3336: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "neutral", "step": "400"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+  // The decided mapping, role → `<neutral step> <hex>`, light (the brand's only mode). Input overrides and the
+  // engine's own derived picks alike: a later engine change that moves either fails here by name.
+  const WANT: Record<string, string> = {
+    'interactive.primary.fill.rest': '950 #0e0d0d', 'interactive.primary.fill.focused': '950 #0e0d0d', 'interactive.primary.fill.selected': '950 #0e0d0d',
+    'interactive.primary.fill.hover': '800 #2d2c2c', 'interactive.primary.fill.pressed': '700 #444343',
+    'interactive.primary.text.rest': '950 #0e0d0d', 'interactive.primary.icon.rest': '950 #0e0d0d',
+    'interactive.primary.text.hover': '800 #2d2c2c', 'interactive.primary.icon.hover': '800 #2d2c2c',
+    'interactive.primary.text.pressed': '700 #444343', 'interactive.primary.icon.pressed': '700 #444343',
+    'interactive.primary.border.rest': '400 #8f8d8d', 'interactive.primary.border.hover': '700 #444343', 'interactive.primary.border.pressed': '800 #2d2c2c',
+    'interactive.primary.subtle-fill.hover': '950 #0e0d0d', 'interactive.primary.subtle-fill.pressed': '950 #0e0d0d', 'interactive.primary.subtle-fill.selected': '950 #0e0d0d',
+    'inverse.interactive.primary.fill.rest': '025 #f7f7f7', 'inverse.interactive.primary.text.rest': '025 #f7f7f7',
+    'inverse.interactive.primary.icon.rest': '025 #f7f7f7', 'inverse.interactive.primary.border.rest': '025 #f7f7f7',
+    'inverse.interactive.primary.text.hover': '350 #9b9a9a', 'inverse.interactive.primary.icon.hover': '350 #9b9a9a', 'inverse.interactive.primary.border.hover': '350 #9b9a9a',
+    'inverse.interactive.primary.text.pressed': '250 #b4b3b3', 'inverse.interactive.primary.icon.pressed': '250 #b4b3b3', 'inverse.interactive.primary.border.pressed': '250 #b4b3b3',
+    'inverse.interactive.primary.subtle-fill.hover': '025 #f7f7f7', 'inverse.interactive.primary.subtle-fill.pressed': '025 #f7f7f7', 'inverse.interactive.primary.subtle-fill.selected': '025 #f7f7f7',
+    'text.link.default': '950 #0e0d0d', 'text.link.focused': '950 #0e0d0d', 'text.link.hover': '800 #2d2c2c', 'text.link.pressed': '700 #444343', 'text.link.visited': '600 #5d5b5b',
+    'icon.link.default': '950 #0e0d0d', 'icon.link.focused': '950 #0e0d0d', 'icon.link.hover': '800 #2d2c2c', 'icon.link.pressed': '700 #444343', 'icon.link.visited': '600 #5d5b5b',
+    'inverse.text.link.default': '450 #838181', 'inverse.text.link.focused': '450 #838181', 'inverse.text.link.hover': '350 #9b9a9a', 'inverse.text.link.pressed': '250 #b4b3b3', 'inverse.text.link.visited': '100 #dcdbdb',
+    'inverse.icon.link.default': '450 #838181', 'inverse.icon.link.focused': '450 #838181', 'inverse.icon.link.hover': '350 #9b9a9a', 'inverse.icon.link.pressed': '250 #b4b3b3', 'inverse.icon.link.visited': '100 #dcdbdb',
+    'border.focus': '950 #0e0d0d', 'inverse.border.focus': '450 #838181',
+  };
+  type R = { hex: string; path: string; ratio: number; min: number; against?: string };
+  const contracts = (roles: Record<string, R>) => {
+    const checked = Object.entries(roles).filter(([, r]) => r.min > 0);
+    return { checked, broken: checked.filter(([, r]) => r.ratio < r.min) };
+  };
+  const failed = (b: [string, R][]): string => b.map(([k, r]) => `${k} ${r.ratio.toFixed(2)}<${r.min}`).join(', ');
+  const t = exampleTheme('the reference brand on neutral (#3336)', () => brandTheme(REF_NEUTRAL_3336));
+  const was = exampleTheme('the reference brand, 2026-09-28 (#3336 baseline)', () => brandTheme(NB_MASTER));
+  if (t && was) {
+    // (a)
+    const pals = t.palettes.map((p) => p.palette);
+    ok(!pals.includes('brand-neutral') && !((REF_NEUTRAL_3336 as any).brandColors?.length),
+      `#3336 the reference brand carries no brand-neutral palette and no brand colors (palettes ${pals.join(', ')})`);
+    ok(t.roleToPalette.action === 'neutral', `#3336 the reference brand's action family resolves to the neutral palette (got '${t.roleToPalette.action}')`);
+    const wasModes = new Map(resolveAllModes(was).map((m) => [m.mode, m.roles as Record<string, R>]));
+    const modes = resolveAllModes(t);
+    ok(modes.map((m) => m.mode).join(',') === 'light', `#3336 the reference brand builds its one mode, light (got ${modes.map((m) => m.mode).join(',')})`);
+    for (const m of modes) {
+      const roles = m.roles as Record<string, R>;
+      // (b)
+      const stale = Object.entries(roles).filter(([, r]) => /brand-neutral/.test(r.path)).map(([k]) => k);
+      ok(stale.length === 0, `#3336 ${m.mode}: no role aliases brand-neutral${stale.length ? ` — ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ` and ${stale.length - 5} more` : ''}` : ''}`);
+      // (c)
+      const { checked, broken } = contracts(roles);
+      ok(checked.length === 214 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 214)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
+      // (d)
+      const b = roles['interactive.primary.border.rest'];
+      ok(!!b && b.hex === '#8f8d8d' && /\.palette\.neutral\.400$/.test(b.path) && Math.abs(b.ratio - 3.30) < 0.005 && b.min === 3 && b.against === 'background.primary',
+        `#3336 ${m.mode}: interactive.primary.border.rest is neutral.400 #8f8d8d at 3.30:1 on background.primary (Q3336.2 A) (got ${b ? `${b.path} ${b.hex} ${b.ratio.toFixed(2)}:1 on ${b.against}` : 'missing'})`);
+      // (e)
+      const off = Object.entries(WANT).filter(([k, v]) => {
+        const r = roles[k];
+        return !r || !r.path.endsWith(`.palette.neutral.${v.split(' ')[0]}`) || r.hex !== v.split(' ')[1];
+      }).map(([k, v]) => `${k}: ${roles[k] ? `${roles[k].path.replace(/^.*\.palette\./, '')} ${roles[k].hex}` : 'missing'} ≠ neutral.${v}`);
+      ok(off.length === 0, `#3336 ${m.mode}: the action family resolves to the decided neutral step and hex, role by role (${Object.keys(WANT).length} roles)${off.length ? ` — ${off.slice(0, 4).join(' | ')}` : ''}`);
+      // (f)
+      const before = wasModes.get(m.mode);
+      if (!before) { ok(false, `#3336 ${m.mode}: the 2026-09-28 build resolves the same mode`); continue; }
+      const keys = new Set([...Object.keys(roles), ...Object.keys(before)]);
+      const moved = [...keys].filter((k) => !(k in WANT) && (roles[k]?.hex !== before[k]?.hex || roles[k]?.path !== before[k]?.path));
+      ok(moved.length === 0, `#3336 ${m.mode}: every role outside the decided table is byte-identical to the 2026-09-28 build${moved.length ? ` — moved ${moved.slice(0, 5).join(', ')}${moved.length > 5 ? ` and ${moved.length - 5} more` : ''}` : ''}`);
+      ok(Object.keys(WANT).every((k) => roles[k]?.path !== before[k]?.path), `#3336 ${m.mode}: premise: every role in the decided table moves off the 2026-09-28 build's alias, so (f) compares builds that differ`);
+    }
+    // (g)
+    const at350 = structuredClone(REF_NEUTRAL_3336) as any;
+    at350.overrides.light['interactive.primary.border.rest'] = { palette: 'neutral', step: '350' };
+    const m350 = resolveAllModes(brandTheme(at350)).find((m) => m.mode === 'light');
+    const b350 = m350 ? contracts(m350.roles as Record<string, R>).broken : [];
+    ok(b350.length === 1 && b350[0][0] === 'interactive.primary.border.rest' && Math.abs(b350[0][1].ratio - 2.81) < 0.005,
+      `#3336 premise: border.rest on neutral.350 misses its 3:1 floor at 2.81:1, the miss the decided step 400 clears (FAILED: ${failed(b350) || 'nothing'})`);
+  }
+}
 
 // ---- #3077 (owner decisions 2026-10-27): THE REFERENCE BRAND'S TYPE TABLE ------------------------------------
 //

@@ -1,6 +1,6 @@
 /**
  * THE AGENT LINK'S READ-ONLY NODE COMMANDS (#3147 Phase 2a, Q3147.10 A and Q3147.14 A): `inspect`, `component-keys`,
- * `audit-frames` and `snapshot`. They let an agent read the master (keys, instance properties, bindings) and check a
+ * `audit-frames` and `snapshot`, and `context` (#3300 B), what the open file is. They let an agent read the master (keys, instance properties, bindings) and check a
  * rebuild, so a file where Prism3 is open needs no second plugin for those reads.
  *
  * WRITE NOTHING. Every function below only reads: no property is assigned and no method that changes the file is
@@ -18,7 +18,7 @@
  *
  * NAMES NO BRAND. The legacy lists `audit-frames` checks against are the agent's data, passed in its args.
  */
-import { INSPECT_FIELDS } from './agent-protocol';
+import { INSPECT_FIELDS, READ_COMMANDS } from './agent-protocol';
 import type { InspectArgs, ComponentKeysArgs, AuditFramesArgs, SnapshotArgs, InspectField } from './agent-protocol';
 
 /** The defaults of the args an agent may leave out (their ranges are checked in `parseCommand`). */
@@ -331,4 +331,98 @@ export const snapshot = async (host: ReadHost, a: SnapshotArgs) => {
   const size = pngSize(bytes);
   if (!size) throw new Error('snapshot: the export did not return a PNG');
   return { png: base64(bytes), width: size.width, height: size.height, local: true };
+};
+
+/* ── context (#3300 B, the owner's Q3300.2 A) ───────────────────────────────────────────────────────────────────── */
+
+/**
+ * What Q3147.11 protects by default: a page whose name contains `FINAL`, a locked node and anything inside it, and a node
+ * whose name starts `Original · ` (the rebind skill's backup copies). One constant, so Phase 2b's write guard and
+ * `context` read the same rules once the guard lands.
+ */
+export const PROTECTED_DEFAULTS = { finalPageContains: 'FINAL', originalPrefix: 'Original · ' } as const;
+/** `context`'s page walk stops here and says `truncated`. */
+export const CONTEXT_NODE_CAP = 20_000;
+/** At most this many locked nodes and this many originals are listed; the rest are counted. */
+export const CONTEXT_LIST_CAP = 50;
+/** Where to read more (the desktop bridge serves each, #3300 A). */
+export const CONTEXT_READ_FIRST = ['prism3://skills/prism3-rebind', 'prism3://skills/prism3-consume', 'prism3://commands'] as const;
+/** The engine's own MCP server, for brand work: the bridge points at it and does not proxy it (Q3300.4 A). */
+export const ENGINE_MCP = { server: 'prism3-engine', for: 'validate or change the brand input', tools: ['validate_brand', 'theme_brand', 'export_theme'] } as const;
+
+/** The facts `context` takes from the main thread: the stored brand, the variables and the as-built ledger. */
+export type ContextFacts = {
+  file: { name: string; currentPage: string };
+  prism3: {
+    source: 'local' | 'none' | 'unreadable';
+    brand: { id: string; name: string | null; modes: string[] } | null;
+    engine: { plugin: string; lastBuilt: string | null };
+    collections: string[];
+    themed: boolean;
+  };
+  sets: { present: number; due: Array<{ set: string; why: string }>; queued: string[]; partial: true };
+  /** The commands this build answers, as `status` lists them. */
+  commands: string[];
+};
+
+type Listed = { id: string; name: string; page: string };
+
+/**
+ * `context`: what the open file is, for an agent's first read. The main thread's facts, plus one capped walk of every page
+ * for the protected nodes (`PROTECTED_DEFAULTS`). A FINAL page is listed and not walked: all of it is protected. The walk
+ * does not go inside a locked node or an original (all of it is protected too) or an instance (its layers are the
+ * component's). Writes nothing; pages are loaded, never switched to.
+ */
+export const context = async (host: ReadHost, facts: ContextFacts) => {
+  const finalPages: Array<{ id: string; name: string }> = [];
+  const locked: Listed[] = [];
+  const originals: Listed[] = [];
+  const counts = { locked: 0, originals: 0 };
+  const unreadable: Unreadable[] = [];
+  let seen = 0;
+  let truncated = false;
+  const visit = (n: ReadNode, page: string): void => {
+    if (truncated) return;
+    if (++seen > CONTEXT_NODE_CAP) { truncated = true; return; }
+    try {
+      const name = String(n.name);
+      if (n.locked === true) {
+        if (++counts.locked <= CONTEXT_LIST_CAP) locked.push({ id: idOf(n), name, page });
+        return;
+      }
+      if (name.startsWith(PROTECTED_DEFAULTS.originalPrefix)) {
+        if (++counts.originals <= CONTEXT_LIST_CAP) originals.push({ id: idOf(n), name, page });
+        return;
+      }
+      if (n.type === 'INSTANCE') return;
+      for (const k of n.children ?? []) visit(k, page);
+    } catch (e) { unreadable.push({ id: idOf(n), error: errText(e) }); }
+  };
+  for (const page of host.root.children) {
+    if (truncated) break;
+    try {
+      const name = String(page.name);
+      if (name.includes(PROTECTED_DEFAULTS.finalPageContains)) { finalPages.push({ id: idOf(page), name }); continue; }
+      await page.loadAsync?.();
+      for (const k of page.children ?? []) visit(k, name);
+    } catch (e) { unreadable.push({ id: idOf(page), error: errText(e) }); }
+  }
+  // The commands that write nothing to the file: `status`, `readback` and the read commands (`commands.json` says
+  // "Nothing" for each; `test-agent-bridge.ts` `context/commands` holds this list to it).
+  const reads = new Set<string>(['status', 'readback', ...READ_COMMANDS]);
+  return {
+    file: { ...facts.file, pages: host.root.children.length },
+    prism3: facts.prism3,
+    sets: facts.sets,
+    protected: {
+      finalPages, locked, originals,
+      counts: { finalPages: finalPages.length, locked: counts.locked, originals: counts.originals },
+      note: 'Read-only: leave these, and anything inside them, unchanged.',
+    },
+    commands: { read: facts.commands.filter((c) => reads.has(c)), write: facts.commands.filter((c) => !reads.has(c)) },
+    readFirst: [...CONTEXT_READ_FIRST],
+    engineMcp: { ...ENGINE_MCP, tools: [...ENGINE_MCP.tools] },
+    unreadable,
+    truncated,
+  };
 };

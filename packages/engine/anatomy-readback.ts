@@ -578,6 +578,7 @@ export const FIELDS: Record<string, FieldCheck> = {
     },
   },
   absoluteStrokeInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic, not a property the host holds separately' },
+  absoluteBorderInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic (the ring sited inside the host\'s border, #3328); its result is geometry, and the corner bindings it writes are read back as bindings' },
   absoluteCenterOn: { reason: 'names the node to center ON; the resulting coordinates are geometry, which `docs/40` §7 step 6 checks visually' },
 
   zeroOpacity: {
