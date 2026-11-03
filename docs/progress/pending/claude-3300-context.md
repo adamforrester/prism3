@@ -27,6 +27,7 @@ It answers over the mailbox and the bridge, posts no verdict, writes nothing, an
 - **The fixture** gains a FINAL page, a locked frame with a locked child, and an `Original · Checkout` frame with a locked instance inside. A child inside a protected node is not listed apart.
 - **Mailbox arms.** `context/protected/final`, `/locked` and `/originals` check each list on its own line. `context/brand` checks that a stored brand reads as `local` with its id, name and modes, and that a blob this build can't read says `unreadable`.
 - **Bridge arms.** `context/commands` checks the read list against every command `commands.json` (the authored `WRITES` in `emit-agent-reference.ts`) says writes nothing, and the write list against every other. `context/engine-mcp` checks the server against the engine's `SERVER_INFO.name` and each tool against `commands.json`'s MCP tools.
+- **Review arms.** `context/ledger/present`, `/due` and `/lastBuilt` read a stored two-set ledger: one set at today's engine with a moved definition, one at an older engine. `context/caps/list` and `/truncated` walk a page of 51 locked frames, 51 originals and 20,000 rectangles, so the 50-item list cap and the 20,000-node walk cap are exercised at their real values. Over the bridge, `context/read-first` checks each `readFirst` URI against the resources the bridge serves (`RESOURCES` in `server.ts`).
 - **Docs.** `commands.json` is regenerated (`emit-agent-reference.ts` isn't part of `regen.ts`). The ecosystem map gains a `read-context` feature. The agent-link guide, the plugin README, the bridge README and the mailbox runbook list the command, and the guides' line citations into `main.ts`, `agent-dispatch.ts` and `agent-protocol.ts` move with the code.
 
 **Mutations, each failing by name:**
@@ -40,3 +41,8 @@ It answers over the mailbox and the bridge, posts no verdict, writes nothing, an
 | `readback` dropped from the read set | `context/commands` |
 | The engine server misnamed `prism3` | `context/engine-mcp` |
 | An unreadable brand reported as `none` | `context/brand` |
+| `lastBuilt` keeps the oldest engine, or compares as strings | `context/ledger/lastBuilt` |
+| The two due reasons swapped | `context/ledger/due` |
+| The 50-item list cap dropped | `context/caps/list` |
+| The 20,000-node walk cap dropped | `context/caps/truncated` |
+| A `readFirst` URI the bridge does not serve | `context/read-first`, `envelope/context` |
