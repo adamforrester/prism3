@@ -2725,7 +2725,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     if (!centered && (m.counterAxisSizingMode !== 'AUTO' || Math.abs(W(m) - W(items)) > EPS)) listOff.push(`${String(m.name)} ${when}: the list is ${W(m)} wide (${String(m.counterAxisSizingMode)}) around ${W(items)} of tabs`);
     if (centered && W(m) + EPS < W(items)) listOff.push(`${String(m.name)} ${when}: ${W(items)} of tabs run past a ${W(m)} list`);
     if (Math.abs(X(base)) > EPS || Math.abs(W(base) - W(m)) > EPS) listOff.push(`${String(m.name)} ${when}: the baseline spans ${X(base)}..${X(base) + W(base)}, the list 0..${W(m)}`);
-    if (Math.abs(H(base) - 1) > EPS || Math.abs(Y(base) + H(base) - H(m)) > EPS || Y(items) + H(items) > Y(base) + EPS) listOff.push(`${String(m.name)} ${when}: the baseline is ${H(base)}px at y ${Y(base)}, not 1px under the tabs (to ${Y(items) + H(items)}) at the list's foot (${H(m)})`);
+    // Since #3344 (owner decision) the baseline is OVERLAPPED, not stacked: the tabs reach the list's foot, so the row of
+    // tabs and the baseline end on the same edge, and each tab's 2px bar covers the line under it.
+    if (Math.abs(H(base) - 1) > EPS || Math.abs(Y(base) + H(base) - H(m)) > EPS || Math.abs(Y(items) + H(items) - (Y(base) + H(base))) > EPS) listOff.push(`${String(m.name)} ${when}: the baseline is ${H(base)}px at y ${Y(base)}, not 1px at the list's foot (${H(m)}) ending where the tabs end (${Y(items) + H(items)})`);
   };
   for (const m of lists) measureList(m, 'as built');
   let added = 0;
@@ -2739,7 +2741,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
   for (const m of lists) measureList(m, 'with a fourth tab');
   ok(lists.length === 6 && added === 6 && listOff.length === 0,
-    `#2928 Tabs: in all 6 members the 1px baseline spans the list at its foot, under the tabs, and at start the list hugs them, as built and after a fourth tab joins the slot (${lists.length} members, ${added} tabs added; ${listOff.length} off${listOff.length ? `: ${listOff.slice(0, 3).join(' | ')}` : ''})`);
+    `#2928 Tabs: in all 6 members the 1px baseline spans the list at its foot, ending where the tabs end (#3344), and at start the list hugs them, as built and after a fourth tab joins the slot (${lists.length} members, ${added} tabs added; ${listOff.length} off${listOff.length ? `: ${listOff.slice(0, 3).join(' | ')}` : ''})`);
 
   // TAB.ITEM, AGAIN — its label grows past what the build saw. After Tabs, whose tabs are instances of these members and
   // would grow with them. The label and its bold reserve show one set-level TEXT property, so it is set once, outright.

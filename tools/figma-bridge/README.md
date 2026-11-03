@@ -109,6 +109,33 @@ that reason. Progress and log lines streamed while the socket was down are not r
 result the plugin still keeps logs "a result for a command this bridge is not waiting on"; that is
 harmless.
 
+## What an agent reads on connecting (#3300)
+
+A fresh agent with no checkout arrives knowing the rules that matter in a Figma file, and where to read
+more:
+
+- **A short note**, the owner's text (Q3300.1 A), from one constant, `BRIDGE_INSTRUCTIONS` in
+  `server.ts`. It is sent as `instructions` in the `initialize` and `server/discover` results, and again
+  as `readFirst` in every `figma_status` result. The bridge answers Claude Code at `2024-11-05` (#3109),
+  older than the `instructions` field, so a host may not show the field. `figma_status` says "Call
+  first", so the note arrives either way. It stays under 1,200 characters, because hosts truncate long
+  instructions.
+- **Five static resources** (`resources/list`, `resources/read`; Q3300.3 A). Each is a file from the
+  checkout the server runs in, read once at start and stamped with `ENGINE_VERSION`:
+
+  | URI | File |
+  |---|---|
+  | `prism3://skills/prism3-rebind` | `skills/prism3-rebind/SKILL.md` |
+  | `prism3://skills/prism3-consume` | `skills/prism3-consume/SKILL.md` |
+  | `prism3://commands` | `docs/public/reference/commands.json` |
+  | `prism3://figma-conventions` | `docs/public/reference/figma-conventions.json` |
+  | `prism3://llms.txt` | `docs/public/llms.txt` |
+
+  Each file is under `skills/` or `docs/public/`, so it is text that is already public. Nothing is read
+  live from the Figma file as a resource.
+
+The bridge points at the engine MCP server (`prism3-engine`) rather than proxying its tools (Q3300.4 A).
+
 ## How it is built
 
 - `server.ts` — the stdio JSON-RPC loop (hand-rolled like `packages/engine/mcp.ts`, reusing its

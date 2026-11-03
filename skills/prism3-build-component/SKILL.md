@@ -716,7 +716,9 @@ breaks one fails by name.
 `lint-fill-under-hug` needs no entry either: it walks every projected member. A part that stretches across
 a column that hugs its width (`crossAxisFill`), or grows along a row that does (`grow`), fails by name,
 because the host turns that width fixed when the fill is written (#2928). A bar across the bottom of a
-hugging frame is a `foot` pin, not a stretched box.
+hugging frame is a `foot` pin, not a stretched box. A part that stretches across a row that hugs its
+height, or grows down a column that does, fails by name too, unless the gate's `MEASURED_SAFE` list names it:
+the host keeps a hugging height, but only the shapes measured on a real file are vouched for (#3014).
 
 `lint-component-docs` needs no entry: it reads the registry, so after `packages/engine/regen.ts` a
 new def must appear in `components.ai.json`, in its own `<id>.md` page and in the maintainer record, or

@@ -51,7 +51,6 @@ Type: dimension. Bound by 26 component(s).
 | select | `border-width` | control | every member (84 of 84) |
 | sign-in-button | `border-width` | container | every member (96 of 96) |
 | tabs | `baseline-height` | baseline | every member (6 of 6) |
-|  |  | container | every member (6 of 6) |
 | tag | `unselected.border-width` | container | selection: unselected (30 of 45) |
 | text-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |

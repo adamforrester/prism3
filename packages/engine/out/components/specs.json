@@ -30371,6 +30371,11 @@
           "members": 6
         },
         {
+          "part": "container/baseline",
+          "kind": "frame",
+          "members": 6
+        },
+        {
           "part": "container/items",
           "kind": "slot",
           "members": 6
@@ -30388,11 +30393,6 @@
         {
           "part": "container/items/tab3",
           "kind": "instance",
-          "members": 6
-        },
-        {
-          "part": "container/baseline",
-          "kind": "frame",
           "members": 6
         }
       ],
@@ -30417,7 +30417,7 @@
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "border-width.hairline"
+                  "token": "space.0"
                 },
                 "paddingLeft": {
                   "token": "space.0"
@@ -30428,18 +30428,18 @@
               }
             },
             {
-              "part": "container/items",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                }
-              }
-            },
-            {
               "part": "container/baseline",
               "values": {
                 "height": {
                   "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }
@@ -30461,7 +30461,7 @@
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "border-width.hairline"
+                  "token": "space.0"
                 },
                 "paddingLeft": {
                   "token": "space.0"
@@ -30472,18 +30472,18 @@
               }
             },
             {
-              "part": "container/items",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                }
-              }
-            },
-            {
               "part": "container/baseline",
               "values": {
                 "height": {
                   "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }
@@ -30505,7 +30505,7 @@
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "border-width.hairline"
+                  "token": "space.0"
                 },
                 "paddingLeft": {
                   "token": "space.0"
@@ -30516,18 +30516,18 @@
               }
             },
             {
-              "part": "container/items",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                }
-              }
-            },
-            {
               "part": "container/baseline",
               "values": {
                 "height": {
                   "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }
@@ -30549,7 +30549,7 @@
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "border-width.hairline"
+                  "token": "space.0"
                 },
                 "paddingLeft": {
                   "token": "space.0"
@@ -30564,18 +30564,18 @@
               }
             },
             {
-              "part": "container/items",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                }
-              }
-            },
-            {
               "part": "container/baseline",
               "values": {
                 "height": {
                   "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }
@@ -30597,7 +30597,7 @@
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "border-width.hairline"
+                  "token": "space.0"
                 },
                 "paddingLeft": {
                   "token": "space.0"
@@ -30612,18 +30612,18 @@
               }
             },
             {
-              "part": "container/items",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                }
-              }
-            },
-            {
               "part": "container/baseline",
               "values": {
                 "height": {
                   "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }
@@ -30645,7 +30645,7 @@
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "border-width.hairline"
+                  "token": "space.0"
                 },
                 "paddingLeft": {
                   "token": "space.0"
@@ -30660,18 +30660,18 @@
               }
             },
             {
-              "part": "container/items",
-              "values": {
-                "gap": {
-                  "token": "space.0"
-                }
-              }
-            },
-            {
               "part": "container/baseline",
               "values": {
                 "height": {
                   "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.0"
                 }
               }
             }

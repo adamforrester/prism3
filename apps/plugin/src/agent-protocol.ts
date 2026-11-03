@@ -38,7 +38,7 @@ export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members', 'draw-specs', 'inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity', 'panels-clean'] as const;
 /** #3147 Phase 2a: the commands that only read nodes (`agent-reads.ts`). They post no verdict: like `status`, their value
  *  is their `data`. Each writes nothing to the file, which `test-agent-link.ts` and `test-agent-bridge.ts` assert. */
 export const READ_COMMANDS = ['inspect', 'component-keys', 'audit-frames', 'snapshot', 'activity'] as const;
@@ -87,6 +87,9 @@ export type AgentArgs = {
   snapshot: { id: string; scale?: number };
   /** #3309. Writes nothing. The Activity drawer's runs this session, newest first, from the main thread's memory (`activity-log.ts`): each { seq, op, by: panel | agent, cmd, at, verdict: { type, ok }, headline, summary, lines, problems: [{ set, reasons }], built: { commit, build } }. `since` keeps the runs after that seq; `limit` (1 to 50, default all) caps them. Result data: { runs, total, latest }. */
   activity: { since?: number; limit?: number };
+  /** #3137 Q3137.7 A: the usage panels Update file › Clean up offers while Documentation has panels off. `confirm: false`
+   *  (or absent) counts them; `confirm: true` removes each live panel that still holds what was drawn, never an edited one. */
+  'panels-clean': { confirm?: boolean };
   /** #2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`). */
   'run-code': RunCodeArgs;
 };
@@ -346,6 +349,11 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       if (limit !== undefined && (!Number.isInteger(limit) || (limit as number) < 1 || (limit as number) > 50)) return fail('bad-args', 'activity takes args.limit: a whole number from 1 to 50');
       return { ok: true, command: { ...base, cmd: 'activity', args: { ...(since === undefined ? {} : { since: since as number }), ...(limit === undefined ? {} : { limit: limit as number }) } } };
     }
+    case 'panels-clean':
+      if (args.confirm !== undefined && typeof args.confirm !== 'boolean') {
+        return fail('bad-args', 'panels-clean takes args.confirm: false (or none) to count, true to remove the unedited panels');
+      }
+      return { ok: true, command: { ...base, cmd: 'panels-clean', args: args.confirm === undefined ? {} : { confirm: args.confirm } } };
     case 'status':
     case 'file-setup':
     case 'readback':

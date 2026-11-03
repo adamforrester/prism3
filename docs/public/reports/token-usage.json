@@ -367,10 +367,6 @@
             "baseline": {
               "members": 6,
               "where": {}
-            },
-            "container": {
-              "members": 6,
-              "where": {}
             }
           }
         },

@@ -1348,7 +1348,8 @@ npx tsx packages/engine/lint-fill-under-hug.ts      # no projected member stretc
                                                     # host turns that width FIXED when the fill is
                                                     # written. The rule is typed in the gate; the
                                                     # subject is the plans the executors build from.
-                                                    # NOT checked: the height twins (unmeasured).
+                                                    # Its height twins (#3014) pass only the fills
+                                                    # MEASURED_SAFE names as measured on a real file.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

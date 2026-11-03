@@ -17511,6 +17511,48 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+// Q3298/3294 compose A (owner, 2026-11-02): O2 B's minimum is the wide tier's alone. At 380 the Inspect menu is #3298's
+// cap (the preview header less 12px a side), and the note sets the width up to it, so it wraps to the lines that width
+// allows, not to the items' width. ORACLE: the browser's rects and the note's computed line height, typed bounds
+// here: 12 is the decision's number; 8 lines is a test bound, not a design one (7 measured at the 296px cap on both
+// hosts, 14 on web with `width: 0` at every tier). Mutation: `.p3-menu-privacy`'s `width: 0; min-width: 100%`
+// back at every tier (the `:not([data-w="narrow"])` scope dropped) → `§47 web light 380 Inspect: … reaches the narrow
+// cap …` (the figma host lays out the same either way: its build stamp already sets the menu to the cap).
+for (const host of ['web', 'figma']) {
+  const where = `§47 ${host} light 380`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 380, h: 800 });
+  let step = 'open';
+  try {
+    step = 'Brand'; await goPlace(page, 'brand');
+    step = 'the Preview pane'; await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    step = 'open Inspect';
+    await hooks.need(page, '[data-p3="inspect-open"]', { timeout: 10000 });
+    await hooks.click(page.locator('[data-p3="inspect-open"]'));
+    await hooks.need(page, '[data-p3="inspect-menu"]', { timeout: 10000 });
+    await page.waitForTimeout(300);
+    step = 'Inspect: the open menu, measured';
+    const box = await page.evaluate(() => {
+      const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { left: Math.round(b.left), right: Math.round(b.right), width: Math.round(b.width) } : null; };
+      const menu = document.querySelector('[data-p3="inspect-menu"]');
+      const n = menu?.querySelector('[data-p3="privacy-note"]');
+      let lines = null;
+      if (n) {
+        const cs = getComputedStyle(n);
+        const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+        const h = n.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+        lines = { height: Math.round(h * 10) / 10, lineHeight: lh, lines: Math.round(h / lh) };
+      }
+      return { vw: window.innerWidth, menu: r(menu), note: r(n), head: r(document.querySelector('[data-p3="preview-head"]')), lines };
+    });
+    ok(!!box.menu && !!box.note && box.menu.left >= 0 && box.menu.right <= box.vw && box.note.width <= box.menu.width,
+      `${where} Inspect: the open menu, privacy note and all, stays inside the ${box.vw} px viewport (${JSON.stringify(box)})`);
+    ok(!!box.menu && !!box.head && Math.abs(box.menu.left - (box.head.left + 12)) <= 1 && Math.abs(box.menu.right - (box.head.right - 12)) <= 1 && !!box.lines && box.lines.lines <= 8,
+      `${where} Inspect: the open menu reaches the narrow cap (the preview header less 12px a side) and its privacy note is at most 8 lines (${JSON.stringify({ menu: box.menu, head: box.head, note: box.lines })})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 } // 47-menu
 // =============================================================================================
 // IA v2 phase 2 (#2909): the tiers, one home per lever, the engine's warnings on their levers, and what is due
@@ -18410,6 +18452,174 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
   } finally { await ctx.close(); }
 }
 } // 3129
+// =============================================================================================
+// §3137 — USAGE PANELS IN UPDATE FILE, CLEAN UP AND DOCUMENTATION (#3137, owner decisions Q3137.1–8, all A)
+// =============================================================================================
+// The plugin at 380 and 1280, light and dark. Each file state is planted as the main thread posts it (`doc-settings`,
+// `file-sets` with `unpaneled` and `panelLeads`, `update-check`, `panels-clean-result`). EXPECTED: literals typed from
+// the approved wireframe's DRAFT strings and rules. ACTUAL: the drawn DOM and the messages the panel posts.
+//   · The template file (eight sets, none with a panel): Usage panels is Components' last subtitle, its one tick on,
+//     "Draw 8 usage panels", the all-missing line, the names under a closed "Show the 8 sets"; opened, the eight names in
+//     catalog order. The scoped check reads the eight sets. The badge counts one item and its name ends ", usage panels".
+//   · A working file (three of ten lack a panel, one of them Due): two names inline, no disclosure, the Due set left out.
+//   · Documentation, panels on: the count line and "Draw them with Update file", which opens the checklist.
+//   · Panels off: Clean up counts the drawn panels as it opens, names how many, and Remove posts the removal; the
+//     Documentation off line names how many stay.
+// Mutations, failing here by name: the disclosure dropped (every name inline) → `… Q3137.5 A: past six …`; the panel
+// sets left out of the scoped check → `… Q3137.2 A: the scoped check reads …`; the Clean up item drawn and counted while
+// panels are on → `… Q3137.7 A: with panels on, Clean up offers no panels`; the shell's badge sum leaving the group out →
+// `… Q3137.4 A: the badge counts the group as one item …`.
+if (runs('3137')) {
+console.log(`\n#3137 — usage panels: Update file's group, Clean up, Documentation\n${'='.repeat(78)}`);
+const P_SETS = ['button', 'select', 'checkbox-control', 'badge', 'tag', 'divider', 'text-field', 'list'];
+const P_DOCS = (panels) => ({ type: 'doc-settings', settings: { panels, cover: true, styleGuide: null } });
+const P_TEMPLATE = { type: 'file-sets', present: P_SETS, setUp: true, queued: [], due: Object.fromEntries(P_SETS.map((id) => [id, { state: 'current' }])), unpaneled: P_SETS, panelLeads: P_SETS.length };
+const W_SETS = ['button', 'select', 'checkbox-control', 'badge', 'tag', 'divider', 'text-field', 'list', 'banner', 'toast'];
+const P_WORKING = { type: 'file-sets', present: W_SETS, setUp: true, queued: [], due: { ...Object.fromEntries(W_SETS.map((id) => [id, { state: 'current' }])), button: { state: 'due', reason: 'definition' } },
+  unpaneled: ['badge', 'button', 'tag'], panelLeads: W_SETS.length };
+const checkOf = (defs) => ({ type: 'update-check', previewHash: 'H-3137', missing: [], refused: [],
+  sets: defs.map((def) => ({ def, hash: def, members: 12, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false })) });
+for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380], ['dark', 380]]) {
+  const where = `3137 figma ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: w === 380 ? 760 : 900 });
+  let step = 'the template file';
+  try {
+    await page.evaluate(() => { window.__q = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['file-sets-request', 'update-check-request', 'panels-clean'].includes(m.type)) window.__q.push(JSON.parse(JSON.stringify(m))); }); });
+    const lastOf = (type) => page.evaluate((t) => window.__q.filter((m) => m.type === t).at(-1) ?? null, type);
+    await postMsg(page, P_DOCS(true));
+    await postMsg(page, P_TEMPLATE);
+    await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '1', null, { timeout: 5000 }).catch(() => {});
+    const badge = await page.evaluate(() => ({ n: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null }));
+    ok(badge.n === '1' && badge.name === 'Update file, usage panels', `${where}: Q3137.4 A: the badge counts the group as one item, and its name ends ", usage panels" (${JSON.stringify(badge)})`);
+    await hooks.click(page.locator('[data-p3="update-file"]'));
+    await page.waitForFunction(() => window.__q.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+    await postMsg(page, P_TEMPLATE);
+    await page.waitForFunction(() => window.__q.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+    const asked = await lastOf('update-check-request');
+    ok(JSON.stringify([...(asked?.defs ?? [])].sort()) === JSON.stringify([...P_SETS].sort()), `${where}: Q3137.2 A: the scoped check reads the sets with no panel (${JSON.stringify(asked?.defs)})`);
+    await postMsg(page, checkOf(P_SETS));
+    await hooks.need(page, '[data-p3="update-group-panels"]');
+    const g = await page.evaluate(() => {
+      const comps = document.querySelector('[data-p3="update-item-components"]');
+      const tick = document.querySelector('[data-p3="update-check-panels"]');
+      const show = document.querySelector('[data-p3="update-panels-show"]');
+      const list = document.querySelector('[data-p3="update-panels-sets"]');
+      return {
+        subgroups: [...(comps?.querySelectorAll(':scope > [data-p3^="update-group-"]') ?? [])].map((n) => n.getAttribute('data-p3')),
+        subtitles: [...(comps?.querySelectorAll('.p3-upd-subtitle') ?? [])].map((n) => n.textContent),
+        tick: [tick?.getAttribute('aria-checked') ?? null, tick?.textContent ?? null],
+        line: document.querySelector('[data-p3="update-panels-line"]')?.textContent ?? null,
+        show: [show?.textContent ?? null, show?.getAttribute('aria-expanded') ?? null], listShown: !!list?.checkVisibility(),
+        saves: !!comps?.querySelector(':scope > [data-p3="update-saves"]:last-child'),
+        targets: [tick, show].map((b) => { const x = b?.getBoundingClientRect(); return x ? Math.min(x.width, x.height) : 0; }),
+        go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
+      };
+    });
+    ok(JSON.stringify(g.subgroups) === '["update-group-panels"]' && JSON.stringify(g.subtitles) === '["Usage panels"]' && JSON.stringify(g.tick) === '["true","Draw 8 usage panels"]',
+      `${where}: Q3137.1 A: Usage panels is a subtitle under Components, its one tick on, "Draw 8 usage panels" (${JSON.stringify({ subgroups: g.subgroups, subtitles: g.subtitles, tick: g.tick })})`);
+    ok(g.line === 'No set in this file has its usage panel yet. Each is drawn beside its set, and sets move apart to make room. No member changes.' && g.saves && g.go === false,
+      `${where}: the all-missing line (DRAFT); the section closes on "Saves a version first…"; Update file can run (${JSON.stringify({ line: g.line, saves: g.saves, go: g.go })})`);
+    ok(JSON.stringify(g.show) === '["Show the 8 sets","false"]' && !g.listShown && g.targets.every((t) => t >= 24),
+      `${where}: Q3137.5 A: past six, the names sit under "Show the 8 sets", closed; the tick and the disclosure are targets of at least 24px (${JSON.stringify({ show: g.show, listShown: g.listShown, targets: g.targets })})`);
+    step = 'the disclosure, open';
+    await hooks.click(page.locator('[data-p3="update-panels-show"]'));
+    await settle(page);
+    const open8 = await page.evaluate(() => ({ exp: document.querySelector('[data-p3="update-panels-show"]')?.getAttribute('aria-expanded') ?? null,
+      rows: [...document.querySelectorAll('[data-p3="update-panels-row"]')].filter((r) => r.checkVisibility()).map((r) => r.dataset.id),
+      overflow: [...document.querySelectorAll('[data-p3="update-panels-row"]')].filter((r) => r.scrollWidth > r.clientWidth + 1).length,
+      focus: document.activeElement?.dataset.key ?? null }));
+    ok(open8.exp === 'true' && open8.rows.length === 8 && P_SETS.every((id) => open8.rows.includes(id)) && open8.overflow === 0 && open8.focus === 'panels-show',
+      `${where}: Q3137.5 A: opened, the eight names show, none overflowing, and focus stays on the disclosure (${JSON.stringify(open8)})`);
+    const mu = await measure(page, `${where} / Usage panels`, 'figma', w);
+    check(mu, `${where} / Usage panels`, columnOf('figma', w), w === 380 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="update-panels-show"]', '[data-p3="update-check-panels"]'] });
+    await page.keyboard.press('Escape');
+    step = 'a working file';
+    await hooks.click(page.locator('[data-p3="update-file"]'));
+    await postMsg(page, P_WORKING);
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="update-group-panels"]'), null, { timeout: 5000 }).catch(() => {});
+    await postMsg(page, checkOf(['button', 'badge', 'tag']));
+    await hooks.need(page, '[data-p3="update-panels-row"]');
+    const wk = await page.evaluate(() => ({ rows: [...document.querySelectorAll('[data-p3="update-panels-row"]')].filter((r) => r.checkVisibility()).map((r) => r.dataset.id),
+      show: !!document.querySelector('[data-p3="update-panels-show"]'), line: document.querySelector('[data-p3="update-panels-line"]')?.textContent ?? null,
+      tick: document.querySelector('[data-p3="update-check-panels"]')?.textContent ?? null,
+      subgroups: [...document.querySelectorAll('[data-p3="update-item-components"] > [data-p3^="update-group-"]')].map((n) => n.getAttribute('data-p3')) }));
+    hooks.absent(ok, { seen: g.show[0] !== null, state: 'the disclosure drawn on the template file' }, !wk.show && JSON.stringify(wk.rows) === '["badge","tag"]',
+      `${where}: Q3137.5 A: up to six names show inline, with no disclosure, and the Due set is left out of the group (${JSON.stringify(wk.rows)})`);
+    ok(JSON.stringify(wk.subgroups) === '["update-group-due","update-group-panels"]' && wk.tick === 'Draw 2 usage panels'
+      && wk.line === '2 sets in this file have no usage panel. Each is drawn beside its set, and sets move apart to make room. No member changes.',
+      `${where}: Q3137.1 A: after Due, the group counts its own sets (DRAFT) (${JSON.stringify(wk)})`);
+    await page.keyboard.press('Escape');
+    step = 'Documentation, panels on';
+    await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+    if (w === 380) await page.locator('[data-p3="docs-select"]').selectOption('panels');
+    else await hooks.click(page.locator('[data-p3="docs-tab-panels"]'));
+    await hooks.need(page, '[data-p3="docs-panels-switch"]');
+    await postMsg(page, P_TEMPLATE);
+    await settle(page);
+    const on = await page.evaluate(() => ({ line: document.querySelector('[data-p3="docs-panels-missing-line"]')?.textContent ?? null, shown: !!document.querySelector('[data-p3="docs-panels-missing"]')?.checkVisibility(),
+      draw: document.querySelector('[data-p3="docs-panels-draw"]')?.textContent ?? null }));
+    ok(on.shown && on.line === 'No set in this file has its usage panel yet.' && on.draw === 'Draw them with Update file',
+      `${where}: Q3137.6 A: with panels on, Documentation says no set has its panel yet, and offers "Draw them with Update file" (${JSON.stringify(on)})`);
+    await postMsg(page, P_WORKING);
+    await settle(page);
+    const some = await page.evaluate(() => document.querySelector('[data-p3="docs-panels-missing-line"]')?.textContent ?? null);
+    ok(some === '3 sets in this file have no usage panel yet.', `${where}: Q3137.6 A: with some missing, the count (DRAFT) (${some})`);
+    // An area is measured at the wide tier, as Documentation › Specs is (S1.4).
+    if (w > 560) {
+      const md = await measure(page, `${where} / Documentation, panels missing`, 'figma', w);
+      check(md, `${where} / Documentation, panels missing`, columnOf('figma', w), PLACE_FLOOR, { state: 'area', only: ['[data-p3="docs-panels-draw"]'] });
+    }
+    await hooks.click(page.locator('[data-p3="docs-panels-draw"]'));
+    await hooks.need(page, '[data-p3="update-dialog"]');
+    ok(await page.evaluate(() => !!document.querySelector('[data-p3="update-dialog"]')), `${where}: Q3137.6 A: "Draw them with Update file" opens Update file's checklist`);
+    step = 'Clean up, panels on';
+    await hooks.click(page.locator('[data-p3="update-tab-clean"]'));
+    await settle(page);
+    const onClean = await page.evaluate(() => ({ item: !!document.querySelector('[data-p3="clean-panels"]'), lead: !!document.querySelector('[data-p3="update-body"] .p3-upd-lead') }));
+    hooks.absent(ok, { seen: onClean.lead, state: 'Clean up drawn' }, !onClean.item && !(await lastOf('panels-clean')), `${where}: Q3137.7 A: with panels on, Clean up offers no panels and asks for no count`);
+    await page.keyboard.press('Escape');
+    step = 'panels off: Clean up';
+    // Over a Theme place, which the chrome's measure reads beside the dialog.
+    await goPlace(page, 'brand');
+    await postMsg(page, P_DOCS(false));
+    await settle(page);
+    await hooks.click(page.locator('[data-p3="update-file"]'));
+    await postMsg(page, { ...P_TEMPLATE, unpaneled: undefined, panelLeads: undefined });
+    await hooks.click(page.locator('[data-p3="update-tab-clean"]'));
+    await page.waitForFunction(() => window.__q.some((m) => m.type === 'panels-clean'), null, { timeout: 5000 }).catch(() => {});
+    const count = await lastOf('panels-clean');
+    await postMsg(page, { type: 'panels-clean-result', ok: true, applied: false, drawn: 32, removable: 30, removed: 0, kept: 0 });
+    await hooks.need(page, '[data-p3="clean-panels"]');
+    const cl = await page.evaluate(() => ({ summary: document.querySelector('[data-p3="clean-panels-summary"]')?.textContent ?? null,
+      keep: document.querySelector('[data-p3="clean-panels"] .p3-sub')?.textContent ?? null, rm: document.querySelector('[data-p3="clean-panels-confirm"]')?.textContent ?? null,
+      group: !!document.querySelector('[data-p3="update-group-panels"]') }));
+    ok(canon(count) === canon({ type: 'panels-clean', confirm: false }) && cl.summary === '32 usage panels, drawn while Documentation had panels on.'
+      && cl.keep === 'Panels edited by hand stay. Turning panels on again draws them back.' && cl.rm === 'Remove 30 panels',
+      `${where}: Q3137.7 A: with panels off, Clean up counts the drawn panels as it opens, names them, and offers "Remove 30 panels" (DRAFT) (${JSON.stringify({ count, ...cl })})`);
+    const mc = await measure(page, `${where} / Clean up, panels`, 'figma', w);
+    check(mc, `${where} / Clean up, panels`, columnOf('figma', w), w === 380 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="clean-panels-confirm"]'] });
+    await hooks.click(page.locator('[data-p3="clean-panels-confirm"]'));
+    await page.waitForFunction(() => window.__q.filter((m) => m.type === 'panels-clean').length >= 2, null, { timeout: 5000 }).catch(() => {});
+    ok(canon(await lastOf('panels-clean')) === canon({ type: 'panels-clean', confirm: true }), `${where}: Q3137.7 A: Remove posts the removal`);
+    await postMsg(page, { type: 'panels-clean-result', ok: true, applied: true, drawn: 2, removable: 0, removed: 30, kept: 2 });
+    await settle(page);
+    const after = await page.evaluate(() => ({ summary: document.querySelector('[data-p3="clean-panels-summary"]')?.textContent ?? null, rm: !!document.querySelector('[data-p3="clean-panels-confirm"]') }));
+    ok(after.summary === '2 usage panels, drawn while Documentation had panels on.' && !after.rm, `${where}: after the removal, the edited panels left are named, with nothing more to remove (${JSON.stringify(after)})`);
+    await page.keyboard.press('Escape');
+    step = 'panels off: Documentation';
+    await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+    if (w === 380) await page.locator('[data-p3="docs-select"]').selectOption('panels');
+    else await hooks.click(page.locator('[data-p3="docs-tab-panels"]'));
+    await hooks.need(page, '[data-p3="docs-panels-off"]');
+    const off = await page.evaluate(() => ({ off: document.querySelector('[data-p3="docs-panels-off"]')?.textContent ?? null, missing: !!document.querySelector('[data-p3="docs-panels-missing"]')?.checkVisibility() }));
+    hooks.absent(ok, { seen: on.shown, state: 'the missing line drawn with panels on' }, !off.missing && off.off === 'Off: Update file draws no new panels. The 2 already drawn stay. Update file › Clean up can remove them.',
+      `${where}: Q3137.7 A: with panels off, the off line names how many stay and points to Clean up (DRAFT), and the missing line is gone (${JSON.stringify(off)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3137
 // =============================================================================================
 // §3133 — A DUE SET'S TAG STAYS INSIDE UPDATE FILE (#3133)
 // =============================================================================================
@@ -19728,6 +19938,54 @@ if (runs('3044')) {
   ok(child.status === 1 && named && took < 30000,
     `3044: a section that never returns fails by name at its limit, with the last check it reached (exit ${child.status}, signal ${child.signal}, ${took}ms; stderr ${JSON.stringify(String(child.stderr ?? '').trim().slice(-220))})`);
 } // 3044
+// 3298. THE INSPECT MENU STAYS INSIDE THE WINDOW (#3298, owner decision Q3298.1 A). Sized to its longest unwrapped line
+//     and hung from Inspect's right edge, the open menu ran off the window's left edge at 380 on both hosts (the privacy
+//     note on one line set a 529px menu; left edge −161), where the page cannot scroll to it. At the narrow tier the
+//     preview header now holds the menu: Inspect's right edge, capped at the header less 12px a side, the note and the
+//     stamp wrapping inside it. 1280 is unchanged. EXPECTED is the window (`innerWidth`) and the button's own rect;
+//     ACTUAL is the open menu's `getBoundingClientRect()`, and the note's and the stamp's, as the browser lays them out.
+//     Mutation this fails by name: the narrow rules under `#3298` in `chrome.css` removed → `3298 figma 380: …` and
+//     `3298 web 380: …` (the menu's left edge below 0). A cap on the right only (`max-width: calc(100% - 12px)`) →
+//     `3298 <host> 380: the menu is capped at the preview header less 12px a side` (the menu at the header's left edge).
+if (runs('3298')) {
+  console.log(`\nThe Inspect menu inside the window (#3298)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 380, h: 800 }, { w: 1280, h: 900 }]) {
+    const where = `3298 ${host} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    let step = 'open';
+    try {
+      step = 'Brand';
+      await goPlace(page, 'brand');
+      if (w <= 560) { step = 'the Preview pane'; await hooks.click(page.locator('[data-p3="pane-toggle-preview"]')); }
+      step = 'open Inspect';
+      await hooks.need(page, '[data-p3="inspect-open"]', { timeout: 10000 });
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      await hooks.need(page, '[data-p3="inspect-menu"]', { timeout: 10000 });
+      await page.waitForTimeout(300);
+      const m = await page.evaluate(() => {
+        const r = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { l: +b.left.toFixed(1), r: +b.right.toFixed(1), t: +b.top.toFixed(1), b: +b.bottom.toFixed(1), w: +b.width.toFixed(1) } : null; };
+        return { iw: innerWidth, sw: document.documentElement.scrollWidth, menu: r('[data-p3="inspect-menu"]'), btn: r('[data-p3="inspect-open"]'),
+          note: r('[data-p3="privacy-note"]'), stamp: r('[data-p3="build-stamp"]'), head: r('[data-p3="preview-head"]') };
+      });
+      const inside = (a, b) => !!a && !!b && a.l >= b.l - 0.5 && a.r <= b.r + 0.5 && a.t >= b.t - 0.5 && a.b <= b.b + 0.5;
+      ok(!!m.menu && m.menu.l >= 0 && m.menu.r <= m.iw, `${where}: the open Inspect menu stays inside the window, [0, ${m.iw}] (${JSON.stringify(m.menu)}, scrollWidth ${m.sw})`);
+      ok(inside(m.note, m.menu) && inside(m.stamp, m.menu), `${where}: the privacy note and the build stamp sit inside the menu (note ${JSON.stringify(m.note)}, stamp ${JSON.stringify(m.stamp)}, menu ${JSON.stringify(m.menu)})`);
+      ok(!!m.menu && !!m.btn && Math.abs(m.menu.r - m.btn.r) <= 0.5 && m.menu.t >= m.btn.b, `${where}: the menu keeps Inspect's right edge and hangs below it (menu ${JSON.stringify(m.menu)}, Inspect ${JSON.stringify(m.btn)})`);
+      // Q3298.1 A's cap, from both sides: at narrow the menu sits inside the preview header less 12px a side. The window
+      // alone would pass a menu reaching the header's edge, or the rail. 12 is the decision's number, typed here.
+      if (w <= 560) ok(!!m.menu && !!m.head && m.menu.l >= m.head.l + 12 - 0.5 && m.menu.r <= m.head.r - 12 + 0.5,
+        `${where}: the menu is capped at the preview header less 12px a side (menu ${JSON.stringify(m.menu)}, header ${JSON.stringify(m.head)})`);
+      // Q3298/3294 compose A (owner, 2026-11-02): at narrow the cap decides, not #3294's `width: 0` on the note, so the
+      // note sets the menu's width up to the cap and the menu reaches the header's left edge less 12. Mutation: that
+      // rule's wide-tier scope dropped → `3298 web 380: the privacy note sets the menu's width up to the cap` (~164px).
+      if (w <= 560) ok(!!m.menu && !!m.head && Math.abs(m.menu.l - (m.head.l + 12)) <= 0.5,
+        `${where}: the privacy note sets the menu's width up to the cap, the preview header less 12px a side (menu ${JSON.stringify(m.menu)}, header ${JSON.stringify(m.head)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3298
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
