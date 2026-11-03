@@ -9,6 +9,8 @@ apps/studio/chrome-record/
 apps/plugin/dist/
 apps/plugin/release/
 apps/plugin/release-offline/
+# #3147: release records tools/release/prepare.ts writes (zips and a draft note), kept locally until the owner publishes them.
+tools/release/out/
 apps/tokenpress/dist/
 packages/tokens/build/
 

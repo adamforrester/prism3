@@ -28,6 +28,8 @@
  * with `npx --yes tsx@4`), so its path cannot be named here directly.
  */
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 export type ServedTool = { name: string; [k: string]: unknown };
@@ -73,4 +75,35 @@ export const servedStrings = (tool: ServedTool): { path: string; text: string }[
   };
   walk(tool, String(tool.name));
   return out;
+};
+
+/**
+ * The desktop bridge's connect note, as served (#3300): the `instructions` string in the reply to `initialize`, which
+ * an agent reads before its first command. Shipped prose, so both prose gates scan it. Obtained the way a client
+ * obtains it, by spawning `tools/figma-bridge/server.ts` over stdio, for the reason the header gives for `tools/list`:
+ * the constant's source line is not what ships. The bridge also binds a loopback port and keeps a pairing secret, so it
+ * is started on a free port (`--port 0`) with a throwaway secret file, never the owner's.
+ */
+export const servedBridgeInstructions = (repo: string): { text: string } | { error: string } => {
+  const ID = 'prose-gate-bridge-initialize';
+  const request = JSON.stringify({ jsonrpc: '2.0', id: ID, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'prose-gate', version: '1' } } }) + '\n';
+  const server = join(repo, 'tools/figma-bridge/server.ts');
+  const dir = mkdtempSync(join(tmpdir(), 'p3-prose-bridge-'));
+  const flags = ['--port', '0', '--config', join(dir, 'figma-bridge.json')];
+  const underTsx = process.execArgv.some((a) => /[\\/]tsx[\\/]/.test(a));
+  const [cmd, args] = underTsx ? [process.execPath, [...process.execArgv, server, ...flags]] : ['npx', ['tsx', server, ...flags]];
+  try {
+    const run = spawnSync(cmd, args, { cwd: repo, input: request, encoding: 'utf8', timeout: 120_000, maxBuffer: 16 * 1024 * 1024 });
+    if (run.error) return { error: `the bridge did not run (${run.error.message})` };
+    const reply = run.stdout.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+      try { return JSON.parse(l); } catch { return undefined; }
+    }).find((m) => m?.id === ID);
+    if (!reply) return { error: `no reply to initialize (exit ${run.status}; stderr: ${run.stderr.trim().slice(0, 300)})` };
+    if (reply.error) return { error: `initialize returned RPC error ${reply.error.code}: ${reply.error.message}` };
+    const text = reply.result?.instructions;
+    if (typeof text !== 'string' || !text.trim()) return { error: 'the initialize reply carried no instructions' };
+    return { text };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 };

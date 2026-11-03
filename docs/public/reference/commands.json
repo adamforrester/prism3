@@ -376,7 +376,7 @@
         },
         {
           "name": "figma_run",
-          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
+          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity, panels-clean. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -398,7 +398,8 @@
                   "component-keys",
                   "audit-frames",
                   "snapshot",
-                  "activity"
+                  "activity",
+                  "panels-clean"
                 ]
               },
               "args": {
@@ -826,6 +827,20 @@
         "devOnly": false
       },
       {
+        "name": "panels-clean",
+        "args": "{ confirm?: boolean }",
+        "description": "#3137 Q3137.7 A: the usage panels Update file › Clean up offers while Documentation has panels off. `confirm: false` (or absent) counts them; `confirm: true` removes each live panel that still holds what was drawn, never an edited one.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.panels-clean",
+        "writes": "With confirm: false (or none), nothing: a count of the live usage panels and how many still hold what was drawn. With confirm: true, removes each of those, re-read now; a panel edited by hand is never removed.",
+        "refuses": [
+          {
+            "message": "panels-clean takes args.confirm: false (or none) to count, true to remove the unedited panels",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.panels-clean"
+          }
+        ],
+        "devOnly": false
+      },
+      {
         "name": "run-code",
         "args": "{ code: string; timeoutMs?: number }",
         "description": "#2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`).",
@@ -1210,6 +1225,30 @@
         {
           "flag": "--results",
           "source": "tools/figma-mcp/report.ts#opt('results')"
+        }
+      ]
+    },
+    {
+      "file": "tools/release/prepare.ts",
+      "summary": "PREPARE A RELEASE RECORD for \"Prism3 Studio\" (#3147, the owner's Q3147.18 A).",
+      "usage": [
+        {
+          "text": "npx tsx tools/release/prepare.ts --figma-version <N>            # after publishing version N in Figma",
+          "source": "tools/release/prepare.ts#header"
+        },
+        {
+          "text": "npx tsx tools/release/prepare.ts --figma-version <N> --out <dir>",
+          "source": "tools/release/prepare.ts#header"
+        }
+      ],
+      "flags": [
+        {
+          "flag": "--figma-version",
+          "source": "tools/release/prepare.ts#header"
+        },
+        {
+          "flag": "--out",
+          "source": "tools/release/prepare.ts#header"
         }
       ]
     },

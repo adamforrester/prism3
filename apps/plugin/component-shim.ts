@@ -116,6 +116,12 @@ export type ShimOpts = {
    *  COMPONENT (#1012's `icon/<glyph>`). That is what lets one shim hold a dependency build followed by
    *  the parent that nests it — the multi-def run the live host performs. Opt-in, so nothing else moves. */
   liveRoot?: boolean;
+  /** #3308 — A FILE OF SEVERAL PAGES, as Set up file makes one. Under `liveRoot`, the root's searches read the top level
+   *  of every page this returns instead of `page`'s alone, so a set built onto one page is found from another, as on
+   *  Figma, and found the shim's own way (a member answers as a reference that makes instances). `getNodeByIdAsync` also
+   *  finds a node on these pages by its id (`identities`). The suite owns the pages and adds them to the root as
+   *  properties the host lacks, so no host method is patched and the host stays strict (#3215). */
+  pages?: () => readonly Page[];
   /** Fonts `loadFontAsync` REFUSES — a family/style that is not installed. Figma fails this at the load
    *  call, which is a different failure from a font that exists but has not been loaded this run; both
    *  are modelled, and the executor's `catch` around the load was unreachable until now. */
@@ -535,6 +541,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
     c.parent = null;
   };
   const page = opts.page;
+  /** What `liveRoot`'s searches read: the top level of every page (#3308, `pages`), else `page`'s. */
+  const liveTop = (): Node[] => (opts.pages ? opts.pages().flatMap((p) => p.children) : (page?.children ?? []));
   /** Charges a `burn` to the run's virtual clock (#1800). No busy-wait fallback: see `ShimOpts.burn`. */
   const charge = (ms: number): void => {
     if (!opts.advance) throw new Error('ShimOpts.burn needs ShimOpts.advance: a burn is charged to a virtual clock, never by holding the thread');
@@ -1600,7 +1608,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
     loadAllPagesAsync: async () => { if (opts.burn?.setup) charge(opts.burn.setup); },
     // #2645 — the host's node lookup, for the ids this host hands out for components (`componentIdFor`): what a swap
     // override's value names. A reader resolves the id here, through the host, never through the plan.
-    getNodeByIdAsync: async (id: string) => (componentIds.has(id) ? { id, name: componentIds.get(id)!, type: 'COMPONENT' } : null),
+    getNodeByIdAsync: async (id: string) => (componentIds.has(id) ? { id, name: componentIds.get(id)!, type: 'COMPONENT' } : null)
+      // #3308: a node on a page of a several-page file, by its own id.
+      ?? (opts.pages ? (() => { const walk = (n: Node): Node | null => (n.id === id ? n : ((n.children as Node[] | undefined) ?? []).reduce<Node | null>((f, c) => f ?? walk(c), null)); return opts.pages().flatMap((p) => p.children).reduce<Node | null>((f, n) => f ?? walk(n), null); })() : null),
     // #2265 PR 2, §10 Q7 — a named version, saved before an update writes anything. Recorded, so a test can read
     // that one was saved and in what order against the writes; refusable, so the refusal path is reachable.
     _versions: [] as string[],
@@ -1754,7 +1764,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
             if (types.includes('COMPONENT')) for (const m of members) found.push(m);
           } else if (types.includes(fn.type)) found.push(mkRef(fn.name, seq++));
         }
-        if (opts.liveRoot) for (const n of page?.children ?? []) {
+        if (opts.liveRoot) for (const n of liveTop()) {
           const live = (n.children as Node[] | undefined) ?? [];
           if (n.type === 'COMPONENT_SET') {
             const owner = { name: String(n.name), type: 'COMPONENT_SET' };
@@ -1790,7 +1800,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         [
           ...(opts.comps ?? []).map((c) => ({ name: c, type: 'COMPONENT' })),
           ...(opts.fileNodes ?? []).map((f) => ({ name: f.name, type: f.type })),
-          ...(opts.liveRoot ? (page?.children ?? []).map((n) => ({ name: String(n.name), type: String(n.type) })) : []),
+          ...(opts.liveRoot ? liveTop().map((n) => ({ name: String(n.name), type: String(n.type) })) : []),
         ].filter(predicate),
       /** Kept as the REACHABILITY probe, distinct from `findAll` above on purpose: the assertions below
        *  state what the file holds, and reading them off the same method the executor now calls would be

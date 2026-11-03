@@ -1800,7 +1800,8 @@ const runSets = (kind: RunKind, ids: readonly string[]): void => {
   if (componentBusy()) return;
   const ok = ids.filter((id) => componentCatalog().some((e) => e.id === id && e.buildable));
   if (!ok.length) return;
-  run = startRun(kind, ok);
+  // #3308: each set after the queued sets it nests, so none is built twice (`depsFirst`).
+  run = startRun(kind, ok, componentCatalog());
   lastRun = null;
   if (!updateRun) clearStripLine();
   postCurrent();
@@ -1896,6 +1897,25 @@ const documentationLend: DocumentationLend = {
       commit.postDrawSpecs();
     },
   },
+  // #3137 Q3137.6 A, Q3137.7 A: the sets with no usage panel (the live recount's, else the read's), and the panels drawn.
+  panels: {
+    missing: () => {
+      const f = (liveShown() && host.liveDue && !host.liveDue.error ? host.liveDue : null) ?? (host.fileSets && !host.fileSets.error ? host.fileSets : null);
+      return f?.unpaneled ? { n: f.unpaneled.length, all: f.unpaneled.length > 0 && f.unpaneled.length >= (f.panelLeads ?? Infinity) } : null;
+    },
+    drawn: () => host.panelsClean.count?.drawn ?? null,
+    count: () => panelsClean(false),
+    openUpdate: () => document.querySelector<HTMLButtonElement>('[data-p3="update-file"]')?.click(),
+  },
+};
+/** #3137 Q3137.7 A: count the drawn usage panels, or remove the unedited ones (`panels-clean`). A removal waits while a
+ *  write is out or after a failed restore; a count is a read. */
+const panelsClean = (confirm: boolean): void => {
+  if (!commit.isFigma || host.panelsClean.busy) return;
+  if (confirm && (updateRun || restoreFailure)) return;
+  setHost({ panelsClean: { ...host.panelsClean, busy: confirm ? 'remove' : 'count' } });
+  invalidate('host:update');
+  commit.postPanelsClean(confirm);
 };
 
 // ---- Update file (#2909 IA v2 phase 1) ------------------------------------------------------------------
@@ -1927,12 +1947,12 @@ const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): v
 };
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
-const endStep = (ok: boolean, headline: string): void => {
+const endStep = (ok: boolean, headline: string, warn = false): void => {
   if (!updateRun) return;
   const step = stepOf(updateRun);
   const steps = updateRun.steps;
-  updateRun = stepDone(updateRun, ok, headline);
-  if (!ok && step) updateStopped = { step, headline };
+  updateRun = stepDone(updateRun, ok, headline, warn);
+  if (!ok && !warn && step) updateStopped = { step, headline };
   if (stripRun) stripRun = stepEnded(stripRun, Date.now());
   if (updateRun.done) {
     // #3170 Q3170.6 A: the strip becomes the verdict line, until the next action.
@@ -1991,7 +2011,13 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   }
   if (step === 'update' && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
-  if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) { endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline); return; }
+  // #3308: a queue that built every set, some with problems, did all it was asked: the run goes on (`warn`). A set that
+  // failed, or a stop that left sets unbuilt, still ends it.
+  if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) {
+    const all = lastRun ? lastRun.run.results.length === lastRun.run.ids.length && lastRun.run.results.every((x) => x.result !== 'failed') : m.completed;
+    endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline, all);
+    return;
+  }
   if (step === 'guides' && guidesWait && m.kind === 'style-guide-catalog') {
     guidesWait = false;
     // Documentation's saved selection and options, read against the file's catalog as it is now (Q2909.23 A).
@@ -2014,7 +2040,8 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
  *  the brand on screen is the demo's: the badge then keeps the read at load (`liveShown`). */
 let dueSeq = 0;
 let dueTimer: ReturnType<typeof setTimeout> | null = null;
-const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished']);
+// #3137: and Documentation's answer (the panels switch moves the Usage panels item) and Clean up's panels removal.
+const DUE_AFTER: ReadonlySet<string> = new Set(['file-sets', 'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'agent-finished', 'doc-settings', 'panels-clean-result']);
 /** Whether the panel holds a brand of its own to count against: one is chosen, and it resolved. */
 const liveShown = (): boolean => !restoreFailure && !firstRun() && provenance !== bootProvenance;
 const recountDue = (): void => {
@@ -2079,7 +2106,9 @@ const updateFileLend: UpdateFileLend = {
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
     handEdits: host.handEdits, updateCheck: host.updateCheck, updateProgress: host.updateProgress, queue: host.addQueue,
     rowState: (id) => rowState(stripRun, id), stopLabel: () => { const v = statusLend.read(); return v.kind === 'running' ? v.stop.label : null; },
+    panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean,
   }),
+  panelsClean: (confirm) => panelsClean(confirm),
   queueSets,
   check: (theme) => commit.requestFileSets(panelBrand(theme)),
   checkSets: (defs, theme) => { setHost({ updateCheck: 'pending', updateProgress: null }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand(theme)); },
