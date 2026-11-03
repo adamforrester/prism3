@@ -48,7 +48,8 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, newSetsOf, panelSetsOf, queuedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { RUN_COPY } from '../state/build-queue';
+import { awaitingRead, badgeParts, checkScopeOf, defaultTicks, docBlockAlsoOf, dueSetsOf, newSetsOf, panelSetsOf, queuedOf, runOrderOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -83,6 +84,8 @@ export type UpdateFileLend = {
     /** #3129 Q833 A: the file's add queue, as the host last read it or the panel last wrote it; null before the host has
      *  said. */
     readonly queue: readonly string[] | null;
+    /** #3308 (Q3308.3 A): whether Documentation has the usage panels on for this file. */
+    readonly panels: boolean;
     /** #3170 Q3170.2 A: a due set's state in the run out (`rowState`): Updating, Updated, or null while not reached. */
     readonly rowState: (id: string) => 'updating' | 'updated' | null;
     /** #3170 Q3170.4 A: the run's Stop, "Stop after <set>", as the status strip words it; null with no run. */
@@ -312,6 +315,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
           list.append(row);
         });
         grp.append(list);
+        // #3308 (Q3308.3 A): the sets the run builds first for the usage panels, named as Components names them.
+        const also = docBlockAlsoOf(r.catalog, f, queue, r.panels);
+        if (also.length) grp.append(hook(h('p', 'p3-sub p3-upd-sub', RUN_COPY.also(also.map(nameOf))), 'update-add-also'));
       } else {
         // Q3129.9 A, Q3129.10 A: a file that is not set up starts with nothing queued; Add all writes every set it lacks
         // into the queue, as Components' Select all does.
@@ -426,7 +432,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     go.onclick = () => {
       if (go.disabled || !answered && asks) return;
       const exact = !!answered && checkedFor !== null && updatable.length === checkedFor.length && updatable.every((id) => checkedFor!.includes(id));
-      lend.run(steps, steps.includes('sets') ? queue : [],
+      lend.run(steps, steps.includes('sets') ? runOrderOf(f, queue, r.panels) : [],
         updatable.length && answered ? { defs: updatable, previewHash: exact ? answered.previewHash : '', checked: answered.sets, handEdits: t2.handEdits } : null);
       close();
     };
