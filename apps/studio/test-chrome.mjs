@@ -12060,6 +12060,84 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+// #1999 (owner decision Q1999.1 A): the refused-saved-brand notice is the chrome's error strip, in both themes, at the
+// top of the start window's body: `.p3-errstrip` with the warning glyph, its three lines in `.p3-errstrip-text`, then
+// Export and Clear as `.p3-btn` in a `.p3-confirm-row`. Web only: the plugin never sets a refused brand. The chrome probe
+// classifies its controls (`CONTROL_KINDS`) and holds its text, glyph and edges to their floors, as for the start window
+// above. The one narrow-tier rule keeps both buttons in the strip, which does not scroll, at 380. The brand is seeded as
+// smoke §9 seeds it: the studio persists an example, and only the override (a ground on a tier, refused) is typed here.
+// MUTATIONS, each failing here by name: the narrow rule removed → `… 380: the notice is not cut off: it does not scroll,
+// and both buttons sit inside it …`; the legacy card back (`errbar`, `barbtn`) → `… the notice is the chrome's error strip …`
+// and the chrome probe's unclassified-control arm; the lines in plain text ink (`.p3-start .p3-errstrip-text { color:
+// var(--p3-text) }`) → `… the notice's three lines are in danger ink and its glyph is the warning glyph …`.
+for (const { w, h } of START_SIZES) {
+  for (const theme of ['light', 'dark']) {
+    const where = `#1999 web ${theme} ${w}`;
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
+    const page = await ctx.newPage();
+    await hooks.watch(page);
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+    try {
+      await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+      await hooks.click(page.locator('[data-p3="start-example"]').first());
+      await hooks.need(page, '[data-p3="frame"]');
+      await page.waitForFunction(() => { try { return !!localStorage.getItem('prism3:brandInput'); } catch { return false; } }, null, { timeout: 5000 });
+      await page.evaluate(() => {
+        const o = JSON.parse(localStorage.getItem('prism3:brandInput'));
+        o.input.overrides = { light: { 'background.secondary': { palette: 'neutral', step: '200' } } };
+        localStorage.setItem('prism3:brandInput', JSON.stringify(o));
+      });
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="refused-brand"]');
+      await page.waitForFunction((tier) => document.querySelector('[data-p3="frame"]')?.dataset.w === tier, w <= 560 ? 'narrow' : 'wide');
+      await page.evaluate(() => document.fonts.ready);
+      const n = await page.evaluate(() => {
+        const e = document.querySelector('[data-p3="refused-brand"]');
+        const r = (x) => { const b = x?.getBoundingClientRect(); return b ? { t: b.top, b: b.bottom, l: b.left, r: b.right } : null; };
+        const btns = ['refused-brand-export', 'refused-brand-clear'].map((k) => e?.querySelector(`[data-p3="${k}"]`));
+        return {
+          strip: !!e && e.classList.contains('p3-errstrip') && !e.classList.contains('errbar') && e.dataset.theme === undefined,
+          inStart: !!e?.parentElement?.closest('[data-p3="start-column"]') && e.parentElement.firstElementChild === e,
+          glyph: !!e?.querySelector(':scope > svg'),
+          lines: [...(e?.querySelectorAll('.p3-errstrip-text > p') ?? [])].length,
+          row: btns.every((b) => b?.classList.contains('p3-btn') && b.parentElement?.classList.contains('p3-confirm-row') && b.parentElement.parentElement?.classList.contains('p3-errstrip-text')),
+          scrolls: e ? e.scrollHeight > e.clientHeight + 1 : true,
+          strip_: r(e), btns: btns.map(r),
+          ink: (() => {
+            // The expected side is the theme's own danger and plain-text tokens, resolved on a probe in the same column,
+            // not read off the strip: a rule that moves the lines' ink moves their color and leaves these alone.
+            const col = e?.parentElement;
+            if (!col) return null;
+            const probe = (v) => { const s = document.createElement('span'); s.style.color = `var(${v})`; col.append(s); const c = getComputedStyle(s).color; s.remove(); return c; };
+            const svg = e.querySelector(':scope > svg');
+            return {
+              bad: probe('--p3-bad-text'), badIcon: probe('--p3-bad-icon'), plain: probe('--p3-text'),
+              lines: [...e.querySelectorAll('.p3-errstrip-text > p')].map((p) => getComputedStyle(p).color),
+              glyph: svg?.dataset.glyph ?? null, glyphInk: svg ? getComputedStyle(svg).color : null,
+            };
+          })(),
+        };
+      });
+      ok(n.strip && n.inStart && n.glyph && n.lines === 3 && n.row,
+        `${where}: the notice is the chrome's error strip, first in the start window's body: the glyph, three lines, Export and Clear as buttons in a confirm row (Q1999.1 A) — ${JSON.stringify({ strip: n.strip, inStart: n.inStart, glyph: n.glyph, lines: n.lines, row: n.row })}`);
+      // Q1999.1 A's two marks that set it apart from option B: the lines in danger ink and the warning glyph in danger icon
+      // ink. Danger ink must differ from plain text ink here, or the arm could not tell the two apart.
+      const k = n.ink;
+      ok(!!k && k.bad !== k.plain && k.lines.length === 3 && k.lines.every((c) => c === k.bad) && k.glyph === 'warn' && k.glyphInk === k.badIcon,
+        `${where}: the notice's three lines are in danger ink and its glyph is the warning glyph in danger icon ink (Q1999.1 A) — ${JSON.stringify(k)}`);
+      const inside = n.strip_ && n.btns.every((b) => b && b.t >= n.strip_.t - 0.5 && b.b <= n.strip_.b + 0.5);
+      ok(!n.scrolls && inside, `${where}: the notice is not cut off: it does not scroll, and both buttons sit inside it — scrolls ${n.scrolls}, strip ${JSON.stringify(n.strip_)}, buttons ${JSON.stringify(n.btns)}`);
+      const m = await measure(page, `${where} / refused`, 'web', w);
+      check(m, `${where} / refused`, columnOf('web', w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
+        { only: ['[data-p3="refused-brand-export"]', '[data-p3="refused-brand-clear"]', '[data-p3="start-go"]', '[data-p3="start-example"]'] });
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `1999-web-${theme}-${w}.png`) });
+      ok(errors.length === 0, `${where}: 0 uncaught errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
 } // 28
 
 // =============================================================================================
