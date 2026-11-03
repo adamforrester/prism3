@@ -1811,7 +1811,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "page-nav-item",
     "name": "PageNav.Item",
     "category": "navigation",
-    "summary": "One link in a page navigation: another page, underlined, or the current page, with its bar.",
+    "summary": "One link in a page navigation: another page, plain until hover, or the current page, with its bar.",
     "unit": "variants",
     "spacing": [],
     "page": "Page navigation",
