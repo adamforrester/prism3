@@ -7511,15 +7511,16 @@
         },
         {
           "name": "size",
-          "type": "enum: 'small' | 'medium' | 'large'",
+          "type": "enum: 'x-small' | 'small' | 'medium' | 'large'",
           "default": "medium",
           "required": false,
           "values": [
+            "x-small",
             "small",
             "medium",
             "large"
           ],
-          "description": "The text size (body small, medium or large) and the marker sized to it. Set by the List."
+          "description": "The text size, 12, 14, 16 or 18px, and the marker sized to it. Set by the List."
         },
         {
           "name": "value",
@@ -7547,6 +7548,7 @@
         "size": {
           "values": [
             "medium",
+            "x-small",
             "small",
             "large"
           ],
@@ -7642,15 +7644,16 @@
         },
         {
           "name": "size",
-          "type": "enum: 'small' | 'medium' | 'large'",
+          "type": "enum: 'x-small' | 'small' | 'medium' | 'large'",
           "default": "medium",
           "required": false,
           "values": [
+            "x-small",
             "small",
             "medium",
             "large"
           ],
-          "description": "The text size, body small, medium or large, with the marker, the marker column and the space between items sized to it. Passed to every item."
+          "description": "The text size, 12, 14, 16 or 18px, with the marker, the marker column and the space between items sized to it. Use x-small for tight rule lists, such as password requirements. Passed to every item."
         },
         {
           "name": "start",
@@ -7690,6 +7693,7 @@
         "size": {
           "values": [
             "medium",
+            "x-small",
             "small",
             "large"
           ],

@@ -32459,7 +32459,7 @@
     "list-item": {
       "id": "list-item",
       "name": "List.Item",
-      "members": 9,
+      "members": 12,
       "axes": [
         {
           "name": "type",
@@ -32476,6 +32476,7 @@
           "figmaName": "size",
           "values": [
             "medium",
+            "x-small",
             "small",
             "large"
           ],
@@ -32487,17 +32488,17 @@
         {
           "part": "row",
           "kind": "frame",
-          "members": 9
+          "members": 12
         },
         {
           "part": "row/markerBox",
           "kind": "frame",
-          "members": 9
+          "members": 12
         },
         {
           "part": "row/markerBox/bullet",
           "kind": "frame",
-          "members": 3,
+          "members": 4,
           "when": {
             "type": [
               "unordered"
@@ -32507,12 +32508,12 @@
         {
           "part": "row/label",
           "kind": "text",
-          "members": 9
+          "members": 12
         },
         {
           "part": "row/markerBox/number",
           "kind": "text",
-          "members": 3,
+          "members": 4,
           "when": {
             "type": [
               "ordered"
@@ -32522,7 +32523,7 @@
         {
           "part": "row/markerBox/icon",
           "kind": "swap",
-          "members": 3,
+          "members": 4,
           "when": {
             "type": [
               "icon"
@@ -32576,6 +32577,52 @@
                 },
                 "width": {
                   "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "type": "unordered"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "type.body.xs.line-box"
+                },
+                "width": {
+                  "token": "space.200"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/bullet",
+              "values": {
+                "height": {
+                  "token": "space.075"
+                },
+                "width": {
+                  "token": "space.075"
                 }
               }
             }
@@ -32703,6 +32750,41 @@
                 },
                 "width": {
                   "token": "space.300"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small",
+            "type": "ordered"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "type.body.xs.line-box"
+                },
+                "width": {
+                  "token": "space.200"
                 }
               }
             }
@@ -32826,6 +32908,52 @@
         },
         {
           "where": {
+            "size": "x-small",
+            "type": "icon"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "type.body.xs.line-box"
+                },
+                "width": {
+                  "token": "space.300"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/icon",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
             "size": "small",
             "type": "icon"
           },
@@ -32938,6 +33066,21 @@
         },
         {
           "where": {
+            "size": "x-small"
+          },
+          "parts": [
+            {
+              "part": "row/label",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "row/markerBox/number",
+              "textStyle": "type.body.xs.default"
+            }
+          ]
+        },
+        {
+          "where": {
             "size": "small"
           },
           "parts": [
@@ -33045,7 +33188,7 @@
     "list": {
       "id": "list",
       "name": "List",
-      "members": 9,
+      "members": 12,
       "axes": [
         {
           "name": "type",
@@ -33062,6 +33205,7 @@
           "figmaName": "size",
           "values": [
             "medium",
+            "x-small",
             "small",
             "large"
           ],
@@ -33073,27 +33217,27 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 9
+          "members": 12
         },
         {
           "part": "container/items",
           "kind": "slot",
-          "members": 9
+          "members": 12
         },
         {
           "part": "container/items/item1",
           "kind": "instance",
-          "members": 9
+          "members": 12
         },
         {
           "part": "container/items/item2",
           "kind": "instance",
-          "members": 9
+          "members": 12
         },
         {
           "part": "container/items/item3",
           "kind": "instance",
-          "members": 9
+          "members": 12
         }
       ],
       "redlineKey": [
@@ -33126,6 +33270,37 @@
               "values": {
                 "gap": {
                   "token": "space.200"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "x-small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
                 }
               }
             }
@@ -33201,6 +33376,12 @@
         {
           "where": {
             "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "x-small"
           },
           "parts": []
         },

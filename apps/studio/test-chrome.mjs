@@ -3689,6 +3689,37 @@ for (const host of ['web', 'figma']) {
           const landed = area === 'components' ? at.place === 'components' && at.levers && at.build === 0 : at.layout === 'page' && at.docs;
           ok(landed && px.length === 0, `${area} ${where}: the rail opens the ${area} area and writes nothing — ${JSON.stringify(at)}, posted ${JSON.stringify(px)}`);
         }
+        // #3308 (Q3308.4 A): a run that sets the file up and writes its theme ends by drawing the cover and About this
+        // library. After Theme, the run's last step checks the in-place update over no sets, then applies it with the
+        // check's hash; the plugin's finish of that update draws both, and its verdict ends the run. Style guides unticked
+        // and nothing queued, so the steps are Set up file, Theme and the cover.
+        // (mutations: `stepsOf` with no `cover` step → this arm; `startStep` posting nothing for `cover` → this arm)
+        {
+          if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+          // The update's two posts are reads and a write `recordPosts` does not keep, so this arm listens for them itself.
+          await page.evaluate(() => { if (window.__cv3308) return; window.__cv3308 = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && ['update-check-request', 'update-sets'].includes(m.type)) window.__cv3308.push(JSON.parse(JSON.stringify(m))); }); });
+          const takeCv = (type) => page.evaluate((t) => new Promise((r) => setTimeout(() => { const got = window.__cv3308.filter((m) => m.type === t); window.__cv3308.length = 0; r(got); }, 50)), type);
+          await openUpdate({ present: [], setUp: false, queued: [] });
+          await hooks.click(page.locator('[data-p3="update-check-guides"]'), WAIT);
+          await takeWrites(page);
+          await takeCv('none');
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          const cv1 = (await takeWrites(page)).map(keyOf);
+          await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+          const cv2 = (await takeWrites(page)).map(keyOf);
+          await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+          const cv3 = await takeCv('update-check-request');
+          await postMsg(page, { type: 'update-check', previewHash: 'H-3308', missing: [], refused: [], sets: [] });
+          const cv4 = await takeCv('update-sets');
+          const cvRun = await updBtn();
+          await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ About this library drawn', summary: 'Cover: drawn. About this library: drawn on the Cover page.', lines: ['Cover: drawn.', 'About this library: drawn on the Cover page.'] });
+          await settle(page);
+          const cvEnd = await updBtn();
+          ok(cv1.includes('file-setup') && cv2.includes('apply-theme') && !cv2.includes('update-check-request')
+            && cv3.length === 1 && canon(cv3[0].defs) === '[]' && cv4.length === 1 && canon(cv4[0].defs) === '[]' && cv4[0].previewHash === 'H-3308' && cvRun.busy && !cvEnd.busy,
+            `${where}: #3308: a run that sets the file up and writes its theme ends with the cover: after Theme it checks and applies the update over no sets, and that verdict ends the run (posted ${JSON.stringify(cv1)}, ${JSON.stringify(cv2)}, then ${JSON.stringify(cv3)} and ${JSON.stringify(cv4)}; Update file ${JSON.stringify(cvRun)} → ${JSON.stringify(cvEnd)})`);
+          await takeWrites(page);
+        }
         // #3128: a set the build queue posts that the host refuses (the plugin's run guard still held) gets no verdict.
         // The run ends on the refusal: Update file is free again, the Build set row is not left running, and its result
         // carries the host's words. Two sets queued (#3129, the file's add queue), the theme not; the first lands, the
@@ -20015,6 +20046,150 @@ if (runs('3298')) {
     } finally { await ctx.close(); }
   }
 } // 3298
+// ── #3337: one settings rhythm (the owner's Q3337.1–.5 A, 2026-11-03) ─────────────────────────────
+// Every list of settings is a grid at the row rhythm, so no two adjacent setting rows sit closer than it. Measured as
+// RENDERED, on every place that holds settings (the eight Theme places, Components with every option block open, and
+// Export), on both hosts, in both chrome themes, at 1280 and 380 (Q3337.5 A).
+//   · ROW → ROW. Each visible setting row (`.p3-lever`, a read-only `.p3-homeline` among them, and Export's
+//     `.p3-export-set`) and the next visible row among its siblings, stacked under it, are at least the row rhythm apart.
+//     THE EXPECTED VALUE IS THE EMISSION'S `space.300`, read by `HT` (section 30's oracle: its own walk of the committed
+//     `prism3.tokens.json`), never `--p3-rhythm-row` or anything else in `chrome.css` (docs/34 shape 1): the subject is the
+//     drawn gap, the oracle the token the rule names.
+//   · NO CONTROL TOUCHES A LABEL. No control's box (a radio group, a choice, an input, a select, a picker, a segmented
+//     control) outside a row ends within the row rhythm above that row's name, where the two overlap across.
+//   · LINKS ON THE COLUMN (Q3337.2 A). Each "Set it in …" link (`.p3-deplink`) starts its words within 1px of its row's
+//     left edge: a flush text link, no button padding, no edge.
+//   · READ-ONLY ROWS (Q3337.3 A). A read-only row's note starts below its name, never on it.
+//   · REPRESENTED, NOT COUNTED (docs/34 shape 13). Each option block is named literally and must be measured, with its own
+//     floor of rows; each place has a literal floor on the rows it measured, so a selector that finds nothing fails.
+// MUTATIONS (each fails by name): `.p3-bopts`' gap dropped → `3337 figma light 1280 / components / button-options:
+// "Button icons" → "Medium button label & icon" 0px < 24px (row → row, space.300)`, on both hosts, both themes, both
+// widths; `.p3-btn.p3-deplink`'s inline padding restored → `… "Set it in Shape › Density" starts 17px in from its row (≤ 1px)`.
+/** The option blocks a Components page draws, by hook, typed (never read from `components.ts`), each with the floor of rows
+ *  it must show, the count measured when this landed. Link options holds one read-only line and no lever. */
+const RHYTHM_BLOCKS = {
+  'shared-options': 2, 'button-options': 8, 'field-options': 2, 'search-options': 1, 'tag-options': 1,
+  'dialog-options': 2, 'banner-options': 1, 'link-options': 1, 'radio-options': 1,
+};
+/** The places, in the order a designer meets them, each with the literal floors of setting rows and of row pairs it must
+ *  show (per host, theme and width), the counts measured when this landed. Color › Fills has rows and no pair: each of its
+ *  levers is alone in its section (its lists are fill rows, a swatch and a picker, not settings), so it holds the link and
+ *  note checks only. */
+const RHYTHM_PLACES = {
+  brand: { rows: 5, pairs: 1 }, 'color-palettes': { rows: 8, pairs: 4 }, 'color-fills': { rows: 5, pairs: 0 },
+  'color-interactive': { rows: 9, pairs: 5 }, type: { rows: 19, pairs: 12 }, shape: { rows: 4, pairs: 1 }, depth: { rows: 4, pairs: 1 },
+  layout: { rows: 4, pairs: 1 }, components: { rows: 19, pairs: 10 }, export: { rows: 5, pairs: 4 },
+};
+/** Every control the second check holds off a name. */
+const RHYTHM_CONTROLS = '[role="radiogroup"], .p3-choice, input:not([type="hidden"]), select, .p3-pick, .p3-seg';
+const RHYTHM_PROBE = ({ paneSel, rowSel, controlSel }) => {
+  const pane = document.querySelector(paneSel);
+  const drawn = (n) => !!n && n.getClientRects().length > 0 && !n.closest('[hidden], [inert]');
+  const box = (n) => { const b = n.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+  const across = (a, b) => Math.min(a.r, b.r) - Math.max(a.l, b.l) > 0.5;
+  const nameEl = (row) => row.querySelector(':scope > .p3-lever-head .p3-lever-name, :scope > legend .p3-lever-name, :scope > .p3-export-lab, :scope > .p3-slider-head .p3-lever-name');
+  const nameOf = (row) => (nameEl(row)?.textContent ?? row.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 48);
+  const blockOf = (row) => row.closest('.p3-bopts')?.getAttribute('data-p3') ?? null;
+  const rows = pane ? [...pane.querySelectorAll(rowSel)].filter(drawn) : [];
+  const set = new Set(rows);
+  const pairs = [];
+  for (const r of rows) {
+    // The next drawn row among its siblings that sits under it (a row beside it, Brand's name and namespace, is no pair).
+    let n = r.nextElementSibling;
+    const a = box(r);
+    for (; n; n = n.nextElementSibling) {
+      if (!set.has(n)) continue;
+      const b = box(n);
+      if (!across(a, b) || b.t < a.t) continue;
+      break;
+    }
+    if (!n) continue;
+    pairs.push({ from: nameOf(r), to: nameOf(n), gap: +(box(n).t - a.b).toFixed(1), block: blockOf(r) });
+  }
+  // A control outside a row, over that row's name, closer than the rhythm.
+  const controls = pane ? [...pane.querySelectorAll(controlSel)].filter(drawn) : [];
+  const touches = [];
+  for (const r of rows) {
+    const nm = nameEl(r);
+    if (!drawn(nm)) continue;
+    const nb = box(nm);
+    for (const c of controls) {
+      if (r.contains(c) || c.contains(r)) continue;
+      const cb = box(c);
+      if (!across(cb, nb) || cb.b > nb.t + 0.5) continue;
+      touches.push({ control: (c.getAttribute('aria-label') ?? c.getAttribute('data-p3') ?? c.className).toString().slice(0, 40), name: nameOf(r), gap: +(nb.t - cb.b).toFixed(1), block: blockOf(r) });
+    }
+  }
+  // A link in a setting row (a fill row's link in its picker's place, Color › Fills' "Set by Dialog surface", is a cell of
+  // that row, not a line on the column).
+  const links = (pane ? [...pane.querySelectorAll('.p3-deplink')] : []).filter((k) => drawn(k) && k.closest('.p3-lever')).map((k) => {
+    const row = k.closest('.p3-lever');
+    const words = k.querySelector('.p3-btn-label') ?? k;
+    const range = document.createRange();
+    range.selectNodeContents(words);
+    const first = range.getClientRects()[0] ?? words.getBoundingClientRect();
+    return { text: (words.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 48), inset: +(first.left - box(row).l).toFixed(1), block: blockOf(row) };
+  });
+  const notes = (pane ? [...pane.querySelectorAll('.p3-homeline')] : []).filter(drawn).map((r) => {
+    const note = r.querySelector(':scope > .p3-lever-ctl > .p3-sub');
+    const nm = nameEl(r);
+    return { name: nameOf(r), over: note && drawn(note) && nm ? +(box(note).t - box(nm).b).toFixed(1) : null, block: blockOf(r) };
+  });
+  const blocks = {};
+  for (const r of rows) { const k = blockOf(r); if (k) blocks[k] = (blocks[k] ?? 0) + 1; }
+  return { rows: rows.length, pairs, touches, links, notes, blocks };
+};
+if (runs('3337')) {
+  console.log(`\nOne settings rhythm (#3337, Q3337.1–.5 A)\n${'='.repeat(78)}`);
+  const want = HT['space-300'];
+  ok(typeof want === 'number' && want > 0, `3337: the oracle read the row rhythm from the emission's space.300 (${want}px)`);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    const where = `3337 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'open';
+    const seenBlocks = {};
+    try {
+      if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+      for (const [place, floor] of Object.entries(RHYTHM_PLACES)) {
+        step = place;
+        const at = `${where} / ${place}`;
+        let paneSel = '[data-p3="levers-pane"]';
+        if (place === 'export') {
+          await hooks.click(page.locator('[data-p3="rail-export"]'));
+          await hooks.need(page, '[data-p3="export-page"]');
+          paneSel = '[data-p3="export-page"]';
+        } else {
+          await goPlace(page, place);
+          await showLevers(page, w);
+          for (const sel of HEADING_ADVANCED[place] ?? []) {
+            await hooks.need(page, sel);
+            if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false') await hooks.click(page.locator(sel));
+          }
+        }
+        await settle(page);
+        await page.evaluate(() => document.fonts.ready);
+        const m = await page.evaluate(RHYTHM_PROBE, { paneSel, rowSel: '.p3-lever, .p3-export-set', controlSel: RHYTHM_CONTROLS });
+        ok(m.rows >= floor.rows, `${at}: measured ${m.rows} setting rows (floor ${floor.rows})`);
+        ok(m.pairs.length >= floor.pairs, `${at}: measured ${m.pairs.length} row pairs (floor ${floor.pairs})`);
+        const tag = (b) => (b ? ` / ${b}` : '');
+        const short = m.pairs.filter((p) => p.gap < want - 0.5);
+        if (!short.length) ok(true, `${at}: every row pair is at least ${want}px apart (row → row, space.300)`);
+        for (const p of short) ok(false, `${at}${tag(p.block)}: "${p.from}" → "${p.to}" ${p.gap}px < ${want}px (row → row, space.300)`);
+        const close = m.touches.filter((t) => t.gap < want - 0.5);
+        if (!close.length) ok(true, `${at}: no control ends within ${want}px above another row's name`);
+        for (const t of close) ok(false, `${at}${tag(t.block)}: control "${t.control}" ends ${t.gap}px above "${t.name}" (< ${want}px, space.300)`);
+        for (const k of m.links) ok(Math.abs(k.inset) <= 1, `${at}${tag(k.block)}: "${k.text}" starts ${k.inset}px in from its row (≤ 1px)`);
+        for (const n of m.notes) ok(n.over === null || n.over >= -0.5, `${at}${tag(n.block)}: read-only row "${n.name}": its note starts ${n.over}px under its name (≥ 0)`);
+        for (const [k, n] of Object.entries(m.blocks)) seenBlocks[k] = Math.max(seenBlocks[k] ?? 0, n);
+      }
+      for (const [k, floor] of Object.entries(RHYTHM_BLOCKS)) ok((seenBlocks[k] ?? 0) >= floor, `${where} / components / ${k}: measured ${seenBlocks[k] ?? 0} rows (floor ${floor})`);
+      ok(Object.keys(seenBlocks).every((k) => Object.hasOwn(RHYTHM_BLOCKS, k)), `${where}: every option block measured is one the section names — unnamed ${JSON.stringify(Object.keys(seenBlocks).filter((k) => !Object.hasOwn(RHYTHM_BLOCKS, k)))}`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3337
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
