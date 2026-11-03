@@ -40,12 +40,27 @@ no token name moves. Item 1 of the build order on #3130 (Q3130.9 A); owner decis
   without clipsContent is refused BY NAME`.
 - `lint-executor-reach` passes with entry 49 naming `dialog` alone, so no other set's drawing moved. With entry 49 set
   to `[]` it fails `dialog: drawn differently by revision 49 than by 48` in all eight arms.
+- **The paste leg (review finding 1):** `test.ts` gains `#3163 paste leg`. Every Dialog member is pasted through the
+  payload, and the stub host's body must read `SLOT VERTICAL clips`, a literal. The round-trip arms drive only the plugin
+  executor, so before this an agent-pasted Dialog could lose its scroll silently. Mutation: `'overflowDirection'` dropped
+  from `__SLOT_FIELDS` fails `#3163 paste leg: … (0/24) — … SLOT undefined clips`.
 
-### Held for the owner
+### The paste-unit ceiling (review finding 2)
 
-- **The part name.** The proposal's row 1 called the body `bodyViewport`, because item 2 would then have put a `body`
-  instance inside it. Q3130.1 was revised to keep the body a native slot, and the slot's Figma property is named for its
-  layer, so a rename would change the property designers see from `body` to `bodyViewport`. This PR keeps `body`. The
-  question is on the PR.
+This PR and #3372 each add one write to the paste shell, and together they took provider-logo's paste unit to 37,858 B,
+past #1798's 37,800 B ceiling. The shell now names the four per-side stroke weights once (`__SIDE`), where three checks
+had spelled them out. Nothing a host sees changes. Provider-logo's unit drops from 37,787 B to 37,672 B (−115 B), so the
+two PRs fit under the ceiling in either merge order. icon-button's set goes back from 18 chunks to 17, re-pinned in
+`test.ts`.
+
+### Decided
+
+- **The part name (Q3163.1 A, owner, 2026-11-03):** the part keeps the name `body`. No rename. The proposal's row 1
+  called it `bodyViewport`, for an item 2 that would have put a `body` instance inside it. Q3130.1 was revised to keep the
+  body a native slot, whose Figma property is named for its layer, so a rename would have changed the property designers
+  see.
+
+### Not proven
+
 - **What a shim cannot prove:** that a real Figma host keeps both values on the native slot and scrolls the content in
   a prototype. That is in Dialog's `unverified` notes.
