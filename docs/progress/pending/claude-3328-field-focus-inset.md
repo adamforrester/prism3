@@ -1,0 +1,51 @@
+## (2026-11-03) — Field focus drawn inside the field, at its own radius (#3328)
+
+**Status:** engine + plugin, built as the owner decided (Q3328.1 A, the "A′" geometry; Q3328.2 A). ENGINE minor
+(change note). `EXECUTOR_REVISION` 49 → 50 (taken second, after #3369 took 49), reaching the nine sets that draw a field ring. No token moves, so
+CONTRACT is unchanged.
+
+### What changed
+
+- **The focus sits inside the field.** A focused field's 1px border already took `border.focus`. Its focus ring used
+  to sit just outside it (`focus.ring.offset-field`, 0, plus the ring's own 2px stroke compensated outward), with a
+  concentric corner written as a literal: the reference brand's 1px field corner became an unbound 3. Now the ring sits
+  one border width inside the field on every side, so the border plus the ring's 2px band read as one 3px edge, with
+  no outer frame and no layout change.
+- **The mechanism is `PartDef.borderInset`,** a binding key for the host border the ring sits inside. It projects as
+  `absoluteBorderInset`. Where it resolves above 0, both executors place the ring that far inside the host, skip the
+  outward `strokeInset` compensation, and bind the ring's four corners to the host's own corner variables. So the
+  radius is the field's token, not a number. Where it resolves to 0, the ring is placed as before. A key rather than a
+  flag, so Counter can follow its axis: `outline.ring-border` is the hairline and `ghost.ring-border` is
+  `border-width.none`, so ghost keeps its 2px outside ring (Q283.10 A).
+- **Controls:** Text field, Password field, Search field and Card number field (through `makeTextField`), Textarea,
+  Select, the Code input cell, and Counter (outline).
+- **Underline Field style is unchanged.** `applyFieldStyle` drops `borderInset` under underline. That edge has no side
+  border to sit inside, and its inline padding is 0, so an inside ring would draw over the value. The ring stays
+  outside at the control offset (#2695 Q3). This includes a Search field whose own style is underline. **Owner
+  decision Q-F1 A (2026-11-03):** underline-edge fields, Search's underline style included, keep the outside ring, and
+  outline-edge fields get the inset focus. This narrows #3328 Q2's "Search field (both edge styles)" to the outline edge.
+- The `focus` accessibility lines on Text field, Textarea, Select, Code input and Counter now describe the inside
+  indicator for code: an outline with a negative offset of the border width plus the band width.
+
+### Traps
+
+- **The paste shell has 57 B of headroom.** The ring code runs in every paste chunk's shell, and #1798 caps the
+  indivisible unit at 37,800 B. This change trimmed four of the ring loop's paste-side miss strings to fit (the
+  plugin executor keeps its long ones). Merged onto main after #3369, whose review fix freed 115 B of shell, the
+  unit measures 37,743 B (provider-logo), and icon-button stays at 17 chunks. The next shell addition will need the
+  ceiling argued, or bytes found elsewhere.
+- The corner binding on an instance is a host write that has not yet been run on a live Figma host. The shim reads it
+  back. The first Update of a file holding a focused field is that probe.
+
+### Verification
+
+See the PR's Ready comment for the full `npm run verify` table and every mutation. Two new `test.ts` arms:
+`#3328 field focus geometry` (both executors, 8 controls) and `#3328 field focus 2.4.13` (8 controls × 5 brands ×
+4 modes against literal 3:1 and 2px). `lint-absolute-inset.ts` gains `MUST_SIT_INSIDE_BORDER`.
+
+A third arm, `#3328 Q-F1 underline keeps the outside ring`, came from the review: the underline exception was ungated,
+so deleting `applyFieldStyle`'s `borderInset` drop passed every gate. The arm draws all 7 underline-edge fields under
+underline through both executors. Each plan's ring must carry no `absoluteBorderInset`, and the ring must sit exactly
+4px outside the field on every side (2px offset plus the 2px stroke, compensated outward). Mutation: keeping
+`borderInset` under underline fails it by name on the plan and on both executors. The ring then lands at −1,−1, 1px
+outside, which a looser "outside on every side" check would have passed.

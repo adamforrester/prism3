@@ -33,7 +33,7 @@
  * `ok`), or after the step running when Stop is asked for. `main.ts` starts each step and reports its verdict here.
  */
 import type { Catalog } from './component-catalog';
-import { inListOrder } from './component-groups';
+import { displayNameOf, inListOrder, isPrivate, neededOf } from './component-groups';
 import type { CheckedSetView, FacetView, MovedView, SetDueView } from '../write-adapter';
 
 /** `update` is the in-place update of the due sets (Q2909.8 A); `sets` builds the add queue (#3129); `cover` draws the
@@ -78,10 +78,21 @@ export const queuedOf = (catalog: Catalog, f: Pick<FileSets, 'present'> | null, 
   f && queue ? inListOrder(catalog, queue.filter((id, i) => queue.indexOf(id) === i && !f.present.includes(id) && catalog.some((e) => e.id === id && e.buildable))) : [];
 /** #3308 (Q3308.3 A): USAGE PANELS ON A FIRST RUN. While Documentation has the panels on and the file has no
  *  `_Doc-block`, the run's sets step builds the sets the template is made from first, then the template, so every queued
- *  set gets its panel. These are the ones the queue does not hold, which To add lists as "Also builds", in catalog
- *  order. Empty with the panels off, with nothing queued, or once the file holds the template (#3311). */
+ *  set gets its panel. These are the ones the queue does not hold, which To add's "Also adds" line names
+ *  (`alsoAddsOf`), here in catalog order. Empty with the panels off, with nothing queued, or once the file holds the template (#3311). */
 export const docBlockAlsoOf = (catalog: Catalog, f: Pick<FileSets, 'docBlockLacks'> | null, queued: readonly string[], panels: boolean): string[] =>
   panels && queued.length && f?.docBlockLacks ? catalog.filter((e) => f.docBlockLacks!.includes(e.id) && !queued.includes(e.id)).map((e) => e.id) : [];
+/** #3306 Q3306.5 A, with the owner's call on the merge with #3308: To add's ONE "Also adds" line. It names everything
+ *  the run builds alongside the queued sets that the file lacks: the sets they nest (`neededOf`, derived on read, never
+ *  stored) and, on a first run with the usage panels on, the sets `_Doc-block` is made from (`docBlockAlsoOf`). Each set
+ *  once, as Components names it, in its list order. A private `_` part is still built but never named here (owner, B).
+ *  The badge does not count these, and the `sets` step does not list them. */
+export const alsoAddsOf = (catalog: Catalog, f: Pick<FileSets, 'present' | 'docBlockLacks'> | null, queue: readonly string[] | null, panels: boolean): string[] => {
+  if (!f || !queue) return [];
+  const queued = queuedOf(catalog, f, queue);
+  const ids = new Set([...neededOf(catalog, queued, f.present).keys(), ...docBlockAlsoOf(catalog, f, queued, panels)]);
+  return inListOrder(catalog, [...ids].filter((id) => !isPrivate(id))).map((id) => displayNameOf(catalog, id));
+};
 /** The queue in the order the sets step builds it (#3308): the queued sets `_Doc-block` is made from first, so the
  *  template exists before any other set's panel is drawn; else the queue's own order. */
 export const runOrderOf = (f: Pick<FileSets, 'docBlockLacks'> | null, queued: readonly string[], panels: boolean): string[] => {
@@ -168,10 +179,11 @@ export const checkScopeOf = (due: readonly string[], t: Pick<Ticks, 'panels'>, p
   [...new Set([...due, ...(t.panels ? panelSets : [])])];
 
 /** A set's statuses, as Components' list and the checklist show them (Q2909.8 A): Not in file, or To add once it is in
- *  the add queue (#3129 Q3129.4 A); or Due; Hand-edited (first class, beside Due when both); Not checked yet; Checking
+ *  the add queue (#3129 Q3129.4 A), or Needed while a queued set nests it (#3306 Q3306.2 A; Components reads that from
+ *  `neededOf`, this function never returns it); or Due; Hand-edited (first class, beside Due when both); Not checked yet; Checking
  *  while the background pass has not reached it, or, for a set the ledger does not name, while the file is still being
  *  read (#3110); else Up to date. Empty before the host has said anything. */
-export type SetStatus = 'queued' | 'new' | 'due' | 'hand' | 'unchecked' | 'checking' | 'current';
+export type SetStatus = 'queued' | 'needed' | 'new' | 'due' | 'hand' | 'unchecked' | 'checking' | 'current';
 export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<string, { readonly edited: number }>, pass: 'idle' | 'running' | 'done', queue: readonly string[] | null = null): SetStatus[] => {
   if (!f || f.error) return [];
   if (!f.present.includes(id)) return f.partial ? ['checking'] : queue?.includes(id) ? ['queued'] : ['new'];
@@ -257,6 +269,8 @@ export const UPDATE_COPY = {
   toAdd: 'To add',
   toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Documentation has panels on.`,
   removeSet: (name: string): string => `Remove ${name} from To add`,
+  /** #3306 Q3306.5 A: the line under To add's rows naming the sets they nest that the file lacks. DRAFT, the proposal's words. */
+  alsoAdds: (names: readonly string[]): string => `Also adds: ${names.join(', ')}.`,
   removeAll: 'Remove all',
   queueFresh: (n: number): string => `Nothing chosen yet. This file holds none of the ${n} component sets.`,
   addAll: (n: number): string => `Add all ${n}`,
@@ -279,7 +293,7 @@ export const UPDATE_COPY = {
   unrecorded: (n: number): string => `${n} set${n === 1 ? '' : 's'} not checked yet: built before Prism3 kept a record.`,
   checkUnrecorded: (n: number): string => `Check ${n} set${n === 1 ? '' : 's'}`,
   saves: 'Saves a version first. If Figma refuses the save, nothing is written.',
-  status: { queued: 'To add', new: 'Not in file', due: 'Due', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
+  status: { queued: 'To add', needed: 'Needed', new: 'Not in file', due: 'Due', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
   /** Q3129.11 A: the badge's name, split: "Update file, 7 to add, 3 due", with ", theme" when the Theme item counts, and
    *  (#3137 Q3137.4 A) ", usage panels" when the Usage panels group does. */
   badgeName: (p: BadgeParts): string => ['Update file', p.add ? `${p.add} to add` : '', p.due ? `${p.due} due` : '', p.theme ? 'theme' : '', p.panels ? 'usage panels' : ''].filter(Boolean).join(', '),
