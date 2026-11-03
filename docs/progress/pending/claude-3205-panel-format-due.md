@@ -14,7 +14,7 @@ credit. The full read, the read at open and the badge's recount all go through `
 reads the set, `docPanelDue` finds the older plan, and the apply redraws the panel in place, or keeps it as "(edited)"
 if a person changed it (#3317's rule). The apply records the set with today's format, so it reads current again. A write
 with the panels off keeps the format the file holds. Studio shows the reason as "Engine update: Prism3 draws usage panels
-differently" (DRAFT, held for the owner).
+differently" (the owner's Q3205.F1 A, 2026-11-02: keep the line as built).
 
 **Cost.** Every lead set in a file with the usage panels on reads due once after this ships, because no entry recorded a
 panel format before it. That is the redraw #3318 meant to make. Later raises of `PANEL_FORMAT` reach Update file the same
