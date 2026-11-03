@@ -368,8 +368,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
   'text-field|error.border.focus-visible-filled':
     'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
-  // `password-field` (#2317) binds text-field's token block exactly, through the shared field factory, so it carries
-  // the same `error` → `danger` mapping at the same seven coordinates, for the same reason.
+  // `password-field` (#2317) binds text-field's token block plus `toggle.pad-block` (#3347), through the shared field
+  // factory, so it carries the same `error` → `danger` mapping at the same seven coordinates, for the same reason.
   'password-field|error.border.rest':
     "status `error` maps to the `danger` border role — text-field's rest coordinate, through the shared field factory",
   'password-field|error.border.hover':
