@@ -16,7 +16,7 @@ the glyph variable's value, and pad the shorter cell down by half the difference
 labor (textarea's rows): the plan carries names and stays brand-invariant, and the number is frozen per file because
 Figma's padding binds one variable and takes no max or half of two. Code computes the same live from `1lh`. The line is
 the unrounded one, as the text renders it, so the two middles agree exactly. The row stays top-aligned, as #1009 half 1
-requires, and its glyph-height floor (2026-09-25, option (a)) is unchanged. `EXECUTOR_REVISION` 49 redraws
+requires, and its glyph-height floor (2026-09-25, option (a)) is unchanged. `EXECUTOR_REVISION` 51 redraws
 `field-message` only, measured by `lint-executor-reach`.
 
 **The gates.** `test.ts` `#3360 field-message glyph on the first line` runs the paste executor per corpus brand, with the
