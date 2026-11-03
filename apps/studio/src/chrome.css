@@ -530,6 +530,9 @@
 /* #2105: the plugin's narrow window is 420 tall, and a refused restore's line ran 270px, leaving the levers pane 0px. At
    the narrow tier the line stops at two bar heights and scrolls inside itself, so the page under it keeps its room. */
 .p3-frame[data-w="narrow"] .p3-errstrip { max-height: calc(2 * var(--p3-bar-h)); overflow-y: auto; }
+/* #1999 (owner decision Q1999.1 A): the one exception, the refused-saved-brand notice inside the start window. There the
+   strip is the window's own content, in a body that scrolls, so the cap would only scroll its two buttons out of sight. */
+.p3-frame[data-w="narrow"] .p3-start .p3-errstrip { max-height: none; overflow-y: visible; }
 .p3-frame[data-w="narrow"] .p3-bardlg-scrim { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] :is(.p3-bardlg-head, .p3-bardlg-col, .p3-bardlg-foot, .p3-bardlg-import) { padding-left: var(--p3-space-150); padding-right: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-bardlg-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
