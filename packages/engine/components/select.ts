@@ -520,6 +520,8 @@ export const select: ComponentDef = {
         nests: 'focus-ring',
         inset: 'ring-offset',
         strokeInset: 'ring-width',
+        // Inside the field's border, at its own radius (#3328, Q3328.1 A), as on Text field.
+        borderInset: 'border-width',
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
         note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke — so the focus signal never contends with the control\'s own border.',
       },
@@ -620,7 +622,7 @@ export const select: ComponentDef = {
       '4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size',
     ],
     keyboard: 'The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.',
-    focus: ':focus-visible ring on the control, boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.',
+    focus: ':focus-visible ring on the control, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field\'s own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.',
     aria: 'The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is not the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native <select> where its OS menu is acceptable, because it is correct for free.',
   },
 

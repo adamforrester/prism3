@@ -26,7 +26,7 @@ Shown on the default member: appearance `outline`, size `medium`.
 5. **Entry** — The value, centered between the buttons and at least 32px wide, so the buttons hold still as the count reaches two digits.
 6. **Value** — The number, in the field's body type.
 7. **Increment** — The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: unavailable at the maximum.
-8. **Focus ring** — The shared focus ring, around the whole row while the value has keyboard focus: on the edge for outline, 2px outside the round buttons for ghost.
+8. **Focus ring**
 9. **Message** (optional) — An optional line below the row, such as the reason for a limit. Off by default.
 
 ## Styles
@@ -62,7 +62,7 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 ## Accessibility
 
 - **Keyboard:** The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex="-1").
-- **Focus:** One focus ring around the whole row while the value has keyboard focus: on the edge for outline, 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.
+- **Focus:** One focus ring around the whole row while the value has keyboard focus: inside the edge for outline, where the edge takes the focus color and a 2px band sits inside it at the row's radius; 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.
 - **Screen readers:** spinbutton (the value), with two buttons outside the Tab order
 
   The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, aria-valuetext where the number is shown formatted ("3 items"), and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. The buttons are not aria-hidden: they keep their names for pointer and touch users of assistive technology, as the ARIA Authoring Practices spin button example does. Every name is translatable, and the row mirrors right to left.
