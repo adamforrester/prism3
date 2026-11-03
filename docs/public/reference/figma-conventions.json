@@ -3821,7 +3821,9 @@
       "code-input",
       "card-number-field",
       "wallet-button",
-      "sign-in-button"
+      "sign-in-button",
+      "page-nav-item",
+      "page-nav"
     ],
     "templates": [
       {
