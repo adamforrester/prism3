@@ -2831,6 +2831,7 @@
         ],
         "size": [
           "medium",
+          "x-small",
           "small",
           "large"
         ]
@@ -2849,6 +2850,7 @@
           "name": "size",
           "default": "medium",
           "values": [
+            "x-small",
             "small",
             "medium",
             "large"
@@ -2868,6 +2870,7 @@
       ],
       "sizes": [
         "medium",
+        "x-small",
         "small",
         "large"
       ],
@@ -2887,6 +2890,7 @@
         ],
         "size": [
           "medium",
+          "x-small",
           "small",
           "large"
         ]
@@ -2908,6 +2912,7 @@
           "name": "size",
           "default": "medium",
           "values": [
+            "x-small",
             "small",
             "medium",
             "large"
@@ -2922,6 +2927,7 @@
       ],
       "sizes": [
         "medium",
+        "x-small",
         "small",
         "large"
       ],
@@ -6038,8 +6044,6 @@
           "icon-button",
           "icon-button-destructive",
           "icon-button-neutral",
-          "list",
-          "list-item",
           "pagination",
           "pagination-item",
           "password-field",
@@ -6083,6 +6087,8 @@
         ],
         "components": [
           "link",
+          "list",
+          "list-item",
           "spinner"
         ]
       },
@@ -8691,6 +8697,7 @@
         "id": "list",
         "default": "medium",
         "values": [
+          "x-small",
           "small",
           "medium",
           "large"
@@ -8700,6 +8707,7 @@
         "id": "list-item",
         "default": "medium",
         "values": [
+          "x-small",
           "small",
           "medium",
           "large"
@@ -9987,7 +9995,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in link, spinner; [large, medium, small, xlarge] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, xlarge] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -10275,7 +10283,7 @@
       "components": [
         "list"
       ],
-      "detail": "list declares its sizes as [medium, small, large], not smallest first"
+      "detail": "list declares its sizes as [medium, x-small, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -10283,7 +10291,7 @@
       "components": [
         "list-item"
       ],
-      "detail": "list-item declares its sizes as [medium, small, large], not smallest first"
+      "detail": "list-item declares its sizes as [medium, x-small, small, large], not smallest first"
     },
     {
       "kind": "size order",
