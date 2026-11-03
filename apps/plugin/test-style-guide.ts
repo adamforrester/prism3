@@ -52,7 +52,7 @@
  *      or a key; an unknown name reported with the first 8
  *      titles, and not a pass; a renamed group's old table named as staying until an unfiltered run;
  *  14. YIELDING (#1778), with a counting `yieldTo`: a progress reading per table, a yield after every table, and at
- *      least 12 yields inside the 55-row Interactive table, never more than 10 rows apart;
+ *      least 12 yields inside the 64-row Interactive table, never more than 10 rows apart;
  *  15. ONE RUN AT A TIME (#1785), through the plugin's run guard (#1957, `run-guard.ts`): a run asked for while
  *      another is mid-yield is refused, and exactly one set of tables results. (`test-agent-link.ts` drives the same
  *      guard through `main.ts`'s two real entry points.)
@@ -213,7 +213,7 @@
  *     owner's grid model: nothing wraps.)
  *   - (#1778 and the 2026-09-29 owner decisions; docs/00-progress.md 2026-09-29) the filter ignored → "13: tables:
  *     ["Primary — nbds"] draws that one table" fails; the skipped tables treated as candidates → "13: the tables a
- *     filtered run skips are not stale…" fails; the per-row yield removed → "14: the 55-row Interactive table yields while
+ *     filtered run skips are not stale…" fails; the per-row yield removed → "14: the 64-row Interactive table yields while
  *     its rows are placed…" fails; the per-table yield removed → "14: the host gets control back after every table"
  *     fails; the header left at its component width → "2: the table and its header are as wide as its grid…" and "12:
  *     the table and its header hug the grid…" fail; a FIXED column track → "5: every column and row track of every
@@ -1360,7 +1360,7 @@ const main = async (): Promise<void> => {
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
     ok(prim.every((t) => t.page === PRIM), '3: primitive tables go on ↳ Primitive tokens');
-    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 270 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (270 + 164; #3049 added foreground.raised)');
+    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 288 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (288 + 164; #3049 added foreground.raised, #3346 the 18 selection marks)');
     const text = byTitle('semantic', 'Text')!;
     ok(JSON.stringify(text.columns) === JSON.stringify(['Token', 'light', 'Value', 'Contrast', 'dark', 'Value', 'Contrast', 'hc-light', 'Value', 'Contrast', 'hc-dark', 'Value', 'Contrast', 'Description']), '3: a specimen, value and contrast column per mode');
     ok(JSON.stringify(byTitle('primitive', 'Neutral')!.columns) === JSON.stringify(['Token', 'Default', 'Value', 'Description']), '3: a primitive table has no contrast column');
@@ -1750,7 +1750,7 @@ const main = async (): Promise<void> => {
     ok(nTitle.characters === 'Grays' && neu.name === 'Style guide — Neutral — nbds', '9: a title the designer typed is kept');
 
     // A swatch member with layers and no paint anywhere. A FILL swatch still binds: since #2336 the instance paints the
-    // color itself, edge to edge, so the 76 prism3 roles that draw the plain swatch (#3049 added foreground.raised), in four modes, are 304 bound
+    // color itself, edge to edge, so the 94 prism3 roles that draw the plain swatch (#3049 added foreground.raised, #3346 the 18 selection marks), in four modes, are 376 bound
     // swatches. A MARK still needs a layer to paint: a text member with a group and no text binds nothing, and the
     // verdict says how many: 61 text roles (a `text` segment first among text, icon and border, counted in the emitted
     // color.light.json), in four modes, 244.
@@ -1762,7 +1762,7 @@ const main = async (): Promise<void> => {
     const u = await draw(makeShim([fc, sgc, sem], prism3Variables().cols, prism3Variables().vars).api, contract, { collections: ['color'] });
     const us = styleGuideSummary(u);
     const plainBound = tablesOn(sem).flatMap((w) => gridOf(w).children.filter((k) => k.mainComponent?.name === 'type=Default' && boundId(k.fills) !== undefined));
-    ok(plainBound.length === 304, `9: a plain swatch with no layer that takes a fill still binds: the instance paints the color itself (#2336) (${plainBound.length} of 304)`);
+    ok(plainBound.length === 376, `9: a plain swatch with no layer that takes a fill still binds: the instance paints the color itself (#2336) (${plainBound.length} of 376)`);
     ok(u.unbound === 244 && !us.ok && us.headline === '⚠ 244 swatches unbound', `9: unbound swatches are not a pass — headline "${us.headline}"`);
     ok(us.summary.includes('244 swatches in type=Text have no layer that takes a fill'), `9: the summary counts them per variant (${us.summary.slice(0, 120)})`);
 
@@ -1806,9 +1806,11 @@ const main = async (): Promise<void> => {
     const text = tableFrame(r.sem, 'Text')!, border = tableFrame(r.sem, 'Border')!;
     const textW = text.width;
     const grow = (n: number, tag: string, description: string): void => { for (let i = 0; i < n; i++) r.vars.push({ id: `VariableID:color:${tag}${i}`, name: `pds3/color/text/${tag}-${i}`, variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description, valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } }); };
-    // A DESIGNER DRAGS Border out of the group, 5,000px below it: it stays where they put it, every run (Q5 A).
+    // A DESIGNER DRAGS Border out of the group, 5,000px below both groups: it stays where they put it, every run (Q5 A).
+    // Below Inverse colors, not only Semantic colors: since #3346's 18 rows, 5,000px below Semantic colors lands inside
+    // the taller inverse group, which then moves the guide out of its way, and that is not what this arm drags.
     r.sem.appendChild(border);
-    border.x = 400; border.y = sc.y + sc.height + 5000;
+    border.x = 400; border.y = ic.y + ic.height + 5000;
     const [bx, by] = [border.x, border.y];
     // A new row whose description is 120 characters, 840px at the shim's 7px: the description column widens to
     // 840 + 16 + 16 = 872, and so does the table, and its column, and the group with it.
@@ -2217,9 +2219,10 @@ const main = async (): Promise<void> => {
     const silent = Array.from({ length: 30 }, (_, i) => i + 1).filter((k) => !perReading.get(k));
     ok(silent.length === 0, `14: the host gets control back after every table (none after table ${silent.join(', ')})`);
     const gaps = rowsAt.map((n, i) => n - (i ? rowsAt[i - 1] : 0));
-    // 55 is odd: the last yield inside the table falls after row 54, and the one after the table reads the next table.
-    ok(rowsAt.length >= 12 && rowsAt[rowsAt.length - 1] === 54 && Math.max(...gaps) <= 10,
-      `14: the 55-row Interactive table yields while its rows are placed, never more than 10 rows apart (${rowsAt.length} yields, largest gap ${Math.max(0, ...gaps)} rows)`);
+    // 64 rows since #3346 (55 before): the last yield inside the table falls after row 64, and the one after the table
+    // reads the next table.
+    ok(rowsAt.length >= 12 && rowsAt[rowsAt.length - 1] === 64 && Math.max(...gaps) <= 10,
+      `14: the 64-row Interactive table yields while its rows are placed, never more than 10 rows apart (${rowsAt.length} yields, the last after row ${rowsAt[rowsAt.length - 1]}, largest gap ${Math.max(0, ...gaps)} rows)`);
   }
 
   console.log('15. one run at a time, through the run guard (#1785, #1957)');
@@ -2998,7 +3001,7 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
       && cat.tables.filter((t) => t.page === 'Semantic tokens').length === 19 && cat.tables.filter((t) => t.page === 'Primitive tokens').length === 11,
       `26: the page is offered the 30 tables in draw order, all color, 19 semantic and 11 primitive, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
-    ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:270', 'legacy:Value:4']),
+    ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:288', 'legacy:Value:4']),
       `26: every collection, its modes and every variable in it (${cat.collections.map((c) => `${c.name} ${c.items.length}`).join(', ')})`);
     const item = (n: string) => cat.collections.flatMap((c) => c.items).find((i) => i.name === n);
     ok(cat.tables[item('pds3/color/text/primary')!.table]?.title === 'Text' && cat.tables[item('pds3/core/palette/primary/500')!.table]?.title === 'Primary'

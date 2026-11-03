@@ -4,10 +4,11 @@
  *   npx tsx apps/studio/test-verdict-count.ts
  *
  * The owner decided what the verdict counts (v4 review Q2): every role with a floor, in every mode, which
- * is 884 for prism3, and Health says "221 per mode". This holds `state/verdict.ts` to those numbers.
+ * is 956 for prism3, and Health says "239 per mode". This holds `state/verdict.ts` to those numbers. (It was 884 and 221
+ * until #3346 added 18 gated selection-mark roles per mode: the rule is the owner's, the count follows it.)
  *
  * WHY IT IS INDEPENDENT OF WHAT IT CHECKS (docs/34). The oracle is the decision's literal numbers, typed
- * here: 884, 221 and the four mode names. They are never computed from the engine or the module. An
+ * here: 956, 239 and the four mode names. They are never computed from the engine or the module. An
  * engine change that adds or drops gated roles fails this BY NAME, which is the point: the decision named
  * a number, and a moved number is the owner's to re-decide, not this file's to follow.
  *
@@ -16,7 +17,7 @@
  * model names (v6 hatches high contrast and wireframe); and the copy against concept v6, verbatim.
  *
  * A FAILING COUNT, EXACTLY. A fixture that fails one role in Light and one in Dark must read
- * "2 of 884 below floor, 2 modes", with both numbers derived by hand in the comment beside it, so a loosened
+ * "2 of 956 below floor, 2 modes", with both numbers derived by hand in the comment beside it, so a loosened
  * threshold, a capped `modesFailing` or a count that only looks at Light each move the line.
  *
  * A FAILURE JUST UNDER ITS FLOOR (#1930). The two-mode fixture's failures sit far below 4.5:1, so a verdict
@@ -24,10 +25,10 @@
  * fraction under its floor, and must be counted.
  *
  * Mutations this fails by name: count roles with no floor (drop the `r.min > 0` clause) →
- * `prism3 gates 884 roles across its modes (the v4 review's number) — counted 936`; the threshold
+ * `prism3 gates 956 roles across its modes (the v4 review's rule) — counted 1008`; the threshold
  * TIGHTENED by 0.5, `modesFailing` capped at 1, or failures counted in Light only →
- * `two-mode fixture: the bar reads "2 of 884 below floor, 2 modes" — read "…"`; the threshold LOOSENED by
- * 0.5 (`r.ratio + 1e-9 < r.min - 0.5`) → `near-floor fixture: the bar reads "1 of 884 below floor, 1 mode" — read "All 884 pairs at or above floor"`. (Dropping only the
+ * `two-mode fixture: the bar reads "2 of 956 below floor, 2 modes" — read "…"`; the threshold LOOSENED by
+ * 0.5 (`r.ratio + 1e-9 < r.min - 0.5`) → `near-floor fixture: the bar reads "1 of 956 below floor, 1 mode" — read "All 956 pairs at or above floor"`. (Dropping only the
  * `against === 'self'` clause changes nothing for prism3, whose self-measured roles carry no minimum; the
  * clause stays as concept v6 wrote it.)
  */
@@ -46,8 +47,8 @@ const ok = (cond: boolean, label: string): void => {
   else { failed++; console.error(`  ✗ ${label}`); }
 };
 
-const PRISM3_TOTAL = 884;
-const PRISM3_PER_MODE = 221;
+const PRISM3_TOTAL = 956;
+const PRISM3_PER_MODE = 239;
 const PRISM3_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
 
 const input = (examples as Record<string, BrandInput>).prism3;
@@ -55,19 +56,19 @@ const theme = brandTheme(structuredClone(input));
 const modes = resolvePreview(theme).modes;
 ok(JSON.stringify(modes) === JSON.stringify(PRISM3_MODES), `prism3 ships ${PRISM3_MODES.join(', ')} (read ${modes.join(', ')})`);
 const v = verdictOf(theme, modes);
-ok(v.total === PRISM3_TOTAL, `prism3 gates ${PRISM3_TOTAL} roles across its modes (the v4 review's number) — counted ${v.total}`);
+ok(v.total === PRISM3_TOTAL, `prism3 gates ${PRISM3_TOTAL} roles across its modes (the v4 review's rule) — counted ${v.total}`);
 for (const m of v.per) ok(m.n === PRISM3_PER_MODE, `prism3 gates ${PRISM3_PER_MODE} roles in ${m.mode} — counted ${m.n}`);
 ok(v.fail === 0 && v.modesFailing === 0, `prism3 has no role below its floor (fail ${v.fail}, modes failing ${v.modesFailing})`);
 ok(verdictOf(theme, modes) === v, 'the verdict is cached per theme (one resolve per edit)');
 
 // The copy, verbatim from concept v6.
-ok(verdictLine(v) === 'All 884 pairs at or above floor', `the bar reads "All 884 pairs at or above floor" — read "${verdictLine(v)}"`);
+ok(verdictLine(v) === 'All 956 pairs at or above floor', `the bar reads "All 956 pairs at or above floor" — read "${verdictLine(v)}"`);
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps v6's "floor". Literal.
-ok(healthLine(v) === 'All 884 pairs at or above their minimum.', `Health reads "All 884 pairs at or above their minimum." (Q3366.3 A) — read "${healthLine(v)}"`);
+ok(healthLine(v) === 'All 956 pairs at or above their minimum.', `Health reads "All 956 pairs at or above their minimum." (Q3366.3 A) — read "${healthLine(v)}"`);
 ok(FLOOR_POINTER.line([['Light', 'neutral.050'], ['Dark', 'neutral.900']]) === 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.'
   && FLOOR_POINTER.link === 'Change the contrast floor', `Health's pointer to the contrast floor reads as rendered (Q3366.2 A) — read ${JSON.stringify([FLOOR_POINTER.line([['Light', 'neutral.050'], ['Dark', 'neutral.900']]), FLOOR_POINTER.link])}`);
-ok(breadthLine(v, (m) => m) === '221 per mode × 4 modes', `Health's breadth reads "221 per mode × 4 modes" — read "${breadthLine(v, (m) => m)}"`);
-ok(modeLine(v.per[0], 'Light') === 'Light: 221 of 221 at or above', `a passing mode reads "Light: 221 of 221 at or above" — read "${modeLine(v.per[0], 'Light')}"`);
+ok(breadthLine(v, (m) => m) === '239 per mode × 4 modes', `Health's breadth reads "239 per mode × 4 modes" — read "${breadthLine(v, (m) => m)}"`);
+ok(modeLine(v.per[0], 'Light') === 'Light: 239 of 239 at or above', `a passing mode reads "Light: 239 of 239 at or above" — read "${modeLine(v.per[0], 'Light')}"`);
 
 // A failing role is counted. The default theme's own override seam: point a text role at a pale step.
 const bad = structuredClone(input) as BrandInput;
@@ -78,7 +79,7 @@ if (badTheme) {
   const bv = verdictOf(badTheme, resolvePreview(badTheme).modes);
   const light = bv.per.find((m) => m.mode === 'light')!;
   ok(light.f >= 1 && bv.fail >= 1 && bv.modesFailing >= 1, `an override below its floor is counted as a failure (light fails ${light.f}, total fail ${bv.fail})`);
-  ok(/^\d+ of 884 below floor, \d+ modes?$/.test(verdictLine(bv)), `the failing bar line reads "<n> of 884 below floor, <m> mode(s)" — read "${verdictLine(bv)}"`);
+  ok(/^\d+ of 956 below floor, \d+ modes?$/.test(verdictLine(bv)), `the failing bar line reads "<n> of 956 below floor, <m> mode(s)" — read "${verdictLine(bv)}"`);
   ok(modeLine(light, 'Light') === `Light: ${light.f} of ${light.n} below`, `a failing mode reads "Light: <f> of <n> below" — read "${modeLine(light, 'Light')}"`);
 }
 
@@ -92,10 +93,10 @@ if (badTheme) {
 // 4.54:1, neutral.450 in Dark at 4.64:1, read once off the engine's resolved record), so it passes as it does
 // with no override, and the explicit icon override wins over the carry.
 // High contrast light and dark are resolved on their own and carry no override. So: 2 failures, 1 in Light
-// and 1 in Dark, 2 modes failing, out of the same 884.
-const TWO_MODES_LINE = '2 of 884 below floor, 2 modes';
-const TWO_MODES_HEALTH = '2 of 884 pairs below their minimum in 2 modes.';
-const TWO_MODES_PER = ['Light: 1 of 221 below', 'Dark: 1 of 221 below', 'High contrast light: 221 of 221 at or above', 'High contrast dark: 221 of 221 at or above'];
+// and 1 in Dark, 2 modes failing, out of the same 956.
+const TWO_MODES_LINE = '2 of 956 below floor, 2 modes';
+const TWO_MODES_HEALTH = '2 of 956 pairs below their minimum in 2 modes.';
+const TWO_MODES_PER = ['Light: 1 of 239 below', 'Dark: 1 of 239 below', 'High contrast light: 239 of 239 at or above', 'High contrast dark: 239 of 239 at or above'];
 const LABELS: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark' };
 const two = structuredClone(input) as BrandInput;
 two.overrides = {
@@ -117,7 +118,7 @@ if (twoTheme) {
 // below from the engine's own resolved record, never from the verdict module). Nothing else is measured
 // against `text.tertiary`, and no other mode carries an override. Its icon twin is pinned at its own derived step,
 // neutral.450 (3.18:1), for the same reason as above (#1968). So: 1 failure, in Light, 1 mode.
-const NEAR_LINE = '1 of 884 below floor, 1 mode';
+const NEAR_LINE = '1 of 956 below floor, 1 mode';
 const near = structuredClone(input) as BrandInput;
 near.overrides = { light: { 'text.tertiary': { palette: 'neutral', step: '400' }, 'icon.tertiary': { palette: 'neutral', step: '450' } } } as BrandInput['overrides'];
 let nearTheme;

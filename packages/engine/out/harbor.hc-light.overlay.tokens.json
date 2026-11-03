@@ -380,6 +380,23 @@
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
             }
           },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.650}",
+              "$description": "primary interactive indicator — rest (the selection mark; matches the label)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.750}",
+              "$description": "primary interactive indicator — hover (the selection mark; matches the label)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.850}",
+              "$description": "primary interactive indicator — pressed (the selection mark; matches the label)"
+            }
+          },
           "subtle-fill": {
             "selected": {
               "$type": "color",
@@ -442,6 +459,13 @@
               "$type": "color",
               "$value": "{hds.core.palette.black}",
               "$description": "neutral interactive border — rest (the outline edge; follows the ink)"
+            }
+          },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.black}",
+              "$description": "neutral interactive indicator — rest (the selection mark; matches the label)"
             }
           }
         }
@@ -848,6 +872,23 @@
                 "$value": "{hds.core.palette.primary.150}",
                 "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
               }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.350}",
+                "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.250}",
+                "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.150}",
+                "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)"
+              }
             }
           },
           "destructive": {
@@ -906,6 +947,23 @@
                 "$value": "{hds.core.palette.danger.150}",
                 "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
               }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.350}",
+                "$description": "destructive interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.250}",
+                "$description": "destructive interactive indicator on an inverse surface — hover (the selection mark; matches the label)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.150}",
+                "$description": "destructive interactive indicator on an inverse surface — pressed (the selection mark; matches the label)"
+              }
             }
           },
           "neutral": {
@@ -933,6 +991,13 @@
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
                 "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.white}",
+                "$description": "neutral interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
               }
             }
           }

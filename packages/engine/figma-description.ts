@@ -140,6 +140,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       if (part === 'text') return `${c} label, ${st} — ${claim} (outline, text)`;
       if (part === 'icon') return `${c} icon, ${st} — ${claim} (outline, ghost, text)`;
       if (part === 'border') return `${c} outline edge, ${st} — ${claim}, follows the label`;
+      // The selection mark (#3346): a shape, the label's ink as resolved; no outline-edge setting reaches it.
+      if (part === 'indicator') return `${c} selection mark, ${st} — ${claim}, matches the label`;
       // The tinted wash (#1614): the category's own fill at an opacity step, over whatever it sits on.
       if (part === 'subtle-fill') return inv
         ? `${c} ${st} tinted wash on inverse — the ${seg[1]} inverse fill at ${pct}`

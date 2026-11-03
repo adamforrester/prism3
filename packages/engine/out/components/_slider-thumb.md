@@ -147,14 +147,14 @@ Keyed by `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/pressHalo/hoverHalo/disc` | `color.interactive.neutral.border.rest` | — | — | — |
+| `frame/pressHalo/hoverHalo/disc` | `color.interactive.neutral.indicator.rest` | — | — | — |
 
 **state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame/pressHalo/hoverHalo` | — | `color.border.primary` | — | — |
-| `frame/pressHalo/hoverHalo/disc` | `color.interactive.neutral.border.hover` | — | — | — |
+| `frame/pressHalo/hoverHalo/disc` | `color.interactive.neutral.indicator.hover` | — | — | — |
 
 **state=pressed**
 
@@ -162,13 +162,13 @@ Keyed by `state`.
 | --- | --- | --- | --- | --- |
 | `frame/pressHalo` | `color.border.primary` | — | — | — |
 | `frame/pressHalo/hoverHalo` | — | `color.border.primary` | — | — |
-| `frame/pressHalo/hoverHalo/disc` | `color.interactive.neutral.border.pressed` | — | — | — |
+| `frame/pressHalo/hoverHalo/disc` | `color.interactive.neutral.indicator.pressed` | — | — | — |
 
 **state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/pressHalo/hoverHalo/disc` | `color.interactive.neutral.border.rest` | — | — | — |
+| `frame/pressHalo/hoverHalo/disc` | `color.interactive.neutral.indicator.rest` | — | — | — |
 
 **state=disabled**
 

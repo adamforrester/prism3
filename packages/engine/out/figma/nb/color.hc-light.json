@@ -1619,6 +1619,66 @@
       }
     },
     {
+      "name": "nbds/color/interactive/primary/indicator/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary selection mark, rest — 3:1 on background/primary, matches the label",
+      "value": {
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/650"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/primary/indicator/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary selection mark, hover — 3:1 on background/primary, matches the label",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/750"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/primary/indicator/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary selection mark, pressed — 3:1 on background/primary, matches the label",
+      "value": {
+        "r": 0.2862745225429535,
+        "g": 0,
+        "b": 0.0313725508749485,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/850"
+      }
+    },
+    {
       "name": "nbds/color/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2017,6 +2077,66 @@
       }
     },
     {
+      "name": "nbds/color/interactive/destructive/indicator/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive selection mark, rest — 3:1 on background/tertiary, matches the label",
+      "value": {
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/650"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/destructive/indicator/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive selection mark, hover — 3:1 on background/tertiary, matches the label",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/750"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/destructive/indicator/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive selection mark, pressed — 3:1 on background/tertiary, matches the label",
+      "value": {
+        "r": 0.2862745225429535,
+        "g": 0,
+        "b": 0.0313725508749485,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/850"
+      }
+    },
+    {
       "name": "nbds/color/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2380,6 +2500,66 @@
         "STROKE_COLOR"
       ],
       "description": "Neutral outline edge, pressed — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 0.20392157137393951,
+        "g": 0.21960784494876862,
+        "b": 0.23529411852359772,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/750"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/neutral/indicator/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral selection mark, rest — 3:1 on background/primary, matches the label",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/black"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/neutral/indicator/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral selection mark, hover — 3:1 on background/primary, matches the label",
+      "value": {
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/850"
+      }
+    },
+    {
+      "name": "nbds/color/interactive/neutral/indicator/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral selection mark, pressed — 3:1 on background/primary, matches the label",
       "value": {
         "r": 0.20392157137393951,
         "g": 0.21960784494876862,
@@ -4275,6 +4455,66 @@
       }
     },
     {
+      "name": "nbds/color/inverse/interactive/primary/indicator/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary selection mark, rest — 3:1 on inverse/background/primary, matches the label",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/350"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/indicator/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary selection mark, hover — 3:1 on inverse/background/primary, matches the label",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/250"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/indicator/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary selection mark, pressed — 3:1 on inverse/background/primary, matches the label",
+      "value": {
+        "r": 0.9372549057006836,
+        "g": 0.772549033164978,
+        "b": 0.7607843279838562,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/150"
+      }
+    },
+    {
       "name": "nbds/color/inverse/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
@@ -4650,6 +4890,66 @@
       }
     },
     {
+      "name": "nbds/color/inverse/interactive/destructive/indicator/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive selection mark, rest — 3:1 on inverse/background/tertiary, matches the label",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/350"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/indicator/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive selection mark, hover — 3:1 on inverse/background/tertiary, matches the label",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/250"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/indicator/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive selection mark, pressed — 3:1 on inverse/background/tertiary, matches the label",
+      "value": {
+        "r": 0.9372549057006836,
+        "g": 0.772549033164978,
+        "b": 0.7607843279838562,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/150"
+      }
+    },
+    {
       "name": "nbds/color/inverse/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
@@ -5013,6 +5313,66 @@
         "STROKE_COLOR"
       ],
       "description": "Neutral outline edge, pressed — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/indicator/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral selection mark, rest — 3:1 on inverse/background/primary, matches the label",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/indicator/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral selection mark, hover — 3:1 on inverse/background/primary, matches the label",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/indicator/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral selection mark, pressed — 3:1 on inverse/background/primary, matches the label",
       "value": {
         "r": 0.7450980544090271,
         "g": 0.7568627595901489,
