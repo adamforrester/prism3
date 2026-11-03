@@ -6524,12 +6524,16 @@ for (const host of ['web', 'figma']) {
 // rendered (each column's `.p3-fillrow[data-role]`, which is `interactiveRowsFor` drawn) and the literal `COLUMN_ROWS`
 // above. A role is drawn when a shown specimen in its column's block names it in `data-sg-binds` AND paints it: the
 // specimen's computed ink, edge or fill (the property the bind names) is the emission's hex for that role in that mode,
-// so a bind with nothing behind it fails too. The two new rows (Q2907.1 A, Q2907.2 A) sit on their own band, whose ground
+// so a bind with nothing behind it fails too. That arm passes when ANY specimen paints a role, so a second arm holds each
+// state of each new row to its own literal roles and their paint (a wrong ink or wash on one row fails even when a
+// sibling row paints the role right). The two new rows (Q2907.1 A, Q2907.2 A) sit on their own band, whose ground
 // is the emission's `inverse.background.primary`. MUTATIONS, each failing here by name: both new rows dropped (the bug as
 // filed) → `… inverse.interactive.primary.text.hover is drawn … — is not drawn`, for each of the 18 inverse text and border
 // roles; the "Inverse text" row alone dropped → `… "Inverse text" row draws rest, hover and pressed on its own band … read
 // []` (its roles stay drawn, as the Inverse outline row's ink); the "Inverse outline" row's edge read off the page twin →
-// `… inverse.interactive.primary.border.rest is drawn … — bound by 1, painted by 0`.
+// `… inverse.interactive.primary.border.rest is drawn … — bound by 1, painted by 0`; the "Inverse text" row painting the
+// page ink (`paint(cur, otxt(s))`) → `… "Inverse text" rest binds and paints its own roles …`; the band rows' wash read
+// off the page (`outlineStateRoles(…, false).fill`, #1629) → `… "Inverse outline" hover binds and paints its own roles …`.
 const readDrawn = (page) => page.evaluate(() => {
   const pane = document.querySelector('[data-p3="levers-pane"]');
   const editor = Object.fromEntries([...pane.querySelectorAll('[data-p3="interactive-column"]')].map((g) => [g.dataset.column, [...g.querySelectorAll('.p3-fillrow[data-role]')].map((n) => n.dataset.role)]));
@@ -6538,6 +6542,7 @@ const readDrawn = (page) => page.evaluate(() => {
       const cs = getComputedStyle(x);
       const band = x.closest('[data-p3="style-guide-buttons"]');
       return { binds: x.dataset.sgBinds.split(' ').map((kv) => kv.split('=')), row: x.closest('.sg-trow')?.querySelector('.sg-tlab')?.firstChild?.textContent ?? null,
+        st: x.closest('[data-p3="style-guide-state"]')?.querySelector('[data-p3="style-guide-state-name"]')?.textContent ?? null,
         ink: cs.color, fill: cs.backgroundColor, edge: Number.parseFloat(cs.borderTopWidth) > 0 ? cs.borderTopColor : null, band: band ? getComputedStyle(band).backgroundColor : null };
     })]));
   return { editor, blocks };
@@ -6565,6 +6570,26 @@ for (const host of ['web', 'figma']) {
             return !!hex && got === sixHex(hex);
           }));
           ok(painted.length > 0, `${where}: ${role} is drawn on the ${name} preview, by a specimen that paints it — ${by.length ? `bound by ${by.length}, painted by ${painted.length} (${by.slice(0, 2).map((x) => `${x.row}: ink ${cssHex(x.ink)} edge ${cssHex(x.edge)} fill ${cssHex(x.fill)}`).join('; ')}; emitted ${EMIT(mode, role)?.hex})` : 'is not drawn'}`);
+        }
+        // EACH NEW ROW'S OWN PAINT (#3378 review): the role arm above passes when any one specimen paints a role, so a row
+        // painting the wrong ink hides behind a sibling that paints it right, and a wash is held only for roles on the two
+        // lists. So each state of each new row is held on its own: the roles it binds are literal keys, typed out here and
+        // not read from `outlineStateRoles` (the band's text and border twins; under the default theme's overlay-neutral
+        // method, the band's overlay twin at hover and pressed and no wash at rest), and its computed ink, edge and fill are
+        // the emission's hex for those keys. The page's wash on the band (#1629) or the page's ink in a band row fails here.
+        for (const row of ['Inverse outline', 'Inverse text']) {
+          for (const s of ['rest', 'hover', 'pressed']) {
+            const x = specs.find((y) => y.row === row && y.st === s);
+            const b = Object.fromEntries(x?.binds ?? []);
+            const want = { ink: `inverse.interactive.${col}.text.${s}`, edge: row === 'Inverse outline' ? `inverse.interactive.${col}.border.${s}` : undefined,
+              fill: s === 'rest' ? undefined : `inverse.interactive.${col}.overlay.${s}` };
+            const exp = (k) => (want[k] ? sixHex(EMIT(mode, want[k])?.hex ?? null) : null);
+            const got = { ink: sixHex(cssHex(x?.ink)), edge: sixHex(cssHex(x?.edge)), fill: sixHex(cssHex(x?.fill)) };
+            const clear = (h) => h === null || /^#[0-9a-f]{6}00$/.test(h);
+            const bindsOk = !!x && ['ink', 'edge', 'fill'].every((k) => b[k] === want[k]);
+            const paintOk = !!x && ['ink', 'edge', 'fill'].every((k) => (want[k] ? !!exp(k) && got[k] === exp(k) : clear(got[k])));
+            ok(bindsOk && paintOk, `${where}: ${name}'s "${row}" ${s} binds and paints its own roles — ink ${want.ink}${want.edge ? `, edge ${want.edge}` : ', no edge'}${want.fill ? `, fill ${want.fill}` : ', no wash'} — ${x ? `bound ${JSON.stringify(b)}, painted ${JSON.stringify(got)}, emitted ${JSON.stringify({ ink: exp('ink'), edge: exp('edge'), fill: exp('fill') })}` : 'no specimen'}`);
+          }
         }
         const band = EMIT(mode, 'inverse.background.primary')?.hex;
         for (const row of ['Inverse outline', 'Inverse text']) {
