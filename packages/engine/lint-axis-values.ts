@@ -631,7 +631,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
     // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
-    // stops reading as secondary wayfinding. Page navigation and its item join it (#3345, DRAFT): Breadcrumbs' pair, one
+    // stops reading as secondary wayfinding. Page navigation and its item join it (#3345, Q8 A): Breadcrumbs' pair, one
     // line of 14 or 16px body text. Badge joins it (#2983, owner direction 2026-10-24): the status label's
     // compact size beside today's, and nothing above it.
     defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress', 'badge', 'page-nav', 'page-nav-item'],

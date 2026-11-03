@@ -4,7 +4,7 @@
  * WHERE THEY ARE DRAWN: once, in the Components page's Page navigation section, after its sets, behind the section's
  * disclosure line (`domains/components.ts`), built as Radio options are (#3086). Its home in the page data is
  * Components › Page navigation (`shell/pages.ts`, Q578: component settings live with their components; the placement is
- * DRAFT, Q4 on #3345). It writes through `state/shape-input.ts`.
+ * the owner's, Q4 A on #3345). It writes through `state/shape-input.ts`.
  *
  * WHICH MODE A CONTROL EDITS, and the derived modes: as Radio options. The indicator has no per-mode value, so it
  * writes the same bytes from any editable mode (Q54); a derived mode is read-only (Q59), held at the write and in the
@@ -21,7 +21,7 @@ import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, keepFocus } from '../ui/lever-kit';
 import { BUTTON_OPTIONS_COPY } from './button-options';
 
-/** The block's copy. DRAFT for the owner (Q3 on #3345), in Radio options' pattern. */
+/** The block's copy: the owner's (Q3 A on #3345), in Radio options' pattern. */
 export const PAGE_NAV_OPTIONS_COPY = {
   title: 'Page navigation options',
   desc: PAGE_NAV_DESC,

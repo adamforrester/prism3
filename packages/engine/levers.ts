@@ -162,7 +162,7 @@ export const leverManifest: Lever[] = [
     options: enumOpts(['tinted', 'Tinted'], ['outlined', 'Outlined']),
     description: 'The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1.' },
   // #3345 (owner decision 2026-11-03, Q2 A: a brand setting; Q10 B: Partial the engine default) — key, label, option labels and
-  // description are a DRAFT for the owner (the Q-block on #3345). It moves no token and no binding: Link's current-page
+  // description are the owner's (Q3 A). It moves no token and no binding: Link's current-page
   // bar, which a Page navigation item nests, is drawn at the title's width or at half of it, centered. 2px either way.
   // Its home in the Studio is Components › Page navigation (Q578: component settings live with their components).
   { key: 'currentIndicator', group: 'form', kind: 'value', label: 'Current page indicator', control: 'enum', default: 'partial',

@@ -4777,16 +4777,15 @@
         "text expansion — labels never truncate and never wrap inside an item; the row wraps whole items instead (see PageNav)."
       ],
       "notes": {
-        "contested": [
-          "The item axis is the build lane's DRAFT (Q-block on #3345): one `selection` switch mapped onto Link, rather than a slot that takes Link instances directly (a designer would set Link's style and selection by hand).",
-          "The weight (default on both) is DRAFT, read from the owner's description of the account rows, not measured off a file."
-        ],
+        "contested": [],
         "unverified": [
           "Contrast is Link's: the link roles' own contracts. No arm here re-measures it."
         ],
         "evolution": [
           "2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A, Q4 A): built as PageNav's item, nesting Link, with the current page's bar width a brand setting.",
-          "2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover (Link standalone, not inline), and the bar is Partial by default."
+          "2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover (Link standalone, not inline), and the bar is Partial by default.",
+          "2026-11-03 (#3345, owner decision Q1 A): the item axis is one `selection` switch mapped onto Link, rather than a slot that takes Link instances directly (a designer would set Link's style and selection by hand).",
+          "2026-11-03 (#3345, owner decision Q8 A): the weight is `default` on both values, read from the owner's description of the account rows, not measured off a file."
         ],
         "projection": []
       },
@@ -4852,15 +4851,14 @@
         "RTL — the row mirrors with the document."
       ],
       "notes": {
-        "contested": [
-          "The sizes, the item gap and the slot limits (two to six) are the build lane's DRAFT values, held for the owner on the PR."
-        ],
+        "contested": [],
         "unverified": [
           "The owner's screens set the reference brand's current-page bar at about 50% of the title; Partial is round(0.5 × the title's width). Partial is the engine default (Q10 B), and the reference fixture sets it in a follow-up (Q6 A)."
         ],
         "evolution": [
           "2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A amended, Q4 A): built as a navigation of links (PageNav.Item, nesting Link) in a native items slot, with the current page's bar width a brand setting, Full by default.",
-          "2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover, and the bar is Partial by default."
+          "2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover, and the bar is Partial by default.",
+          "2026-11-03 (#3345, owner decision Q8 A): the sizes (medium and small), the item gap (24px medium, 16px small at comfortable density) and the slot limits (two to six) as drafted."
         ],
         "projection": []
       },

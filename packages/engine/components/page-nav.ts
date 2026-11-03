@@ -20,10 +20,10 @@
  *     The log-in drawer keeps Tabs.
  *
  * THE ITEMS SLOT (owner decision Q307 A, Breadcrumbs' pattern): a native Figma slot holding PageNav.Item instances,
- * three by default with the first current, at least two and at most six (DRAFT: the proposal's "two to about six").
+ * three by default with the first current, at least two and at most six (Q8 A: the proposal's "two to about six").
  * A slot child does not follow the container's variant after it is placed: the defaults are inserted at its size.
  *
- * DRAFT values held for the owner (the Q-block on the PR): the sizes (medium and small, Breadcrumbs' pair), the gap
+ * Values (owner decision Q8 A, as drafted): the sizes (medium and small, Breadcrumbs' pair), the gap
  * between items (24px medium, 16px small at comfortable density, density-following), and the slot's limits.
  */
 import { ComponentDef } from '../component-schema';
@@ -62,7 +62,7 @@ export const pageNav: ComponentDef = {
   densitySpacing: ['size.{size}.gap'],
 
   tokens: {
-    // The space between items (DRAFT on #3345), moved one step by density.
+    // The space between items (Q8 A on #3345), moved one step by density.
     'size.medium.gap': 'space.300',
     'size.small.gap': 'space.200',
   },
@@ -82,7 +82,7 @@ export const pageNav: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         contentSlot: true,
-        // At least two pages and at most six (DRAFT), and only a PageNav.Item.
+        // At least two pages and at most six (Q8 A), and only a PageNav.Item.
         slotSettings: { minChildren: 2, maxChildren: 6, allowPreferredValuesOnly: true },
         preferred: ['page-nav-item'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
@@ -176,15 +176,14 @@ export const pageNav: ComponentDef = {
   },
 
   notes: {
-    contested: [
-      'The sizes, the item gap and the slot limits (two to six) are the build lane\'s DRAFT values, held for the owner on the PR.',
-    ],
+    contested: [],
     unverified: [
       'The owner\'s screens set the reference brand\'s current-page bar at about 50% of the title; Partial is round(0.5 × the title\'s width). Partial is the engine default (Q10 B), and the reference fixture sets it in a follow-up (Q6 A).',
     ],
     evolution: [
       '2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A amended, Q4 A): built as a navigation of links (PageNav.Item, nesting Link) in a native items slot, with the current page\'s bar width a brand setting, Full by default.',
       '2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover, and the bar is Partial by default.',
+      '2026-11-03 (#3345, owner decision Q8 A): the sizes (medium and small), the item gap (24px medium, 16px small at comfortable density) and the slot limits (two to six) as drafted.',
     ],
   },
 };

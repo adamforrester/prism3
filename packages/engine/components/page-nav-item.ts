@@ -8,10 +8,10 @@
  * The research the build leans on is the validation comment on #3345 (WAI-ARIA APG tabs, MDN aria-current, GOV.UK
  * service navigation, Primer UnderlineNav, Carbon, Material).
  *
- * Shape (owner decisions on #3345, 2026-11-03; the item itself is the build lane's DRAFT, Q-block on the PR):
+ * Shape (owner decisions on #3345, 2026-11-03; the item axis is Q1 A, its values Q8 A):
  *   - Q2: a LINK look, not the tab look. The item nests Link, so its ink, type, underline, hover, focus ring and
  *     current-page bar are Link's by construction, and a brand's Link changes reach the row with no extra work.
- *   - Q7 B (owner decision 2026-11-03, revising the DRAFT's inline look): a page that is not the current one is Link's
+ *   - Q7 B (owner decision 2026-11-03, revising the first build's inline look): a page that is not the current one is Link's
  *     STANDALONE look at `selection=unselected`: plain at rest, its 1px underline at hover, pressed and focus. The
  *     current page is the same standalone Link at `selection=selected`: plain text and the 2px bar, which hover never
  *     joins (Link's Q507.4). At rest only the bar marks the current page.
@@ -20,8 +20,8 @@
  *     current link in a brand draws the same bar (Q-scope on the PR).
  *   - One axis the designer sets, `selection`, passed to Link's own `selection` by `variantWhen`, rather than two Link
  *     axes (style and selection) set by hand. Link's `state` is exposed, as BreadcrumbItem exposes it.
- *   - Weight `default` on both values (DRAFT): a constant weight, so making a page current never moves its neighbors.
- *   - Sizes medium and small (DRAFT), Breadcrumbs' pair: the 16px and 14px body type.
+ *   - Weight `default` on both values (Q8 A): a constant weight, so making a page current never moves its neighbors.
+ *   - Sizes medium and small (Q8 A), Breadcrumbs' pair: the 16px and 14px body type.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -160,16 +160,15 @@ export const pageNavItem: ComponentDef = {
   },
 
   notes: {
-    contested: [
-      'The item axis is the build lane\'s DRAFT (Q-block on #3345): one `selection` switch mapped onto Link, rather than a slot that takes Link instances directly (a designer would set Link\'s style and selection by hand).',
-      'The weight (default on both) is DRAFT, read from the owner\'s description of the account rows, not measured off a file.',
-    ],
+    contested: [],
     unverified: [
       'Contrast is Link\'s: the link roles\' own contracts. No arm here re-measures it.',
     ],
     evolution: [
       '2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A, Q4 A): built as PageNav\'s item, nesting Link, with the current page\'s bar width a brand setting.',
       '2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover (Link standalone, not inline), and the bar is Partial by default.',
+      '2026-11-03 (#3345, owner decision Q1 A): the item axis is one `selection` switch mapped onto Link, rather than a slot that takes Link instances directly (a designer would set Link\'s style and selection by hand).',
+      '2026-11-03 (#3345, owner decision Q8 A): the weight is `default` on both values, read from the owner\'s description of the account rows, not measured off a file.',
     ],
   },
 };

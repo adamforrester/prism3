@@ -94,7 +94,7 @@ export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 
   // #3086: Radio dot size's home (Q578), built as Banner's is (#2924). The whole family: the dot is the control's, and
   // the row and the group draw it through the control they nest.
   { kind: 'radios', pages: [], ids: ['radio-control', 'radio-group', 'radio-row'] },
-  // #3345: Current page indicator's home (DRAFT, Q4 on #3345), built as Radio's is (#3086). The row and its item; the
+  // #3345: Current page indicator's home (Q4 A on #3345), built as Radio's is (#3086). The row and its item; the
   // bar the setting draws is Link's, which keeps its own section.
   { kind: 'pagenavs', pages: [], ids: ['page-nav', 'page-nav-item'] },
 ];

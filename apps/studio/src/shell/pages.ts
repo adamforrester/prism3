@@ -101,7 +101,7 @@ export const BANNER_DESC = 'How banners draw their surface and edge.';
 export const LINK_DESC = 'How links draw their underline.';
 // #3086: DRAFT for the owner, in Banner's pattern.
 export const RADIO_DESC = 'How big the dot in a selected radio is.';
-// #3345: DRAFT for the owner (Q3 on #3345), in Radio's pattern.
+// #3345: the owner's copy (Q3 A on #3345), in Radio's pattern.
 export const PAGE_NAV_DESC = 'How wide the line under the current page is.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
 export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
@@ -416,7 +416,7 @@ export const DOMAINS = [
       { title: 'Link', desc: LINK_DESC, rows: [{ ctl: 'underlineLink' }] },
       // #3086: Radio dot size's one home, drawn in the Radio section's Radio options block (`domains/radio-options.ts`).
       { title: 'Radio', desc: RADIO_DESC, rows: [{ ctl: 'chips', keys: ['radioDot'], drive: 'radio' }] },
-      // #3345: Current page indicator's one home (DRAFT, Q4 on #3345), drawn in the Page navigation section's options
+      // #3345: Current page indicator's one home (Q4 A on #3345), drawn in the Page navigation section's options
       // block (`domains/page-nav-options.ts`).
       { title: 'Page navigation', desc: PAGE_NAV_DESC, rows: [{ ctl: 'chips', keys: ['currentIndicator'], drive: 'page-nav' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
