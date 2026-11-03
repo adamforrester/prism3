@@ -23,12 +23,16 @@ targets are listed wallet-button first. The arms assert literals: the order puts
 wallet-button with no blockers and 50 to update, and provider-logo with 11 to add; one run adds the 11 marks and then
 updates wallet-button's 50 with no miss and no content left; a second check reads all 68 current; and a run whose
 provider-logo plans leave out `button/paypal-gold` still blocks wallet-button with that one mark named, word for word.
+A blocked provider credits nothing: a run whose provider-logo is itself blocked (one mark nests a component the file
+lacks) still blocks wallet-button on all 11 marks (`run adds/blocked provider`), since the apply would refuse
+provider-logo and add none of them.
 provider-logo's whole verdict is not asserted. The shim misreads 21 non-square outlines as drift Figma's importer does
 not have, as the #2343 arms record, and that is the same before and after this run.
 
 **Mutations** (each committed `wip:` first, restored from `HEAD`):
 - `addedThisRun` never filled: `run adds/check`, `run adds/one run`, `run adds/settled` and `run adds/unsupplied` fail.
 - `nestedFirst`'s `<id>/` match removed: `run adds/order` fails too.
+- The `!preview.blockers.length` guard on the credit removed: `run adds/blocked provider` fails.
 
 **Executor.** No file the executor reaches changed (`update-plan.ts` already imported `emitCoordValue`'s module), so
 `EXECUTOR_REVISION` stays where it is. `lint-executor-revision.ts` agrees.
