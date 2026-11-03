@@ -123,8 +123,9 @@ const SIZE: DocBlockSize = 'sm';
  *  Related as linked lists (#2970). 4: each specimen at its member's own width, the panel widening to fit (#2970 items 1
  *  and 4, #2916). 5: a specimen never under what its def declares, so Dialog's anatomy no longer collapses (#3205).
  *  6: each specimen sized again once its panel is on the page, where the host kept 5's width only until the panel
- *  moved there (#3205 follow-up). */
-const PANEL_FORMAT = 6;
+ *  moved there (#3205 follow-up). The as-built ledger records it per set (`panel`, `main.ts` `ledgerNow`), so a raise
+ *  makes a lead set due in Update file's check even when its set is current (#3205, the format-due credit). */
+export const PANEL_FORMAT = 6;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,

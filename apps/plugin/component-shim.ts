@@ -164,6 +164,15 @@ export type ShimOpts = {
    *  `layoutGrow` under a hugging row, is not modeled), and only for a frame the run creates. Off by default because
    *  the other suites' expected widths were written against the permissive model. */
   fillFreezesHug?: boolean;
+  /** A STRETCH ACROSS A HUGGING ROW'S HEIGHT (#3347), opt-in and under `layoutModel` only. MEASURED on a real file on
+   *  2026-11-02 (plugin build 89c83809, #3014's check): a child stretched (`layoutAlign: 'STRETCH'`) across a row whose
+   *  height hugs takes the row's height, and the row hugs its tallest other child, but never less than the stretched
+   *  child's own CONTENT height, its block padding plus its flow content, whatever height the child was set at.
+   *  Password field's Show button, a small Button bound 36 tall with 6px above and below a 14px line, held its label
+   *  row at 26 where the label is 21; with the label set taller (27), the row followed the label, the button with it.
+   *  The row keeps its hug either way (#3014): this models a floor, not a freeze. Off by default, because the other
+   *  suites' heights were written against a model where a stretched child measures its own height. */
+  stretchFloorsHug?: boolean;
   /** The FONT SIZE and LINE HEIGHT an applied text style gives a TEXT node, keyed by style NAME — what the
    *  host reports as `node.fontSize` / `node.lineHeight` once `setTextStyleIdAsync` resolves. The reserved-
    *  lines floor (textarea's `rows`) multiplies them, so a node with no metrics would be a floor nothing can
@@ -541,6 +550,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
     c.parent = null;
   };
   const page = opts.page;
+  /** #3308 (Q3308.3 A): a COMPONENT on a page of a several-page file (`pages`), by its own id. Figma takes a live
+   *  component's id as an instance-swap value, as the usage panel's Specimen sets it; without `pages`, none. */
+  const pageComponent = (id: string): boolean => {
+    if (!opts.pages) return false;
+    const walk = (n: Node): boolean => (n.id === id && n.type === 'COMPONENT') || ((n.children as Node[] | undefined) ?? []).some(walk);
+    return opts.pages().some((p) => p.children.some(walk));
+  };
   /** What `liveRoot`'s searches read: the top level of every page (#3308, `pages`), else `page`'s. */
   const liveTop = (): Node[] => (opts.pages ? opts.pages().flatMap((p) => p.children) : (page?.children ?? []));
   /** Charges a `burn` to the run's virtual clock (#1800). No busy-wait fallback: see `ShimOpts.burn`. */
@@ -607,7 +623,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           if (d.type === 'SLOT') throw new Error('in setProperties: cannotSetSlotProperty');
           if ((d.type === 'TEXT' && typeof v !== 'string') || (d.type === 'BOOLEAN' && typeof v !== 'boolean'))
             throw new Error('in setProperties: Property value is incompatible with component property type');
-          if (d.type === 'INSTANCE_SWAP' && (typeof v !== 'string' || !componentIds.has(v)))
+          if (d.type === 'INSTANCE_SWAP' && (typeof v !== 'string' || (!componentIds.has(v) && !pageComponent(v))))
             throw new Error(`in setProperties: Expected a component id, got ${JSON.stringify(v)}`);
         }
         for (const [k, v] of Object.entries(props)) overrides[idOfKey(k)] = v;
@@ -788,6 +804,37 @@ export const makeShim = (opts: ShimOpts = {}) => {
     return p.layoutMode === 'VERTICAL' ? n.layoutAlign === 'STRETCH' : n.layoutGrow === 1;
   };
   const innerX = (p: Node): number => (p.width as number) - padX(p) - strokeX(p);
+
+  // ── A STRETCH ACROSS A HUGGING ROW'S HEIGHT, under `stretchFloorsHug` (#3347) ─────────────────────────
+  // An INSTANCE's padding is its own override where it has one (#3347's toggle binds `space.0`), else its main's.
+  const padY = (n: Node): number => {
+    const own = n.boundVariables as Record<string, { value?: number }>;
+    const main = ((n._main as Node | undefined)?.boundVariables ?? {}) as Record<string, { value?: number }>;
+    const side = (k: string): number => own[k]?.value ?? (n.type === 'INSTANCE' ? main[k]?.value : undefined) ?? lit(n, k);
+    return side('paddingTop') + side('paddingBottom');
+  };
+  /** Is this node stretched across the height of a row that hugs it? */
+  const stretchesY = (n: Node): boolean => {
+    const p = n.parent as Node | null;
+    return !!opts.layoutModel && !!opts.stretchFloorsHug && !!p && p.layoutMode === 'HORIZONTAL' && p.counterAxisSizingMode === 'AUTO'
+      && n.layoutAlign === 'STRETCH' && n.layoutPositioning !== 'ABSOLUTE';
+  };
+  /** The least height the host lays a node out at: its block padding plus its flow content (an instance's, its main's
+   *  content under its own padding), whatever height it was set or bound at. A text node is its own line box. */
+  const contentHeight = (n: Node): number => {
+    if (n.type === 'TEXT') return n.height as number;
+    const src = n.type === 'INSTANCE' && n._main ? (n._main as Node) : n;
+    const kids = flowOf(src).map((c) => (c.height as number) || 0);
+    const content = src.layoutMode === 'VERTICAL'
+      ? kids.reduce((a, h) => a + h, 0) + Math.max(0, kids.length - 1) * gapOf(src)
+      : kids.reduce((a, h) => Math.max(a, h), 0);
+    return padY(n) + content;
+  };
+  /** A stretched child's height: the row's, inside the row's own block padding. */
+  const stretchedHeight = (n: Node): number => {
+    const p = n.parent as Node;
+    return ((p.height as number) || 0) - padY(p);
+  };
   const gapOf = (p: Node): number => (p.boundVariables as Record<string, { value?: number }>).itemSpacing?.value ?? 0;
   /** A node's own width FLOOR — a literal `minWidth`, or one bound to a variable. An INSTANCE that sets none keeps
    *  its main's, as on the host, where an instance inherits every property it does not override (Q152.3: a row's
@@ -1022,6 +1069,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       get height() {
         const bv = node.boundVariables as Record<string, { value?: number }>;
         const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
+        // STRETCHED across a hugging row (`stretchFloorsHug`): the row's height, whatever this node is bound at.
+        if (stretchesY(node)) return stretchedHeight(node);
         if (bv.height) return bv.height.value ?? 0;
         // A LITERAL `minHeight` (the reserved-lines floor, textarea's `rows`) holds the node at least that tall,
         // as the host does — a TEXT node's box is then max(floor, its own line box).
@@ -1041,7 +1090,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // `layoutModel`) stacks its children, so its main axis is their sum plus the gaps between them.
         const content = opts.layoutModel && node.layoutMode === 'VERTICAL'
           ? flow.reduce((a, c) => a + ((c.height as number) || 0), 0) + Math.max(0, flow.length - 1) * (bv.itemSpacing?.value ?? 0)
-          : flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0);
+          // …a child stretched across this row's height counts at its own content height (`stretchFloorsHug`).
+          : flow.reduce((a, c) => Math.max(a, (stretchesY(c) ? contentHeight(c) : (c.height as number)) || 0), 0);
         // THE FLOOR: a bound `minHeight` holds a hugging frame at least that tall, as the host does.
         return Math.max(bv.minHeight?.value ?? 0, litFloor, pad + content + (stroked ? 2 * (node.strokeWeight as number) : 0));
       },
@@ -1698,6 +1748,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
               Object.defineProperty(inst, 'height', {
                 configurable: true,
                 get: () => {
+                  // STRETCHED across a hugging row (`stretchFloorsHug`, #3347): the row's height, not its main's.
+                  if (stretchesY(inst)) return stretchedHeight(inst);
                   const w = fillWidth(inst);
                   if (w === undefined) return main.height;
                   main._forcedWidth = w;
