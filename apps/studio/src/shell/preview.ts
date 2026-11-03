@@ -19,7 +19,7 @@
  * legacy repaint tier.
  */
 import { currentMode, rp, setCurrentMode, subscribe, theme } from '../state/store';
-import { breadthLine, healthLine, isDerived, modeLine, verdictLine, verdictOf, type Verdict } from '../state/verdict';
+import { FLOOR_POINTER, breadthLine, healthLine, isDerived, modeLine, resolvedModes, verdictLine, verdictOf, type Verdict } from '../state/verdict';
 import { INSPECT, type InspectId } from './pages';
 import { glyph, h, hook, menuButton, tile } from './dom';
 import { ENGINE_VERSION } from '@prism3/engine/version';
@@ -294,8 +294,11 @@ const card = (title: string, sub: string | null, role: string): { el: HTMLElemen
   return { el, body };
 };
 
-/** Health: what the verdict counts, per mode (v5 Q2, Q7). The top of Inspect › Contrast. */
-const health = (): HTMLElement => {
+/** Health: what the verdict counts, per mode (v5 Q2, Q7). The top of Inspect › Contrast. #3366 (owner decision
+ *  Q3366.2 A): under the modes, a pointer to the contrast floor, the setting that moves most of what it counts. It names
+ *  the floor in Light and Dark, read off the engine's resolved roles (`foreground.brand`'s `against`, as Surfaces & fills
+ *  reads it), and `toFloor` opens that setting. */
+const health = (toFloor?: () => void): HTMLElement => {
   const v = verdict();
   const { el, body } = card('Health', 'What the verdict counts', 'health');
   const row = h('p', 'p3-health-row');
@@ -311,6 +314,19 @@ const health = (): HTMLElement => {
     list.append(li);
   }
   body.append(row, list);
+  const all = resolvedModes(theme);
+  const floors = v.per.filter((m) => m.mode === 'light' || m.mode === 'dark')
+    .map((m) => [MODE_NAME[m.mode] ?? m.mode, all.find((x) => x.mode === m.mode)?.roles['foreground.brand']?.against ?? ''] as const)
+    .filter(([, f]) => f);
+  if (floors.length && toFloor) {
+    const p = hook(h('div', 'p3-health-floor'), 'health-floor');
+    const go = hook(h('button', 'p3-btn p3-btn-ghost p3-deplink'), 'health-floor-link');
+    go.type = 'button';
+    go.append(h('span', 'p3-btn-label', FLOOR_POINTER.link), glyph('chevr'));
+    go.onclick = toFloor;
+    p.append(h('p', 'p3-note', FLOOR_POINTER.line(floors)), go);
+    body.append(p);
+  }
   return el;
 };
 
@@ -321,11 +337,11 @@ const legacyHost = (role: string): HTMLElement => {
   return n;
 };
 
-/** Paint one Inspect view into `body`. */
-export const paintInspectView = (v: InspectId, body: HTMLElement, legacy: InspectLegacy, repaint: () => void): void => {
+/** Paint one Inspect view into `body`. `toFloor` opens the contrast floor setting (Health's pointer, #3366). */
+export const paintInspectView = (v: InspectId, body: HTMLElement, legacy: InspectLegacy, repaint: () => void, toFloor?: () => void): void => {
   const stack = h('div', 'p3-stack');
   if (v === 'contrast') {
-    stack.append(health());
+    stack.append(health(toFloor));
     const host = legacyHost('inspect-contrast-table');
     legacy.contrast(host);
     stack.append(host);
