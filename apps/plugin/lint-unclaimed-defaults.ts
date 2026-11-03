@@ -321,6 +321,8 @@ const VISUALLY_SIGNIFICANT: readonly Row[] = [
   { prop: 'bottomLeftRadius', types: BOXES, deflt: '0 on a frame · 5 on a set from combineAsVariants', seen: 'a rounded corner nobody authored', claimedBy: ['bottomLeftRadius', 'cornerRadius'] },
   { prop: 'bottomRightRadius', types: BOXES, deflt: '0 on a frame · 5 on a set from combineAsVariants', seen: 'a rounded corner nobody authored', claimedBy: ['bottomRightRadius', 'cornerRadius'] },
   { prop: 'clipsContent', types: BOXES, deflt: 'true', seen: 'children cropped at the frame edge', claimedBy: ['clipsContent'] },
+  // FramePrototypingMixin (#3163): a FRAME's prototype scroll. A COMPONENT_SET has no such mixin, so the row is FRAME only.
+  { prop: 'overflowDirection', types: ['FRAME'], deflt: "'NONE'", seen: 'whether the frame scrolls its overflow in a prototype (Dialog’s body scrolls under the pinned footer)', claimedBy: ['overflowDirection'] },
 
   // AutoLayoutMixin, parent side. Figma documents these as applicable only on an auto-layout frame, so
   // with no `layoutMode` there is no gap and no padding to see.

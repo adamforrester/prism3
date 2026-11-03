@@ -58,7 +58,7 @@
 import { LARGE_TEXT_ONLY, BODY_TEXT_FLOOR } from './figma-description';
 import { RGB, contrast, hex, hexToRgb, composite, deltaE2000, emittedAlpha, luminance } from './color';
 import { Step } from './ramp';
-import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role, RaisedSurface, ScrimStrength } from './theme';
+import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role, RaisedSurface, ScrimStrength, outlineWashSteps } from './theme';
 
 // The five built-in appearance modes — the closed set the engine ships with autocomplete.
 export type BuiltinModeName = 'light' | 'dark' | 'hc-light' | 'hc-dark' | 'wireframe';
@@ -1857,7 +1857,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   if (theme.outlineInteraction === 'overlay-neutral' || theme.outlineInteraction === 'opaque-fill') {
     const overlayPal = cfg.family === 'light' ? 'black-alpha' : 'white-alpha';
     const overlayBase = cfg.family === 'light' ? BLACK : WHITE;
-    const OVERLAY_ALPHA: [string, number][] = [['hover', 10], ['pressed', 20], ['selected', 20]];
+    // #3335 (Q3335.3 A): the wash's opacity is the brand's `outlineWash`, else 10 hover and 20 pressed; selected follows
+    // pressed, as it always has. Unset, the steps are the constants this held before, so the bytes do not move.
+    const wash = outlineWashSteps(theme.outlineInteraction, theme.outlineWash)!;
+    const OVERLAY_ALPHA: [string, number][] = [['hover', wash.hover], ['pressed', wash.pressed], ['selected', wash.pressed]];
     const contentRgb = asGround('text.primary', pickMostExtreme(textCands, baseRgb).rgb);   // text.primary — the strongest content ink
     const overlayColors = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
     for (const color of overlayColors) {
@@ -2602,15 +2605,25 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       return { pal, steps, i };
     };
     const columns = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
-    const pick = theme.outlineHoverFill?.[mode];
+    const modePick = theme.outlineHoverFill?.[mode];
+    // #3335 (Q3335.5 A): a set's own pick, else the mode-wide pick, else the default rule. A set the brand does not have is
+    // refused by name rather than ignored.
+    for (const c of Object.keys(modePick?.sets ?? {}))
+      if (!columns.includes(c)) throw new Error(`outlineHoverFill.${mode}.sets.${c}: '${c}' is not one of this brand's button sets (${columns.join(', ')})`);
+    const pickFor = (color: string): { hover: string; pressed?: string; at: string } | undefined => {
+      const own = modePick?.sets?.[color];
+      if (own) return { ...own, at: `sets.${color}.` };
+      return modePick?.hover ? { hover: modePick.hover, ...(modePick.pressed ? { pressed: modePick.pressed } : {}), at: '' } : undefined;
+    };
     for (const [prefix, groundKey, groundName] of [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'inverse band']] as const) {
       const ground = rgbByRole.get(groundKey)!;
-      let fills: Record<'hover' | 'pressed', { path: string; rgb: RGB; why: string }>;
-      if (prefix === '' && pick) {
-        const h = named(pick.hover, 'hover');
+      const fillsFor = (color: string): Record<'hover' | 'pressed', { path: string; rgb: RGB; why: string }> => {
+      const pick = prefix === '' ? pickFor(color) : undefined;
+      if (pick) {
+        const h = named(pick.hover, `${pick.at}hover`);
         const dir = towardInk(h.steps, ground);
-        const p = pick.pressed ? named(pick.pressed, 'pressed') : { ...h, i: Math.min(Math.max(h.i + dir, 0), h.steps.length - 1) };
-        fills = {
+        const p = pick.pressed ? named(pick.pressed, `${pick.at}pressed`) : { ...h, i: Math.min(Math.max(h.i + dir, 0), h.steps.length - 1) };
+        return {
           hover: { path: `${ns}.${h.pal}.${h.steps[h.i].key}`, rgb: h.steps[h.i].rgb, why: 'the brand\'s pick' },
           pressed: { path: `${ns}.${p.pal}.${p.steps[p.i].key}`, rgb: p.steps[p.i].rgb, why: pick.pressed ? 'the brand\'s pick' : 'the next step past hover' },
         };
@@ -2622,13 +2635,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         if (!side.length) throw new Error(`outlineInteraction opaque-fill: ${mode} has no ${r2p.neutral} step on the ink side of ${groundKey}`);
         const h = side.reduce((a, b) => (Math.abs(contrast(b.x.rgb, ground) - HOVER_RATIO) < Math.abs(contrast(a.x.rgb, ground) - HOVER_RATIO) ? b : a)).i;
         const p = Math.min(Math.max(h + dir, 0), neutralSteps.length - 1);
-        fills = {
+        return {
           hover: { path: `${ns}.${r2p.neutral}.${neutralSteps[h].key}`, rgb: neutralSteps[h].rgb, why: `the default step on the ${groundName}` },
           pressed: { path: `${ns}.${r2p.neutral}.${neutralSteps[p].key}`, rgb: neutralSteps[p].rgb, why: 'the next step past hover' },
         };
       }
+      };
       for (const color of columns) {
         if (!roles[`${prefix}interactive.${color}.fill.rest`]) continue;
+        const fills = fillsFor(color);
         for (const st of HOVER_FILL_STATES) {
           const f = fills[st];
           const fillKey = `${prefix}interactive.${color}.hover-fill.${st}`;
@@ -2817,6 +2832,10 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
   // one a solid-tint brand would carry.
   const columns = only ? [only.color] : ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
   const grounds = [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const;
+  // #3335 (Q3335.3 A): where the tinted wash starts is the brand's `outlineWash` under `solid-tint`, else 20/30. The
+  // overlay brand's one selected leaf (`only`) is not the wash the brand tunes, so it keeps the tinted default.
+  const start = only ? { hover: TINT_NOMINAL.hover, pressed: TINT_NOMINAL.pressed } : outlineWashSteps('solid-tint', theme.outlineWash)!;
+  const nominalOf = (st: string): number => (st === 'hover' ? start.hover : start.pressed);
   for (const [prefix, groundKey, groundName] of only ? grounds.slice(0, 1) : grounds) {
     for (const color of columns) {
       const fillKey = `${prefix}interactive.${color}.fill.rest`;
@@ -2831,17 +2850,17 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
       const visible = (st: string, s: number) => cells(st).every((c) => deltaE2000(composite(c.ground, c.fill, s / 100), c.ground) >= TINT_VISIBLE_DE);
 
       // hover: the text guard steps down; failing nothing, the visibility guard steps up under the text cap.
-      let h = steps.indexOf(TINT_NOMINAL.hover);
+      let h = steps.indexOf(nominalOf('hover'));
       if (!legible('hover', steps[h])) { while (h > 0 && !legible('hover', steps[h])) h--; }
       else while (!visible('hover', steps[h]) && h + 1 < steps.length && legible('hover', steps[h + 1])) h++;
       // pressed/selected: ungated for text; at least one step above hover, then up until visible.
-      let p = Math.max(steps.indexOf(TINT_NOMINAL.pressed), h + 1);
+      let p = Math.max(steps.indexOf(nominalOf('pressed')), h + 1);
       while (!visible('pressed', steps[p]) && p + 1 < steps.length) p++;
 
       for (const [st, i] of [['hover', h], ['pressed', p], ['selected', p]] as const) {
         if (only && st !== only.state) continue;
         const step = steps[i];
-        const nominal = TINT_NOMINAL[st];
+        const nominal = nominalOf(st);
         const why = step < nominal ? `, stepped down from opacity.${nominal} to keep the ${st} label legible`
           : step > nominal ? `, stepped up from opacity.${nominal} so the ${st} is visible on the ${groundName}` : '';
         const gated = st === 'hover';
