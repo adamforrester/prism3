@@ -39,9 +39,12 @@ the single answer landed, and nothing said how far the check had got. The owner 
   - The foot's progress is gone once the answer lands.
 - `test-open-large-file.ts`, `check/progress`: the template's check posts done 0 of 60 and then 1 to 60, in order. Each
   reading names its set and the next, sits in its own turn, and lands before the answer.
+- `test-open-large-file.ts`, `check/progress refused`: with one def the engine can't plan, the count starts at 1 of 60
+  and still reaches 60 of 60, and the answer names that def refused. Added after review: no arm held the refused term.
 
 Mutations, each failing by name:
 - every row reading "Checking…" while the check is out → `#3302 Q3302.2 A` (and Q3302.3 A);
 - the foot left at "Reading this file…" → `#3302 Q3302.1 A`;
 - the first reading dropped → `check/progress`;
 - the hand-back after each set dropped → `check/progress`.
+- the refused defs left out of the count (`done: p.done`) → `check/progress refused`.

@@ -998,6 +998,22 @@ console.log('\n  Capture baseline and Adopt (#3189)');
     console.log(`    the answer changed ${moved} of ${N} sets' lines from their readings`);
   }
   console.log(`    the check's host calls: ${kept.calls} over the pass's reads, ${fresh.calls} reading every set`);
+  //   · `check/progress refused`: a def the engine can't plan counts as checked from the start, so the count still
+  //     reaches N: done 1 of N, then 2 to N, and the answer names it refused. Here one def's `anatomy` throws on read,
+  //     so planning it fails, and it is put back after. Mutation: `done: refused.length + p.done` → `done: p.done`.
+  {
+    const bad = tdefs.find((d) => !d.figmaProperties!.emitAsComponents)!;
+    const desc = Object.getOwnPropertyDescriptor(bad, 'anatomy')!;
+    Object.defineProperty(bad, 'anatomy', { get() { throw new Error('a stand-in def the engine cannot plan'); }, configurable: true, enumerable: true });
+    let r: Awaited<ReturnType<typeof checkOf>>;
+    try { r = await checkOf(); } finally { Object.defineProperty(bad, 'anatomy', desc); }
+    const N = tdefs.length;
+    const dones = r.progress.map((p) => p.msg.done);
+    const counts = JSON.stringify(dones) === JSON.stringify(Array.from({ length: N }, (_, i) => i + 1)) && r.progress.every((p) => p.msg.total === N);
+    const named = (r.msg?.refused ?? []).some((x: any) => x.def === bad.id);
+    ok(counts && named,
+      `check/progress refused: with ${bad.id} refused by the engine, the count starts at 1 of ${N} and reaches ${N} of ${N}, and the answer names it refused (done ${JSON.stringify(dones.length > 4 ? [...dones.slice(0, 2), '…', ...dones.slice(-2)] : dones)}; named ${named})`);
+  }
 
   // #3348: A WRITE DROPS EVERY KEPT VIEW, as it starts and as it ends (`guarded`): a write moves members with no change
   // the views hear in time. Each set's read is kept again here, then a write runs: one the guard brackets (an update of
