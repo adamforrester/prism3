@@ -21,9 +21,9 @@ CONTRACT is unchanged.
   Select, the Code input cell, and Counter (outline).
 - **Underline Field style is unchanged.** `applyFieldStyle` drops `borderInset` under underline. That edge has no side
   border to sit inside, and its inline padding is 0, so an inside ring would draw over the value. The ring stays
-  outside at the control offset (#2695 Q3). This includes a Search field whose own style is underline. **Held for the
-  owner on the PR:** the decision said "Search field (both edge styles)", which this reads as both of its edge sources
-  (its own style lever and Field style) for the outline edge.
+  outside at the control offset (#2695 Q3). This includes a Search field whose own style is underline. **Owner
+  decision Q-F1 A (2026-11-03):** underline-edge fields, Search's underline style included, keep the outside ring, and
+  outline-edge fields get the inset focus. This narrows #3328 Q2's "Search field (both edge styles)" to the outline edge.
 - The `focus` accessibility lines on Text field, Textarea, Select, Code input and Counter now describe the inside
   indicator for code: an outline with a negative offset of the border width plus the band width.
 
@@ -32,7 +32,8 @@ CONTRACT is unchanged.
 - **The paste shell has 11 B of headroom.** The ring code runs in every paste chunk's shell, and #1798 caps the
   indivisible unit at 37,800 B. Main was at 37,718, and this change landed at 37,789 after trimming four of the ring
   loop's paste-side miss strings (the plugin executor keeps its long ones). The next shell addition will need the
-  ceiling argued, or bytes found elsewhere. icon-button re-pins from 17 to 18 chunks.
+  ceiling argued, or bytes found elsewhere. icon-button re-pins from 17 to 18 chunks. With #3369 also on main the
+  two together reach 37,858 B. #3369 frees 115 B elsewhere in the shell, so the pair fits in either merge order.
 - The corner binding on an instance is a host write that has not yet been run on a live Figma host. The shim reads it
   back. The first Update of a file holding a focused field is that probe.
 
@@ -41,3 +42,10 @@ CONTRACT is unchanged.
 See the PR's Ready comment for the full `npm run verify` table and every mutation. Two new `test.ts` arms:
 `#3328 field focus geometry` (both executors, 8 controls) and `#3328 field focus 2.4.13` (8 controls × 5 brands ×
 4 modes against literal 3:1 and 2px). `lint-absolute-inset.ts` gains `MUST_SIT_INSIDE_BORDER`.
+
+A third arm, `#3328 Q-F1 underline keeps the outside ring`, came from the review: the underline exception was ungated,
+so deleting `applyFieldStyle`'s `borderInset` drop passed every gate. The arm draws all 7 underline-edge fields under
+underline through both executors. Each plan's ring must carry no `absoluteBorderInset`, and the ring must sit exactly
+4px outside the field on every side (2px offset plus the 2px stroke, compensated outward). Mutation: keeping
+`borderInset` under underline fails it by name on the plan and on both executors. The ring then lands at −1,−1, 1px
+outside, which a looser "outside on every side" check would have passed.

@@ -27104,6 +27104,52 @@ arm: {
             `#3328 field focus geometry: on all ${FOCUS_CONTROLS.length} field controls, through both executors (${measured} of ${FOCUS_CONTROLS.length * 2} builds), the focus ring sits ${FIELD_BORDER}px inside the field on every side, takes the field's own corner variables, and leaves a 2px band inside the border${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
         }
 
+        // #3328 Q-F1 A (owner, 2026-11-03): AN UNDERLINE-EDGE FIELD KEEPS THE OUTSIDE FOCUS RING. The underline has no
+        // side border to sit inside, so `applyFieldStyle` drops `borderInset` and the ring goes back outside at the
+        // control offset (#2695 Q3). Every field the lever reaches, Search's own underline style included, drawn under
+        // underline and built through BOTH executors. EXPECTED is typed here: the plan carries no absoluteBorderInset,
+        // and the ring sits OUTSIDE the field by the control offset plus its own stroke, compensated outward
+        // (2 + 2 = 4px on every side, at the pinned values below). The outline edge's inside ring sits at +1, and a ring
+        // that kept the border inset under underline sits at -(offset - border) = -1; both fail here.
+        // Mutation: `applyFieldStyle` keeps `borderInset` under underline → this line fails by name.
+        {
+          const UNDERLINE_FIELDS = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input-cell'];
+          const OFFSET = 2;
+          const RING = 2;
+          const OUT = OFFSET + RING;
+          const walkN = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walkN))];
+          const targetsOf = (n: FigmaNodePlan): string[] => [n.nestTarget, n.swapTarget, ...(n.children ?? []).flatMap(targetsOf)].filter((x): x is string => typeof x === 'string');
+          const planRing = (n: FigmaNodePlan): FigmaNodePlan | undefined => n.name === 'focusRing' ? n : (n.children ?? []).map(planRing).find(Boolean);
+          const wrong: string[] = [];
+          let measured = 0;
+          for (const id of UNDERLINE_FIELDS) {
+            const fd = componentDefs.find((d) => d.id === id);
+            const plan = fd && figmaAnatomySet(applyFieldStyle(fd, 'underline'), { swapTarget: 'FPO-default-icon' })
+              .find((p) => (p.coord as Record<string, string>).state === 'focus-visible');
+            if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
+            const pr = planRing(plan.root);
+            if (!pr) { wrong.push(`${id}: the plan carries no focusRing`); continue; }
+            if (pr.absoluteBorderInset !== undefined) wrong.push(`${id} plan: the underline ring carries absoluteBorderInset '${pr.absoluteBorderInset}', so it is sited inside an edge with no side border`);
+            const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': 1, 'focus/ring/offset': OFFSET, 'focus/ring/width': RING } };
+            const pastePage: StubPage = { children: [] };
+            const plugPage: StubPage = { children: [] };
+            await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
+            await plugRun([plan], { ...opts, page: plugPage });
+            for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
+              const all = (page.children as Record<string, unknown>[]).flatMap(walkN);
+              const ring = all.find((n) => n.name === 'focusRing');
+              const host = all.find((n) => ((n.children as Record<string, unknown>[]) ?? []).includes(ring as Record<string, unknown>));
+              if (!ring || !host) { wrong.push(`${id} ${path}: no ring or host`); continue; }
+              const [x, y, w, h, W, H] = [ring.x, ring.y, ring.width, ring.height, host.width, host.height] as number[];
+              if (!(x === -OUT && y === -OUT && w === W + 2 * OUT && h === H + 2 * OUT))
+                wrong.push(`${id} ${path}: ring at ${x},${y} ${w}×${h} in a ${W}×${H} field, not ${OUT}px outside it on every side`);
+              measured++;
+            }
+          }
+          ok(measured === UNDERLINE_FIELDS.length * 2 && wrong.length === 0,
+            `#3328 Q-F1 underline keeps the outside ring: on all ${UNDERLINE_FIELDS.length} underline-edge fields, through both executors (${measured} of ${UNDERLINE_FIELDS.length * 2} builds), the focus ring carries no border inset and sits 4px outside the field on every side${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+        }
+
         // #1009 ACROSS BOTH PATHS. The paste path's write is one line in a generated string, which no
         // typechecker reads and no plugin test reaches — so without this the codegen half of half 2 would
         // be unverified while the plugin half looked complete. Read off the two PAGES, not off the plans.
