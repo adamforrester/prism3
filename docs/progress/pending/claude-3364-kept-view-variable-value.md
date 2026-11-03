@@ -26,10 +26,12 @@ A **library** variable's value is not a local variable, so it is not in the prin
   - `values/no print`: a read with no print to compare against is never kept.
 - `test-open-large-file.ts`, `check/values`: the same through `main.ts`'s own check on the template stand-in, which gains one variable for the arm. Every set's read is kept, a value is edited, and an unedited set's member re-resolves its opacity with no `documentchange`. The second check equals a fresh read.
 - The existing `views/…` arms now print the variables before they keep a view.
+- `test-open-large-file.ts` clears the kept views and the print before the template's open, so `check/views` and `check/calls` measure the reads kept under the pass's own print, not one an earlier arm's check left in the module.
 
 Mutations, each failing by name:
 - `noteVariables` not dropping on a moved print → `values/edited` and `check/values`;
 - `previewUpdate` not printing as the check starts → `values/edited` and `check/values`;
 - `checkSets` passing a no-op `under` → `check/values`;
 - a refused print kept → `values/unreadable`;
-- `keepView` not asking for a print → `values/no print`.
+- `keepView` not asking for a print → `values/no print`;
+- the pass's own `noteVariables(await variablesPrint(figma))` removed → `check/views` (0 kept) and `check/calls` (2,002,325 host calls).

@@ -272,7 +272,7 @@ timings.push = (...e: { stage: string; ms: number }[]) => Array.prototype.push.c
 g.PRISM3_OPEN_TIMINGS = timings;
 
 const { ACTIONS } = await import('./src/main');
-const { dropViews, keepView, keptCount, keptView, noteVariables, variablesPrint, viewEpoch } = await import('./src/member-views');
+const { dropViews, keepView, keptCount, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } = await import('./src/member-views');
 const { freshView, readSetView } = await import('./src/update-plan');
 
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
@@ -861,6 +861,10 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   theart();
   panelLive = false;
   calls = 0; callsIn.clear(); kindReadsIn.clear(); loads = 0;
+  // #3364: the kept views and the variables print cleared, as a fresh open finds them, so the reads the check below
+  // reuses are kept under the print the pass itself takes, not one an earlier arm's check left in the module. Mutation:
+  // the pass's `noteVariables(await variablesPrint(figma))` removed → `check/views` and `check/calls`.
+  watchViews(false); watchViews(true);
   const from = posted.length;
   const start = wall();
   counting = true;
@@ -923,7 +927,8 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   // #3313: THE UPDATE CHECK ON THE TEMPLATE, after the open above, every set the template holds ticked. On `main` it made
   // 2.6M host calls: every member read again, and every component's name read once per set (`fileBlockers`).
   //   · `check/calls`: the check makes at most `CHECK_CAP` host calls. Mutations, each → `check/calls`: `fileBlockers`
-  //     reading every component's name per set again; the check not given the pass's reads (`keptView` dropped).
+  //     reading every component's name per set again; the check not given the pass's reads (`keptView` dropped); the
+  //     pass's own variables print removed (#3364: its reads are then refused, as on the first check after an open).
   //   · `check/same`: the check's answer is the same, whole, whether it lays its plans against the pass's reads, against
   //     them a second time, or against a fresh read of every set.
   //   · `check/views`: every set the pass read is kept, and each kept read, as the check hands it on (`freshView`), is a
