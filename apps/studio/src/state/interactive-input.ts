@@ -170,28 +170,34 @@ export type InteractiveRow = {
   readonly paletteKey: string; readonly write: InteractiveWrite; readonly column?: string;
 };
 
+/** A group's rest row's label (#3335, Q3335.7 A). */
+export const REST_LABEL = 'Rest';
 /** The rows a column carries, in the legacy page's order. `paletteKey` is the column's own (`action`,
  *  `neutral`, `danger`, or an accent's palette). Neutral's fill has no anchor, so it is an override; the
  *  overlay wash and the subtle tint are read-outs. */
 export const interactiveRowsFor = (col: string, paletteKey: string): InteractiveRow[] => {
   const out: InteractiveRow[] = [];
   const row = (role: string, group: string, label: string, pk: string, write: InteractiveWrite): void => { out.push({ role, group, label, paletteKey: pk, write, column: col }); };
+  // #3335 (the owner's Q3335.7 A): the group is the title its rows sit under, and a group with states names its rest row
+  // `Rest` (`REST_LABEL`), since the title carries the name.
   const withStates = (base: string, group: string, pk: string, rest: InteractiveWrite, states: InteractiveWrite): void => {
-    row(`${base}.rest`, group, group, pk, rest);
+    row(`${base}.rest`, group, REST_LABEL, pk, rest);
     row(`${base}.hover`, group, 'Hover', pk, states);
     row(`${base}.pressed`, group, 'Pressed', pk, states);
   };
   const p = `interactive.${col}`, inv = `inverse.interactive.${col}`;
-  withStates(`${p}.fill`, 'Fill · rest', paletteKey, col === 'neutral' ? 'override' : 'anchor', 'override');
+  withStates(`${p}.fill`, 'Fill', paletteKey, col === 'neutral' ? 'override' : 'anchor', 'override');
   withStates(`${inv}.fill`, 'Fill · inverse', paletteKey, 'inverse-fill', 'override');
-  withStates(`${p}.text`, 'Text · rest', paletteKey, 'override', 'override');
+  withStates(`${p}.text`, 'Text', paletteKey, 'override', 'override');
   withStates(`${inv}.text`, 'Text · inverse', paletteKey, 'override', 'override');
-  withStates(`${p}.border`, 'Border · rest', paletteKey, 'override', 'override');
+  withStates(`${p}.border`, 'Border', paletteKey, 'override', 'override');
   withStates(`${inv}.border`, 'Border · inverse', paletteKey, 'override', 'override');
-  row(`${p}.overlay.hover`, 'Overlay wash', 'Overlay wash', 'neutral', 'readout');
+  // The hover group follows the method (Q3335.7 A, and the owner's amendment): a wash has no rest row, so its Hover and
+  // Pressed sit side by side under the group's title. Under Solid fill the page draws the set's own pickers in its place.
+  row(`${p}.overlay.hover`, 'Overlay wash', 'Hover', 'neutral', 'readout');
   row(`${p}.overlay.pressed`, 'Overlay wash', 'Pressed', 'neutral', 'readout');
-  row(`${p}.subtle-fill.hover`, 'Subtle tint', 'Subtle tint', paletteKey, 'readout');
-  row(`${p}.subtle-fill.pressed`, 'Subtle tint', 'Pressed', paletteKey, 'readout');
+  row(`${p}.subtle-fill.hover`, 'Tinted wash', 'Hover', paletteKey, 'readout');
+  row(`${p}.subtle-fill.pressed`, 'Tinted wash', 'Pressed', paletteKey, 'readout');
   row(`${p}.on-fill`, 'On-fill text', 'On-fill text', 'neutral', 'override');
   row(`${inv}.on-fill`, 'On-fill text · inverse', 'On-fill text · inverse', 'neutral', 'override');
   return out;
