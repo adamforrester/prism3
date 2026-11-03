@@ -30,7 +30,7 @@ Shown on the default member: type `unordered`, size `medium`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `type` | `unordered`, `ordered`, `icon` | once, when authored | unordered (a \<ul> with bullets) when the order carries no meaning; ordered (an \<ol>, numbered) when it does; icon (a \<ul> with an icon before each item) for points such as requirements or features. Passed to every item. |
-| `size` | `medium`, `small`, `large` | once, when authored | The text size, body small, medium or large, with the marker, the marker column and the space between items sized to it. Passed to every item. |
+| `size` | `medium`, `x-small`, `small`, `large` | once, when authored | The text size, 12, 14, 16 or 18px, with the marker, the marker column and the space between items sized to it. Use x-small for tight rule lists, such as password requirements. Passed to every item. |
 
 ## Usage guidelines
 
@@ -90,14 +90,14 @@ One phrase or sentence per item, sentence case, every item the same grammatical 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `type` | enum: 'unordered' \| 'ordered' \| 'icon' | `unordered` | no | unordered (a \<ul> with bullets) when the order carries no meaning; ordered (an \<ol>, numbered) when it does; icon (a \<ul> with an icon before each item) for points such as requirements or features. Passed to every item. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The text size, body small, medium or large, with the marker, the marker column and the space between items sized to it. Passed to every item. |
+| `size` | enum: 'x-small' \| 'small' \| 'medium' \| 'large' | `medium` | no | The text size, 12, 14, 16 or 18px, with the marker, the marker column and the space between items sized to it. Use x-small for tight rule lists, such as password requirements. Passed to every item. |
 | `start` | number | `1` | no | Ordered only: the number the first item shows. |
 | `reversed` | boolean | `false` | no | Ordered only: count down instead of up. |
 | `items` | slot of `list-item`, 1 or more | — | yes | The items, each a List.Item, in order. Three by default; a designer adds, removes and reorders them in place. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 9 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 12 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -121,6 +121,13 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.200` | — | — | 120px (literal) | build width 320px (literal) |
 | `container/items` | — | `space.200` | — | — | — | — |
+
+**size=x-small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.050` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.050` | — | — | — | — |
 
 **size=small**
 
