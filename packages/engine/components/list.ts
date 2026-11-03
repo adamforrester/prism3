@@ -5,8 +5,8 @@
  *
  * A column of nested `list-item` instances, each following the list's `type` and `size`, held in a native `items` slot
  * (#2649, owner decision Q307 A): three by default, which a designer adds to, removes and reorders on an instance. Until
- * #2649 items 4 to 8 sat behind Figma-only booleans (#2344). The set is `type` × `size`: 9 members (owner decisions
- * Q273.2, Q273.3, Q273.4).
+ * #2649 items 4 to 8 sat behind Figma-only booleans (#2344). The set is `type` × `size`: 12 members (owner decisions
+ * Q273.2, Q273.3, Q273.4; `x-small` added by #3330).
  *
  * NATIVE TEXT LISTS VERSUS THIS COMPONENT (Q273.9): both are supported. A native Figma text list is for running text,
  * content that renders as rich text (an article body, terms, long help text); this component is for UI lists (password
@@ -15,7 +15,7 @@
  * carried in `summary` (the Figma description), `ai.avoidWhen` and the docs page.
  *
  * THE ITEM GAP (owner decision on #3155, revising Q280.2 A's 8/12/16): 12/16/20 (`space.150` / `200` / `250`), and it
- * follows density.
+ * follows density. `x-small` (#3330, owner decisions Q3 A, Q4 A): 4px (`space.050`), following density like the others.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -44,7 +44,7 @@ export const list: ComponentDef = {
 
   props: [
     { name: 'type', type: "enum: 'unordered' | 'ordered' | 'icon'", values: ['unordered', 'ordered', 'icon'], default: 'unordered', required: false, description: 'unordered (a <ul> with bullets) when the order carries no meaning; ordered (an <ol>, numbered) when it does; icon (a <ul> with an icon before each item) for points such as requirements or features. Passed to every item.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The text size, body small, medium or large, with the marker, the marker column and the space between items sized to it. Passed to every item.' },
+    { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large'", values: ['x-small', 'small', 'medium', 'large'], default: 'medium', required: false, description: 'The text size, 12, 14, 16 or 18px, with the marker, the marker column and the space between items sized to it. Use x-small for tight rule lists, such as password requirements. Passed to every item.' },
     { name: 'start', type: 'number', default: 1, required: false, description: 'Ordered only: the number the first item shows.' },
     { name: 'reversed', type: 'boolean', default: false, required: false, description: 'Ordered only: count down instead of up.' },
     { name: 'items', type: 'slot', anyOf: ['list-item'], minItems: 1, required: true, description: 'The items, each a List.Item, in order. Three by default; a designer adds, removes and reorders them in place.' },
@@ -55,7 +55,7 @@ export const list: ComponentDef = {
 
   variants: {
     type: ['unordered', 'ordered', 'icon'],
-    size: ['medium', 'small', 'large'],
+    size: ['medium', 'x-small', 'small', 'large'],
   },
   axisKinds: { type: 'authoring', size: 'authoring' },
 
@@ -64,6 +64,7 @@ export const list: ComponentDef = {
   tokens: {
     // THE ITEM GAP (owner decision on #3155): 12/16/20 at comfortable density, one step wider than Q280.2 A's 8/12/16,
     // and still moved one step by density.
+    'size.x-small.gap': 'space.050',
     'size.small.gap': 'space.150',
     'size.medium.gap': 'space.200',
     'size.large.gap': 'space.250',
@@ -179,6 +180,7 @@ export const list: ComponentDef = {
       'What Dev Mode shows for a native Figma text list (list spacing, the marker, bound paragraph variables) — not checked; the build lane has no Dev Mode (#2319, Q273.10).',
     ],
     evolution: [
+      '2026-11-03 (#3330): owner decisions Q1–Q4 A — an `x-small` size below `small` for tight rule lists such as password requirements: the items in `type.body.xs` 12/18, and a 4px item gap (`space.050`) that follows density (Q4 A). 12 members.',
       '2026-10-29 (#3155): owner decision — the item gap one step wider at every size, 12/16/20 (`space.150` / `200` / `250`), revising Q280.2 A\'s 8/12/16. It still follows density.',
       '2026-10-15 (#2645): the nested items carry their own numbers, "2." to "8." after the first item\'s "1.", through a per-instance text override; they no longer all read "1." until a designer types them.',
       '2026-10-13 (#2319): owner decisions Q273 — the read list now (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), names, category data and its own page (Q273.7), markers at the text\'s strength (Q273.8), and native text lists for running text, the component for UI lists (Q273.9). Native list fields verified against the plugin typings (Q273.10): paragraph spacing and indent bind, list spacing and the marker do not.',

@@ -26,7 +26,12 @@
  *        `Q3306.3 A: a tick writes the chosen set alone …`; `neededOf` descending into a set the file holds →
  *        `Q3306.3 A: a set the file holds is not descended into …`.
  *     .4 the needing set's name dropped from the held name (`neededBy` returning the name alone) → `Q3306.4 A: …`.
- *     .5 the badge counting needed sets (`badgeParts.add` + `neededNamesOf`) → `Q3306.5 A: the badge counts chosen …`.
+ *     .5 the badge counting needed sets (`badgeParts.add` + the needed names) → `Q3306.5 A: the badge counts chosen …`.
+ *     Also adds (owner's calls on the review, A and B): a private part named (`alsoAddsOf` without its `isPrivate`
+ *        filter) → `Also adds (owner, A and B): one line …`; the `_Doc-block` sets dropped from it → the same arm.
+ *     Review nits: `rootsOf` without `isPrivate` → `Q3306.1 A: a private part is never a root, even where nothing nests it`;
+ *        `neededOf` without its `buildable` skip → `Q3306.3 A: a nested set that can't be built is not needed …`.
+ *     Select all (owner, A): `selectAllOf` skipping needed sets → `Q3306.3, Select all A: Select all queues a needed set …`.
  *     .6 an on box taking out every set it could add (`toggleSets` without its chosen filter) → `Q3306.6 A: …`.
  *   · search keeping a family only on its own label → `search: a family stays while any of its sets matches`.
  *   · Stop ending the run at once (before the current set's result) → `call 16: Stop waits for the set being built…`.
@@ -56,7 +61,7 @@ import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS, BANNER_STYL
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
-import { badgeParts, neededNamesOf, queuedOf, UPDATE_COPY } from './src/state/update-file';
+import { alsoAddsOf, badgeParts, queuedOf, UPDATE_COPY } from './src/state/update-file';
 
 let failed = 0;
 let executed = 0;
@@ -243,7 +248,11 @@ ok(JSON.stringify(splits) === JSON.stringify(WIRE_SPLITS),
   `Q3306.1 A: the families that split are those with two or more roots, Buttons, Icon button, Flush icon button and Icons & assets, each with its roots (${JSON.stringify(splits)})`);
 ok(['Checkbox', 'Radio', 'Switch', 'Tabs', 'Accordion', 'Breadcrumbs', 'Code input'].every((l) => { const r = allRows.find((x) => x.label === l); return r && r.family && !splitsOf(catalog, r); })
   && JSON.stringify(rootsOf(catalog, ['_accordion-indicator', 'accordion'])) === JSON.stringify(['accordion']),
-  'Q3306.1 A: a family with one root keeps one box (Checkbox, Radio, Switch, Tabs, Accordion, Breadcrumbs, Code input), and a private part is never a root');
+  'Q3306.1 A: a family with one root keeps one box (Checkbox, Radio, Switch, Tabs, Accordion, Breadcrumbs, Code input)');
+// The review's nit 2: the fixture above is vacuous (Accordion nests its indicator, so the indicator is no root either way).
+// Here nothing in the ids nests the private part, so only the `isPrivate` filter keeps it out.
+ok(JSON.stringify(rootsOf(catalog, ['_accordion-indicator', 'tag'])) === JSON.stringify(['tag']),
+  `Q3306.1 A: a private part is never a root, even where nothing nests it (${JSON.stringify(rootsOf(catalog, ['_accordion-indicator', 'tag']))})`);
 // The rule is the catalog's: a planted family whose second set stops nesting the first gains a root, and splits.
 const plantedCheckbox: Catalog = catalog.map((e) => (e.id === 'checkbox-row' ? { ...e, nests: [] } : e));
 const plantedRow = groupsOf(plantedCheckbox).flatMap((g) => g.rows).find((r) => r.label === 'Checkbox')!;
@@ -259,6 +268,17 @@ ok(JSON.stringify([...need]) === JSON.stringify([['button', ['button-group']], [
   `Q3306.3 A: the needed sets are what the chosen sets nest, transitively, that the file lacks, each with the chosen sets that need it (${JSON.stringify([...need])})`);
 ok(neededOf(catalog, new Set(['button-group']), ['button']).size === 0,
   `Q3306.3 A: a set the file holds is not descended into, as build-deps does not (${JSON.stringify([...neededOf(catalog, new Set(['button-group']), ['button'])])})`);
+// The review's nit 3: a set the engine can't build is never needed. Planted: Tag nests a set with no geometry.
+const offNested: Catalog = [...catalog.map((e) => (e.id === 'tag' ? { ...e, nests: [...e.nests, 'planted-off'] } : e)), off];
+ok(neededOf(offNested, new Set(['tag']), has).size === 0,
+  `Q3306.3 A: a nested set that can't be built is not needed, as build-deps builds only buildable sets (${JSON.stringify([...neededOf(offNested, new Set(['tag']), has)])})`);
+// Owner's call on the review (Select all, A): Select all queues the needed sets it covers as chosen. With Button.Group,
+// Destructive and Neutral chosen, Button is needed and held; Select all over Buttons queues Button, which then is chosen.
+const pickedButtons = new Set(['button-group', 'button-destructive', 'button-neutral']);
+const selAll = selectAllOf(catalog, ['button', 'button-destructive', 'button-group', 'button-neutral'], pickedButtons, has);
+const afterAll = new Set([...pickedButtons, ...selAll]);
+ok(JSON.stringify(selAll) === JSON.stringify(['button']) && heldBy(catalog, ['button'], afterAll, has) === null && !neededOf(catalog, afterAll, has).has('button'),
+  `Q3306.3, Select all A: Select all queues a needed set as chosen, so it is no longer held (${JSON.stringify(selAll)})`);
 const tick = toggleSets(catalog, ['button-group'], new Set(), has);
 let q6 = apply(new Set(), tick);
 const untick = toggleSets(catalog, ['button-group'], q6, has);
@@ -285,10 +305,21 @@ ok(UPDATE_COPY.status.needed === 'Needed' && GROUPS_COPY.neededBy('Button', ['Bu
 // Q3306.5 A: the badge counts chosen sets only; To add's Also line names the needed ones, in and out of the family.
 const sampleQueue = ['button-group', 'tag', 'icon-button'];
 const bp = badgeParts(catalog, { present: has, setUp: true, error: null, due: {} }, null, sampleQueue);
-const also = neededNamesOf(catalog, { present: has }, sampleQueue);
+const also = alsoAddsOf(catalog, { present: has }, sampleQueue, true);
 ok(bp.add === 3 && queuedOf(catalog, { present: has }, sampleQueue).length === 3 && JSON.stringify(also) === JSON.stringify(['Button', 'Spinner'])
-  && UPDATE_COPY.alsoAdded(also) === 'Also added, because the sets above nest them: Button, Spinner.' && neededNamesOf(catalog, { present: has }, ['tag']).length === 0,
-  `Q3306.5 A: the badge counts the 3 chosen sets, matching To add's rows; the Also line names the needed ones ("${UPDATE_COPY.alsoAdded(also)}"), and there is none when nothing is needed (badge ${bp.add})`);
+  && UPDATE_COPY.alsoAdds(also) === 'Also adds: Button, Spinner.' && alsoAddsOf(catalog, { present: has }, ['tag'], true).length === 0,
+  `Q3306.5 A: the badge counts the 3 chosen sets, matching To add's rows; the Also line names the needed ones ("${UPDATE_COPY.alsoAdds(also)}"), and there is none when nothing is needed (badge ${bp.add})`);
+// Owner's calls on the review: ONE "Also adds" line for everything built alongside the picks, the needed sets and #3308's
+// `_Doc-block` sets together, each once (Spinner is both), in Components' order; a private part (Accordion's indicator,
+// needed by Accordion) is built but never named. Panels off: the `_Doc-block` sets drop out.
+const dbFile = { present: has, docBlockLacks: ['tag', 'divider', 'list-item', 'spinner'] };
+const dbQueue = ['button-group', 'tag', 'accordion'];
+const allAlso = alsoAddsOf(catalog, dbFile, dbQueue, true);
+ok(JSON.stringify(allAlso) === JSON.stringify(['Button', 'Divider', 'List Item', 'Spinner']) && UPDATE_COPY.alsoAdds(allAlso) === 'Also adds: Button, Divider, List Item, Spinner.'
+  && neededOf(catalog, new Set(dbQueue), has).has('_accordion-indicator'),
+  `Also adds (owner, A and B): one line, the needed sets and the _Doc-block sets together, each once, no private part ("${UPDATE_COPY.alsoAdds(allAlso)}")`);
+ok(JSON.stringify(alsoAddsOf(catalog, dbFile, dbQueue, false)) === JSON.stringify(['Button', 'Divider', 'Spinner']),
+  `Also adds: with the panels off, only the needed sets (${JSON.stringify(alsoAddsOf(catalog, dbFile, dbQueue, false))})`);
 
 // Q3306.6 A: an on family box takes out only the sets chosen in it; a set a chosen set elsewhere needs stays held.
 const icons = ['icon', 'provider-logo'];

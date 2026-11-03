@@ -23,12 +23,23 @@ box per family and none on a part.
 - **.4 The tag reads "Needed".** The needing set goes in the box's name and title ("Button, needed by Button.Group", or
   "…, needed by 2 sets"), so the tag stays short at 380.
 - **.5 The badge counts chosen sets only,** matching To add's rows. Under the rows, one line names the needed sets, inside
-  the family and outside it: "Also added, because the sets above nest them: Button, Spinner." This fixes P3 of the
-  proposal: a nested set used to be built without notice until the run's summary.
+  the family and outside it. This fixes P3 of the proposal: a nested set used to be built without notice until the
+  run's summary.
 - **.6 A family box that is on takes out only the sets chosen in that family.** A set that a chosen set elsewhere needs
   stays held.
 
 Every box is three-state again: R5's two-state row box is retired by .2. Strings are DRAFT.
+
+### The owner's calls on the review (2026-11-03)
+
+- **Copy approved as written:** the intro, "{set}, needed by {set}" / "{set}, needed by {n} sets", and the "Needed" tag.
+- **One "Also adds:" line (A).** #3308 (merged first) drew its own line under To add, naming the sets `_Doc-block` is made
+  from on a first run with panels on, on the same hook. The two are now one line, `alsoAddsOf`: everything the run builds
+  alongside the picks, the needed sets and the `_Doc-block` sets together, each once, in Components' order, under the
+  hook `update-add-also`. It reads "Also adds: Button, Divider, List Item, Spinner."
+- **Private parts hidden from that line (B).** Accordion Indicator, Breadcrumb separator and Slider Thumb are still
+  built, without being named.
+- **Select all (A).** It queues the needed sets it covers as chosen, as before; an arm now pins it.
 
 ### Where a flat section's box goes
 
@@ -47,7 +58,12 @@ section box is the row's (R5), and that is the box that shows held when Banner i
   families, the held box (its state, name, title and Needed tag), a held tick that posts nothing, Buttons with only
   Button.Group chosen (a box per set at the section's edge, Button held, the badge counting 1 chosen set plus 2 due), and
   To add's Also line. Mutations fail by name: set boxes off in a family row; set boxes off in a flat section; held marking
-  dropped; Also line not drawn.
+  dropped; Also line not drawn; the line split in two again.
+- The review's fix round: a private part named in the line fails `Also adds (owner, A and B): one line …`; the line split
+  in two fails `3129 … Q3306.5 A: To add's one Also adds line …` and `#3308, #3306: panels on …`, which now read every
+  `update-add-also` in the dialog, not the first. The vacuous private-root fixture gains one nothing nests (`rootsOf`
+  without `isPrivate` fails by name), `neededOf`'s `buildable` skip is pinned by a planted set with no geometry, and
+  Select all's needed-set behavior has its own arm.
 - **One mutation stayed green, on purpose.** With the held box's click guard removed, the model still writes nothing for
   a held set (`toggleSets` holds it, by name, in `test-component-groups.ts`). The render can't see the guard on its own,
   so the arm's header says so instead of claiming it.

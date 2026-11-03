@@ -1187,7 +1187,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 9,
+    "members": 12,
     "nests": [
       "icon"
     ]
@@ -1204,6 +1204,10 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.200"
       },
       {
+        "key": "size.x-small.gap",
+        "ref": "space.050"
+      },
+      {
         "key": "size.small.gap",
         "ref": "space.150"
       },
@@ -1216,7 +1220,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 9,
+    "members": 12,
     "nests": [
       "list-item"
     ]

@@ -30,7 +30,7 @@
  * `ok`), or after the step running when Stop is asked for. `main.ts` starts each step and reports its verdict here.
  */
 import type { Catalog } from './component-catalog';
-import { displayNameOf, inListOrder, neededOf } from './component-groups';
+import { displayNameOf, inListOrder, isPrivate, neededOf } from './component-groups';
 import type { CheckedSetView, FacetView, MovedView, SetDueView } from '../write-adapter';
 
 /** `update` is the in-place update of the due sets (Q2909.8 A); `sets` builds the add queue (#3129). */
@@ -48,6 +48,8 @@ export type FileSets = { readonly present: readonly string[]; readonly setUp: bo
   /** #3110: one of the host's own reads after open (the ledger's, then the file's against the stored brand), not an
    *  answer to the panel's request. */
   readonly atOpen?: boolean;
+  /** #3308 (Q3308.3 A): the file has no `_Doc-block`, and these are the sets it is built from that the file lacks. */
+  readonly docBlockLacks?: readonly string[];
   /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a family and have no live usage
    *  panel, and how many present sets lead one (`panelLeads`). Absent while panels are off, and on the ledger's read. */
   readonly unpaneled?: readonly string[];
@@ -70,11 +72,31 @@ export const newSetsOf = (catalog: Catalog, f: Pick<FileSets, 'present'>): strin
  *  sets the file lacks and the engine can build, in Components' list order. */
 export const queuedOf = (catalog: Catalog, f: Pick<FileSets, 'present'> | null, queue: readonly string[] | null): string[] =>
   f && queue ? inListOrder(catalog, queue.filter((id, i) => queue.indexOf(id) === i && !f.present.includes(id) && catalog.some((e) => e.id === id && e.buildable))) : [];
-/** #3306 Q3306.3 A, Q3306.5 A: the sets the queue's sets need that the file lacks (`neededOf`, derived on read, never
- *  stored), named as Components names them, in its list order. To add's Also line names them; the badge does not count
- *  them, and the `sets` step does not list them: the build makes them first (`build-deps.ts`). */
-export const neededNamesOf = (catalog: Catalog, f: Pick<FileSets, 'present'> | null, queue: readonly string[] | null): string[] =>
-  f && queue ? inListOrder(catalog, neededOf(catalog, queuedOf(catalog, f, queue), f.present).keys()).map((id) => displayNameOf(catalog, id)) : [];
+/** #3308 (Q3308.3 A): USAGE PANELS ON A FIRST RUN. While Documentation has the panels on and the file has no
+ *  `_Doc-block`, the run's sets step builds the sets the template is made from first, then the template, so every queued
+ *  set gets its panel. These are the ones the queue does not hold, which To add's "Also adds" line names
+ *  (`alsoAddsOf`), here in catalog order. Empty with the panels off, with nothing queued, or once the file holds the template (#3311). */
+export const docBlockAlsoOf = (catalog: Catalog, f: Pick<FileSets, 'docBlockLacks'> | null, queued: readonly string[], panels: boolean): string[] =>
+  panels && queued.length && f?.docBlockLacks ? catalog.filter((e) => f.docBlockLacks!.includes(e.id) && !queued.includes(e.id)).map((e) => e.id) : [];
+/** #3306 Q3306.5 A, with the owner's call on the merge with #3308: To add's ONE "Also adds" line. It names everything
+ *  the run builds alongside the queued sets that the file lacks: the sets they nest (`neededOf`, derived on read, never
+ *  stored) and, on a first run with the usage panels on, the sets `_Doc-block` is made from (`docBlockAlsoOf`). Each set
+ *  once, as Components names it, in its list order. A private `_` part is still built but never named here (owner, B).
+ *  The badge does not count these, and the `sets` step does not list them. */
+export const alsoAddsOf = (catalog: Catalog, f: Pick<FileSets, 'present' | 'docBlockLacks'> | null, queue: readonly string[] | null, panels: boolean): string[] => {
+  if (!f || !queue) return [];
+  const queued = queuedOf(catalog, f, queue);
+  const ids = new Set([...neededOf(catalog, queued, f.present).keys(), ...docBlockAlsoOf(catalog, f, queued, panels)]);
+  return inListOrder(catalog, [...ids].filter((id) => !isPrivate(id))).map((id) => displayNameOf(catalog, id));
+};
+/** The queue in the order the sets step builds it (#3308): the queued sets `_Doc-block` is made from first, so the
+ *  template exists before any other set's panel is drawn; else the queue's own order. */
+export const runOrderOf = (f: Pick<FileSets, 'docBlockLacks'> | null, queued: readonly string[], panels: boolean): string[] => {
+  const lacks = panels ? f?.docBlockLacks : undefined;
+  if (!lacks) return [...queued];
+  const first = queued.filter((id) => lacks.includes(id));
+  return [...first, ...queued.filter((id) => !first.includes(id))];
+};
 /** The sets the ledger reads as due (Q2909.8 A), in catalog order. */
 export const dueSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'due').map((e) => e.id);
 /** The sets the file holds that the ledger has no entry for, in catalog order: only the full check can tell. */
@@ -243,7 +265,7 @@ export const UPDATE_COPY = {
   toAddSub: (n: number): string => `${plural(n)} chosen on Components. Each is added with its usage panel while Documentation has panels on.`,
   removeSet: (name: string): string => `Remove ${name} from To add`,
   /** #3306 Q3306.5 A: the line under To add's rows naming the sets they nest that the file lacks. DRAFT, the proposal's words. */
-  alsoAdded: (names: readonly string[]): string => `Also added, because the sets above nest them: ${names.join(', ')}.`,
+  alsoAdds: (names: readonly string[]): string => `Also adds: ${names.join(', ')}.`,
   removeAll: 'Remove all',
   queueFresh: (n: number): string => `Nothing chosen yet. This file holds none of the ${n} component sets.`,
   addAll: (n: number): string => `Add all ${n}`,
@@ -252,7 +274,7 @@ export const UPDATE_COPY = {
   updateStep: 'Update sets in place',
   /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
   dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? (d.moved ? engineWhy(d.moved) : UPDATE_COPY.engineUnprinted)
-    : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently' : 'Due · its settings changed'),
+    : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently' : d.reason === 'panel' ? 'Engine update: Prism3 draws usage panels differently' : 'Due · its settings changed'),
   /** #3090 finding 1: an engine update over a set recorded before Prism3 kept a print of its drawing, so nothing can be
    *  named; the next update records the print. DRAFT (Q2909.10 A). */
   engineUnprinted: 'Engine update: recorded before Prism3 noted what it drew',
