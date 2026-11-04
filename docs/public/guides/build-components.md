@@ -10,8 +10,8 @@ Building needs the Figma plugin. On the web, the Components area lists the same 
 
 ## Choose the sets to add
 
-1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:128 -->
-2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:132-133 -->
+1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:133 -->
+2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:137-138 -->
 3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:268-269 -->
 4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:313 -->
 
