@@ -69,7 +69,7 @@ Worth stating plainly, because it changes what to prioritise:
 
 The field's strongest tool-gating is **hard**: Carbon's *"the MCP index is the authoritative source — not your weights"*; Material UI enforces a *"host allowlist… agent physically cannot fetch off-system"*; shadcn makes *"the CLI the only source of truth."*
 
-**We cannot do that, and the reason is structural, not timidity.** `35` §1 and `19` §2 commit to **ejectability** — the deliverable is copied into a client's repo and the cord is cut. An ejected system has no Prism3 MCP to gate against. So `prism3-consume`'s *"with or without the MCP surface"* is the correct call for our model, and it should be recorded as a decision rather than left to read as a weaker version of Carbon.
+**We cannot do that, and the reason is structural, not timidity.** `35` §1 and `19` §2 commit to **ejectability** — the deliverable is copied into a client's repo and the cord is cut. An ejected system has no Prism3 MCP to gate against. So `prism3-build-ui`'s *"with or without the MCP surface"* is the correct call for our model, and it should be recorded as a decision rather than left to read as a weaker version of Carbon.
 
 **But the report contains the technique that resolves it.** Astryx writes *"instruction files written into the consumer's repo, per tool."* For an ejectable system that is exactly right: the eject carries its own agent context — instruction file, skill, `.ai.json`, the token contract — so the gating travels with the code instead of depending on a server the client never installed. **That is the single most transferable technique in the audit for us**, and it belongs in the eject mechanism decision (#625) before that is settled.
 

@@ -92,7 +92,7 @@ gated column outright.
 
 ## 4. Our own skills: the gate comes first
 
-Two skills ship today (`skills/prism3-theme`, `prism3-consume`). `prism3-theme` **was**
+Two skills ship today (`skills/prism3-theme`, `prism3-build-ui`). `prism3-theme` **was**
 stale — it used to teach an agent to "map adjectives → levers — the judgment the brief pays
 for", which #471 replaced with a controlled vocabulary the engine resolves *and logs*, and it
 used to document `radiusScale` as number-only. Both are fixed: the skill now teaches the
@@ -136,7 +136,7 @@ The layout already exists and splits by audience. Keep it; do not invent a third
 
 | location | audience |
 |---|---|
-| `skills/` | **shipped** — agents building *with* Prism3 (`prism3-theme`, `prism3-consume`) |
+| `skills/` | **shipped** — agents building *with* Prism3 (`prism3-theme`, `prism3-build-ui`) |
 | `.claude/commands/` | **internal** — our own workflow on this repo (`review-pr`) |
 
 The internal `build-component` lane is the one open placement question: `review-pr` is a *command*

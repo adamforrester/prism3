@@ -1841,7 +1841,7 @@ against current docs before building on them (Context7 or the live docs), becaus
 drift.
 
 If you're using the packaged skills, `skills/prism3-theme` (authoring a brand)
-and `skills/prism3-consume` (building UI from generated tokens) are the two that
+and `skills/prism3-build-ui` (building UI from generated tokens) are the two that
 exist; `.claude/commands/review-pr.md` runs an independent PR review.
 
 ---

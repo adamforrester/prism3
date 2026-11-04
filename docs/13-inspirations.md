@@ -277,13 +277,13 @@ organization has."* The concrete moves:
    `docs` + the KB are authored agents-first or humans-first.
 3. **The MCP-proves-the-stack demo is ROI evidence.** Second witness (after ds-brain)
    that a docs/context MCP measurably lifts agent output *and that you should measure it*.
-   Our `prism3-consume` skill + cold-agent differential (`#1–#6`, **done**) already run
+   Our `prism3-build-ui` skill + cold-agent differential (`#1–#6`, **done**) already run
    that eval; the MCP adapter is planned (`07`/`09`). Zinnia strengthens the case to
    prioritize it.
 4. **"Three audiences" (human / agent / mix)** as a standing design-target question for
    every Prism3 surface — dashboard = human, `.ai.json`/DTCG/MCP = agent, docs = mix.
 5. *(Candidate, not yet actionable)* **Ship a migration/adoption skill alongside breaking
-   token changes** (their 66%-in-4-weeks). Folds into the `prism3-consume` skill family;
+   token changes** (their 66%-in-4-weeks). Folds into the `prism3-build-ui` skill family;
    promote when `prism3` has real external consumers.
 
 **Where we already are / ahead:**
@@ -313,7 +313,7 @@ organization has."* The concrete moves:
 | Context has explicit tiers (universal / org / surface); intent/principles weigh most | Zinnia ("context needs layers", "principles carried the most weight"), KB 29/30, Astryx (intent-poor, a gap) | Adopt the vocabulary for `ai-metadata` + `brand-skills` tiers |
 | Retrieval-first agent access (search → fetch-on-demand, compact tiers) | Astryx CLI; ds-brain "AI index" | **Gap** — candidate `cli.ts query` subcommand; MCP adapter tool schema later |
 | Metadata that cannot drift (type-checked / CI-enforced) | Astryx typed `ComponentDoc`; KB 30 freshness hash; Southleft (`tokens.json` generated from CSS at build, drift-asserted) | Engine gates prove the philosophy at the token tier; carry into the component layer. **Open task:** the legacy dual-format `reference/` layer is the one hand-synced snapshot left |
-| Consumption-side evals (rubric, invented-name rate, isolated trials) | ds-brain, Zinnia (MCP-lifts-output demo + package-adoption dashboard) | **Partially closed** — `prism3-consume` cold-agent differential (`#1–#6`) runs it; extend when the MCP adapter lands |
+| Consumption-side evals (rubric, invented-name rate, isolated trials) | ds-brain, Zinnia (MCP-lifts-output demo + package-adoption dashboard) | **Partially closed** — `prism3-build-ui` cold-agent differential (`#1–#6`) runs it; extend when the MCP adapter lands |
 | Deterministic zero-LLM tooling as the differentiator over agentic equivalents | Specs CLI ("0 AI tokens" extraction), Southleft (local seed engine under the AI), our engine + planned plugin write leg | Core posture — `14` extends it to the component tier (write leg ours, verify leg Specs-CLI-shaped) |
 | AI proposes params → system derives (NL vibe → schema → live re-theme) | Southleft (prompt console; JSON schema = the contract) | **Gap / candidate task** — we have the plumbing (`brandState`→`apply`, `standard-design-md`, `theme-schema.json`); missing the NL front door |
 | Verified *generation* (contrast contracts, regression, modes) | Southleft (WCAG-AA solver — but single accent / lead pairs / one mode-lead); the rest none | **Prism3's differentiator holds** — ours verifies 488/488 contracts across four modes, not one lead pair |

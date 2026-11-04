@@ -941,7 +941,7 @@ could not tell from the log whether skills were scanned.
 ### `[GATE]` The gate's first run found worse than the defect it was written for
 
 It was built for a known drift: `prism3-theme` teaching an adjective→lever mapping #471 replaced. It
-found that, and first found something larger — **`prism3-consume` was teaching the pre-rename
+found that, and first found something larger — **`prism3-build-ui` was teaching the pre-rename
 `action.*` family.** `docs/20 §11` renamed `action.*` to `interactive.*`; the skill that tells an
 agent which tokens to reference still named `color.action.default`, `action.disabled`,
 `text.on-action`, `text.disabled`, `text.on-disabled`. An agent following it emits references that
@@ -967,7 +967,7 @@ scan, because they are different mechanisms.
 
 ### `[SKILL]` A skill teaching "don't guess this name" must quote a name that doesn't resolve
 
-Unanticipated, and found on the first real run: `prism3-consume` says *"it's
+Unanticipated, and found on the first real run: `prism3-build-ui` says *"it's
 `color.foreground.success-subtle` …, not `color.feedback.success.surface`"*. Both were flagged. The
 counter-example is the most useful sentence in the file, and a naive gate punishes it. Exempted by
 detecting `not` / `never` / `rather than` / `instead of` immediately before the backtick — with a

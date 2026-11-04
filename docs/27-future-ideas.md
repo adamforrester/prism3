@@ -129,7 +129,7 @@ not "should Prism3 have skills" — that was decided (backlog #6, 2026-07-04: sk
 are the *instructions + discovery* layer, complementary to the MCP surface's callable
 *tools*) and the first two are built and verified:
 
-- **`prism3-consume`** (`skills/prism3-consume/SKILL.md`, 2026-07-05) — the
+- **`prism3-build-ui`** (`skills/prism3-build-ui/SKILL.md`, 2026-07-05) — the
   downstream-consumer skill; eval-measured at 100%/100% compliance, 0% invented, 0%
   leak (docs/17 §5).
 - **`prism3-theme`** (`skills/prism3-theme/SKILL.md`, 2026-07-05) — the
@@ -143,7 +143,7 @@ candidate map, by audience:
 
 | Audience | Skill | Status / note |
 |---|---|---|
-| Downstream agent building UI | `prism3-consume` | ✅ shipped; extend as layer 2 lands (components-as-data + `.ai.json` consumption) |
+| Downstream agent building UI | `prism3-build-ui` | ✅ shipped; extend as layer 2 lands (components-as-data + `.ai.json` consumption) |
 | Agent authoring a brand | `prism3-theme` | ✅ shipped; becomes the MCP surface's companion (skill teaches WHEN/HOW, MCP provides tools — the two compose, neither replaces the other) |
 | Designer inside Figma | Figma-side skill(s) | 🔎 investigate: Figma's skill mechanism (incl. plugin-shipped skills consumed by agents). Candidates: "theme this file with Prism3" (drive the plugin), "check this frame's contrast against the contracts", "which token should this be?" |
 | Internal (us, building Prism3) | component-def authoring; web-UI conventions | The docs already encode the disciplines (docs/14 ComponentDefs; docs/23–26 UI conventions + rollout checklist) — a skill is the packaging that makes a cold agent honour them without re-reading everything |

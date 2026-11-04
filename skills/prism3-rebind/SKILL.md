@@ -16,7 +16,7 @@ when_to_use: >-
   When asked to move an existing product's screens onto Prism3 in Figma
   (rebind, rebuild, migrate, "swap to our components"), or to audit how far a
   file still depends on a legacy library. Not for authoring a brand (use
-  prism3-theme), not for building UI in code (prism3-consume), and not for
+  prism3-theme), not for building UI in code (prism3-build-ui), and not for
   authoring a new component definition (prism3-build-component).
 ---
 
