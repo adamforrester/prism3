@@ -54,6 +54,10 @@ and in both suites `causes/every verdict`, an invariant over every verdict each 
 one cause, each subject a def id. Each of the review's four surviving mutations now fails one of them by name. Second review: `causes/run merged` in
 `test-component-groups.ts` (a set two builds name is one cause; `runCauses` returning its list unmerged fails it).
 
+Third review: eleven guide citations that quote nothing still carried main's line numbers after this PR moved the
+code. `lint-guide-claims` checks such a citation for range only, so it could not see them (#3417). Each is re-pointed
+by mapping main's cited line through the diff, merged with #3353 so it carries both PRs' shifts.
+
 ### Trap for PR 2
 
 `step` is empty from every writer: Update file's step names are the panel's. PR 2 fills it where it groups the steps.
