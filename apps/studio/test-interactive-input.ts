@@ -243,9 +243,9 @@ console.log('\n9. #3391: an override is labeled by the palette it names, and rem
     store.brandState.overrides!.light![ROLE] = { palette: BC, step: STEP };
   };
   const row = I.INTERACTIVE_ROWS.find((r) => r.role === ROLE)!;
-  const resolvedPalette = (): string | undefined => {
+  const resolvedPalette = (role = ROLE): string | undefined => {
     const roles = resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === 'light')?.roles as Record<string, { path?: string } | undefined>;
-    const parts = roles?.[ROLE]?.path?.split('.') ?? [];
+    const parts = roles?.[role]?.path?.split('.') ?? [];
     const i = parts.indexOf('palette');
     return i >= 0 ? parts[i + 1] : undefined;
   };
@@ -278,6 +278,17 @@ console.log('\n9. #3391: an override is labeled by the palette it names, and rem
   try { resolveAllModes(brandTheme(structuredClone(store.brandState))); } catch (e) { refused = (e as Error).message; }
   ok(refused.includes(`unknown palette '${BC}'`),
     `#3391 warning, what it claims: with ${BC} removed and the overrides left, the engine refuses the brand (${refused || 'it built'})`);
+
+  // The inverse fill's rest row (write 'inverse-fill') reads through the same helper: an override there that names
+  // brand-neutral is labeled by it too, by the engine's resolved path again.
+  const INV = 'inverse.interactive.primary.fill.rest';
+  const inv = I.INTERACTIVE_ROWS.find((r) => r.role === INV)!;
+  fixture();
+  store.brandState.overrides!.light![INV] = { palette: BC, step: STEP };
+  ok(inv?.write === 'inverse-fill' && takes() && resolvedPalette(INV) === BC,
+    `premise: ${INV} is an inverse-fill row (${inv?.write}), and the engine resolves its override to ${resolvedPalette(INV)}`);
+  const invLabel = I.overrideLabel(I.overrideHeldOf('light', inv));
+  ok(invLabel === 'Override · brand-neutral 350', `#3391 label, inverse fill: the override reads by the palette it names, "Override · brand-neutral 350" (got "${invLabel}")`);
 }
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
