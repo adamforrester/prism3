@@ -16,8 +16,8 @@ the single answer landed, and nothing said how far the check had got. The owner 
   the existing fade (#3150). A set not reached yet shows no line. The old "Checking what changes…" is gone.
 - **Order** (Q3302.4 A): this comes after #3313's faster check. It is built on that branch.
 - **Host**: `previewUpdate` now finds every target first. That covers the file's read and the single-component defs'
-  reads, which is the "Reading this file…" stretch. Then it reads and checks each set in turn and calls a `progress`
-  hook:
+  reads, which is the "Reading this file…" stretch. Then it reads and checks each set in turn, nested first as #3343
+  orders the check, and calls a `progress` hook:
   - `done` 0 once every set is found;
   - then once per set, with that set's own preview and the next set's id.
 
@@ -38,7 +38,10 @@ the single answer landed, and nothing said how far the check had got. The owner 
   - No animation or transition on the bar, and the same foot and rows 600 ms later.
   - The foot's progress is gone once the answer lands.
 - `test-open-large-file.ts`, `check/progress`: the template's check posts done 0 of 60 and then 1 to 60, in order. Each
-  reading names its set and the next, sits in its own turn, and lands before the answer.
+  reading names its set and the next, sits in its own turn, and lands before the answer. Since the merge with #3343 the
+  readings come nested first (`nestedFirst`), not in the targets' own order; a premise holds that the two orders differ
+  on the template (first at the fourth set), and walking the targets' own order again fails `check/progress` by name.
+  A row reading "Checking…" can jump down the list and back as a result: the owner's call, Q3353.1 on the PR.
 - `test-open-large-file.ts`, `check/progress refused`: with one def the engine can't plan, the count starts at 1 of 60
   and still reaches 60 of 60, and the answer names that def refused. Added after review: no arm held the refused term.
 
