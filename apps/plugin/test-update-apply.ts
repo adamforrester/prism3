@@ -247,6 +247,10 @@
  *                  any change to a component or set, since Figma reports neither a re-flow from a style nor an instance
  *                  resized by its main (#3348). Mutations: `STYLE_*` skipped → `views/style`; a component change kept →
  *                  `views/main …`; `keepView` ignoring its epoch → `views/epoch`.
+ *   values/…       a variable's value edited in the Variables panel, which Figma reports as no document change, drops every
+ *                  kept view at the next check's print of the file's variables (#3364). Mutations: a moved print kept →
+ *                  `values/edited`; a refused print kept → `values/unreadable`; `keepView` not asking for a print →
+ *                  `values/no print`.
  *
  * And `hash/refused` fails with the hash check dropped, `hand/still reported` with an updated member's record
  * taken whole from the host, `stop/out of date` with the in-progress marker ignored by the dry run.
@@ -6056,8 +6060,10 @@ section('kept views — the pass\'s reads the Update check reuses are dropped by
   //     another set's member. Mutation: `dropFor` dropping only the touched set's view → `views/main …`.
   //   · `views/canvas`: a change outside every component and set keeps the view (the reuse is not given up for nothing).
   //   · `views/epoch`: a read that ran across a drop is not kept. Mutation: `keepView` ignoring its epoch → `views/epoch`.
-  const { dropFor, dropViews, keepView, keptCount, keptView, viewEpoch, watchViews } = await import('./src/member-views');
+  const { dropFor, dropViews, keepView, keptCount, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } = await import('./src/member-views');
   watchViews(true);
+  // #3364: a view is kept only under a print of the file's variables, and each check prints them again as it starts.
+  const KEPT = { view: keptView, under: async (h: unknown) => noteVariables(await variablesPrint(h as never)) };
   const answer = (pre: Awaited<ReturnType<typeof previewUpdate>>): string => JSON.stringify(pre);
   const page = { type: 'PAGE', id: 'p:0', parent: { type: 'DOCUMENT', id: '0:0' } };
   const otherSet = { type: 'COMPONENT_SET', id: 'B:set', parent: page };
@@ -6072,6 +6078,7 @@ section('kept views — the pass\'s reads the Update check reuses are dropped by
     const w = await world(TAG);
     const targets = [{ def: TAG, plans: w.plans }];
     dropViews();
+    noteVariables(await variablesPrint(w.host));
     keepView(await readSetView(w.set() as never), viewEpoch());
     const id = String(w.set().id);
     const m = membersOf(w.set())[0];
@@ -6080,15 +6087,16 @@ section('kept views — the pass\'s reads the Update check reuses are dropped by
     Object.defineProperty(m, 'width', { configurable: true, get: () => w0 + 300 });
     Object.defineProperty(m, 'height', { configurable: true, get: () => h0 + 30 });
     const fresh = await previewUpdate(w.host, targets);
-    const stale = await previewUpdate(w.host, targets, undefined, undefined, keptView);
+    const stale = await previewUpdate(w.host, targets, undefined, undefined, KEPT);
     dropFor(changes as never);
-    const after = await previewUpdate(w.host, targets, undefined, undefined, keptView);
+    const after = await previewUpdate(w.host, targets, undefined, undefined, KEPT);
     ok((fresh.sets[0].counts.move ?? 0) > 0 && answer(stale) !== answer(fresh) && keptView(id) === undefined && answer(after) === answer(fresh),
       `${label}: every kept view is dropped, and the check's answer is a fresh read's (move ${fresh.sets[0].counts.move ?? 0} fresh, ${stale.sets[0].counts.move ?? 0} against the stale read, ${after.sets[0].counts.move ?? 0} after the change; view ${keptView(id) ? 'still kept' : 'dropped'})`);
   }
   {
     const w = await world(TAG);
     dropViews();
+    noteVariables(await variablesPrint(w.host));
     keepView(await readSetView(w.set() as never), viewEpoch());
     dropFor([{ type: 'PROPERTY_CHANGE', node: { type: 'FRAME', id: 'F:1', name: 'tag usage', parent: page }, properties: ['width'] }] as never);
     ok(keptView(String(w.set().id)) !== undefined, `views/canvas: a change to a frame outside every component and set keeps the view (${keptCount()} kept)`);
@@ -6104,6 +6112,67 @@ section('kept views — the pass\'s reads the Update check reuses are dropped by
     keepView(read, before);
     ok(since !== before && keptCount() === 0, `views/epoch: a read that ran across a drop is not kept (${keptCount()} kept)`);
   }
+  dropViews(); watchViews(false);
+}
+
+section('kept views — a variable\'s value edited in the Variables panel drops them (#3364)');
+{
+  // #3364 (found in #3348): Figma reports no document change when a variable's VALUE is edited in the Variables panel,
+  // yet every member bound to it re-resolves. So a kept view is read under a print of the file's variables
+  // (`variablesPrint`), the pass prints them before it reads, and each check prints them again as it starts
+  // (`KeptViews.under`): a print that moved drops every view. Two checks with a value edited between them: the first
+  // reuses the kept read and gives a fresh read's answer; then a float variable the member binds is rewritten through the
+  // shim (`setValueForMode`, no change heard), and the member re-resolved as Figma re-resolves it (its size getters
+  // replaced, as the `views/…` arms above do). The second check must give the fresh read's answer, whole. The premise
+  // shows the kept read is stale: laid against it with the print not taken, the check reads no move where a fresh read
+  // reads some.
+  //   · `values/edited`. Mutation: `noteVariables` never dropping on a moved print → `values/edited`.
+  //   · `values/unchanged`: an unedited file keeps the view, so the reuse is not given up for nothing.
+  //   · `values/unreadable`: a print the host refuses drops every view. Mutation: a `null` print kept → `values/unreadable`.
+  //   · `values/no print`: a read with no print to compare against is never kept. Mutation: `keepView` not asking for a
+  //     print → `values/no print`.
+  const { dropViews, keepView, keptCount, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } = await import('./src/member-views');
+  const answer = (pre: Awaited<ReturnType<typeof previewUpdate>>): string => JSON.stringify(pre);
+  const KEPT = { view: keptView, under: async (h: unknown) => noteVariables(await variablesPrint(h as never)) };
+  const UNPRINTED = { view: keptView, under: async () => undefined };
+  watchViews(true);
+  const w = await world(TAG);
+  const targets = [{ def: TAG, plans: w.plans }];
+  const id = String(w.set().id);
+  dropViews();
+  noteVariables(await variablesPrint(w.host));
+  keepView(await readSetView(w.set() as never), viewEpoch());
+  const first = await previewUpdate(w.host, targets, undefined, undefined, KEPT);
+  ok(keptView(id) !== undefined && answer(first) === answer(await previewUpdate(w.host, targets)),
+    `values/unchanged: with no value edited, the first check keeps the view and gives a fresh read's answer (view ${keptView(id) ? 'kept' : 'dropped'})`);
+  // The edit: a float variable the first member binds, rewritten in every mode it holds, as the Variables panel does.
+  const m = membersOf(w.set())[0];
+  const boundIds = Object.values((m.boundVariables ?? {}) as Record<string, { id?: string } | { id?: string }[]>).flatMap((b) => (Array.isArray(b) ? b : [b])).map((b) => b?.id).filter(Boolean);
+  const vars = await w.api.variables.getLocalVariablesAsync() as { id: string; name: string; resolvedType?: string; setValueForMode: (mode: string, v: unknown) => void }[];
+  const edited = vars.find((v) => boundIds.includes(v.id) && !/\/color\//.test(v.name));
+  ok(!!edited, `premise: the first ${TAG} member binds a float variable to edit (${edited?.name ?? `none of ${boundIds.length}`})`);
+  const printBefore = await variablesPrint(w.host);
+  edited?.setValueForMode('m:0', 99);
+  ok(printBefore !== await variablesPrint(w.host), `premise: the edit moves the file's variables print`);
+  const [w0, h0] = [Number(m.width), Number(m.height)];
+  Object.defineProperty(m, 'width', { configurable: true, get: () => w0 + 300 });
+  Object.defineProperty(m, 'height', { configurable: true, get: () => h0 + 30 });
+  const fresh = await previewUpdate(w.host, targets);
+  const stale = await previewUpdate(w.host, targets, undefined, undefined, UNPRINTED);
+  ok((fresh.sets[0].counts.move ?? 0) > 0 && answer(stale) !== answer(fresh),
+    `premise: laid against the kept read with no print taken, the check misses the re-resolved member (move ${fresh.sets[0].counts.move ?? 0} fresh, ${stale.sets[0].counts.move ?? 0} against the kept read)`);
+  const second = await previewUpdate(w.host, targets, undefined, undefined, KEPT);
+  ok(keptView(id) === undefined && answer(second) === answer(fresh),
+    `values/edited: a variable's value edited between two checks drops every kept view, and the second check's answer is a fresh read's (move ${second.sets[0].counts.move ?? 0}; view ${keptView(id) ? 'still kept' : 'dropped'})`);
+  // A print the host refuses drops every view.
+  keepView(await readSetView(w.set() as never), viewEpoch());
+  const keptNow = keptCount();
+  noteVariables(null);
+  ok(keptNow === 1 && keptCount() === 0, `values/unreadable: a variables print the host refuses drops every kept view (${keptNow} kept before, ${keptCount()} after)`);
+  // With no print to read under (watching restarted), a read is never kept.
+  watchViews(false); watchViews(true);
+  keepView(await readSetView(w.set() as never), viewEpoch());
+  ok(keptCount() === 0, `values/no print: a read with no variables print to compare against is never kept (${keptCount()} kept)`);
   dropViews(); watchViews(false);
 }
 

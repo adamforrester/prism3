@@ -54,6 +54,8 @@ import { materializeForBrand } from './src/brand-def';
 import { planTargets, prebuildDependencies } from './src/build-deps';
 import { reactionMap } from './src/reactions';
 import { readSpecTag } from './src/spec-tag';
+import { snapshotMember } from './src/member-baseline';
+import { withSetSlots } from './src/update-plan';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { validateComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
@@ -474,6 +476,7 @@ console.log(`\n  NOT round-tripped (no figmaProperties — the projection is opt
 
 console.log(`\nround-tripping ${PROJECTED.length} projected defs…\n`);
 const inventory: { def: string; divergences: Divergence[]; members: number; plans: number }[] = [];
+const snapChecks: { def: string; live: Divergence[]; snap: Divergence[] }[] = [];
 /** Every page a def was built on, read after the corpus for a spec panel the build must never draw (Q2830.3 A). */
 const builtPages: Page[] = [];
 // …plus every def the `solid-tint` lever MATERIALIZES differently (#1614): its outline/text hover binds the
@@ -514,6 +517,11 @@ for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED,
     const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : prefersNest ? { identities: true } : {});
     inventory.push({ def: def.id, divergences: r.divergences, members: r.members, plans: r.plans.length });
     builtPages.push(r.page);
+    // #3388 — the same members as Update file's verify reads them: through `snapshotMember`, never the live node.
+    const setDefs = ((r.set as { componentPropertyDefinitions?: Record<string, unknown> } | undefined)?.componentPropertyDefinitions ?? null);
+    const snaps: HostNode[] = [];
+    for (const m of r.hostMembers) snaps.push(await snapshotMember(m) as unknown as HostNode);
+    snapChecks.push({ def: def.id, live: r.divergences, snap: diffAnatomy(r.plans, snaps, planComponentName, withSetSlots(r.ports, setDefs), {}) });
     // #2830 — the spec model of the def AS BUILT HERE (no brand materialization, as `roundTrip` builds it).
     specChecks.push({ def: def.id, ...specReadback(componentSpec(def, { def }), r.hostMembers, r.set, r.ports) });
   } catch (e) {
@@ -575,6 +583,47 @@ ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx 
 
 ok((EXERCISED.slotSettings ?? 0) > 0 && (EXERCISED.slotPreferred ?? 0) > 0,
   `#2646 a constrained native slot round-trips: ${EXERCISED.slotSettings ?? 0} slot(s) read their constraints, ${EXERCISED.slotPreferred ?? 0} their preferred sets, back off the set's SLOT property`);
+
+// ── AS UPDATE FILE READS IT (#3388) — THE SNAPSHOT SEES WHAT THE LIVE NODE HOLDS ───────────────────────────────
+//
+// Update file's verify (`update-apply.ts`) and its dry run (`update-plan.ts`) never diff a live node: they diff
+// `snapshotMember`'s copy, which carries only the fields it lists. Every diff above reads the live shim node, so a field
+// the snapshot forgets reads ∅ in the file and as written here. That is how #3388 shipped: the dialog body's
+// `overflowDirection` landed VERTICAL on all 24 members in the real file, and the update reported each one unverified.
+// So every member built above is read a second time, as a snapshot, and must diverge exactly where the live read does.
+// The live read is the oracle; the snapshot is the subject (docs/34). A field missing from the snapshot shows up here
+// as a divergence only one side reports, named with the def, the member, the path and the field.
+// Mutation: drop 'overflowDirection' from `SNAP_KEYS` (`member-baseline.ts`) → `roundtrip/snapshot reads as live` fails
+// naming dialog …/body.overflowDirection.
+{
+  // KNOWN GAPS, each a filed issue, each by def AND field. An entry that no longer fires fails below, so the ledger
+  // empties as the issues close rather than outliving them.
+  const KNOWN: { def: string; field: string; issue: string }[] = [
+    // A snapshot has no `findAll`, and stops at an instance, so the mark's vectors are out of its reach.
+    { def: 'sign-in-button', field: 'literalTint', issue: '#3393' },
+  ];
+  const fired = new Set<string>();
+  const known = (def: string, d: Divergence): boolean => {
+    const k = KNOWN.find((x) => x.def === def && x.field === d.field);
+    if (k) fired.add(k.issue);
+    return !!k;
+  };
+  const key = (d: Divergence): string => `${d.member} ${d.path}.${d.field}: ${d.actual} (plan ${d.expected})`;
+  const only: string[] = [];
+  for (const c of snapChecks) {
+    const live = new Set(c.live.map(key)), snap = new Set(c.snap.map(key));
+    for (const d of c.snap) if (!live.has(key(d)) && !known(c.def, d)) only.push(`${c.def} — snapshot only: ${key(d)}`);
+    for (const d of c.live) if (!snap.has(key(d)) && !known(c.def, d)) only.push(`${c.def} — live only: ${key(d)}`);
+  }
+  const stale = KNOWN.filter((k) => !fired.has(k.issue));
+  ok(stale.length === 0, `roundtrip/snapshot reads as live: every known gap still fires, so none outlives its issue${stale.length ? ` — fixed, remove from KNOWN: ${stale.map((k) => `${k.def} ${k.field} (${k.issue})`).join(', ')}` : ''}`);
+  // SCOPE FLOOR: every def the loop built was read both ways, and the dialog, whose body is the case, among them.
+  const built = inventory.filter((i) => i.members > 0).map((i) => i.def);
+  ok(snapChecks.length === built.length && snapChecks.some((c) => c.def === 'dialog'),
+    `roundtrip/snapshot reads as live: every built def was read as a snapshot too (${snapChecks.length} of ${built.length}, dialog ${snapChecks.some((c) => c.def === 'dialog') ? 'in' : 'MISSING'})`);
+  ok(only.length === 0,
+    `roundtrip/snapshot reads as live: Update file's snapshot of every member diverges from its plan exactly where the live node does${only.length ? ` — ${only.length}: ${only.slice(0, 4).join('; ')}` : ''}`);
+}
 
 // ---- THE REPORT --------------------------------------------------------------------------------
 const clean = inventory.filter((i) => !i.divergences.length);
