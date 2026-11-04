@@ -851,7 +851,10 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   const v = applyVerdict(res);
   ok(!v.lines.some((l) => l.includes('not written as planned')) && !o.misses.some((x) => x.includes(`${EDITED}/dot`)),
     `kept report/no miss: the kept dot is no part not written as planned (${JSON.stringify(o.misses.slice(0, 3))}; ${JSON.stringify(v.lines)})`);
-  ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place',
+  // #3421 (Q39 A): the kept dot holds back the plan's size and corner bindings on it, so the verdict names them and the
+  // headline says a set kept edits over changes. Typed here.
+  ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place · 1 set kept edits over changes'
+    && v.lines[1] === 'radio-control: hand edits kept on 1 member hold back 2 changes the plan makes (dot: size → control/size/md/dot, dot: corner radius → radius/round). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.',
     `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
 
   // EVERY BOUND FIELD IN PLAIN WORDS (owner Q826 A): the layer name first, then the property as a designer says it, the
@@ -941,7 +944,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   const kept = JSON.stringify((o.keptBound ?? []).map((b) => [b.member, b.part, b.field]).sort());
   ok(o.misses.includes(want) && !o.misses.some((x) => x.includes(`${EDITED}/dot`))
     && kept === JSON.stringify([[EDITED, 'dot', 'height'], [EDITED, 'dot', 'width']])
-    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want)),
+    && !v.ok && v.headline === '⚠ 1 set not verified · 1 set kept edits over changes' && v.lines.some((l) => l.includes('not written as planned') && l.includes(want)),
     `kept report/two members: ${EDITED}'s kept dot does not hide the binding the host dropped on ${OTHER}'s dot (${JSON.stringify({ misses: o.misses, keptBound: o.keptBound, v })})`);
 }
 

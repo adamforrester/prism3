@@ -40,7 +40,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -225,6 +225,33 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     && UPDATE_COPY.badgeName({ add: 0, due: 0, theme: false, panels: true }) === 'Update file, usage panels',
     `Q3137.4 A badge name: ", usage panels" when the group counts (${UPDATE_COPY.badgeName({ add: 2, due: 2, theme: false, panels: true })})`);
   ok(UPDATE_COPY.panelsTick(35) === 'Draw 35 usage panels' && UPDATE_COPY.panelsTick(1) === 'Draw 1 usage panel', 'Q3137.1 A tick: "Draw {n} usage panels", singular for one');
+}
+
+// ── #3421 (owner decision Q39 A): Kept edits, and the sets a Theme run unblocks ─────────────────────────────────────────
+{
+  const CATK = [entry('button'), entry('tag'), entry('badge')] as unknown as Catalog;
+  const FK = { present: ['button', 'tag', 'badge'], setUp: true, error: null,
+    due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'kept', held: { members: 12, changes: ['border → color/x'] } }, badge: { state: 'current' } } } as const;
+  ok(same(keptSetsOf(CATK, FK), ['tag']) && same(dueSetsOf(CATK, FK), ['button']),
+    'Q39 A kept: a set whose kept edits held changes back is listed under Kept edits, never under Due');
+  ok(same(statusesOf('tag', FK, new Map(), 'done'), ['kept']), 'Q39 A status: a Kept edits set reads Kept edits, never Up to date');
+  const tk = defaultTicks(CATK, FK);
+  ok(same(checkScopeOf(['button'], tk, [], ['tag']), ['button']), 'Q39 A check: a Kept edits set left on Keep is not checked or run');
+  const tko = { ...tk, kept: new Map([['tag', 'overwrite' as const]]) };
+  ok(same(checkScopeOf(['button'], tko, [], ['tag']), ['button', 'tag']), 'Q39 A check: a Kept edits set given Overwrite joins the scoped check');
+  const ck = { sets: [{ def: 'button', blocked: false }, { def: 'tag', blocked: false }] as never };
+  ok(same(updateDefsOf(tko, ck, [], ['tag']), ['button', 'tag']) && same(updateDefsOf(tk, ck, [], ['tag']), ['button']),
+    'Q39 A update: the update step takes a Kept edits set given Overwrite, and leaves one on Keep');
+  ok(same(keptChoicesOf(tko, ['button', 'tag']), { tag: 'overwrite' }), 'Q39 A run: the set\'s own choice rides the update (`UpdateChoices.sets`)');
+  const tb = { sets: [{ def: 'button', hash: 'a', blocked: true, themeBlocked: true }] as never };
+  ok(same(updateDefsOf(tk, tb, []), ['button']) && same(updateDefsOf({ ...tk, theme: false }, tb, []), []),
+    '#3421 order: a set blocked only by Theme\'s variables rides a run with Theme, and not one without');
+  ok(recheckFirst(['button'], ['button'], tb), '#3421 order: such a set is checked again after Theme, not applied under the check\'s hash');
+  ok(recheckHolds(['button'], [{ def: 'button', hash: 'a', themeBlocked: true }] as never, [{ def: 'button', hash: 'b' }] as never)
+    && !recheckHolds(['button'], [{ def: 'button', hash: 'a' }] as never, [{ def: 'button', hash: 'b' }] as never),
+    '#3421 order: after Theme a theme-blocked set may read otherwise; any other set must read as reviewed');
+  ok(UPDATE_COPY.keptLine({ members: 12, changes: ['border → color/x'] }) === '12 members hold back 1 change: border → color/x',
+    'Q39 A copy: a Kept edits set\'s line names its members and each change held back');
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);
