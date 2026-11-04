@@ -1,7 +1,7 @@
 /**
  * Prism3 engine — CLI adapter (the authoring on-ramp; docs/07 §6 + §11).
  *
- *   npx tsx packages/engine/cli.ts <design.md> [--out <dir>] [--fidelity]
+ *   npx tsx packages/engine/cli.ts <design.md> [--out <dir>] [--fidelity] [--component-specs]
  *
  * A thin ENTRY POINT over the portable core — not a second pipeline. It accepts
  * BOTH `design.md` dialects and auto-detects which:
@@ -23,6 +23,10 @@
  * generated system (§11.3). No token logic lives here; the parser, classifier, core,
  * and report builder are all imported. This is the I/O shell: file read + argv + exit.
  *
+ * `--component-specs` (#3425) also writes the brand's component-defs export: `<id>.component-defs.json` (every
+ * component definition with the brand's component settings resolved) and `<id>.component-defs.specs.json` (the same
+ * as a Specs components set). The brand-neutral pair is committed under `out/components/` by `regen`.
+ *
  * Exit codes: 0 = clean; 1 = schema violation, a broken alias, or a failed mode
  * contrast contract (so it fails CI). Errors print a readable diagnosis.
  */
@@ -34,6 +38,19 @@ import { parseDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from './standard-design-md';
 import { buildFidelityReport } from './fidelity';
 import { emitTheme, validateBrandInput } from './emit-dtcg';
+import type { BrandInput } from './theme';
+import { componentDefsFileNames, exportComponentDefs, toSpecsComponents } from './component-defs-export';
+import { componentDefs } from './components/index';
+
+/** `--component-specs` (#3425): the brand's component-defs export and its Specs projection, beside its tokens. */
+const writeComponentSpecs = (input: BrandInput, resolvedOut: string) => {
+  const doc = exportComponentDefs(componentDefs, { brand: input });
+  const names = componentDefsFileNames(doc.brand!.id);
+  writeFileSync(resolve(resolvedOut, names.defs), JSON.stringify(doc, null, 2) + '\n');
+  writeFileSync(resolve(resolvedOut, names.specs), JSON.stringify(toSpecsComponents(doc), null, 2) + '\n');
+  console.log(`  [written] ${resolve(resolvedOut, names.defs)}  (${Object.keys(doc.components).length} components)`);
+  console.log(`  [written] ${resolve(resolvedOut, names.specs)}`);
+};
 
 const fail = (msg: string): never => {
   console.error(`\n✖ ${msg}\n`);
@@ -73,6 +90,7 @@ const main = () => {
   let designPath: string | undefined;
   let outDir: string | undefined;
   let fidelity = false;
+  let componentSpecs = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--out' || a === '-o') {
@@ -84,8 +102,9 @@ const main = () => {
       outDir = argv[++i];
     }
     else if (a === '--fidelity') fidelity = true;
+    else if (a === '--component-specs') componentSpecs = true;
     else if (a === '--help' || a === '-h') {
-      console.log('Usage: tsx cli.ts <design.md> [--out <dir>] [--fidelity]\n\n  <design.md>   a brand brief with YAML frontmatter — engine-native (examples/*.design.md)\n                OR a standard brand-skills / google-labs design.md (flat colors + x-prism3)\n  --out <dir>   output directory for <id>.tokens.json + <id>.ai.json (default: engine/out)\n  --fidelity    (standard dialect) also write <id>-fidelity-report.md — the observed-vs-generated diff');
+      console.log('Usage: tsx cli.ts <design.md> [--out <dir>] [--fidelity] [--component-specs]\n\n  <design.md>   a brand brief with YAML frontmatter — engine-native (examples/*.design.md)\n                OR a standard brand-skills / google-labs design.md (flat colors + x-prism3)\n  --out <dir>   output directory for <id>.tokens.json + <id>.ai.json (default: engine/out)\n  --fidelity    (standard dialect) also write <id>-fidelity-report.md — the observed-vs-generated diff\n  --component-specs  also write <id>.component-defs.json + <id>.component-defs.specs.json — every component\n                definition with this brand\'s component settings resolved, and the same as a Specs components set');
       process.exit(0);
     }
     else if (a.startsWith('-')) fail(`unknown flag: ${a}`);
@@ -128,6 +147,7 @@ const main = () => {
       writeFileSync(reportPath, md);
       console.log(`  [written] ${reportPath}  (anchor ΔE00 ${anchorDe.toFixed(2)})`);
     }
+    if (componentSpecs) writeComponentSpecs(input, resolvedOut);
     return;
   }
 
@@ -141,6 +161,7 @@ const main = () => {
   try { theme = brandTheme(input); }
   catch (e) { return fail(`brandTheme failed for '${(input as any).id}': ${(e as Error).message}`); }
   emitAndGate(theme, resolvedOut, designPath!, 'engine-native');
+  if (componentSpecs) writeComponentSpecs(input as BrandInput, resolvedOut);
 };
 
 main();

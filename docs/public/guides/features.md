@@ -7,7 +7,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 - Web studio: the studio in a browser. <!-- src: apps/studio/build-site.mjs:1-8 -->
 - Figma plugin: the same studio inside Figma <!-- src: apps/plugin/src/ui/entry.ts:10-36 -->, plus **Update file**, which writes to the file. <!-- src: apps/studio/src/state/update-file.ts:253 -->
 - Agent, through the agent link: an AI agent driving the open plugin. See [Use the agent link](agent-link.md). <!-- src: apps/plugin/src/agent-protocol.ts:41 -->
-- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:236-372 -->
+- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:239-375 -->
 
 ✓ means the surface can do it. – means it can't.
 
@@ -22,7 +22,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
 | Export a `design.md` brief | ✓ | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:168-219 --> <!-- src: apps/studio/src/shell/pages.ts:116-118 --> <!-- src: apps/studio/src/persist-local.ts:40-79 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35 --> <!-- src: apps/studio/src/export-settings.ts:111-115 --> <!-- src: packages/engine/mcp.ts:236-382 -->
+<!-- src: apps/studio/src/shell/start.ts:168-219 --> <!-- src: apps/studio/src/shell/pages.ts:116-118 --> <!-- src: apps/studio/src/persist-local.ts:40-79 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35 --> <!-- src: apps/studio/src/export-settings.ts:112-116 --> <!-- src: packages/engine/mcp.ts:239-385 -->
 
 ## Figma file
 
@@ -47,7 +47,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Write the Figma variable files to a folder | – | – | – | ✓ `export_theme` |
 | Score how generated UI used the tokens | – | – | – | ✓ `score_consumption` |
 
-<!-- src: apps/studio/src/export-settings.ts:101-110 --> <!-- src: packages/engine/mcp.ts:336-370 --> <!-- src: packages/engine/mcp.ts:284-319 -->
+<!-- src: apps/studio/src/export-settings.ts:102-111 --> <!-- src: packages/engine/mcp.ts:339-373 --> <!-- src: packages/engine/mcp.ts:287-322 -->
 
 TokenPress, a separate Figma plugin, exports any Figma file's variables and styles as DTCG token files. See [Export tokens](export-tokens.md#export-any-figma-file-with-tokenpress). <!-- src: apps/tokenpress/README.md:3 -->
 

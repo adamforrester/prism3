@@ -30490,7 +30490,17 @@ arm: {
   ok(g.files.size === 1 && g.files.has('./t2/tokens.json'), 'export_theme: include:[tokens] writes only the DTCG tree');
   ok(mcpCallTool('export_theme', { brand: xbrand, outDir: './t3', include: ['nope'] }, undefined, mkFake().io).isError === true,
     'export_theme: an unknown include section errors rather than silently writing nothing');
-  ok(EXPORT_SECTIONS.length === 3, 'export_theme: three artifact families');
+  ok(EXPORT_SECTIONS.length === 4, 'export_theme: four artifact families');
+  // #3425 — the component-defs export is opt-in: the default call above wrote none of it, and asking for it writes the
+  // pair, parseable, for the brand passed, with the brand's settings resolved.
+  ok(![...f.files.keys()].some((k) => k.includes('component-defs')), 'export_theme: the default call writes no component-defs export (opt-in)');
+  const cs = mkFake();
+  ok(!mcpCallTool('export_theme', { brand: xbrand, outDir: './cs', include: ['componentSpecs'] }, undefined, cs.io).isError, 'export_theme: include:[componentSpecs] writes');
+  ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
+    `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
+  const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.0' && Object.keys(csDoc.components ?? {}).length >= 40,
+    `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
   const h = mkFake();

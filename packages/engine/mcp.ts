@@ -27,7 +27,8 @@
  *   • score_consumption — scores an agent's generated output against a brand's token system:
  *                         invented-token rate, primitive-leak rate, contrast-contract compliance.
  *   • export_theme     — generates a brand and WRITES its artifacts (tokens.json, ai-metadata.json,
- *                        figma/) to a directory, returning a manifest rather than the content.
+ *                        figma/, and on request the component-defs export, #3425) to a directory, returning a
+ *                        manifest rather than the content.
  *   • validate_brand   — a `BrandInput` → schema errors and the engine's input refusals (or ok), without generating.
  *
  * The knob CATALOGUE derives from the lever manifest (list_levers); the input SHAPE is
@@ -51,6 +52,8 @@ import { figmaArtifacts } from './emit-figma';
 import { scoreConsumption, scoreContractCompliance, UsedPair } from './eval';
 import { parseDesignMd } from './design-md';
 import { ENGINE_VERSION } from './version';
+import { exportComponentDefs, toSpecsComponents } from './component-defs-export';
+import { componentDefs } from './components/index';
 
 // Reads the shared constant rather than restating it: a hardcoded duplicate is exactly how a
 // server ends up reporting a version the artifacts it emits do not agree with.
@@ -341,7 +344,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'export_theme',
     title: 'Write the token system to disk',
-    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files. Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
+    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files; add "componentSpecs" to `include` for component-defs.json (every component definition with the brand\'s settings resolved) and component-defs.specs.json (the same in the Specs format). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -350,7 +353,7 @@ export const toolDefs = (brandSchema: unknown) => [
         brand: { type: 'object', description: 'The same BrandInput you would pass to theme_brand — see that tool for the full input schema.' },
         outDir: { type: 'string', description: 'Relative directory to write into (e.g. "./tokens"). Absolute paths and ".." segments are refused.' },
         include: {
-          type: 'array', description: 'Artifact families to write. Defaults to all three.',
+          type: 'array', description: 'Artifact families to write. Defaults to tokens, aiMetadata and figma; componentSpecs is opt-in.',
           items: { type: 'string', enum: [...EXPORT_SECTIONS] },
         },
       },
@@ -516,7 +519,11 @@ export interface ExportIo {
 /** Artifact families `export_theme` can write. Distinct from `THEME_SECTIONS` (what `theme_brand`
  *  can INLINE) because the sets genuinely differ: `figma` is a whole directory of collection files
  *  that has never been inlineable at any size, and would be meaningless as a single blob. */
-export const EXPORT_SECTIONS = ['tokens', 'aiMetadata', 'figma'] as const;
+export const EXPORT_SECTIONS = ['tokens', 'aiMetadata', 'figma', 'componentSpecs'] as const;
+/** What `export_theme` writes when the caller does not say: the token families, as before #3425. `componentSpecs` (the
+ *  brand's component-defs export and its Specs projection, about 3.7 MB) is opt-in, so an existing call writes what
+ *  it always wrote. */
+export const DEFAULT_EXPORT_SECTIONS = ['tokens', 'aiMetadata', 'figma'] as const;
 
 /**
  * Reject anything that escapes the caller's own directory.
@@ -546,7 +553,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     if (bad) return text({ error: bad }, true);
     const errors = validateBrandInput(brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
-    const want = include?.length ? include : [...EXPORT_SECTIONS];
+    const want = include?.length ? include : [...DEFAULT_EXPORT_SECTIONS];
     const unknown = want.filter((s) => !EXPORT_SECTIONS.includes(s as never));
     if (unknown.length) return text({ error: `unknown include section(s): ${unknown.join(', ')}. Valid: ${EXPORT_SECTIONS.join(', ')}` }, true);
 
@@ -559,6 +566,12 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     // The Figma collection set comes from the SAME function the committed `out/figma/**` artifacts are
     // written from, so an export and a regen cannot disagree about what a brand emits.
     if (want.includes('figma')) for (const a of figmaArtifacts(theme).artifacts) files.push({ path: `figma/${a.path}`, content: a.content });
+    // #3425 — the component-defs export, from the same function `regen` writes the brand-neutral one with.
+    if (want.includes('componentSpecs')) {
+      const doc = exportComponentDefs(componentDefs, { brand: brand as BrandInput });
+      files.push({ path: 'component-defs.json', content: JSON.stringify(doc, null, 2) + '\n' });
+      files.push({ path: 'component-defs.specs.json', content: JSON.stringify(toSpecsComponents(doc), null, 2) + '\n' });
+    }
 
     const written: { path: string; bytes: number }[] = [];
     try {

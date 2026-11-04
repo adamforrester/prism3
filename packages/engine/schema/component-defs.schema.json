@@ -1,0 +1,1276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "prism3-component-defs/1.0",
+  "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the exporter would agree with whatever the exporter wrote (`docs/34`). Gated by `packages/engine/lint-component-docs.ts`, which validates `out/components/component-defs.json`, and a brand export for every example brand, against it with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the exporter adds, drops or renames fails until this schema and its `$id` move with it. The `def` and its `$defs` restate `component-docs.schema.json`'s `component`, so this file stands alone.",
+  "title": "Prism3 component definitions export (component-defs.json)",
+  "description": "Every component definition, exported from the TypeScript source, brand-neutral or for one brand. `def` is the definition's shipped fields and `spec` the model of the design-file component built from it. Mappable to the Specs format: `component-defs.specs.json` is the same export as a Specs components set.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "generated",
+    "engineVersion",
+    "contractVersion",
+    "note",
+    "brand",
+    "components"
+  ],
+  "properties": {
+    "format": {
+      "const": "prism3-component-defs/1.0",
+      "description": "The shape this file follows. Equal to this schema's `$id`; minor for a field added, major for one removed or renamed."
+    },
+    "generated": {
+      "const": true,
+      "description": "Always true: nothing here is typed by hand."
+    },
+    "engineVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "The engine version that wrote this file: what code produced it."
+    },
+    "contractVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "The token contract every token name here belongs to: whether the names still resolve."
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A one-paragraph guide to the file."
+    },
+    "brand": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/brand"
+        }
+      ],
+      "description": "`null` in the brand-neutral export."
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_?[a-z][a-z0-9-]*$": {
+          "$ref": "#/$defs/entry"
+        }
+      },
+      "description": "One entry per registered component, keyed by its id."
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^_?[a-z][a-z0-9-]*$",
+      "description": "A component id: kebab-case, as registered. A leading underscore marks a building block, a component only nested inside another and left out of a published library."
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Prose, one or more sentences."
+    },
+    "texts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/text"
+      },
+      "description": "A list of prose entries. Empty when the definition carries none."
+    },
+    "ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "uniqueItems": true,
+      "description": "A list of component ids. Empty when the definition carries none."
+    },
+    "prop": {
+      "type": "object",
+      "description": "One prop of the component's code API.",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "required",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The prop name, as a code API spells it."
+        },
+        "type": {
+          "$ref": "#/$defs/text",
+          "description": "The prop's type, as prose (`boolean`, `enum: 'a' | 'b'`, `node`)."
+        },
+        "default": {
+          "type": [
+            "string",
+            "boolean",
+            "number"
+          ],
+          "description": "The default value. Absent when the prop has none."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether a consumer must set it. False when the definition does not say."
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "The allowed values, for an enum prop."
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "description": "For a slot prop that holds repeating items: the component ids an item may be. Absent on every other prop."
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "For a slot prop that holds repeating items: the least number of items."
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "For a slot prop that holds repeating items: the most items. Absent when there is no ceiling."
+        },
+        "deprecated": {
+          "type": "boolean",
+          "description": "Present and true when the prop is deprecated."
+        },
+        "description": {
+          "$ref": "#/$defs/text",
+          "description": "What the prop does."
+        }
+      }
+    },
+    "axis": {
+      "type": "object",
+      "description": "One variant axis.",
+      "additionalProperties": false,
+      "required": [
+        "values",
+        "kind"
+      ],
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "The axis values, in the definition's order."
+        },
+        "kind": {
+          "enum": [
+            "runtime",
+            "authoring"
+          ],
+          "description": "`runtime` when a live instance switches between the values; `authoring` when one is picked once and stays."
+        }
+      }
+    },
+    "def": {
+      "type": "object",
+      "description": "One component's shipped definition fields: field for field the component's entry in `components.ai.json` (`schema/component-docs.schema.json`, whose `component` this restates, so either file stands alone).",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "aliases",
+        "category",
+        "status",
+        "summary",
+        "description",
+        "props",
+        "states",
+        "variants",
+        "accessibility",
+        "docs",
+        "ai",
+        "composition"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "The component id. Equal to this entry's key."
+        },
+        "name": {
+          "$ref": "#/$defs/text",
+          "description": "The display name."
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Other names the component goes by, for search."
+        },
+        "category": {
+          "enum": [
+            "foundations",
+            "layout",
+            "form",
+            "navigation",
+            "feedback",
+            "data",
+            "overlay"
+          ],
+          "description": "The grouping by purpose, from the knowledge base's seven categories."
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "stable",
+            "deprecated"
+          ],
+          "description": "The definition's maturity."
+        },
+        "summary": {
+          "$ref": "#/$defs/text",
+          "description": "The one-line summary, also written as the Figma component description."
+        },
+        "description": {
+          "$ref": "#/$defs/text",
+          "description": "What the component is and where it stops."
+        },
+        "inherits": {
+          "$ref": "#/$defs/id",
+          "description": "The component this one builds on. Absent when it stands alone."
+        },
+        "props": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/prop"
+          },
+          "description": "The code API, in the definition's order."
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Interaction states. Empty for a non-interactive component."
+        },
+        "variants": {
+          "type": "object",
+          "description": "Variant axes, keyed by axis name: lowercase, or camelCase for a multi-word axis (`iconPosition`, #2417).",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[a-z][a-zA-Z0-9-]*$": {
+              "$ref": "#/$defs/axis"
+            }
+          }
+        },
+        "accessibility": {
+          "type": "object",
+          "description": "The accessibility contract.",
+          "additionalProperties": false,
+          "properties": {
+            "role": {
+              "$ref": "#/$defs/text",
+              "description": "The ARIA role or native element, and how it is labeled."
+            },
+            "wcag": {
+              "$ref": "#/$defs/texts",
+              "description": "The WCAG success criteria it addresses, each with the reason it applies."
+            },
+            "keyboard": {
+              "$ref": "#/$defs/text",
+              "description": "Keyboard interaction."
+            },
+            "focus": {
+              "$ref": "#/$defs/text",
+              "description": "Focus behavior and its visible indicator."
+            },
+            "aria": {
+              "$ref": "#/$defs/text",
+              "description": "ARIA state attributes, and any live-region announcement."
+            }
+          }
+        },
+        "content": {
+          "type": "object",
+          "description": "Copy guidance for a writer, per pattern. Absent when the definition carries none.",
+          "additionalProperties": false,
+          "properties": {
+            "labelPattern": {
+              "$ref": "#/$defs/text",
+              "description": "How to write the label."
+            },
+            "errorPattern": {
+              "$ref": "#/$defs/text",
+              "description": "How to write an error message."
+            },
+            "emptyPattern": {
+              "$ref": "#/$defs/text",
+              "description": "How to write an empty state."
+            },
+            "dialogPattern": {
+              "$ref": "#/$defs/text",
+              "description": "How to word the action that confirms a dialog."
+            },
+            "metaphorRules": {
+              "$ref": "#/$defs/text",
+              "description": "When a visual metaphor fits, and when it misleads."
+            }
+          }
+        },
+        "docs": {
+          "type": "object",
+          "description": "Usage guidance.",
+          "additionalProperties": false,
+          "required": [
+            "usage",
+            "do",
+            "dont"
+          ],
+          "properties": {
+            "usage": {
+              "$ref": "#/$defs/text",
+              "description": "When and how to use the component."
+            },
+            "do": {
+              "$ref": "#/$defs/texts",
+              "description": "Practices to follow."
+            },
+            "dont": {
+              "$ref": "#/$defs/texts",
+              "description": "Practices to avoid, each with its reason."
+            },
+            "contentGuidelines": {
+              "$ref": "#/$defs/text",
+              "description": "Guidance for the text inside the component."
+            }
+          }
+        },
+        "ai": {
+          "type": "object",
+          "description": "The decision surface: whether this component fits a request.",
+          "additionalProperties": false,
+          "required": [
+            "primaryPurpose",
+            "whenToUse",
+            "avoidWhen",
+            "commonPartners",
+            "triggerKeywords"
+          ],
+          "properties": {
+            "primaryPurpose": {
+              "$ref": "#/$defs/text",
+              "description": "What the component is for, in one sentence."
+            },
+            "whenToUse": {
+              "$ref": "#/$defs/text",
+              "description": "The situations it fits."
+            },
+            "avoidWhen": {
+              "$ref": "#/$defs/text",
+              "description": "The situations it does not fit, and what fits instead."
+            },
+            "commonPartners": {
+              "$ref": "#/$defs/ids",
+              "description": "Components it is used with, in either direction: the hosts that nest it, the parts it nests, and the ones that sit beside it."
+            },
+            "triggerKeywords": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Words in a request that point to this component."
+            },
+            "generationPriority": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The tiebreaker when several components could serve a request; higher wins."
+            }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "description": "Motion behavior. Absent when the definition carries none.",
+          "additionalProperties": false,
+          "properties": {
+            "enter": {
+              "$ref": "#/$defs/text",
+              "description": "How it appears."
+            },
+            "exit": {
+              "$ref": "#/$defs/text",
+              "description": "How it leaves."
+            },
+            "reduceMotion": {
+              "$ref": "#/$defs/text",
+              "description": "What changes under a reduced-motion preference."
+            }
+          }
+        },
+        "composition": {
+          "type": "object",
+          "description": "How the component relates to others. Every id list names registered components; `planned` names ones not built yet.",
+          "additionalProperties": false,
+          "required": [
+            "composesWith",
+            "alternativeTo",
+            "supersedes",
+            "supersededBy",
+            "planned",
+            "replacesPatterns"
+          ],
+          "properties": {
+            "composesWith": {
+              "$ref": "#/$defs/ids",
+              "description": "Components it nests: exactly the ones its anatomy places inside it, in flow, out of flow or swapped in. The components it sits beside, and the hosts that nest it, are in `ai.commonPartners`."
+            },
+            "alternativeTo": {
+              "$ref": "#/$defs/ids",
+              "description": "Components that solve a neighboring problem."
+            },
+            "supersedes": {
+              "$ref": "#/$defs/ids",
+              "description": "Components it replaces."
+            },
+            "supersededBy": {
+              "$ref": "#/$defs/ids",
+              "description": "Components that replace it."
+            },
+            "planned": {
+              "$ref": "#/$defs/ids",
+              "description": "Related components not built yet, by the id they would take."
+            },
+            "replacesPatterns": {
+              "$ref": "#/$defs/texts",
+              "description": "Hand-built or native patterns it replaces, as prose."
+            }
+          }
+        }
+      }
+    },
+    "token": {
+      "type": "string",
+      "pattern": "^[a-z][a-zA-Z0-9-]*(\\.[a-zA-Z0-9-]+)+$",
+      "description": "A token name, as its DTCG path relative to the brand's root (`space.200`, `color.interactive.primary.fill.rest`, `type.label.md.emphasis`)."
+    },
+    "where": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "A member coordinate: axis name → one value. Empty for every member."
+    },
+    "value": {
+      "description": "A redline value: a token (with its px for a brand export), or a number the build writes because no token holds it, or a value computed per file from the brand's own numbers.",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "token"
+          ],
+          "properties": {
+            "token": {
+              "$ref": "#/$defs/token"
+            },
+            "px": {
+              "type": "number",
+              "minimum": 0,
+              "description": "A number of pixels."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "px",
+            "source"
+          ],
+          "properties": {
+            "px": {
+              "type": "number",
+              "minimum": 0,
+              "description": "A number of pixels."
+            },
+            "source": {
+              "const": "literal"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "px",
+            "source",
+            "rule"
+          ],
+          "properties": {
+            "px": {
+              "type": "number",
+              "minimum": 0,
+              "description": "A number of pixels."
+            },
+            "source": {
+              "const": "derived"
+            },
+            "rule": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "rule"
+          ],
+          "properties": {
+            "source": {
+              "const": "computed"
+            },
+            "rule": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        }
+      ]
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The model of the design-file component built from the definition, from the same plan that builds it: the `specs.json` entry (`component-specs.ts`), or, in a brand export, the same model built with the brand's settings.",
+      "required": [
+        "id",
+        "name",
+        "members",
+        "axes",
+        "codeOnlyStates",
+        "anatomy",
+        "redlineKey",
+        "redlines",
+        "typeKey",
+        "type",
+        "colorKey",
+        "colors",
+        "nesting",
+        "properties"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "members": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many members (variants) the component set builds."
+        },
+        "axes": {
+          "type": "array",
+          "description": "The axes members vary on, in the member name's order.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "figmaName",
+              "values",
+              "kind"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The axis name, as code spells it."
+              },
+              "figmaName": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The axis name, as the design file spells it."
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              },
+              "kind": {
+                "enum": [
+                  "variant",
+                  "size",
+                  "state",
+                  "slot"
+                ]
+              }
+            }
+          }
+        },
+        "codeOnlyStates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "States the code has and the design file does not."
+        },
+        "anatomy": {
+          "type": "array",
+          "description": "Every part the plans build, by path.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "part",
+              "kind",
+              "members"
+            ],
+            "properties": {
+              "part": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The part's path, `/`-separated from the root."
+              },
+              "kind": {
+                "enum": [
+                  "frame",
+                  "text",
+                  "swap",
+                  "instance",
+                  "glyph",
+                  "slot"
+                ]
+              },
+              "members": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "when": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                },
+                "description": "The axis values that hold the part, when one axis decides it."
+              }
+            }
+          }
+        },
+        "redlineKey": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The axes a redline row is keyed by."
+        },
+        "redlines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "where",
+              "parts"
+            ],
+            "properties": {
+              "where": {
+                "$ref": "#/$defs/where"
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "part",
+                    "values"
+                  ],
+                  "properties": {
+                    "part": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "values": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "paddingTop": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "paddingRight": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "paddingBottom": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "paddingLeft": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "gap": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "rowGap": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "height": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "minHeight": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "width": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "minWidth": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "maxWidth": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "buildWidth": {
+                          "$ref": "#/$defs/value"
+                        },
+                        "buildHeight": {
+                          "$ref": "#/$defs/value"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "description": "Padding, gap and size per row."
+        },
+        "typeKey": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "where",
+              "parts"
+            ],
+            "properties": {
+              "where": {
+                "$ref": "#/$defs/where"
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "part",
+                    "textStyle"
+                  ],
+                  "properties": {
+                    "part": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "textStyle": {
+                      "$ref": "#/$defs/token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "description": "Text styles per row."
+        },
+        "colorKey": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "where",
+              "parts"
+            ],
+            "properties": {
+              "where": {
+                "$ref": "#/$defs/where"
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "part"
+                  ],
+                  "properties": {
+                    "part": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "fill": {
+                      "$ref": "#/$defs/token"
+                    },
+                    "stroke": {
+                      "$ref": "#/$defs/token"
+                    },
+                    "ink": {
+                      "$ref": "#/$defs/token"
+                    },
+                    "icon": {
+                      "$ref": "#/$defs/token"
+                    },
+                    "gradient": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/token"
+                      },
+                      "minItems": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "description": "Color tokens per row: fill, stroke, ink (a text fill), icon (a nested glyph's fill)."
+        },
+        "nesting": {
+          "type": "array",
+          "description": "Nested instances, swap slots, placed instances and native slots.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "part",
+                  "kind",
+                  "component",
+                  "variant",
+                  "follows",
+                  "exposes"
+                ],
+                "properties": {
+                  "part": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "instance"
+                  },
+                  "component": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "variant": {
+                    "$ref": "#/$defs/where"
+                  },
+                  "when": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/$defs/where"
+                      }
+                    }
+                  },
+                  "where": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "when",
+                        "set"
+                      ],
+                      "properties": {
+                        "when": {
+                          "$ref": "#/$defs/where"
+                        },
+                        "set": {
+                          "$ref": "#/$defs/where"
+                        }
+                      }
+                    }
+                  },
+                  "follows": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "exposes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "part",
+                  "kind",
+                  "property"
+                ],
+                "properties": {
+                  "part": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "swap"
+                  },
+                  "property": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "visibility": {
+                    "type": "string"
+                  },
+                  "default": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "part",
+                  "kind",
+                  "components"
+                ],
+                "properties": {
+                  "part": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "fixed"
+                  },
+                  "components": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "part",
+                  "kind",
+                  "preferred"
+                ],
+                "properties": {
+                  "part": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "slot"
+                  },
+                  "property": {
+                    "type": "string"
+                  },
+                  "preferred": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "properties": {
+          "type": "array",
+          "description": "The design-file component properties.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "enum": [
+                  "TEXT",
+                  "BOOLEAN",
+                  "INSTANCE_SWAP",
+                  "SLOT"
+                ]
+              },
+              "default": {
+                "type": [
+                  "string",
+                  "boolean"
+                ]
+              }
+            }
+          }
+        },
+        "literal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "entries"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "entries": {
+              "type": "object"
+            }
+          },
+          "description": "A provider's own values, as the definition authors them."
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The component settings the brand resolves, every one filled in with its default where the brand sets none.",
+      "required": [
+        "controlShape",
+        "fieldStyle",
+        "searchFieldStyle",
+        "tagStyle",
+        "dialogTitleSize",
+        "bannerStyle",
+        "density",
+        "outlineInteraction",
+        "weightAvailability",
+        "button",
+        "radioDot",
+        "raisedSurface"
+      ],
+      "properties": {
+        "controlShape": {
+          "enum": [
+            "rounded",
+            "pill",
+            "boxed",
+            "hairline"
+          ],
+          "description": "The corner shape of pill-able controls."
+        },
+        "fieldStyle": {
+          "enum": [
+            "outline",
+            "underline"
+          ],
+          "description": "The edge every field draws."
+        },
+        "searchFieldStyle": {
+          "enum": [
+            "follow",
+            "outline",
+            "underline"
+          ],
+          "description": "The search field's own edge; `follow` takes the field style."
+        },
+        "tagStyle": {
+          "enum": [
+            "pill",
+            "underline"
+          ],
+          "description": "The shape every tag draws."
+        },
+        "dialogTitleSize": {
+          "enum": [
+            "large",
+            "medium",
+            "small"
+          ],
+          "description": "The title size of every dialog."
+        },
+        "bannerStyle": {
+          "enum": [
+            "tinted",
+            "outlined"
+          ],
+          "description": "The surface every banner draws."
+        },
+        "density": {
+          "enum": [
+            "compact",
+            "comfortable",
+            "spacious"
+          ],
+          "description": "The spacing density."
+        },
+        "outlineInteraction": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Which family carries an outline or text hover fill."
+        },
+        "weightAvailability": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "description": "The weight roles the brand ships, per type category."
+        },
+        "button": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "icons",
+            "content",
+            "minWidthMultiplier",
+            "labelWeight",
+            "textHover"
+          ],
+          "description": "The button settings.",
+          "properties": {
+            "icons": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minWidthMultiplier": {
+              "type": "number",
+              "minimum": 0
+            },
+            "labelWeight": {
+              "type": "string",
+              "minLength": 1
+            },
+            "textHover": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "radioDot": {
+          "enum": [
+            50,
+            60,
+            70,
+            80
+          ],
+          "description": "Radio's dot, as a percentage of its box. Moves a token's value, not a binding."
+        },
+        "raisedSurface": {
+          "enum": [
+            "card",
+            "page",
+            "white"
+          ],
+          "description": "What the raised surface (Dialog's panel) holds in the light-family modes. Moves a token's value, not a binding."
+        }
+      }
+    },
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "root",
+        "mode",
+        "settings"
+      ],
+      "description": "The brand this export resolves.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The token tree's root; a token name here resolves under it."
+        },
+        "mode": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The mode each px value is read in: the brand's default."
+        },
+        "settings": {
+          "$ref": "#/$defs/settings"
+        }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "digest",
+        "def"
+      ],
+      "description": "One component.",
+      "properties": {
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}$",
+          "description": "FNV-1a of the entry's `def` and `spec`: it moves exactly when this component's entry does."
+        },
+        "def": {
+          "$ref": "#/$defs/def"
+        },
+        "spec": {
+          "$ref": "#/$defs/spec"
+        }
+      }
+    }
+  }
+}
