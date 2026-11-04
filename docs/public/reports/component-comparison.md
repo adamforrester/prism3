@@ -15,7 +15,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 ### axis values
 
 - **axis appearance** — the appearance axis takes 3 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter
-- **axis emphasis** — the emphasis axis takes 2 value sets — [bold, subtle, surface] in badge; [primary, secondary] in field-label
+- **axis emphasis** — the emphasis axis takes 3 value sets — [bold, subtle] in divider; [bold, subtle, surface] in badge; [primary, secondary] in field-label
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis provider** — the provider axis takes 2 value sets — [apple, facebook, google] in sign-in-button; [apple-pay, google-pay, paypal, shop-pay] in wallet-button
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in link, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
@@ -259,7 +259,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | filled, outline, text | button, button-destructive, button-neutral |
 |  | ghost, outline | counter |
 | direction | from-bottom, from-left, from-right, from-top, full | veil |
-| emphasis | bold, subtle, surface | badge |
+| emphasis | bold, subtle | divider |
+|  | bold, subtle, surface | badge |
 |  | primary, secondary | field-label |
 | expansion | collapsed, expanded | _accordion-indicator, accordion |
 | footer | fill, inline, none, stacked | dialog |
@@ -466,6 +467,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | dismissible | banner | false | — |
 |  | toast | true | — |
 | emphasis | badge | subtle | subtle, bold, surface |
+|  | divider | bold | bold, subtle |
 |  | field-label | primary | primary, secondary |
 | fullWidth | button | false | — |
 |  | button-destructive | false | — |

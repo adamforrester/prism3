@@ -528,6 +528,10 @@
   },
   "divider": {
     "axes": {
+      "emphasis": [
+        "bold",
+        "subtle"
+      ],
       "inset": [
         "inset",
         "middle-inset",
@@ -542,7 +546,7 @@
         "vertical"
       ]
     },
-    "members": 7,
+    "members": 14,
     "properties": {
       "label": "TEXT"
     }

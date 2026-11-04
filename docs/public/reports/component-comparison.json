@@ -1744,6 +1744,10 @@
         "labeled": [
           "false",
           "true"
+        ],
+        "emphasis": [
+          "bold",
+          "subtle"
         ]
       },
       "props": [
@@ -1762,6 +1766,14 @@
             "none",
             "inset",
             "middle-inset"
+          ]
+        },
+        {
+          "name": "emphasis",
+          "default": "bold",
+          "values": [
+            "bold",
+            "subtle"
           ]
         },
         {
@@ -5697,6 +5709,15 @@
       {
         "values": [
           "bold",
+          "subtle"
+        ],
+        "components": [
+          "divider"
+        ]
+      },
+      {
+        "values": [
+          "bold",
           "subtle",
           "surface"
         ],
@@ -6949,6 +6970,14 @@
           "subtle",
           "bold",
           "surface"
+        ]
+      },
+      {
+        "id": "divider",
+        "default": "bold",
+        "values": [
+          "bold",
+          "subtle"
         ]
       },
       {
@@ -9888,9 +9917,10 @@
       "subject": "axis emphasis",
       "components": [
         "badge",
+        "divider",
         "field-label"
       ],
-      "detail": "the emphasis axis takes 2 value sets — [bold, subtle, surface] in badge; [primary, secondary] in field-label"
+      "detail": "the emphasis axis takes 3 value sets — [bold, subtle] in divider; [bold, subtle, surface] in badge; [primary, secondary] in field-label"
     },
     {
       "kind": "axis values",

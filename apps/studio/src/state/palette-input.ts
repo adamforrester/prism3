@@ -100,6 +100,15 @@ export const removalEffects = (name: string): string[] => {
       if (n) out.push(`In the ${g.name} gradient, ${n === 1 ? '1 stop switches' : `${n} stops switch`} to primary.`);
     }
   }
+  // An override that names the palette is NOT cascaded (#3391): it dangles, and the engine refuses the brand
+  // ("unknown palette"). Listed here, by role, so the removal is never a surprise. Last: it is not a step of the cascade.
+  const held = [...new Set(Object.values(brandState.overrides ?? {}).flatMap((m) =>
+    Object.entries(m ?? {}).filter(([, ref]) => (ref as { palette?: string } | undefined)?.palette === name).map(([role]) => role)))];
+  if (held.length) {
+    out.push(held.length === 1
+      ? `1 role is still overridden to it: ${held[0]} — the brand won't build until it's re-picked.`
+      : `${held.length} roles are still overridden to it: ${held.join(', ')} — the brand won't build until each is re-picked.`);
+  }
   return out;
 };
 

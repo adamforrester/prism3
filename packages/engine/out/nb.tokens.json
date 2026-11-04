@@ -8120,6 +8120,146 @@
               }
             }
           },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.600}",
+              "$description": "primary interactive indicator — rest (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.600",
+                  "contrast": 6.85,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.450}",
+                      "aliasOf": "nbds.core.palette.red.450",
+                      "contrast": 5.05,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.650}",
+                      "aliasOf": "nbds.core.palette.red.650",
+                      "contrast": 8.29,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.350}",
+                      "aliasOf": "nbds.core.palette.red.350",
+                      "contrast": 7.52,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.700}",
+              "$description": "primary interactive indicator — hover (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.700",
+                  "contrast": 10.03,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.350}",
+                      "aliasOf": "nbds.core.palette.red.350",
+                      "contrast": 6.97,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.750}",
+                      "aliasOf": "nbds.core.palette.red.750",
+                      "contrast": 12.08,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.250}",
+                      "aliasOf": "nbds.core.palette.red.250",
+                      "contrast": 10.17,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.800}",
+              "$description": "primary interactive indicator — pressed (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.800",
+                  "contrast": 14.17,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.250}",
+                      "aliasOf": "nbds.core.palette.red.250",
+                      "contrast": 9.42,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.850}",
+                      "aliasOf": "nbds.core.palette.red.850",
+                      "contrast": 16.32,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.150}",
+                      "aliasOf": "nbds.core.palette.red.150",
+                      "contrast": 13.44,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
+          },
           "overlay": {
             "hover": {
               "$type": "color",
@@ -9149,6 +9289,146 @@
               }
             }
           },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.600}",
+              "$description": "destructive interactive indicator — rest (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.600",
+                  "contrast": 4.98,
+                  "against": "background.tertiary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.400}",
+                      "aliasOf": "nbds.core.palette.red.400",
+                      "contrast": 4.92,
+                      "against": "background.tertiary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.650}",
+                      "aliasOf": "nbds.core.palette.red.650",
+                      "contrast": 8.29,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.350}",
+                      "aliasOf": "nbds.core.palette.red.350",
+                      "contrast": 7.52,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.700}",
+              "$description": "destructive interactive indicator — hover (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.700",
+                  "contrast": 7.29,
+                  "against": "background.tertiary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.300}",
+                      "aliasOf": "nbds.core.palette.red.300",
+                      "contrast": 6.68,
+                      "against": "background.tertiary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.750}",
+                      "aliasOf": "nbds.core.palette.red.750",
+                      "contrast": 12.08,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.250}",
+                      "aliasOf": "nbds.core.palette.red.250",
+                      "contrast": 10.17,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.800}",
+              "$description": "destructive interactive indicator — pressed (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.800",
+                  "contrast": 10.3,
+                  "against": "background.tertiary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.200}",
+                      "aliasOf": "nbds.core.palette.red.200",
+                      "contrast": 8.91,
+                      "against": "background.tertiary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.850}",
+                      "aliasOf": "nbds.core.palette.red.850",
+                      "contrast": 16.32,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.150}",
+                      "aliasOf": "nbds.core.palette.red.150",
+                      "contrast": 13.44,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
+          },
           "overlay": {
             "hover": {
               "$type": "color",
@@ -10041,6 +10321,146 @@
               "$type": "color",
               "$value": "{nbds.core.palette.neutral.750}",
               "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.750",
+                  "contrast": 11.82,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.200}",
+                      "aliasOf": "nbds.core.palette.neutral.200",
+                      "contrast": 10.75,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.750}",
+                      "aliasOf": "nbds.core.palette.neutral.750",
+                      "contrast": 11.82,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.200}",
+                      "aliasOf": "nbds.core.palette.neutral.200",
+                      "contrast": 11.61,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.950}",
+              "$description": "neutral interactive indicator — rest (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.950",
+                  "contrast": 19.44,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.025}",
+                      "aliasOf": "nbds.core.palette.neutral.025",
+                      "contrast": 18.11,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.black}",
+                      "aliasOf": "nbds.core.palette.black",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.white}",
+                      "aliasOf": "nbds.core.palette.white",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.850}",
+              "$description": "neutral interactive indicator — hover (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.850",
+                  "contrast": 16,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.100}",
+                      "aliasOf": "nbds.core.palette.neutral.100",
+                      "contrast": 14.13,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.850}",
+                      "aliasOf": "nbds.core.palette.neutral.850",
+                      "contrast": 16,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.100}",
+                      "aliasOf": "nbds.core.palette.neutral.100",
+                      "contrast": 15.26,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.750}",
+              "$description": "neutral interactive indicator — pressed (the selection mark; matches the label)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -14800,6 +15220,146 @@
                 }
               }
             },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.450}",
+                "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.450",
+                    "contrast": 5.05,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.550}",
+                        "aliasOf": "nbds.core.palette.red.550",
+                        "contrast": 5.24,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.350}",
+                        "aliasOf": "nbds.core.palette.red.350",
+                        "contrast": 7.52,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.650}",
+                        "aliasOf": "nbds.core.palette.red.650",
+                        "contrast": 8.29,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.350}",
+                "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.350",
+                    "contrast": 6.97,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.650}",
+                        "aliasOf": "nbds.core.palette.red.650",
+                        "contrast": 7.72,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.250}",
+                        "aliasOf": "nbds.core.palette.red.250",
+                        "contrast": 10.17,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.750}",
+                        "aliasOf": "nbds.core.palette.red.750",
+                        "contrast": 12.08,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.250}",
+                "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.250",
+                    "contrast": 9.42,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.750}",
+                        "aliasOf": "nbds.core.palette.red.750",
+                        "contrast": 11.26,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.150}",
+                        "aliasOf": "nbds.core.palette.red.150",
+                        "contrast": 13.44,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.850}",
+                        "aliasOf": "nbds.core.palette.red.850",
+                        "contrast": 16.32,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
             "overlay": {
               "hover": {
                 "$type": "color",
@@ -15756,6 +16316,146 @@
                 }
               }
             },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.400}",
+                "$description": "destructive interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.400",
+                    "contrast": 4.92,
+                    "against": "inverse.background.tertiary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.600}",
+                        "aliasOf": "nbds.core.palette.red.600",
+                        "contrast": 4.98,
+                        "against": "inverse.background.tertiary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.350}",
+                        "aliasOf": "nbds.core.palette.red.350",
+                        "contrast": 7.52,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.650}",
+                        "aliasOf": "nbds.core.palette.red.650",
+                        "contrast": 8.29,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.300}",
+                "$description": "destructive interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.300",
+                    "contrast": 6.68,
+                    "against": "inverse.background.tertiary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.700}",
+                        "aliasOf": "nbds.core.palette.red.700",
+                        "contrast": 7.29,
+                        "against": "inverse.background.tertiary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.250}",
+                        "aliasOf": "nbds.core.palette.red.250",
+                        "contrast": 10.17,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.750}",
+                        "aliasOf": "nbds.core.palette.red.750",
+                        "contrast": 12.08,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.200}",
+                "$description": "destructive interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.200",
+                    "contrast": 8.91,
+                    "against": "inverse.background.tertiary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.800}",
+                        "aliasOf": "nbds.core.palette.red.800",
+                        "contrast": 10.3,
+                        "against": "inverse.background.tertiary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.150}",
+                        "aliasOf": "nbds.core.palette.red.150",
+                        "contrast": 13.44,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.850}",
+                        "aliasOf": "nbds.core.palette.red.850",
+                        "contrast": 16.32,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
             "overlay": {
               "hover": {
                 "$type": "color",
@@ -16669,6 +17369,146 @@
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.200}",
                 "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.200",
+                    "contrast": 10.75,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.01,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.200}",
+                        "aliasOf": "nbds.core.palette.neutral.200",
+                        "contrast": 11.61,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.82,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.025}",
+                "$description": "neutral interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.025",
+                    "contrast": 18.11,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.950}",
+                        "aliasOf": "nbds.core.palette.neutral.950",
+                        "contrast": 18.11,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.white}",
+                        "aliasOf": "nbds.core.palette.white",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.black}",
+                        "aliasOf": "nbds.core.palette.black",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.100}",
+                "$description": "neutral interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.100",
+                    "contrast": 14.13,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.850}",
+                        "aliasOf": "nbds.core.palette.neutral.850",
+                        "contrast": 14.91,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.100}",
+                        "aliasOf": "nbds.core.palette.neutral.100",
+                        "contrast": 15.26,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.850}",
+                        "aliasOf": "nbds.core.palette.neutral.850",
+                        "contrast": 16,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.200}",
+                "$description": "neutral interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",

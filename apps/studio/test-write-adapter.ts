@@ -217,6 +217,14 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [{ ...base, breaks: 'Breaks library consumers: x.' }, base], error: null });
   accepts('update-check with a malformed breaks line leaves it off', { type: 'update-check', previewHash: 'H', missing: [], refused: [], sets: [{ ...base, breaks: 7 }] },
     { kind: 'update-check', previewHash: 'H', missing: [], sets: [base], error: null });
+  // #3302: the check's progress: its counts, the set being checked now, and the one just checked; a count of the wrong
+  // type, or more done than in all, drops the reading, and a set that does not read as one is left off it.
+  accepts('update-check-progress with the set just checked', { type: 'update-check-progress', done: 1, total: 2, next: 'select', set: base },
+    { kind: 'update-check-progress', done: 1, total: 2, next: 'select', set: base });
+  accepts('update-check-progress before any set, with a malformed set left off', { type: 'update-check-progress', done: 0, total: 2, next: 'button', set: { def: 'x' } },
+    { kind: 'update-check-progress', done: 0, total: 2, next: 'button', set: null });
+  drops('update-check-progress with more done than in all', { type: 'update-check-progress', done: 3, total: 2, next: null });
+  drops('update-check-progress with a count of the wrong type', { type: 'update-check-progress', done: '1', total: 2, next: null });
 }
 // #3082 Q811 A: an engine update's due reading carries what moved; the executor's has no list; malformed entries in the
 // list are dropped and the set still reads due.

@@ -5,7 +5,7 @@
  * WHAT IT COUNTS (v4 review Q2): every role with a floor, in every mode the brand ships. A role "has a
  * floor" when the engine resolved it against something other than itself with a minimum above zero, the
  * way concept v6 counts it (`statsOf` in `concept-v6.src.html`). A role fails when its ratio is below
- * that minimum. For the default theme that is 221 roles in each of 4 modes, 884 in all.
+ * that minimum. For the default theme that is 239 roles in each of 4 modes, 956 in all (221 and 884 until #3346 added the 18 selection-mark roles).
  *
  * WHICH MODES ARE DERIVED: the engine's own mode registry (`BUILTIN_MODES`) says. A built-in mode whose
  * kind is not `standard` (high contrast and wireframe) is generated from light or dark and never edited
@@ -90,7 +90,7 @@ export const FLOOR_POINTER = {
   link: 'Change the contrast floor',
 } as const;
 
-/** Health's breadth note: "221 per mode × 4 modes" when every mode gates the same count (v5 Q2). */
+/** Health's breadth note: "239 per mode × 4 modes" when every mode gates the same count (v5 Q2). */
 export const breadthLine = (v: Verdict, label: (m: string) => string): string => {
   const counts = [...new Set(v.per.map((m) => m.n))];
   return counts.length === 1 ? `${counts[0]} per mode × ${plural(v.per.length, 'mode')}` : v.per.map((m) => `${label(m.mode)} ${m.n}`).join(' · ');

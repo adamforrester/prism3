@@ -269,7 +269,7 @@ Keyed by `type`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.rest` | — | — |
+| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.indicator.rest` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/content/labelCheck/checkGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
@@ -278,7 +278,7 @@ Keyed by `type`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.hover` | — | — |
+| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.indicator.hover` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.hover` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.hover` | — |
 | `container/content/labelCheck/checkGlyph` | — | — | — | `color.interactive.neutral.icon.hover` |
@@ -287,7 +287,7 @@ Keyed by `type`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.pressed` | — | — |
+| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.indicator.pressed` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.pressed` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.pressed` | — |
 | `container/content/labelCheck/checkGlyph` | — | — | — | `color.interactive.neutral.icon.pressed` |
@@ -296,7 +296,7 @@ Keyed by `type`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.rest` | — | — |
+| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.indicator.rest` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/content/labelCheck/checkGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |

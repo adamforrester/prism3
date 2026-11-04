@@ -3032,7 +3032,7 @@ for (const st of ['rest', 'hover', 'pressed', 'focus-visible']) {
   const u = [...uStrokes][0], c = [...cStrokes][0];
   ok(uStrokes.size === 1 && cStrokes.size === 1
      && !!u && u.startsWith('color/field/border')
-     && !!c && c.startsWith('color/interactive/primary/border')
+     && !!c && c.startsWith('color/interactive/primary/indicator')   // the selection mark since #3346
      && u !== c,
     `#1423 radio's ring RECOLORS across selection at \`${st}\` — unchecked resolves the field-border edge and checked the interactive brand edge, differing (unchecked ${u ?? 'none'}, checked ${c ?? 'none'})`);
 }
@@ -5489,7 +5489,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       id(cv.paddingBottom), id(cv.paddingLeft), id(cv.paddingRight), m.minWidth ?? null, strokeVar(m),
       ...(/type=dismissible/.test(name) ? [id(sv.width), id(sv.height), slot?.counterAxisSizingMode, id(bv.itemSpacing)] : [])];
     const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', null, null, 'AUTO', 'MAX', INSET[size],
-      'space/0', 'space/0', null, st === 'disabled' ? 'color/disabled/border' : `color/interactive/primary/border/${st === 'hover' || st === 'pressed' ? st : 'rest'}`,
+      // #3346: the selected line is the selection mark; the unselected line stays the primary edge (Q589).
+      'space/0', 'space/0', null, st === 'disabled' ? 'color/disabled/border' : `color/interactive/primary/${/selection=selected/.test(name) ? 'indicator' : 'border'}/${st === 'hover' || st === 'pressed' ? st : 'rest'}`,
       ...(/type=dismissible/.test(name) ? [`icon/size/${GLYPH[size]}`, null, 'AUTO', X_GAP[size]] : [])];
     if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${name}: ${got.join(' / ')}`);
   }

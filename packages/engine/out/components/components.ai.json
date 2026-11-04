@@ -6678,7 +6678,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "One trigger in a tab list. Selected, it shows an underline and switches the panel below.",
-      "description": "One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline and the primary text color, so the state never rests on color alone. A selected tab's label is set in the emphasis weight, and every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.",
+      "description": "One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline in the color of its label, and the label is set in the emphasis weight, so the state never rests on color alone. Every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.",
       "props": [
         {
           "name": "label",
@@ -7008,7 +7008,7 @@
       "category": "foundations",
       "status": "draft",
       "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
-      "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. A labeled divider breaks the rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label (12px when vertical), and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.",
+      "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. Bold by default; subtle draws it in the lighter border color, for a quieter break. A labeled divider breaks the rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label (12px when vertical), and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.",
       "props": [
         {
           "name": "orientation",
@@ -7032,6 +7032,17 @@
             "middle-inset"
           ],
           "description": "How far the rule sits in from its container's edges. none runs edge to edge; inset starts the rule 16px in from the start edge, so it lines up with indented content such as list text after an avatar; middle-inset indents both ends. The start edge follows text direction. A vertical rule takes none or middle-inset only."
+        },
+        {
+          "name": "emphasis",
+          "type": "enum: 'bold' | 'subtle'",
+          "default": "bold",
+          "required": false,
+          "values": [
+            "bold",
+            "subtle"
+          ],
+          "description": "How strongly the rule reads. bold (the default) draws it in border.secondary; subtle draws it in border.primary, the lighter border color, for a break that should recede. Both are decorative strengths: a rule that marks a real break sets decorative to false instead."
         },
         {
           "name": "decorative",
@@ -7070,6 +7081,13 @@
             "true"
           ],
           "kind": "authoring"
+        },
+        "emphasis": {
+          "values": [
+            "bold",
+            "subtle"
+          ],
+          "kind": "authoring"
         }
       },
       "accessibility": {
@@ -7093,7 +7111,8 @@
           "Use a vertical divider between clusters of controls in a row, such as a toolbar",
           "Leave a divider decorative unless it marks a real break in the content, so a screen reader is not told about every visual line",
           "Use a labeled divider with Or between two alternative ways to do one thing, such as two ways to sign in",
-          "Use a vertical labeled divider only where both groups are at least 56px tall; between two single buttons, stack them and use a horizontal one"
+          "Use a vertical labeled divider only where both groups are at least 56px tall; between two single buttons, stack them and use a horizontal one",
+          "Use subtle where a bold rule would compete with the content it separates, such as rows of a dense list"
         ],
         "dont": [
           "Put a divider between every item in a list; increase the spacing instead",
@@ -7122,7 +7141,9 @@
           "section break",
           "or divider",
           "labeled divider",
-          "text divider"
+          "text divider",
+          "subtle divider",
+          "light divider"
         ],
         "generationPriority": 3
       },

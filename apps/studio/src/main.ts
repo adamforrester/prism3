@@ -1972,7 +1972,7 @@ const endStep = (ok: boolean, headline: string, warn = false): void => {
     updatePhase = null;
     writesMoved();
     // Q2909.8 A: what is due now, and the hand edits after it, so the badge and the statuses follow the run.
-    setHost({ handPass: 'running', handEdits: new Map(), updateCheck: null });
+    setHost({ handPass: 'running', handEdits: new Map(), updateCheck: null, updateProgress: null });
     // #3129 Q3129.2 A, Q3129.3 A: the run ends with a queue write of no ids, which clears the keys of the sets the file
     // now holds and of the defs the engine no longer builds. A set the run built has had its key cleared already.
     commit.postAddQueue([], false);
@@ -1997,7 +1997,7 @@ const startStep = (): void => {
     if (!u || componentBusy()) { endStep(false, busy); return; }
     // The check's own hash when the update covers exactly the sets it read; else those sets are checked again first.
     if (u.previewHash) postUpdate(u, u.previewHash);
-    else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending' }); commit.requestUpdateCheck(u.defs, panelBrand(runTheme(updateRun.steps))); }
+    else { updatePhase = 'recheck'; setHost({ updateCheck: 'pending', updateProgress: null }); commit.requestUpdateCheck(u.defs, panelBrand(runTheme(updateRun.steps))); }
   }
   else if (step === 'sets') { runSets('selection', updateRun.sets); if (!run) { endStep(false, busy); return; } }
   else if (step === 'cover') {
@@ -2096,7 +2096,7 @@ const stripHears = (m: Parameters<typeof reduce>[1]): void => {
     return;
   }
   if (m.kind === 'file-sets' && m.atOpen && !m.partial && stripRead) { stripRead = null; invalidate('host:run'); return; }
-  if (stripRun && (m.kind === 'component-progress' || m.kind === 'style-guide-progress' || m.kind === 'update-check')) { stripRun = heard(stripRun, Date.now()); invalidate('host:run'); }
+  if (stripRun && (m.kind === 'component-progress' || m.kind === 'style-guide-progress' || m.kind === 'update-check' || m.kind === 'update-check-progress')) { stripRun = heard(stripRun, Date.now()); invalidate('host:run'); }
 };
 /** The next action the panel starts ends the verdict line (Q3170.6 A). */
 const clearStripLine = (): void => { if (stripLine) { stripLine = null; invalidate('host:run'); } };
@@ -2119,14 +2119,14 @@ const updateFileLend: UpdateFileLend = {
     fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: writeOff(),
     prune: { busy: host.pruneBusy, preview: host.prunePreview, verdict: host.pruneVerdict },
     retired: host.styleGuideRetired, cleanupBusy: host.styleGuideCleanup === 'pending' || host.styleGuideState === 'pending' || agentRunning('styleguide'),
-    handEdits: host.handEdits, updateCheck: host.updateCheck, queue: host.addQueue, panels: host.docSettings?.panels !== false,
+    handEdits: host.handEdits, updateCheck: host.updateCheck, updateProgress: host.updateProgress, queue: host.addQueue, panels: host.docSettings?.panels !== false,
     rowState: (id) => rowState(stripRun, id), stopLabel: () => { const v = statusLend.read(); return v.kind === 'running' ? v.stop.label : null; },
     panelsOff: host.docSettings?.panels === false, panelsClean: host.panelsClean,
   }),
   panelsClean: (confirm) => panelsClean(confirm),
   queueSets,
   check: (theme) => commit.requestFileSets(panelBrand(theme)),
-  checkSets: (defs, theme) => { setHost({ updateCheck: 'pending' }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand(theme)); },
+  checkSets: (defs, theme) => { setHost({ updateCheck: 'pending', updateProgress: null }); updateChanged(); commit.requestUpdateCheck(defs, panelBrand(theme)); },
   run: (steps, sets, update) => {
     if (updateRun || restoreFailure) return;
     updateStopped = null;

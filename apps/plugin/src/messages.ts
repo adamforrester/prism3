@@ -612,6 +612,10 @@ export type MainToUi =
   /** #2909 Q2909.8 A: the scoped full check's answer: each set's counts, and the hash an `update-sets` must echo. `error`
    *  when the check threw; then nothing else is filled. */
   | { type: 'update-check'; previewHash: string; sets: CheckedSet[]; missing: string[]; refused: { def: string; reason: string }[]; error?: string }
+  /** #3302 Q3302.1–.3 A: how far the scoped check has got, before its answer: `done` sets of `total` checked, `next` the
+   *  set being checked now (null when none is), and `set` the one just checked, as its own preview reads (the answer may
+   *  still change its line, once every set's moves are worked out). The first, `done` 0, once every set is found. */
+  | { type: 'update-check-progress'; done: number; total: number; next: string | null; set?: CheckedSet }
   /** The result of an `agent-command` — the protocol's own envelope, relayed to the bridge unchanged. */
   | { type: 'agent-result'; result: AgentResult }
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */
