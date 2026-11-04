@@ -35,6 +35,9 @@ so the owner's library run showed "Button: 4 updated in place." as the reason fo
   `button`), so `halted` carries `leftDefs` beside `left`, and a cause's subject never falls back to a set's name.
 - **The plugin's cause rules live once**, in `causes.ts` (review N1). The panel's queue and its refusal import
   `mergeCauses` and `CAUSE_WHAT` (a pure module) rather than copying them, so PR 4's rewording moves every writer.
+- **The web bundle reads one plugin file, `causes.ts`** (second review S1). So `apps/studio/vercel-ignore.sh` now
+  watches it: a commit that changes only `causes.ts` builds the site (exit 1) where it was skipped (exit 0), measured
+  against the script before and after. The gate gap behind it (`check:ignore` checks engine files only) is #3407.
 - **Draw specs carries no causes yet.** It is outside PR 1's four writers. Filed as #3404.
 - **"updated with problems"** is the one phrase not in the approved draft: the update's form of the build's
   "built with problems". It is not shown until PR 2, and PR 4 owns the words.
@@ -48,7 +51,8 @@ while every `templates/missing …` prose arm stays green, which is what shows t
 `causes/run …` in `test-component-groups.ts`, and the adapter's arms in `test-write-adapter.ts`. After review:
 `causes/halted` (a set named "Tag set" for `tag`), `causes/idle`, `causes/refused`, `causes/unknown`, `causes/misses`,
 and in both suites `causes/every verdict`, an invariant over every verdict each suite reads: one not `ok` names at least
-one cause, each subject a def id. Each of the review's four surviving mutations now fails one of them by name.
+one cause, each subject a def id. Each of the review's four surviving mutations now fails one of them by name. Second review: `causes/run merged` in
+`test-component-groups.ts` (a set two builds name is one cause; `runCauses` returning its list unmerged fails it).
 
 ### Trap for PR 2
 
