@@ -2,7 +2,7 @@
 
 **STATUS: plugin and panel data only; nothing drawn changes.** First of the four PRs in #3326's build plan (the
 2026-11-03T03:14Z proposal, §4). Owner decisions Q3326.1–.9 A, and #3308's Q3308.1 A / Q3308.2 A. No engine change, no
-executor change (revision stays 49).
+executor change: the PR takes no executor revision.
 
 ### What it does
 
@@ -31,6 +31,11 @@ so the owner's library run showed "Button: 4 updated in place." as the reason fo
   `activity`'s `problems` (#3309). Gated by `#3326 causes/<cmd>` in `test-agent-link.ts`.
 - **A cause only on a verdict that is not `ok`.** A dependency built first with misses is in `activity`'s `problems` but
   does not turn the build's `ok` false, so it is not a cause here. Filed as #3386, not changed here.
+- **A stop names the sets it left by def id** (review S1). A library names its sets its own way ("Button" for
+  `button`), so `halted` carries `leftDefs` beside `left`, and a cause's subject never falls back to a set's name.
+- **The plugin's cause rules live once**, in `causes.ts` (review N1). The panel's queue and its refusal import
+  `mergeCauses` and `CAUSE_WHAT` (a pure module) rather than copying them, so PR 4's rewording moves every writer.
+- **Draw specs carries no causes yet.** It is outside PR 1's four writers. Filed as #3404.
 - **"updated with problems"** is the one phrase not in the approved draft: the update's form of the build's
   "built with problems". It is not shown until PR 2, and PR 4 owns the words.
 
@@ -40,7 +45,10 @@ so the owner's library run showed "Button: 4 updated in place." as the reason fo
 reasons while leaving its prose fails `templates/cause build`, `templates/cause update` and `templates/cause merge`,
 while every `templates/missing …` prose arm stays green, which is what shows the gate is not reading the prose
 (`docs/34`). Also: `causes/…` in `test-update-apply.ts` and `test-build-completed.ts` (the posts `main.ts` makes),
-`causes/run …` in `test-component-groups.ts`, and the adapter's arms in `test-write-adapter.ts`.
+`causes/run …` in `test-component-groups.ts`, and the adapter's arms in `test-write-adapter.ts`. After review:
+`causes/halted` (a set named "Tag set" for `tag`), `causes/idle`, `causes/refused`, `causes/unknown`, `causes/misses`,
+and in both suites `causes/every verdict`, an invariant over every verdict each suite reads: one not `ok` names at least
+one cause, each subject a def id. Each of the review's four surviving mutations now fails one of them by name.
 
 ### Trap for PR 2
 

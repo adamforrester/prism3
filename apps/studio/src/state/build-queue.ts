@@ -19,6 +19,9 @@
 import type { Catalog } from './component-catalog';
 import type { SetBuild } from './host-session';
 import type { Cause } from '../../../plugin/src/messages';
+// The plugin's pure cause rules (#3326 PR 1 review N1): one merge and one set of phrases for every writer, so a
+// rewording (PR 4) moves them all. `causes.ts` imports nothing at run time, so nothing of the plugin's main thread comes with it.
+import { CAUSE_WHAT, mergeCauses } from '../../../plugin/src/causes';
 import { entryOf, GROUPS_COPY } from './component-groups';
 
 /** What started a run: the action bar's selection, or the Subcomponents section's "Build all" (call 10 A). */
@@ -116,25 +119,17 @@ export const RUN_COPY = {
  */
 export const runCauses = (r: BuildRun): Cause[] => {
   const out: Cause[] = [];
-  const add = (c: Cause): void => {
-    const at = out.findIndex((x) => x.subject === c.subject);
-    if (at < 0) { out.push({ ...c, reasons: [...c.reasons] }); return; }
-    const x = out[at];
-    const worse = x.kind === 'warn' && c.kind === 'bad';
-    out[at] = { ...x, kind: worse ? 'bad' : x.kind, what: worse ? c.what : x.what, reasons: [...new Set([...x.reasons, ...c.reasons])] };
-  };
+  const add = (c: Cause): void => { out.push(c); };
   for (const x of r.results) {
     if (x.result === 'ok') continue;
     const own = x.causes ?? [];
-    if (!own.some((c) => c.subject === x.id)) add({ kind: x.result === 'failed' ? 'bad' : 'warn', subject: x.id, what: x.result === 'failed' ? CAUSE_WORDS.failed : CAUSE_WORDS.built, reasons: [] });
+    if (!own.some((c) => c.subject === x.id)) add({ kind: x.result === 'failed' ? 'bad' : 'warn', subject: x.id, what: x.result === 'failed' ? CAUSE_WHAT.failed : CAUSE_WHAT.built, reasons: [] });
     for (const c of own) add(c);
   }
   // A stop is the person's: each set it left is not built, and is a cause of its own with no reason but the stop.
-  for (const id of r.ids.slice(r.results.length)) add({ kind: 'warn', subject: id, what: CAUSE_WORDS.notBuilt, reasons: [] });
-  return out;
+  for (const id of r.ids.slice(r.results.length)) add({ kind: 'warn', subject: id, what: CAUSE_WHAT.notBuilt, reasons: [] });
+  return mergeCauses(out);
 };
-/** The phrases a cause the queue makes prints after the set, matching the plugin's (`CAUSE_WHAT`, `causes.ts`). */
-const CAUSE_WORDS = { built: 'built with problems', failed: 'could not be built', notBuilt: 'not built' } as const;
 
 /** The verdict a run of several sets ends with: one headline and one line per page built, per set that failed or had
  *  problems, and for the sets a stop left unbuilt. `ok` only when every set built cleanly and none was left. */

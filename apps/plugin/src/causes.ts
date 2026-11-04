@@ -16,6 +16,8 @@ export const CAUSE_WHAT = {
   notUpdated: 'not updated',
   notVerified: 'not verified',
   stopped: 'stopped',
+  /** A set a stop of the panel's queue left unbuilt (`build-queue.ts` `runCauses`). */
+  notBuilt: 'not built',
 } as const;
 
 /** A cause, its optional fields left off rather than `undefined`, so a literal in a test reads the same. */

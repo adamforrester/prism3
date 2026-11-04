@@ -208,7 +208,10 @@ export type ApplyResult = {
   /** #3170 Q3170.4 A — the person stopped the run ("Stop after <set>"): it finished the set it was on and wrote no set
    *  after it. `after` is the last set finished (null when the stop came before the first write, and nothing was
    *  written), `done` of `total` the sets written, `left` the sets not touched. Absent when the run was not stopped. */
-  halted?: { after: string | null; done: number; total: number; left: string[] };
+  halted?: { after: string | null; done: number; total: number; left: string[];
+    /** #3326 PR 1 review S1: the def id of each set in `left`, in the same order. A set's name in the file is not its
+     *  def id (a library names its sets its own way), and a cause's `subject` is always a def id. */
+    leftDefs: string[] };
 };
 
 /** #3170 part 2: one reading of how far an apply has got (`run-progress` in the plugin). `check`, the dry run before the
@@ -788,7 +791,7 @@ export const applyUpdate = async (
   // PREFLIGHT EVERY SET, before anything is written anywhere.
   const ordered = nestedFirst(targets);
   const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet; stampOnly?: boolean }[] = [];
-  const furnishing: SetPreview[] = [];
+  const furnishing: (SetPreview & { def: string })[] = [];
   for (const t of ordered) {
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
     const live = p ? await liveFor(host, t, p.set, opts.ledger) : undefined;
@@ -806,7 +809,7 @@ export const applyUpdate = async (
     // which `settle` draws through `opts.furnish` once the apply is done, and the named version below covers it.
     if (nothing && furnitureDueCount(p.furniture)) {
       res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [], furniture: p.furniture });
-      furnishing.push(p);
+      furnishing.push({ ...p, def: t.def });
       continue;
     }
     if (nothing) {
@@ -845,9 +848,10 @@ export const applyUpdate = async (
   // #3170 Q3170.4 A: STOPPED BEFORE THE FIRST WRITE, during the check. Nothing is written, no version saved.
   const halt = (done: number): void => {
     const left = [...ready.slice(done).map((x) => x.p.set), ...furnishing.map((p) => p.set)];
+    const leftDefs = [...ready.slice(done).map((x) => x.t.def), ...furnishing.map((p) => p.def)];
     // A set whose only work was its furniture is drawn in `settle`, after the sets: stopped, it is left as it is too.
     res.outcomes = res.outcomes.filter((o) => !furnishing.some((p) => p.set === o.set));
-    res.halted = { after: done ? ready[done - 1].p.set : null, done, total: ready.length, left };
+    res.halted = { after: done ? ready[done - 1].p.set : null, done, total: ready.length, left, leftDefs };
     opts.progress?.({ phase: 'finish', item: null, done, total: ready.length });
   };
   if (opts.stop?.()) { halt(0); return res; }
@@ -1087,7 +1091,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   if (r.halted) {
     lines.push(haltedLine(r.halted));
     // A stop the person asked for: each set it left is not updated, and the stop is the reason.
-    for (const set of r.halted.left) causes.push(cause('warn', r.outcomes.find((o) => o.set === set)?.def ?? set, CAUSE_WHAT.notUpdated, [haltedLine(r.halted)]));
+    for (const def of r.halted.leftDefs) causes.push(cause('warn', def, CAUSE_WHAT.notUpdated, [haltedLine(r.halted)]));
   }
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.

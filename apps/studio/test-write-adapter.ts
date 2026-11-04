@@ -78,9 +78,14 @@ accepts('apply-result with its lines', { type: 'apply-result', ok: true, headlin
 const CAUSE = { kind: 'warn', subject: 'badge', what: 'built with problems', reasons: ['No usage panels drawn.'] };
 accepts('component-result with its causes', { type: 'component-result', ok: false, completed: true, headline: '⚠ built', summary: 's', lines: ['s'], causes: [CAUSE, { kind: 'bad', subject: null, what: 'check failed', reasons: [], todo: 'Run it again.' }] },
   { kind: 'component-result', ok: false, headline: '⚠ built', summary: 's', completed: true, lines: ['s'], causes: [CAUSE, { kind: 'bad', subject: null, what: 'check failed', reasons: [], todo: 'Run it again.' }] });
+// Every optional field, when a string, is carried through as sent.
+accepts('component-result with a cause holding every field', { type: 'component-result', ok: false, completed: true, headline: '⚠ built', summary: 's', lines: ['s'], causes: [{ ...CAUSE, step: 'Build', why: 'w', stays: 'The set stays as it was.', todo: 't' }] },
+  { kind: 'component-result', ok: false, headline: '⚠ built', summary: 's', completed: true, lines: ['s'], causes: [{ ...CAUSE, step: 'Build', why: 'w', stays: 'The set stays as it was.', todo: 't' }] });
 accepts('component-update-result with no causes found', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], causes: [] },
   { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], publish: null, causes: [] });
-for (const [label, bad] of [['an unknown kind', { ...CAUSE, kind: 'note' }], ['a numeric subject', { ...CAUSE, subject: 3 }], ['a reason not a string', { ...CAUSE, reasons: ['a', 2] }], ['no what', { ...CAUSE, what: undefined }], ['a todo not a string', { ...CAUSE, todo: 1 }]] as const) {
+for (const [label, bad] of [['an unknown kind', { ...CAUSE, kind: 'note' }], ['a numeric subject', { ...CAUSE, subject: 3 }], ['a reason not a string', { ...CAUSE, reasons: ['a', 2] }], ['no what', { ...CAUSE, what: undefined }], ['a todo not a string', { ...CAUSE, todo: 1 }],
+  // #3326 PR 1 review N3: each optional field is checked, so `causesOf` losing any one of them fails its arm by name.
+  ['a step not a string', { ...CAUSE, step: 1 }], ['a why not a string', { ...CAUSE, why: 1 }], ['a stays not a string', { ...CAUSE, stays: 1 }]] as const) {
   accepts(`component-result whose causes hold ${label}`, { type: 'component-result', ok: false, completed: true, headline: '⚠ built', summary: 's', lines: ['s'], causes: [CAUSE, bad] },
     { kind: 'component-result', ok: false, headline: '⚠ built', summary: 's', completed: true, lines: ['s'], causes: null });
 }

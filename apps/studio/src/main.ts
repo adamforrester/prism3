@@ -62,6 +62,7 @@ import {
 // itself lists it, from `preview/components.ts`; the Button options moved to `domains/components.ts`).
 import { componentCatalog } from './state/component-catalog';
 import { currentOf, positionOf, record, runCauses, runVerdict, RUN_COPY, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
+import { CAUSE_WHAT } from '../../plugin/src/causes';
 import { displayNameOf, entryOf } from './state/component-groups';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
@@ -1835,7 +1836,7 @@ const runRefused = (message: string): void => {
   const id = run ? currentOf(run) : null;
   if (!run || !id) return;
   // #3326: the refused set's cause carries the host's words as its reason.
-  const ended = record(stopRun(run), { id, result: 'failed', headline: message, causes: [{ kind: 'bad', subject: id, what: 'could not be built', reasons: [message] }] });
+  const ended = record(stopRun(run), { id, result: 'failed', headline: message, causes: [{ kind: 'bad', subject: id, what: CAUSE_WHAT.failed, reasons: [message] }] });
   run = null;
   const v = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: false, headline: RUN_COPY.failed(entryOf(componentCatalog(), id)?.name ?? id), lines: [], causes: runCauses(ended) };
   const verdict = { ok: false, headline: v.headline, lines: [...v.lines, message], causes: v.causes };

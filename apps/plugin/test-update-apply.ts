@@ -268,7 +268,7 @@ import { fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './co
 import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict as applyVerdictOf, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
 
 let failed = 0;
@@ -358,6 +358,14 @@ const confirm = async (w: World, targets: UpdateTarget[]) => {
 const pdOfMember = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
 const varIdOf = async (w: World, name: string): Promise<string> =>
   (await w.api.variables.getLocalVariablesAsync()).find((v: { name: string }) => v.name.endsWith(`/${name}`)).id;
+
+/** #3326 PR 1 review S2: every verdict this suite reads, kept for `causes/every verdict` at the end. */
+const verdictsSeen: { r: Parameters<typeof applyVerdictOf>[0]; v: ReturnType<typeof applyVerdictOf> }[] = [];
+const applyVerdict = (r: Parameters<typeof applyVerdictOf>[0]): ReturnType<typeof applyVerdictOf> => {
+  const v = applyVerdictOf(r);
+  verdictsSeen.push({ r, v });
+  return v;
+};
 
 console.log('in-place update, applied (#2265 PR 2) — against the in-memory shim\n');
 const TAG = 'tag';
@@ -2058,6 +2066,9 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
   ok(!v.ok && v.headline === '✗ 1 set not updated' && v.lines[0] === 'button: 3 canvas labels drawn, 1 left as it is.',
     `idle/furniture: a set whose members were all left is not updated, though its furniture was drawn (${JSON.stringify(v)})`);
+  // #3326 PR 1 review S2. Mutation: the idle set's cause dropped (`applyVerdict`'s `isIdle` push) → `causes/idle`.
+  ok(JSON.stringify(v.causes) === JSON.stringify([{ kind: 'bad', subject: 'button', what: 'not updated', reasons: ['size=md: no as-built record'] }]),
+    `causes/idle: a set entered and left as it was is a cause, each member left with its reason (${JSON.stringify(v.causes)})`);
 }
 {
   // A RECORD-LESS SINGLE COMPONENT (#2373): the icons with no as-built record, as the NB master's unrecorded sets were.
@@ -6094,6 +6105,40 @@ section('kept views — the pass\'s reads the Update check reuses are dropped by
     ok(since !== before && keptCount() === 0, `views/epoch: a read that ran across a drop is not kept (${keptCount()} kept)`);
   }
   dropViews(); watchViews(false);
+}
+
+// #3326 PR 1 review S1: A STOP THE PERSON ASKED FOR, IN A FILE THAT NAMES ITS SET ITS OWN WAY. The set is "Tag set" in
+// the file and `tag` in the engine, as a library's sets are ("Button" for `button`). The stop comes before the first
+// write, so the set is left; its cause names the def, never the set's name in the file. Mutations: the halt's cause loop
+// dropped → this arm; `leftDefs` filled from the sets' names → this arm and `causes/every verdict`.
+section('causes — a stopped run names each set it left by its def id');
+{
+  const named = plansOf(TAG).map((p) => ({ ...JSON.parse(JSON.stringify(p)), component: 'Tag set' }) as AnatomyPlan);
+  const w = await world(TAG, named, { extraVars: ['space/999'] });
+  ok(String(w.set().name) === 'Tag set', `premise: the set is named "Tag set" in the file (${String(w.set().name)})`);
+  const targets = [{ def: TAG, plans: moveGap(named) }];
+  const pre = await previewUpdate(w.host, targets);
+  const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { stop: () => true });
+  ok(JSON.stringify(res.halted?.left) === JSON.stringify(['Tag set']), `premise: the stop left the set, by its name in the file (${JSON.stringify(res.halted)})`);
+  const v = applyVerdict(res);
+  ok(JSON.stringify(v.causes) === JSON.stringify([{ kind: 'warn', subject: TAG, what: 'not updated',
+    reasons: ['Stopped before the first write, as asked. Nothing was written. Not updated, and still due: Tag set.'] }]),
+    `causes/halted: the set the stop left is a cause, its subject the def id and the stop its reason (${JSON.stringify(v.causes)})`);
+}
+
+// #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite read. A verdict that is not ok says why: at least one
+// cause, and each subject is a def id (one of the engine's, or one a hand-written outcome names), or null for the run's
+// own cause. Never a set's name in the file. Mutations: any writer path's cause dropped, or a subject taken from a set's
+// name → `causes/every verdict`.
+{
+  const ids = new Set(componentDefs.map((d) => d.id));
+  const bad = verdictsSeen.filter(({ r, v }) => {
+    if (v.ok) return false;
+    const own = new Set([...ids, ...r.outcomes.map((o) => o.def), ...r.refused.map((x) => x.def)]);
+    return !v.causes.length || v.causes.some((c) => c.subject !== null && !own.has(c.subject));
+  });
+  ok(verdictsSeen.some(({ v }) => !v.ok) && !bad.length,
+    `causes/every verdict: each of the ${verdictsSeen.filter(({ v }) => !v.ok).length} verdicts not ok names a cause, each subject a def id (${JSON.stringify(bad.slice(0, 3).map(({ v }) => ({ headline: v.headline, causes: v.causes })))})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;
