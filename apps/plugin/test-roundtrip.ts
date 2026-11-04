@@ -34,7 +34,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
+import { applyOutlineInteraction, applyButtonLayout, applyCurrentIndicator, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
 import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -492,6 +492,11 @@ const BUTTON_LAID = PROJECTED.flatMap((d) => ([
   ['edges', { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }],
   ['smaller', { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' }],
 ] as const).flatMap(([tag, layout]) => { const m = applyButtonLayout(d, layout, nbPx); return m === d ? [] : [{ ...m, id: `${d.id}@${tag}` }]; }));
+// …and every def the `currentIndicator` lever materializes at Partial (#3345, #3380 review). Partial is the engine
+// default (Q10 B), yet `footShare` reaches a def only through `applyCurrentIndicator`, so without these rows every foot
+// bar this gate builds is full-width and `footPin`'s SCALE branch, the one a brand that sets nothing draws, compares
+// nothing. (mutation: `footPin` always expecting STRETCH → a `link@partial` divergence, and `#3345 partial round-trip`)
+const PARTIAL = PROJECTED.flatMap((d) => { const m = applyCurrentIndicator(d, 'partial'); return m === d ? [] : [{ ...m, id: `${d.id}@partial` }]; });
 // …and one CONSTRAINED native slot (#2646). No committed def constrains a slot yet (Accordion's panel is open, a DRAFT
 // owner item), so without this row `slotSettings` and `slotPreferred` compare nothing. Test-only, as
 // `test-native-slots.ts` builds it: Tag with its dismiss cell a slot holding 1 to 2 children, preferring Badge, which
@@ -509,7 +514,7 @@ const listDef = PROJECTED.find((d) => d.id === 'list')!;
 const SWAP_GLYPH = 'close';
 const SWAP_OVERRIDE = [{ ...listDef, id: 'list@swap-override', anatomy: { ...listDef.anatomy!, parts: { ...listDef.anatomy!.parts,
   item1: { ...listDef.anatomy!.parts.item1, overrides: { swaps: { icon: SWAP_GLYPH } } } } } }];
-for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED, ...SWAP_OVERRIDE]) {
+for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...PARTIAL, ...SLOT_CONSTRAINED, ...SWAP_OVERRIDE]) {
   try {
     // A slot that prefers a def it also nests (#2649's `items`, preferring the item it holds) resolves that def by key,
     // and the shim keys its components only with `identities` on, as a real file always does.
@@ -542,6 +547,15 @@ const washPaints = TINTED.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_T
 ok(TINTED.length > 0 && washPaints > 0,
   `#1646 the solid-tint materializations round-trip too — ${TINTED.length} def(s), ${washPaints} tinted-wash paint bindings among their plans`);
 
+{
+  // THE PREMISE AND THE ROW (#3345): the Partial rows are Link alone (the only def with a current-page bar), their plans
+  // carry the share, and they were built and read back, members and all. The read-back itself is the inventory's: any
+  // divergence on `link@partial` fails the gate by name below.
+  const shares = PARTIAL.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET })).reduce((n, p) => n + (JSON.stringify(p.root).match(/"footShare":0\.5/g) ?? []).length, 0);
+  const rows = inventory.filter((i) => PARTIAL.some((d) => d.id === i.def));
+  ok(JSON.stringify(PARTIAL.map((d) => d.id)) === '["link@partial"]' && shares > 0 && rows.length === 1 && rows[0].members > 0 && rows[0].divergences.length === 0,
+    `#3345 partial round-trip: the Partial-materialized Link is built and read back clean — ${JSON.stringify(PARTIAL.map((d) => d.id))}, ${shares} partial bars among its plans, ${rows[0]?.members ?? 0} members, ${rows[0]?.divergences.length ?? 'no'} divergences${rows[0]?.divergences.length ? ` (${JSON.stringify(rows[0].divergences.slice(0, 2))})` : ''}`);
+}
 ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx ?? 0) > 0 && (EXERCISED.minWidth ?? 0) > 0,
   `#1667 the button-lever materializations round-trip too — ${BUTTON_LAID.length} def(s); ${EXERCISED.pin ?? 0} pinned icons (ABSOLUTE + edge constraint + inset), ${EXERCISED.paddingPx ?? 0} reserved paddings, ${EXERCISED.minWidth ?? 0} floors read back off the host`);
 
