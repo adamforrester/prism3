@@ -379,7 +379,7 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the
   commands (`AGENT_COMMANDS`: `status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`,
   `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, the four read-only node
-  commands below, and `activity`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  commands below, `activity` and `context`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
 - ✅ **Read-only node commands** (#3147 Phase 2a, Q3147.10 and .14 A) — `inspect`, `component-keys`, `audit-frames`
   and `snapshot` (`src/agent-reads.ts`) read any layer, so a file where Prism3 is open needs no second plugin for the
@@ -393,6 +393,12 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   reasons, and the build stamp. Read from `src/activity-log.ts`, the main thread's memory of every verdict it posted to
   the panel plus the panel's own summaries of a multi-set build and of Update file's run (`activity-note`). It posts no
   verdict and writes nothing; `test-agent-link.ts` and `test-agent-bridge.ts` assert the write log stays empty.
+- ✅ **`context`** (#3300 B, Q3300.2 A) — what the open file is, for an agent's first read: the stored brand and its modes,
+  the variable collections, the sets the as-built ledger names and which are due (no page loaded, so `partial`), the read
+  and write commands, where to read more (the bridge's resources) and the engine MCP server to use for brand work. It
+  lists what Q3147.11 protects by default (`PROTECTED_DEFAULTS` in `src/agent-reads.ts`, one constant for Phase 2b's
+  guard to read too): pages whose name contains FINAL, locked layers and `Original · …` copies, from one capped walk. Posts no
+  verdict and writes nothing (`no-write/context` over both transports).
 - ✅ **No parallel path** — `main.ts`'s handlers report to an `ActionSink`; the panel passes one that posts
   exactly what it posted before, and the dispatcher (`src/agent-dispatch.ts`) passes one that captures the
   verdict plus the structured `data` each handler now exposes. Both callers reach the handlers through ONE

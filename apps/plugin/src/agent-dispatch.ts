@@ -34,8 +34,8 @@ import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
 import type { MainToUi, StyleGuideOptions } from './messages';
 import type { BrandInput } from '@prism3/engine/theme';
 import { allLeaves, leafPageName } from './file-taxonomy';
-import { inspect, componentKeys, auditFrames, snapshot, ReadRefusal } from './agent-reads';
-import type { ReadHost } from './agent-reads';
+import { inspect, componentKeys, auditFrames, snapshot, context, ReadRefusal } from './agent-reads';
+import type { ReadHost, ContextFacts } from './agent-reads';
 
 /** Where a handler sends what it would show the designer, and the structured facts behind it. */
 export type ActionSink = {
@@ -140,6 +140,8 @@ type Deps = {
   host?(): ReadHost;
   /** #3309: the Activity drawer's runs (`activity-log.ts`), for the read-only `activity` command. */
   activity?(args: ActivityArgs): unknown;
+  /** #3300 B: the main thread's facts for the read-only `context` command (the stored brand, the variables, the ledger). */
+  contextFacts?(): Promise<ContextFacts>;
   now?: () => Date;
   /** Each progress reading as it arrives (the bridge streams these). */
   onProgress?(id: string, p: AgentProgress): void;
@@ -197,6 +199,11 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
     sink.data(d.activity((c as Extract<ValidCommand, { cmd: 'activity' }>).args) as Record<string, unknown>);
   },
   'panels-clean': (c, a, sink) => a.panelsClean((c as Extract<ValidCommand, { cmd: 'panels-clean' }>).args.confirm === true, sink),
+  // #3300 B: read-only, the main thread's facts plus a capped walk for the protected nodes (`agent-reads.ts`).
+  context: async (_c, _a, sink, d) => {
+    if (!d.contextFacts) throw new Error('this plugin build gives the context command no facts');
+    sink.data(await context(readHost(d), await d.contextFacts()));
+  },
   readback: async (_c, a, sink, d) => {
     await a.seedFromFile(sink);
     sink.data({ components: await d.census() });

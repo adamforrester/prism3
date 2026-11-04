@@ -132,6 +132,7 @@ export const WRITES: Record<string, string> = {
   snapshot: 'Nothing. Renders one node to PNG in this session.',
   activity: 'Nothing. Reads the Activity drawer\'s runs this session from the plugin\'s memory; nothing is kept in the file.',
   'panels-clean': 'With confirm: false (or none), nothing: a count of the live usage panels and how many still hold what was drawn. With confirm: true, removes each of those, re-read now; a panel edited by hand is never removed.',
+  context: 'Nothing. Reads the stored brand, the variable collections, the as-built ledger and every page for its protected nodes; pages are loaded, never switched to.',
   'run-code': 'Whatever the code writes. Dev builds only; a release build answers unknown-command.',
 };
 
