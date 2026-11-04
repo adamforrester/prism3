@@ -123,7 +123,7 @@ const leafOf = (path: string): string => path.split('/').pop() ?? path;
 /** The path below the root, as the specimen holds it. */
 const below = (path: string): string[] => path.split('/').slice(1);
 const valueLabel = (v: SpecValue, what: string): { label: string; px?: number } =>
-  'token' in v ? { label: figmaVarName(v.token) } : { label: `${what} ${v.px} · ${v.source}`, px: v.px };
+  'token' in v ? { label: figmaVarName(v.token) } : !('px' in v) ? { label: `${what} · computed` } : { label: `${what} ${v.px} · ${v.source}`, px: v.px };
 
 /** The members a size's redlines show: every slot off, then the leading visual on where the set has one; every other
  *  key axis at its first value (the default member's). */

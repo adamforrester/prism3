@@ -852,7 +852,8 @@
           "audit-frames",
           "snapshot",
           "activity",
-          "panels-clean"
+          "panels-clean",
+          "context"
         ]
       }
     },
@@ -1759,6 +1760,27 @@
           ],
           "agentCommands": [
             "activity"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "read-context",
+      "label": "Read what the open file is: its brand, its sets and what is read-only",
+      "group": "Write to Figma",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "context, which writes nothing and lists FINAL pages, locked layers and Original copies",
+          "sources": [
+            "apps/plugin/src/agent-reads.ts"
+          ],
+          "agentCommands": [
+            "context"
           ],
           "connections": [
             "agent-link",
