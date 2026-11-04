@@ -23605,7 +23605,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.indicator.rest"
             },
             {
               "part": "control/dot",
@@ -23622,7 +23622,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.hover"
+              "stroke": "color.interactive.primary.indicator.hover"
             },
             {
               "part": "control/dot",
@@ -23639,7 +23639,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.pressed"
+              "stroke": "color.interactive.primary.indicator.pressed"
             },
             {
               "part": "control/dot",
@@ -23656,7 +23656,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.indicator.rest"
             },
             {
               "part": "control/dot",
@@ -24777,7 +24777,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24799,7 +24799,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24821,7 +24821,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24843,7 +24843,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24887,7 +24887,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24909,7 +24909,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24931,7 +24931,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24953,7 +24953,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -29358,7 +29358,7 @@
             {
               "part": "container",
               "fill": "color.interactive.primary.subtle-fill.selected",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.indicator.rest"
             },
             {
               "part": "container/content/leadingVisual",
@@ -29384,7 +29384,7 @@
             {
               "part": "container",
               "fill": "color.interactive.primary.subtle-fill.selected",
-              "stroke": "color.interactive.primary.border.hover"
+              "stroke": "color.interactive.primary.indicator.hover"
             },
             {
               "part": "container/content/leadingVisual",
@@ -29410,7 +29410,7 @@
             {
               "part": "container",
               "fill": "color.interactive.primary.subtle-fill.selected",
-              "stroke": "color.interactive.primary.border.pressed"
+              "stroke": "color.interactive.primary.indicator.pressed"
             },
             {
               "part": "container/content/leadingVisual",
@@ -29436,7 +29436,7 @@
             {
               "part": "container",
               "fill": "color.interactive.primary.subtle-fill.selected",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.indicator.rest"
             },
             {
               "part": "container/content/leadingVisual",
@@ -30218,7 +30218,7 @@
             },
             {
               "part": "container/indicator",
-              "fill": "color.interactive.primary.border.rest"
+              "fill": "color.interactive.primary.indicator.rest"
             }
           ]
         },
@@ -30242,7 +30242,7 @@
             },
             {
               "part": "container/indicator",
-              "fill": "color.interactive.primary.border.hover"
+              "fill": "color.interactive.primary.indicator.hover"
             }
           ]
         },
@@ -30266,7 +30266,7 @@
             },
             {
               "part": "container/indicator",
-              "fill": "color.interactive.primary.border.pressed"
+              "fill": "color.interactive.primary.indicator.pressed"
             }
           ]
         },
@@ -30290,7 +30290,7 @@
             },
             {
               "part": "container/indicator",
-              "fill": "color.interactive.primary.border.rest"
+              "fill": "color.interactive.primary.indicator.rest"
             }
           ]
         },
@@ -48467,7 +48467,7 @@
           "parts": [
             {
               "part": "frame/pressHalo/hoverHalo/disc",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             }
           ]
         },
@@ -48482,7 +48482,7 @@
             },
             {
               "part": "frame/pressHalo/hoverHalo/disc",
-              "fill": "color.interactive.neutral.border.hover"
+              "fill": "color.interactive.neutral.indicator.hover"
             }
           ]
         },
@@ -48501,7 +48501,7 @@
             },
             {
               "part": "frame/pressHalo/hoverHalo/disc",
-              "fill": "color.interactive.neutral.border.pressed"
+              "fill": "color.interactive.neutral.indicator.pressed"
             }
           ]
         },
@@ -48512,7 +48512,7 @@
           "parts": [
             {
               "part": "frame/pressHalo/hoverHalo/disc",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             }
           ]
         },

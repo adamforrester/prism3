@@ -688,7 +688,15 @@ export const ENGINE_VERSION = '0.237.0';
  * The second is the label's top inset in that row, max(0, box − line) ÷ 2, baked because Figma cannot take a max or a
  * half of two variables. Seven added paths; an added path cannot break a reference. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.13.0';
+/**
+ * 14.14.0 (#3346, owner Q1 revised A and E1 A, 2026-11-03): MINOR. The selection mark joins the guaranteed surface:
+ * `color.interactive.{primary,neutral,destructive}.indicator.{rest,hover,pressed}` and their inverse twins under
+ * `color.inverse.interactive.*`, 18 paths. It is the shape that marks a control as selected or on (a selected tab's
+ * bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc), and it holds the
+ * label's color as resolved, overrides included. An added path cannot break a reference. Nothing is removed or
+ * retyped; `interactive.*.border.*` keeps its names and, for every brand that does not override its labels, its values.
+ */
+export const CONTRACT_VERSION = '14.14.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

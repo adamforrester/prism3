@@ -375,6 +375,23 @@
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
             }
           },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.650}",
+              "$description": "primary interactive indicator — rest (the selection mark; matches the label)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.750}",
+              "$description": "primary interactive indicator — hover (the selection mark; matches the label)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.850}",
+              "$description": "primary interactive indicator — pressed (the selection mark; matches the label)"
+            }
+          },
           "subtle-fill": {
             "selected": {
               "$type": "color",
@@ -461,6 +478,23 @@
               "$value": "{ads.core.palette.danger.850}",
               "$description": "destructive interactive border — pressed (the outline edge; follows the ink)"
             }
+          },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.650}",
+              "$description": "destructive interactive indicator — rest (the selection mark; matches the label)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.750}",
+              "$description": "destructive interactive indicator — hover (the selection mark; matches the label)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.850}",
+              "$description": "destructive interactive indicator — pressed (the selection mark; matches the label)"
+            }
           }
         },
         "neutral": {
@@ -488,6 +522,13 @@
               "$type": "color",
               "$value": "{ads.core.palette.black}",
               "$description": "neutral interactive border — rest (the outline edge; follows the ink)"
+            }
+          },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.black}",
+              "$description": "neutral interactive indicator — rest (the selection mark; matches the label)"
             }
           }
         }
@@ -894,6 +935,23 @@
                 "$value": "{ads.core.palette.accent.150}",
                 "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
               }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.350}",
+                "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.250}",
+                "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.150}",
+                "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)"
+              }
             }
           },
           "destructive": {
@@ -952,6 +1010,23 @@
                 "$value": "{ads.core.palette.danger.150}",
                 "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
               }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.350}",
+                "$description": "destructive interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.250}",
+                "$description": "destructive interactive indicator on an inverse surface — hover (the selection mark; matches the label)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.150}",
+                "$description": "destructive interactive indicator on an inverse surface — pressed (the selection mark; matches the label)"
+              }
             }
           },
           "neutral": {
@@ -979,6 +1054,13 @@
                 "$type": "color",
                 "$value": "{ads.core.palette.white}",
                 "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.white}",
+                "$description": "neutral interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
               }
             }
           }

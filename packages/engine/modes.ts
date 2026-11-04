@@ -567,6 +567,38 @@ export function withIconTwins(
 }
 
 /**
+ * THE LABEL → EDGE AND LABEL → MARK OVERRIDE TWINS (#3346, owner E3 A and Q1 revised A, 2026-11-03). The bold edge
+ * and the selection mark are the label's ink as RESOLVED, overrides included. The override layer rewrites exactly one
+ * role, so an override on `interactive.<c>.text.<state>` alone used to move the label and leave the edge and the mark
+ * on the derived step: on the reference brand a near-black label beside a mid-grey edge whose hover and pressed
+ * crossed the label's. So a label override is carried to `.border.<state>` and to `.indicator.<state>`, each unless
+ * it carries its own explicit override, which wins. The inverse band is the same rule (`inverse.interactive.*`).
+ *
+ * The two twins are independent: a BORDER override never reaches the indicator. A brand that quiets its outline
+ * edge (a hand override today, the outline-edge setting later) keeps its selection marks at the label's weight.
+ *
+ * Same discipline as `withIconTwins`: the twin is the swapped path IF this mode's tree has it, and only the
+ * post-derivation layer needs it (neither twin is a ground).
+ */
+const INTERACTIVE_TEXT = /^((?:inverse\.)?interactive\.[^.]+\.)text\.([^.]+)$/;
+export function withIndicatorTwins(
+  ov: ModeOverrides | undefined, roles: Record<string, unknown>,
+): ModeOverrides | undefined {
+  if (!ov) return ov;
+  const out: ModeOverrides = { ...ov };
+  for (const [rolePath, ref] of Object.entries(ov)) {
+    const m = INTERACTIVE_TEXT.exec(rolePath);
+    if (!m) continue;
+    for (const slot of ['border', 'indicator']) {
+      const twin = `${m[1]}${slot}.${m[2]}`;
+      if (!(twin in roles)) continue;                  // no twin in this mode's tree
+      if (!(twin in ov)) out[twin] = ref;               // an explicit override on the twin wins
+    }
+  }
+  return out;
+}
+
+/**
  * THE PURE-EXTREME INK ON A FILL, WITH THE DARK-FAMILY TIE RULE (#1773, owner, 2026-09-29). `onColor`'s last
  * resort (and its whole answer in HC) is pure white or pure black, whichever contrasts more with the fill. On
  * a mid-tone fill the two can land within a hair of each other — prism3 dark's primary rest fill `#3d68fc`
@@ -1523,6 +1555,23 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     for (const stKey of ['rest', 'hover', 'pressed'] as const)
       put(`${keyPrefix}interactive.${name}.border.${stKey}`, rated(inkByState[stKey], ground),
         `${name} interactive border${where} — ${stKey} (the outline edge; follows the ink)`, against, cfg.nonTextMin);
+    iIndicator(name, inkByState, ground, keyPrefix, against, where);
+  };
+  /**
+   * THE SELECTION MARK, per state — `indicator.{rest,hover,pressed}` (#3346, owner Q1 revised A and E1 A, 2026-11-03).
+   * The shape that marks a control as selected or on: the selected tab's bar, the checked radio's ring, the selected
+   * tag's outline, the switch's off thumb and the slider's disc. It is a SHAPE role, so no shape binds a `text` role
+   * even where the values match (owner, 2026-11-03), and it is DERIVED, not a setting: it is the bold value, the
+   * label's ink as resolved. A label override reaches it through `withIndicatorTwins`; a later outline-edge setting
+   * (the `border.*` it sits beside) never does, which is the point of a separate name.
+   *
+   * One derivation, passed by value, exactly as the border consumes it (#576): the candidates `iText` resolved. The
+   * gate is the border's, `nonTextMin` (SC 1.4.11), which the ink already cleared at its stricter text bar.
+   */
+  const iIndicator = (name: string, inkByState: Record<string, Cand>, ground: RGB, keyPrefix: string, against: string, where = ''): void => {
+    for (const stKey of ['rest', 'hover', 'pressed'] as const)
+      put(`${keyPrefix}interactive.${name}.indicator.${stKey}`, rated(inkByState[stKey], ground),
+        `${name} interactive indicator${where} — ${stKey} (the selection mark; matches the label)`, against, cfg.nonTextMin);
   };
 
   // THE PRIMARY AND LINK INKS CLEAR EVERY SURFACE A COMPONENT PLACES THEM ON (#2817, owner Q415 A, narrowed by
@@ -2435,7 +2484,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // because a ref naming a role absent in this mode is skipped, so the input and what applied are not
   // the same set.
   const overridden = new Set<string>();
-  const ov = withFillStateTwins(withIconTwins(withRaisedTwin(theme.overrides?.[mode], raisedAs === 'card'), roles, theme.iconContrast));
+  const ov = withFillStateTwins(withIndicatorTwins(withIconTwins(withRaisedTwin(theme.overrides?.[mode], raisedAs === 'card'), roles, theme.iconContrast), roles));
   // A brand glass role (#3073) is put after this layer, from its source's final color, so an override aimed at one
   // would be skipped as "absent in this mode" without a word. Refused instead, pointing at the source.
   for (const key of Object.keys(ov ?? {})) {

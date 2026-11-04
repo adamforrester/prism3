@@ -143,7 +143,7 @@
  *   · ONE HOME PER PAGE (V1): every place names its literal home view and title (`EXPECT_HOME`), visited in
  *     two orders; scrolling the page and focusing its controls never changes it; nothing offers "Keep this
  *     view" (V12).
- *   · INSPECT (F1): the verdict reads the decided count (884) and opens Inspect › Contrast over the legacy
+ *   · INSPECT (F1): the verdict reads the decided count (956; 884 until #3346) and opens Inspect › Contrast over the legacy
  *     frame, with Health first and its literal lines; Tokens redraws in place from its own controls (the Decisions
  *     log, its third view, was cut by #2909 Q2909.7 A; its two unique notes are on their levers); Back and Escape close it to the page, its scroll
  *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
@@ -329,8 +329,8 @@
  *   · v5 answer 4: Brand name and Token namespace side by side at 1280, 640 and 380, both hosts.
  *   · T2: the placeholder (`pds3`) and the reserved (`prism`) namespaces warn in v6's words; a draft reaches
  *     nothing until Rename namespace and its confirm; Escape closes the confirm back to the field.
- *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (442 of 884, from Health's
- *     literal 221 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
+ *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (478 of 956, from Health's
+ *     literal 239 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
  *     its reason until dark is back, and dark back does not bring it back.
  *   · The name reaches the bar per keystroke (the `identity` topic) and the persisted brand; personality and the
  *     custom modes reach the brand; the Style guide's own select redraws it inside the preview (the lent repaint).
@@ -2704,11 +2704,11 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 // =============================================================================================
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
-const VERDICT_LINE = 'All 884 pairs at or above floor';
+const VERDICT_LINE = 'All 956 pairs at or above floor';   // 884 until #3346 added the 18 selection-mark roles per mode
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
-const HEALTH_LINE = 'All 884 pairs at or above their minimum.';
+const HEALTH_LINE = 'All 956 pairs at or above their minimum.';
 const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
-const HEALTH_MODES = ['Light: 221 of 221 at or above', 'Dark: 221 of 221 at or above', 'High contrast light: 221 of 221 at or above', 'High contrast dark: 221 of 221 at or above'];
+const HEALTH_MODES = ['Light: 239 of 239 at or above', 'Dark: 239 of 239 at or above', 'High contrast light: 239 of 239 at or above', 'High contrast dark: 239 of 239 at or above'];
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
  *  (section "IA v2 phase 2" holds them). The notes still ship: the committed default theme still records them. */
 const INSPECT_TABS = ['Contrast', 'Tokens'];
@@ -4750,12 +4750,12 @@ const SOFT_SETS = [['radiusScale', 'soft'], ['shadow.softness', 'soft']];
 /** T2 (v4 review) in concept v6's words: the namespace warning for each reserved or placeholder value. */
 const NS_WARN = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
   prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
-/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 221 gated pairs per mode (Health's literal). */
+/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 239 gated pairs per mode (Health's literal). */
 const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
 /** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
  *  decision in the words chosen for it, typed here. */
 const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
-const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 442 pairs leave the verdict (884 becomes 442).';
+const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 478 pairs leave the verdict (956 becomes 478).';
 const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
 const checkState = (page, sel) => page.evaluate((x) => { const b = document.querySelector(x); return b ? { checked: b.getAttribute('aria-checked'), locked: b.getAttribute('aria-disabled') === 'true', note: b.querySelector('.p3-check-note')?.textContent } : null; }, sel);
@@ -4876,7 +4876,7 @@ for (const host of ['web', 'figma']) {
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 2);
   const hcd = await checkState(page, '[data-p3="mode-on-hc-dark"]');
   const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict-tip"]')?.textContent);
-  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 442 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 478 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
   ok(hcd?.checked === 'false' && hcd.locked && hcd.note === 'Off while dark is off: it follows dark.', `Q3: high contrast dark stays off and locked while dark is off, and says why (${JSON.stringify(hcd)})`);
   // A locked check keeps its focus stop (aria-disabled), so it is activated the way a keyboard user would:
   // Playwright refuses a click on an aria-disabled element, which is itself the pointer half of the claim.
@@ -11359,7 +11359,7 @@ for (const { w, h } of WIDTHS) {
 // 29b. The owner's "A · Menu bar" (2026-10-05), three behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
-//     fixture, whose count is derived by hand there: 2 of 884, 2 modes. The plugin's is a restore of a one-mode
+//     fixture, whose count is derived by hand there: 2 of 956, 2 modes. The plugin's is a restore of a one-mode
 //     brand with the same Light override; its count is read from its own line.
 //   · THE PLUGIN'S THEME MENU: Match Figma, Light and Dark, in that order, Match Figma checked by default and the
 //     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
@@ -11409,7 +11409,7 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
         const c1 = await page.evaluate(CONTRAST_PROBE);
         const lead = /^(\d+) of \d+ below floor, \d+ modes?$/.exec(c1.tip ?? '');
-        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 884 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
+        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 956 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
           `${where}: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor (${JSON.stringify(c1)})`);
         ok(c1.name === `Verdict: ${c1.tip}. Open Inspect, Contrast`, `${where}: Contrast keeps its name, the full line ("${c1.name}")`);
 

@@ -72,6 +72,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.primary.border.rest | red.600 | 6.85 | 3 | ✅ |
 | interactive.primary.border.hover | red.700 | 10.03 | 3 | ✅ |
 | interactive.primary.border.pressed | red.800 | 14.17 | 3 | ✅ |
+| interactive.primary.indicator.rest | red.600 | 6.85 | 3 | ✅ |
+| interactive.primary.indicator.hover | red.700 | 10.03 | 3 | ✅ |
+| interactive.primary.indicator.pressed | red.800 | 14.17 | 3 | ✅ |
 | interactive.destructive.fill.rest | red.550 | 4.62 | 3 | ✅ |
 | interactive.destructive.fill.hover | red.650 | 6.82 | 3 | ✅ |
 | interactive.destructive.fill.pressed | red.750 | 9.94 | 3 | ✅ |
@@ -87,6 +90,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.destructive.border.rest | red.600 | 4.98 | 3 | ✅ |
 | interactive.destructive.border.hover | red.700 | 7.29 | 3 | ✅ |
 | interactive.destructive.border.pressed | red.800 | 10.30 | 3 | ✅ |
+| interactive.destructive.indicator.rest | red.600 | 4.98 | 3 | ✅ |
+| interactive.destructive.indicator.hover | red.700 | 7.29 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | red.800 | 10.30 | 3 | ✅ |
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
@@ -102,6 +108,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.neutral.border.rest | neutral.950 | 19.44 | 3 | ✅ |
 | interactive.neutral.border.hover | neutral.850 | 16.00 | 3 | ✅ |
 | interactive.neutral.border.pressed | neutral.750 | 11.82 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.950 | 19.44 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 16.00 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 11.82 | 3 | ✅ |
 | inverse.interactive.primary.text.rest | red.450 | 5.05 | 4.5 | ✅ |
 | inverse.interactive.primary.icon.rest | red.450 | 5.05 | 4.5 | ✅ |
 | inverse.interactive.primary.text.hover | red.350 | 6.97 | 4.5 | ✅ |
@@ -117,6 +126,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.border.rest | red.450 | 5.05 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | red.350 | 6.97 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | red.250 | 9.42 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | red.450 | 5.05 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | red.350 | 6.97 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | red.250 | 9.42 | 3 | ✅ |
 | inverse.interactive.destructive.text.rest | red.400 | 4.92 | 4.5 | ✅ |
 | inverse.interactive.destructive.icon.rest | red.400 | 4.92 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.hover | red.300 | 6.68 | 4.5 | ✅ |
@@ -132,6 +144,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.destructive.border.rest | red.400 | 4.92 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | red.300 | 6.68 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | red.200 | 8.91 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | red.400 | 4.92 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | red.300 | 6.68 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | red.200 | 8.91 | 3 | ✅ |
 | inverse.interactive.neutral.text.rest | neutral.025 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.icon.rest | neutral.025 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.100 | 14.13 | 4.5 | ✅ |
@@ -147,6 +162,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.neutral.border.rest | neutral.025 | 18.11 | 3 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.100 | 14.13 | 3 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.200 | 10.75 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.025 | 18.11 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 14.13 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 10.75 | 3 | ✅ |
 | interactive.primary.overlay.hover | black-alpha.10 | 15.51 | 4.5 | ✅ |
 | interactive.primary.overlay.pressed | black-alpha.20 | 12.11 | 4.5 | ✅ |
 | interactive.primary.overlay.selected | black-alpha.20 | 12.11 | 4.5 | ✅ |
@@ -360,6 +378,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.primary.border.rest | red.450 | 5.05 | 3 | ✅ |
 | interactive.primary.border.hover | red.350 | 6.97 | 3 | ✅ |
 | interactive.primary.border.pressed | red.250 | 9.42 | 3 | ✅ |
+| interactive.primary.indicator.rest | red.450 | 5.05 | 3 | ✅ |
+| interactive.primary.indicator.hover | red.350 | 6.97 | 3 | ✅ |
+| interactive.primary.indicator.pressed | red.250 | 9.42 | 3 | ✅ |
 | interactive.destructive.fill.rest | red.500 | 3.92 | 3 | ✅ |
 | interactive.destructive.fill.hover | red.400 | 5.52 | 3 | ✅ |
 | interactive.destructive.fill.pressed | red.300 | 7.50 | 3 | ✅ |
@@ -375,6 +396,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.destructive.border.rest | red.400 | 4.92 | 3 | ✅ |
 | interactive.destructive.border.hover | red.300 | 6.68 | 3 | ✅ |
 | interactive.destructive.border.pressed | red.200 | 8.91 | 3 | ✅ |
+| interactive.destructive.indicator.rest | red.400 | 4.92 | 3 | ✅ |
+| interactive.destructive.indicator.hover | red.300 | 6.68 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | red.200 | 8.91 | 3 | ✅ |
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
@@ -390,6 +414,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.neutral.border.rest | neutral.025 | 18.11 | 3 | ✅ |
 | interactive.neutral.border.hover | neutral.100 | 14.13 | 3 | ✅ |
 | interactive.neutral.border.pressed | neutral.200 | 10.75 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.025 | 18.11 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.100 | 14.13 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.200 | 10.75 | 3 | ✅ |
 | inverse.interactive.primary.text.rest | red.550 | 5.24 | 4.5 | ✅ |
 | inverse.interactive.primary.icon.rest | red.550 | 5.24 | 4.5 | ✅ |
 | inverse.interactive.primary.text.hover | red.650 | 7.72 | 4.5 | ✅ |
@@ -405,6 +432,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.border.rest | red.550 | 5.24 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | red.650 | 7.72 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | red.750 | 11.26 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | red.550 | 5.24 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | red.650 | 7.72 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | red.750 | 11.26 | 3 | ✅ |
 | inverse.interactive.destructive.text.rest | red.600 | 4.98 | 4.5 | ✅ |
 | inverse.interactive.destructive.icon.rest | red.600 | 4.98 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.hover | red.700 | 7.29 | 4.5 | ✅ |
@@ -420,6 +450,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.destructive.border.rest | red.600 | 4.98 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | red.700 | 7.29 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | red.800 | 10.30 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | red.600 | 4.98 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | red.700 | 7.29 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | red.800 | 10.30 | 3 | ✅ |
 | inverse.interactive.neutral.text.rest | neutral.950 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.icon.rest | neutral.950 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.850 | 14.91 | 4.5 | ✅ |
@@ -435,6 +468,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.neutral.border.rest | neutral.950 | 18.11 | 3 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.850 | 14.91 | 3 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.750 | 11.01 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.850 | 14.91 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.750 | 11.01 | 3 | ✅ |
 | interactive.primary.overlay.hover | white-alpha.10 | 14.26 | 4.5 | ✅ |
 | interactive.primary.overlay.pressed | white-alpha.20 | 10.07 | 4.5 | ✅ |
 | interactive.primary.overlay.selected | white-alpha.20 | 10.07 | 4.5 | ✅ |
@@ -648,6 +684,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.primary.border.rest | red.650 | 8.29 | 4.5 | ✅ |
 | interactive.primary.border.hover | red.750 | 12.08 | 4.5 | ✅ |
 | interactive.primary.border.pressed | red.850 | 16.32 | 4.5 | ✅ |
+| interactive.primary.indicator.rest | red.650 | 8.29 | 4.5 | ✅ |
+| interactive.primary.indicator.hover | red.750 | 12.08 | 4.5 | ✅ |
+| interactive.primary.indicator.pressed | red.850 | 16.32 | 4.5 | ✅ |
 | interactive.destructive.fill.rest | red.700 | 8.25 | 7 | ✅ |
 | interactive.destructive.fill.hover | red.800 | 11.66 | 7 | ✅ |
 | interactive.destructive.fill.pressed | red.900 | 14.98 | 7 | ✅ |
@@ -663,6 +702,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.destructive.border.rest | red.650 | 8.29 | 4.5 | ✅ |
 | interactive.destructive.border.hover | red.750 | 12.08 | 4.5 | ✅ |
 | interactive.destructive.border.pressed | red.850 | 16.32 | 4.5 | ✅ |
+| interactive.destructive.indicator.rest | red.650 | 8.29 | 4.5 | ✅ |
+| interactive.destructive.indicator.hover | red.750 | 12.08 | 4.5 | ✅ |
+| interactive.destructive.indicator.pressed | red.850 | 16.32 | 4.5 | ✅ |
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
@@ -678,6 +720,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
 | interactive.neutral.border.hover | neutral.850 | 16.00 | 4.5 | ✅ |
 | interactive.neutral.border.pressed | neutral.750 | 11.82 | 4.5 | ✅ |
+| interactive.neutral.indicator.rest | black | 21.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 16.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 11.82 | 4.5 | ✅ |
 | inverse.interactive.primary.text.rest | red.350 | 7.52 | 7 | ✅ |
 | inverse.interactive.primary.icon.rest | red.350 | 7.52 | 7 | ✅ |
 | inverse.interactive.primary.text.hover | red.250 | 10.17 | 7 | ✅ |
@@ -693,6 +738,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.border.rest | red.350 | 7.52 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | red.250 | 10.17 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | red.150 | 13.44 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.rest | red.350 | 7.52 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.hover | red.250 | 10.17 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.pressed | red.150 | 13.44 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.rest | red.350 | 7.52 | 7 | ✅ |
 | inverse.interactive.destructive.icon.rest | red.350 | 7.52 | 7 | ✅ |
 | inverse.interactive.destructive.text.hover | red.250 | 10.17 | 7 | ✅ |
@@ -708,6 +756,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.destructive.border.rest | red.350 | 7.52 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.hover | red.250 | 10.17 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.pressed | red.150 | 13.44 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.rest | red.350 | 7.52 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.hover | red.250 | 10.17 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | red.150 | 13.44 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.rest | white | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.icon.rest | white | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.100 | 15.26 | 7 | ✅ |
@@ -723,6 +774,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.neutral.border.rest | white | 21.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.100 | 15.26 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.200 | 11.61 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.rest | white | 21.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 15.26 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 11.61 | 4.5 | ✅ |
 | interactive.primary.overlay.hover | black-alpha.10 | 16.75 | 7 | ✅ |
 | interactive.primary.overlay.pressed | black-alpha.20 | 13.08 | 7 | ✅ |
 | interactive.primary.overlay.selected | black-alpha.20 | 13.08 | 7 | ✅ |
@@ -936,6 +990,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.primary.border.rest | red.350 | 7.52 | 4.5 | ✅ |
 | interactive.primary.border.hover | red.250 | 10.17 | 4.5 | ✅ |
 | interactive.primary.border.pressed | red.150 | 13.44 | 4.5 | ✅ |
+| interactive.primary.indicator.rest | red.350 | 7.52 | 4.5 | ✅ |
+| interactive.primary.indicator.hover | red.250 | 10.17 | 4.5 | ✅ |
+| interactive.primary.indicator.pressed | red.150 | 13.44 | 4.5 | ✅ |
 | interactive.destructive.fill.rest | red.300 | 7.50 | 7 | ✅ |
 | interactive.destructive.fill.hover | red.200 | 10.01 | 7 | ✅ |
 | interactive.destructive.fill.pressed | red.100 | 13.04 | 7 | ✅ |
@@ -951,6 +1008,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.destructive.border.rest | red.350 | 7.52 | 4.5 | ✅ |
 | interactive.destructive.border.hover | red.250 | 10.17 | 4.5 | ✅ |
 | interactive.destructive.border.pressed | red.150 | 13.44 | 4.5 | ✅ |
+| interactive.destructive.indicator.rest | red.350 | 7.52 | 4.5 | ✅ |
+| interactive.destructive.indicator.hover | red.250 | 10.17 | 4.5 | ✅ |
+| interactive.destructive.indicator.pressed | red.150 | 13.44 | 4.5 | ✅ |
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
@@ -966,6 +1026,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.neutral.border.rest | white | 21.00 | 4.5 | ✅ |
 | interactive.neutral.border.hover | neutral.100 | 15.26 | 4.5 | ✅ |
 | interactive.neutral.border.pressed | neutral.200 | 11.61 | 4.5 | ✅ |
+| interactive.neutral.indicator.rest | white | 21.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.hover | neutral.100 | 15.26 | 4.5 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.200 | 11.61 | 4.5 | ✅ |
 | inverse.interactive.primary.text.rest | red.650 | 8.29 | 7 | ✅ |
 | inverse.interactive.primary.icon.rest | red.650 | 8.29 | 7 | ✅ |
 | inverse.interactive.primary.text.hover | red.750 | 12.08 | 7 | ✅ |
@@ -981,6 +1044,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.border.rest | red.650 | 8.29 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | red.750 | 12.08 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | red.850 | 16.32 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.rest | red.650 | 8.29 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.hover | red.750 | 12.08 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.pressed | red.850 | 16.32 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.rest | red.650 | 8.29 | 7 | ✅ |
 | inverse.interactive.destructive.icon.rest | red.650 | 8.29 | 7 | ✅ |
 | inverse.interactive.destructive.text.hover | red.750 | 12.08 | 7 | ✅ |
@@ -996,6 +1062,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.destructive.border.rest | red.650 | 8.29 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.hover | red.750 | 12.08 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.pressed | red.850 | 16.32 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.rest | red.650 | 8.29 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.hover | red.750 | 12.08 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | red.850 | 16.32 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.rest | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.icon.rest | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.850 | 16.00 | 7 | ✅ |
@@ -1011,6 +1080,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.850 | 16.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.750 | 11.82 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.rest | black | 21.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.850 | 16.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.750 | 11.82 | 4.5 | ✅ |
 | interactive.primary.overlay.hover | white-alpha.10 | 17.49 | 7 | ✅ |
 | interactive.primary.overlay.pressed | white-alpha.20 | 12.63 | 7 | ✅ |
 | interactive.primary.overlay.selected | white-alpha.20 | 12.63 | 7 | ✅ |
@@ -1299,6 +1371,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.border.rest | primary.600 | 7.82 | 3 | ✅ |
 | interactive.primary.border.hover | primary.700 | 11.17 | 3 | ✅ |
 | interactive.primary.border.pressed | primary.800 | 15.08 | 3 | ✅ |
+| interactive.primary.indicator.rest | primary.600 | 7.82 | 3 | ✅ |
+| interactive.primary.indicator.hover | primary.700 | 11.17 | 3 | ✅ |
+| interactive.primary.indicator.pressed | primary.800 | 15.08 | 3 | ✅ |
 | interactive.destructive.fill.rest | danger.500 | 3.76 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.600 | 5.59 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.700 | 8.24 | 3 | ✅ |
@@ -1314,6 +1389,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.border.rest | danger.600 | 4.90 | 3 | ✅ |
 | interactive.destructive.border.hover | danger.700 | 7.23 | 3 | ✅ |
 | interactive.destructive.border.pressed | danger.800 | 10.24 | 3 | ✅ |
+| interactive.destructive.indicator.rest | danger.600 | 4.90 | 3 | ✅ |
+| interactive.destructive.indicator.hover | danger.700 | 7.23 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | danger.800 | 10.24 | 3 | ✅ |
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
@@ -1329,6 +1407,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.border.rest | neutral.950 | 19.43 | 3 | ✅ |
 | interactive.neutral.border.hover | neutral.850 | 16.07 | 3 | ✅ |
 | interactive.neutral.border.pressed | neutral.750 | 11.74 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.950 | 19.43 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 16.07 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 11.74 | 3 | ✅ |
 | inverse.interactive.primary.text.rest | primary.450 | 5.04 | 4.5 | ✅ |
 | inverse.interactive.primary.icon.rest | primary.450 | 5.04 | 4.5 | ✅ |
 | inverse.interactive.primary.text.hover | primary.350 | 7.01 | 4.5 | ✅ |
@@ -1344,6 +1425,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.border.rest | primary.450 | 5.04 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.350 | 7.01 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.250 | 9.46 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | primary.450 | 5.04 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | primary.350 | 7.01 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | primary.250 | 9.46 | 3 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.400 | 4.85 | 4.5 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.400 | 4.85 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.300 | 6.70 | 4.5 | ✅ |
@@ -1359,6 +1443,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.border.rest | danger.400 | 4.85 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.300 | 6.70 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.200 | 8.93 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.400 | 4.85 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.300 | 6.70 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.200 | 8.93 | 3 | ✅ |
 | inverse.interactive.neutral.text.rest | neutral.025 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.icon.rest | neutral.025 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.100 | 14.04 | 4.5 | ✅ |
@@ -1374,6 +1461,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.border.rest | neutral.025 | 18.13 | 3 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.100 | 14.04 | 3 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.200 | 10.78 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.025 | 18.13 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 10.78 | 3 | ✅ |
 | interactive.primary.overlay.hover | black-alpha.10 | 15.49 | 4.5 | ✅ |
 | interactive.primary.overlay.pressed | black-alpha.20 | 12.10 | 4.5 | ✅ |
 | interactive.primary.overlay.selected | black-alpha.20 | 12.10 | 4.5 | ✅ |
@@ -1574,6 +1664,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.border.rest | primary.450 | 5.04 | 3 | ✅ |
 | interactive.primary.border.hover | primary.350 | 7.01 | 3 | ✅ |
 | interactive.primary.border.pressed | primary.250 | 9.46 | 3 | ✅ |
+| interactive.primary.indicator.rest | primary.450 | 5.04 | 3 | ✅ |
+| interactive.primary.indicator.hover | primary.350 | 7.01 | 3 | ✅ |
+| interactive.primary.indicator.pressed | primary.250 | 9.46 | 3 | ✅ |
 | interactive.destructive.fill.rest | danger.500 | 3.92 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.400 | 5.41 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.300 | 7.46 | 3 | ✅ |
@@ -1589,6 +1682,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.border.rest | danger.400 | 4.85 | 3 | ✅ |
 | interactive.destructive.border.hover | danger.300 | 6.70 | 3 | ✅ |
 | interactive.destructive.border.pressed | danger.200 | 8.93 | 3 | ✅ |
+| interactive.destructive.indicator.rest | danger.400 | 4.85 | 3 | ✅ |
+| interactive.destructive.indicator.hover | danger.300 | 6.70 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | danger.200 | 8.93 | 3 | ✅ |
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
@@ -1604,6 +1700,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.border.rest | neutral.025 | 18.13 | 3 | ✅ |
 | interactive.neutral.border.hover | neutral.100 | 14.04 | 3 | ✅ |
 | interactive.neutral.border.pressed | neutral.200 | 10.78 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.025 | 18.13 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.100 | 14.04 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.200 | 10.78 | 3 | ✅ |
 | inverse.interactive.primary.text.rest | primary.600 | 7.30 | 4.5 | ✅ |
 | inverse.interactive.primary.icon.rest | primary.600 | 7.30 | 4.5 | ✅ |
 | inverse.interactive.primary.text.hover | primary.700 | 10.43 | 4.5 | ✅ |
@@ -1619,6 +1718,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.border.rest | primary.600 | 7.30 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.700 | 10.43 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.800 | 14.07 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | primary.600 | 7.30 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | primary.700 | 10.43 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | primary.800 | 14.07 | 3 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.600 | 4.90 | 4.5 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.600 | 4.90 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.700 | 7.23 | 4.5 | ✅ |
@@ -1634,6 +1736,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.border.rest | danger.600 | 4.90 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.700 | 7.23 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.800 | 10.24 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.600 | 4.90 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.700 | 7.23 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.800 | 10.24 | 3 | ✅ |
 | inverse.interactive.neutral.text.rest | neutral.950 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.icon.rest | neutral.950 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.850 | 15.00 | 4.5 | ✅ |
@@ -1649,6 +1754,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.border.rest | neutral.950 | 18.13 | 3 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.850 | 15.00 | 3 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.750 | 10.96 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.950 | 18.13 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.850 | 15.00 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.750 | 10.96 | 3 | ✅ |
 | interactive.primary.overlay.hover | white-alpha.10 | 14.26 | 4.5 | ✅ |
 | interactive.primary.overlay.pressed | white-alpha.20 | 10.07 | 4.5 | ✅ |
 | interactive.primary.overlay.selected | white-alpha.20 | 10.07 | 4.5 | ✅ |
@@ -1849,6 +1957,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.border.rest | primary.600 | 7.82 | 4.5 | ✅ |
 | interactive.primary.border.hover | primary.700 | 11.17 | 4.5 | ✅ |
 | interactive.primary.border.pressed | primary.800 | 15.08 | 4.5 | ✅ |
+| interactive.primary.indicator.rest | primary.600 | 7.82 | 4.5 | ✅ |
+| interactive.primary.indicator.hover | primary.700 | 11.17 | 4.5 | ✅ |
+| interactive.primary.indicator.pressed | primary.800 | 15.08 | 4.5 | ✅ |
 | interactive.destructive.fill.rest | danger.700 | 8.24 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.800 | 11.67 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.900 | 15.01 | 7 | ✅ |
@@ -1864,6 +1975,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.border.rest | danger.650 | 8.27 | 4.5 | ✅ |
 | interactive.destructive.border.hover | danger.750 | 12.06 | 4.5 | ✅ |
 | interactive.destructive.border.pressed | danger.850 | 16.34 | 4.5 | ✅ |
+| interactive.destructive.indicator.rest | danger.650 | 8.27 | 4.5 | ✅ |
+| interactive.destructive.indicator.hover | danger.750 | 12.06 | 4.5 | ✅ |
+| interactive.destructive.indicator.pressed | danger.850 | 16.34 | 4.5 | ✅ |
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
@@ -1879,6 +1993,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
 | interactive.neutral.border.hover | neutral.850 | 16.07 | 4.5 | ✅ |
 | interactive.neutral.border.pressed | neutral.750 | 11.74 | 4.5 | ✅ |
+| interactive.neutral.indicator.rest | black | 21.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 16.07 | 4.5 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 11.74 | 4.5 | ✅ |
 | inverse.interactive.primary.text.rest | primary.350 | 7.58 | 7 | ✅ |
 | inverse.interactive.primary.icon.rest | primary.350 | 7.58 | 7 | ✅ |
 | inverse.interactive.primary.text.hover | primary.250 | 10.23 | 7 | ✅ |
@@ -1894,6 +2011,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.border.rest | primary.350 | 7.58 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | primary.250 | 10.23 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.150 | 13.46 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.rest | primary.350 | 7.58 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.hover | primary.250 | 10.23 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.pressed | primary.150 | 13.46 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.350 | 7.42 | 7 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.350 | 7.42 | 7 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.250 | 10.12 | 7 | ✅ |
@@ -1909,6 +2029,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.border.rest | danger.350 | 7.42 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.250 | 10.12 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.150 | 13.42 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.350 | 7.42 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.250 | 10.12 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.150 | 13.42 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.rest | white | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.icon.rest | white | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.100 | 15.18 | 7 | ✅ |
@@ -1924,6 +2047,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.border.rest | white | 21.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.100 | 15.18 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.200 | 11.65 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.rest | white | 21.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 15.18 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 11.65 | 4.5 | ✅ |
 | interactive.primary.overlay.hover | black-alpha.10 | 16.75 | 7 | ✅ |
 | interactive.primary.overlay.pressed | black-alpha.20 | 13.08 | 7 | ✅ |
 | interactive.primary.overlay.selected | black-alpha.20 | 13.08 | 7 | ✅ |
@@ -2124,6 +2250,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.border.rest | primary.350 | 7.58 | 4.5 | ✅ |
 | interactive.primary.border.hover | primary.250 | 10.23 | 4.5 | ✅ |
 | interactive.primary.border.pressed | primary.150 | 13.46 | 4.5 | ✅ |
+| interactive.primary.indicator.rest | primary.350 | 7.58 | 4.5 | ✅ |
+| interactive.primary.indicator.hover | primary.250 | 10.23 | 4.5 | ✅ |
+| interactive.primary.indicator.pressed | primary.150 | 13.46 | 4.5 | ✅ |
 | interactive.destructive.fill.rest | danger.300 | 7.46 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.200 | 9.95 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.100 | 13.04 | 7 | ✅ |
@@ -2139,6 +2268,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.border.rest | danger.350 | 7.42 | 4.5 | ✅ |
 | interactive.destructive.border.hover | danger.250 | 10.12 | 4.5 | ✅ |
 | interactive.destructive.border.pressed | danger.150 | 13.42 | 4.5 | ✅ |
+| interactive.destructive.indicator.rest | danger.350 | 7.42 | 4.5 | ✅ |
+| interactive.destructive.indicator.hover | danger.250 | 10.12 | 4.5 | ✅ |
+| interactive.destructive.indicator.pressed | danger.150 | 13.42 | 4.5 | ✅ |
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
@@ -2154,6 +2286,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.border.rest | white | 21.00 | 4.5 | ✅ |
 | interactive.neutral.border.hover | neutral.100 | 15.18 | 4.5 | ✅ |
 | interactive.neutral.border.pressed | neutral.200 | 11.65 | 4.5 | ✅ |
+| interactive.neutral.indicator.rest | white | 21.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.hover | neutral.100 | 15.18 | 4.5 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.200 | 11.65 | 4.5 | ✅ |
 | inverse.interactive.primary.text.rest | primary.600 | 7.82 | 7 | ✅ |
 | inverse.interactive.primary.icon.rest | primary.600 | 7.82 | 7 | ✅ |
 | inverse.interactive.primary.text.hover | primary.700 | 11.17 | 7 | ✅ |
@@ -2169,6 +2304,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.border.rest | primary.600 | 7.82 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | primary.700 | 11.17 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.800 | 15.08 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.rest | primary.600 | 7.82 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.hover | primary.700 | 11.17 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.pressed | primary.800 | 15.08 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.650 | 8.27 | 7 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.650 | 8.27 | 7 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.750 | 12.06 | 7 | ✅ |
@@ -2184,6 +2322,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.border.rest | danger.650 | 8.27 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.750 | 12.06 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.850 | 16.34 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.650 | 8.27 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.750 | 12.06 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.850 | 16.34 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.rest | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.icon.rest | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.850 | 16.07 | 7 | ✅ |
@@ -2199,6 +2340,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.850 | 16.07 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.750 | 11.74 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.rest | black | 21.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.850 | 16.07 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.750 | 11.74 | 4.5 | ✅ |
 | interactive.primary.overlay.hover | white-alpha.10 | 17.49 | 7 | ✅ |
 | interactive.primary.overlay.pressed | white-alpha.20 | 12.63 | 7 | ✅ |
 | interactive.primary.overlay.selected | white-alpha.20 | 12.63 | 7 | ✅ |
@@ -2476,6 +2620,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.border.rest | accent.600 | 6.85 | 3 | ✅ |
 | interactive.primary.border.hover | accent.700 | 10.03 | 3 | ✅ |
 | interactive.primary.border.pressed | accent.800 | 13.92 | 3 | ✅ |
+| interactive.primary.indicator.rest | accent.600 | 6.85 | 3 | ✅ |
+| interactive.primary.indicator.hover | accent.700 | 10.03 | 3 | ✅ |
+| interactive.primary.indicator.pressed | accent.800 | 13.92 | 3 | ✅ |
 | interactive.destructive.fill.rest | danger.500 | 3.76 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.600 | 5.57 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.700 | 8.23 | 3 | ✅ |
@@ -2491,6 +2638,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.border.rest | danger.600 | 4.89 | 3 | ✅ |
 | interactive.destructive.border.hover | danger.700 | 7.22 | 3 | ✅ |
 | interactive.destructive.border.pressed | danger.800 | 10.27 | 3 | ✅ |
+| interactive.destructive.indicator.rest | danger.600 | 4.89 | 3 | ✅ |
+| interactive.destructive.indicator.hover | danger.700 | 7.22 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | danger.800 | 10.27 | 3 | ✅ |
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
@@ -2506,6 +2656,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.border.rest | neutral.950 | 19.43 | 3 | ✅ |
 | interactive.neutral.border.hover | neutral.850 | 16.06 | 3 | ✅ |
 | interactive.neutral.border.pressed | neutral.750 | 11.69 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.950 | 19.43 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 16.06 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 11.69 | 3 | ✅ |
 | inverse.interactive.primary.text.rest | accent.450 | 4.87 | 4.5 | ✅ |
 | inverse.interactive.primary.icon.rest | accent.450 | 4.87 | 4.5 | ✅ |
 | inverse.interactive.primary.text.hover | accent.350 | 6.80 | 4.5 | ✅ |
@@ -2521,6 +2674,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.border.rest | accent.450 | 4.87 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | accent.350 | 6.80 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.250 | 9.23 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | accent.450 | 4.87 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | accent.350 | 6.80 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | accent.250 | 9.23 | 3 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.400 | 4.86 | 4.5 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.400 | 4.86 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.300 | 6.65 | 4.5 | ✅ |
@@ -2536,6 +2692,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.border.rest | danger.400 | 4.86 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.300 | 6.65 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.200 | 8.94 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.400 | 4.86 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.300 | 6.65 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.200 | 8.94 | 3 | ✅ |
 | inverse.interactive.neutral.text.rest | neutral.025 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.icon.rest | neutral.025 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.100 | 14.05 | 4.5 | ✅ |
@@ -2551,6 +2710,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.border.rest | neutral.025 | 18.13 | 3 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.100 | 14.05 | 3 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.200 | 10.81 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.025 | 18.13 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 14.05 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 10.81 | 3 | ✅ |
 | interactive.primary.overlay.hover | black-alpha.10 | 15.49 | 4.5 | ✅ |
 | interactive.primary.overlay.pressed | black-alpha.20 | 12.10 | 4.5 | ✅ |
 | interactive.primary.overlay.selected | black-alpha.20 | 12.10 | 4.5 | ✅ |
@@ -2751,6 +2913,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.border.rest | accent.400 | 5.80 | 3 | ✅ |
 | interactive.primary.border.hover | accent.300 | 7.95 | 3 | ✅ |
 | interactive.primary.border.pressed | accent.200 | 10.65 | 3 | ✅ |
+| interactive.primary.indicator.rest | accent.400 | 5.80 | 3 | ✅ |
+| interactive.primary.indicator.hover | accent.300 | 7.95 | 3 | ✅ |
+| interactive.primary.indicator.pressed | accent.200 | 10.65 | 3 | ✅ |
 | interactive.destructive.fill.rest | danger.500 | 3.92 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.400 | 5.41 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.300 | 7.42 | 3 | ✅ |
@@ -2766,6 +2931,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.border.rest | danger.400 | 4.86 | 3 | ✅ |
 | interactive.destructive.border.hover | danger.300 | 6.65 | 3 | ✅ |
 | interactive.destructive.border.pressed | danger.200 | 8.94 | 3 | ✅ |
+| interactive.destructive.indicator.rest | danger.400 | 4.86 | 3 | ✅ |
+| interactive.destructive.indicator.hover | danger.300 | 6.65 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | danger.200 | 8.94 | 3 | ✅ |
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
@@ -2781,6 +2949,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.border.rest | neutral.025 | 18.13 | 3 | ✅ |
 | interactive.neutral.border.hover | neutral.100 | 14.05 | 3 | ✅ |
 | interactive.neutral.border.pressed | neutral.200 | 10.81 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.025 | 18.13 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.100 | 14.05 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.200 | 10.81 | 3 | ✅ |
 | inverse.interactive.primary.text.rest | accent.550 | 5.31 | 4.5 | ✅ |
 | inverse.interactive.primary.icon.rest | accent.550 | 5.31 | 4.5 | ✅ |
 | inverse.interactive.primary.text.hover | accent.650 | 7.75 | 4.5 | ✅ |
@@ -2796,6 +2967,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.border.rest | accent.550 | 5.31 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | accent.650 | 7.75 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.750 | 11.16 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | accent.550 | 5.31 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | accent.650 | 7.75 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | accent.750 | 11.16 | 3 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.600 | 4.89 | 4.5 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.600 | 4.89 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.700 | 7.22 | 4.5 | ✅ |
@@ -2811,6 +2985,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.border.rest | danger.600 | 4.89 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.700 | 7.22 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.800 | 10.27 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.600 | 4.89 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.700 | 7.22 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.800 | 10.27 | 3 | ✅ |
 | inverse.interactive.neutral.text.rest | neutral.950 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.icon.rest | neutral.950 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.850 | 14.99 | 4.5 | ✅ |
@@ -2826,6 +3003,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.border.rest | neutral.950 | 18.13 | 3 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.850 | 14.99 | 3 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.750 | 10.91 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.950 | 18.13 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.850 | 14.99 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.750 | 10.91 | 3 | ✅ |
 | interactive.primary.overlay.hover | white-alpha.10 | 14.26 | 4.5 | ✅ |
 | interactive.primary.overlay.pressed | white-alpha.20 | 10.07 | 4.5 | ✅ |
 | interactive.primary.overlay.selected | white-alpha.20 | 10.07 | 4.5 | ✅ |
@@ -3026,6 +3206,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.border.rest | accent.650 | 8.30 | 4.5 | ✅ |
 | interactive.primary.border.hover | accent.750 | 11.95 | 4.5 | ✅ |
 | interactive.primary.border.pressed | accent.850 | 16.08 | 4.5 | ✅ |
+| interactive.primary.indicator.rest | accent.650 | 8.30 | 4.5 | ✅ |
+| interactive.primary.indicator.hover | accent.750 | 11.95 | 4.5 | ✅ |
+| interactive.primary.indicator.pressed | accent.850 | 16.08 | 4.5 | ✅ |
 | interactive.destructive.fill.rest | danger.700 | 8.23 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.800 | 11.70 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.900 | 15.03 | 7 | ✅ |
@@ -3041,6 +3224,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.border.rest | danger.650 | 8.22 | 4.5 | ✅ |
 | interactive.destructive.border.hover | danger.750 | 11.99 | 4.5 | ✅ |
 | interactive.destructive.border.pressed | danger.850 | 16.35 | 4.5 | ✅ |
+| interactive.destructive.indicator.rest | danger.650 | 8.22 | 4.5 | ✅ |
+| interactive.destructive.indicator.hover | danger.750 | 11.99 | 4.5 | ✅ |
+| interactive.destructive.indicator.pressed | danger.850 | 16.35 | 4.5 | ✅ |
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
@@ -3056,6 +3242,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
 | interactive.neutral.border.hover | neutral.850 | 16.06 | 4.5 | ✅ |
 | interactive.neutral.border.pressed | neutral.750 | 11.69 | 4.5 | ✅ |
+| interactive.neutral.indicator.rest | black | 21.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 16.06 | 4.5 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 11.69 | 4.5 | ✅ |
 | inverse.interactive.primary.text.rest | accent.350 | 7.36 | 7 | ✅ |
 | inverse.interactive.primary.icon.rest | accent.350 | 7.36 | 7 | ✅ |
 | inverse.interactive.primary.text.hover | accent.250 | 9.97 | 7 | ✅ |
@@ -3071,6 +3260,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.border.rest | accent.350 | 7.36 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | accent.250 | 9.97 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.150 | 13.31 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.rest | accent.350 | 7.36 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.hover | accent.250 | 9.97 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.pressed | accent.150 | 13.31 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.350 | 7.44 | 7 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.350 | 7.44 | 7 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.250 | 10.09 | 7 | ✅ |
@@ -3086,6 +3278,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.border.rest | danger.350 | 7.44 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.250 | 10.09 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.150 | 13.37 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.350 | 7.44 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.250 | 10.09 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.150 | 13.37 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.rest | white | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.icon.rest | white | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.100 | 15.19 | 7 | ✅ |
@@ -3101,6 +3296,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.border.rest | white | 21.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.100 | 15.19 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.200 | 11.68 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.rest | white | 21.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 15.19 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 11.68 | 4.5 | ✅ |
 | interactive.primary.overlay.hover | black-alpha.10 | 16.75 | 7 | ✅ |
 | interactive.primary.overlay.pressed | black-alpha.20 | 13.08 | 7 | ✅ |
 | interactive.primary.overlay.selected | black-alpha.20 | 13.08 | 7 | ✅ |
@@ -3301,6 +3499,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.border.rest | accent.350 | 7.36 | 4.5 | ✅ |
 | interactive.primary.border.hover | accent.250 | 9.97 | 4.5 | ✅ |
 | interactive.primary.border.pressed | accent.150 | 13.31 | 4.5 | ✅ |
+| interactive.primary.indicator.rest | accent.350 | 7.36 | 4.5 | ✅ |
+| interactive.primary.indicator.hover | accent.250 | 9.97 | 4.5 | ✅ |
+| interactive.primary.indicator.pressed | accent.150 | 13.31 | 4.5 | ✅ |
 | interactive.destructive.fill.rest | danger.300 | 7.42 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.200 | 9.97 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.100 | 12.98 | 7 | ✅ |
@@ -3316,6 +3517,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.border.rest | danger.350 | 7.44 | 4.5 | ✅ |
 | interactive.destructive.border.hover | danger.250 | 10.09 | 4.5 | ✅ |
 | interactive.destructive.border.pressed | danger.150 | 13.37 | 4.5 | ✅ |
+| interactive.destructive.indicator.rest | danger.350 | 7.44 | 4.5 | ✅ |
+| interactive.destructive.indicator.hover | danger.250 | 10.09 | 4.5 | ✅ |
+| interactive.destructive.indicator.pressed | danger.150 | 13.37 | 4.5 | ✅ |
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
@@ -3331,6 +3535,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.border.rest | white | 21.00 | 4.5 | ✅ |
 | interactive.neutral.border.hover | neutral.100 | 15.19 | 4.5 | ✅ |
 | interactive.neutral.border.pressed | neutral.200 | 11.68 | 4.5 | ✅ |
+| interactive.neutral.indicator.rest | white | 21.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.hover | neutral.100 | 15.19 | 4.5 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.200 | 11.68 | 4.5 | ✅ |
 | inverse.interactive.primary.text.rest | accent.650 | 8.30 | 7 | ✅ |
 | inverse.interactive.primary.icon.rest | accent.650 | 8.30 | 7 | ✅ |
 | inverse.interactive.primary.text.hover | accent.750 | 11.95 | 7 | ✅ |
@@ -3346,6 +3553,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.border.rest | accent.650 | 8.30 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | accent.750 | 11.95 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.850 | 16.08 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.rest | accent.650 | 8.30 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.hover | accent.750 | 11.95 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.pressed | accent.850 | 16.08 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.650 | 8.22 | 7 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.650 | 8.22 | 7 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.750 | 11.99 | 7 | ✅ |
@@ -3361,6 +3571,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.border.rest | danger.650 | 8.22 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.750 | 11.99 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.850 | 16.35 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.650 | 8.22 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.750 | 11.99 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.850 | 16.35 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.rest | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.icon.rest | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.850 | 16.06 | 7 | ✅ |
@@ -3376,6 +3589,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.850 | 16.06 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.750 | 11.69 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.rest | black | 21.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.850 | 16.06 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.750 | 11.69 | 4.5 | ✅ |
 | interactive.primary.overlay.hover | white-alpha.10 | 17.49 | 7 | ✅ |
 | interactive.primary.overlay.pressed | white-alpha.20 | 12.63 | 7 | ✅ |
 | interactive.primary.overlay.selected | white-alpha.20 | 12.63 | 7 | ✅ |
@@ -3652,6 +3868,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.primary.border.rest | primary.600 | 5.59 | 3 | ✅ |
 | interactive.primary.border.hover | primary.700 | 8.20 | 3 | ✅ |
 | interactive.primary.border.pressed | primary.800 | 11.49 | 3 | ✅ |
+| interactive.primary.indicator.rest | primary.600 | 5.59 | 3 | ✅ |
+| interactive.primary.indicator.hover | primary.700 | 8.20 | 3 | ✅ |
+| interactive.primary.indicator.pressed | primary.800 | 11.49 | 3 | ✅ |
 | interactive.destructive.fill.rest | danger.550 | 4.04 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.650 | 5.97 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.750 | 8.73 | 3 | ✅ |
@@ -3667,6 +3886,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.destructive.border.rest | danger.650 | 5.25 | 3 | ✅ |
 | interactive.destructive.border.hover | danger.750 | 7.67 | 3 | ✅ |
 | interactive.destructive.border.pressed | danger.850 | 10.39 | 3 | ✅ |
+| interactive.destructive.indicator.rest | danger.650 | 5.25 | 3 | ✅ |
+| interactive.destructive.indicator.hover | danger.750 | 7.67 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | danger.850 | 10.39 | 3 | ✅ |
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
@@ -3682,6 +3904,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.neutral.border.rest | neutral.950 | 15.98 | 3 | ✅ |
 | interactive.neutral.border.hover | neutral.850 | 13.20 | 3 | ✅ |
 | interactive.neutral.border.pressed | neutral.750 | 9.76 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.950 | 15.98 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 13.20 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 9.76 | 3 | ✅ |
 | inverse.interactive.primary.text.rest | primary.450 | 5.00 | 4.5 | ✅ |
 | inverse.interactive.primary.icon.rest | primary.450 | 5.00 | 4.5 | ✅ |
 | inverse.interactive.primary.text.hover | primary.350 | 6.91 | 4.5 | ✅ |
@@ -3697,6 +3922,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.border.rest | primary.450 | 5.00 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.350 | 6.91 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.250 | 9.34 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | primary.450 | 5.00 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | primary.350 | 6.91 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | primary.250 | 9.34 | 3 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.400 | 4.82 | 4.5 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.400 | 4.82 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.300 | 6.62 | 4.5 | ✅ |
@@ -3712,6 +3940,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.destructive.border.rest | danger.400 | 4.82 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.300 | 6.62 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.200 | 8.91 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.400 | 4.82 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.300 | 6.62 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.200 | 8.91 | 3 | ✅ |
 | inverse.interactive.neutral.text.rest | neutral.025 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.icon.rest | neutral.025 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.100 | 14.05 | 4.5 | ✅ |
@@ -3727,6 +3958,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.neutral.border.rest | neutral.025 | 18.11 | 3 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.100 | 14.05 | 3 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.200 | 10.79 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.025 | 18.11 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 14.05 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 10.79 | 3 | ✅ |
 | interactive.primary.overlay.hover | black-alpha.10 | 12.80 | 4.5 | ✅ |
 | interactive.primary.overlay.pressed | black-alpha.20 | 10.04 | 4.5 | ✅ |
 | interactive.primary.overlay.selected | black-alpha.20 | 10.04 | 4.5 | ✅ |
@@ -3927,6 +4161,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.primary.border.rest | primary.450 | 5.00 | 3 | ✅ |
 | interactive.primary.border.hover | primary.350 | 6.91 | 3 | ✅ |
 | interactive.primary.border.pressed | primary.250 | 9.34 | 3 | ✅ |
+| interactive.primary.indicator.rest | primary.450 | 5.00 | 3 | ✅ |
+| interactive.primary.indicator.hover | primary.350 | 6.91 | 3 | ✅ |
+| interactive.primary.indicator.pressed | primary.250 | 9.34 | 3 | ✅ |
 | interactive.destructive.fill.rest | danger.500 | 3.92 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.400 | 5.38 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.300 | 7.39 | 3 | ✅ |
@@ -3942,6 +4179,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.destructive.border.rest | danger.400 | 4.82 | 3 | ✅ |
 | interactive.destructive.border.hover | danger.300 | 6.62 | 3 | ✅ |
 | interactive.destructive.border.pressed | danger.200 | 8.91 | 3 | ✅ |
+| interactive.destructive.indicator.rest | danger.400 | 4.82 | 3 | ✅ |
+| interactive.destructive.indicator.hover | danger.300 | 6.62 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | danger.200 | 8.91 | 3 | ✅ |
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
@@ -3957,6 +4197,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.neutral.border.rest | neutral.025 | 18.11 | 3 | ✅ |
 | interactive.neutral.border.hover | neutral.100 | 14.05 | 3 | ✅ |
 | interactive.neutral.border.pressed | neutral.200 | 10.79 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.025 | 18.11 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.100 | 14.05 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.200 | 10.79 | 3 | ✅ |
 | inverse.interactive.primary.text.rest | primary.600 | 6.33 | 4.5 | ✅ |
 | inverse.interactive.primary.icon.rest | primary.600 | 6.33 | 4.5 | ✅ |
 | inverse.interactive.primary.text.hover | primary.700 | 9.29 | 4.5 | ✅ |
@@ -3972,6 +4215,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.border.rest | primary.600 | 6.33 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.700 | 9.29 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.800 | 13.02 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | primary.600 | 6.33 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | primary.700 | 9.29 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | primary.800 | 13.02 | 3 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.600 | 4.92 | 4.5 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.600 | 4.92 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.700 | 7.24 | 4.5 | ✅ |
@@ -3987,6 +4233,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.destructive.border.rest | danger.600 | 4.92 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.700 | 7.24 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.800 | 10.32 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.600 | 4.92 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.700 | 7.24 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.800 | 10.32 | 3 | ✅ |
 | inverse.interactive.neutral.text.rest | neutral.950 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.icon.rest | neutral.950 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.850 | 14.96 | 4.5 | ✅ |
@@ -4002,6 +4251,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.neutral.border.rest | neutral.950 | 18.11 | 3 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.850 | 14.96 | 3 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.750 | 11.06 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.850 | 14.96 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.750 | 11.06 | 3 | ✅ |
 | interactive.primary.overlay.hover | white-alpha.10 | 14.24 | 4.5 | ✅ |
 | interactive.primary.overlay.pressed | white-alpha.20 | 10.05 | 4.5 | ✅ |
 | interactive.primary.overlay.selected | white-alpha.20 | 10.05 | 4.5 | ✅ |
@@ -4202,6 +4454,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.primary.border.rest | primary.650 | 8.28 | 4.5 | ✅ |
 | interactive.primary.border.hover | primary.750 | 11.78 | 4.5 | ✅ |
 | interactive.primary.border.pressed | primary.850 | 15.92 | 4.5 | ✅ |
+| interactive.primary.indicator.rest | primary.650 | 8.28 | 4.5 | ✅ |
+| interactive.primary.indicator.hover | primary.750 | 11.78 | 4.5 | ✅ |
+| interactive.primary.indicator.pressed | primary.850 | 15.92 | 4.5 | ✅ |
 | interactive.destructive.fill.rest | danger.700 | 7.24 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.800 | 10.32 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.900 | 13.20 | 7 | ✅ |
@@ -4217,6 +4472,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.destructive.border.rest | danger.650 | 8.25 | 4.5 | ✅ |
 | interactive.destructive.border.hover | danger.750 | 12.06 | 4.5 | ✅ |
 | interactive.destructive.border.pressed | danger.850 | 16.33 | 4.5 | ✅ |
+| interactive.destructive.indicator.rest | danger.650 | 8.25 | 4.5 | ✅ |
+| interactive.destructive.indicator.hover | danger.750 | 12.06 | 4.5 | ✅ |
+| interactive.destructive.indicator.pressed | danger.850 | 16.33 | 4.5 | ✅ |
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
@@ -4232,6 +4490,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
 | interactive.neutral.border.hover | neutral.850 | 16.03 | 4.5 | ✅ |
 | interactive.neutral.border.pressed | neutral.750 | 11.85 | 4.5 | ✅ |
+| interactive.neutral.indicator.rest | black | 21.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 16.03 | 4.5 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 11.85 | 4.5 | ✅ |
 | inverse.interactive.primary.text.rest | primary.350 | 7.47 | 7 | ✅ |
 | inverse.interactive.primary.icon.rest | primary.350 | 7.47 | 7 | ✅ |
 | inverse.interactive.primary.text.hover | primary.250 | 10.11 | 7 | ✅ |
@@ -4247,6 +4508,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.border.rest | primary.350 | 7.47 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | primary.250 | 10.11 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.150 | 13.33 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.rest | primary.350 | 7.47 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.hover | primary.250 | 10.11 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.pressed | primary.150 | 13.33 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.350 | 7.46 | 7 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.350 | 7.46 | 7 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.250 | 10.12 | 7 | ✅ |
@@ -4262,6 +4526,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.destructive.border.rest | danger.350 | 7.46 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.250 | 10.12 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.150 | 13.34 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.350 | 7.46 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.250 | 10.12 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.150 | 13.34 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.rest | white | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.icon.rest | white | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.100 | 15.20 | 7 | ✅ |
@@ -4277,6 +4544,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.neutral.border.rest | white | 21.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.100 | 15.20 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.200 | 11.67 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.rest | white | 21.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 15.20 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 11.67 | 4.5 | ✅ |
 | interactive.primary.overlay.hover | black-alpha.10 | 16.75 | 7 | ✅ |
 | interactive.primary.overlay.pressed | black-alpha.20 | 13.08 | 7 | ✅ |
 | interactive.primary.overlay.selected | black-alpha.20 | 13.08 | 7 | ✅ |
@@ -4477,6 +4747,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.primary.border.rest | primary.350 | 7.47 | 4.5 | ✅ |
 | interactive.primary.border.hover | primary.250 | 10.11 | 4.5 | ✅ |
 | interactive.primary.border.pressed | primary.150 | 13.33 | 4.5 | ✅ |
+| interactive.primary.indicator.rest | primary.350 | 7.47 | 4.5 | ✅ |
+| interactive.primary.indicator.hover | primary.250 | 10.11 | 4.5 | ✅ |
+| interactive.primary.indicator.pressed | primary.150 | 13.33 | 4.5 | ✅ |
 | interactive.destructive.fill.rest | danger.300 | 7.39 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.200 | 9.95 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.100 | 13.00 | 7 | ✅ |
@@ -4492,6 +4765,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.destructive.border.rest | danger.350 | 7.46 | 4.5 | ✅ |
 | interactive.destructive.border.hover | danger.250 | 10.12 | 4.5 | ✅ |
 | interactive.destructive.border.pressed | danger.150 | 13.34 | 4.5 | ✅ |
+| interactive.destructive.indicator.rest | danger.350 | 7.46 | 4.5 | ✅ |
+| interactive.destructive.indicator.hover | danger.250 | 10.12 | 4.5 | ✅ |
+| interactive.destructive.indicator.pressed | danger.150 | 13.34 | 4.5 | ✅ |
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
@@ -4507,6 +4783,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.neutral.border.rest | white | 21.00 | 4.5 | ✅ |
 | interactive.neutral.border.hover | neutral.100 | 15.20 | 4.5 | ✅ |
 | interactive.neutral.border.pressed | neutral.200 | 11.67 | 4.5 | ✅ |
+| interactive.neutral.indicator.rest | white | 21.00 | 4.5 | ✅ |
+| interactive.neutral.indicator.hover | neutral.100 | 15.20 | 4.5 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.200 | 11.67 | 4.5 | ✅ |
 | inverse.interactive.primary.text.rest | primary.650 | 8.28 | 7 | ✅ |
 | inverse.interactive.primary.icon.rest | primary.650 | 8.28 | 7 | ✅ |
 | inverse.interactive.primary.text.hover | primary.750 | 11.78 | 7 | ✅ |
@@ -4522,6 +4801,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.border.rest | primary.650 | 8.28 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | primary.750 | 11.78 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.850 | 15.92 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.rest | primary.650 | 8.28 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.hover | primary.750 | 11.78 | 4.5 | ✅ |
+| inverse.interactive.primary.indicator.pressed | primary.850 | 15.92 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.rest | danger.650 | 8.25 | 7 | ✅ |
 | inverse.interactive.destructive.icon.rest | danger.650 | 8.25 | 7 | ✅ |
 | inverse.interactive.destructive.text.hover | danger.750 | 12.06 | 7 | ✅ |
@@ -4537,6 +4819,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.destructive.border.rest | danger.650 | 8.25 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.750 | 12.06 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.850 | 16.33 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.650 | 8.25 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.750 | 12.06 | 4.5 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.850 | 16.33 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.rest | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.icon.rest | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.hover | neutral.850 | 16.03 | 7 | ✅ |
@@ -4552,6 +4837,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.hover | neutral.850 | 16.03 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.pressed | neutral.750 | 11.85 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.rest | black | 21.00 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.850 | 16.03 | 4.5 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.750 | 11.85 | 4.5 | ✅ |
 | interactive.primary.overlay.hover | white-alpha.10 | 17.49 | 7 | ✅ |
 | interactive.primary.overlay.pressed | white-alpha.20 | 12.63 | 7 | ✅ |
 | interactive.primary.overlay.selected | white-alpha.20 | 12.63 | 7 | ✅ |

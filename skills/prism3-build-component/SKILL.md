@@ -419,7 +419,7 @@ whose actual value comes from the host, not from the plan.
   `outlineInteraction` is not `none` (owner, 2026-09-29). It is brand-dependent in the token contract. On a
   `none` brand `applyOutlineInteraction` drops the binding, and the selected state is the outline and the
   check alone.
-  Bind the outline to `color.interactive.primary.border.*` at `border-width.thick` (2px), through a
+  Bind the outline to `color.interactive.primary.indicator.*`, the selection mark, at `border-width.thick` (2px), through a
   `{selection}`-keyed `strokeWidth`, so the unselected member keeps `border-width.hairline`; both executors draw
   the stroke inside the box, so the thicker outline adds no width. Keep the label's type binding the same at
   both selection values — no bold on select, so the label keeps its width — and keep its ink the unselected
@@ -428,7 +428,13 @@ whose actual value comes from the host, not from the plan.
   selected is a flow cell of its own, so the selected member is one glyph and one gap wider than the
   unselected one, and a row of them reflows on toggle unless the component reserves that width (Tag does not:
   the owner let it widen, 2026-09-29). At hover and pressed the tint holds and the outline steps to
-  `interactive.primary.border.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
+  `interactive.primary.indicator.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
+
+  **A selection mark is a shape, so it binds `color.interactive.<c>.indicator.*`, never a text role and never the
+  outline edge** (#3346, owner 2026-11-03). That covers the selected outline above, a selected tab's bar, a checked
+  radio's ring, a switch's thumb and a slider's disc. The indicator matches the label's color, overrides included,
+  and a brand that quiets its outline edges (`border.*`) leaves it alone. No shape binds `interactive.<c>.text.*`, even
+  where the values match.
 
   **The one exception to the constant weight: a choice between peers in a row** (Tab, and the Segmented
   control's segment; owner decision). There the selected label takes the emphasis weight, and an invisible
