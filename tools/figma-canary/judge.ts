@@ -1,13 +1,16 @@
 /**
- * THE CANARY'S JUDGE (#3215, owner decisions of 2026-11-01 and 2026-11-03): reads the run file the Mac's job wrote
- * (`job.ts collect`) from a read-only run on the scratch file, and says whether the owner can be told to rebuild.
+ * THE CANARY'S JUDGE (#3215, owner decisions of 2026-11-01 and 2026-11-03, Q20 A): reads the run file the Mac's job
+ * wrote (`job.ts collect`) from a read-only run on the scratch file, on the owner's normal plugin build, and says whether
+ * the owner can be told to rebuild.
  *
  *   npx tsx tools/figma-canary/judge.ts <run.json> --expect <commit> [--file-name '<scratch file name>']
  *   npx tsx tools/figma-canary/judge.ts --commands     # the commands the Mac sends, as JSON, the house brand filled in
  *
- * `<run.json>` is `{ format, commit, stamp, builtFrom, responses }`: `responses` is keyed by command (`status`,
- * `readback`, `update-components`, `prune`, `run-code`, then `status-after`, the closing `status`), each the plugin's
- * result envelope verbatim, as `figma_run` returned it. `--expect` is the main commit the Mac was asked to build.
+ * `<run.json>` is `{ format, commit, responses }`: `commit` is the commit the Mac's job was asked to check, and
+ * `responses` is keyed by command (`status`, `readback`, `update-components`, `prune`, `run-code`, then `status-after`,
+ * the closing `status`), each the plugin's result envelope verbatim, as `figma_run` returned it. `--expect` is the main
+ * commit the orchestrator asked for. The job builds nothing (Q20 A), so the build that ran is known only from the stamp
+ * each `status` reports, and that is what the commit check reads.
  * `--file-name` defaults to `SCRATCH_FILE`. It prints a per-command PASS/FAIL table, then one line:
  * `checked, safe to rebuild from <commit>` or `held: <reason>; <reason>…`.
  *
@@ -24,14 +27,13 @@
  * import the plugin's brand compiler, to build an ARGUMENT; nothing it returns is an expectation.)
  *
  * WHAT IT HOLDS ON:
- *   · the run: not the run format; its `commit` is not `--expect`; its `stamp` (what the build printed) is not the
- *     stamp `status` reports, so the plugin Figma ran is not the one this job built;
+ *   · the run: not the run format; its `commit` (what the job was asked to check) is not `--expect`;
  *   · per command: the response is missing; it does not parse as a result envelope (the shape below); its `cmd` is not
  *     its key; it carries a host `error` (`handler-threw`, `bad-args`, `unknown-command`, `busy`, `link-off`, …); `ok` is
  *     not true, or the dispatcher marked the result (`data.noVerdict`, `data.earlierVerdicts`); an exception's text in
  *     the verdict, a refusal reason, a blocker or a log line (`EXCEPTION`; #3209's `'get' on proxy` started this);
- *   · `status` and `status-after`: the build stamp's commit (#3253's `<ISO> tree-<8 hex> <commit>`) is not `--expect`,
- *     or is `-dirty`, `git-unavailable` or missing; the build does not list a command the canary sends; the open file
+ *   · `status` and `status-after`: the build stamp's commit (#3253's `<ISO> tree-<8 hex> <commit>`) is not `--expect`
+ *     (exactly: a later commit is not accepted), or is `-dirty`, `git-unavailable` or missing; the build does not list a command the canary sends; the open file
  *     is not the scratch file. Both bracket the run, so a bridge that moved to another plugin mid-run (#3297) is
  *     caught on the way out; `status-after` must also report the same build as `status`;
  *   · a write: `update-components` came back as an apply rather than a dry run, or `prune` as applied;
@@ -122,7 +124,8 @@ export const stampCommit = (build: unknown): { commit: string } | { why: string 
   if (!/^[0-9a-f]{7,40}$/.test(m[1])) return { why: `the build stamp's commit field is not a commit ("${m[1]}")` };
   return { commit: m[1] };
 };
-const sameCommit = (a: string, b: string): boolean => a.length >= 7 && b.length >= 7 && (a.startsWith(b) || b.startsWith(a));
+/** Two spellings of one commit: a short sha is a prefix of the full one. Exact, never "or later". */
+export const sameCommit = (a: string, b: string): boolean => a.length >= 7 && b.length >= 7 && (a.startsWith(b) || b.startsWith(a));
 
 /** Judge one run. Pure: the run file, the expected commit, and the scratch file's name. */
 export const judge = (run: unknown, expect: string, opts: { fileName?: string } = {}): Judgement => {
@@ -132,12 +135,9 @@ export const judge = (run: unknown, expect: string, opts: { fileName?: string } 
   const r = isObj(run) ? run : {};
   const responses = isObj(r.responses) ? r.responses : {};
   if (!isObj(run) || r.format !== RUN_FORMAT || !isObj(r.responses)) {
-    fail('(run)', `not a canary run file: expected {format: "${RUN_FORMAT}", commit, stamp, builtFrom, responses}`);
-  } else {
-    if (typeof r.commit !== 'string' || !sameCommit(r.commit, expect)) fail('(run)', `the job built ${JSON.stringify(r.commit)}, not ${expect}`);
-    const st = isObj(responses.status) ? (responses.status as Envelope).result?.data?.status as { build?: unknown } | undefined : undefined;
-    if (typeof r.stamp !== 'string') fail('(run)', 'the job recorded no build stamp');
-    else if (st && typeof st.build === 'string' && st.build !== r.stamp) fail('(run)', `the plugin Figma ran is not the one this job built: status says "${st.build}", the build printed "${r.stamp}"`);
+    fail('(run)', `not a canary run file: expected {format: "${RUN_FORMAT}", commit, responses}`);
+  } else if (typeof r.commit !== 'string' || !sameCommit(r.commit, expect)) {
+    fail('(run)', `the job was asked to check ${JSON.stringify(r.commit)}, not ${expect}`);
   }
   // The opening `status`'s build, read raw: `status-after` is held to it only when there is one to compare.
   const firstBuild = isObj(responses.status) ? ((responses.status as Envelope).result?.data?.status as { build?: unknown } | undefined)?.build : undefined;

@@ -9,7 +9,7 @@
  * THE FIXTURES (`fixtures/`) are run files (`job.ts collect`'s shape) of envelopes in the plugin's result shape, written by
  * hand to the shape `agent-dispatch.ts` produces. `pass.json` is a good run. One bad run per check the brief names, each a
  * whole file so it can be read on its own:
- *   · `bad-commit.json`  — the job built, and the plugin ran, a commit other than the one asked for;
+ *   · `bad-commit.json`  — the job asked for the right commit, but the owner's build ran an older one (Q20 A);
  *   · `bad-error.json`   — a read-only command answered with a host error;
  *   · `bad-file.json`    — the closing `status` reports another file: the bridge moved to another plugin mid-run (#3297);
  *   · `bad-shape.json`   — a response that does not parse against the protocol's shape;
@@ -21,13 +21,16 @@
  * judge's own protocol shapes are literals too, never read from the plugin.
  * BY-NAME MUTATIONS (proven red in the PR): the exception scan dropped from the judge → `3209/update-components`; the
  * stamp's commit compare made to accept any commit → `bad-commit/status`; the closing status's file compare dropped →
- * `bad-file/status-after`; the transport check dropped → `bad-shape/readback`.
+ * `bad-file/status-after`; the transport check dropped → `bad-shape/readback`; the run's requested-commit compare dropped
+ * → `asked/run`; the stamp check's commit compare dropped → `check/stale`; its file compare dropped → `check/file`; a
+ * stamp with no usable commit let through → `check/dirty`; its `cmd` guard dropped → `check/wrong-cmd`; the commit
+ * compare loosened to accept any commit (an "or later" with no ancestry check) → `bad-commit/status`, `check/later`.
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { judge, type Judgement } from './judge';
-import { assemble, builtFromLine, parseStamp } from './job';
+import { assemble, stampCheck } from './job';
 import { decide, figmaApis } from './needs-check';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -60,7 +63,7 @@ console.log('\njudge — the good run and one bad run per check');
     `pass/safe: every command PASS, the descriptor read RECORDED, "${j.line}"`);
   ok(judge(load('pass.json'), EXPECT).safe, 'pass/default-name: the scratch file name is the default');
   held('bad-commit/status', judge(load('bad-commit.json'), EXPECT), {
-    '(run)': 'the job built "754d69440000', status: 'built from 754d6944, not a5f203b3', 'status-after': 'built from 754d6944, not a5f203b3' });
+    status: 'built from 754d6944, not a5f203b3', 'status-after': 'built from 754d6944, not a5f203b3' });
   held('bad-error/prune', judge(load('bad-error.json'), EXPECT), { prune: 'host error handler-threw: figma.variables is undefined' });
   held('bad-file/status-after', judge(load('bad-file.json'), EXPECT), { 'status-after': 'the open file is "Untitled", not the scratch file "Prism3 canary (scratch)"' });
   held('bad-shape/readback', judge(load('bad-shape.json'), EXPECT), { readback: 'does not parse as a result envelope: transport is "socket"' });
@@ -72,16 +75,15 @@ console.log('\njudge — the good run and one bad run per check');
 console.log('\njudge — the build');
 held('stale/status', judge(load('pass.json'), '754d6944'), {
   '(run)': 'not 754d6944', status: 'built from a5f203b3, not 754d6944', 'status-after': 'built from a5f203b3, not 754d6944' });
-/** The same stamp everywhere a run carries one: the job's record and both statuses. */
-const stamped = (stamp: string) => edit((r, run) => { run.stamp = r.status.result.data.status.build = r['status-after'].result.data.status.build = stamp; });
+held('asked/run', judge(edit((_r, run) => { run.commit = '754d694400000000000000000000000000000000'; }), EXPECT), {
+  '(run)': 'the job was asked to check "754d694400000000000000000000000000000000", not a5f203b3' });
+/** The same stamp in both statuses. */
+const stamped = (stamp: string) => edit((r) => { r.status.result.data.status.build = r['status-after'].result.data.status.build = stamp; });
 held('dirty/status', judge(stamped('2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3-dirty'), EXPECT), { status: 'uncommitted changes', 'status-after': 'uncommitted changes' });
 held('no-git/status', judge(stamped('2026-11-02T09:14:07Z tree-5c0e8a31 git-unavailable'), EXPECT), { status: 'could not read its commit', 'status-after': 'could not read its commit' });
 held('old-stamp/status', judge(stamped('2026-10-31T11:02:00Z tree-7a00f94d'), EXPECT), { status: 'no commit field', 'status-after': 'no commit field' });
-held('other-build/run', judge(edit((r) => { r.status.result.data.status.build = r['status-after'].result.data.status.build = '2026-11-02T08:00:00Z tree-0badc0de a5f203b3'; }), EXPECT), {
-  '(run)': 'the plugin Figma ran is not the one this job built' });
 held('rebuilt/status-after', judge(edit((r) => { r['status-after'].result.data.status.build = '2026-11-02T09:30:00Z tree-5c0e8a31 a5f203b3'; }), EXPECT), {
   'status-after': 'the build changed during the run' });
-held('no-stamp/run', judge(edit((_r, run) => { delete run.stamp; }), EXPECT), { '(run)': 'recorded no build stamp' });
 held('commands/status', judge(edit((r) => { r.status.result.data.status.commands = ['status', 'readback', 'prune']; }), EXPECT), { status: 'does not answer update-components' });
 held('file/status', judge(load('pass.json'), EXPECT, { fileName: 'Some other file' }), {
   status: 'not the scratch file "Some other file"', 'status-after': 'not the scratch file "Some other file"' });
@@ -117,18 +119,37 @@ shaped('data', (e) => { e.result.data = []; }, 'result.data is not an object');
 shaped('logs', (e) => { e.result.logs = [1]; }, 'result.logs is not a list of strings');
 shaped('bridge-timeout', (e) => { for (const k of Object.keys(e)) delete e[k]; e.error = "no result for 'readback' within 600000 ms"; }, 'v is undefined');
 
-console.log('\njob — the Mac half');
+console.log('\njob — the Mac half: the stamp check on the first status (Q20 A)');
 {
-  const out = 'building…\nplugin build complete → apps/plugin/dist/  (2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3)\n  tree-5c0e8a31 = /x\n';
-  ok(parseStamp(out) === '2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3', 'job/stamp: read from the build\'s closing line');
-  ok(parseStamp('plugin build complete → apps/plugin/release/  (2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3)') === null, 'job/stamp-release: a release build is not the dev build the canary imports');
-  ok(builtFromLine('2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3') === 'Built from tree-5c0e8a31 (commit a5f203b3) at 2026-11-02T09:14:07Z.', 'job/built-from: the panel\'s line');
-  ok(builtFromLine('2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3-dirty') === 'Built from tree-5c0e8a31 (commit a5f203b3, with uncommitted changes) at 2026-11-02T09:14:07Z.', 'job/built-from-dirty');
+  const good = load('pass.json');
+  const status = () => JSON.parse(JSON.stringify(good.responses.status));
+  const FULL = 'a5f203b3c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6';
+  const stop = (name: string, c: ReturnType<typeof stampCheck>, text: string) =>
+    ok(!c.go && c.ask.includes(text), `${name}: stop, "${text}" (${c.go ? 'went on' : c.ask})`);
+  const go = stampCheck(status(), FULL);
+  ok(go.go && go.build === '2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3', 'check/go: the owner\'s build is the requested commit, in the scratch file');
+  stop('check/stale', stampCheck(load('bad-commit.json').responses.status, FULL), `built from 754d6944, not ${FULL}; ask the owner to rebuild the plugin from ${FULL}`);
+  const later = status(); later.result.data.status.build = '2026-11-03T10:00:00Z tree-5c0e8a31 b7e1c2d4';
+  stop('check/later', stampCheck(later, FULL), 'ask the owner to rebuild the plugin from');
+  const dirty = status(); dirty.result.data.status.build = '2026-11-02T09:14:07Z tree-5c0e8a31 a5f203b3-dirty';
+  stop('check/dirty', stampCheck(dirty, FULL), 'built from a tree with uncommitted changes');
+  const old = status(); old.result.data.status.build = '2026-10-31T11:02:00Z tree-7a00f94d';
+  stop('check/no-commit', stampCheck(old, FULL), 'no commit field');
+  stop('check/file', stampCheck(load('bad-file.json').responses['status-after'], FULL), 'the open file is "Untitled", not "Prism3 canary (scratch)"');
+  stop('check/file-name', stampCheck(status(), FULL, 'Some other file'), 'not "Some other file"');
+  const off = status(); delete off.result; off.ok = false; off.error = { code: 'link-off', message: 'off' };
+  stop('check/link-off', stampCheck(off, FULL), 'status did not answer with a status result');
+  const relabelled = status(); relabelled.cmd = 'readback';
+  stop('check/wrong-cmd', stampCheck(relabelled, FULL), 'status did not answer with a status result');
+}
+
+console.log('\njob — collect');
+{
   const good = load('pass.json');
   const saved = Object.fromEntries(Object.entries(good.responses).map(([k, v]) => [k, JSON.stringify(v)]));
-  const run = assemble({ commit: good.commit, stamp: good.stamp, builtFrom: good.builtFrom }, saved);
+  const run = assemble({ commit: good.commit }, saved);
   ok(JSON.stringify(run) === JSON.stringify(good) && judge(run, EXPECT).safe, 'job/collect: the saved responses assemble into the good run, keyed by command');
-  const torn = assemble({ commit: good.commit, stamp: good.stamp, builtFrom: good.builtFrom }, { ...saved, readback: '{"v":1,' });
+  const torn = assemble({ commit: good.commit }, { ...saved, readback: '{"v":1,' });
   held('job/collect-torn', judge(torn, EXPECT), { readback: 'does not parse as a result envelope: not an object' });
 }
 
