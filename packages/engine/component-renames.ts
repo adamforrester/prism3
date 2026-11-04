@@ -157,6 +157,11 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'banner', kind: 'part', from: 'body', to: 'richBody', issue: 3225 },
   { def: 'banner', kind: 'property-rename', from: 'body', to: 'richBody', issue: 3225 },
   { def: 'banner', kind: 'slot-text', slot: 'body', text: 'placeholder', property: 'body text', show: 'rich body', hide: 'body', issue: 3225 },
+  // #3392 (owner decision 2026-11-04) — Banner's `width` axis is named for what it changes, the corners and which sides
+  // are edged: `edge`, with `full` spelled `full-bleed`. The value entry names the NEW axis, since an axis rename applies
+  // first, so a member built at `width=full` lands on `edge=full-bleed` and keeps its id and every placed instance.
+  { def: 'banner', kind: 'axis', from: 'width', to: 'edge', issue: 3392 },
+  { def: 'banner', kind: 'value', axis: 'edge', from: 'full', to: 'full-bleed', issue: 3392 },
 ];
 
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */
