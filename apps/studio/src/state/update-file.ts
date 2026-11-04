@@ -283,7 +283,12 @@ export const UPDATE_COPY = {
   /** #3090 finding 1: an engine update over a set recorded before Prism3 kept a print of its drawing, so nothing can be
    *  named; the next update records the print. DRAFT (Q2909.10 A). */
   engineUnprinted: 'Engine update: recorded before Prism3 noted what it drew',
-  checkingSets: 'Checking what changes…',
+  /** #3302 (the owner's Q3302.1–.3 A, 2026-11-02; the strings approved as written): the check's progress in the dialog's
+   *  foot, "Reading this file…" until every set is found, then "Checked n of N sets"; and the line of the set being
+   *  checked now. A set not reached yet has no line. */
+  checkReading: 'Reading this file…',
+  checkedOf: (done: number, total: number): string => `Checked ${done} of ${plural(total)}`,
+  checkingSet: 'Checking…',
   checkError: 'Couldn’t check the sets. Close this and try again.',
   checked: (c: CheckedSetView): string => c.blocked ? 'Can’t be updated in place yet; the agent’s update check says why'
     : c.upToDate ? 'No member changes' : [`${c.update} of ${c.members} members change`, c.add ? `${c.add} added` : '', c.drop ? `${c.drop} kept and marked deprecated` : '', c.handEdited ? `${c.handEdited} edited by hand` : ''].filter(Boolean).join(' · '),

@@ -13,9 +13,9 @@ Building needs the Figma plugin. On the web, the Components area lists the same 
 1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:128 -->
 2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:132-133 -->
 3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:268-269 -->
-4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:313 -->
+4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:318 -->
 
-Each set in the list carries its state in this file: **To add**, **Needed**, **Not in file**, **Due**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:296 -->
+Each set in the list carries its state in this file: **To add**, **Needed**, **Not in file**, **Due**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:301 -->
 
 The sets you tick are kept in the file, not in the panel, so a teammate who opens Update file sees the same list. A set leaves the list once it is built whole; one that fails or is stopped stays on it. <!-- src: apps/plugin/src/add-queue.ts:1-11 -->
 
@@ -24,13 +24,13 @@ On a file that isn't set up yet, the same run sets it up first. See [Set up a fi
 
 ## What a build does
 
-For each set, the plugin: <!-- src: apps/plugin/src/main.ts:800-923 -->
+For each set, the plugin: <!-- src: apps/plugin/src/main.ts:801-924 -->
 
 - builds any set the chosen one contains first, such as the icon and focus ring inside a button;
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:888-889 -->
+- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:889-890 -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:147-148 -->
 
