@@ -411,14 +411,14 @@
     },
     "divider": {
       "set": {
-        "members": 7,
-        "assignments": 11,
-        "sha256": "602fb31372776919d5417c344e4034afd64388c02bf03e89cde682ee092e6e4f"
+        "members": 14,
+        "assignments": 22,
+        "sha256": "1ab115f17470a013e6e60b9c1ee4135bfef8431820de2abba84776ddb6fe5782"
       },
       "grid": {
-        "members": 7,
-        "assignments": 11,
-        "sha256": "f92f2946a7755f367891ce723a308b58c5ad391044a84754a14281a238c96c35"
+        "members": 14,
+        "assignments": 22,
+        "sha256": "8ab103f546840c89bd3370c9d3449ae3d83e19b5240c214c077efd664e35c7a7"
       }
     },
     "_accordion-indicator": {

@@ -168,6 +168,7 @@
             "horizontal.false.height",
             "horizontal.line.height",
             "horizontal.line.width",
+            "rule.stroke",
             "vertical.false.width",
             "vertical.line.height",
             "vertical.line.width"
@@ -178,7 +179,7 @@
           ],
           "parts": {
             "container": {
-              "members": 5,
+              "members": 10,
               "where": {
                 "labeled": [
                   "false"
@@ -186,7 +187,7 @@
               }
             },
             "leadingRule": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "none"
@@ -196,8 +197,16 @@
                 ]
               }
             },
+            "rule": {
+              "members": 10,
+              "where": {
+                "labeled": [
+                  "false"
+                ]
+              }
+            },
             "trailingRule": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "none"
@@ -1690,6 +1699,52 @@
             }
           }
         },
+        "divider": {
+          "keys": [
+            "subtle.border"
+          ],
+          "parts": {
+            "leadingRule": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ]
+              }
+            },
+            "rule": {
+              "members": 5,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "labeled": [
+                  "false"
+                ]
+              }
+            },
+            "trailingRule": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ]
+              }
+            }
+          }
+        },
         "provider-logo": {
           "keys": [
             "tile.border"
@@ -1733,12 +1788,15 @@
       "components": {
         "divider": {
           "keys": [
-            "fill"
+            "bold.border"
           ],
           "parts": {
             "leadingRule": {
               "members": 2,
               "where": {
+                "emphasis": [
+                  "bold"
+                ],
                 "inset": [
                   "none"
                 ],
@@ -1750,6 +1808,9 @@
             "rule": {
               "members": 5,
               "where": {
+                "emphasis": [
+                  "bold"
+                ],
                 "labeled": [
                   "false"
                 ]
@@ -1758,6 +1819,9 @@
             "trailingRule": {
               "members": 2,
               "where": {
+                "emphasis": [
+                  "bold"
+                ],
                 "inset": [
                   "none"
                 ],
@@ -2171,7 +2235,7 @@
         },
         "divider": {
           "keys": [
-            "separator.fill"
+            "separator.rule.border"
           ],
           "parts": {}
         },
@@ -15804,7 +15868,7 @@
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "none"
@@ -16422,7 +16486,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "orientation": [
                   "horizontal"
@@ -22297,7 +22361,7 @@
           ],
           "parts": {
             "container": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "middle-inset",
@@ -23077,7 +23141,7 @@
           ],
           "parts": {
             "container": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "inset": [
                   "none"
@@ -23317,7 +23381,7 @@
           ],
           "parts": {
             "container": {
-              "members": 7,
+              "members": 14,
               "where": {}
             }
           }
@@ -24504,7 +24568,7 @@
           ],
           "parts": {
             "container": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "inset": [
                   "middle-inset"
@@ -25102,7 +25166,7 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 6,
               "where": {
                 "inset": [
                   "middle-inset",
@@ -25466,7 +25530,7 @@
           ],
           "parts": {
             "container": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "inset",
@@ -25945,7 +26009,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "orientation": [
                   "horizontal"
@@ -28878,7 +28942,7 @@
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "none"
@@ -29361,7 +29425,7 @@
           ],
           "parts": {
             "container": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "inset": [
                   "none"
@@ -30980,8 +31044,12 @@
       "drawnNotDeclared": []
     },
     "divider": {
-      "members": 7,
+      "members": 14,
       "axes": {
+        "emphasis": [
+          "bold",
+          "subtle"
+        ],
         "inset": [
           "inset",
           "middle-inset",
@@ -30998,6 +31066,7 @@
       },
       "tokens": [
         "border-width.hairline",
+        "color.border.primary",
         "color.border.secondary",
         "color.border.tertiary",
         "color.text.secondary",

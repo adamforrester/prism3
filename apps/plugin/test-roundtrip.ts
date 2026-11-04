@@ -2928,8 +2928,38 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       if (W(m) !== 1 || H(m) !== 44 || !kid(m, 'rule')) off.push(`${name}: the root is ${W(m)}x${H(m)}${kid(m, 'rule') ? '' : ' with no rule'}, not a 1x44 column around the rule`);
     }
   }
-  ok(labeled === 1 && plain === 2 && off.length === 0,
-    `#3143 divider: the vertical labeled member is a 68px column as wide as its label, its two lines one hairline wide, and the two plain vertical members stay 1x44 columns around the rule, as laid out by the shim (${labeled} labeled, ${plain} plain; ${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
+  // #3382: once per strength, so two labeled and four plain vertical members.
+  ok(labeled === 2 && plain === 4 && off.length === 0,
+    `#3143 divider: the vertical labeled member is a 68px column as wide as its label, its two lines one hairline wide, and the two plain vertical members stay 1x44 columns around the rule, as laid out by the shim, at each strength (${labeled} labeled, ${plain} plain; ${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
+
+  // #3382 (owner Q15 revised A): AS BUILT IN THE HOST, every rule and labeled line is ONE stroke, drawn inside, at a weight
+  // bound to the hairline, with no fill, in its strength's border role. EXPECTED is typed here from the decision; ACTUAL
+  // is the shim's node and the variable its paint binds. Mutation: the rule back to a fill fails this by name.
+  const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+  // The shim roots every variable under its own foreign root (`SHIM_ROOT`); the role is the path below it.
+  const nameOf = new Map(vars.map((v) => [v.id, v.name.replace(/^zzclient\//, '')] as const));
+  const boundOf = (arr: unknown): string | null => {
+    const id = Array.isArray(arr) ? (arr[0] as { boundVariables?: { color?: { id?: unknown } } } | undefined)?.boundVariables?.color?.id : undefined;
+    return typeof id === 'string' ? nameOf.get(id) ?? null : null;
+  };
+  const ROLE: Record<string, string> = { bold: 'color/border/secondary', subtle: 'color/border/primary' };
+  const strokeOff: string[] = [];
+  let lines = 0;
+  for (const m of members) {
+    const name = String(m.name);
+    const strength = /emphasis=(\w+)/.exec(name)?.[1] ?? '';
+    for (const part of ['rule', 'leadingRule', 'trailingRule'].map((t) => kid(m, t)).filter((n): n is Node => !!n)) {
+      lines++;
+      const n = part as Node & { strokes?: unknown[]; fills?: unknown[]; strokeAlign?: string; boundVariables?: Record<string, { id?: unknown }> };
+      // A bound weight lands on the four per-side keys, as on the real host (the shim's #1332 model): all four the hairline.
+      const sides = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'].map((k) => n.boundVariables?.[k]?.id);
+      const weight = sides.every((id) => typeof id === 'string' && nameOf.get(id as string) === 'border-width/hairline') ? 'border-width/hairline' : sides.map((id) => (typeof id === 'string' ? nameOf.get(id) : 'unbound')).join('/');
+      if ((n.strokes ?? []).length !== 1 || (n.fills ?? []).length !== 0 || n.strokeAlign !== 'INSIDE' || weight !== 'border-width/hairline' || boundOf(n.strokes) !== ROLE[strength])
+        strokeOff.push(`${name} ${String(part.name)}: ${(n.strokes ?? []).length} stroke(s) ${boundOf(n.strokes)}, ${(n.fills ?? []).length} fill(s), align ${n.strokeAlign}, weight ${weight}`);
+    }
+  }
+  ok(members.length === 14 && lines === 18 && strokeOff.length === 0,
+    `#3382 divider as built: every rule and line is one inside stroke at border-width/hairline with no fill, bold on color/border/secondary and subtle on color/border/primary (${members.length} members, ${lines} lines${strokeOff.length ? `; OFF: ${strokeOff.slice(0, 3).join(' | ')}` : ''})`);
 }
 
 // ── #3225 — BANNER'S BODY ROW AND ITS SLOT TEXT, BUILT AND READ BACK OFF THE HOST (owner Q-BN2.2 A, Q-BN4.1 A) ─────────
