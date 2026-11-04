@@ -388,6 +388,11 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `clipsContent ${String(p)}`,
     check: (p, n) => (n.clipsContent === p ? null : str(n.clipsContent)),
   },
+  // The scroll region (#3163): carried only as VERTICAL, and the host echoes it on the same property.
+  overflowDirection: {
+    show: (p) => `overflowDirection ${String(p)}`,
+    check: (p, n) => (n.overflowDirection === p ? null : str(n.overflowDirection)),
+  },
   // ── auto-layout width floor (#1343a, #1345) ────────────────────────────────────────────────────
   // A literal min-width the executor sets on an auto-layout frame; the host echoes it back on the same
   // property, so this compares directly. Only `select`'s control carries it today.
@@ -455,6 +460,33 @@ export const FIELDS: Record<string, FieldCheck> = {
       if (typeof line !== 'number') return `NO PIXEL LINE HEIGHT (lineHeight ${str(lh)}, fontSize ${str(fs)})`;
       const want = (p as number) * line;
       return typeof n.minHeight === 'number' && Math.abs(n.minHeight - want) <= 0.01 ? null : `minHeight ${str(n.minHeight)} (want ${want})`;
+    },
+  },
+
+  // ── the first-line pair (#3360) ─────────────────────────────────────────────────────────────────────
+  // The plan carries NAMES; the executor writes the two cells' top paddings from the text's line height and the glyph's
+  // size. The host echoes neither the names nor the arithmetic, so this re-derives the AGREEMENT from what the host
+  // holds: the built text's line height (`PIXELS`, or `PERCENT` of its `fontSize`), the built glyph's height, and the
+  // two cells' paddings. The glyph's middle must be the first line's middle, within 0.01, with one of the two paddings
+  // zero (the taller side sits on the row's top). Where the status draws no glyph, the row's own `minHeight` (the glyph's
+  // size, bound) stands in for it, so the caption still starts where it does beside a glyph. An executor that dropped
+  // the write, padded the wrong cell, or took the line off a rounded box reads back wrong here whatever the plan says.
+  firstLine: {
+    show: (p) => `${(p as { glyphCell: string }).glyphCell} centered on ${(p as { text: string }).text}'s first line`,
+    check: (p, n) => {
+      const f = p as { text: string; glyphCell: string; textCell: string };
+      const kids = (x: HostNode | undefined): HostNode[] => (Array.isArray(x?.children) ? (x!.children as HostNode[]) : []);
+      const tc = kids(n).find((k) => k.name === f.textCell), gc = kids(n).find((k) => k.name === f.glyphCell);
+      const t = kids(tc).find((k) => k.name === f.text);
+      if (!tc || !t) return `NO ${!tc ? f.textCell : f.text}`;
+      const lh = t.lineHeight as { unit?: string; value?: number } | undefined, fs = t.fontSize;
+      const line = lh?.unit === 'PIXELS' ? lh.value : lh?.unit === 'PERCENT' && typeof fs === 'number' && typeof lh.value === 'number' ? (lh.value / 100) * fs : undefined;
+      if (typeof line !== 'number') return `NO PIXEL LINE HEIGHT on ${f.text} (lineHeight ${str(lh)}, fontSize ${str(fs)})`;
+      const glyph = gc ? kids(gc).map((k) => k.height).find((h): h is number => typeof h === 'number') : typeof n.minHeight === 'number' ? n.minHeight : undefined;
+      if (typeof glyph !== 'number') return null;   // no glyph and no floor to measure against: nothing the host can say
+      const tp = typeof tc.paddingTop === 'number' ? tc.paddingTop : NaN, gp = gc ? (typeof gc.paddingTop === 'number' ? gc.paddingTop : NaN) : 0;
+      const off = (gp + glyph / 2) - (tp + line / 2);
+      return Math.abs(off) <= 0.01 && Math.min(tp, gp) <= 0.01 ? null : `${f.textCell}.paddingTop ${str(tc.paddingTop)}, ${f.glyphCell}.paddingTop ${str(gc?.paddingTop)} (glyph ${glyph}, line ${line}: the glyph's middle is ${off.toFixed(2)}px off the first line's)`;
     },
   },
 
@@ -577,6 +609,7 @@ export const FIELDS: Record<string, FieldCheck> = {
   // are geometry against the parent's live size, gated by `#3345 page-nav indicator` in `packages/engine/test.ts`.
   footShare: { reason: 'a modifier on `footPin`: it picks the SCALE constraint `footPin` reads back, and sets the bar\'s width and x, which are geometry gated in `packages/engine/test.ts` (#3345)' },
   absoluteStrokeInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic, not a property the host holds separately' },
+  absoluteBorderInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic (the ring sited inside the host\'s border, #3328); its result is geometry, and the corner bindings it writes are read back as bindings' },
   absoluteCenterOn: { reason: 'names the node to center ON; the resulting coordinates are geometry, which `docs/40` §7 step 6 checks visually' },
 
   zeroOpacity: {

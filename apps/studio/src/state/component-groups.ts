@@ -29,12 +29,20 @@
  * a build places is Subcomponents, Icon included (call 11 A above). No definition is placed in Content components or
  * Blocks yet, so those two hold nothing; no tier is guessed for a definition that does not name one.
  *
- * THE BOXES (#3129, Q832 A, Q3129.4–6 A; the owner's revision R5) act on the file's add queue, a set of def ids, not on
- * a selection of the session's. One box per row (`GroupRow`: a family, or a set of its own), never one per part: it is
- * on while every set of the row the file could add (buildable and not in the file, `addableOf`) is queued, else off,
- * and a tick queues the rest, so a family partly in the file queues its missing parts (`familyBox`, `toggleSets`). A
- * section's box is three-state over its rows (call 8 A, `boxOfSets`). A row or section with nothing to add has no box.
- * A tier's Select all and Deselect all (R1) queue, or take out, the sets of its rows shown (`selectAllOf`).
+ * THE BOXES (#3129, Q832 A, Q3129.4–6 A; the owner's revision R5, narrowed by #3306) act on the file's add queue, a set
+ * of def ids, not on a selection of the session's. One box per row (`GroupRow`: a family, or a set of its own), and, in a
+ * family with two or more roots, one per set too (#3306 Q3306.1 A, `splitsOf`): a root is a public set no other set in
+ * the family nests, so a family with one root keeps one box, since its root builds the rest. The rule is computed from
+ * the catalog's `nests`, never listed by hand. A private part (`_` id) never gets a box.
+ *   A box is three-state (call 8 A, `boxOfSets`): on while every set it could add (buildable and not in the file,
+ * `addableOf`) is chosen or needed, off while none is, mixed between. A NEEDED set (#3306 Q3306.2–3 A, `neededOf`) is one
+ * a chosen set nests, transitively, that the file lacks and that was not chosen itself, walked as `build-deps.ts` walks:
+ * a set the file holds is not descended into. It is derived on read from the queue, never stored, so unticking the set
+ * that needs one drops it. A needed set's box is ticked and held (`heldBy`), and a tick on it does nothing.
+ *   A tick on a box that is off or mixed queues the sets it could add that are neither chosen nor needed; on one that is
+ * on, it takes out the sets chosen under it, and a set a chosen set elsewhere needs stays held (Q3306.6 A, `toggleSets`).
+ * A row or section with nothing to add has no box. A tier's Select all and Deselect all (R1) queue, or take out, the sets
+ * of its rows shown (`selectAllOf`).
  *
  * Copy here is the wireframe's, which the owner approved as DRAFT (#2700): every string is DRAFT until the owner signs
  * the copy off. US English, `docs/voice-standard.md`.
@@ -120,9 +128,11 @@ export const SECTION_BLOCKS: Readonly<Partial<Record<SectionKind, readonly Block
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
   intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
-  /** #3129 (Q3129.4 A; R5): the plugin's intro, and its boxes' names. DRAFT, the wireframe's words, the intro's
-   *  object moved from a set to a family by R5. */
-  introPlugin: (n: number): string => `The ${n} component sets the engine defines, in families. Tick a family to add its sets to this file; Update file adds them.`,
+  /** #3129 (Q3129.4 A), #3306: the plugin's intro, and its boxes' names. DRAFT, the #3306 proposal's words: a set or a
+   *  family is ticked, and the sets it nests come with it. */
+  introPlugin: (n: number): string => `The ${n} component sets the engine defines, in families. Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them.`,
+  /** #3306 Q3306.4 A: a held box's name and title, naming the chosen set that needs it, or how many do. DRAFT. */
+  neededBy: (name: string, by: readonly string[]): string => `${name}, needed by ${by.length === 1 ? by[0] : `${fmt(by.length)} sets`}`,
   /** #3129 R1: a tier's two text actions, on its caption's line (the owner's words). */
   selectAll: 'Select all',
   deselectAll: 'Deselect all',
@@ -228,19 +238,55 @@ export const buildableOf = (catalog: Catalog, ids: readonly string[]): string[] 
 export const addableOf = (catalog: Catalog, ids: readonly string[], present: readonly string[]): string[] =>
   buildableOf(catalog, ids).filter((id) => !present.includes(id));
 
+/** #3306: a private part (an id starting with `_`), built only for the set that nests it, never boxed on its own. */
+export const isPrivate = (id: string): boolean => id.startsWith('_');
+
+/** #3306 Q3306.1 A: a family's roots, the public sets of `ids` no other set of `ids` nests, in `ids`' order. */
+export const rootsOf = (catalog: Catalog, ids: readonly string[]): string[] =>
+  ids.filter((id) => !isPrivate(id) && !ids.some((o) => o !== id && (entryOf(catalog, o)?.nests ?? []).includes(id)));
+
+/** #3306 Q3306.1 A: whether a row gets a box per set: a family with two or more roots. Computed, never listed. */
+export const splitsOf = (catalog: Catalog, row: GroupRow): boolean => row.family && rootsOf(catalog, row.ids).length >= 2;
+
+/** #3306 Q3306.3 A: the needed sets, derived on read: each set a chosen set (queued, and one the file could add) nests,
+ *  transitively, that the file lacks, is buildable, and was not chosen itself, mapped to the chosen sets that need it, in
+ *  the list's order. A set the file holds is not descended into, as `build-deps.ts`' `missingDependencies` does not. */
+export const neededOf = (catalog: Catalog, queue: Iterable<string>, present: readonly string[]): Map<string, string[]> => {
+  const chosen = new Set(addableOf(catalog, [...queue], present));
+  const out = new Map<string, string[]>();
+  for (const root of inListOrder(catalog, chosen)) {
+    const seen = new Set<string>();
+    const walk = (id: string): void => {
+      for (const n of entryOf(catalog, id)?.nests ?? []) {
+        if (seen.has(n) || chosen.has(n) || present.includes(n) || entryOf(catalog, n)?.buildable !== true) continue;
+        seen.add(n);
+        out.set(n, [...(out.get(n) ?? []), root]);
+        walk(n);
+      }
+    };
+    walk(root);
+  }
+  return out;
+};
+
 export type BoxState = 'on' | 'mixed' | 'off';
-/** A box over several sets (call 8 A, #3129): on when every set it could add is queued, off when none is, mixed
- *  between. A box over no set to add is off, and is not drawn (Q3129.6 A). */
+/** A box over sets (call 8 A, #3129, #3306 Q3306.2 A): on when every set it could add is chosen or needed, off when none
+ *  is, mixed between. A box over no set to add is off, and is not drawn (Q3129.6 A). */
 export const boxOfSets = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): BoxState => {
   const ok = addableOf(catalog, ids, present);
-  const on = ok.filter((id) => queue.has(id)).length;
+  const needed = neededOf(catalog, queue, present);
+  const on = ok.filter((id) => queue.has(id) || needed.has(id)).length;
   return on === 0 ? 'off' : on === ok.length ? 'on' : 'mixed';
 };
 
-/** #3129 R5: a row's box is two-state. On while every set it could add is queued, off otherwise (a family partly
- *  queued, from Update file's Remove, reads off, and its tick queues the rest). */
-export const familyBox = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): 'on' | 'off' =>
-  boxOfSets(catalog, ids, queue, present) === 'on' ? 'on' : 'off';
+/** #3306 Q3306.2 A: a held box: every set it could add is needed and none is chosen. The chosen sets that need them, in
+ *  the list's order, else null (the box is not held). */
+export const heldBy = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): string[] | null => {
+  const ok = addableOf(catalog, ids, present);
+  const needed = neededOf(catalog, queue, present);
+  if (!ok.length || ok.some((id) => queue.has(id) || !needed.has(id))) return null;
+  return inListOrder(catalog, new Set(ok.flatMap((id) => needed.get(id)!)));
+};
 
 /** #3129 R1: a tier's two actions, as the sets each would write: Select all queues the sets of `ids` the file could add
  *  that are not queued yet; Deselect all takes out the ones that are. Each is empty when it would change nothing. */
@@ -249,11 +295,14 @@ export const selectAllOf = (catalog: Catalog, ids: readonly string[], queue: Rea
 export const deselectAllOf = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): string[] =>
   addableOf(catalog, ids, present).filter((id) => queue.has(id));
 
-/** A box's toggle, as the queue write it posts (`add-queue`): an all-on box takes its sets out of the queue, any other
- *  queues the ones it could add that are not queued yet. */
+/** A box's toggle, as the queue write it posts (`add-queue`). An on box takes out the sets CHOSEN under it, so a set a
+ *  chosen set elsewhere needs stays held (#3306 Q3306.6 A); any other queues the sets it could add that are neither chosen
+ *  nor needed. Only chosen sets are ever written: a needed set is never queued by the set that needs it (Q3306.3 A). */
 export const toggleSets = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): { readonly ids: string[]; readonly on: boolean } => {
   const ok = addableOf(catalog, ids, present);
-  return boxOfSets(catalog, ids, queue, present) === 'on' ? { ids: ok, on: false } : { ids: ok.filter((id) => !queue.has(id)), on: true };
+  if (boxOfSets(catalog, ids, queue, present) === 'on') return { ids: ok.filter((id) => queue.has(id)), on: false };
+  const needed = neededOf(catalog, queue, present);
+  return { ids: ok.filter((id) => !queue.has(id) && !needed.has(id)), on: true };
 };
 
 /** Whether a set's own name or summary holds a search, case-insensitively. An empty search matches nothing here. */

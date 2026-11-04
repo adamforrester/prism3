@@ -7769,6 +7769,56 @@ arm: {
   // UNSELECTED, as before: the label and the 1px edge on the page.
   measureTag('unselected label on the page', ref('unselected.label'), [], 4.5);
   measureTag('unselected edge on the page', ref('unselected.border'), [], 3);
+
+  // #3328 (owner decisions Q3328.1 A, Q3328.2 A): THE FIELD FOCUS PASSES WCAG 2.4.13, IN EVERY CORPUS BRAND AND MODE. A
+  // focused field's band inside its border changes from the field's fill over the page (what an unfocused field shows
+  // there) to `border.focus`, so the criterion's two numbers are measured on those pixels, against LITERAL thresholds:
+  // the change is at least 3:1, and the band is at least 2px thick, read off each brand's emitted `focus.ring.width`.
+  // That the band sits INSIDE the border (so the border's own rest→focus change, about 1.5:1, is not what is counted)
+  // is the executor arm `#3328 field focus geometry`'s claim. Each listed control's own fill key, so a control rebound
+  // to another fill is measured on it. 5 brands × 4 modes = 20 cells per control, a literal.
+  {
+    const FOCUS_FIELDS: [string, string][] = [
+      ['text-field', 'fill'], ['textarea', 'fill'], ['select', 'fill'], ['password-field', 'fill'], ['search-field', 'fill'],
+      ['card-number-field', 'fill'], ['code-input-cell', 'fill'], ['counter', 'outline.fill'],
+    ];
+    const low: string[] = [];
+    let cells = 0;
+    let min = Infinity;
+    for (const [id, key] of FOCUS_FIELDS) {
+      const fd = componentDefs.find((d) => d.id === id);
+      const fill = fd?.tokens[key]?.replace(/^color\./, '');
+      if (!fd || !fill) { low.push(`${id}: no '${key}' fill`); continue; }
+      let n = 0;
+      for (const [brand, th] of tagThemes()) for (const m of resolveAllModes(th)) {
+        const page = m.roles['background.primary']?.hex ? hexToRgb(m.roles['background.primary'].hex) : undefined;
+        // A transparent fill resolves to the palette's `transparent` primitive, emitted as #000000 with no alpha, so it is
+        // read as what it paints, nothing: the page shows through.
+        const clear = String(m.roles[fill]?.path ?? '').endsWith('.transparent');
+        const under = page && (clear ? page : colorOf(m.roles, fill, page));
+        const focus = under && colorOf(m.roles, 'border.focus', under);
+        if (!under || !focus) { low.push(`${id} ${brand}/${m.mode}: missing ${!under ? fill : 'border.focus'}`); continue; }
+        const r = contrast(focus, under);
+        n++; cells++;
+        min = Math.min(min, r);
+        if (r < 3) low.push(`${id} ${brand}/${m.mode} ${r.toFixed(2)}`);
+      }
+      if (n !== TAG_CELLS) low.push(`${id}: ${n} of ${TAG_CELLS} cells`);
+    }
+    const widths: string[] = [];
+    for (const brand of ['nb', 'aurora', 'harbor', 'prism3', 'wendys']) {
+      const t = JSON.parse(readFileSync(resolve(HERE, `out/${brand}.tokens.json`), 'utf8'));
+      const root = Object.keys(t).find((k) => !k.startsWith('$'))!;
+      // The resolved px the emission states beside the alias (`$extensions.prism3.px`), so the literal 2 is read off
+      // what a consumer gets, not off the def.
+      const v = t[root]?.focus?.ring?.width?.$extensions?.prism3?.px;
+      const px = typeof v === 'number' ? v : NaN;
+      widths.push(`${brand} ${px}`);
+      if (!(px >= 2)) low.push(`${brand}: focus.ring.width ${JSON.stringify(v)}, under the 2px band 2.4.13 asks for`);
+    }
+    ok(cells === FOCUS_FIELDS.length * TAG_CELLS && low.length === 0,
+      `#3328 field focus 2.4.13: on all ${FOCUS_FIELDS.length} field controls the band inside the border changes from the field's fill over the page to border.focus at ≥3:1 in all ${cells} of ${FOCUS_FIELDS.length * TAG_CELLS} brand × mode cells (lowest ${min.toFixed(2)}), and the band is ≥2px in every corpus brand (${widths.join(', ')})${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''}`);
+  }
 }
 
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
@@ -17760,6 +17810,33 @@ arm: {
     ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
       "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
+    // ---- #3163: `PartDef.scroll`, the scroll region, and its two refusal arms, each pinned BY NAME (docs/34) ----
+    // SUBJECT: Dialog's body as committed, then mutated. EXPECTED: the projection Q3130.8 A asks for (the body clips and
+    // scrolls vertically on every member) and the authored refusal shapes. Delete either refusal from `anatomyErrors`
+    // and its line fails here; the round-trip arms (`roundtrip/dialog body clips`, `roundtrip/dialog body scrolls`) hold
+    // what the host keeps.
+    {
+      const dlg = componentDefs.find((x) => x.id === 'dialog')!;
+      const dPlans = figmaAnatomySet(dlg, { swapTarget: 'FPO-default-icon' });
+      const bodies = dPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
+      ok(dPlans.length === 24 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
+        `#3163 dialog body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${bodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${dPlans.length})`);
+      const others = componentDefs.filter((d) => d.figmaProperties && d.id !== 'dialog').flatMap((d) => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }));
+      const walk = (n: { overflowDirection?: string; children: unknown[] }): number => (n.overflowDirection ? 1 : 0) + (n.children as (typeof n)[]).reduce((a, c) => a + walk(c), 0);
+      ok(others.length > 0 && others.every((pl) => walk(pl.root) === 0), '#3163 scope: no other def plans an overflowDirection, so every other plan is byte-identical');
+      const body = dlg.anatomy.parts.body;
+      const scrollOnText = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, placeholder: { ...dlg.anatomy.parts.placeholder, scroll: 'vertical' } } } };
+      ok(validateComponentDef(scrollOnText as ComponentDef).errors.some((e) => /declares 'scroll'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
+        "#3163 a NON-box part declaring scroll is refused BY NAME — only a frame can scroll its overflow");
+      const scrollNoClip = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, body: { ...body, clipsContent: undefined } } } };
+      ok(validateComponentDef(scrollNoClip as ComponentDef).errors.some((e) => /declares scroll 'vertical' without 'clipsContent: true'/.test(e)),
+        "#3163 a box declaring scroll without clipsContent is refused BY NAME — it would draw its overflow over the pinned footer");
+      const scrollSideways = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, body: { ...body, scroll: 'horizontal' } } } };
+      ok(validateComponentDef(scrollSideways as unknown as ComponentDef).errors.some((e) => /the one scroll direction is 'vertical'/.test(e)),
+        "#3163 a scroll direction other than vertical is refused BY NAME");
+      ok(validateComponentDef(dlg).errors.length === 0, '#3163 premise: the committed Dialog validates clean with its scrolling body');
+    }
+
     // ---- the message-row footprint fix: field-message's row FLOORS its height at the glyph's size ----
     // EXPECTED is authored here: the row binds its minimum height to the glyph's OWN key, so the floor is the
     // glyph in every brand. Read off the plan the executor receives. Drop `minHeight` from the def and this
@@ -18728,7 +18805,11 @@ arm: {
       const withFm = (over: Record<string, unknown>) => ({ ...fieldMessage, anatomy: { ...fieldMessage.anatomy!, parts: { ...fmParts, ...over } } }) as ComponentDef;
       ok(validateComponentDef(fieldMessage).errors.length === 0 && fmParts.message.placementWidth === 320,
         `#1757 field-message builds its root at 320 and validates (${String(fmParts.message.placementWidth)}; ${validateComponentDef(fieldMessage).errors[0] ?? 'clean'})`);
-      ok(refuses(withFm({ message: { ...fmParts.message, placementWidth: undefined } }), /'label' declares 'wrap'/, /does not bound its main-axis width/, /placementWidth unset/),
+      // Since #3360 the caption sits in `captionCell`, which GROWS across the row: with no build width the root hugs, so the
+      // cell's grow fills nothing (refused naming the root) and the caption inside it has no width to wrap at (refused
+      // naming the cell). Both arms, so neither refusal alone keeps this green.
+      const fmUnbuilt = withFm({ message: { ...fmParts.message, placementWidth: undefined } });
+      ok(refuses(fmUnbuilt, /'label' declares 'wrap'/, /parent 'captionCell' does not bound its main-axis width/) && refuses(fmUnbuilt, /'captionCell' declares 'grow'/, /parent 'message' does not bound its main axis/),
         "#1757 a 'wrap' caption under a FILL root with no build width is refused BY NAME — the root hugs until placed, so the text keeps its default string's width; removing field-message's placementWidth fires this");
       ok(refuses(withFm({ errorGlyph: { ...fmParts.errorGlyph }, label: { ...fmParts.label, placementWidth: 320 } }), /'label' declares 'placementWidth' but is not the anatomy ROOT/),
         "#1757 'placementWidth' off the root is refused BY NAME — a child takes its width from its parent");
@@ -24078,6 +24159,147 @@ arm: {
         `anatomy/textarea paste: at 16px × 165% (79.2px, stored single-precision) the reserved-rows floor reads back as KEPT (${JSON.stringify(taRun.misses.filter((m) => /minHeight|minLines/.test(m)))})`);
     }
 
+    // ---- #3360: THE FIELD MESSAGE'S STATUS GLYPH CENTERS ON THE CAPTION'S FIRST LINE (owner Q-FM1 A, Q-FM1.1 B) ----
+    //
+    // Q-FM1 A: a one-line message reads exactly centered, and a wrapping message keeps the glyph beside its first line
+    // (not the block's middle, which was option B, and not the caption box's top, which `align: 'start'` gave before).
+    // Q-FM1.1 B: no token carries the offset; the row's `firstLine` names the cells and the paste executor computes it.
+    //
+    // FIGMA: the paste executor RUNS, per corpus brand, with the stub's text metrics set to that brand's caption composite
+    // (font size and line-height percent) and the glyph variable resolving to that brand's `icon.size.xs`. A layout walk
+    // over the BUILT nodes (each frame's own `layoutMode`, cross-axis alignment, top padding and bound floor) then places
+    // the glyph and the caption's first line, for a one- and a two-line message. CODE: the same walk over the def's parts,
+    // with the two cells' padding taken as code computes it live (`max(0px, (glyph − 1lh) / 2)` and its mirror, the
+    // def's `codeOnly` entry).
+    //
+    // INDEPENDENCE (docs/34). The line and the glyph are read HERE from each brand's emitted tokens (the caption
+    // composite's font size × line height, the glyph's px), never from the executor or the def; the subject is what the
+    // executor wrote on the built nodes. The glyph's middle and the first line's middle are compared within 0.01px, as
+    // the line renders unrounded (15.4px at 11 × 140%): a line taken off a rounded box would sit 0.2px off and fail. The
+    // caption.lg rung (a line TALLER than the 16px glyph) is measured too, by rebinding the def's `type`, so the branch
+    // where the glyph sets down is exercised.
+    // Mutations: the def back on main's anatomy → `#3360 field-message glyph on the first line`; `firstLine` dropped →
+    // the same; the row centered → the same (two lines) and `#3360 field-message caption holds still`; the payload's line
+    // taken off `Math.round` (the review's mutation 4, moved to where the number is now computed) → the same, 0.20 off.
+    {
+      const fm = componentDefs.find((d) => d.id === 'field-message')!;
+      ok(!!fm, '#3360: the field-message def is present to measure');
+      const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+      const pick = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+      const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? pick(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); const x = String(leaf); return parseFloat(x) * (x.endsWith('rem') ? 16 : 1); };
+      const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' || align === 'center' ? (inH - h) / 2 : align === 'MAX' || align === 'end' ? inH - h : 0);
+      const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+      const worlds = corpus.map((b) => ({ brand: b, root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) }));
+      // The caption's metrics, from the composite's own font size and line height.
+      const metricsOf = (root: any, typePath: string) => { const t = pick(root, typePath).$value; return { size: num(root, t.fontSize), ratio: num(root, t.lineHeight) }; };
+      const atRung = (rung: string): ComponentDef => rung === 'md' ? fm : ({ ...fm, tokens: { ...fm.tokens, type: `type.caption.${rung}.default` } } as ComponentDef);
+      const GLYPH = /Glyph$/;
+      // The icon components the glyphs nest (#2380), present in the stubbed file so each glyph builds.
+      const nestTargets = (n: { nestTarget?: string; children: any[] }): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...n.children.flatMap(nestTargets)];
+      type HN = Record<string, any>;
+      const kidsOf = (n: HN): HN[] => (n.children as HN[] | undefined) ?? [];
+      const find = (n: HN, f: (x: HN) => boolean): HN | undefined => (f(n) ? n : kidsOf(n).map((k) => find(k, f)).find(Boolean));
+
+      // FIGMA: place the built member's nodes. `lines × line` for the caption, the glyph's px for a glyph, and a frame's own
+      // layout, top padding and bound floor for everything else, all read off the host nodes the executor wrote.
+      const builtPlace = (rowNode: HN, line: number, glyph: number, lines: number) => {
+        const heights = new Map<HN, number>(), tops = new Map<string, { top: number; h: number }>();
+        const padT = (n: HN) => (typeof n.paddingTop === 'number' ? n.paddingTop : 0), padB = (n: HN) => (typeof n.paddingBottom === 'number' ? n.paddingBottom : 0);
+        const floor = (n: HN) => (n.boundVariables?.minHeight ? (n.boundVariables.minHeight.id === 'V:icon/size/xs' ? glyph : NaN) : 0);
+        const height = (n: HN): number => {
+          const h = n.type === 'TEXT' ? lines * line : GLYPH.test(String(n.name)) ? glyph
+            : Math.max(floor(n), padT(n) + padB(n) + (n.layoutMode === 'VERTICAL' ? kidsOf(n).map(height).reduce((a, b) => a + b, 0) : Math.max(0, ...kidsOf(n).map(height))));
+          heights.set(n, h);
+          return h;
+        };
+        const lay = (n: HN, top: number) => {
+          const h = heights.get(n)!;
+          tops.set(String(n.name), { top, h });
+          let y = top + padT(n);
+          for (const c of kidsOf(n)) {
+            const ch = heights.get(c)!;
+            if (n.layoutMode === 'VERTICAL') { lay(c, y); y += ch; } else lay(c, top + padT(n) + place(n.counterAxisAlignItems, ch, h - padT(n) - padB(n)));
+          }
+        };
+        height(rowNode); lay(rowNode, 0);
+        return tops;
+      };
+      // CODE: the same walk over the DEF's parts, each part's keys read through `def.tokens`, and the two `firstLine`
+      // cells padded as code computes it live from the glyph's size and one caption line.
+      const codePlace = (def: ComponentDef, status: string, root: any, line: number, lines: number) => {
+        const ps = def.anatomy!.parts;
+        const v = (key?: string) => (key ? num(root, pick(root, def.tokens[key] as string)) : 0);
+        const fl = Object.values(ps).find((p) => p.firstLine)?.firstLine;
+        const pad = (name: string) => (!fl ? v(ps[name].paddingTop) : name === fl.textCell ? Math.max(0, (v(fl.glyph) - line) / 2) : name === fl.glyphCell ? Math.max(0, (line - v(fl.glyph)) / 2) : v(ps[name].paddingTop));
+        const present = (name: string) => !ps[name].presentWhen || (ps[name].presentWhen as Record<string, string[]>).status?.includes(status);
+        const heights = new Map<string, number>(), tops = new Map<string, { top: number; h: number }>();
+        const kids = (name: string) => (ps[name].children ?? []).filter(present);
+        const height = (name: string): number => {
+          const p = ps[name];
+          const h = p.kind === 'text' ? lines * line : !p.layout ? v(p.size ?? p.height)
+            : Math.max(v(p.minHeight), pad(name) + (p.layout.direction === 'column' ? kids(name).map(height).reduce((a, b) => a + b, 0) + v(p.gap) * Math.max(0, kids(name).length - 1) : Math.max(0, ...kids(name).map(height))));
+          heights.set(name, h);
+          return h;
+        };
+        const lay = (name: string, top: number) => {
+          const p = ps[name], h = heights.get(name)!;
+          tops.set(name, { top, h });
+          let y = top + pad(name);
+          for (const c of kids(name)) {
+            const ch = heights.get(c)!;
+            if (p.layout?.direction === 'column') { lay(c, y); y += ch + v(p.gap); } else lay(c, top + pad(name) + place(p.layout?.align, ch, h - pad(name)));
+          }
+        };
+        height(def.anatomy!.root); lay(def.anatomy!.root, 0);
+        return tops;
+      };
+
+      const off: string[] = [], moved: string[] = [], broke: string[] = [];
+      let measured = 0;
+      for (const rung of ['md', 'lg']) {
+        const def = atRung(rung);
+        const plans = figmaAnatomySet(def, { swapTarget: 'FPO' });
+        for (const w of worlds) {
+          const m = metricsOf(w.root, def.tokens.type as string);
+          const line = m.size * m.ratio, glyph = num(w.root, pick(w.root, def.tokens['glyph-size'] as string));
+          const labelTop: Record<string, number> = {};
+          for (const p of plans) {
+            const status = (p.coord as Record<string, string>).status;
+            const page: StubPage = { children: [] };
+            const run = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO', ...nestTargets(p.root)], page,
+              textMetrics: { fontSize: m.size, lineHeight: { unit: 'PERCENT', value: m.ratio * 100 } }, varOverrides: { 'icon/size/xs': glyph }, varValues: { 'icon/size/xs': glyph } });
+            const firstLineMisses = run.misses.filter((x) => /firstLine|paddingTop|THREW/.test(x));
+            if (firstLineMisses.length) broke.push(`${w.brand} caption.${rung} ${status}: ${firstLineMisses[0]}`);
+            const rowNode = page.children.map((c) => find(c as HN, (x) => kidsOf(x).some((k) => k.name === 'captionCell') || kidsOf(x).some((k) => k.type === 'TEXT'))).find(Boolean);
+            if (!rowNode) { broke.push(`${w.brand} caption.${rung} ${status}: no built row`); continue; }
+            for (const lines of [1, 2]) {
+              const f = builtPlace(rowNode, line, glyph, lines), c = codePlace(def, status, w.root, line, lines);
+              const label = f.get('label'), cLabel = c.get('label');
+              if (!label || !cLabel) { broke.push(`${w.brand} caption.${rung} ${status}: no caption`); continue; }
+              if (lines === 1) labelTop[status] = label.top;
+              const glyphName = [...f.keys()].find((n) => GLYPH.test(n));
+              if (!glyphName) { if (status !== 'default') broke.push(`${w.brand} caption.${rung} ${status}: no glyph built (${run.misses[0] ?? 'no miss'})`); continue; }   // the default status draws no glyph
+              measured++;
+              const g = f.get(glyphName)!, cg = c.get(glyphName)!;
+              const figmaOff = (g.top + g.h / 2) - (label.top + line / 2), codeOff = (cg.top + cg.h / 2) - (cLabel.top + line / 2);
+              if (!(Math.abs(figmaOff) <= 0.01 && Math.abs(codeOff) <= 0.01))
+                off.push(`${w.brand} caption.${rung} ${status} ${lines}-line: glyph middle off line one's by ${figmaOff.toFixed(2)} in Figma, ${codeOff.toFixed(2)} in code (line ${line.toFixed(2)}px, glyph ${glyph}px)`);
+            }
+          }
+          // The caption starts at one height in every status, the default included: a validation result moves no text.
+          const tops = Object.values(labelTop);
+          if (tops.length !== plans.length || Math.max(...tops) - Math.min(...tops) > 0.01) moved.push(`${w.brand} caption.${rung}: ${JSON.stringify(labelTop)}`);
+        }
+      }
+      // Three glyph statuses × one and two lines × two caption rungs × every corpus brand.
+      ok(measured === 3 * 2 * 2 * worlds.length && worlds.length >= 5 && broke.length === 0,
+        `#3360: every glyph status built by the paste executor and measured at one and two lines, at both caption rungs, in every corpus brand (${measured} of ${3 * 2 * 2 * worlds.length}, ${worlds.length} brands${broke.length ? ` — BROKE: ${broke.slice(0, 3).join('; ')}` : ''})`);
+      ok(off.length === 0,
+        `#3360 field-message glyph on the first line: the status glyph's middle is the caption's first-line middle, within 0.01px, for a one- and a two-line message, in Figma (as the paste executor builds it) and in code${off.length ? ` — OFF: ${off.slice(0, 6).join('; ')}` : ''}`);
+      ok(moved.length === 0,
+        `#3360 field-message caption holds still: the caption starts at the same height in every status, so a validation result moves no text${moved.length ? ` — MOVED: ${moved.slice(0, 4).join('; ')}` : ''}`);
+    }
+
     // ---- #2345: the image-placeholder marker is built OUT OF FLOW, CENTERED and SCALE/SCALE, on BOTH legs ----
     // The plan-level arm proves the plan says so; this proves each EXECUTOR writes it. The expected
     // constraints are the literal 'SCALE' typed here, and the centering is measured against the PARENT'S
@@ -24281,6 +24503,35 @@ arm: {
           ok(gv === 'ok' && plugged.misses.length === 0, `#3345 page-nav indicator: ${ind === 'full' ? 'Full is the title\'s width' : 'Partial is round(0.5 × the title) centered'}, plugin leg (${gv}; misses ${JSON.stringify(plugged.misses)})`);
         }
       }
+    }
+
+    // ---- #3163: Dialog's scrolling body, on the PASTE leg ------------------------------------------------
+    // The paste payload builds the body as a frame and carries its fields onto the native slot through
+    // `__SLOT_FIELDS`. The round-trip arms (`roundtrip/dialog body clips|scrolls`) drive only the plugin
+    // executor, so an agent-pasted Dialog could lose its scroll with nothing saying so. SUBJECT: what the
+    // stub host holds after every Dialog member is pasted. EXPECTED: the literals typed here (Q3130.8 A).
+    // Mutation: drop 'overflowDirection' from `__SLOT_FIELDS` → this line fails by name.
+    {
+      const dlgDef = componentDefs.find((d) => d.id === 'dialog')!;
+      const members = figmaAnatomySet(dlgDef, { swapTarget: 'FPO-default-icon' });
+      const nested = (n: AnatomyPlan['root']): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.children ?? []).flatMap(nested)];
+      const find = (n: Record<string, unknown>, name: string): Record<string, unknown> | undefined =>
+        n.name === name ? n : ((n.children as Record<string, unknown>[] | undefined) ?? []).map((c) => find(c, name)).find(Boolean);
+      const WANT_BODY = 'SLOT VERTICAL clips';
+      const got: string[] = [];
+      for (const m of members) {
+        const page: StubPage = { children: [] };
+        const opts: StubOpts = { vars: [...planBoundVars(m.root), ...planPaintVars(m.root)], styles: planTextStyles(m.root), comps: ['FPO-default-icon', 'focus-ring', ...nested(m.root)], page };
+        const run = await runPayload(planToPluginJs(m), opts);
+        const root = page.children.map((c) => find(c as Record<string, unknown>, planComponentName(m))).find(Boolean);
+        const body = root && find(root, 'body');
+        const facts = body ? `${String(body.type)} ${String(body.overflowDirection)} ${body.clipsContent === true ? 'clips' : 'spills'}` : 'no body';
+        // Only the body's own misses count: this stub holds no effect styles and no swap-ready close button, which other arms own.
+        const bodyMisses = run.misses.filter((x) => /(^|\/)body\./.test(x));
+        if (facts !== WANT_BODY || bodyMisses.length) got.push(`${planComponentName(m)}: ${facts}${bodyMisses.length ? ` misses ${JSON.stringify(bodyMisses.slice(0, 2))}` : ''}`);
+      }
+      ok(members.length === 24 && got.length === 0,
+        `#3163 paste leg: every pasted Dialog member's body is ${WANT_BODY} (${members.length - got.length}/${members.length})${got.length ? ` — ${got.slice(0, 3).join('; ')}` : ''}`);
     }
 
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
@@ -26618,7 +26869,8 @@ arm: {
             /\/control HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/, new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`)]],
           [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /,
             /\/control HORIZONTAL p:FIXED c:FIXED align:STRETCH /, new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`)]],
-          [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/label undefined .*grow:1 text:HEIGHT/]],
+          // #3360: the caption sits in `captionCell`, which grows across the row; the caption stretches across the cell.
+          [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/captionCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/captionCell\/label undefined .*align:STRETCH grow:0 text:HEIGHT/]],
           // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
           // the paste twin's spliced max-width line as well as the plugin's.
           [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/label undefined .*grow:0 text:WIDTH_AND_HEIGHT mw:316$/]],
@@ -27204,6 +27456,106 @@ arm: {
             `parity #1388: both executors write the SAME non-zero concentric ring radius — a hard-square (radius 0) ring or a divergence between the two derivations fails here (plugin ${ringCorners(fvPlugPage)} vs paste ${ringCorners(fvPastePage)})`);
         }
 
+        // #3328 (owner decisions Q3328.1 A, Q3328.2 A): A FOCUSED FIELD DRAWS ITS FOCUS INSIDE ITSELF, AT ITS OWN RADIUS.
+        // Every listed control's focus-visible member (the Counter's outline one), built through BOTH executors, read
+        // off the pages. The expected numbers are LITERALS from the decision, not read off the def or the plan: the
+        // field's border is 1px (`border-width/hairline`, pinned at 1 here as it is in every corpus brand), so the ring
+        // sits exactly 1px inside the field on every side, 2px smaller than the field on each axis; its four corners
+        // are BOUND to the very variable the field's corners are (the field's radius token, never a literal number);
+        // and the band that changes from the page to the focus ink, the ring's 2px stroke less any of it lying over the
+        // border, is the 2px WCAG 2.4.13 counts. An outer ring, a literal radius and a 2px-total focus each fail here.
+        {
+          const FIELD_BORDER = 1;
+          const RING = 2;
+          const FOCUS_CONTROLS: [string, Record<string, string>][] = [
+            ['text-field', {}], ['textarea', {}], ['select', {}], ['password-field', {}], ['search-field', {}],
+            ['card-number-field', {}], ['code-input-cell', {}], ['counter', { appearance: 'outline' }],
+          ];
+          const walkN = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walkN))];
+          const targetsOf = (n: FigmaNodePlan): string[] => [n.nestTarget, n.swapTarget, ...(n.children ?? []).flatMap(targetsOf)].filter((x): x is string => typeof x === 'string');
+          const wrong: string[] = [];
+          let measured = 0;
+          for (const [id, coord] of FOCUS_CONTROLS) {
+            const fd = componentDefs.find((d) => d.id === id);
+            const plan = fd && figmaAnatomySet(fd, { swapTarget: 'FPO-default-icon' })
+              .find((p) => (p.coord as Record<string, string>).state === 'focus-visible' && Object.entries(coord).every(([k, v]) => (p.coord as Record<string, string>)[k] === v));
+            if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
+            const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': FIELD_BORDER, 'focus/ring/offset-field': 0, 'focus/ring/width': RING } };
+            const pastePage: StubPage = { children: [] };
+            const plugPage: StubPage = { children: [] };
+            await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
+            await plugRun([plan], { ...opts, page: plugPage });
+            for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
+              const all = (page.children as Record<string, unknown>[]).flatMap(walkN);
+              const ring = all.find((n) => n.name === 'focusRing');
+              const host = all.find((n) => ((n.children as Record<string, unknown>[]) ?? []).includes(ring as Record<string, unknown>));
+              if (!ring || !host) { wrong.push(`${id} ${path}: no ring or host`); continue; }
+              const [W, H] = [host.width as number, host.height as number];
+              if (!(ring.x === FIELD_BORDER && ring.y === FIELD_BORDER && ring.width === W - 2 * FIELD_BORDER && ring.height === H - 2 * FIELD_BORDER))
+                wrong.push(`${id} ${path}: ring at ${ring.x},${ring.y} ${ring.width}×${ring.height} in a ${W}×${H} field, not ${FIELD_BORDER}px inside it on every side (an outer ring sits at a negative offset)`);
+              const hb = (host.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+              const rb = (ring.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+              for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) {
+                if (!hb[corner]?.id) wrong.push(`${id} ${path}: the field binds no ${corner}, so the claim is unfalsifiable`);
+                else if (rb[corner]?.id !== hb[corner]!.id) wrong.push(`${id} ${path}: ring ${corner} is ${rb[corner]?.id ? `bound to ${rb[corner]!.id}` : `the literal ${String(ring[corner])}`}, not the field's own ${hb[corner]!.id}`);
+              }
+              // 2.4.13's band: the ring's stroke runs inward from its edge; what lies over the field's border changes
+              // from the rest border, not from the page, and does not count.
+              const band = (ring.x as number) + RING - Math.max(ring.x as number, FIELD_BORDER);
+              if (band < 2) wrong.push(`${id} ${path}: ${band}px of the focus band changes from the page (WCAG 2.4.13 asks 2px); the rest lies over the border`);
+              measured++;
+            }
+          }
+          ok(measured === FOCUS_CONTROLS.length * 2 && wrong.length === 0,
+            `#3328 field focus geometry: on all ${FOCUS_CONTROLS.length} field controls, through both executors (${measured} of ${FOCUS_CONTROLS.length * 2} builds), the focus ring sits ${FIELD_BORDER}px inside the field on every side, takes the field's own corner variables, and leaves a 2px band inside the border${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+        }
+
+        // #3328 Q-F1 A (owner, 2026-11-03): AN UNDERLINE-EDGE FIELD KEEPS THE OUTSIDE FOCUS RING. The underline has no
+        // side border to sit inside, so `applyFieldStyle` drops `borderInset` and the ring goes back outside at the
+        // control offset (#2695 Q3). Every field the lever reaches, Search's own underline style included, drawn under
+        // underline and built through BOTH executors. EXPECTED is typed here: the plan carries no absoluteBorderInset,
+        // and the ring sits OUTSIDE the field by the control offset plus its own stroke, compensated outward
+        // (2 + 2 = 4px on every side, at the pinned values below). The outline edge's inside ring sits at +1, and a ring
+        // that kept the border inset under underline sits at -(offset - border) = -1; both fail here.
+        // Mutation: `applyFieldStyle` keeps `borderInset` under underline → this line fails by name.
+        {
+          const UNDERLINE_FIELDS = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input-cell'];
+          const OFFSET = 2;
+          const RING = 2;
+          const OUT = OFFSET + RING;
+          const walkN = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walkN))];
+          const targetsOf = (n: FigmaNodePlan): string[] => [n.nestTarget, n.swapTarget, ...(n.children ?? []).flatMap(targetsOf)].filter((x): x is string => typeof x === 'string');
+          const planRing = (n: FigmaNodePlan): FigmaNodePlan | undefined => n.name === 'focusRing' ? n : (n.children ?? []).map(planRing).find(Boolean);
+          const wrong: string[] = [];
+          let measured = 0;
+          for (const id of UNDERLINE_FIELDS) {
+            const fd = componentDefs.find((d) => d.id === id);
+            const plan = fd && figmaAnatomySet(applyFieldStyle(fd, 'underline'), { swapTarget: 'FPO-default-icon' })
+              .find((p) => (p.coord as Record<string, string>).state === 'focus-visible');
+            if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
+            const pr = planRing(plan.root);
+            if (!pr) { wrong.push(`${id}: the plan carries no focusRing`); continue; }
+            if (pr.absoluteBorderInset !== undefined) wrong.push(`${id} plan: the underline ring carries absoluteBorderInset '${pr.absoluteBorderInset}', so it is sited inside an edge with no side border`);
+            const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': 1, 'focus/ring/offset': OFFSET, 'focus/ring/width': RING } };
+            const pastePage: StubPage = { children: [] };
+            const plugPage: StubPage = { children: [] };
+            await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
+            await plugRun([plan], { ...opts, page: plugPage });
+            for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
+              const all = (page.children as Record<string, unknown>[]).flatMap(walkN);
+              const ring = all.find((n) => n.name === 'focusRing');
+              const host = all.find((n) => ((n.children as Record<string, unknown>[]) ?? []).includes(ring as Record<string, unknown>));
+              if (!ring || !host) { wrong.push(`${id} ${path}: no ring or host`); continue; }
+              const [x, y, w, h, W, H] = [ring.x, ring.y, ring.width, ring.height, host.width, host.height] as number[];
+              if (!(x === -OUT && y === -OUT && w === W + 2 * OUT && h === H + 2 * OUT))
+                wrong.push(`${id} ${path}: ring at ${x},${y} ${w}×${h} in a ${W}×${H} field, not ${OUT}px outside it on every side`);
+              measured++;
+            }
+          }
+          ok(measured === UNDERLINE_FIELDS.length * 2 && wrong.length === 0,
+            `#3328 Q-F1 underline keeps the outside ring: on all ${UNDERLINE_FIELDS.length} underline-edge fields, through both executors (${measured} of ${UNDERLINE_FIELDS.length * 2} builds), the focus ring carries no border inset and sits 4px outside the field on every side${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+        }
+
         // #1009 ACROSS BOTH PATHS. The paste path's write is one line in a generated string, which no
         // typechecker reads and no plugin test reaches — so without this the codegen half of half 2 would
         // be unverified while the plugin half looked complete. Read off the two PAGES, not off the plans.
@@ -27767,6 +28119,19 @@ arm: {
       // NOW 17, AS OF #2343 PR 2 — a shell-byte move: the paste script gained the aspect-locked instance (`aspectLock`,
       // a slot that reads its main's proportion before its height binds), in every chunk's shell. icon-button does not
       // use it. Re-pinned per the same standing instruction; every chunk stays under budget.
+      //
+      // NOW 18, AS OF #3163 — a shell-byte move: the paste script's claim now writes every FRAME's `overflowDirection`
+      // (`NONE` unless the plan scrolls, Dialog's body), in every chunk's shell. icon-button does not scroll. Re-pinned per
+      // the same standing instruction; every chunk stays under budget.
+      //
+      // BACK TO 17, ALSO AS OF #3163 — the same PR's review fix names the four per-side stroke weights once (`__SIDE`),
+      // which frees 115 B in every chunk's shell, more than the `overflowDirection` write took. Re-pinned per the same
+      // standing instruction.
+      //
+      // STILL 17, AS OF #3328 — a shell-byte move: the paste script gained the ring sited inside its host's border
+      // (`absoluteBorderInset`, the field focus), with its corners bound to the host's radius variables, in every
+      // chunk's shell. icon-button does not use it. Against the main before #3163 it packed into 18; on top of #3163's
+      // trim it packs into 17. Measured on the merge; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
       ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
@@ -31248,9 +31613,11 @@ arm: {
   // `strokeEdges` (#2695) IS argued for here, and it is the same field split by side rather than a third thing: the
   // WIDTH of this part's own stroke, one key per side, so the underline field can leave three sides at 0. Color stays
   // with `paintSlots` and style with codeOnly; the two width fields are refused together on one part.
-  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset');
-  ok(partDefFields.includes('strokeInset'),
-    'focus-ring wall 1b: the exclusion below is REPRESENTED — `strokeInset` is really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
+  // `borderInset` (#3328) is excluded for `strokeInset`'s reason: it names the width of the HOST's border, which a ring
+  // sits inside, not a stroke of the part's own.
+  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset' && f !== 'borderInset');
+  ok(partDefFields.includes('strokeInset') && partDefFields.includes('borderInset'),
+    'focus-ring wall 1b: the exclusions below are REPRESENTED — `strokeInset` and `borderInset` are really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
   ok(declaresOwnStroke.join(',') === 'strokeWidth,strokeEdges',
     `focus-ring wall 1b: PartDef declares EXACTLY TWO fields for a part's own stroke, both its WIDTH: 'strokeWidth' (#1266) and its per-side form 'strokeEdges' (#2695 — got [${declaresOwnStroke.join(', ')}]). A ring IS a stroke, and a stroke is three things: its color left for 'paintSlots' in #933, its WIDTH is this field, and its STYLE has no Figma property to bind to (a dash rhythm is a 'dashPattern', not a keyword) so it stays in codeOnly under #740. The geometry vocabulary beside it is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'width', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names ANOTHER component's stroke to compensate for (#801), not this part's own`);
   // AND THE CONSEQUENCE, measured rather than inferred from the declaration above: the def projects and
@@ -33708,6 +34075,113 @@ arm: {
 // fixture, not a path, so the test does not move when that file does. Module scope since #1387's block
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+
+// ---- #3336 (owner, 2026-11-03, Q3336.1–.4 A): THE REFERENCE BRAND ON ONE NEUTRAL PALETTE ----------------------
+//
+// The reference brand drops its `brand-neutral` brand color and puts its action family on the default `neutral`
+// ramp, which #3365 made selectable as the action palette. The decided migration: `actionPalette: 'neutral'` with
+// `actionAnchorStep: 950` kept; every light override that named `brand-neutral` repointed to `neutral` at the SAME
+// step, except `interactive.primary.border.rest`, which moves 350 → 400 (Q3336.2 A: `neutral.350` gives 2.81:1 and
+// misses its 3:1 floor); `brandColors` removed (the issue's step 4). The hue shift is accepted (Q3336.1 A).
+//
+// The fixture below is the 2026-09-28 copy (`NB_MASTER`, frozen: it records the file as it was) with that
+// migration applied, written out as a LITERAL so this check does not move when either the file or the old copy
+// does. Every expectation is a literal from the decided mapping (#3336's proposal, §2), never read from the engine;
+// (f) alone compares two builds, both of literal inputs:
+//   (a) the palette is gone: no `brand-neutral` palette, no brand colors, and the action family resolves to neutral;
+//   (b) no role in any mode aliases `brand-neutral`;
+//   (c) every mode contract passes, and the count is the literal 214, so a contract dropping out is seen;
+//   (d) `interactive.primary.border.rest` is `neutral.400` `#8f8d8d` at 3.30:1 on `background.primary`;
+//   (e) the action family resolves to the decided step and hex, role by role (52 roles, the six subtle fills
+//       included, which carry the fill's ramp step);
+//   (f) every role outside that table is byte-identical (hex and alias path) to the 2026-09-28 build: the neutral
+//       role already sat on `neutral`, so only the 52 decided roles may move (an action-family role that does not
+//       sit on the action ramp, like `interactive.primary.on-fill`, is held here too);
+//   (g) premise, the mutation held in the test: the same fixture with `border.rest` back on step 350 fails its
+//       contract, so (c) can see the floor this migration had to clear.
+//
+// Mutations, each failing here by name:
+//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 214 contracts pass on the neutral palette (want 214) —
+//       FAILED: interactive.primary.border.rest 2.81<3`, `#3336 light: interactive.primary.border.rest is neutral.400 #8f8d8d
+//       at 3.30:1 …` and `#3336 light: the action family resolves to the decided neutral step and hex …`
+//   (2) the `brand-neutral` brand color restored to the fixture → `#3336 the reference brand carries no brand-neutral palette …`
+//   (3) one override (`fill.hover`) left on `brand-neutral`, its brand color kept so the input still builds →
+//       `#3336 light: no role aliases brand-neutral — interactive.primary.fill.hover`, with (2)'s failure and the premise
+{
+  const REF_NEUTRAL_3336: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "neutral", "step": "400"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+  // The decided mapping, role → `<neutral step> <hex>`, light (the brand's only mode). Input overrides and the
+  // engine's own derived picks alike: a later engine change that moves either fails here by name.
+  const WANT: Record<string, string> = {
+    'interactive.primary.fill.rest': '950 #0e0d0d', 'interactive.primary.fill.focused': '950 #0e0d0d', 'interactive.primary.fill.selected': '950 #0e0d0d',
+    'interactive.primary.fill.hover': '800 #2d2c2c', 'interactive.primary.fill.pressed': '700 #444343',
+    'interactive.primary.text.rest': '950 #0e0d0d', 'interactive.primary.icon.rest': '950 #0e0d0d',
+    'interactive.primary.text.hover': '800 #2d2c2c', 'interactive.primary.icon.hover': '800 #2d2c2c',
+    'interactive.primary.text.pressed': '700 #444343', 'interactive.primary.icon.pressed': '700 #444343',
+    'interactive.primary.border.rest': '400 #8f8d8d', 'interactive.primary.border.hover': '700 #444343', 'interactive.primary.border.pressed': '800 #2d2c2c',
+    'interactive.primary.subtle-fill.hover': '950 #0e0d0d', 'interactive.primary.subtle-fill.pressed': '950 #0e0d0d', 'interactive.primary.subtle-fill.selected': '950 #0e0d0d',
+    'inverse.interactive.primary.fill.rest': '025 #f7f7f7', 'inverse.interactive.primary.text.rest': '025 #f7f7f7',
+    'inverse.interactive.primary.icon.rest': '025 #f7f7f7', 'inverse.interactive.primary.border.rest': '025 #f7f7f7',
+    'inverse.interactive.primary.text.hover': '350 #9b9a9a', 'inverse.interactive.primary.icon.hover': '350 #9b9a9a', 'inverse.interactive.primary.border.hover': '350 #9b9a9a',
+    'inverse.interactive.primary.text.pressed': '250 #b4b3b3', 'inverse.interactive.primary.icon.pressed': '250 #b4b3b3', 'inverse.interactive.primary.border.pressed': '250 #b4b3b3',
+    'inverse.interactive.primary.subtle-fill.hover': '025 #f7f7f7', 'inverse.interactive.primary.subtle-fill.pressed': '025 #f7f7f7', 'inverse.interactive.primary.subtle-fill.selected': '025 #f7f7f7',
+    'text.link.default': '950 #0e0d0d', 'text.link.focused': '950 #0e0d0d', 'text.link.hover': '800 #2d2c2c', 'text.link.pressed': '700 #444343', 'text.link.visited': '600 #5d5b5b',
+    'icon.link.default': '950 #0e0d0d', 'icon.link.focused': '950 #0e0d0d', 'icon.link.hover': '800 #2d2c2c', 'icon.link.pressed': '700 #444343', 'icon.link.visited': '600 #5d5b5b',
+    'inverse.text.link.default': '450 #838181', 'inverse.text.link.focused': '450 #838181', 'inverse.text.link.hover': '350 #9b9a9a', 'inverse.text.link.pressed': '250 #b4b3b3', 'inverse.text.link.visited': '100 #dcdbdb',
+    'inverse.icon.link.default': '450 #838181', 'inverse.icon.link.focused': '450 #838181', 'inverse.icon.link.hover': '350 #9b9a9a', 'inverse.icon.link.pressed': '250 #b4b3b3', 'inverse.icon.link.visited': '100 #dcdbdb',
+    'border.focus': '950 #0e0d0d', 'inverse.border.focus': '450 #838181',
+  };
+  type R = { hex: string; path: string; ratio: number; min: number; against?: string };
+  const contracts = (roles: Record<string, R>) => {
+    const checked = Object.entries(roles).filter(([, r]) => r.min > 0);
+    return { checked, broken: checked.filter(([, r]) => r.ratio < r.min) };
+  };
+  const failed = (b: [string, R][]): string => b.map(([k, r]) => `${k} ${r.ratio.toFixed(2)}<${r.min}`).join(', ');
+  const t = exampleTheme('the reference brand on neutral (#3336)', () => brandTheme(REF_NEUTRAL_3336));
+  const was = exampleTheme('the reference brand, 2026-09-28 (#3336 baseline)', () => brandTheme(NB_MASTER));
+  if (t && was) {
+    // (a)
+    const pals = t.palettes.map((p) => p.palette);
+    ok(!pals.includes('brand-neutral') && !((REF_NEUTRAL_3336 as any).brandColors?.length),
+      `#3336 the reference brand carries no brand-neutral palette and no brand colors (palettes ${pals.join(', ')})`);
+    ok(t.roleToPalette.action === 'neutral', `#3336 the reference brand's action family resolves to the neutral palette (got '${t.roleToPalette.action}')`);
+    const wasModes = new Map(resolveAllModes(was).map((m) => [m.mode, m.roles as Record<string, R>]));
+    const modes = resolveAllModes(t);
+    ok(modes.map((m) => m.mode).join(',') === 'light', `#3336 the reference brand builds its one mode, light (got ${modes.map((m) => m.mode).join(',')})`);
+    for (const m of modes) {
+      const roles = m.roles as Record<string, R>;
+      // (b)
+      const stale = Object.entries(roles).filter(([, r]) => /brand-neutral/.test(r.path)).map(([k]) => k);
+      ok(stale.length === 0, `#3336 ${m.mode}: no role aliases brand-neutral${stale.length ? ` — ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ` and ${stale.length - 5} more` : ''}` : ''}`);
+      // (c)
+      const { checked, broken } = contracts(roles);
+      ok(checked.length === 214 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 214)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
+      // (d)
+      const b = roles['interactive.primary.border.rest'];
+      ok(!!b && b.hex === '#8f8d8d' && /\.palette\.neutral\.400$/.test(b.path) && Math.abs(b.ratio - 3.30) < 0.005 && b.min === 3 && b.against === 'background.primary',
+        `#3336 ${m.mode}: interactive.primary.border.rest is neutral.400 #8f8d8d at 3.30:1 on background.primary (Q3336.2 A) (got ${b ? `${b.path} ${b.hex} ${b.ratio.toFixed(2)}:1 on ${b.against}` : 'missing'})`);
+      // (e)
+      const off = Object.entries(WANT).filter(([k, v]) => {
+        const r = roles[k];
+        return !r || !r.path.endsWith(`.palette.neutral.${v.split(' ')[0]}`) || r.hex !== v.split(' ')[1];
+      }).map(([k, v]) => `${k}: ${roles[k] ? `${roles[k].path.replace(/^.*\.palette\./, '')} ${roles[k].hex}` : 'missing'} ≠ neutral.${v}`);
+      ok(off.length === 0, `#3336 ${m.mode}: the action family resolves to the decided neutral step and hex, role by role (${Object.keys(WANT).length} roles)${off.length ? ` — ${off.slice(0, 4).join(' | ')}` : ''}`);
+      // (f)
+      const before = wasModes.get(m.mode);
+      if (!before) { ok(false, `#3336 ${m.mode}: the 2026-09-28 build resolves the same mode`); continue; }
+      const keys = new Set([...Object.keys(roles), ...Object.keys(before)]);
+      const moved = [...keys].filter((k) => !(k in WANT) && (roles[k]?.hex !== before[k]?.hex || roles[k]?.path !== before[k]?.path));
+      ok(moved.length === 0, `#3336 ${m.mode}: every role outside the decided table is byte-identical to the 2026-09-28 build${moved.length ? ` — moved ${moved.slice(0, 5).join(', ')}${moved.length > 5 ? ` and ${moved.length - 5} more` : ''}` : ''}`);
+      ok(Object.keys(WANT).every((k) => roles[k]?.path !== before[k]?.path), `#3336 ${m.mode}: premise: every role in the decided table moves off the 2026-09-28 build's alias, so (f) compares builds that differ`);
+    }
+    // (g)
+    const at350 = structuredClone(REF_NEUTRAL_3336) as any;
+    at350.overrides.light['interactive.primary.border.rest'] = { palette: 'neutral', step: '350' };
+    const m350 = resolveAllModes(brandTheme(at350)).find((m) => m.mode === 'light');
+    const b350 = m350 ? contracts(m350.roles as Record<string, R>).broken : [];
+    ok(b350.length === 1 && b350[0][0] === 'interactive.primary.border.rest' && Math.abs(b350[0][1].ratio - 2.81) < 0.005,
+      `#3336 premise: border.rest on neutral.350 misses its 3:1 floor at 2.81:1, the miss the decided step 400 clears (FAILED: ${failed(b350) || 'nothing'})`);
+  }
+}
 
 // ---- #3077 (owner decisions 2026-10-27): THE REFERENCE BRAND'S TYPE TABLE ------------------------------------
 //

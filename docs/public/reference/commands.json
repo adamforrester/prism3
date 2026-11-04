@@ -376,7 +376,7 @@
         },
         {
           "name": "figma_run",
-          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity, panels-clean. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
+          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity, panels-clean, context. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -399,7 +399,8 @@
                   "audit-frames",
                   "snapshot",
                   "activity",
-                  "panels-clean"
+                  "panels-clean",
+                  "context"
                 ]
               },
               "args": {
@@ -838,6 +839,15 @@
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.panels-clean"
           }
         ],
+        "devOnly": false
+      },
+      {
+        "name": "context",
+        "args": "Record<string, never>",
+        "description": "#3300 B. Writes nothing. What the open file is, for an agent's first read: { file { name, currentPage, pages }, prism3 { source: local | none | unreadable, brand { id, name, modes } | null, engine { plugin, lastBuilt }, collections, themed }, sets { present, due: [{ set, why }], queued, partial: true }, protected { finalPages, locked, originals: [{ id, name, page }], counts, note }, commands { read, write }, readFirst, engineMcp { server, for, tools }, unreadable, truncated }. `protected` lists what Q3147.11 protects by default: pages whose name contains FINAL, locked nodes, `Original · …` copies. The page walk is capped (`truncated`); the set counts come from the as-built ledger alone (`partial`).",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.context",
+        "writes": "Nothing. Reads the stored brand, the variable collections, the as-built ledger and every page for its protected nodes; pages are loaded, never switched to.",
+        "refuses": [],
         "devOnly": false
       },
       {

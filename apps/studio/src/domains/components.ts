@@ -8,12 +8,17 @@
  *     closed until one of its sets is selected or the row is focused, call 15 A) or a set of its own, alphabetical
  *     (note 2), labeled by page or by component name (call 14 A), with its members and the page it lands on (idea 12).
  *   · In the plugin, THE ADD QUEUE (#3129, owner decisions Q832 A, Q833 A, Q3129.4–6 A, and the owner's revisions R1,
- *     R2 and R5 of 2026-10-28): ONE BOX PER FAMILY (R5), on each row the file could add a set of (buildable, not in the
- *     file): a family's row, or a set's that is a row of its own. A family's parts are listed with no box of their own;
- *     a part is updated alone through Update file's Due. The box is on while every set of its row the file could add is
- *     queued, and a tick queues the rest, so a family partly in the file queues its missing parts. A section's box is
- *     three-state over its rows (call 8 A); in a section with settings whose rows are one family, the section's box is
- *     that family's, and in one with several rows, each row's box takes the fold cell of its first set. A tier's caption
+ *     R2 and R5 of 2026-10-28; R5 narrowed by #3306, Q3306.1–6 A): ONE BOX PER ROW, on each row the file could add a
+ *     set of (buildable, not in the file): a family's row, or a set's that is a row of its own. In a family with two or
+ *     more roots (`splitsOf`: Buttons, Icon button, Flush icon button, Icons & assets, computed from the catalog) each
+ *     public set has a box too, in its row's leading cell, or in the fold cell in a section with settings. Every other
+ *     family's parts are listed with no box of their own. Every box is three-state (call 8 A): on while every set it
+ *     could add is chosen or needed, and a tick queues the rest, so a family partly in the file queues its missing
+ *     parts. A NEEDED set (a chosen set nests it and the file lacks it, `neededOf`, derived on read) shows ticked and
+ *     held (`aria-disabled`), its status tag reads Needed, and its box's name and title name the set that needs it
+ *     (Q3306.4 A). A tick on an on box takes out only the sets chosen under it (Q3306.6 A). In a section with settings
+ *     whose rows are one family, the section's box is that family's, and in one with several rows, each row's box takes
+ *     the fold cell of its first set. A tier's caption
  *     line carries Select all and Deselect all, right-aligned (R1), and the shared settings sit under a tier of their
  *     own, captioned Component settings (R2). A box queues its sets in the file (`add-queue`), and a queued set's tag
  *     reads To add; Update file builds the queue. A row with nothing to add has no box, and its cell stays empty so the
@@ -58,8 +63,8 @@ import { searchQuery, setSearchHits, subscribe } from '../state/store';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
-  addableOf, boxOfSets, buildableOf, costOf, deselectAllOf, entryOf, familiesToOpen, familyBox, fmt, GROUPS_COPY, tiersOf, rowMatches,
-  rowOfFocus, SECTION_BLOCKS, selectAllOf, setFocusKey, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
+  addableOf, boxOfSets, buildableOf, costOf, deselectAllOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, heldBy, isPrivate, neededOf, tiersOf, rowMatches,
+  rowOfFocus, SECTION_BLOCKS, selectAllOf, setFocusKey, splitsOf, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
 } from '../state/component-groups';
 import { glyph, h, hook } from '../shell/dom';
 import { saidOf, stateLine } from '../ui/lever-kit';
@@ -134,7 +139,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   const narrow = (): boolean => frame()?.dataset.w === 'narrow';
 
   /** A checkbox in the chrome's pattern (a button with `role="checkbox"`, mixed included), as Build style guides'. */
-  const box = (key: string, state: BoxState, label: string, onToggle: () => void): HTMLButtonElement => {
+  const box = (key: string, state: BoxState, label: string, onToggle: () => void, held = false): HTMLButtonElement => {
     const b = hook(h('button', 'p3-btn p3-btn-page p3-check p3-cp-check'), 'cp-box');
     b.type = 'button';
     b.dataset.key = key;
@@ -145,7 +150,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     bx.setAttribute('aria-hidden', 'true');
     bx.append(glyph(state === 'mixed' ? 'dash' : 'check'));
     b.append(bx);
-    b.onclick = onToggle;
+    // #3306 Q3306.2 A: a needed set's box is ticked and held, in the chrome's held style; its name says which set needs it.
+    if (held) { b.setAttribute('aria-disabled', 'true'); b.title = label; }
+    b.onclick = () => { if (!held) onToggle(); };
     // #3170 Q3170.3 A: a queue write is a write to the file, so it waits while Update file's run is out, and says why.
     const why = plugin ? lend.sets.off() : null;
     if (why) { b.disabled = true; b.title = why; }
@@ -165,22 +172,33 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     if (open && w.on && !componentsPage().open.has(open)) setComponentsPage({ open: new Set([...componentsPage().open, open]) });
   };
   /** A box over `ids` when the file could add any of them, else the empty cell that keeps the names aligned (Q3129.6 A).
-   *  `three`: a section's box, three-state over its rows (call 8 A); a row's is two-state (R5, `familyBox`). */
-  const boxOrCell = (key: string, ids: readonly string[], label: string, open: string | undefined, empty: 'p3-cp-nobox' | 'p3-cp-fold-space', three = false): HTMLElement => {
+   *  Three-state (call 8 A, #3306 Q3306.2 A); held, named by the set that needs it, when every set under it is needed.
+   *  `name`: the sets' name as a held box's name reads it. */
+  const boxOrCell = (key: string, ids: readonly string[], label: string, open: string | undefined, empty: 'p3-cp-nobox' | 'p3-cp-fold-space', name: string): HTMLElement => {
     const p = present()!;
     const catalog = componentCatalog();
     if (!addableOf(catalog, ids, p).length) return h('span', empty);
-    return box(key, three ? boxOfSets(catalog, ids, queued(), p) : familyBox(catalog, ids, queued(), p), label, () => toggle(ids, open));
+    const by = heldBy(catalog, ids, queued(), p);
+    const nameOf = (id: string): string => entryOf(catalog, id)?.name ?? id;
+    return box(key, boxOfSets(catalog, ids, queued(), p), by ? GROUPS_COPY.neededBy(name, by.map(nameOf)) : label, () => toggle(ids, open), !!by);
+  };
+  /** #3306 Q3306.1 A: one set's own box, in a family that splits; a private part gets the empty cell. */
+  const setBox = (id: string, empty: 'p3-cp-nobox' | 'p3-cp-fold-space'): HTMLElement => {
+    const n = entryOf(componentCatalog(), id)?.name ?? id;
+    return isPrivate(id) ? h('span', empty) : boxOrCell(`setbox=${id}`, [id], GROUPS_COPY.addSet(n), undefined, empty, n);
   };
   /** A row's box: "Add {set} to file" on a set alone on its row, "Add all of {family} to file" on a family (Q3129.4 A). */
   const rowBox = (row: GroupRow, empty: 'p3-cp-nobox' | 'p3-cp-fold-space'): HTMLElement =>
-    boxOrCell(`row=${row.key}`, row.ids, row.family ? GROUPS_COPY.addAllOf(row.label) : GROUPS_COPY.addSet(row.label), row.family ? row.key : undefined, empty);
+    boxOrCell(`row=${row.key}`, row.ids, row.family ? GROUPS_COPY.addAllOf(row.label) : GROUPS_COPY.addSet(row.label), row.family ? row.key : undefined, empty, row.label);
 
   /** #2909 Q2909.8 A: a set's statuses in this file, as tags (plugin only; the web has no file). A family shows what its
    *  sets show, each status once, in the statuses' own order. */
-  const STATUS_ORDER: readonly SetStatus[] = ['due', 'hand', 'unchecked', 'checking', 'queued', 'new', 'current'];
+  const STATUS_ORDER: readonly SetStatus[] = ['due', 'hand', 'unchecked', 'checking', 'queued', 'needed', 'new', 'current'];
   const statusTags = (ids: readonly string[]): HTMLElement | null => {
-    const has = new Set(ids.flatMap((id) => lend.sets.status(id)));
+    // #3306 Q3306.2 A: a set not in the file that a chosen set needs reads Needed rather than Not in file.
+    const p = present();
+    const needed = p ? neededOf(componentCatalog(), queued(), p) : new Map<string, string[]>();
+    const has = new Set(ids.flatMap((id) => lend.sets.status(id).map((st): SetStatus => (st === 'new' && needed.has(id) ? 'needed' : st))));
     // A family whose sets are partly in the file and partly not reads by the ones it holds.
     if (has.size > 1) has.delete('current');
     const list = STATUS_ORDER.filter((s) => has.has(s));
@@ -193,8 +211,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   /** One set row inside a family, or a set on its own (`single` is its row). `flat`: a family's set listed at a section's
    *  edge (#2905, Q8 A), which focuses as itself, since its family has no row. `edge`: any row in a section with
    *  settings, whose box takes the fold cell (#3129). `boxed`: the row whose box this line carries (R5: a set alone on
-   *  its row, or the first set of a family listed at a section's edge); a part carries none. */
-  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false, edge = flat, boxed: GroupRow | null = null): HTMLElement => {
+   *  its row, or the first set of a family listed at a section's edge); a part carries none, except in a family that
+   *  splits (#3306 Q3306.1 A), where each public set carries its own (`own`). */
+  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false, edge = flat, boxed: GroupRow | null = null, own = false): HTMLElement => {
     const e = entryOf(catalog, id)!;
     const r = hook(h('div', member ? 'p3-cp-row p3-cp-member' : 'p3-cp-row'), member ? 'cp-member' : 'cp-row');
     r.dataset.set = id;
@@ -204,8 +223,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     // #3129: the box sits in the row's leading cell; in a section with settings it takes the empty fold cell (flat rows
     // have no leading cell). R5: only a row's own line carries a box; a family's part keeps the empty cell.
     const boxes = !!present();
-    if (boxes && !edge) r.append(boxed ? rowBox(boxed, 'p3-cp-nobox') : h('span', 'p3-cp-nobox'));
-    if (boxes && edge) r.append(boxed ? rowBox(boxed, 'p3-cp-fold-space') : h('span', 'p3-cp-fold-space'));
+    if (boxes && !edge) r.append(boxed ? rowBox(boxed, 'p3-cp-nobox') : own ? setBox(id, 'p3-cp-nobox') : h('span', 'p3-cp-nobox'));
+    if (boxes && edge) r.append(boxed ? rowBox(boxed, 'p3-cp-fold-space') : own ? setBox(id, 'p3-cp-fold-space') : h('span', 'p3-cp-fold-space'));
     else r.append(h('span', 'p3-cp-fold-space'));
     r.append(nameButton(row, label, member, flat ? setFocusKey(id) : undefined));
     const meta = hook(h('span', 'p3-cp-meta'), 'cp-meta');
@@ -304,9 +323,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     // row's box centers on its name, however the count wraps. With nothing to add the cell stays, empty (Q3129.6 A).
     const line1 = (n: HTMLElement): HTMLElement => { const c = h('span', 'p3-cp-line1'); c.append(n); return c; };
     // R5: a section with settings whose rows are one family stands in for that family's row (Q8 A), so its box is the
-    // family's, two-state; any other section's is three-state over its rows.
+    // family's; every box is three-state (#3306 Q3306.2 A).
     const one = sec.flat && sec.rows.length === 1;
-    if (present()) head.append(line1(boxOrCell(`sec=${sec.kind}`, shown, GROUPS_COPY.addAll(sec.title), undefined, 'p3-cp-nobox', !one)));
+    if (present()) head.append(line1(boxOrCell(`sec=${sec.kind}`, shown, GROUPS_COPY.addAll(sec.title), undefined, 'p3-cp-nobox', sec.title)));
     // The count sits inside the title (TY2 A): at 380 it wraps under the name inside the heading, so the space after the
     // section title stays the level's space-300 rather than the gap to a wrapped count.
     const t = hook(h('h2', 'p3-lsec-title p3-cp-title'), 'cp-section-title');
@@ -320,10 +339,11 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       if (sec.flat) {
         // Q8 A: the section title stands in for the family row, so each set is a row at the section's edge.
         // R5: in a section of several rows, each row's box is on its first set's line; in a section of one, the
-        // section's box is the row's.
+        // section's box is the row's. #3306 Q3306.1 A: in a family that splits, each set's line carries its own box.
+        const split = splitsOf(catalog, row);
         row.ids.forEach((id, i) => {
           const li = hook(h('li', 'p3-cp-li'), 'cp-item');
-          li.append(setRow(catalog, id, row, row.family, row.family, true, !one && i === 0 ? row : null));
+          li.append(setRow(catalog, id, row, row.family, row.family, true, !one && !split && i === 0 ? row : null, split));
           ul.append(li);
         });
         continue;
@@ -334,7 +354,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
         const sub = h('ul', 'p3-cp-sub');
         sub.setAttribute('role', 'group');
         sub.setAttribute('aria-label', row.label);
-        for (const id of row.ids) { const m = h('li'); m.append(setRow(catalog, id, row, true)); sub.append(m); }
+        // #3306 Q3306.1 A: a family that splits draws a box on each of its sets.
+        const split = splitsOf(catalog, row);
+        for (const id of row.ids) { const m = h('li'); m.append(setRow(catalog, id, row, true, false, false, null, split)); sub.append(m); }
         li.append(sub);
       }
       ul.append(li);

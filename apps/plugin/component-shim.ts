@@ -678,6 +678,10 @@ export const makeShim = (opts: ShimOpts = {}) => {
       : opts.insetValue !== undefined ? opts.insetValue
       : name === 'focus/ring/width' ? SHIM_STROKE
       : name === 'focus/ring/offset' ? SHIM_GAP
+      // AN ICON SIZE resolves to the size a node bound to it reads (#3360): the first-line pair reads the glyph's size
+      // through `resolveForConsumer` while the glyph's own box reads the bound value, and one Figma variable answers
+      // both the same. Left at SHIM_GAP, the inset was computed for a 2px glyph beside an 8px one.
+      : /^icon\/size\//.test(name) ? (opts.varPx?.[name] ?? varValue(name))
       : SHIM_GAP;
   /**
    * THE FILE'S VARIABLES ARE ROOTED; THE PLAN'S BINDING NAMES ARE NOT (#1097). A plan is brand-agnostic
@@ -940,6 +944,10 @@ export const makeShim = (opts: ShimOpts = {}) => {
       ...(type === 'FRAME'
         ? { strokeWeight: 0, _strokesInLayout: true, fills: [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }] as unknown[] }
         : {}),
+      // #3163 — A FRAME STARTS WITH FIGMA'S `overflowDirection: 'NONE'` (`FramePrototypingMixin`; a slot is made from a
+      // frame here, so it carries it too). Modelled so that writing the default reads as no change, and a body that
+      // scrolls reads VERTICAL only because the executor wrote it.
+      ...(type === 'FRAME' ? { overflowDirection: 'NONE' as string } : {}),
       // #1009: `textAlignVertical` is a `TextNode` property. A TEXT node starts at Figma's default
       // `'TOP'` — so a node that reads back `CENTER` proves the executor WROTE it, rather than the shim
       // having defaulted helpfully. Every other node type THROWS on the write, installed with
@@ -1047,7 +1055,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const p = node.parent as Node | null;
         if (node._absolute && p && typeof node._fromBottom === 'number') return ((p.height as number) || 0) - ((node.height as number) || 0) - node._fromBottom;
         if (node._absolute || !p || !p.layoutMode) return node._y as number;
-        if (p.counterAxisAlignItems !== 'CENTER') return (p.boundVariables as Record<string, { value?: number }>).paddingTop?.value ?? 0;
+        // A LITERAL top padding counts where no variable is bound (#3360: the first-line pair writes a number).
+        if (p.counterAxisAlignItems !== 'CENTER') return (p.boundVariables as Record<string, { value?: number }>).paddingTop?.value ?? (typeof p.paddingTop === 'number' ? p.paddingTop : 0);
         return (((p.height as number) || 0) - ((node.height as number) || 0)) / 2;
       },
       set y(v: number) { node._y = v; node._fromBottom = undefined; },
@@ -1080,7 +1089,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
           const lines = wraps && w > 0 ? Math.max(1, Math.ceil(textNatural(node) / w)) : 1;
           return Math.max(litFloor, lines * (opts.textLineBox?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0));
         }
-        const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
+        // A LITERAL vertical padding counts where no variable is bound (#3360: the first-line pair writes a number).
+        const pad = (bv.paddingTop?.value ?? (typeof node.paddingTop === 'number' ? node.paddingTop : 0)) + (bv.paddingBottom?.value ?? (typeof node.paddingBottom === 'number' ? node.paddingBottom : 0));
         const flow = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE' && !(opts.layoutModel && c.visible === false));
         // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child. A COLUMN (under
         // `layoutModel`) stacks its children, so its main axis is their sum plus the gaps between them.

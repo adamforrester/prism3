@@ -1,7 +1,7 @@
 /** The Style guide's Interactive section (UI redesign S5.1: lifted out of `renderPreviewStyleGuide` in
  *  `main.ts` so Color › Interactive can draw the same section, as S4a did for the five color sections).
- *  Each column in four treatments (Filled, Outline, Text, Inverse) at rest, hover and pressed, then the
- *  shared Disabled set. The Style guide draws Primary, Neutral and Destructive; Color › Interactive draws
+ *  Each column in four treatments (Filled, Outline, Text, Inverse) at rest, hover and pressed, then (#2907) the
+ *  outline and text buttons on the inverse band, Inverse outline and Inverse text, then the shared Disabled set. The Style guide draws Primary, Neutral and Destructive; Color › Interactive draws
  *  every column, accents included (owner decision Q39), through `columns`.
  *
  *  THE TEXT ROW (S5.2, owner decision Q32): the engine's text button (`packages/engine/components/button.ts`,
@@ -49,8 +49,12 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
   // it has no single ink-on-fill pair to claim and stays on the smoke floor.
   // Display-only (Q196, #2487): every state is already drawn side by side, so a specimen is inert, out of the tab order
   // and the accessibility tree, rather than 39 tab stops that do nothing, each named "Button".
-  const btn = (bg: string, fg: string, bd: string | null, pair?: [string, string]): HTMLElement => { const b = hook(el('button', 'sg-btn', 'Button'), 'style-guide-button'); b.inert = true; b.style.background = bg; (pair ? specimenPair(b, ...pair) : specimen(b)).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
-  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string, pair?: [string, string]): HTMLElement => { const c = hook(el('div', 'sg-bcol'), 'style-guide-state'); c.append(btn(bg, fg, bd, pair), hook(el('span', 'sg-st', st), 'style-guide-state-name'), ...pill(fullkey, subpath)); return c; };
+  // `binds` (#2907): the roles a specimen is drawn with, each with the property it paints (`fill=`, `ink=`, `edge=`), as
+  // `data-sg-binds`. Invisible, so a test can hold every role the color editor offers against a specimen that paints it,
+  // and read that paint back against the emission.
+  type Binds = { fill?: string | null; ink?: string | null; edge?: string | null };
+  const btn = (bg: string, fg: string, bd: string | null, pair?: [string, string], binds: Binds = {}): HTMLElement => { const b = hook(el('button', 'sg-btn', 'Button'), 'style-guide-button'); b.inert = true; b.style.background = bg; (pair ? specimenPair(b, ...pair) : specimen(b)).style.color = fg; if (bd) b.style.borderColor = bd; const bound = Object.entries(binds).filter(([, r]) => !!r).map(([k, r]) => `${k}=${r}`); if (bound.length) b.dataset.sgBinds = bound.join(' '); return b; };
+  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string, pair?: [string, string], binds?: Binds): HTMLElement => { const c = hook(el('div', 'sg-bcol'), 'style-guide-state'); c.append(btn(bg, fg, bd, pair, binds), hook(el('span', 'sg-st', st), 'style-guide-state-name'), ...pill(fullkey, subpath)); return c; };
   const footLine = (lbl: string, ...p: HTMLElement[]): HTMLElement => { const s = el('span', 'sg-foothint'); s.append(document.createTextNode(lbl + ' '), ...p); return s; };
   const trow = (label: string, foot: HTMLElement[], cols: HTMLElement[], inv: boolean): HTMLElement => {
     const row = el('div', 'sg-trow');
@@ -82,7 +86,7 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
     const block = hook(el('div', 'sg-pblock'), 'style-guide-palette');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), ...pill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
     const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`,
-      [`interactive.${c}.on-fill`, `interactive.${c}.fill.${s}`]));
+      [`interactive.${c}.on-fill`, `interactive.${c}.fill.${s}`], { fill: `interactive.${c}.fill.${s}`, ink: `interactive.${c}.on-fill` }));
     // Each state's hover fill comes from whichever family the METHOD emits — `outlineFillRole`, the
     // same helper the emitter branches on, not a second copy of the mapping. Reading `overlay.*`
     // unconditionally is #288, and it was still here: under `solid-tint` the overlay role does not
@@ -130,11 +134,20 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
     // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
     // reader is looking at when they read the label.
     const obd = obdFor('rest');
-    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`));
+    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`, undefined, { fill: rolesFor(s).fill, ink: otxt(s), edge: obdFor(s) }));
     // The text button: the Outline row's wash and ink, no edge (`bd` null leaves `.sg-btn`'s transparent one).
-    const text = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), null, s, otxt(s), `text.${s}`));
+    const text = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), null, s, otxt(s), `text.${s}`, undefined, { fill: rolesFor(s).fill, ink: otxt(s) }));
     const inv = STATES.map((s) => bcol(paint(cur, `inverse.interactive.${c}.fill.${s}`), paint(cur, `inverse.interactive.${c}.on-fill`), null, s, `inverse.interactive.${c}.fill.${s}`, `fill.${s}`,
-      [`inverse.interactive.${c}.on-fill`, `inverse.interactive.${c}.fill.${s}`]));
+      [`inverse.interactive.${c}.on-fill`, `inverse.interactive.${c}.fill.${s}`], { fill: `inverse.interactive.${c}.fill.${s}`, ink: `inverse.interactive.${c}.on-fill` }));
+    // #2907 (owner decisions Q2907.1 A, Q2907.2 A): the outline and text buttons on the inverse band, each on its own band
+    // like the Inverse row, so the color editor's "Border · inverse" and "Text · inverse" roles are drawn on the page's
+    // default ground too, not only when the ground picker is set to an inverse band. Each state reads the band's twins
+    // from `outlineStateRoles(…, true)`, the roles the Outline and Text rows read on an inverse ground, so the two cannot
+    // disagree. Chips and feet as the Outline and Text rows have them; each chip's badge is the role's contrast on the band.
+    const onBand = (s: string) => outlineStateRoles(o.method, c, s, true);
+    const bandBg = (s: string): string => { const k = onBand(s).fill; return k ? paint(cur, k) : 'transparent'; };
+    const invOutline = STATES.map((s) => bcol(bandBg(s), paint(cur, onBand(s).text), paint(cur, onBand(s).border), s, onBand(s).text, `text.${s}`, undefined, { fill: onBand(s).fill, ink: onBand(s).text, edge: onBand(s).border }));
+    const invText = STATES.map((s) => bcol(bandBg(s), paint(cur, onBand(s).text), null, s, onBand(s).text, `text.${s}`, undefined, { fill: onBand(s).fill, ink: onBand(s).text }));
     block.append(trow('Filled', [footLine('text', ...pill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
     block.append(hook(trow('Outline', [footLine('border', ...pill(obd, 'border'))], outline, false), 'style-guide-outline'));
     block.append(hook(trow('Text', [footLine('text', ...pill(otxt('rest'), 'text'))], text, false), 'style-guide-text'));
@@ -143,6 +156,10 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
     // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
     // dark" rather than as a distinct treatment. On that ground the row simply uses the page's.
     block.append(trow('Inverse', [footLine('text', ...pill(`inverse.interactive.${c}.on-fill`, 'on-fill'))], inv, !onInverseGround));
+    // Row labels are the owner's (Q2907.1 A, Q2907.2 A, DRAFT as approved). On an inverse preview ground they take the page's
+    // ground, as the Inverse row does.
+    block.append(hook(trow('Inverse outline', [footLine('border', ...pill(onBand('rest').border, 'border'))], invOutline, !onInverseGround), 'style-guide-inverse-outline'));
+    block.append(hook(trow('Inverse text', [footLine('text', ...pill(onBand('rest').text, 'text'))], invText, !onInverseGround), 'style-guide-inverse-text'));
     return block;
   };
   for (const [nm, c] of columns) secInt.append(paletteBlock(nm, c));

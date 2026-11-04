@@ -3781,7 +3781,8 @@ for (const host of ['web', 'figma']) {
           await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
           await postMsg(page, { type: 'file-sets', ...lacks });
           await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
-          const dbAlso = await page.evaluate(() => document.querySelector('[data-p3="update-dialog"] [data-p3="update-add-also"]')?.textContent ?? null);
+          // Owner's call on #3306's review (A): ONE "Also adds" line, so every line under the dialog is read, not the first.
+          const dbAlso = await page.evaluate(() => [...document.querySelectorAll('[data-p3="update-dialog"] [data-p3="update-add-also"]')].map((n) => n.textContent));
           await takeWrites(page);
           await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
           const dbW1 = (await takeWrites(page)).filter((m) => m.type === 'build-components');
@@ -3791,10 +3792,10 @@ for (const host of ['web', 'figma']) {
           await settle(page);
           const dbU = await updBtn();
           const want = panels
-            ? { also: 'Also builds, when the file lacks them: Tag, Divider, List Item.', posts: [{ type: 'build-components', def: 'badge', docBlock: true }, { type: 'build-components', def: 'link', docBlock: true }] }
-            : { also: null, posts: [{ type: 'build-components', def: 'link', docBlock: true }, { type: 'build-components', def: 'badge', docBlock: true }] };
-          ok(dbAlso === want.also && canon([...dbW1, ...dbW2]) === canon(want.posts) && !dbU.busy,
-            `${where}: #3308: panels ${panels ? 'on' : 'off'}, a file with no _Doc-block: To add ${panels ? 'lists the sets the run also builds' : 'lists nothing more'}, and the sets step posts ${panels ? 'the queued Badge first' : 'the queue in its order'}, each asking for the template first (also ${JSON.stringify(dbAlso)}, posted ${JSON.stringify([...dbW1, ...dbW2])}, Update file ${JSON.stringify(dbU)})`);
+            ? { also: ['Also adds: Tag, Divider, List Item, Focus ring, Icon.'], posts: [{ type: 'build-components', def: 'badge', docBlock: true }, { type: 'build-components', def: 'link', docBlock: true }] }
+            : { also: ['Also adds: Focus ring, Icon.'], posts: [{ type: 'build-components', def: 'link', docBlock: true }, { type: 'build-components', def: 'badge', docBlock: true }] };
+          ok(JSON.stringify(dbAlso) === JSON.stringify(want.also) && canon([...dbW1, ...dbW2]) === canon(want.posts) && !dbU.busy,
+            `${where}: #3308, #3306: panels ${panels ? 'on' : 'off'}, a file with no _Doc-block: To add's one Also adds line names ${panels ? "the _Doc-block sets with the sets Link needs" : "only the sets Link needs"}, and the sets step posts ${panels ? 'the queued Badge first' : 'the queue in its order'}, each asking for the template first (also ${JSON.stringify(dbAlso)}, posted ${JSON.stringify([...dbW1, ...dbW2])}, Update file ${JSON.stringify(dbU)})`);
         }
         await postMsg(page, { type: 'doc-settings', settings: { panels: true, cover: true, styleGuide: null } });
         // #3308: the owner's first run, in small. Set up file, then two queued sets, each built with problems (completed,
@@ -6601,6 +6602,91 @@ for (const host of ['web', 'figma']) {
   } catch (e) {
     ok(false, `S5.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
+}
+// #2907 (owner decision Q2907.3 A): EVERY ROLE THE COLOR EDITOR OFFERS IS DRAWN ON THE PREVIEW, by role, on the default
+// ground, in both hosts. Two lists of what must be drawn, each independent of the preview: the editor's own rows as
+// rendered (each column's `.p3-fillrow[data-role]`, which is `interactiveRowsFor` drawn) and the literal `COLUMN_ROWS`
+// above. A role is drawn when a shown specimen in its column's block names it in `data-sg-binds` AND paints it: the
+// specimen's computed ink, edge or fill (the property the bind names) is the emission's hex for that role in that mode,
+// so a bind with nothing behind it fails too. That arm passes when ANY specimen paints a role, so a second arm holds each
+// state of each new row to its own literal roles and their paint (a wrong ink or wash on one row fails even when a
+// sibling row paints the role right). The two new rows (Q2907.1 A, Q2907.2 A) sit on their own band, whose ground
+// is the emission's `inverse.background.primary`. MUTATIONS, each failing here by name: both new rows dropped (the bug as
+// filed) → `… inverse.interactive.primary.text.hover is drawn … — is not drawn`, for each of the 18 inverse text and border
+// roles; the "Inverse text" row alone dropped → `… "Inverse text" row draws rest, hover and pressed on its own band … read
+// []` (its roles stay drawn, as the Inverse outline row's ink); the "Inverse outline" row's edge read off the page twin →
+// `… inverse.interactive.primary.border.rest is drawn … — bound by 1, painted by 0`; the "Inverse text" row painting the
+// page ink (`paint(cur, otxt(s))`) → `… "Inverse text" rest binds and paints its own roles …`; the band rows' wash read
+// off the page (`outlineStateRoles(…, false).fill`, #1629) → `… "Inverse outline" hover binds and paints its own roles …`.
+const readDrawn = (page) => page.evaluate(() => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const editor = Object.fromEntries([...pane.querySelectorAll('[data-p3="interactive-column"]')].map((g) => [g.dataset.column, [...g.querySelectorAll('.p3-fillrow[data-role]')].map((n) => n.dataset.role)]));
+  const blocks = Object.fromEntries([...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="style-guide-palette"]')].map((b) => [b.querySelector('.sg-rn')?.textContent,
+    [...b.querySelectorAll('[data-p3="style-guide-button"][data-sg-binds]')].filter((x) => x.getClientRects().length).map((x) => {
+      const cs = getComputedStyle(x);
+      const band = x.closest('[data-p3="style-guide-buttons"]');
+      return { binds: x.dataset.sgBinds.split(' ').map((kv) => kv.split('=')), row: x.closest('.sg-trow')?.querySelector('.sg-tlab')?.firstChild?.textContent ?? null,
+        st: x.closest('[data-p3="style-guide-state"]')?.querySelector('[data-p3="style-guide-state-name"]')?.textContent ?? null,
+        ink: cs.color, fill: cs.backgroundColor, edge: Number.parseFloat(cs.borderTopWidth) > 0 ? cs.borderTopColor : null, band: band ? getComputedStyle(band).backgroundColor : null };
+    })]));
+  return { editor, blocks };
+});
+if (runs('19')) {
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-interactive');
+    for (const mode of ['light', 'dark']) {
+      await chooseMode(page, mode);
+      const d = await readDrawn(page);
+      const where = `#2907 ${host}, previewing ${mode}`;
+      const sixHex = (h) => (h && h.length === 9 && h.endsWith('ff') ? h.slice(0, 7) : h);
+      for (const [col, name] of INTERACTIVE_COLUMNS) {
+        const specs = d.blocks[name] ?? [];
+        const editorRoles = (d.editor[col] ?? []).filter((r) => r.startsWith(`interactive.${col}.`) || r.startsWith(`inverse.interactive.${col}.`));
+        ok(editorRoles.length >= COLUMN_ROWS(col).length, `${where}: the editor's ${col} rows are read (${editorRoles.length}, literal ${COLUMN_ROWS(col).length})`);
+        const want = [...new Set([...editorRoles, ...COLUMN_ROWS(col)])];
+        for (const role of want) {
+          const by = specs.filter((x) => x.binds.some(([, r]) => r === role));
+          const painted = by.filter((x) => x.binds.filter(([, r]) => r === role).every(([prop]) => {
+            const hex = EMIT(mode, role)?.hex;
+            const got = sixHex(cssHex(prop === 'ink' ? x.ink : prop === 'edge' ? x.edge : x.fill));
+            return !!hex && got === sixHex(hex);
+          }));
+          ok(painted.length > 0, `${where}: ${role} is drawn on the ${name} preview, by a specimen that paints it — ${by.length ? `bound by ${by.length}, painted by ${painted.length} (${by.slice(0, 2).map((x) => `${x.row}: ink ${cssHex(x.ink)} edge ${cssHex(x.edge)} fill ${cssHex(x.fill)}`).join('; ')}; emitted ${EMIT(mode, role)?.hex})` : 'is not drawn'}`);
+        }
+        // EACH NEW ROW'S OWN PAINT (#3378 review): the role arm above passes when any one specimen paints a role, so a row
+        // painting the wrong ink hides behind a sibling that paints it right, and a wash is held only for roles on the two
+        // lists. So each state of each new row is held on its own: the roles it binds are literal keys, typed out here and
+        // not read from `outlineStateRoles` (the band's text and border twins; under the default theme's overlay-neutral
+        // method, the band's overlay twin at hover and pressed and no wash at rest), and its computed ink, edge and fill are
+        // the emission's hex for those keys. The page's wash on the band (#1629) or the page's ink in a band row fails here.
+        for (const row of ['Inverse outline', 'Inverse text']) {
+          for (const s of ['rest', 'hover', 'pressed']) {
+            const x = specs.find((y) => y.row === row && y.st === s);
+            const b = Object.fromEntries(x?.binds ?? []);
+            const want = { ink: `inverse.interactive.${col}.text.${s}`, edge: row === 'Inverse outline' ? `inverse.interactive.${col}.border.${s}` : undefined,
+              fill: s === 'rest' ? undefined : `inverse.interactive.${col}.overlay.${s}` };
+            const exp = (k) => (want[k] ? sixHex(EMIT(mode, want[k])?.hex ?? null) : null);
+            const got = { ink: sixHex(cssHex(x?.ink)), edge: sixHex(cssHex(x?.edge)), fill: sixHex(cssHex(x?.fill)) };
+            const clear = (h) => h === null || /^#[0-9a-f]{6}00$/.test(h);
+            const bindsOk = !!x && ['ink', 'edge', 'fill'].every((k) => b[k] === want[k]);
+            const paintOk = !!x && ['ink', 'edge', 'fill'].every((k) => (want[k] ? !!exp(k) && got[k] === exp(k) : clear(got[k])));
+            ok(bindsOk && paintOk, `${where}: ${name}'s "${row}" ${s} binds and paints its own roles — ink ${want.ink}${want.edge ? `, edge ${want.edge}` : ', no edge'}${want.fill ? `, fill ${want.fill}` : ', no wash'} — ${x ? `bound ${JSON.stringify(b)}, painted ${JSON.stringify(got)}, emitted ${JSON.stringify({ ink: exp('ink'), edge: exp('edge'), fill: exp('fill') })}` : 'no specimen'}`);
+          }
+        }
+        const band = EMIT(mode, 'inverse.background.primary')?.hex;
+        for (const row of ['Inverse outline', 'Inverse text']) {
+          const rs = specs.filter((x) => x.row === row);
+          ok(rs.length === 3 && rs.every((x) => cssHex(x.band) === band), `${where}: ${name}'s "${row}" row draws rest, hover and pressed on its own band, inverse.background.primary ${band} — read ${JSON.stringify(rs.map((x) => cssHex(x.band)))}`);
+        }
+      }
+    }
+    ok(errors.length === 0, `${host} #2907: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2907 drawn ${host}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 }
 // The Text row (Q32), on Interactive and on Brand's Style guide, against the emission: per column and state the
 // ink is `interactive.‹c›.text.‹s›`, there is no edge, and the ground is the outline hover wash (none at rest).
@@ -12056,6 +12142,84 @@ for (const host of ['web', 'figma']) {
         if (s.guard) await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// #1999 (owner decision Q1999.1 A): the refused-saved-brand notice is the chrome's error strip, in both themes, at the
+// top of the start window's body: `.p3-errstrip` with the warning glyph, its three lines in `.p3-errstrip-text`, then
+// Export and Clear as `.p3-btn` in a `.p3-confirm-row`. Web only: the plugin never sets a refused brand. The chrome probe
+// classifies its controls (`CONTROL_KINDS`) and holds its text, glyph and edges to their floors, as for the start window
+// above. The one narrow-tier rule keeps both buttons in the strip, which does not scroll, at 380. The brand is seeded as
+// smoke §9 seeds it: the studio persists an example, and only the override (a ground on a tier, refused) is typed here.
+// MUTATIONS, each failing here by name: the narrow rule removed → `… 380: the notice is not cut off: it does not scroll,
+// and both buttons sit inside it …`; the legacy card back (`errbar`, `barbtn`) → `… the notice is the chrome's error strip …`
+// and the chrome probe's unclassified-control arm; the lines in plain text ink (`.p3-start .p3-errstrip-text { color:
+// var(--p3-text) }`) → `… the notice's three lines are in danger ink and its glyph is the warning glyph …`.
+for (const { w, h } of START_SIZES) {
+  for (const theme of ['light', 'dark']) {
+    const where = `#1999 web ${theme} ${w}`;
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
+    const page = await ctx.newPage();
+    await hooks.watch(page);
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+    try {
+      await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+      await hooks.click(page.locator('[data-p3="start-example"]').first());
+      await hooks.need(page, '[data-p3="frame"]');
+      await page.waitForFunction(() => { try { return !!localStorage.getItem('prism3:brandInput'); } catch { return false; } }, null, { timeout: 5000 });
+      await page.evaluate(() => {
+        const o = JSON.parse(localStorage.getItem('prism3:brandInput'));
+        o.input.overrides = { light: { 'background.secondary': { palette: 'neutral', step: '200' } } };
+        localStorage.setItem('prism3:brandInput', JSON.stringify(o));
+      });
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="refused-brand"]');
+      await page.waitForFunction((tier) => document.querySelector('[data-p3="frame"]')?.dataset.w === tier, w <= 560 ? 'narrow' : 'wide');
+      await page.evaluate(() => document.fonts.ready);
+      const n = await page.evaluate(() => {
+        const e = document.querySelector('[data-p3="refused-brand"]');
+        const r = (x) => { const b = x?.getBoundingClientRect(); return b ? { t: b.top, b: b.bottom, l: b.left, r: b.right } : null; };
+        const btns = ['refused-brand-export', 'refused-brand-clear'].map((k) => e?.querySelector(`[data-p3="${k}"]`));
+        return {
+          strip: !!e && e.classList.contains('p3-errstrip') && !e.classList.contains('errbar') && e.dataset.theme === undefined,
+          inStart: !!e?.parentElement?.closest('[data-p3="start-column"]') && e.parentElement.firstElementChild === e,
+          glyph: !!e?.querySelector(':scope > svg'),
+          lines: [...(e?.querySelectorAll('.p3-errstrip-text > p') ?? [])].length,
+          row: btns.every((b) => b?.classList.contains('p3-btn') && b.parentElement?.classList.contains('p3-confirm-row') && b.parentElement.parentElement?.classList.contains('p3-errstrip-text')),
+          scrolls: e ? e.scrollHeight > e.clientHeight + 1 : true,
+          strip_: r(e), btns: btns.map(r),
+          ink: (() => {
+            // The expected side is the theme's own danger and plain-text tokens, resolved on a probe in the same column,
+            // not read off the strip: a rule that moves the lines' ink moves their color and leaves these alone.
+            const col = e?.parentElement;
+            if (!col) return null;
+            const probe = (v) => { const s = document.createElement('span'); s.style.color = `var(${v})`; col.append(s); const c = getComputedStyle(s).color; s.remove(); return c; };
+            const svg = e.querySelector(':scope > svg');
+            return {
+              bad: probe('--p3-bad-text'), badIcon: probe('--p3-bad-icon'), plain: probe('--p3-text'),
+              lines: [...e.querySelectorAll('.p3-errstrip-text > p')].map((p) => getComputedStyle(p).color),
+              glyph: svg?.dataset.glyph ?? null, glyphInk: svg ? getComputedStyle(svg).color : null,
+            };
+          })(),
+        };
+      });
+      ok(n.strip && n.inStart && n.glyph && n.lines === 3 && n.row,
+        `${where}: the notice is the chrome's error strip, first in the start window's body: the glyph, three lines, Export and Clear as buttons in a confirm row (Q1999.1 A) — ${JSON.stringify({ strip: n.strip, inStart: n.inStart, glyph: n.glyph, lines: n.lines, row: n.row })}`);
+      // Q1999.1 A's two marks that set it apart from option B: the lines in danger ink and the warning glyph in danger icon
+      // ink. Danger ink must differ from plain text ink here, or the arm could not tell the two apart.
+      const k = n.ink;
+      ok(!!k && k.bad !== k.plain && k.lines.length === 3 && k.lines.every((c) => c === k.bad) && k.glyph === 'warn' && k.glyphInk === k.badIcon,
+        `${where}: the notice's three lines are in danger ink and its glyph is the warning glyph in danger icon ink (Q1999.1 A) — ${JSON.stringify(k)}`);
+      const inside = n.strip_ && n.btns.every((b) => b && b.t >= n.strip_.t - 0.5 && b.b <= n.strip_.b + 0.5);
+      ok(!n.scrolls && inside, `${where}: the notice is not cut off: it does not scroll, and both buttons sit inside it — scrolls ${n.scrolls}, strip ${JSON.stringify(n.strip_)}, buttons ${JSON.stringify(n.btns)}`);
+      const m = await measure(page, `${where} / refused`, 'web', w);
+      check(m, `${where} / refused`, columnOf('web', w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
+        { only: ['[data-p3="refused-brand-export"]', '[data-p3="refused-brand-clear"]', '[data-p3="start-go"]', '[data-p3="start-example"]'] });
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `1999-web-${theme}-${w}.png`) });
+      ok(errors.length === 0, `${where}: 0 uncaught errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
@@ -18243,7 +18407,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 // #3129 — CHOOSE COMPONENTS TO ADD ON COMPONENTS; UPDATE FILE SHOWS TO ADD AND DUE (Q832 A, Q833 A, Q3129.1–13 A, and
 // the owner's revisions R1–R7 and Q835 A of 2026-10-28)
 // =============================================================================================
-// The plugin's Components page draws one box per family (R5): on each row the file could add a set of, never on a
+// The plugin's Components page draws one box per family (R5; since #3306 also one per set in a family with two or more
+// roots, and a needed set held): on each row the file could add a set of, never on a
 // family's part; a section's box is three-state over its rows, and in a section of one family it is that family's. Each
 // tier's caption line carries Select all and Deselect all, right-aligned (R1), and the shared settings sit under their
 // own tier, Component settings (R2). The page's title is at the left of the levers header and the search flush right in
@@ -18263,8 +18428,17 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 //   · R4: the mode control shown on Components (its CSS rule dropped) → `3129 figma … R4: Components shows no mode control`;
 //   · Q3129.14 B: the pin dropped (Components' `pinsLight` row removed) → `3129 figma … Q3129.14 B: arriving from Theme in
 //     Dark, Components previews Light …`;
-//   · R5: a family's parts given its box (`setRow` passed the row) → `3129 figma … R5: one box per family …`; the family
-//     box three-state again (`familyBox` returning `boxOfSets`' state) → `3129 figma … R5: a family's box is two-state …`;
+//   · R5: a family's parts given its box (`setRow` passed the row) → `3129 figma … R5: one box per family …`;
+//   · #3306 (Q3306.1–6 A; R5's two-state box retired by Q3306.2 A): no set box in a family row that splits (`split`
+//     false in `sectionEl`'s family branch) → `3129 figma … Q3306.1 A: a family with two or more roots …`; none in a
+//     flat section that splits (`split` false in its flat branch) → `3129 figma … Q3306.1 A, Q3306.2 A, Q3306.5 A:
+//     Buttons splits …`; the held marking dropped (`box()`'s `aria-disabled` line) → `3129 figma … Q3306.2 A, Q3306.4 A:
+//     a needed set is ticked and held …`; the Also line not drawn → `3129 figma … Q3306.5 A: To add's one Also adds
+//     line …`; the line split in two again (the needed sets and #3308's `_Doc-block` sets each drawn on its own
+//     `update-add-also`, against the owner's call A on the review) → `figma … #3308, #3306: panels on …` (section 10;
+//     this section's fixture has no `_Doc-block` sets, so its arm reads one line either way).
+//     The click guard on a held box is belt and braces: the model writes nothing for it (`toggleSets`), which
+//     `test-component-groups.ts` holds by name, so removing the guard alone leaves this arm green;
 //   · R6: Due drawn as an item of its own again → `3129 figma … R6: one Components section …`;
 //   · R7: To add drawn on a set-up file with nothing queued (the `fresh` test dropped) → `3129 figma … R7: Remove all
 //     leaves no To add …`.
@@ -18290,6 +18464,12 @@ const S_FILE = { type: 'file-sets', present: S_PRESENT, setUp: true, due: S_DUE,
 // family listed at a section's edge), and the parts that carry none.
 const S_BOXED_SETS = ['password-field', 'search-field', 'card-number-field', 'code-input', 'textarea', 'counter'];
 const S_UNBOXED_PARTS = ['code-input-cell', 'accordion', '_accordion-indicator', 'radio-control', 'radio-group', 'radio-row', 'select', 'text-field', 'badge'];
+// #3306 Q3306.1 A, typed from the proposal's table: the sets of the families with two or more roots that the sample file
+// lacks, each with a box of its own (Icon is in the file, and Buttons is whole in it, so neither has one).
+const S_SPLIT_SETS = ['icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'provider-logo'];
+// #3306 Q3306.2–4 A: the needed sets, worked out by hand from the catalog's nests: Dialog and Banner (queued) both nest
+// Flush icon button Neutral, and Banner nests Link; the file lacks both.
+const S_NEEDED = { 'flush-icon-button-neutral': 'FlushIconButton.Neutral, needed by 2 sets', link: 'Link, needed by Banner' };
 const S_CHECK = { type: 'update-check', previewHash: 'H-3129', missing: [], refused: [], sets: [
   { def: 'button', hash: 'a', members: 576, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: true },
   { def: 'text-field', hash: 'b', members: 96, update: 24, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false },
@@ -18428,14 +18608,29 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
         captions: caps.map((c) => c.textContent),
         settingsHolds: !!settings?.querySelector('[data-p3="cp-shared"]') && settings.getAttribute('aria-labelledby') === settings.querySelector('[data-p3="cp-settings-caption"]')?.id,
         badge: { text: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null },
+        // #3306: each set box (its own key), and each held box with its name, title, state and its row's status tags.
+        setBoxes: [...document.querySelectorAll('[data-p3="cp-box"][data-key^="setbox="]')].map((b) => b.dataset.key.slice(7)),
+        held: [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"]) > [data-p3="cp-box"][aria-disabled="true"]')].map((b) => {
+          const row = b.parentElement;
+          return [row.dataset.set, b.getAttribute('aria-checked'), b.getAttribute('aria-label'), b.title, [...row.querySelectorAll('[data-p3="cp-status-tag"]')].map((t) => [t.dataset.status, t.textContent])];
+        }),
+        flush: fam('subcomponents|Flush Icon Button')?.getAttribute('aria-checked') ?? 'none',
+        // Link is a section of one row, so the section's box is the row's (R5, Q8 A), held as the row's would be.
+        linkSec: (() => { const b = sec('links'); return b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label'), b.title] : null; })(),
+        linkTags: [...(document.querySelector('[data-set="link"]')?.querySelectorAll('[data-p3="cp-status-tag"]') ?? [])].map((t) => [t.dataset.status, t.textContent]),
       };
     });
     ok(S_BOXED_SETS.every((id) => st.boxedSets.includes(id)) && !S_UNBOXED_PARTS.some((id) => st.boxedSets.includes(id)) && st.families.accordion !== 'none' && st.families.breadcrumbs !== 'none',
       `${where}: R5: one box per family: on each row the file could add a set of, a family's row or a set alone on its row, and none on a part or a set the file holds (${JSON.stringify({ boxed: st.boxedSets, wrong: S_UNBOXED_PARTS.filter((id) => st.boxedSets.includes(id)), missing: S_BOXED_SETS.filter((id) => !st.boxedSets.includes(id)) })})`);
-    ok(st.families.accordion === 'true' && st.families.breadcrumbs === 'false' && st.families.checkbox === 'none' && st.sec.radios === 'false',
-      `${where}: R5: a family's box is two-state: Accordion (all queued) on, Breadcrumbs off, Checkbox (in the file) none, Radio (one of three queued) off (${JSON.stringify({ ...st.families, radio: st.sec.radios })})`);
-    ok(st.sec.buttons === 'none' && st.sec.tags === 'none' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.components === 'mixed' && st.sec.subcomponents === 'false',
-      `${where}: call 8, Q3129.6 A: section boxes: Buttons and Tag (all in the file) none, Fields and Other components mixed, Dialog on, Subcomponents off (${JSON.stringify(st.sec)})`);
+    ok(st.families.accordion === 'true' && st.families.breadcrumbs === 'false' && st.families.checkbox === 'none' && st.sec.radios === 'mixed' && st.flush === 'mixed',
+      `${where}: Q3306.2 A: a family's box is three-state, a needed set counted: Accordion (all queued) on, Breadcrumbs off, Checkbox (in the file) none, Radio (one of three queued) mixed, Flush icon button (one of three needed) mixed (${JSON.stringify({ ...st.families, radio: st.sec.radios, flush: st.flush })})`);
+    ok(st.sec.buttons === 'none' && st.sec.tags === 'none' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.components === 'mixed' && st.sec.subcomponents === 'mixed',
+      `${where}: call 8, Q3129.6 A, Q3306.2 A: section boxes: Buttons and Tag (all in the file) none, Fields and Other components mixed, Dialog on, Subcomponents mixed by its needed set (${JSON.stringify(st.sec)})`);
+    ok(JSON.stringify([...st.setBoxes].sort()) === JSON.stringify([...S_SPLIT_SETS].sort()),
+      `${where}: Q3306.1 A: a family with two or more roots has a box on each set the file could add, and no other family has one (${JSON.stringify(st.setBoxes)})`);
+    ok(JSON.stringify(st.held) === JSON.stringify([['flush-icon-button-neutral', 'true', S_NEEDED['flush-icon-button-neutral'], S_NEEDED['flush-icon-button-neutral'], [['needed', 'Needed']]]])
+      && JSON.stringify(st.linkSec) === JSON.stringify(['true', 'true', S_NEEDED.link, S_NEEDED.link]) && JSON.stringify(st.linkTags) === JSON.stringify([['needed', 'Needed']]),
+      `${where}: Q3306.2 A, Q3306.4 A: a needed set is ticked and held, its tag reads Needed, and its box's name and title name the set that needs it (${JSON.stringify({ held: st.held, link: st.linkSec, linkTags: st.linkTags })})`);
     ok(JSON.stringify([...st.queuedTags].sort()) === JSON.stringify([...S_QUEUED].sort()), `${where}: Q3129.4 A: the queued sets' tag reads To add (${JSON.stringify(st.queuedTags)})`);
     ok(st.named.accordion === 'Add all of Accordion to file' && st.named.counter === 'Add Counter to file' && st.named.password === 'Add Password field to file' && st.named.radio === 'Add all Radio to file',
       `${where}: Q3129.4 A: a family's box is named "Add all of {family} to file", a set's alone "Add {set} to file" (${JSON.stringify(st.named)})`);
@@ -18444,14 +18639,49 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     ok(st.fieldsBoxes[0] > 0 && st.fieldsBoxes[0] === st.fieldsBoxes[1] && Math.abs(st.names['password-field'] - st.fieldsTitle) <= 4,
       `${where}: #3129: in a section with settings a row's box takes the fold cell, under the section's box, so its name starts under the title (boxes ${JSON.stringify(st.fieldsBoxes)}, name ${st.names['password-field']}, title ${st.fieldsTitle})`);
     ok(st.targets.length > 0 && st.targets.every(([tw, th]) => tw >= 24 && th >= 24), `${where}: every box and tier action is a target of at least 24 × 24 (smallest ${JSON.stringify(st.targets.reduce((a, b) => (b[0] * b[1] < a[0] * a[1] ? b : a), [99, 99]))})`);
-    ok(st.intro === `The ${ENGINE_SETS.length} component sets the engine defines, in families. Tick a family to add its sets to this file; Update file adds them.`,
-      `${where}: the plugin's intro says how to add a family (DRAFT): "${st.intro}"`);
+    ok(st.intro === `The ${ENGINE_SETS.length} component sets the engine defines, in families. Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them.`,
+      `${where}: #3306: the plugin's intro says how to add a set or a family, and that what it needs comes with it (DRAFT): "${st.intro}"`);
     ok(!st.pageControl && /^Components · \d+ sets$/.test(st.tierHead.caption ?? '')
       && JSON.stringify(st.tierHead.acts) === JSON.stringify(['Select all', 'Deselect all']) && st.tierHead.sameLine && st.tierHead.rightAligned,
       `${where}: R1: Select all and Deselect all sit on the tier caption's line, right-aligned, and the page control under the intro is gone (${JSON.stringify({ pageControl: st.pageControl, ...st.tierHead })})`);
     ok(st.captions[0] === 'Component settings' && /^Components · /.test(st.captions[1] ?? '') && st.settingsHolds,
       `${where}: R2: the shared settings sit under their own tier, captioned Component settings, above the Components tier (${JSON.stringify(st.captions)})`);
     ok(st.badge.text === '10' && st.badge.name === 'Update file, 7 to add, 3 due', `${where}: Q3129.11 A: the badge counts the queue and splits its name (${JSON.stringify(st.badge)})`);
+    step = '#3306: a held box';
+    {
+      const before = await page.evaluate(() => window.__q.filter((m) => m.type === 'add-queue').length);
+      // A held box is `aria-disabled`, which Playwright will not click, so the click is dispatched as a person's would land.
+      await page.evaluate(() => document.querySelector('[data-p3="cp-box"][data-key="setbox=flush-icon-button-neutral"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+      await settle(page);
+      const heldTick = await page.evaluate((n) => ({ posts: window.__q.filter((m) => m.type === 'add-queue').length - n,
+        checked: document.querySelector('[data-p3="cp-box"][data-key="setbox=flush-icon-button-neutral"]')?.getAttribute('aria-checked') ?? null }), before);
+      ok(heldTick.posts === 0 && heldTick.checked === 'true', `${where}: Q3306.2 A: a held box writes nothing when ticked, and stays ticked (${JSON.stringify(heldTick)})`);
+    }
+    step = '#3306: Buttons, Button.Group chosen';
+    {
+      // The proposal's sample: the file lacks the Buttons family and the queue holds Button.Group, which nests Button. In a
+      // section with settings each set's box takes the fold cell, and the section's box is the family's, now mixed.
+      const BTN = ['button', 'button-destructive', 'button-group', 'button-neutral'];
+      await postMsg(page, { ...S_FILE, present: S_PRESENT.filter((id) => !BTN.includes(id)), queued: ['button-group'] });
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="cp-box"][data-key="setbox=button-group"]'), null, { timeout: 5000 }).catch(() => {});
+      const bt = await page.evaluate(() => {
+        const sec = document.querySelector('[data-p3="cp-section"][data-kind="buttons"]');
+        const b = (id) => sec?.querySelector(`[data-set="${id}"] > [data-p3="cp-box"]`);
+        const r = (n) => Math.round(n?.getBoundingClientRect().left ?? -1);
+        return { boxes: [...(sec?.querySelectorAll('[data-set] > [data-p3="cp-box"]') ?? [])].map((x) => [x.closest('[data-set]').dataset.set, x.getAttribute('aria-checked'), x.getAttribute('aria-disabled')]),
+          button: [b('button')?.getAttribute('aria-label') ?? null, b('button')?.title ?? null], group: b('button-group')?.getAttribute('aria-label') ?? null,
+          sec: sec?.querySelector('[data-p3="cp-section-head"] [role="checkbox"]')?.getAttribute('aria-checked') ?? null,
+          // One edge: each set's box under the section's box (the fold cell), as the Fields rows' are.
+          edge: [r(sec?.querySelector('[data-p3="cp-section-head"] [role="checkbox"]')), ...['button', 'button-neutral'].map((id) => r(b(id)))],
+          badge: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null };
+      });
+      ok(JSON.stringify(bt.boxes) === JSON.stringify([['button', 'true', 'true'], ['button-destructive', 'false', null], ['button-group', 'true', null], ['button-neutral', 'false', null]])
+        && JSON.stringify(bt.button) === JSON.stringify(['Button, needed by Button.Group', 'Button, needed by Button.Group']) && bt.group === 'Add Button.Group to file' && bt.sec === 'mixed'
+        && bt.edge[0] > 0 && bt.edge.every((x) => x === bt.edge[0]) && bt.badge === '3',
+        `${where}: Q3306.1 A, Q3306.2 A, Q3306.5 A: Buttons splits: a box on each set at the section's edge, Button ticked and held by Button.Group, the section mixed, the badge counting Button.Group alone, not the Button it needs, with the 2 sets still due (Text field, Tag) (${JSON.stringify(bt)})`);
+      await postMsg(page, S_FILE);
+      await page.waitForFunction(() => !document.querySelector('[data-p3="cp-box"][data-key="setbox=button-group"]'), null, { timeout: 5000 }).catch(() => {});
+    }
     step = 'a set\'s box, a section box';
     await hooks.click(page.locator('[data-set="textarea"] > [data-p3="cp-box"]'));
     const one = { post: await lastQ(), on: await page.evaluate(() => document.querySelector('[data-set="textarea"] > [data-p3="cp-box"]')?.getAttribute('aria-checked') ?? null),
@@ -18529,6 +18759,7 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
         ticks: document.querySelectorAll('[data-p3="update-group-add"] [role="checkbox"]').length,
         removeAll: document.querySelector('[data-p3="update-remove-all"]')?.textContent ?? null,
         line: document.querySelector('[data-p3="update-add-line"]')?.textContent ?? null,
+        also: [...document.querySelectorAll('[data-p3="update-dialog"] [data-p3="update-add-also"]')].map((n) => n.textContent),
         due: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => [b.dataset.id, b.querySelector('.p3-upd-setname')?.textContent ?? null, b.getAttribute('aria-checked')]),
         dueLine: document.querySelector('[data-p3="update-due-line"]')?.textContent ?? null,
         overflow: [...document.querySelectorAll('[data-p3="update-add-row"]')].filter((r) => r.scrollWidth > r.clientWidth + 1).length,
@@ -18539,6 +18770,8 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
       && JSON.stringify(u.subgroups) === JSON.stringify(['update-group-add', 'update-group-due']) && JSON.stringify(u.subtitles) === JSON.stringify(['To add', 'Due']),
       `${where}: R6: one Components section at Theme's level, between Theme and Style guides, with To add and Due as its subtitles (${JSON.stringify({ groups: u.groups, title: u.title, level: u.level, subgroups: u.subgroups, subtitles: u.subtitles })})`);
     ok(JSON.stringify(u.rows) === JSON.stringify(S_ORDER), `${where}: Q833 A: To add lists the queue in Components' order, with its names (${JSON.stringify(u.rows)})`);
+    ok(JSON.stringify(u.also) === JSON.stringify(['Also adds: Link, Flush icon button Neutral.']),
+      `${where}: Q3306.5 A: To add's one Also adds line names the sets the chosen ones need, out of their family too, while the badge counts the chosen ones (${JSON.stringify(u.also)})`);
     ok(u.ticks === 0 && JSON.stringify(u.removes) === JSON.stringify(S_ORDER.map(([, n]) => `Remove ${n} from To add`)) && u.removeAll === 'Remove all',
       `${where}: Q3129.7 A, Q3129.8 A: a queued set has no tick, only Remove, named "Remove {set} from To add", and the subtitle's line has Remove all (${JSON.stringify({ ticks: u.ticks, removes: u.removes.length, removeAll: u.removeAll })})`);
     ok(u.line === '7 sets chosen on Components. Each is added with its usage panel while Documentation has panels on.' && u.dueLine === '3 sets to update in place. Ticked by default.',

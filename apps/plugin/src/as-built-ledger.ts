@@ -92,7 +92,7 @@ const fnv = (s: string): string => { const h = fnvStream(); h.add(s); return h.h
 const FACET_OF: Readonly<Record<string, Facet>> = {
   aspectRatio: 'size', minWidth: 'size', maxWidth: 'size', placementWidth: 'size', placementHeight: 'size', glyphPx: 'size',
   glyphInset: 'size', layoutGrow: 'size', instanceSizing: 'size', primaryAxisSizingMode: 'size', counterAxisSizingMode: 'size',
-  textAutoResize: 'size', minLines: 'size', absoluteInset: 'size', absoluteStrokeInset: 'size', absoluteCenter: 'size',
+  textAutoResize: 'size', minLines: 'size', firstLine: 'size', absoluteInset: 'size', absoluteStrokeInset: 'size', absoluteBorderInset: 'size', absoluteCenter: 'size',
   absoluteCenterOn: 'size', absoluteScale: 'size', cornerInset: 'size', footPin: 'size', footShare: 'size', pin: 'size', paddingPx: 'size', bound: 'size',
   paints: 'color', gradientFill: 'color', descendantFills: 'color', fixedPaint: 'color',
   textStyle: 'type', characters: 'type', textDefault: 'type', textAlignVertical: 'type',

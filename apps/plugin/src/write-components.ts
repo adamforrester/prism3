@@ -168,6 +168,8 @@ export interface CompNode {
    *  just set, so a `mixed` reads as "not the id" and is reported. Set through `setTextStyleIdAsync`. */
   readonly textStyleId?: string | symbol;
   clipsContent?: boolean;
+  /** The prototype scroll region (#3163): `FramePrototypingMixin`, on a frame, a component and a slot, never a set. */
+  overflowDirection?: string;
   strokesIncludedInLayout?: boolean;
   readonly width?: number;
   readonly height?: number;
@@ -1553,6 +1555,9 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     // executor either way, so `lint-unclaimed-defaults`'s `clipsContent` row stays satisfied; what
     // changed is that the decision now comes from the def rather than a hardcoded literal.
     set('clipsContent', n?.clipsContent ?? false);
+    // THE SCROLL REGION (#3163), threaded the same way, default NONE (Figma's own). A FRAME only: a set has no
+    // `overflowDirection` (`ComponentSetNode` lacks FramePrototypingMixin), and a slot takes it at creation below.
+    if (t === 'FRAME') set('overflowDirection', n?.overflowDirection ?? 'NONE');
     // PARENT-SIDE auto-layout properties, and these DO need the applicability test: Figma documents them
     // as "applicable only on auto-layout frames". Gated on the plan's `layoutMode` rather than a live
     // read for the reason in the header — and when there is no auto-layout there is no gap and no
@@ -2226,7 +2231,11 @@ const writeComponentSet = async (
       node = ex ?? wr(api.createFrame());
       // THREADED FROM THE PLAN (#1316), default false — unchanged for every existing box, which omits the
       // field. Only `image-placeholder`'s frame opts into clipping, so a dropped photo cannot overflow it.
-      if (!kept) node.clipsContent = n.clipsContent ?? false;
+      if (!kept) {
+        node.clipsContent = n.clipsContent ?? false;
+        // THE SCROLL REGION (#3163), default NONE: only a box whose def declares `scroll` (Dialog's body) scrolls.
+        node.overflowDirection = n.overflowDirection ?? 'NONE';
+      }
     }
     // THE LITERAL GLYPH SIZE (#1340), for a glyph and, since #2380, for the icon INSTANCE an icon-set glyph
     // builds as (image-placeholder's 180px marker). Neither binds a `size` variable, so each stays at its 24px
@@ -2795,6 +2804,25 @@ const writeComponentSet = async (
       if (kid.layoutPositioning !== 'ABSOLUTE')
         misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the glyph would take a cell in the row)`);
     }
+    // THE FIRST-LINE PAIR (#3360, owner Q-FM1 A and Q-FM1.1 B) — a glyph beside a text centers on the text's FIRST line.
+    // After the flow pass, because the two cells and the text exist by then. The line height is the host's, read off the
+    // text node its style was applied to (`PIXELS` as is, `PERCENT` of the font size), and the glyph's size is its
+    // variable's value; the shorter cell pads down by half the difference. Frozen at paste, like the reserved lines: a
+    // padding binds one variable, never a max or a half of two. Lockstep with the paste executor (`PAYLOAD_FIRST_LINE`).
+    if (n.firstLine) {
+      const f = n.firstLine, v = byName.get(f.glyph), tc = byPart.get(f.textCell), gc = byPart.get(f.glyphCell);
+      const t = tc ? ((tc.children ?? []) as Wr[]).find((k) => k.name === f.text) : undefined;
+      const lh = (t?.lineHeight ?? {}) as { unit?: string; value?: number }, fs = t?.fontSize;
+      const L = lh.unit === 'PIXELS' ? lh.value ?? NaN : lh.unit === 'PERCENT' && typeof fs === 'number' && typeof lh.value === 'number' ? (lh.value / 100) * fs : NaN;
+      const G = v ? v.resolveForConsumer(node).value : NaN;
+      if (!tc || !(L > 0) || typeof G !== 'number' || !(G > 0))
+        misses.push(`${n.name}.firstLine -> ${!tc ? `${f.textCell} not built` : !(L > 0) ? `${f.text} has no px line height` : `${f.glyph} resolved to ${JSON.stringify(G)}, not a size`}`);
+      else for (const [cell, pad] of [[tc, Math.max(0, (G - L) / 2)], [gc, Math.max(0, (L - G) / 2)]] as [Wr | undefined, number][]) {
+        if (!cell || held.has(cell)) continue;
+        cell.paddingTop = pad;
+        if (!(Math.abs((cell.paddingTop as number) - pad) <= 0.01)) misses.push(`${cell.name}.paddingTop -> DISCARDED (set ${pad} for the first line, reads ${cell.paddingTop})`);
+      }
+    }
     // THE FOOT PIN (#2872, Link's current-page bar) — a box lifted out of the flow across this parent's bottom edge. In
     // two halves, for the ring's reason below: LIFTED here, before the ring's pass, so the ring is sized off a parent
     // that no longer holds the bar's cell; SIZED and PLACED after it, so the bar is measured off a parent that no
@@ -2845,6 +2873,21 @@ const writeComponentSet = async (
           else inset = gap + sw;
         }
       }
+      // INSIDE THE HOST'S BORDER (#3328, owner decision Q3328.1 A). A field's ring is the focus band INSIDE its 1px
+      // border: sited the border's width in from the host's edge on every side and uncompensated (nothing is drawn
+      // outward), so the border recolored to the focus ink plus the ring's band read as one indicator with no outer
+      // frame. A width of 0 (the Counter's ghost, which draws no edge) leaves the outside ring above as it was.
+      // Lockstep with the paste executor.
+      let inside = 0;
+      if (c.absoluteBorderInset) {
+        const bv = byName.get(c.absoluteBorderInset);
+        if (!bv) misses.push(`${c.name}.absoluteBorderInset -> ${c.absoluteBorderInset} (sited outside the host; the field focus would be drawn as an outer ring — #3328)`);
+        else {
+          const bw = bv.resolveForConsumer(kid).value;
+          if (typeof bw !== 'number') misses.push(`${c.name}.absoluteBorderInset -> ${c.absoluteBorderInset} resolved to ${JSON.stringify(bw)}, not a number (sited outside the host — #3328)`);
+          else if (bw > 0) { inside = bw; inset = gap - bw; }
+        }
+      }
       // CLEAR THE INHERITED NOMINAL SIDE (#1388, #1290's prediction). The nested component's own root
       // binds width AND height to its `nominal-side` (`size.md.height`), present only so it builds as a
       // ring-shaped artifact alone; an INSTANCE inherits that binding. `resize` clears the dimension
@@ -2877,9 +2920,15 @@ const writeComponentSet = async (
       // already-pasted ring does not re-flow when a brand changes its corner radius.
       const ringNode = kid as unknown as Record<string, unknown>;
       const hostNode = node as unknown as Record<string, unknown>;
+      // INSIDE THE BORDER (#3328) the ring takes the HOST'S OWN corner variables instead: it runs at the field's radius
+      // token, so a brand re-runging its corner moves the ring with the field, and no radius is a literal.
       for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const) {
         const hostR = hostNode[corner];
-        if (typeof hostR === 'number') ringNode[corner] = hostR + inset;
+        if (inside > 0) {
+          const rv = n.bound[corner] ? byName.get(n.bound[corner]) : undefined;
+          if (rv) kid.setBoundVariable?.(corner, rv);
+          else misses.push(`${c.name}.${corner} -> the host binds no corner variable, so the ring inside its border has no radius token to take (#3328)`);
+        } else if (typeof hostR === 'number') ringNode[corner] = hostR + inset;
       }
       // STRETCH so the ring tracks its target when a designer resizes a variant; without it the ring
       // keeps the size it was pasted at, silently, because it looks right at that one size.

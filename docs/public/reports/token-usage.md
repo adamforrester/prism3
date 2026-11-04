@@ -28,9 +28,12 @@ Type: dimension. Bound by 26 component(s).
 | card-number-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
+|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | code-input-cell | `border-width`, `caret-width` | caret | state: focus-visible (4 of 28) |
 |  |  | container | every member (28 of 28) |
-| counter | `border-width` | control | every member (18 of 18) |
+|  |  | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
+| counter | `border-width`, `outline.ring-border` | control | every member (18 of 18) |
+|  |  | focusRing | appearance: outline · state: focus-visible (3 of 18) |
 | divider | `horizontal.false.height`, `horizontal.line.height`, `horizontal.line.width` (not drawn), `vertical.false.width`, `vertical.line.height` (not drawn), `vertical.line.width` | container | labeled: false (5 of 7) |
 |  |  | leadingRule | inset: none · labeled: true (2 of 7) |
 |  |  | trailingRule | inset: none · labeled: true (2 of 7) |
@@ -44,19 +47,24 @@ Type: dimension. Bound by 26 component(s).
 | password-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
+|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | provider-logo | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 86) |
 | search-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
+|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | select | `border-width` | control | every member (84 of 84) |
+|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | sign-in-button | `border-width` | container | every member (96 of 96) |
 | tabs | `baseline-height` | baseline | every member (6 of 6) |
 | tag | `unselected.border-width` | container | selection: unselected (30 of 45) |
 | text-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
+|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | textarea | `border-width`, `caret-width`, `grip-inset` | caret | state: focus-visible (12 of 84) |
 |  |  | control | every member (84 of 84) |
+|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 |  |  | gripGlyph | every member (84 of 84) |
 | wallet-button | `border-width` | container | every member (68 of 68) |
 
@@ -76,11 +84,12 @@ Type: dimension. Bound by 3 component(s).
 
 ### `border-width.none`
 
-Type: dimension. Bound by 1 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | banner | `width.full.edge-side` | container | width: full (5 of 10) |
+| counter | `ghost.ring-border` | focusRing | appearance: ghost · state: focus-visible (3 of 18) |
 
 ### `border-width.thick`
 
@@ -3774,9 +3783,9 @@ Declared, not drawn: `color.disabled.text`
 
 ### counter
 
-21 token(s); 18 design-file member(s).
+22 token(s); 18 design-file member(s).
 
-`border-width.hairline`, `color.disabled.border`, `color.disabled.text`, `color.field.border.rest`, `color.field.fill`, `color.text.primary`, `focus.ring.offset`, `focus.ring.offset-field`, `focus.ring.width`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `border-width.none`, `color.disabled.border`, `color.disabled.text`, `color.field.border.rest`, `color.field.fill`, `color.text.primary`, `focus.ring.offset`, `focus.ring.offset-field`, `focus.ring.width`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### dialog
 
