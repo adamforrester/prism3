@@ -20626,6 +20626,56 @@ if (runs('3335')) {
     } finally { await ctx.close(); }
   }
 } // 3335
+// #3391: an override is labeled on screen by the palette it NAMES, not by its row's family. The brand holds a brand
+// color `brand-neutral` and an override on the primary border that points at it, under the primary family and then
+// with the action palette on neutral (the case as found). The ORACLE is the override the page persisted, read back
+// out of its storage, never the helper the button calls; so the row's family put back at the button's own site
+// (`color-interactive.ts`) fails here by name, which `test-interactive-input.ts` §9 cannot see. The picker offers
+// the row's own ramp only, so it must mark none of it current.
+if (runs('3391')) {
+  console.log(`\nColor › Interactive: an override reads by the palette it names (#3391)\n${'='.repeat(78)}`);
+  const ROLE = 'interactive.primary.border.rest', BC = 'brand-neutral', STEP = '350';
+  for (const action of [null, 'neutral']) {
+    const where = `3391 web light 1280${action ? `, action palette ${action}` : ''}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+    let step = 'seed';
+    try {
+      await page.evaluate(([role, bc, st, act]) => {
+        const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+        (blob.input.brandColors ??= []).push({ name: bc, oklch: { l: 0.62, c: 0.012, h: 240 } });
+        ((blob.input.overrides ??= {}).light ??= {})[role] = { palette: bc, step: st };
+        if (act) blob.input.actionPalette = act;
+        localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+      }, [ROLE, BC, STEP, action]);
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+      step = 'place';
+      await goPlace(page, 'color-interactive');
+      await settle(page);
+      const p = await persisted(page);
+      const held = p?.overrides?.light?.[ROLE];
+      ok(held?.palette === BC && held?.step === STEP && (action === null || p?.actionPalette === action),
+        `${where}: premise, the page holds the override on ${BC} ${STEP} (${JSON.stringify(held ?? null)}, action palette ${p?.actionPalette ?? 'primary'})`);
+      const btn = page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${ROLE}"]`);
+      const label = (await btn.locator('.p3-btn-label').textContent())?.trim() ?? '';
+      const want = `Override · ${held?.palette} ${held?.step}`;
+      ok(label === want, `#3391 ${where}: the button reads by the palette the override names, "${want}" (got "${label}")`);
+      step = 'picker';
+      await hooks.click(btn);
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      const pk = await page.evaluate(() => {
+        const el = document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]');
+        return { palette: el?.querySelector('[data-p3="step-picker-palette"]')?.value ?? null, pressed: el?.querySelector('[aria-pressed="true"]')?.dataset.step ?? null };
+      });
+      // The picker offers the row's own ramp only, so the palette the override names is not on it: no step of the
+      // offered ramp is the current one (the bug marked "<row family> 350" as current).
+      ok(pk.palette !== BC && pk.pressed === null, `#3391 ${where}: the picker marks no step of ${pk.palette} as current, since the override names ${BC} (${JSON.stringify(pk)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3391
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
