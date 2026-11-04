@@ -2,7 +2,8 @@
 
 Owner decision Q3 A: a component gets a variant only when its layout or structure changes. Show/hide becomes a
 boolean, text a text property, a nested choice an exposed nested instance, width the container's, and a color-only
-state or status stays a variant. It came from a Figma rebuild whose local components were heavily over-varianted
+state or status stays a variant. No axis is named for a viewport or a width (`desktop`/`mobile`): where the layout
+changes between breakpoints, the axis names the layout (`stacked`/`inline`) and the parent picks the member. It came from a Figma rebuild whose local components were heavily over-varianted
 (an order row at 23 variants where the rule gives 6; a bag line item at 32 where it gives 4).
 
 ### What changed

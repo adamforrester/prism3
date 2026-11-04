@@ -205,9 +205,10 @@ line item at 32 where it gives 4. Before you combine the frames into a set, sort
 | Width only | No variant. The component fills its container; the parent, or the spacing inside it, sets the width |
 | Color only, for a state or a status | A variant: an override would break the no-overrides rule |
 
-Desktop and mobile are a variant only where the layout really differs at the two widths. Where the
-mobile member is the desktop one at a narrower width, build one member and let each breakpoint's
-container set the width. Count the members before you combine them, and record the count, with each
+Never name a variant for a viewport or a width (`desktop`/`mobile`, `wide`/`narrow`): the parent controls
+the width. Where the layout really changes between breakpoints, the variant names the layout
+(`stacked`/`inline`), and the parent picks the member. Where the narrow member is the wide one at a smaller
+width, build one member and let each breakpoint's container set the width. Count the members before you combine them, and record the count, with each
 axis and its reason, in the log.
 
 ## 4. Plugin-API traps
@@ -523,7 +524,8 @@ chose, so each write replaces a decision, and the owner needs to see each one an
 8. **Audit each local component set against the variant rule** (section 3, "Building a local
    component"), read-only first. For every axis, compare the members that differ only on it, and name
    what changes: layout or structure, color for a state or a status, or something the rule sends
-   elsewhere (one part's visibility, text, a nested choice, width). Report each set as its variant count
+   elsewhere (one part's visibility, text, a nested choice, width). An axis named for a viewport or a width
+   (`desktop`/`mobile`) is reported too, even where its layout changes: it is renamed for that layout. Report each set as its variant count
    now against the count the rule gives, with the axes to fold and what each becomes. Reducing a set
    replaces the designers' instances, so it waits for the owner's go-ahead, and then follows steps 5 and 6:
    snapshot every instance first, and restore by diffing.

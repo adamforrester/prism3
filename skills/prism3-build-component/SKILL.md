@@ -512,7 +512,10 @@ actually differs between its values:
 | Width only | No axis. The component fills its container; the parent, or the spacing inside it, sets the width |
 | Color only, for a state or a status | A variant axis: Figma has no other way to repaint a member without an override |
 
-Desktop and mobile are an axis only where the layout really differs at the two widths. Button's
+Never name an axis for a viewport or a width (`desktop`/`mobile`, `wide`/`narrow`): the parent controls
+the width. Where the layout really changes between breakpoints, the axis names the layout
+(`stacked`/`inline`), and the parent picks the member. Where the narrow member is the wide one at a smaller
+width, build one member and let the container set the width. Button's
 `leading` and `trailing` slot axes hold to the rule rather than break it: the slot moves the box's
 padding, which is layout. When a def you are writing seems to need an axis the table sends elsewhere,
 flag it in the PR with the case for it; the exception is the owner's call.
