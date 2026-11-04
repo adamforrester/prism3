@@ -19278,17 +19278,6 @@
           }
         },
         {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "members": 24,
-          "when": {
-            "state": [
-              "focus-visible",
-              "focus-visible-filled"
-            ]
-          }
-        },
-        {
           "part": "container/control/content/entry/caretEnd",
           "kind": "frame",
           "members": 12,
@@ -20435,16 +20424,6 @@
             "status"
           ],
           "exposes": []
-        },
-        {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "component": "focus-ring",
-          "variant": {
-            "surface": "default"
-          },
-          "follows": [],
-          "exposes": []
         }
       ],
       "properties": [
@@ -20611,17 +20590,6 @@
           "when": {
             "state": [
               "focus-visible"
-            ]
-          }
-        },
-        {
-          "part": "container/body/control/focusRing",
-          "kind": "instance",
-          "members": 24,
-          "when": {
-            "state": [
-              "focus-visible",
-              "focus-visible-filled"
             ]
           }
         }
@@ -21717,16 +21685,6 @@
           "follows": [
             "status"
           ],
-          "exposes": []
-        },
-        {
-          "part": "container/body/control/focusRing",
-          "kind": "instance",
-          "component": "focus-ring",
-          "variant": {
-            "surface": "default"
-          },
-          "follows": [],
           "exposes": []
         }
       ],
@@ -25581,17 +25539,6 @@
               "read-only"
             ]
           }
-        },
-        {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "members": 24,
-          "when": {
-            "state": [
-              "focus-visible",
-              "focus-visible-filled"
-            ]
-          }
         }
       ],
       "redlineKey": [
@@ -26633,16 +26580,6 @@
           "follows": [
             "status"
           ],
-          "exposes": []
-        },
-        {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "component": "focus-ring",
-          "variant": {
-            "surface": "default"
-          },
-          "follows": [],
           "exposes": []
         }
       ],
@@ -38976,17 +38913,6 @@
           }
         },
         {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "members": 24,
-          "when": {
-            "state": [
-              "focus-visible",
-              "focus-visible-filled"
-            ]
-          }
-        },
-        {
           "part": "container/control/content/entry/caretEnd",
           "kind": "frame",
           "members": 12,
@@ -40064,16 +39990,6 @@
             "status"
           ],
           "exposes": []
-        },
-        {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "component": "focus-ring",
-          "variant": {
-            "surface": "default"
-          },
-          "follows": [],
-          "exposes": []
         }
       ],
       "properties": [
@@ -41136,12 +41052,7 @@
         {
           "part": "container/control/focusRing",
           "kind": "instance",
-          "members": 6,
-          "when": {
-            "state": [
-              "focus-visible"
-            ]
-          }
+          "members": 3
         }
       ],
       "redlineKey": [
@@ -41561,7 +41472,7 @@
             {
               "part": "container/control",
               "fill": "color.field.fill",
-              "stroke": "color.field.border.rest"
+              "stroke": "color.border.focus"
             },
             {
               "part": "container/control/entry/value",
@@ -44515,17 +44426,6 @@
           }
         },
         {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "members": 24,
-          "when": {
-            "state": [
-              "focus-visible",
-              "focus-visible-filled"
-            ]
-          }
-        },
-        {
           "part": "container/control/content/entry/caretEnd",
           "kind": "frame",
           "members": 12,
@@ -45674,16 +45574,6 @@
             "status"
           ],
           "exposes": []
-        },
-        {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "component": "focus-ring",
-          "variant": {
-            "surface": "default"
-          },
-          "follows": [],
-          "exposes": []
         }
       ],
       "properties": [
@@ -45845,17 +45735,6 @@
           "when": {
             "state": [
               "focus-visible"
-            ]
-          }
-        },
-        {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "members": 24,
-          "when": {
-            "state": [
-              "focus-visible",
-              "focus-visible-filled"
             ]
           }
         },
@@ -46885,16 +46764,6 @@
           "follows": [
             "status"
           ],
-          "exposes": []
-        },
-        {
-          "part": "container/control/focusRing",
-          "kind": "instance",
-          "component": "focus-ring",
-          "variant": {
-            "surface": "default"
-          },
-          "follows": [],
           "exposes": []
         }
       ],
@@ -49758,17 +49627,6 @@
               "focus-visible"
             ]
           }
-        },
-        {
-          "part": "container/focusRing",
-          "kind": "instance",
-          "members": 8,
-          "when": {
-            "state": [
-              "focus-visible",
-              "focus-visible-filled"
-            ]
-          }
         }
       ],
       "redlineKey": [
@@ -50138,18 +49996,7 @@
           ]
         }
       ],
-      "nesting": [
-        {
-          "part": "container/focusRing",
-          "kind": "instance",
-          "component": "focus-ring",
-          "variant": {
-            "surface": "default"
-          },
-          "follows": [],
-          "exposes": []
-        }
-      ],
+      "nesting": [],
       "properties": [
         {
           "name": "digit",

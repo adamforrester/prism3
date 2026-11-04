@@ -1306,19 +1306,6 @@ export type PartDef = {
    *  resolve to 0 in every brand, which `lint-absolute-inset.ts` asserts (`MUST_DRAW_INSIDE`): a ring offset outward
    *  while declaring itself inside would be neither. */
   drawnInside?: true;
-  /** For `absolute` (a nested focus ring): the binding key of the HOST's border width the part sits INSIDE (#3328,
-   *  owner decision Q3328.1 A, the "A′" geometry). Where the key resolves above 0, the part is placed that far inside
-   *  its host's edge on every side, so the nested ring's inside stroke draws a band that starts where the host's own
-   *  border ends: the field's border recolored to the focus ink plus the ring's band inside it, one indicator, with no
-   *  outer frame. Its corners take the host's own corner bindings (the field's radius token, never a literal), and
-   *  `strokeInset` is not applied, since nothing is drawn outward.
-   *
-   *  A KEY, not a flag, so it can follow an axis: the Counter's outline sits inside its edge and its ghost, which draws
-   *  no edge, keys it to `border-width.none` and keeps the outside ring its `strokeInset` sites. Where it resolves to
-   *  0 the part is placed exactly as without it. The underline Field style drops it (`applyFieldStyle`): that edge has
-   *  no side border to sit inside, and its ring stays outside (#2695 Q3). `lint-absolute-inset.ts` holds each field
-   *  ring to it (`MUST_SIT_INSIDE_BORDER`). */
-  borderInset?: string;
   /** For `vector` parts: PIN the glyph into a corner of its parent, OUT of the auto-layout flow, `inset`
    *  (a binding key, like `absolute`'s) in from both edges of that corner. The textarea's resize grip is the
    *  case: a small glyph that sits at the control's bottom-right corner and must not take a cell — in the
@@ -4427,9 +4414,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // and after, which the footprint rule exists to refuse. Expanded over the def's declared states like an axis.
   // AND A `strokeEdges` KEY (#2695): the underline field's line thickens at focus. Both executors draw a stroke INSIDE
   // the node and leave it out of the auto-layout size (`strokesIncludedInLayout: false`), so a state-keyed weight
-  // moves no box, which is the footprint rule's whole concern.
+  // moves no box, which is the footprint rule's whole concern. AND A `strokeWidth` KEY (#3399, owner decision Q22 A), for
+  // the same reason: a focused field's border becomes the 2px focus edge, drawn inside, so the box keeps its size.
   const keyAxes = (p: PartDef, key: string): Record<string, readonly string[]> =>
-    key === p.type || (p.strokeEdges && Object.values(p.strokeEdges).includes(key)) ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
+    key === p.type || key === p.strokeWidth || (p.strokeEdges && Object.values(p.strokeEdges).includes(key)) ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
       for (const expanded of expandKey(key, keyAxes(parts[n], key)))
@@ -4611,11 +4599,13 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // which the root is absent has no tree to project at all.
       if (n === a.root)
         e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'presentWhen' — the root is what a coordinate projects, so gating it away leaves that coordinate with no tree`);
-      // TWO GATING MECHANISMS ON ONE PART is ambiguous rather than additive: `present()` reads `when`
-      // through an early return, so whichever it consults first silently decides and the other field
-      // reads as though it were still doing work.
-      if (p.kind === 'overlay' || p.kind === 'absolute')
-        e.push(`anatomy part '${n}' is kind '${p.kind}' and declares 'presentWhen' as well as its own 'when' — that kind is already gated by STATE, and two presence rules on one part means one of them is not consulted`);
+      // TWO STATE GATES ON ONE PART are ambiguous rather than additive: an overlay or absolute part is already gated by
+      // STATE through `when`, so a `presentWhen` naming the state says the same thing twice and one of them is not the
+      // rule. An overlay takes no `presentWhen` at all. An ABSOLUTE part may gate on a VARIANT axis (#3399: the
+      // Counter's ring exists on ghost only, since outline's own edge is the focus edge): `present()` checks the variant
+      // gate first and then `when`, so the two AND-compose, and neither can stand in for the other.
+      if (p.kind === 'overlay' || (p.kind === 'absolute' && STATE_GATE in p.presentWhen))
+        e.push(`anatomy part '${n}' is kind '${p.kind}' and declares 'presentWhen'${p.kind === 'absolute' ? ` on '${STATE_GATE}'` : ''} as well as its own 'when' — that kind is already gated by STATE, and two presence rules on one part means one of them is not consulted`);
       for (const [axis, values] of gates) {
         // STATE-GATED PRESENCE FOR AN IN-FLOW PART (owner decision, 2026-09-26, the field family's two text
         // layers and its focus caret). The reserved key `state` gates on the projected STATE, the one
@@ -5085,11 +5075,6 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // `drawnInside` (#2417, Q257 A) is `strokeInset`'s stated alternative: an absolute part only, and never with it.
     if (p.drawnInside !== undefined && p.kind !== 'absolute')
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'drawnInside' — only an 'absolute' part is sited against its host's edge, so only it can be drawn inside it`);
-    // `borderInset` (#3328): an absolute part only, nesting the ring, and never beside `drawnInside`, which sits ON the edge.
-    if (p.borderInset !== undefined && p.kind !== 'absolute')
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'borderInset' — only an 'absolute' part is sited against its host's edge, so only it can sit inside the host's border`);
-    if (p.borderInset !== undefined && p.drawnInside)
-      e.push(`anatomy part '${n}' declares both 'drawnInside' and 'borderInset' — one sits on the host's edge, the other inside its border; declare one`);
     if (p.drawnInside && p.strokeInset !== undefined)
       e.push(`anatomy part '${n}' declares both 'drawnInside' and 'strokeInset' — drawn inside the host's edge means the stroke is NOT compensated outward, and 'strokeInset' compensates it; declare one`);
     // `strokeEdges` (#2695): the four sides apart, read by the box branch only, and never beside `strokeWidth`.

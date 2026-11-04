@@ -9,7 +9,7 @@
  * research (`patterns/data-collection-recipes.md`, the card recipe).
  *
  * ONE CALL TO THE FIELD FACTORY (Password's pattern, Q301.8 A). The token block, the seven projected states, `status`,
- * the size system, the nested FieldLabel, FieldMessage and focus ring come from `makeTextField`, so a fix there reaches
+ * the size system, the nested FieldLabel, FieldMessage and focus edge come from `makeTextField`, so a fix there reaches
  * this field without a copy. What this file states is what differs:
  *
  *  · THE TRAILING CELL IS A PAYMENT TILE (`edge: 'mark'`, #2429 §2). A swap slot whose content is a provider logo, card-
@@ -38,7 +38,7 @@
 import { ComponentDef } from '../component-schema';
 import { PROVIDER_LOGO_NAMES } from '../provider-logo-glyphs';
 import { PROVIDER_LOGO_KINDS } from '../provider-logo-set';
-import { makeTextField } from './text-field';
+import { FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
 
 /** The payment tiles: every mark the set draws on the tile artboard, by kind, so a kind renamed in the set (`card/` →
  *  `payment/`, PR 3) reaches this field without an edit. */
@@ -82,7 +82,7 @@ export const cardNumberField: ComponentDef = makeTextField({
     { name: 'brand', type: `enum: ${CARD_NETWORKS.map((n) => `'${n}'`).join(' | ')}`, values: [...CARD_NETWORKS], default: GENERIC, required: false, description: 'The card network the field shows: generic until the leading digits tell the network, then that network\'s tile. Set it from the card-type detection, or from the payment provider\'s card-brand event when the provider hosts the input. Card networks only: a wallet or pay-later tile is never a value, because no card number names one.' },
     { name: 'brandName', type: 'string', required: false, description: 'The detected network\'s name in the app\'s own words, such as "Visa". It goes in a visually hidden description on the input, linked by aria-describedby, so the network is never conveyed by the tile alone. Leave it empty while brand is generic.' },
     { name: 'showCardMark', type: 'boolean', default: true, required: false, description: 'Whether the tile shows. On by default; the field shows the generic tile before it knows the network.' },
-    { name: 'renderInput', type: 'function', required: false, description: 'Returns the payment provider\'s mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus ring and message around the provider\'s input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope.' },
+    { name: 'renderInput', type: 'function', required: false, description: 'Returns the payment provider\'s mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus edge and message around the provider\'s input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async validation in progress; sets aria-busy; does not block typing.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'TextField\'s three tiers: the input type and the nested label scale with it. The tile is 20px tall at small and medium and 24px at large, its width from the tile\'s proportion. Every size keeps the input\'s 44px target.' },
@@ -103,7 +103,7 @@ export const cardNumberField: ComponentDef = makeTextField({
     'the INPUT\'S ATTRIBUTES (#2429 §5) — `autocomplete="cc-number"` (SC 1.3.5, never `off`), `inputmode="numeric"` and never `type="number"` (a wheel or arrow key changes the value, and an invalid entry gives no feedback), `spellcheck="false"`, and `dir="ltr"` on the input in a right-to-left layout, because a card number reads left to right in every script. Paste is never blocked, and pasted spaces and hyphens are accepted.',
     'GROUPING AS THE USER TYPES (#2429 §5) — the field shows the digits in the detected network\'s groups (4-4-4-4, or 4-6-5 for a 15-digit network), keeps the caret where the user is typing, and never announces the reformatting. The spaces are not part of the value: `value` and `onChange` carry digits only. The length is never capped below 19 digits. No auto-advance to the next field when the number is complete (SC 3.2.2). No masking while typing: people check what they typed.',
     'CARD-TYPE DETECTION and the TILE (#2429 §5, Q10 A) — detection reads the leading digits and sets `brand`; there is never a manual card-type select. The tile swaps in place, generic until the network is known. The tile is decorative (`aria-hidden="true"` on the mark), and the network is stated in text: `brandName` goes in a visually hidden element linked by `aria-describedby`, NOT a live region, so typing never triggers speech. A network the merchant does not accept keeps its detected tile, and the field shows the error. In forced-colors mode the tile alone sets `forced-color-adjust: none`, so it keeps the provider\'s colors and the field around it follows the user\'s.',
-    'the HOSTED INPUT (#2429 §6, Q12 b, hosted the documented default) — most checkouts take the number in the payment provider\'s hosted input, an iframe the provider serves, which keeps the merchant in the lightest card-data compliance scope (PCI DSS SAQ A). With `renderInput`, the field is a shell: it draws the label, box, tile, focus ring and message outside the frame, driven by the provider\'s state events (focus, invalid, complete, empty) and brand event, and the provider owns the input, its value, its caret, its formatting and its detection. A host `<label for>` cannot reach inside an iframe, so the visible label wraps the mount point, clicking it calls the provider\'s `focus()`, and the label text is passed into the provider\'s own label or `title` option. `aria-describedby` cannot cross the frame either, so the validation text is mirrored into the provider\'s message API where it has one. The typed text\'s font, size and ink are passed through the provider\'s styling API from the same tokens the shell binds. Without `renderInput` the field renders a native input, for prototypes and providers that tokenize page inputs; the docs say plainly that such a page is outside SAQ A.',
+    'the HOSTED INPUT (#2429 §6, Q12 b, hosted the documented default) — most checkouts take the number in the payment provider\'s hosted input, an iframe the provider serves, which keeps the merchant in the lightest card-data compliance scope (PCI DSS SAQ A). With `renderInput`, the field is a shell: it draws the label, box, tile, focus edge and message outside the frame, driven by the provider\'s state events (focus, invalid, complete, empty) and brand event, and the provider owns the input, its value, its caret, its formatting and its detection. A host `<label for>` cannot reach inside an iframe, so the visible label wraps the mount point, clicking it calls the provider\'s `focus()`, and the label text is passed into the provider\'s own label or `title` option. `aria-describedby` cannot cross the frame either, so the validation text is mirrored into the provider\'s message API where it has one. The typed text\'s font, size and ink are passed through the provider\'s styling API from the same tokens the shell binds. Without `renderInput` the field renders a native input, for prototypes and providers that tokenize page inputs; the docs say plainly that such a page is outside SAQ A.',
     'VALIDATION (#2429 §5, the pre-work §3.3) — empty ("Enter the card number."), a number that fails the Luhn checksum (a warning, not an error, because some UnionPay numbers fail it: "Check the card number. It doesn\'t match a valid card."), and a network the merchant does not accept (built from the accepted list). Validate on blur, then on input once the field shows an error, as TextField does; never mid-IME-composition. A decline from the processor belongs to the card group, not this field.',
     'the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component\'s proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile\'s rounded corners and edge belong to the provider-logo component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the card network\'s tile.',
     'RIGHT TO LEFT — the label, the box and the tile\'s position mirror, so the tile sits at the box\'s left end. The digits stay left to right (`dir="ltr"` on the input), and the tile\'s artwork is never flipped. One provider turns off number grouping in right-to-left layouts; the hosted adapter states that limit rather than hiding it.',
@@ -123,7 +123,7 @@ export const cardNumberField: ComponentDef = makeTextField({
       '2.4.13 Focus Appearance (intent)',
     ],
     keyboard: 'Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.',
-    focus: 'The input takes TextField\'s focus ring. With a hosted input, the ring follows the provider\'s focus event, and clicking the label focuses the provider\'s input.',
+    focus: 'The input takes TextField\'s 2px focus edge, in place of its border. With a hosted input, the edge follows the provider\'s focus event, and clicking the label focuses the provider\'s input.',
     aria: 'The host wires the label, aria-describedby and aria-invalid as TextField does. The tile is aria-hidden. The detected network\'s name is a visually hidden description on the input, added to aria-describedby and never a live region, so typing is not interrupted by speech. Reformatting is not announced. With a hosted input, the label text is also passed to the provider\'s own label option, because a label outside the frame cannot name the input inside it.',
   },
 
@@ -162,7 +162,7 @@ export const cardNumberField: ComponentDef = makeTextField({
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring'],
+    composesWith: ['field-label', 'field-message'],
     alternativeTo: ['text-field'],
     replacesPatterns: ['a card number in a plain text input with no card type', 'a manual card-type select', 'number, expiration and security code packed into one box', 'type="number" on a card number'],
     planned: ['payment-field'],
@@ -176,6 +176,7 @@ export const cardNumberField: ComponentDef = makeTextField({
 
   notes: {
     contested: [
+      FOCUS_EDGE_STATUS_NOTE,
       'The PaymentField group (#2429 Q1 A) is a separate component and the follow-up (PR 4b): this field ships first, and the expiration date and security code are TextFields until the group composes them.',
       'The tile at the disabled member keeps its own colors (no opacity), because any dimming recolors the provider\'s mark. The box, the value and the label carry the disabled skin. Built A; held for the owner in the PR (Q-C1).',
       'The tile\'s presence is a switch, on by default, backed by showCardMark (#2429 table, card mark on). The alternative is a tile that is always there.',

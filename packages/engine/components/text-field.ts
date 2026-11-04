@@ -6,7 +6,7 @@
  * The composition call (brief §2, §3, §12): TextField is the HOST that composes the two shared
  * field parts — `field-label` (the accessible name) and `field-message` (helper / validation) —
  * rather than re-declaring their tokens. So this def's `tokens` block is the INPUT CHROME only
- * (fill, the stateful border, placeholder, focus ring, disabled skin, geometry); label and
+ * (fill, the stateful border and its focus edge, placeholder, disabled skin, geometry); label and
  * message color/type live in their own defs and are reused by Select / NumberField later. That
  * is the "composed slots" half of the brief's hybrid, expressed in the data model. The host owns
  * the WIRING the parts can't: useId-generated ids tying label→input and stitching the
@@ -14,7 +14,7 @@
  *
  * State model = the input border, which is the one stateful field slot:
  *   rest → field.border.rest · hover → field.border.hover (four ramp steps stronger, the field's
- *   only drawn hover cue, #2926; the pointer is the other) · focus → border.focus + the field focus ring · read-only → field.border.rest (the
+ *   only drawn hover cue, #2926; the pointer is the other) · focus → border.focus, drawn at the 2px focus width (#3399) · read-only → field.border.rest (the
  *   editable field's own boundary, #1710) with FULL-contrast text.primary (read-only ≠ disabled:
  *   focusable, copyable, submitted, passes contrast — the component's live edge, §4) · disabled → the shared disabled.* skin
  *   (contrast-exempt). Validation is NOT a state: it is the `status` axis (see below).
@@ -33,8 +33,9 @@
  *
  * status → border is a status-led, border-ONLY swap, bound PER non-disabled state (rest / hover /
  * focus-visible / read-only / empty) so the status boundary persists while the pointer moves and while the
- * value is read-only, rather than yielding to the neutral interactive border; the focus RING (an absolute
- * sibling) carries the focus signal on top. #1517 (owner-directed, Prism 2 parity) extended the swap from
+ * value is read-only, rather than yielding to the neutral interactive border. At focus the border becomes the
+ * 2px focus edge (#3399): the focus color on a default field, the status color on the others, so focus never hides
+ * the status. #1517 (owner-directed, Prism 2 parity) extended the swap from
  * `error` ONLY to all three non-default statuses: `error` → `color.border.danger`, `warning` →
  * `color.border.warning`, `success` → `color.border.success`. `default` binds no status-led border and
  * falls through to the neutral state border. The nested field-message carries the status text in parallel,
@@ -48,6 +49,25 @@
  * is baked in.
  */
 import { ComponentDef, PartDef, PropDef } from '../component-schema';
+
+/**
+ * THE FOCUS EDGE (#3399, owner decisions Q22 A and Q22.1 A; replaces #3328's ring inside the border). A focused field
+ * draws no ring: its own border becomes the focus edge, 2px wide (`focus.ring.width`), in the border's own paint. That
+ * paint is `border.focus` on a default field and the status border on an error, warning or success field, so the status
+ * stays visible while the user types. The stroke is drawn inside the node, so the edge runs in from the field's outer
+ * edge at the field's own corner radius, with no gap, and the box keeps its size: nothing moves.
+ *
+ * One table for every field that keys its edge weight by state (`border-width.{state}`): the focus states take the focus
+ * width, every other state the 1px hairline. Each def passes its own `states`, so a state it does not declare is never
+ * bound. `test.ts` (`#3399 field focus edge`) holds the result against literals.
+ */
+export const FOCUS_EDGE_STATES: readonly string[] = ['focus-visible', 'focus-visible-filled'];
+export const fieldEdgeWidths = (states: readonly string[]): Record<string, string> =>
+  Object.fromEntries(states.map((s) => [`border-width.${s}`, FOCUS_EDGE_STATES.includes(s) ? 'focus.ring.width' : 'border-width.hairline']));
+
+/** The decided trade-off (#3399, Q22.1 A), recorded on every field with a status axis. */
+export const FOCUS_EDGE_STATUS_NOTE =
+  'The focus edge on a field with a status (#3399, owner decision Q22.1 A): while focused, an error, warning or success field draws its 2px focus edge in the status color, not the focus color, so the status stays visible while the user types (Material and Primer do the same). The alternative, the focus color over every status, hides the status while the field has focus. The decided trade-off: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band, which changes from the field\'s fill to the status color; the outer 1px keeps the status color it had at rest. A default field changes on both pixels, from its rest border and its fill to the focus color.';
 
 /**
  * THE FIELD FACTORY (#2317, owner decision Q301.8 A) — `makeButton`'s pattern applied to the text field. One
@@ -158,8 +178,8 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
   // Border is the one stateful slot: rest/hover from field.*, focus/read-only from generic border roles,
   // the status swaps from the status-led `error`/`warning`/`success`.border.* keys, disabled from the shared disabled skin. The
   // value ink is full-contrast text.primary in every non-disabled state (read-only included — it is NOT
-  // dimmed); disabled swaps to the contrast-exempt disabled ink. The focus ring is a nested `focus-ring`
-  // that owns its own color, so no `focus-ring` color key is bound here.
+  // dimmed); disabled swaps to the contrast-exempt disabled ink. Focus is the border itself at the 2px focus
+  // width (#3399), so no `focus-ring` color key is bound here: the border's own state and status keys paint it.
 
   // THE PAINT GRAMMAR (#1494) — select's, adopted verbatim now that this def projects: status-led-and-
   // state-qualified first (so the status border swap WINS over the interactive state progression at every
@@ -191,12 +211,9 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
     'root-gap': 'space.100',
     // The leading and trailing glyphs share one artboard rung.
     'icon-size': 'icon.size.sm',
-    // 1px field hairline — the field/button edge weight, not the 2px selection-control weight.
-    'border-width': 'border-width.hairline',
-    // The nested focus ring's geometry (it owns its own COLOR): the width compensates the inset (#801) and
-    // the FIELD offset is 0 — an input's own border supplies the separation.
-    'ring-width': 'focus.ring.width',
-    'ring-offset': 'focus.ring.offset-field',
+    // The edge weight per state (#3399): the 1px field hairline at rest, and the 2px focus edge at both focus states,
+    // in place of the border rather than beside it. `fieldEdgeWidths` above has the rule.
+    ...fieldEdgeWidths(['rest', 'hover', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'empty']),
 
     // ── FILL — the field chrome (#1341/#1342, inherited from select). `field.fill` is TRANSPARENT by
     // default, so the control shows the page in every state. HOVER IS THE BORDER ALONE (#2926, owner
@@ -259,8 +276,8 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
     // boundary. Full-contrast value ink sits above it — the component's live edge.
     'border.read-only': 'color.field.border.rest',
     // The status-led border swaps, each bound PER non-disabled state so it wins over the neutral progression
-    // and persists through hover, focus and read-only (the focus RING, a separate part, still carries the
-    // focus signal). At `disabled` the cross-cutting `disabled.border` takes over; `pending` is not bound
+    // and persists through hover, focus and read-only (at focus it is the 2px focus edge, #3399, so the focus
+    // signal is the edge's width and the status keeps its color). At `disabled` the cross-cutting `disabled.border` takes over; `pending` is not bound
     // (async validation in progress does not assert a status boundary) and falls through to the neutral
     // border. #1517 (owner-directed, Prism 2 parity): `warning` and `success` now swap the border TOO,
     // mirroring `error` exactly — the field signals status on BOTH the border and the nested message, rather
@@ -347,8 +364,8 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
   // container (column) → nested FieldLabel · control (the bordered input box) · nested FieldMessage. The
   // control holds a `content` wrapper (leading glyph + value text) and the trailing affix, distributed to
   // the control's two ends by `space-between`, so the affix pins to the trailing edge at every value length
-  // rather than tracking the text. The focus ring is an absolute sibling of the control's contents, rings the
-  // control, and appears only on focus-visible. Mirrors select exactly, except that select's disclosure
+  // rather than tracking the text. Focus draws no ring: the control's own border becomes the 2px focus edge at
+  // both focus states (#3399). Mirrors select exactly, except that select's disclosure
   // affordance (the trailing chevron) is here the interactive trailing AFFIX slot — the clear / reveal edge
   // control select does not have (see `codeOnly`).
   anatomy: {
@@ -480,14 +497,16 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         // token NAME moves.
         minWidth: 120,
         radius: 'radius',
-        // The edge weight (#1266's field) — 1px field hairline, bound rather than left to the executors'
-        // fallback so a brand re-runging its border floor moves it.
-        strokeWidth: 'border-width',
+        // The edge weight (#1266's field), per state (#3399): the 1px hairline, and the 2px focus edge at both focus
+        // states. Bound rather than left to the executors' fallback, so a brand re-runging either rung moves it.
+        strokeWidth: 'border-width.{state}',
         // Symmetric padding — the leading glyph sits inside `content`, not against the box edge, so no #326
         // slot-aware asymmetry; both inline sides fall back to the label inset.
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
         gap: 'size.{size}.gap',
-        children: toggle ? ['content', 'focusRing'] : markEdge ? ['content', 'cardMark', 'focusRing'] : ['content', 'trailingVisual', 'focusRing'],
+        // No focus ring (#3399): the control's own border is the focus edge. The underline Field style adds the
+        // outside ring back (`applyFieldStyle`, #2695 Q3), since that edge has no side border to thicken.
+        children: toggle ? ['content'] : markEdge ? ['content', 'cardMark'] : ['content', 'trailingVisual'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
       // and `layoutGrow` in Figma, `flex: 1` in code, so the trailing affix sits at the trailing edge.
@@ -599,23 +618,6 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         note: 'An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.',
       },
       } satisfies Record<string, PartDef>),
-      // THE FOCUS RING — the shared indicator, nested as an absolute sibling of the control's contents so it
-      // rings the CONTROL (not the whole field) and takes no cell. `field` offset (0) because an input's own
-      // border already supplies the separation. Fixed to the default surface (the field carries no surface
-      // axis). The ring owns its own COLOR, so no `focus-ring` color key is bound in `tokens`.
-      focusRing: {
-        kind: 'absolute',
-        // At both focus states (#2318): the empty field and the one holding a value are rung alike.
-        when: ['focus-visible', 'focus-visible-filled'],
-        nests: 'focus-ring',
-        inset: 'ring-offset',
-        strokeInset: 'ring-width',
-        // INSIDE THE FIELD'S BORDER (#3328, owner decision Q3328.1 A): the border goes to the focus ink and the ring's
-        // band sits inside it, at the field's own radius, so the focus reads as one 3px edge with no outer frame.
-        borderInset: 'border-width',
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring`, drawn inside the field\'s border at the field\'s own radius (#3328): the border takes the focus ink and the ring\'s band sits inside it, so the focus reads as one edge with no outer frame. Takes no cell, so no text moves.',
-      },
       // THE NESTED MESSAGE (nest-fixed, FOLLOWING status). An in-flow instance of `field-message` whose single
       // projected axis, `status`, is DRIVEN by text-field's `status` axis via `follow` — a same-name,
       // same-value passthrough (the alignment the header is about). `optional: true` is the anatomy half of the
@@ -775,7 +777,7 @@ export const textField: ComponentDef = makeTextField({
       '3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste',
     ],
     keyboard: 'Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are separate tab stops with their own accessible names. Escape clears when clearable.',
-    focus: ':focus-visible ring, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field\'s own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.',
+    focus: ':focus-visible draws the 2px focus edge in place of the border: from the field\'s outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.',
     aria: 'The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.',
   },
 
@@ -815,7 +817,7 @@ export const textField: ComponentDef = makeTextField({
   composition: {
     // What the anatomy nests (#1700). The glyph, clear button and pending spinner fill slots or swap in at
     // runtime, so they are partners in `ai.commonPartners`, not parts.
-    composesWith: ['field-label', 'field-message', 'focus-ring'],
+    composesWith: ['field-label', 'field-message'],
     alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field', 'search-field'],
     replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
     planned: ['form', 'tooltip', 'combobox', 'number-field', 'date-picker'],
@@ -834,6 +836,7 @@ export const textField: ComponentDef = makeTextField({
       'The trailingIcon slot: Figma carries the glyph, not the action\'s behavior. (Moved from props.trailingIcon.description, #2411.)',
     ],
     contested: [
+      FOCUS_EDGE_STATUS_NOTE,
       'Bundled props vs composed slots — ship both: props for the 90% vertical-form case, composed FieldLabel/FieldMessage slots for the 10% custom layout (brief §3).',
       'How far to split the typed family — NumberField separate; SearchField/PasswordField thin specializations; email/url/tel stay as type+attributes (brief §3).',
       'Validation ownership/timing — presentational default; the form library owns timing (brief §3, §6).',

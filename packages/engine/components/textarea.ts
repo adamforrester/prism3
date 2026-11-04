@@ -90,6 +90,7 @@
  * switch holding the two) would still leave a stray gap with the footer on and both inside it off.
  */
 import { ComponentDef } from '../component-schema';
+import { fieldEdgeWidths, FOCUS_EDGE_STATUS_NOTE } from './text-field';
 
 export const textarea: ComponentDef = {
   id: 'textarea',
@@ -254,14 +255,6 @@ export const textarea: ComponentDef = {
     'success.border.read-only': 'color.border.success',
     'success.border.empty': 'color.border.success',
     'success.border.filled': 'color.border.success',
-    // Focus ring — the field offset, as on the substrate. Brief §4 argues a textarea is a LARGE
-    // surface and a saturated ring around a 600×400 box is noise, favoring an inset indicator. The
-    // engine emits one field-ring offset and no large-surface variant, so this binds what exists and
-    // the argument is recorded rather than acted on (`notes.contested`) — inventing a token here
-    // would be a def authoring engine surface. The ring is the nested `focus-ring`, which owns its own
-    // color (text-field's reading), so only its geometry is bound here.
-    'ring-width': 'focus.ring.width',
-    'ring-offset': 'focus.ring.offset-field',
     // Disabled skin (contrast-exempt), the shared cross-cutting family. On-fill because a field
     // always has a fill, so its disabled ink always sits on `disabled.fill`.
     'disabled.fill': 'color.disabled.fill',
@@ -272,8 +265,10 @@ export const textarea: ComponentDef = {
     'radius': 'radius.sm',
     // The stack spacing between label, control and message — text-field's.
     'root-gap': 'space.100',
-    // 1px field hairline, text-field's edge weight.
-    'border-width': 'border-width.hairline',
+    // Text field's edge weight per state (#3399): the 1px hairline, and the 2px focus edge at both focus states. Brief §4
+    // argues a textarea is a LARGE surface and a saturated ring around a 600×400 box is noise; the focus edge is the
+    // field's own border, so no ring is drawn around it (`notes.contested` keeps the argument).
+    ...fieldEdgeWidths(['rest', 'hover', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'empty']),
     // THE RESIZE GRIP (owner decision (c), 2026-09-25). The smallest icon rung (16 in every brand), in the
     // MUTED icon role — the grip is chrome, not content, so it sits a step below the value ink. On a
     // disabled member it sits on `disabled.fill`, so it takes the on-fill disabled ink like the value text.
@@ -310,7 +305,7 @@ export const textarea: ComponentDef = {
   // ── ANATOMY — text-field's column, with a control that HUGS its reserved rows ──────────────────
   //
   // container (column) → nested FieldLabel · body (a gap-0 column: control, the bordered box · message row,
-  // a message cell and a counter cell). The label, the message, the focus ring, the status-led border and the width (320 unplaced, a 120 floor)
+  // a message cell and a counter cell). The label, the message, the focus edge, the status-led border and the width (320 unplaced, a 120 floor)
   // are text-field's, part for part. The control differs in two ways: it binds no height (it hugs its padding
   // and the text), and it holds the value text plus the corner grip — no leading glyph, no trailing affix.
   // The message row is this def's own, so the counter can trail the message without touching field-message.
@@ -361,9 +356,11 @@ export const textarea: ComponentDef = {
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         minWidth: 120,
         radius: 'radius',
-        strokeWidth: 'border-width',
+        // Per state (#3399): the hairline, and the 2px focus edge at both focus states. No focus ring: the border is
+        // the focus edge. The underline Field style adds the outside ring back.
+        strokeWidth: 'border-width.{state}',
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
-        children: ['caret', 'placeholder', 'value', 'gripGlyph', 'focusRing'],
+        children: ['caret', 'placeholder', 'value', 'gripGlyph'],
       },
       // THE FOCUS CARET (owner decision, 2026-09-26) — text-field's part: present only at focus-visible, a
       // childless bar in its own `caret` slot, one hairline wide and one value line tall. The control's row
@@ -414,19 +411,6 @@ export const textarea: ComponentDef = {
         inset: 'grip-inset',
         optional: true,
         note: 'The resize grip at the bottom-right corner, decorative: in code it is the browser\'s own handle. Pinned out of the flow, so the control keeps one size with it on or off. Shown by default (the `resize handle` boolean), since `resize` defaults to `vertical`.',
-      },
-      // THE FOCUS RING — text-field's: an absolute sibling that rings the control on focus-visible.
-      focusRing: {
-        kind: 'absolute',
-        // At both focus states (#2318): the empty field and the one holding a value are rung alike.
-        when: ['focus-visible', 'focus-visible-filled'],
-        nests: 'focus-ring',
-        inset: 'ring-offset',
-        strokeInset: 'ring-width',
-        // Inside the field's border, at its own radius (#3328, Q3328.1 A), as on Text field.
-        borderInset: 'border-width',
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke.',
       },
       // THE MESSAGE ROW — the message cell growing from the start and the counter cell hugging its caption at
       // the end, stretched to the field's width. Justified to the END, so with the message off the counter
@@ -531,7 +515,7 @@ export const textarea: ComponentDef = {
       '2.5.8 Target Size — intent: the resize handle is the browser\'s own control, sized by the browser, so Textarea does not set its target',
     ],
     keyboard: 'Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.',
-    focus: ':focus-visible with the field ring, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field\'s own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width). forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.',
+    focus: ':focus-visible draws Text field\'s 2px focus edge in place of the border: from the outer edge, at the field\'s own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color). forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.',
     aria: 'The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is announced, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.',
   },
 
@@ -572,7 +556,7 @@ export const textarea: ComponentDef = {
 
   composition: {
     // What the anatomy nests (#1700). The rest are partners in `ai.commonPartners`.
-    composesWith: ['field-label', 'field-message', 'focus-ring'],
+    composesWith: ['field-label', 'field-message'],
     // ALTERNATIVE TO text-field, not a superseder — they are siblings a designer picks between by
     // input shape. The brief flags that its external research pass typed this as
     // `supersedes: text-field` and corrects it against the prose; carried here so the corrected
@@ -596,9 +580,10 @@ export const textarea: ComponentDef = {
       'The 16px grip drawn in Figma is decorative, not the resize handle\'s target. (Moved from accessibility.wcag, #2411.)',
     ],
     contested: [
+      FOCUS_EDGE_STATUS_NOTE,
       'resize as a VARIANT AXIS vs a prop — brief §15 lists `resize: [none, vertical, auto]` under `variants`, and §4 calls it "more like an author-chosen variant than a runtime state". Declared here as a prop ONLY. Two reasons: `VARIANT_AXES` is closed (#847) and does not contain `resize`, and adding it would duplicate a member already carried by the prop — the exact criticism `modifiers` carries in the vocabulary\'s own header (#845). The named alternative is to admit `resize` to `VARIANT_AXES` with a stated reason, which is the right move IF the drag handle turns out to need a projected Figma member. It did not: the grip is pinned out of the flow, so it moves no box and a `resize handle` boolean carries it (2026-09-25).',
       'modifiers: [auto-grow, show-count] — brief §15 lists these as an axis. Not declared, and NOT a judgment call: `modifiers` is not in `VARIANT_AXES`. #845 removed it — from both defs that carried it and from the vocabulary itself (`component-schema.ts` §2 of the closed-vocabulary header: "**RESOLVED (#845): removed, from both defs and from this list**"; `button.ts` opens its variants block with `NO modifiers AXIS`). Since `variants` is typed `Partial<Record<VariantAxis, string[]>>`, declaring it does not compile, and `validateComponentDef` rejects it a second time at runtime. The reason it was removed is the same one that would disqualify it here — its values are not alternatives along one dimension: `auto-grow` is already a value of `resize`, `show-count` is already a boolean prop, and a textarea can be both at once, which is what makes them booleans rather than coordinates. The real alternative is to petition to RE-OPEN `VARIANT_AXES` with a stated reason, the way the `resize` entry above contemplates for itself. (An earlier version of this entry said the alternative was to "declare it and accept the duplication", which reads as a trade-off available to the author and is not one — the file would not build. Corrected in #904; the conclusion never moved, only the reason under it.)',
-      'The focus indicator on a large surface — brief §4 argues a saturated ring around a 600×400 textarea is visual noise and favors an inset indicator or a background/border tint (Atlassian). This def binds the same `focus.ring.offset-field` the substrate does, because that is the only field ring the engine emits. The alternative is a large-surface ring token, which is engine surface a def should not author unilaterally. Since #3328 (Q3328.1 A) every field\'s ring is drawn inside its border, so the indicator is now inset, though still saturated rather than a tint.',
+      'The focus indicator on a large surface — brief §4 argues a saturated ring around a 600×400 textarea is visual noise and favors an inset indicator or a background/border tint (Atlassian). Since #3399 (Q22 A) no field draws a ring: the field\'s own border becomes the 2px focus edge, so the indicator is the edge of the box, inset, though still saturated rather than a tint. The alternative is a tint or a large-surface token, which is engine surface a def should not author unilaterally.',
       'Enter-key ownership — submit-on-Enter is an opt-in here, never the base default. The alternative (composers invert it by default) is what chat surfaces actually ship, and the brief rejects it for the base component because silently hijacking Enter breaks the platform expectation for every non-chat use.',
       'Soft vs hard maxLength — soft, always. The alternative is the native maxlength attribute, which is one line of code and silently truncates pasted overflow; the brief rejects it on AT grounds specifically, since input simply stops being accepted with no announcement.',
       'Distinct component vs a multiline prop on TextField — Polaris and Material 3 model this as `multiline={4}` on a universal field. The practice ships a distinct component (brief §1), and the reason is machinery rather than symmetry: auto-grow measurement, resize chrome, scroll management, line-break normalization and grapheme counting are non-overlapping with a single-line field and would tax every plain input in the app.',

@@ -2873,21 +2873,6 @@ const writeComponentSet = async (
           else inset = gap + sw;
         }
       }
-      // INSIDE THE HOST'S BORDER (#3328, owner decision Q3328.1 A). A field's ring is the focus band INSIDE its 1px
-      // border: sited the border's width in from the host's edge on every side and uncompensated (nothing is drawn
-      // outward), so the border recolored to the focus ink plus the ring's band read as one indicator with no outer
-      // frame. A width of 0 (the Counter's ghost, which draws no edge) leaves the outside ring above as it was.
-      // Lockstep with the paste executor.
-      let inside = 0;
-      if (c.absoluteBorderInset) {
-        const bv = byName.get(c.absoluteBorderInset);
-        if (!bv) misses.push(`${c.name}.absoluteBorderInset -> ${c.absoluteBorderInset} (sited outside the host; the field focus would be drawn as an outer ring — #3328)`);
-        else {
-          const bw = bv.resolveForConsumer(kid).value;
-          if (typeof bw !== 'number') misses.push(`${c.name}.absoluteBorderInset -> ${c.absoluteBorderInset} resolved to ${JSON.stringify(bw)}, not a number (sited outside the host — #3328)`);
-          else if (bw > 0) { inside = bw; inset = gap - bw; }
-        }
-      }
       // CLEAR THE INHERITED NOMINAL SIDE (#1388, #1290's prediction). The nested component's own root
       // binds width AND height to its `nominal-side` (`size.md.height`), present only so it builds as a
       // ring-shaped artifact alone; an INSTANCE inherits that binding. `resize` clears the dimension
@@ -2920,15 +2905,9 @@ const writeComponentSet = async (
       // already-pasted ring does not re-flow when a brand changes its corner radius.
       const ringNode = kid as unknown as Record<string, unknown>;
       const hostNode = node as unknown as Record<string, unknown>;
-      // INSIDE THE BORDER (#3328) the ring takes the HOST'S OWN corner variables instead: it runs at the field's radius
-      // token, so a brand re-runging its corner moves the ring with the field, and no radius is a literal.
       for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const) {
         const hostR = hostNode[corner];
-        if (inside > 0) {
-          const rv = n.bound[corner] ? byName.get(n.bound[corner]) : undefined;
-          if (rv) kid.setBoundVariable?.(corner, rv);
-          else misses.push(`${c.name}.${corner} -> the host binds no corner variable, so the ring inside its border has no radius token to take (#3328)`);
-        } else if (typeof hostR === 'number') ringNode[corner] = hostR + inset;
+        if (typeof hostR === 'number') ringNode[corner] = hostR + inset;
       }
       // STRETCH so the ring tracks its target when a designer resizes a variant; without it the ring
       // keeps the size it was pasted at, silently, because it looks right at that one size.

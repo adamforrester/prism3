@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+A focused field now draws a 2px focus edge in place of its border, with no ring (#3399, owner decisions Q22 A and Q22.1 A). The edge is the field's own stroke at the focus width (`focus.ring.width`), drawn inside from the outer edge at the field's own radius, so the box keeps its size and no corner gap is left. A default field draws it in the focus color, and an error, warning or success field in its status color. This applies to Text field, Textarea, Select, Password field, Card number field, Search field, the Code input cell and Counter (outline); Counter's ghost and every field in the underline Field style keep the outside ring. It replaces #3328's ring inside the border, and `PartDef.borderInset` goes with it. A `strokeWidth` key may now name `{state}`, and an absolute part may gate on a variant axis with `presentWhen` (EXECUTOR_REVISION 52). No token is added or renamed.
