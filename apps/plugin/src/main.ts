@@ -90,7 +90,7 @@ import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ReadHost, ContextFacts } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
-import { dropFor as dropViewsFor, dropViews, keepView, keptView, viewEpoch, watchViews } from './member-views';
+import { dropFor as dropViewsFor, dropViews, keepView, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } from './member-views';
 import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
@@ -1583,6 +1583,8 @@ const handEditsPass = async (): Promise<void> => {
     // #3170: each set is found in the read just made, never by a search of the whole file per set, each in its own turn.
     const host = { ...hostApi(), root: rootOver(read) } as unknown as UpdateHost;
     const tick = pacer(breathe);
+    // #3364: the file's variables as the pass reads under them, so a check after a value edit reads every set again.
+    noteVariables(await variablesPrint(figma));
     for (const id of present) {
       if (stale()) return;
       const t = await timed('plan', () => passTarget(id, tick));
@@ -1611,7 +1613,8 @@ const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<v
     const { targets, refused } = updateTargets(defs, input);
     // #3177: `previewUpdate` loads and searches the file a page per turn, once, for every set it reads.
     // #3313: each set the hand-edit pass read, and nothing has changed in since, is laid against as that pass read it.
-    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe, undefined, keptView);
+    // #3364: a variable's value edited since the pass read (no document change is heard for it) drops every kept read.
+    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe, undefined, { view: keptView, under: async (h) => noteVariables(await variablesPrint(h)) });
     r.refused.push(...refused);
     // `previewUpdate` adds a preview for each target it found, in the targets' order, and names the rest as missing or
     // refused, so the found targets pair with the previews one to one.
