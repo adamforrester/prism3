@@ -558,6 +558,14 @@ export type FigmaNodePlan = {
    *  ONLY on a text part declaring `lines`, so every other plan is byte-identical. Set from `PartDef.lines`,
    *  resolved to the named prop's default. */
   minLines?: number;
+  /** For a top-aligned ROW (#3360, `PartDef.firstLine`): the glyph in `glyphCell` centers on the first line of `text` in
+   *  `textCell`. NAMES, not pixels, so the plan stays brand-invariant: the executor reads the text's line height off the
+   *  node its style was applied to and the glyph's size off the `glyph` variable (`resolveForConsumer`), and writes
+   *  `textCell.paddingTop` = max(0, glyph − line) ÷ 2 and `glyphCell.paddingTop` = max(0, line − glyph) ÷ 2 — the
+   *  `minLines` division of labor, since Figma's padding binds one variable and never a max or a half of two. After the
+   *  flow pass, because the cells and the text must exist. Carried ONLY on such a row, so every other plan is
+   *  byte-identical. In `readVarsOwn`, so the emit gate verifies the glyph variable's name. */
+  firstLine?: { glyph: string; text: string; glyphCell: string; textCell: string };
   /** Cross-axis child FILL (#1503): `'STRETCH'` when this in-flow child should span its parent's CROSS axis
    *  (a column's width, a row's height) rather than hug its own content — the twin of `layoutGrow`'s main-axis
    *  fill above. Figma's `layoutAlign: 'STRETCH'` is the only non-deprecated per-child cross-axis stretch. A
@@ -2359,6 +2367,10 @@ export const figmaAnatomyPlan = (
       // A GROWING BOX (`grow`), `wrap`'s main-axis fill without the reflow: carried ONLY when set, so every
       // other box's plan is byte-identical. `anatomyErrors` asserts the parent bounds its main axis.
       ...((p.kind === 'box' || p.kind === 'nest') && p.grow ? { layoutGrow: 1 } : {}),
+      // THE FIRST-LINE PAIR (#3360): carried ONLY on a row declaring it, the glyph key resolved to its variable NAME.
+      ...(p.kind === 'box' && p.firstLine
+        ? { firstLine: { glyph: varOf(p.firstLine.glyph), text: p.firstLine.text, glyphCell: p.firstLine.glyphCell, textCell: p.firstLine.textCell } }
+        : {}),
       // THE RESERVED LINES (textarea's `rows`), carried ONLY on a `text` part declaring `lines`, as the
       // named prop's DEFAULT — so the Figma box and the code prop read one number. A count, never pixels:
       // the executor multiplies it by the node's own line height at paste. `anatomyErrors` has already
@@ -3559,7 +3571,7 @@ const paintVarsOwn = (n: FigmaNodePlan): string[] =>
  *  and both executors fall back to the offset alone when it misses, which is a legible ring rather than a
  *  broken one, and therefore the kind of failure only a gate notices. */
 const readVarsOwn = (n: FigmaNodePlan): string[] =>
-  [n.absoluteInset, n.absoluteStrokeInset, n.absoluteBorderInset, n.cornerInset].filter((x): x is string => !!x);
+  [n.absoluteInset, n.absoluteStrokeInset, n.absoluteBorderInset, n.cornerInset, n.firstLine?.glyph].filter((x): x is string => !!x);
 
 /** Every paint variable a plan binds, depth-first. Exported for the gate that asserts a skinned plan
  *  actually carries paints — the check that a coordinate resolved to something. */
@@ -4573,6 +4585,28 @@ const PAYLOAD_CORNER = `  for(const c of n.children){
 `;
 const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
 /**
+ * THE FIRST-LINE PAIR (#3360, `FigmaNodePlan.firstLine`), spliced in ONLY for a payload whose plans carry it — the
+ * `MIN_LINES_SLOT` budget decision again. After the flow pass, because the two cells and the text exist by then. The
+ * text's line height is the host's, read off the node its style was applied to (`PIXELS` as is, `PERCENT` of the font
+ * size); the glyph's size is its variable's value. The shorter of the two cells pads down by half the difference, so
+ * the glyph's middle is the first line's middle. Frozen at paste like the reserved lines; read back within 0.01.
+ * Lockstep with the plugin executor (`write-components.ts`).
+ */
+const FIRST_LINE_SLOT = '__FIRST_LINE__';
+const PAYLOAD_FIRST_LINE = `  if(n.firstLine){
+    const f=n.firstLine,v=byName.get(f.glyph),tc=boxes.get(f.textCell),gc=boxes.get(f.glyphCell);
+    const t=tc&&(tc.children||[]).find(k=>k.name===f.text),lh=(t&&t.lineHeight)||{},fs=t&&t.fontSize;
+    const L=lh.unit==='PIXELS'?lh.value:lh.unit==='PERCENT'?lh.value/100*fs:NaN,G=v?v.resolveForConsumer(node).value:NaN;
+    if(!tc||!(L>0)||!(G>0))misses.push(n.name+'.firstLine -> '+(!tc?f.textCell+' not built':!(L>0)?f.text+' has no px line height':f.glyph+' resolved to '+JSON.stringify(G)+', not a size'));
+    else for(const [cell,pad] of [[tc,Math.max(0,(G-L)/2)],[gc,Math.max(0,(L-G)/2)]]){
+      if(!cell)continue;
+      cell.paddingTop=pad;
+      if(!(Math.abs(cell.paddingTop-pad)<=0.01))misses.push(cell.name+'.paddingTop -> DISCARDED (set '+pad+' for the first line, reads '+cell.paddingTop+')');
+    }
+  }
+`;
+const hasFirstLine = (n: FigmaNodePlan): boolean => n.firstLine !== undefined || n.children.some(hasFirstLine);
+/**
  * THE FOOT PIN (#2872, Link's current-page bar), in two splices, ONLY for a payload whose plans carry `footPin`, the
  * corner pin's budget reason (#1798). LIFTED before the ring's pass, so the ring is sized off a parent that no longer
  * holds the bar's cell; SIZED and PLACED after it, so the bar is measured off a parent that no longer holds the ring's.
@@ -4736,6 +4770,7 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
     .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
+    .replace(FIRST_LINE_SLOT, roots.some(hasFirstLine) ? PAYLOAD_FIRST_LINE : '')
     .replace(FOOT_SLOT, roots.some(hasFoot) ? PAYLOAD_FOOT : '')
     .replace(FOOT_PLACE_SLOT, roots.some(hasFoot) ? PAYLOAD_FOOT_PLACE : '')
     .replace(INSET_SLOT, roots.some(hasInset) ? PAYLOAD_INSET : '')
@@ -5161,7 +5196,7 @@ ${PIN_LIFT_SLOT}
     // silently: the button would grow by the spinner's cell exactly as it did before #612.
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the spinner would take a cell and the button would grow on pending)');
   }
-${CORNER_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is about the child's relationship to it:
+${CORNER_SLOT}${FIRST_LINE_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is about the child's relationship to it:
   // \`layoutPositioning\` is only meaningful inside an auto-layout parent, and the parent's size is what
   // the inset is measured from.
   for(const [c,kid] of absolutes){

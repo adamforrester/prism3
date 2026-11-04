@@ -159,10 +159,12 @@ export const fieldMessage: ComponentDef = {
         // NO `paintSlots`, deliberately (#933), for `field-label`'s reason: the status lives in the
         // caption's ink and the glyph's, both of which are children. This box paints nothing.
         role: 'target',
-        // START, not baseline, and this differs from `field-label` deliberately: the glyph beside a
-        // possibly-wrapping caption should align to the caption's FIRST line, which `start` gives and
-        // `baseline` would too — but `baseline` on a wrapped text node is the last line's in some
-        // engines. `start` is the reading that survives wrapping.
+        // START, and the alignment lives one level in (#3360, owner Q-FM1 A: the glyph centers on the caption's
+        // FIRST line). The row stays top-aligned, never centered: centering the row floats the glyph to the middle
+        // of a wrapping message (#1009 half 1). `start` alone put the glyph's top on the caption's top, which is only
+        // centered when the caption's line is exactly the glyph's height (#3360 measured it 0.3-1px high in every
+        // corpus brand). So the glyph sits in `glyphCell` and the caption in `captionCell`, and `firstLine` below pads
+        // the shorter of the two down by half the difference.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         // BUILT AT THE FIELD'S WIDTH (#1757). The root fills its placement, and a root has none inside its own
         // def — so a hugging root froze the wrapping caption at the width of its default string ("This is a
@@ -180,7 +182,41 @@ export const fieldMessage: ComponentDef = {
         // max(glyph, caption line box) in every member and a wrapping message still grows. Bound to the
         // glyph's own key, so the floor is whatever the glyph is in every brand. Code: `min-block-size`.
         minHeight: 'glyph-size',
-        children: ['errorGlyph', 'warningGlyph', 'successGlyph', 'label'],
+        // THE GLYPH CENTERS ON THE CAPTION'S FIRST LINE (#3360, owner Q-FM1 A), computed here rather than baked into a
+        // token (owner Q-FM1.1 B: no new tokens for one component). The two numbers are ones this def already binds:
+        // the glyph's size (`glyph-size`) and one line of the caption's type (`type`, its font size × line height).
+        // The executor pads the shorter cell down by half the difference at paste: the caption by (glyph − line) ÷ 2
+        // where the glyph is the taller (16px beside a 15.4px or 14px line in every corpus `caption.md`), the glyph by
+        // (line − glyph) ÷ 2 where the line is. The line is the UNROUNDED one, as the text renders it, so the two
+        // middles agree exactly. Figma's padding binds one variable, never a max or a half of two, so the number is
+        // frozen per file at paste, like textarea's reserved lines; Update recomputes it. Code computes it live:
+        // `padding-block-start: max(0px, (var(glyph) - 1lh) / 2)` on the caption's cell, and the mirror on the glyph's.
+        firstLine: { glyph: 'glyph-size', text: 'label', glyphCell: 'glyphCell', textCell: 'captionCell' },
+        children: ['glyphCell', 'captionCell'],
+      },
+      // THE GLYPH CELL (#3360, owner Q-FM1 A). Hugs the glyph; the row's `firstLine` sets its top padding to
+      // (line − glyph) ÷ 2 where the caption's line is the taller, and 0 otherwise. Present only where a glyph is: the
+      // default status draws none, and an empty cell would still take the row's gap before the caption.
+      glyphCell: {
+        kind: 'box',
+        role: 'presentation',
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        presentWhen: { status: ['error', 'warning', 'success'] },
+        children: ['errorGlyph', 'warningGlyph', 'successGlyph'],
+        note: 'The status glyph\'s cell. Where the caption\'s line is taller than the glyph, it sets the glyph down so the glyph\'s middle is the first line\'s middle.',
+      },
+      // THE CAPTION CELL (#3360). The row's `firstLine` sets its top padding to (glyph − line) ÷ 2 where the glyph is the
+      // taller, and 0 otherwise, so the caption's first line centers on the glyph. FILLS the row beside the hugging glyph
+      // cell, so the caption has a bounded width to wrap in. Present in every status, the default included, and padded
+      // in every status (the glyph's size is the row's floor even where no glyph is drawn): the caption starts at the
+      // same height whatever the status, so a validation result moves no text. Draws nothing.
+      captionCell: {
+        kind: 'box',
+        role: 'presentation',
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        grow: true,
+        children: ['label'],
+        note: 'The caption\'s column. It fills the row beside the glyph and, where the glyph is taller than the caption\'s line, sets the caption down so its first line centers on the glyph.',
       },
       // ── THE STATUS GLYPH: THREE VECTOR PARTS, ONE PER VALIDATION TONE (#1010) ─────────────────────
       //
@@ -267,6 +303,7 @@ export const fieldMessage: ComponentDef = {
       },
     },
     codeOnly: [
+      'first-line inset, live — the glyph centers on the caption\'s first line (#3360). Code computes the two cells\' top padding live from the caption\'s own line: `padding-block-start: max(0px, (var(--icon-size-xs) - 1lh) / 2)` on the caption\'s cell, and `max(0px, (1lh - var(--icon-size-xs)) / 2)` on the glyph\'s, with the caption\'s type set on the row so `1lh` is one caption line. Figma\'s padding binds one variable and takes no max or half of two, and no token carries the result (owner Q-FM1.1 B), so the executor writes the number at paste from the caption node\'s line height and the glyph variable\'s value. A brand that changes its caption type or glyph size moves the Figma inset on the next Update, not live.',
       'aria-describedby wiring — the message\'s entire relationship to its field is a DOM one the HOST owns (§6): the field references this node\'s id in its describedby chain and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the projection is a glyph and a caption that sit below a field and are associated with it by proximity alone. This is the same ceiling `field-label`\'s htmlFor hits, and it is the reason both defs are presentational in Figma and load-bearing in code.',
       'the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `status=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.',
       'the icon SLOT in code, where Figma now has none — the one asymmetry #1010 introduced, recorded because it is a real difference and not an oversight. The three validation members each carry a FIXED glyph chosen by status, so there is no INSTANCE_SWAP property on the Figma side at all: an error member cannot be made to show a check mark, which is the reachable-wrong-state the old entry here worried about. `props.icon` survives as a code-side override for a host with a domain-specific status glyph, and nothing in Figma corresponds to it. The previous entry claimed this def "cannot bind WHICH glyph each tone shows" because "`PartKind` has no vector kind" — true when written, falsified by #920 (39 glyphs) and #864 (`kind: \'vector\'` + `glyph`), and it is retired rather than edited because its premise, not its wording, was the thing that expired.',
@@ -415,7 +452,7 @@ export const fieldMessage: ComponentDef = {
     ],
     unverified: [
       'The 16px glyph beside an 11px caption, optically. `icon.size.xs` is the only 16px rung and is 16 in every brand (it aliases `dimension.16` on the fixed grid), while `type.caption.md` resolves `font.size.11` — so the ARTBOARD is 45% larger than the caption\'s type size. That is expected rather than wrong (an icon artboard is ink plus its surrounding air, and this set\'s ink fills roughly 58-71% of it), and the reference asks for a glyph "at the same optical weight as the text", which is a judgment no gate here makes. Check it in Figma against a real caption before treating the size as settled.',
-      'The WRAPPING case, which is where this def meets #1009 and is deliberately not fixed here. The row is `align: \'start\'`, so the glyph aligns to the top of the caption box; #1009\'s reference for the sibling control shows the mark aligning to the FIRST LINE of a wrapping label, which is neither top nor block-center and is not the same rule as `start` once the caption\'s line-height exceeds the glyph. A single-line message cannot tell the two apart, and every member this def projects is single-line. Measure a two-line message before assuming `start` is the rule #1009 lands on.',
+      'The first-line rule (#3360, owner Q-FM1 A) as Figma renders it. `test.ts` runs the paste executor with each corpus brand\'s caption metrics and glyph size and measures the glyph\'s middle against the caption\'s first-line middle for a one- and a two-line message; `test-write-components.ts` does the same through the plugin executor and the shim\'s layout model. A built file was not measured: the check assumes Figma sets a text node\'s first line in the top line box of its height, which holds because every emitted text style carries a `NONE` vertical trim and the plugin executor writes `leadingTrim: \'NONE\'` on every text node (`claimDefaults`), and with no trim and a fixed or percent line height Figma stacks line boxes from the node\'s top. #3153\'s option rows rest on the same assumption.',
     ],
   },
 };

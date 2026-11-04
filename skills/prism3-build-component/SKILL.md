@@ -504,6 +504,28 @@ exception is a part that is never placed on its own: field-label dims through it
 which is an owner decision: flag it in the PR with the case for it, and never add it to either list
 to clear a validator error.
 
+**A variant only when layout or structure changes (#3383, owner decision Q3 A).** Variant counts
+multiply: every axis in `figmaProperties.variantAxes` multiplies the projected set by its value count, so
+an axis has to earn its place by changing what the member is built from. Before you add one, sort what
+actually differs between its values:
+
+| What differs | Declare it as |
+|---|---|
+| Layout or structure: stacked versus side by side, a part replaced, padding that moves with a part | A variant axis |
+| One part shown or hidden | A `booleans` entry (the node-visibility boolean below) |
+| Text content | A `texts` entry |
+| A choice the nested component already offers | `nest-exposed` on that part (§3), not an axis on the parent |
+| Width only | No axis. The component fills its container; the parent, or the spacing inside it, sets the width |
+| Color only, for a state or a status | A variant axis: Figma has no other way to repaint a member without an override |
+
+Never name an axis for a viewport or a width (`desktop`/`mobile`, `wide`/`narrow`): the parent controls
+the width. Where the layout really changes between breakpoints, the axis names the layout
+(`stacked`/`inline`), and the parent picks the member. Where the narrow member is the wide one at a smaller
+width, build one member and let the container set the width. Button's
+`leading` and `trailing` slot axes hold to the rule rather than break it: the slot moves the box's
+padding, which is layout. When a def you are writing seems to need an axis the table sends elsewhere,
+flag it in the PR with the case for it; the exception is the owner's call.
+
 **Selection-axis vocabulary (#1326 decision 1).** Switch spells its axis `[off, on]`;
 checkbox and radio spell theirs `[unchecked, checked]`, checkbox adding `indeterminate`. The
 switch spelling is a decision taken, not a default inherited — a def whose axis reads
@@ -830,7 +852,8 @@ one until that arc builds it.
 5. The root part is named for its role; `codeOnly` is non-empty, carries the brief's code-tier rules, and
    no entry leads with the name of an axis or state the def projects.
 6. Every naming choice matches the settled canon in §6: the naming table, the `_` prefix, lowercase Figma
-   property names, and a first member that carries the code default on every axis.
+   property names, and a first member that carries the code default on every axis. Every variant axis
+   passes the variant rule in §6; a show/hide, a text, a nested choice or a width is not an axis.
 7. No border binds an icon or text role; an invalid state is the `status` axis, not an `error` state; a
    state a consumer sets has its own prop; repeated children sit in an `items` slot.
 8. The def is in every gate list in §7, its docs page and JSON entry are regenerated, both baselines

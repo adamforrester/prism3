@@ -24,8 +24,14 @@
  * A read in progress when anything is dropped is not kept (`epoch`), so a set changed while the pass read it is read
  * again by the check.
  *
- * What a view does not hold is read again each time: how the member draws against the file's variables (`drawn`), since
- * a variable's value can change with no document change, and the set's publish status. The apply never uses a kept
+ *   · when a variable's value changes (#3364). Figma reports no document change for a value edited in the Variables
+ *     panel, yet every member bound to that variable re-resolves: a size, a padding, a gap. So the file's variables are
+ *     printed (`variablesPrint`: every local variable's values by mode, and every collection's modes) when the hand-edit
+ *     pass starts, before it reads, and again as each check starts (`previewUpdate`, `KeptViews.under`). A print that
+ *     differs from the one the views were read under, or one that cannot be read, drops every view. A view is kept only
+ *     under a print (`noteVariables`), so a read with no print to compare against is never reused.
+ * What a view does not hold is read again each time: how the member draws against the file's variables (`drawn`), and
+ * the set's publish status. The apply never uses a kept
  * view: it reads each set again before writing, under the check's hash, so a view kept wrongly makes the apply refuse,
  * never write.
  *
@@ -37,16 +43,18 @@ import type { HostSetView } from './update-plan';
 const views = new Map<string, HostSetView>();
 let epoch = 0;
 let live = false;
+/** The file's variables as the kept views were read under (`variablesPrint`); `undefined` while none is known. */
+let printed: string | undefined;
 
 /** Whether a view may be kept: only while the file's document changes are heard (`watch`). */
-export const watchViews = (on: boolean): void => { live = on; if (!on) dropViews(); };
+export const watchViews = (on: boolean): void => { live = on; if (!on) { dropViews(); printed = undefined; } };
 
 /** Moved by every drop. A read begun at one epoch is kept only if no drop happened while it ran. */
 export const viewEpoch = (): number => epoch;
 
 /** Keeps a set's view, read from `since` (`viewEpoch` before the read began), unless anything was dropped since. */
 export const keepView = (view: HostSetView, since: number): void => {
-  if (live && since === epoch && view.id && !view.single) views.set(view.id, view);
+  if (live && printed !== undefined && since === epoch && view.id && !view.single) views.set(view.id, view);
 };
 
 /** The kept view of the set with node id `id`, if there is one. */
@@ -57,6 +65,32 @@ export const keptCount = (): number => views.size;
 
 /** Every view dropped. */
 export const dropViews = (): void => { views.clear(); epoch++; };
+
+type PrintHost = { readonly variables: {
+  getLocalVariablesAsync: () => Promise<readonly unknown[]>;
+  getLocalVariableCollectionsAsync?: () => Promise<readonly unknown[]>;
+} };
+
+/**
+ * #3364: THE FILE'S VARIABLES, PRINTED: each local variable's id, type and values by mode, and each collection's id, modes
+ * and default mode, in the order the host gives them. Two prints are equal only when no value a member can resolve
+ * through has moved. `null` when the host refuses the read.
+ */
+export const variablesPrint = async (host: PrintHost): Promise<string | null> => {
+  try {
+    const vars = await host.variables.getLocalVariablesAsync() as readonly { id?: unknown; resolvedType?: unknown; valuesByMode?: unknown }[];
+    const cols = typeof host.variables.getLocalVariableCollectionsAsync === 'function'
+      ? await host.variables.getLocalVariableCollectionsAsync() as readonly { id?: unknown; modes?: unknown; defaultModeId?: unknown }[] : [];
+    return JSON.stringify([vars.map((v) => [v.id, v.resolvedType, v.valuesByMode]), cols.map((c) => [c.id, c.modes, c.defaultModeId])]);
+  } catch { return null; }
+};
+
+/** The file's variables as they are now (`variablesPrint`): every view dropped when they differ from the print the views
+ *  were read under, or cannot be read. Later reads are kept under this print. */
+export const noteVariables = (print: string | null): void => {
+  if (print === null || (printed !== undefined && print !== printed)) dropViews();
+  printed = print ?? undefined;
+};
 
 type ChangeNode = { readonly type?: string; readonly id?: string; readonly removed?: boolean; readonly parent?: unknown };
 type Change = { readonly type: string; readonly node?: ChangeNode; readonly properties?: readonly string[] };
