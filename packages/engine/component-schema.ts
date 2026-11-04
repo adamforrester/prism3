@@ -565,6 +565,18 @@ export type PartDef = {
    *  Refused alongside `padding` (a box states its padding once), on a box with no `layout` (Figma pads only an
    *  auto-layout frame), and on every other kind. */
   paddingTop?: string;
+  /** For a top-aligned ROW `box` (#3360, owner Q-FM1 A and Q-FM1.1 B): a glyph beside a text centers on the text's
+   *  FIRST line. `glyphCell` holds the glyph and `textCell` holds `text`, both children of this row. The executor reads
+   *  the text's line height L (the node's own `lineHeight`, `PIXELS` as is or `PERCENT` of its font size) and the
+   *  glyph's size G (the `glyph` binding key's value) at paste, and pads the shorter of the two down by half the
+   *  difference: `textCell` by max(0, G − L) ÷ 2, `glyphCell` by max(0, L − G) ÷ 2. Frozen at paste like `minLines`,
+   *  because Figma's padding binds one variable, never a max or a half of two. Code computes the same from the live
+   *  line, `max(0px, (glyph − 1lh) / 2)`. No token carries either number (owner Q-FM1.1 B: no tokens for one component).
+   *
+   *  The row stays top-aligned, as #1009 half 1 requires, so a wrapping text keeps the glyph beside its first line.
+   *  Refused on any other kind, on a row that is not `align: 'start'`, and on cells that are not this row's own `box`
+   *  children with a layout and no padding of their own (the executor writes their top padding). */
+  firstLine?: { glyph: string; text: string; glyphCell: string; textCell: string };
   /** For `box` parts: the box is a NATIVE FIGMA SLOT (#2417), the region a designer fills with their own content
    *  on an instance, in place, with no component to make first. Its children are the slot's DEFAULT content (a
    *  placeholder the designer replaces). The set gets one SLOT property named for the part; Figma merges every
@@ -4407,7 +4419,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.nestPaddingBlock]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
   // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
@@ -4991,6 +5003,27 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' declares 'paddingTop' but binds no 'layout' — Figma pads only an auto-layout frame, so the padding would be silently dropped`);
       if (p.padding)
         e.push(`anatomy part '${n}' declares both 'padding' and 'paddingTop' — a box states its padding once, and the projector would keep whichever wrote last`);
+    }
+    // ---- THE FIRST-LINE PAIR (`firstLine`, #3360) ----
+    if (p.firstLine !== undefined) {
+      const f = p.firstLine;
+      if (p.kind !== 'box' || p.layout?.direction !== 'row')
+        e.push(`anatomy part '${n}' declares 'firstLine' but is not a row 'box' — the glyph and the text sit side by side in a row`);
+      else if (p.layout.align !== 'start')
+        e.push(`anatomy part '${n}' declares 'firstLine' on a row aligned '${p.layout.align}' — only a top-aligned row keeps the glyph on a wrapping text's first line (#1009 half 1)`);
+      for (const [field, cell] of [['glyphCell', f.glyphCell], ['textCell', f.textCell]] as const) {
+        const c = def.anatomy?.parts[cell];
+        if (!(p.children ?? []).includes(cell) || c?.kind !== 'box' || !c.layout)
+          e.push(`anatomy part '${n}' firstLine ${field} '${cell}' is not one of its own 'box' children with a layout — the executor pads that cell`);
+        else if (c.padding || c.paddingTop !== undefined)
+          e.push(`anatomy part '${n}' firstLine ${field} '${cell}' declares its own padding — the executor writes its top padding, so a bound one would be overwritten`);
+      }
+      if (f.glyphCell === f.textCell) e.push(`anatomy part '${n}' firstLine names '${f.glyphCell}' as both cells`);
+      if (def.anatomy?.parts[f.text]?.kind !== 'text' || !(def.anatomy?.parts[f.textCell]?.children ?? []).includes(f.text))
+        e.push(`anatomy part '${n}' firstLine text '${f.text}' is not a 'text' child of '${f.textCell}' — its line height is what the glyph centers on`);
+      for (const g of def.anatomy?.parts[f.glyphCell]?.children ?? [])
+        if (def.anatomy?.parts[g]?.size !== f.glyph)
+          e.push(`anatomy part '${n}' firstLine glyph key '${f.glyph}' is not the size of '${g}' in '${f.glyphCell}' — the inset would center a glyph of another size`);
     }
     // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it
     // reads as though the part were offset from its cell, which no projection does. Checked as its own

@@ -55,7 +55,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { PACE_MS } from './pace';
 import { reaches } from './executor-reach';
-import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { adoptions, emitCoordValue, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { FURNITURE_KEY, FURNITURE_NS, furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
@@ -1370,6 +1370,37 @@ const pageViews = (found: readonly PageSet[], reach: PanelReach = 0) => {
   return views;
 };
 
+/** The component name a target's set goes by: its def's first plan's, else the def id. */
+const targetName = (t: UpdateTarget): string => t.plans[0]?.component ?? t.def;
+
+/**
+ * NESTED SETS FIRST (Q8): a def whose plans nest or swap another target's set comes after that target. A single-component
+ * def (#2296) is matched by its `<id>/` prefix (#3343): `wallet-button` nests `provider-logo/button/apple-pay-black`, a
+ * component of the target `provider-logo`, so the provider is updated first and the components it adds are there when
+ * the set nesting them is written. The dry run reads the targets in this order too, so it can count them as present.
+ */
+export const nestedFirst = (targets: readonly UpdateTarget[]): UpdateTarget[] => {
+  const provides = (x: UpdateTarget, n: string): boolean => targetName(x) === n || (!!x.single && n.startsWith(`${targetName(x)}/`));
+  const out: UpdateTarget[] = [];
+  const seen = new Set<string>();
+  const visit = (t: UpdateTarget, depth: number): void => {
+    if (seen.has(t.def) || depth > targets.length) return;
+    seen.add(t.def);
+    for (const n of planTargets(t.plans)) {
+      const dep = targets.find((x) => x !== t && provides(x, n));
+      if (dep) visit(dep, depth + 1);
+    }
+    out.push(t);
+  };
+  for (const t of targets) visit(t, 0);
+  return out;
+};
+
+/** The component names a target's update leaves in the file (#3343): a single-component def's every planned component,
+ *  `<id>/<value>`, those it adds included; a set's own name. */
+const providedNames = (t: UpdateTarget, name: string): string[] =>
+  t.single ? t.plans.map((p) => `${name}/${emitCoordValue(planComponentName(p))}`) : [name];
+
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
  *  because which one an update should touch is not this command's call. */
@@ -1408,11 +1439,19 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     return null;
   };
   const runPorts: UpdatePorts = renames.size ? { ...ports, renamedSet: (name) => renames.get(name) ?? renamedSingle(name) } : ports;
-  const total = viewed.length;
-  progress?.({ done: 0, total, next: viewed[0]?.t.def ?? null });
+  // WHAT THIS RUN ADDS COUNTS AS PRESENT (#3343): the targets are read nested first, so a set that nests a component
+  // another target adds (a provider logo's new mark) reads it as there once that target's own read has no blocker; the
+  // apply updates them in the same order. Credited only from a target the apply will write, never from a blocked one.
+  const addedThisRun = new Set<string>();
+  const rank = new Map(targets.map((t, i) => [t, i] as const));
+  const ranked = new Map<SetPreview, number>();
+  const byTarget = new Map(viewed.map((x) => [x.t, x] as const));
+  const order = nestedFirst(targets).map((x) => byTarget.get(x)!);
+  const total = order.length;
+  progress?.({ done: 0, total, next: order[0]?.t.def ?? null });
   if (progress && breathe) await breathe();
-  for (const [i, { t, v: spot }] of viewed.entries()) {
-    const told = (preview: SetPreview | null): void => progress?.({ done: i + 1, total, next: viewed[i + 1]?.t.def ?? null, set: { def: t.def, preview } });
+  for (const [i, { t, v: spot }] of order.entries()) {
+    const told = (preview: SetPreview | null): void => progress?.({ done: i + 1, total, next: order[i + 1]?.t.def ?? null, set: { def: t.def, preview } });
     if (spot.kind === 'missing') { out.missing.push(t.def); told(null); continue; }
     if (spot.kind === 'refused') { out.refused.push({ def: t.def, reason: spot.reason }); told(null); continue; }
     const v = await viewOf(spot, breathe, ports.drawVars, kept) as Extract<Viewed, { kind: 'found' }>;
@@ -1425,7 +1464,9 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     // drew its glyphs inline. The executor would report a miss for each and leave the old glyph where it
     // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
     // (`prebuildDependencies`); an update does not build other components.
-    preview.blockers.push(...await fileBlockers(host, t.plans, v.set, have));
+    // #3313's names, read once, plus what an unblocked target earlier in this run adds (#3343): no host read per set.
+    preview.blockers.push(...await fileBlockers(host, t.plans, v.set, addedThisRun.size ? new Set([...have, ...addedThisRun]) : have));
+    if (!preview.blockers.length) for (const n of providedNames(t, v.name)) addedThisRun.add(n);
     // THE CANVAS FURNITURE (#2803): what the page lacks of the set's labels and backdrops is a change, so "update again"
     // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
     if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {
@@ -1452,11 +1493,18 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
       if (tmig) { preview.slotTextMigration = tmig.migration; preview.previewHash = fnv(JSON.stringify([preview.previewHash, tmig.migration])); }
     }
     out.sets.push(preview);
+    ranked.set(preview, rank.get(t)!);
     if (!t.single) found.push({ preview, set: v.set, lead: !!t.doc });
     told(preview);
     // The panel hears each set as it is checked, before the next is read.
     if (progress && breathe) await breathe();
   }
+  // Read in the run's order, reported in the targets' own: the check lists the sets as it was asked for them.
+  const defRank = new Map(targets.map((t, i) => [t.def, i] as const));
+  out.sets.sort((a, b) => ranked.get(a)! - ranked.get(b)!);
+  out.missing.sort((a, b) => defRank.get(a)! - defRank.get(b)!);
+  out.refused.sort((a, b) => defRank.get(a.def)! - defRank.get(b.def)!);
+  found.sort((a, b) => ranked.get(a.preview)! - ranked.get(b.preview)!);
   // #2831: what each published set's update breaks for library consumers, once everything above has named its changes.
   for (const p of out.sets) { const b = breakingOf(p); if (b.length) p.breaking = b; }
   // #2542: the sets that move on their pages, read once every set has been.

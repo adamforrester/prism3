@@ -100,6 +100,7 @@ import { planComponentName } from '@prism3/engine/anatomy-figma';
 import { NS, persistInput } from './src/persist-figma';
 import { STAMP_KEY } from './src/write-components';
 import { writeBaseline } from './src/member-baseline';
+import { nestedFirst, type UpdateTarget } from './src/update-plan';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -977,7 +978,10 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   // #3302 Q3302.1–.3 A, Q3302.4 A: the check says how far it has got, for the dialog's foot and rows.
   //   · `check/progress`: once every set is found it posts done 0 of N, then one reading per set, done 1 to N in order,
   //     each naming the set just checked and the one checked next, each in a turn of its own, all before the answer.
-  //     Mutations, each → `check/progress`: the first reading (done 0) dropped; the hand-back after each set dropped.
+  //     The sets are checked nested first since #3343 (`nestedFirst`), so the readings come in that order, not the
+  //     targets' own; the premise holds that the two orders differ here, so the reading order is really exercised.
+  //     Mutations, each → `check/progress`: the first reading (done 0) dropped; the hand-back after each set dropped;
+  //     the loop walking the targets' own order again.
   // Measured: how many sets' lines the answer changed from the reading (the sets' moves are worked out at the end).
   {
     const pr = kept.progress;
@@ -985,14 +989,18 @@ console.log('\n  Capture baseline and Adopt (#3189)');
     const dones = pr.map((p) => p.msg.done);
     const names = pr.slice(1).map((p) => p.msg.set?.def ?? null);
     const nexts = pr.map((p) => p.msg.next);
-    const want = tdefs.map((d) => d.id);
+    const targets: UpdateTarget[] = tdefs.map((d) => ({ def: d.id, plans: plansOf.get(d.id)!, ...(d.figmaProperties!.emitAsComponents ? { single: true } : {}) }));
+    const want = nestedFirst(targets).map((t) => t.def);
+    const asked = tdefs.map((d) => d.id);
+    ok(want.length === N && [...want].sort().join() === [...asked].sort().join() && want.join() !== asked.join(),
+      `check/progress premise: the nested-first order holds all ${N} sets and differs from the targets' own (first at index ${want.findIndex((x, i) => x !== asked[i])})`);
     const turns = pr.map((p) => p.turn);
     const ordered = JSON.stringify(dones) === JSON.stringify(Array.from({ length: N + 1 }, (_, i) => i)) && pr.every((p) => p.msg.total === N);
     const named = JSON.stringify(names) === JSON.stringify(want) && JSON.stringify(nexts) === JSON.stringify([...want, null]);
     const paced = turns.every((t, i) => i === 0 || t > turns[i - 1]);
     const before = pr.every((p) => p.i < kept.answerAt);
     ok(ordered && named && paced && before,
-      `check/progress: the check posts done 0 of ${N} once every set is found, then each set as it is checked, in order, naming it and the next, each in its own turn, before the answer (${pr.length} readings; in order ${ordered}, named ${named}, a turn each ${paced}, before the answer ${before})`);
+      `check/progress: the check posts done 0 of ${N} once every set is found, then each set as it is checked, nested first, naming it and the next, each in its own turn, before the answer (${pr.length} readings; in order ${ordered}, named ${named}, a turn each ${paced}, before the answer ${before})`);
     const finals = new Map((kept.msg?.sets ?? []).map((x: any) => [x.def, JSON.stringify(x)]));
     const moved = pr.slice(1).filter((p) => p.msg.set && finals.get(p.msg.set.def) !== JSON.stringify(p.msg.set)).length;
     console.log(`    the answer changed ${moved} of ${N} sets' lines from their readings`);
