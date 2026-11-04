@@ -92,7 +92,8 @@
  * brand-neutral action palette the on track is near-black too (#34383D), so off and on read the same —
  * the owner's finding. The off track now reads `background.tertiary`, a surface step no interactive
  * lever moves; it keeps its hairline in `interactive.neutral.border.rest` (the 1.4.11 boundary, 15.98–
- * 21:1 against the page); and the off THUMB is DARK, in that same border ink — Material 3's unselected
+ * 21:1 against the page); and the off THUMB is DARK, in the matching selection mark (`interactive.neutral.indicator.rest`,
+ * #3346) — Material 3's unselected
  * shape (its handle and track outline share one `outline` role) and Prism 2's (#C6C6C6 track, #6A6A6A
  * handle). Measured over the token-contract corpus, prism3 and the NB master theme, every mode:
  *
@@ -192,11 +193,12 @@ export const switchControl: ComponentDef = {
     'off.border': 'color.interactive.neutral.border.rest',
     'off.border.hover': 'color.interactive.neutral.border.hover',
     'off.border.pressed': 'color.interactive.neutral.border.pressed',
-    // The OFF thumb — DARK on the light track (12.36–21:1), in the border's own ink (Material 3 shares one
-    // `outline` role between the unselected handle and the track outline). Not `neutral.on-fill`: that ink
-    // flips light when `neutralEmphasis: 'strong'` darkens the neutral fill. Keyed by selection because no
-    // single ink bounds both tracks.
-    'off.indicator': 'color.interactive.neutral.border.rest',
+    // The OFF thumb — DARK on the light track (12.36–21:1), in the neutral selection mark (#3346), the same value as
+    // the border by default (Material 3 shares one `outline` role between the unselected handle and the track
+    // outline). The mark, not the border, so a brand that quiets its outline edges never thins the thumb below 3:1 on
+    // its track. Not `neutral.on-fill`: that ink flips light when `neutralEmphasis: 'strong'` darkens the neutral
+    // fill. Keyed by selection because no single ink bounds both tracks.
+    'off.indicator': 'color.interactive.neutral.indicator.rest',
     // The OFF glyph (the X) — the INVERSE of the off thumb's dark ink, so a light X on the dark thumb.
     // `background.tertiary` is the off-track color; the off thumb clears it at 12.36–21:1, so the X clears
     // the thumb at the same ratio (the off-thumb pairing read the other way round).
@@ -459,12 +461,13 @@ export const switchControl: ComponentDef = {
     ],
     unverified: [
       'THE GLYPH IN THE THUMB IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. The thumb is `control.size.*.thumb` = 0.75 × the track (Prism 2\'s 24-in-32, #1425), its own tier field rather than radio\'s `dot`. In every corpus brand the thumb is 18px at `small` and 24px at `medium`, so its ~71%-inset glyph is ~12.7px and ~17px. The smallest case is compact density `small`, a 16px track with a 12px thumb and a ~8.5px glyph. The affordance is most useful at `medium`, and the row, not the atom, is what reaches SC 2.5.8.',
-      'THE THUMB IS SELECTION-KEYED — the off thumb is the dark `interactive.neutral.border.rest`, the on thumb the light `primary.on-fill`; no single ink bounds both tracks. This def adopts Prism 2\'s TREATMENT — light filled off track, bordered off state, darker handle, glyph in thumb — through semantic tokens rather than its literal values.',
+      'THE THUMB IS SELECTION-KEYED — the off thumb is the dark `interactive.neutral.indicator.rest`, the on thumb the light `primary.on-fill`; no single ink bounds both tracks. This def adopts Prism 2\'s TREATMENT — light filled off track, bordered off state, darker handle, glyph in thumb — through semantic tokens rather than its literal values.',
       'READ-ONLY AND PENDING BIND NOTHING here and are not even states of the atom — they are the Row\'s (a lock affordance; a spinner swap). Recorded so nobody reads their absence as an oversight.',
       'THE INHERITED FOCUS-RING BINDING is now two layers deep (#1280/#1290), the same as `checkbox-control`: the ring is nested inside the track and the track inside the row, so an inherited dimension binding would have to be cleared twice. The symptom to look for: a nested ring sitting at the md control height instead of hugging the track.',
     ],
     // KB switch brief §13, the items this atom carries: the on/off affordance and the role that announces it.
     evolution: [
+      '2026-11 (#3346): the off thumb follows `interactive.neutral.indicator.rest`, the selection mark, which matches the label\'s color, so a brand\'s outline-edge setting never reaches it. It bound `interactive.neutral.border.rest`, and a quieter outline edge measured 2.78–2.92:1 against the off track.',
       'THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom keeps the glyph ON by default (the `state icon` boolean; `showStateLabel` in code), matching Prism 2, and treats it as a legibility aid — never the state signal.',
       '`role="switch"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes a switch from a checkbox in assistive tech (KB switch brief §13). The atom is presentational; the host row carries the role.',
     ],

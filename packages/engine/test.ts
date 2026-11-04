@@ -7496,7 +7496,8 @@ arm: {
   // held to its own literal row at rest, per size, on the projected members.
   const TAG_REST: Record<string, { fill?: string; stroke: string; weight: string; label: string; check: boolean }> = {
     unselected: { stroke: 'color/interactive/neutral/border/rest', weight: 'border-width/hairline', label: 'color/interactive/neutral/text/rest', check: false },
-    selected: { fill: 'color/interactive/primary/subtle-fill/selected', stroke: 'color/interactive/primary/border/rest', weight: 'border-width/thick', label: 'color/interactive/neutral/text/rest', check: true },
+    // #3346 (owner Q1 revised A): the selected outline is the selection mark, `interactive.primary.indicator`.
+    selected: { fill: 'color/interactive/primary/subtle-fill/selected', stroke: 'color/interactive/primary/indicator/rest', weight: 'border-width/thick', label: 'color/interactive/neutral/text/rest', check: true },
   };
   const LABEL_STYLE: Record<string, string> = { small: 'type.label.sm.emphasis', medium: 'type.label.md.emphasis', large: 'type.label.lg.emphasis' };
   const restOf = (type: string, selection: string, size: string) => tagMembers.find((m) => m.type === type && m.selection === selection && m.size === size && m.state === 'rest')!;
@@ -7514,7 +7515,7 @@ arm: {
     ok(!!a && a === b, `tag label weight is constant (${size}): the selected label's text style equals the unselected one's, so the label keeps its width when selected (${a} / ${b})`);
   }
   // SELECTED HOVER AND PRESSED (owner, 2026-09-29): the tint holds and the 2px outline steps darker, on every size.
-  for (const [st, edge] of [['hover', 'color/interactive/primary/border/hover'], ['pressed', 'color/interactive/primary/border/pressed']] as const) {
+  for (const [st, edge] of [['hover', 'color/interactive/primary/indicator/hover'], ['pressed', 'color/interactive/primary/indicator/pressed']] as const) {
     const at = tagMembers.filter((m) => m.type === 'select' && m.selection === 'selected' && m.state === st);
     const wrong = at.filter((m) => !(m.plan.root.paints?.fills === TAG_REST.selected.fill && m.plan.root.paints?.strokes === edge && m.plan.root.bound?.strokeWeight === 'border-width/thick'));
     ok(at.length === 3 && wrong.length === 0,
@@ -16779,8 +16780,11 @@ arm: {
       // the pill through the schema, `applyMinWidthRatio` or the projector fails this line by name. Every plan field but
       // `codeOnly` is hashed: that is the def's code-tier prose, copied onto each plan, and #2945 rewrites its underline line.
       const pillHash = createHash('sha256').update(JSON.stringify(figmaAnatomySet(specMaterialize(tag), { swapTarget: 'FPO-default-icon' }).map(({ codeOnly: _prose, ...p }) => p))).digest('hex');
-      ok(pillHash === '85641a65e850c037a5607e96ad12f41bbf26690d9de84b7e135036fbc1bebdc4',
-        `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug, its code-tier prose aside (sha256 ${pillHash.slice(0, 12)}…)`);
+      // Re-pinned by #3346 (owner Q1 revised A): the selected outline moved from `interactive.primary.border.*` to the
+      // selection mark `interactive.primary.indicator.*` on 12 members. Measured when re-pinned: the new plans with those
+      // 12 refs swapped back hash to the pre-#2945 literal (85641a65e850…), so nothing else in the pill moved.
+      ok(pillHash === '48c09571c7cabd5cfa52439754c15e5c9b4afb438dc462a6d658c5ed5d4b3ad4',
+        `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug, its code-tier prose and #3346's selection mark aside (sha256 ${pillHash.slice(0, 12)}…)`);
       // #2946 review: after the hug the rung heights (28 / 36 / 44 / 56px) and "1.5 times its height" hold under Pill only, so
       // every shipped Tag string (everything but the maintainer-only `notes`) that states one names the style it is true of.
       {
@@ -16815,7 +16819,8 @@ arm: {
       const LINE_COLOR: Record<string, Record<string, string>> = {
         // #2945 (owner Q589, Q589.1 A): the unselected line is the primary border too, stepping on hover and pressed.
         unselected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
-        selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
+        // #3346 (owner Q1 revised A): the selected line is the selection mark; the unselected line stays an edge.
+        selected: { rest: 'color/interactive/primary/indicator/rest', hover: 'color/interactive/primary/indicator/hover', pressed: 'color/interactive/primary/indicator/pressed', 'focus-visible': 'color/interactive/primary/indicator/rest', disabled: 'color/disabled/border' },
       };
       const pill = figmaAnatomySet(tag, { swapTarget: 'FPO-default-icon' });
       const under = figmaAnatomySet(uDef, { swapTarget: 'FPO-default-icon' });
@@ -16854,7 +16859,7 @@ arm: {
       ok(bad.focus.length === 0, `tag underline: focus-visible keeps the line weight of its rest member, the ring alone marks focus (Q513.4) (${bad.focus.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.sides.length === 0, `tag underline: top, end and start bind border-width/none, and no scalar weight is bound (${bad.sides.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.corner.length === 0, `tag underline: every corner is radius/none (${bad.corner.slice(0, 3).join('; ') || 'ok'})`);
-      ok(bad.color.length === 0, `tag underline: the line takes the interactive primary border, unselected and selected, stepping on hover and pressed (Q513.2, #2945 Q589, Q589.1 A) (${bad.color.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.color.length === 0, `tag underline: the line takes the interactive primary border unselected and the primary selection mark selected, stepping on hover and pressed (Q513.2, #2945 Q589, Q589.1 A, #3346) (${bad.color.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.fill.length === 0, `tag underline: no interactive state binds a fill — no wash, no tint (Q513.2, Q513.3) (${bad.fill.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.height.length === 0, `tag underline hug (#2945, Q585 A): the tag hugs its content, with no minHeight and no fixed height (${bad.height.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.align.length === 0 && bad.inset.length === 0 && bad.labelRow.length === 0,
@@ -18144,7 +18149,8 @@ arm: {
       // (1) THE BAR — geometry and color per selection and state (Q178.1 A, Q178.2 B). One 2px box, `indicator`,
       // at every member; its fill is the selected primary bar, the unselected neutral hover bar, or nothing.
       const BAR: Record<string, Record<string, string | undefined>> = {
-        selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
+        // #3346 (owner Q1 revised A): the selected bar is the selection mark, `interactive.primary.indicator`.
+        selected: { rest: 'color/interactive/primary/indicator/rest', hover: 'color/interactive/primary/indicator/hover', pressed: 'color/interactive/primary/indicator/pressed', 'focus-visible': 'color/interactive/primary/indicator/rest', disabled: 'color/disabled/border' },
         unselected: { rest: undefined, hover: 'color/border/secondary', pressed: 'color/border/secondary', 'focus-visible': undefined, disabled: undefined },
       };
       const LABEL: Record<string, Record<string, string>> = {
@@ -18162,7 +18168,7 @@ arm: {
         if (ink !== LABEL[selection][state]) labelOff.push(`${selection}/${size}/${state}: ${String(ink)} (want ${LABEL[selection][state]})`);
       }
       ok(tabMembers.length === 30 && barOff.length === 0,
-        `#2416 Q178 tab bar: 30 members, each with one 2px bar (border-width/thick) — primary border at selected, color/border/secondary at unselected hover and pressed only, none at unselected rest, focus-visible and disabled (${tabMembers.length} members, ${barOff.length} off — ${barOff.slice(0, 3).join('; ') || 'none'})`);
+        `#2416 Q178 tab bar: 30 members, each with one 2px bar (border-width/thick) — the primary selection mark at selected, color/border/secondary at unselected hover and pressed only, none at unselected rest, focus-visible and disabled (${tabMembers.length} members, ${barOff.length} off — ${barOff.slice(0, 3).join('; ') || 'none'})`);
       ok(labelOff.length === 0,
         `#2416 Q178.1 tab label: primary text ink when selected, neutral when unselected, stepping with hover and pressed, disabled text when disabled (${labelOff.length} off — ${labelOff.slice(0, 3).join('; ') || 'none'})`);
 
@@ -18232,7 +18238,7 @@ arm: {
       {
         const cellsS: { cell: string; ratio: number }[] = [];
         const missS: string[] = [];
-        const SELECTED_BAR = 'color/interactive/primary/border/rest';
+        const SELECTED_BAR = 'color/interactive/primary/indicator/rest';   // #3346
         for (const brand of BAR_BRANDS) for (const mode of BAR_MODES) {
           const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
           if (!existsSync(f)) { missS.push(`${brand}/${mode}: no export`); continue; }
@@ -18404,7 +18410,8 @@ arm: {
       // border-width/heavy stroke at hover and pressed, the outer 4px band (space/050 padding) a fill only pressed, both
       // color/border/primary; none at rest, focus-visible or disabled. Disabled: the disc color/disabled/icon. The focus
       // ring at focus-visible only.
-      const INK: Record<string, string> = { rest: 'color/interactive/neutral/border/rest', hover: 'color/interactive/neutral/border/hover', pressed: 'color/interactive/neutral/border/pressed', 'focus-visible': 'color/interactive/neutral/border/rest', disabled: 'color/disabled/icon' };
+      // #3346 (owner Q1 revised A): the disc is the neutral selection mark, `interactive.neutral.indicator`.
+      const INK: Record<string, string> = { rest: 'color/interactive/neutral/indicator/rest', hover: 'color/interactive/neutral/indicator/hover', pressed: 'color/interactive/neutral/indicator/pressed', 'focus-visible': 'color/interactive/neutral/indicator/rest', disabled: 'color/disabled/icon' };
       const HALO = 'color/border/primary';
       const thumbOff = SIZES.flatMap((z) => STATES5.flatMap((s) => {
         const r = tOf(z, s)?.root;
@@ -18418,7 +18425,7 @@ arm: {
         const ringOk = s === 'focus-visible' ? ringNode?.nestTarget === 'focus-ring' : !ringNode;
         return frameOk && discOk && outerOk && innerOk && ringOk ? [] : [`${z}/${s}: frame ${String(r.bound?.width)} ${String(r.paints?.fills)}, disc ${String(disc?.paints?.fills)} ${String(disc?.bound?.width)}, outer halo ${String(outer?.paints?.fills)} ${String(outer?.bound?.paddingTop)}, inner halo ${String(inner?.paints?.strokes)} ${String(inner?.bound?.strokeWeight)}, focus ring ${String(ringNode?.nestTarget)}`];
       }));
-      ok(thumbOff.length === 0, `#2669 Q550 a / b / e / f the thumb: a frame the disc's size (control/size/{sm,md,lg}/thumb), the disc in color/interactive/neutral/border rest/hover/pressed with no ring, a color/border/primary halo 4px at hover (a border-width/heavy stroke) and 8px pressed (plus a space/050 fill band), color/disabled/icon when disabled, the focus ring at focus-visible only (${thumbOff.length} off — ${thumbOff.slice(0, 2).join('; ') || 'none'})`);
+      ok(thumbOff.length === 0, `#2669 Q550 a / b / e / f the thumb: a frame the disc's size (control/size/{sm,md,lg}/thumb), the disc in color/interactive/neutral/indicator rest/hover/pressed with no ring, a color/border/primary halo 4px at hover (a border-width/heavy stroke) and 8px pressed (plus a space/050 fill band), color/disabled/icon when disabled, the focus ring at focus-visible only (${thumbOff.length} off — ${thumbOff.slice(0, 2).join('; ') || 'none'})`);
 
       // (5) Calls 4 A / 7 A, Q550 d, Q345: the panel. Lowercase names; label and value on; milestones, inputs and helper
       // off. No end labels and no ticks: the milestones replace them.
@@ -18800,7 +18807,11 @@ arm: {
       const withFm = (over: Record<string, unknown>) => ({ ...fieldMessage, anatomy: { ...fieldMessage.anatomy!, parts: { ...fmParts, ...over } } }) as ComponentDef;
       ok(validateComponentDef(fieldMessage).errors.length === 0 && fmParts.message.placementWidth === 320,
         `#1757 field-message builds its root at 320 and validates (${String(fmParts.message.placementWidth)}; ${validateComponentDef(fieldMessage).errors[0] ?? 'clean'})`);
-      ok(refuses(withFm({ message: { ...fmParts.message, placementWidth: undefined } }), /'label' declares 'wrap'/, /does not bound its main-axis width/, /placementWidth unset/),
+      // Since #3360 the caption sits in `captionCell`, which GROWS across the row: with no build width the root hugs, so the
+      // cell's grow fills nothing (refused naming the root) and the caption inside it has no width to wrap at (refused
+      // naming the cell). Both arms, so neither refusal alone keeps this green.
+      const fmUnbuilt = withFm({ message: { ...fmParts.message, placementWidth: undefined } });
+      ok(refuses(fmUnbuilt, /'label' declares 'wrap'/, /parent 'captionCell' does not bound its main-axis width/) && refuses(fmUnbuilt, /'captionCell' declares 'grow'/, /parent 'message' does not bound its main axis/),
         "#1757 a 'wrap' caption under a FILL root with no build width is refused BY NAME — the root hugs until placed, so the text keeps its default string's width; removing field-message's placementWidth fires this");
       ok(refuses(withFm({ errorGlyph: { ...fmParts.errorGlyph }, label: { ...fmParts.label, placementWidth: 320 } }), /'label' declares 'placementWidth' but is not the anatomy ROOT/),
         "#1757 'placementWidth' off the root is refused BY NAME — a child takes its width from its parent");
@@ -24149,6 +24160,147 @@ arm: {
         `anatomy/textarea paste: at 16px × 165% (79.2px, stored single-precision) the reserved-rows floor reads back as KEPT (${JSON.stringify(taRun.misses.filter((m) => /minHeight|minLines/.test(m)))})`);
     }
 
+    // ---- #3360: THE FIELD MESSAGE'S STATUS GLYPH CENTERS ON THE CAPTION'S FIRST LINE (owner Q-FM1 A, Q-FM1.1 B) ----
+    //
+    // Q-FM1 A: a one-line message reads exactly centered, and a wrapping message keeps the glyph beside its first line
+    // (not the block's middle, which was option B, and not the caption box's top, which `align: 'start'` gave before).
+    // Q-FM1.1 B: no token carries the offset; the row's `firstLine` names the cells and the paste executor computes it.
+    //
+    // FIGMA: the paste executor RUNS, per corpus brand, with the stub's text metrics set to that brand's caption composite
+    // (font size and line-height percent) and the glyph variable resolving to that brand's `icon.size.xs`. A layout walk
+    // over the BUILT nodes (each frame's own `layoutMode`, cross-axis alignment, top padding and bound floor) then places
+    // the glyph and the caption's first line, for a one- and a two-line message. CODE: the same walk over the def's parts,
+    // with the two cells' padding taken as code computes it live (`max(0px, (glyph − 1lh) / 2)` and its mirror, the
+    // def's `codeOnly` entry).
+    //
+    // INDEPENDENCE (docs/34). The line and the glyph are read HERE from each brand's emitted tokens (the caption
+    // composite's font size × line height, the glyph's px), never from the executor or the def; the subject is what the
+    // executor wrote on the built nodes. The glyph's middle and the first line's middle are compared within 0.01px, as
+    // the line renders unrounded (15.4px at 11 × 140%): a line taken off a rounded box would sit 0.2px off and fail. The
+    // caption.lg rung (a line TALLER than the 16px glyph) is measured too, by rebinding the def's `type`, so the branch
+    // where the glyph sets down is exercised.
+    // Mutations: the def back on main's anatomy → `#3360 field-message glyph on the first line`; `firstLine` dropped →
+    // the same; the row centered → the same (two lines) and `#3360 field-message caption holds still`; the payload's line
+    // taken off `Math.round` (the review's mutation 4, moved to where the number is now computed) → the same, 0.20 off.
+    {
+      const fm = componentDefs.find((d) => d.id === 'field-message')!;
+      ok(!!fm, '#3360: the field-message def is present to measure');
+      const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+      const pick = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+      const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? pick(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); const x = String(leaf); return parseFloat(x) * (x.endsWith('rem') ? 16 : 1); };
+      const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' || align === 'center' ? (inH - h) / 2 : align === 'MAX' || align === 'end' ? inH - h : 0);
+      const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+      const worlds = corpus.map((b) => ({ brand: b, root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) }));
+      // The caption's metrics, from the composite's own font size and line height.
+      const metricsOf = (root: any, typePath: string) => { const t = pick(root, typePath).$value; return { size: num(root, t.fontSize), ratio: num(root, t.lineHeight) }; };
+      const atRung = (rung: string): ComponentDef => rung === 'md' ? fm : ({ ...fm, tokens: { ...fm.tokens, type: `type.caption.${rung}.default` } } as ComponentDef);
+      const GLYPH = /Glyph$/;
+      // The icon components the glyphs nest (#2380), present in the stubbed file so each glyph builds.
+      const nestTargets = (n: { nestTarget?: string; children: any[] }): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...n.children.flatMap(nestTargets)];
+      type HN = Record<string, any>;
+      const kidsOf = (n: HN): HN[] => (n.children as HN[] | undefined) ?? [];
+      const find = (n: HN, f: (x: HN) => boolean): HN | undefined => (f(n) ? n : kidsOf(n).map((k) => find(k, f)).find(Boolean));
+
+      // FIGMA: place the built member's nodes. `lines × line` for the caption, the glyph's px for a glyph, and a frame's own
+      // layout, top padding and bound floor for everything else, all read off the host nodes the executor wrote.
+      const builtPlace = (rowNode: HN, line: number, glyph: number, lines: number) => {
+        const heights = new Map<HN, number>(), tops = new Map<string, { top: number; h: number }>();
+        const padT = (n: HN) => (typeof n.paddingTop === 'number' ? n.paddingTop : 0), padB = (n: HN) => (typeof n.paddingBottom === 'number' ? n.paddingBottom : 0);
+        const floor = (n: HN) => (n.boundVariables?.minHeight ? (n.boundVariables.minHeight.id === 'V:icon/size/xs' ? glyph : NaN) : 0);
+        const height = (n: HN): number => {
+          const h = n.type === 'TEXT' ? lines * line : GLYPH.test(String(n.name)) ? glyph
+            : Math.max(floor(n), padT(n) + padB(n) + (n.layoutMode === 'VERTICAL' ? kidsOf(n).map(height).reduce((a, b) => a + b, 0) : Math.max(0, ...kidsOf(n).map(height))));
+          heights.set(n, h);
+          return h;
+        };
+        const lay = (n: HN, top: number) => {
+          const h = heights.get(n)!;
+          tops.set(String(n.name), { top, h });
+          let y = top + padT(n);
+          for (const c of kidsOf(n)) {
+            const ch = heights.get(c)!;
+            if (n.layoutMode === 'VERTICAL') { lay(c, y); y += ch; } else lay(c, top + padT(n) + place(n.counterAxisAlignItems, ch, h - padT(n) - padB(n)));
+          }
+        };
+        height(rowNode); lay(rowNode, 0);
+        return tops;
+      };
+      // CODE: the same walk over the DEF's parts, each part's keys read through `def.tokens`, and the two `firstLine`
+      // cells padded as code computes it live from the glyph's size and one caption line.
+      const codePlace = (def: ComponentDef, status: string, root: any, line: number, lines: number) => {
+        const ps = def.anatomy!.parts;
+        const v = (key?: string) => (key ? num(root, pick(root, def.tokens[key] as string)) : 0);
+        const fl = Object.values(ps).find((p) => p.firstLine)?.firstLine;
+        const pad = (name: string) => (!fl ? v(ps[name].paddingTop) : name === fl.textCell ? Math.max(0, (v(fl.glyph) - line) / 2) : name === fl.glyphCell ? Math.max(0, (line - v(fl.glyph)) / 2) : v(ps[name].paddingTop));
+        const present = (name: string) => !ps[name].presentWhen || (ps[name].presentWhen as Record<string, string[]>).status?.includes(status);
+        const heights = new Map<string, number>(), tops = new Map<string, { top: number; h: number }>();
+        const kids = (name: string) => (ps[name].children ?? []).filter(present);
+        const height = (name: string): number => {
+          const p = ps[name];
+          const h = p.kind === 'text' ? lines * line : !p.layout ? v(p.size ?? p.height)
+            : Math.max(v(p.minHeight), pad(name) + (p.layout.direction === 'column' ? kids(name).map(height).reduce((a, b) => a + b, 0) + v(p.gap) * Math.max(0, kids(name).length - 1) : Math.max(0, ...kids(name).map(height))));
+          heights.set(name, h);
+          return h;
+        };
+        const lay = (name: string, top: number) => {
+          const p = ps[name], h = heights.get(name)!;
+          tops.set(name, { top, h });
+          let y = top + pad(name);
+          for (const c of kids(name)) {
+            const ch = heights.get(c)!;
+            if (p.layout?.direction === 'column') { lay(c, y); y += ch + v(p.gap); } else lay(c, top + pad(name) + place(p.layout?.align, ch, h - pad(name)));
+          }
+        };
+        height(def.anatomy!.root); lay(def.anatomy!.root, 0);
+        return tops;
+      };
+
+      const off: string[] = [], moved: string[] = [], broke: string[] = [];
+      let measured = 0;
+      for (const rung of ['md', 'lg']) {
+        const def = atRung(rung);
+        const plans = figmaAnatomySet(def, { swapTarget: 'FPO' });
+        for (const w of worlds) {
+          const m = metricsOf(w.root, def.tokens.type as string);
+          const line = m.size * m.ratio, glyph = num(w.root, pick(w.root, def.tokens['glyph-size'] as string));
+          const labelTop: Record<string, number> = {};
+          for (const p of plans) {
+            const status = (p.coord as Record<string, string>).status;
+            const page: StubPage = { children: [] };
+            const run = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO', ...nestTargets(p.root)], page,
+              textMetrics: { fontSize: m.size, lineHeight: { unit: 'PERCENT', value: m.ratio * 100 } }, varOverrides: { 'icon/size/xs': glyph }, varValues: { 'icon/size/xs': glyph } });
+            const firstLineMisses = run.misses.filter((x) => /firstLine|paddingTop|THREW/.test(x));
+            if (firstLineMisses.length) broke.push(`${w.brand} caption.${rung} ${status}: ${firstLineMisses[0]}`);
+            const rowNode = page.children.map((c) => find(c as HN, (x) => kidsOf(x).some((k) => k.name === 'captionCell') || kidsOf(x).some((k) => k.type === 'TEXT'))).find(Boolean);
+            if (!rowNode) { broke.push(`${w.brand} caption.${rung} ${status}: no built row`); continue; }
+            for (const lines of [1, 2]) {
+              const f = builtPlace(rowNode, line, glyph, lines), c = codePlace(def, status, w.root, line, lines);
+              const label = f.get('label'), cLabel = c.get('label');
+              if (!label || !cLabel) { broke.push(`${w.brand} caption.${rung} ${status}: no caption`); continue; }
+              if (lines === 1) labelTop[status] = label.top;
+              const glyphName = [...f.keys()].find((n) => GLYPH.test(n));
+              if (!glyphName) { if (status !== 'default') broke.push(`${w.brand} caption.${rung} ${status}: no glyph built (${run.misses[0] ?? 'no miss'})`); continue; }   // the default status draws no glyph
+              measured++;
+              const g = f.get(glyphName)!, cg = c.get(glyphName)!;
+              const figmaOff = (g.top + g.h / 2) - (label.top + line / 2), codeOff = (cg.top + cg.h / 2) - (cLabel.top + line / 2);
+              if (!(Math.abs(figmaOff) <= 0.01 && Math.abs(codeOff) <= 0.01))
+                off.push(`${w.brand} caption.${rung} ${status} ${lines}-line: glyph middle off line one's by ${figmaOff.toFixed(2)} in Figma, ${codeOff.toFixed(2)} in code (line ${line.toFixed(2)}px, glyph ${glyph}px)`);
+            }
+          }
+          // The caption starts at one height in every status, the default included: a validation result moves no text.
+          const tops = Object.values(labelTop);
+          if (tops.length !== plans.length || Math.max(...tops) - Math.min(...tops) > 0.01) moved.push(`${w.brand} caption.${rung}: ${JSON.stringify(labelTop)}`);
+        }
+      }
+      // Three glyph statuses × one and two lines × two caption rungs × every corpus brand.
+      ok(measured === 3 * 2 * 2 * worlds.length && worlds.length >= 5 && broke.length === 0,
+        `#3360: every glyph status built by the paste executor and measured at one and two lines, at both caption rungs, in every corpus brand (${measured} of ${3 * 2 * 2 * worlds.length}, ${worlds.length} brands${broke.length ? ` — BROKE: ${broke.slice(0, 3).join('; ')}` : ''})`);
+      ok(off.length === 0,
+        `#3360 field-message glyph on the first line: the status glyph's middle is the caption's first-line middle, within 0.01px, for a one- and a two-line message, in Figma (as the paste executor builds it) and in code${off.length ? ` — OFF: ${off.slice(0, 6).join('; ')}` : ''}`);
+      ok(moved.length === 0,
+        `#3360 field-message caption holds still: the caption starts at the same height in every status, so a validation result moves no text${moved.length ? ` — MOVED: ${moved.slice(0, 4).join('; ')}` : ''}`);
+    }
+
     // ---- #2345: the image-placeholder marker is built OUT OF FLOW, CENTERED and SCALE/SCALE, on BOTH legs ----
     // The plan-level arm proves the plan says so; this proves each EXECUTOR writes it. The expected
     // constraints are the literal 'SCALE' typed here, and the centering is measured against the PARENT'S
@@ -26583,7 +26735,8 @@ arm: {
             /\/control HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/, new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`)]],
           [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /,
             /\/control HORIZONTAL p:FIXED c:FIXED align:STRETCH /, new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`)]],
-          [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/label undefined .*grow:1 text:HEIGHT/]],
+          // #3360: the caption sits in `captionCell`, which grows across the row; the caption stretches across the cell.
+          [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/captionCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/captionCell\/label undefined .*align:STRETCH grow:0 text:HEIGHT/]],
           // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
           // the paste twin's spliced max-width line as well as the plugin's.
           [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/label undefined .*grow:0 text:WIDTH_AND_HEIGHT mw:316$/]],
@@ -33804,18 +33957,19 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
 // (f) alone compares two builds, both of literal inputs:
 //   (a) the palette is gone: no `brand-neutral` palette, no brand colors, and the action family resolves to neutral;
 //   (b) no role in any mode aliases `brand-neutral`;
-//   (c) every mode contract passes, and the count is the literal 214, so a contract dropping out is seen;
+//   (c) every mode contract passes, and the count is the literal 232 (214 until #3346 added the 18 selection marks),
+//       so a contract dropping out is seen;
 //   (d) `interactive.primary.border.rest` is `neutral.400` `#8f8d8d` at 3.30:1 on `background.primary`;
-//   (e) the action family resolves to the decided step and hex, role by role (52 roles, the six subtle fills
+//   (e) the action family resolves to the decided step and hex, role by role (58 roles since #3346 added six selection marks; the six subtle fills
 //       included, which carry the fill's ramp step);
 //   (f) every role outside that table is byte-identical (hex and alias path) to the 2026-09-28 build: the neutral
-//       role already sat on `neutral`, so only the 52 decided roles may move (an action-family role that does not
+//       role already sat on `neutral`, so only the 58 decided roles may move (an action-family role that does not
 //       sit on the action ramp, like `interactive.primary.on-fill`, is held here too);
 //   (g) premise, the mutation held in the test: the same fixture with `border.rest` back on step 350 fails its
 //       contract, so (c) can see the floor this migration had to clear.
 //
 // Mutations, each failing here by name:
-//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 214 contracts pass on the neutral palette (want 214) —
+//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 232 contracts pass on the neutral palette (want 232) —
 //       FAILED: interactive.primary.border.rest 2.81<3`, `#3336 light: interactive.primary.border.rest is neutral.400 #8f8d8d
 //       at 3.30:1 …` and `#3336 light: the action family resolves to the decided neutral step and hex …`
 //   (2) the `brand-neutral` brand color restored to the fixture → `#3336 the reference brand carries no brand-neutral palette …`
@@ -33831,7 +33985,11 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
     'interactive.primary.text.rest': '950 #0e0d0d', 'interactive.primary.icon.rest': '950 #0e0d0d',
     'interactive.primary.text.hover': '800 #2d2c2c', 'interactive.primary.icon.hover': '800 #2d2c2c',
     'interactive.primary.text.pressed': '700 #444343', 'interactive.primary.icon.pressed': '700 #444343',
-    'interactive.primary.border.rest': '400 #8f8d8d', 'interactive.primary.border.hover': '700 #444343', 'interactive.primary.border.pressed': '800 #2d2c2c',
+    // #3346 (owner E3 A): the edge's hover and pressed are the label's as resolved (800, 700), where the derived ink had
+    // crossed it (700, 800); its rest keeps its own override. The selection mark is the label at every state.
+    'interactive.primary.border.rest': '400 #8f8d8d', 'interactive.primary.border.hover': '800 #2d2c2c', 'interactive.primary.border.pressed': '700 #444343',
+    'interactive.primary.indicator.rest': '950 #0e0d0d', 'interactive.primary.indicator.hover': '800 #2d2c2c', 'interactive.primary.indicator.pressed': '700 #444343',
+    'inverse.interactive.primary.indicator.rest': '025 #f7f7f7', 'inverse.interactive.primary.indicator.hover': '350 #9b9a9a', 'inverse.interactive.primary.indicator.pressed': '250 #b4b3b3',
     'interactive.primary.subtle-fill.hover': '950 #0e0d0d', 'interactive.primary.subtle-fill.pressed': '950 #0e0d0d', 'interactive.primary.subtle-fill.selected': '950 #0e0d0d',
     'inverse.interactive.primary.fill.rest': '025 #f7f7f7', 'inverse.interactive.primary.text.rest': '025 #f7f7f7',
     'inverse.interactive.primary.icon.rest': '025 #f7f7f7', 'inverse.interactive.primary.border.rest': '025 #f7f7f7',
@@ -33868,7 +34026,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
       ok(stale.length === 0, `#3336 ${m.mode}: no role aliases brand-neutral${stale.length ? ` — ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ` and ${stale.length - 5} more` : ''}` : ''}`);
       // (c)
       const { checked, broken } = contracts(roles);
-      ok(checked.length === 214 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 214)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
+      ok(checked.length === 232 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 232)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
       // (d)
       const b = roles['interactive.primary.border.rest'];
       ok(!!b && b.hex === '#8f8d8d' && /\.palette\.neutral\.400$/.test(b.path) && Math.abs(b.ratio - 3.30) < 0.005 && b.min === 3 && b.against === 'background.primary',
@@ -35053,9 +35211,10 @@ arm: {
   // silently going grey again. The UNCHECKED ring must STAY neutral (Prism 2 ships its `selected=false` ring
   // grey, #82899D), so this also pins that the two selections DIFFER — a rebind of BOTH selections to
   // interactive would erase Prism 2's neutral unchecked edge and is not what #1423 asks for.
-  ok(rc.tokens['checked.border'] === 'color.interactive.primary.border.rest'
-     && rc.tokens['checked.border.hover'] === 'color.interactive.primary.border.hover'
-     && rc.tokens['checked.border.pressed'] === 'color.interactive.primary.border.pressed',
+  // #3346 (owner Q1 revised A): the interactive family's selection mark, `indicator`, not its outline edge.
+  ok(rc.tokens['checked.border'] === 'color.interactive.primary.indicator.rest'
+     && rc.tokens['checked.border.hover'] === 'color.interactive.primary.indicator.hover'
+     && rc.tokens['checked.border.pressed'] === 'color.interactive.primary.indicator.pressed',
     `#1423 radio-control's CHECKED ring binds the INTERACTIVE family per-state (rest=${rc.tokens['checked.border']}, hover=${rc.tokens['checked.border.hover']}, pressed=${rc.tokens['checked.border.pressed']})`);
   ok(rc.tokens['checked.border'] !== 'color.field.border.rest'
      && rc.tokens['checked.border.hover'] !== 'color.field.border.hover'
@@ -36298,7 +36457,8 @@ arm: {
       `#2860 ${brand}: foreground lists danger with the statuses, ahead of the subtle tints (#2836)`);
     const inkParts = def.filter((k) => k.startsWith('interactive.primary.')).map((k) => k.split('.')[2]).filter((p, i, a) => a.indexOf(p) === i);
     // #3071: an opaque-fill brand's `hover-fill` sits beside the wash it replaces.
-    const wantParts = ['fill', 'on-fill', 'text', 'icon', 'border', 'overlay', ...(BRAND_OPAQUE_FILL[brand] ? ['hover-fill'] : []), 'subtle-fill'];
+    const wantParts = ['fill', 'on-fill', 'text', 'icon', 'border', 'indicator', 'overlay',   // `indicator` beside the edge (#3346)
+      ...(BRAND_OPAQUE_FILL[brand] ? ['hover-fill'] : []), 'subtle-fill'];
     ok(inkParts.join() === wantParts.join(),
       `#2860 ${brand}: interactive runs ${wantParts.join(', ')} (got ${inkParts.join(', ')})`);
   }
@@ -40303,10 +40463,10 @@ arm: {
   ok(tabsMembers.length === 6 && tabsOff.length === 0,
     `#2715 tabs paint: on all 6 members the only node Tabs paints is the baseline, filled color/border/primary with no stroke (${tabsMembers.length} members, ${tabsOff.length} off — ${tabsOff[0] ?? 'none'})`);
   // (5) MEASURED: the baseline is the faint line and the selected bar reads above it. Against the page, the selected
-  // bar (color/interactive/primary/border/rest, Q226 A) measures higher contrast than the baseline in every cell, so
+  // bar (color/interactive/primary/indicator/rest, Q226 A, #3346) measures higher contrast than the baseline in every cell, so
   // the underline is never lost in the line it sits on. The baseline's variable is read off the plan, the bar's typed.
   const baseVar = findIn(tabsMembers[0].root as PN, 'baseline')?.paints?.fills;
-  const BAR = 'color/interactive/primary/border/rest';
+  const BAR = 'color/interactive/primary/indicator/rest';
   const tabsCells: { cell: string; base: number; bar: number }[] = [];
   const tabsMiss: string[] = [];
   for (const { cell, vars } of exportsOf()) {
@@ -40447,6 +40607,114 @@ arm: {
   const pPlain = (shim.styles.text as any[]).filter((x) => !x.name.endsWith('-link') && ('textDecorationThickness' in x || 'textDecorationOffset' in x));
   ok(pasted.skipped.length === 0 && pLinks.length === 18 && pOff.length === 0 && pPlain.length === 0,
     `#2942 underline, paste path: the reference brand's 18 pasted -link styles read PERCENT 5 / 25, and no plain style has either field (${pLinks.length} links; ${pOff.length} off; ${pPlain.length} plain touched)`);
+}
+
+// ---- #3346 (owner Q1 revised A, E1 A, E3 A; 2026-11-03): THE SELECTION MARK, `interactive.<c>.indicator.*` ----
+// A shape that marks a control as selected or on binds its own role, the bold value: the label's ink as RESOLVED,
+// overrides included. Every expectation below is a literal typed from the decision on #3346, never read off the defs,
+// `modes.ts` or the twin functions (docs/34 shape 1). The reference brand's master input (`NB_MASTER`, light only, and
+// the same input with all four modes forced on) carries the label overrides the twins exist for.
+{
+  type Roles = Record<string, { hex: string }>;
+  const FAMILIES = ['primary', 'neutral', 'destructive'];
+  const STATES3 = ['rest', 'hover', 'pressed'];
+  const masterTheme = exampleTheme('#3346 reference master', () => brandTheme(NB_MASTER));
+  const master4 = exampleTheme('#3346 reference master, four modes', () => brandTheme({ ...NB_MASTER, modes: ['light', 'dark', 'hc-light', 'hc-dark'] } as BrandInput));
+  const prism3T = exampleTheme('#3346 prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput));
+  const cells: { id: string; theme: Theme; input?: BrandInput }[] = [
+    ...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })),
+    ...(prism3T ? [{ id: 'prism3', theme: prism3T }] : []),
+    ...(masterTheme ? [{ id: 'reference master', theme: masterTheme, input: NB_MASTER }] : []),
+    ...(master4 ? [{ id: 'reference master (4 modes)', theme: master4, input: NB_MASTER }] : []),
+  ];
+  // (1) THE MARK IS THE LABEL (Q1 revised A, E3 A). In every brand × mode × band × family × state, the indicator's hex
+  // is the label's. A border override never reaches it (that is the next arm's literal).
+  // MUTATION: `withIndicatorTwins` stops carrying to `indicator` → the master's light primary mark falls back to the
+  // derived ink and this arm fails by name.
+  const markOff: string[] = [];
+  let markCells = 0;
+  for (const { id, theme } of cells) for (const m of resolveAllModes(theme)) for (const pre of ['', 'inverse.']) for (const c of FAMILIES) for (const st of STATES3) {
+    const roles = m.roles as Roles;
+    const text = roles[`${pre}interactive.${c}.text.${st}`], mark = roles[`${pre}interactive.${c}.indicator.${st}`];
+    if (!text) continue;
+    markCells++;
+    if (!mark || mark.hex.toLowerCase() !== text.hex.toLowerCase()) markOff.push(`${id} ${m.mode} ${pre}${c} ${st}: mark ${mark?.hex ?? 'missing'}, label ${text.hex}`);
+  }
+  ok(cells.length >= 6 && markCells >= 400 && markOff.length === 0,
+    `#3346-E1 the mark is the label: interactive.<c>.indicator.<state> equals interactive.<c>.text.<state> in every brand, mode and band, label overrides included (${markCells} cells over ${cells.length} brands${markOff.length ? ` — ${markOff.slice(0, 3).join('; ')}` : ''})`);
+
+  // (2) THE LITERALS ON THE REFERENCE MASTER, light (its overrides: label 950 / 800 / 700 on its brand-neutral ramp, the
+  // outline edge's rest hand-set to 350). The mark is the near-black label at every state; the edge keeps its own rest
+  // override (an explicit override wins) and takes the label's hover and pressed (E3 A).
+  // MUTATIONS: drop the border twin → the edge's hover and pressed fall back to the derived ink and fail by name; carry
+  // the border override to the mark → the mark's rest reads #8f959a and fails by name.
+  const lightOf = (t: Theme | undefined) => (t ? resolveAllModes(t).find((m) => m.mode === 'light')!.roles as Roles : undefined);
+  const ml = lightOf(masterTheme);
+  const hexes = (pre: string, slot: string) => STATES3.map((st) => ml?.[`${pre}interactive.primary.${slot}.${st}`]?.hex.toLowerCase() ?? 'missing').join(' / ');
+  ok(hexes('', 'indicator') === '#0b0e10 / #292d31 / #3f4449',
+    `#3346-E1 reference master light: the primary selection mark is the label, #0b0e10 / #292d31 / #3f4449 at rest / hover / pressed (got ${hexes('', 'indicator')})`);
+  ok(hexes('', 'border') === '#8f959a / #292d31 / #3f4449',
+    `#3346-E3 reference master light: the outline edge keeps its own rest override (#8f959a) and takes the label's hover and pressed, #292d31 / #3f4449 (got ${hexes('', 'border')})`);
+  ok(hexes('inverse.', 'indicator') === '#f6f7f7 / #8f959a / #acb0b4' && hexes('inverse.', 'text') === hexes('inverse.', 'indicator'),
+    `#3346-E1 reference master light, inverse band: the mark is the inverse label, #f6f7f7 / #8f959a / #acb0b4 (got ${hexes('inverse.', 'indicator')}; label ${hexes('inverse.', 'text')})`);
+
+  // (3) THE BOLD EDGE IS THE LABEL UNLESS IT IS OVERRIDDEN ITSELF (E3 A). In every cell, `.border.<state>` equals
+  // `.text.<state>` except where the brand's input overrides that border in that mode (read off the INPUT, which is not
+  // the subject: the engine's twin is).
+  const edgeOff: string[] = [];
+  let edgeCells = 0;
+  for (const { id, theme, input } of cells) for (const m of resolveAllModes(theme)) for (const pre of ['', 'inverse.']) for (const c of FAMILIES) for (const st of STATES3) {
+    const roles = m.roles as Roles;
+    const key = `${pre}interactive.${c}.border.${st}`;
+    const text = roles[`${pre}interactive.${c}.text.${st}`], edge = roles[key];
+    if (!text || !edge) continue;
+    if ((input as any)?.overrides?.[m.mode]?.[key]) continue;
+    edgeCells++;
+    if (edge.hex.toLowerCase() !== text.hex.toLowerCase()) edgeOff.push(`${id} ${m.mode} ${key}: ${edge.hex}, label ${text.hex}`);
+  }
+  ok(edgeCells >= 400 && edgeOff.length === 0,
+    `#3346-E3 the bold edge is the label as resolved, unless the edge is overridden itself (${edgeCells} cells${edgeOff.length ? ` — ${edgeOff.slice(0, 3).join('; ')}` : ''})`);
+
+  // (4) THE FIVE MARKS BIND THE INDICATOR (Q1 revised A, E1 A), each key a literal. MUTATION: put any of them back on
+  // `interactive.*.border.*` and this arm fails by name.
+  const MARKS: [string, string, string][] = [
+    ...STATES3.map((st, i) => ['tab-item', ['selected.fill', 'selected.fill.hover', 'selected.fill.pressed'][i], `color.interactive.primary.indicator.${st}`] as [string, string, string]),
+    ...STATES3.map((st, i) => ['radio-control', ['checked.border', 'checked.border.hover', 'checked.border.pressed'][i], `color.interactive.primary.indicator.${st}`] as [string, string, string]),
+    ...STATES3.map((st, i) => ['tag', ['selected.border', 'selected.border.hover', 'selected.border.pressed'][i], `color.interactive.primary.indicator.${st}`] as [string, string, string]),
+    ['switch-control', 'off.indicator', 'color.interactive.neutral.indicator.rest'],
+    ...STATES3.map((st, i) => ['_slider-thumb', ['indicator', 'indicator.hover', 'indicator.pressed'][i], `color.interactive.neutral.indicator.${st}`] as [string, string, string]),
+  ];
+  const bindOff = MARKS.filter(([id, key, want]) => componentDefs.find((d) => d.id === id)?.tokens[key] !== want)
+    .map(([id, key, want]) => `${id} ${key}: ${componentDefs.find((d) => d.id === id)?.tokens[key] ?? 'unbound'} (want ${want})`);
+  ok(MARKS.length === 13 && bindOff.length === 0,
+    `#3346-E1 the five selection marks bind interactive.<c>.indicator.*: the tab's selected bar, the radio's checked ring, the tag's selected outline, the switch's off thumb and the slider's disc (${bindOff.length} off — ${bindOff.slice(0, 3).join('; ') || 'none'})`);
+
+  // (5) NO SHAPE BINDS A TEXT ROLE (owner, 2026-11-03), even where the values match. SUBJECT = every projected member
+  // of every def; a node whose part is a `box` may not fill or stroke with a `text` role on either band. The oracle is
+  // the rule, typed here. `TEXT_CARET` is the one known exception, the text cursor drawn in the field's value ink,
+  // held for the owner (#3397), and is a floor: an entry that stops breaching fails as stale.
+  // MUTATION: bind the tab's selected bar to `color.interactive.primary.text.rest` and this arm fails by name.
+  const TEXT_ROLE = /^color\/(?:inverse\/)?(?:interactive\/[^/]+\/)?text\//;
+  const TEXT_CARET = new Set(['text-field caret', 'text-field caretEnd', 'textarea caret', 'password-field caret', 'password-field caretEnd',
+    'search-field caret', 'search-field caretEnd', 'card-number-field caret', 'card-number-field caretEnd', 'code-input-cell caret']);
+  const shapeOnText = new Set<string>();
+  const caretSeen = new Set<string>();
+  let shapeNodes = 0;
+  const walkShapes = (n: any, f: (x: any) => void): void => { f(n); (n.children ?? []).forEach((k: any) => walkShapes(k, f)); };
+  for (const d of componentDefs) {
+    const kinds = Object.fromEntries(Object.entries(d.anatomy?.parts ?? {}).map(([k, p]) => [k, (p as { kind: string }).kind]));
+    for (const p of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) walkShapes(p.root, (n) => {
+      if (kinds[n.name] !== 'box') return;
+      shapeNodes++;
+      for (const v of [n.paints?.fills, n.paints?.strokes]) if (typeof v === 'string' && TEXT_ROLE.test(v)) {
+        const at = `${d.id} ${n.name}`;
+        if (TEXT_CARET.has(at)) caretSeen.add(at); else shapeOnText.add(`${at}: ${v}`);
+      }
+    });
+  }
+  const stale = [...TEXT_CARET].filter((x) => !caretSeen.has(x));
+  ok(shapeNodes > 1000 && shapeOnText.size === 0 && stale.length === 0,
+    `#3346 no shape binds a text role: no box part fills or strokes with a text role on either band (${shapeNodes} box nodes; ${shapeOnText.size} off — ${[...shapeOnText].slice(0, 3).join('; ') || 'none'}; ${stale.length} stale caret exemption(s) ${stale.join(', ')})`);
 }
 
 // ------------------------------------------------------------------- report

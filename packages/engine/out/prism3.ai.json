@@ -1177,6 +1177,84 @@
         }
       ]
     },
+    "interactive.primary.indicator.rest": {
+      "$description": "primary interactive indicator — rest (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.primary.600}",
+        "dark": "{pds3.core.palette.primary.450}",
+        "hc-light": "{pds3.core.palette.primary.600}",
+        "hc-dark": "{pds3.core.palette.primary.350}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.primary.text.rest"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 7.82,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
+    },
+    "interactive.primary.indicator.hover": {
+      "$description": "primary interactive indicator — hover (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.primary.700}",
+        "dark": "{pds3.core.palette.primary.350}",
+        "hc-light": "{pds3.core.palette.primary.700}",
+        "hc-dark": "{pds3.core.palette.primary.250}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.primary.text.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 11.17,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
+    },
+    "interactive.primary.indicator.pressed": {
+      "$description": "primary interactive indicator — pressed (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.primary.800}",
+        "dark": "{pds3.core.palette.primary.250}",
+        "hc-light": "{pds3.core.palette.primary.800}",
+        "hc-dark": "{pds3.core.palette.primary.150}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.primary.text.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 15.08,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
+    },
     "interactive.destructive.fill.rest": {
       "$description": "destructive interactive fill — rest, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
@@ -1547,6 +1625,84 @@
         }
       ]
     },
+    "interactive.destructive.indicator.rest": {
+      "$description": "destructive interactive indicator — rest (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.danger.600}",
+        "dark": "{pds3.core.palette.danger.400}",
+        "hc-light": "{pds3.core.palette.danger.650}",
+        "hc-dark": "{pds3.core.palette.danger.350}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.destructive.text.rest"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.tertiary",
+          "min": "3:1",
+          "ratio": 4.9,
+          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+        }
+      ]
+    },
+    "interactive.destructive.indicator.hover": {
+      "$description": "destructive interactive indicator — hover (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.danger.700}",
+        "dark": "{pds3.core.palette.danger.300}",
+        "hc-light": "{pds3.core.palette.danger.750}",
+        "hc-dark": "{pds3.core.palette.danger.250}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.destructive.text.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.tertiary",
+          "min": "3:1",
+          "ratio": 7.23,
+          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+        }
+      ]
+    },
+    "interactive.destructive.indicator.pressed": {
+      "$description": "destructive interactive indicator — pressed (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.danger.800}",
+        "dark": "{pds3.core.palette.danger.200}",
+        "hc-light": "{pds3.core.palette.danger.850}",
+        "hc-dark": "{pds3.core.palette.danger.150}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.destructive.text.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.tertiary",
+          "min": "3:1",
+          "ratio": 10.24,
+          "requirement": "MUST clear 3:1 against `background.tertiary` in every mode."
+        }
+      ]
+    },
     "interactive.neutral.fill.rest": {
       "$description": "neutral interactive fill — rest, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
@@ -1858,6 +2014,84 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The border of an outline neutral interactive element while pressed.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `border.primary`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.neutral.750}",
+        "dark": "{pds3.core.palette.neutral.200}",
+        "hc-light": "{pds3.core.palette.neutral.750}",
+        "hc-dark": "{pds3.core.palette.neutral.200}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.neutral.text.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 11.74,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
+    },
+    "interactive.neutral.indicator.rest": {
+      "$description": "neutral interactive indicator — rest (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.neutral.950}",
+        "dark": "{pds3.core.palette.neutral.025}",
+        "hc-light": "{pds3.core.palette.black}",
+        "hc-dark": "{pds3.core.palette.white}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.neutral.text.rest"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 19.43,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
+    },
+    "interactive.neutral.indicator.hover": {
+      "$description": "neutral interactive indicator — hover (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.neutral.850}",
+        "dark": "{pds3.core.palette.neutral.100}",
+        "hc-light": "{pds3.core.palette.neutral.850}",
+        "hc-dark": "{pds3.core.palette.neutral.100}"
+      },
+      "sits_on": [
+        "background.primary"
+      ],
+      "tracks": [
+        "interactive.neutral.text.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 16.07,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
+    },
+    "interactive.neutral.indicator.pressed": {
+      "$description": "neutral interactive indicator — pressed (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.750}",
         "dark": "{pds3.core.palette.neutral.200}",
@@ -2224,6 +2458,84 @@
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an outline primary interactive element while pressed. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.border.pressed`. Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `inverse.border.primary`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.primary.250}",
+        "dark": "{pds3.core.palette.primary.800}",
+        "hc-light": "{pds3.core.palette.primary.150}",
+        "hc-dark": "{pds3.core.palette.primary.800}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.primary.text.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "3:1",
+          "ratio": 9.46,
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.primary.indicator.rest": {
+      "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.rest`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.primary.450}",
+        "dark": "{pds3.core.palette.primary.600}",
+        "hc-light": "{pds3.core.palette.primary.350}",
+        "hc-dark": "{pds3.core.palette.primary.600}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.primary.text.rest"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "3:1",
+          "ratio": 5.04,
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.primary.indicator.hover": {
+      "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.hover`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.primary.350}",
+        "dark": "{pds3.core.palette.primary.700}",
+        "hc-light": "{pds3.core.palette.primary.250}",
+        "hc-dark": "{pds3.core.palette.primary.700}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.primary.text.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "3:1",
+          "ratio": 7.01,
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.primary.indicator.pressed": {
+      "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.pressed`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.250}",
         "dark": "{pds3.core.palette.primary.800}",
@@ -2615,6 +2927,84 @@
         }
       ]
     },
+    "inverse.interactive.destructive.indicator.rest": {
+      "$description": "destructive interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.rest`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.danger.400}",
+        "dark": "{pds3.core.palette.danger.600}",
+        "hc-light": "{pds3.core.palette.danger.350}",
+        "hc-dark": "{pds3.core.palette.danger.650}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.destructive.text.rest"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.tertiary",
+          "min": "3:1",
+          "ratio": 4.85,
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.destructive.indicator.hover": {
+      "$description": "destructive interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.hover`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.danger.300}",
+        "dark": "{pds3.core.palette.danger.700}",
+        "hc-light": "{pds3.core.palette.danger.250}",
+        "hc-dark": "{pds3.core.palette.danger.750}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.destructive.text.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.tertiary",
+          "min": "3:1",
+          "ratio": 6.7,
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.destructive.indicator.pressed": {
+      "$description": "destructive interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.pressed`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.danger.200}",
+        "dark": "{pds3.core.palette.danger.800}",
+        "hc-light": "{pds3.core.palette.danger.150}",
+        "hc-dark": "{pds3.core.palette.danger.850}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.destructive.text.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.tertiary",
+          "min": "3:1",
+          "ratio": 8.93,
+          "requirement": "MUST clear 3:1 against `inverse.background.tertiary` in every mode."
+        }
+      ]
+    },
     "inverse.interactive.neutral.text.rest": {
       "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
@@ -2966,6 +3356,84 @@
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an outline neutral interactive element while pressed. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.pressed`. Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `inverse.border.primary`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.neutral.200}",
+        "dark": "{pds3.core.palette.neutral.750}",
+        "hc-light": "{pds3.core.palette.neutral.200}",
+        "hc-dark": "{pds3.core.palette.neutral.750}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.neutral.text.pressed"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "3:1",
+          "ratio": 10.78,
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.neutral.indicator.rest": {
+      "$description": "neutral interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.rest`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.neutral.025}",
+        "dark": "{pds3.core.palette.neutral.950}",
+        "hc-light": "{pds3.core.palette.white}",
+        "hc-dark": "{pds3.core.palette.black}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.neutral.text.rest"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "3:1",
+          "ratio": 18.13,
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.neutral.indicator.hover": {
+      "$description": "neutral interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.hover`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
+      "mode_overrides": {
+        "light": "{pds3.core.palette.neutral.100}",
+        "dark": "{pds3.core.palette.neutral.850}",
+        "hc-light": "{pds3.core.palette.neutral.100}",
+        "hc-dark": "{pds3.core.palette.neutral.850}"
+      },
+      "sits_on": [
+        "inverse.background.primary"
+      ],
+      "tracks": [
+        "inverse.interactive.neutral.text.hover"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "3:1",
+          "ratio": 14.04,
+          "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
+        }
+      ]
+    },
+    "inverse.interactive.neutral.indicator.pressed": {
+      "$description": "neutral interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.pressed`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.200}",
         "dark": "{pds3.core.palette.neutral.750}",
@@ -8937,6 +9405,7 @@
         "color.interactive.destructive.on-fill",
         "color.interactive.neutral.border.rest",
         "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.indicator.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
@@ -8952,6 +9421,7 @@
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.rest",
         "color.inverse.interactive.neutral.icon.rest",
+        "color.inverse.interactive.neutral.indicator.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.interactive.primary.fill.rest",
@@ -8988,6 +9458,7 @@
         "color.interactive.destructive.on-fill",
         "color.interactive.neutral.border.rest",
         "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.indicator.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
@@ -9003,6 +9474,7 @@
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.rest",
         "color.inverse.interactive.neutral.icon.rest",
+        "color.inverse.interactive.neutral.indicator.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.interactive.primary.fill.rest",
@@ -9051,11 +9523,13 @@
         "color.icon.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.pressed",
+        "color.interactive.primary.indicator.pressed",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.pressed",
         "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.pressed",
+        "color.inverse.interactive.primary.indicator.pressed",
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.pressed",
         "color.inverse.text.link.visited",
@@ -9086,6 +9560,8 @@
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.pressed",
+        "color.interactive.primary.indicator.hover",
+        "color.interactive.primary.indicator.pressed",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.hover",
@@ -9094,6 +9570,8 @@
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.pressed",
+        "color.inverse.interactive.primary.indicator.hover",
+        "color.inverse.interactive.primary.indicator.pressed",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.hover",
@@ -9137,6 +9615,8 @@
         "color.interactive.primary.border.rest",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.rest",
+        "color.interactive.primary.indicator.hover",
+        "color.interactive.primary.indicator.rest",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
@@ -9148,6 +9628,8 @@
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.rest",
+        "color.inverse.interactive.primary.indicator.hover",
+        "color.inverse.interactive.primary.indicator.rest",
         "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
@@ -9182,6 +9664,7 @@
         "color.icon.link.focused",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.icon.rest",
+        "color.interactive.primary.indicator.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
         "color.inverse.icon.brand",
@@ -9189,6 +9672,7 @@
         "color.inverse.icon.link.focused",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.rest",
+        "color.inverse.interactive.primary.indicator.rest",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand",
         "color.inverse.text.link.default",
@@ -9247,6 +9731,7 @@
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.icon.rest",
+        "color.interactive.primary.indicator.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
         "color.inverse.foreground.brand",
@@ -9255,6 +9740,7 @@
         "color.inverse.icon.link.focused",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.rest",
+        "color.inverse.interactive.primary.indicator.rest",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand",
         "color.inverse.text.link.default",
@@ -9298,11 +9784,13 @@
         "color.interactive.primary.border.hover",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.icon.hover",
+        "color.interactive.primary.indicator.hover",
         "color.interactive.primary.text.hover",
         "color.inverse.icon.brand",
         "color.inverse.icon.link.hover",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.icon.hover",
+        "color.inverse.interactive.primary.indicator.hover",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.text.brand",
         "color.inverse.text.link.hover",
@@ -9334,10 +9822,12 @@
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.icon.pressed",
+        "color.interactive.primary.indicator.pressed",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.pressed",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.pressed",
+        "color.inverse.interactive.primary.indicator.pressed",
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.pressed",
         "color.text.link.pressed"
@@ -9415,6 +9905,7 @@
         "color.foreground.secondary",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.indicator.hover",
         "color.interactive.neutral.text.hover",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
@@ -9424,6 +9915,7 @@
         "color.inverse.interactive.neutral.fill.focused",
         "color.inverse.interactive.neutral.fill.hover",
         "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.indicator.hover",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.primary.fill.focused",
         "color.inverse.interactive.primary.fill.hover"
@@ -9454,6 +9946,7 @@
         "color.disabled.fill",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.indicator.pressed",
         "color.interactive.neutral.text.pressed",
         "color.inverse.border.primary",
         "color.inverse.interactive.destructive.fill.pressed",
@@ -9462,6 +9955,7 @@
         "color.inverse.interactive.neutral.fill.pressed",
         "color.inverse.interactive.neutral.fill.selected",
         "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.indicator.pressed",
         "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.primary.fill.pressed",
         "color.inverse.interactive.primary.fill.selected"
@@ -9652,9 +10146,11 @@
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.fill.hover",
         "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.indicator.pressed",
         "color.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.indicator.pressed",
         "color.inverse.interactive.neutral.text.pressed"
       ]
     },
@@ -9692,11 +10188,13 @@
         "color.interactive.neutral.fill.rest",
         "color.interactive.neutral.fill.selected",
         "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.indicator.hover",
         "color.interactive.neutral.text.hover",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.indicator.hover",
         "color.inverse.interactive.neutral.text.hover"
       ]
     },
@@ -9732,6 +10230,7 @@
         "color.icon.primary",
         "color.interactive.neutral.border.rest",
         "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.indicator.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.rest",
         "color.inverse.background.primary",
@@ -9739,6 +10238,7 @@
         "color.inverse.icon.primary",
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.icon.rest",
+        "color.inverse.interactive.neutral.indicator.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.text.primary",
@@ -9757,6 +10257,7 @@
         "color.icon.primary",
         "color.interactive.neutral.border.rest",
         "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.indicator.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.rest",
         "color.inverse.background.primary",
@@ -9764,6 +10265,7 @@
         "color.inverse.icon.primary",
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.icon.rest",
+        "color.inverse.interactive.neutral.indicator.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.text.primary",
@@ -10559,9 +11061,11 @@
       "aliased_by": [
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.icon.pressed",
+        "color.interactive.destructive.indicator.pressed",
         "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.icon.pressed",
+        "color.inverse.interactive.destructive.indicator.pressed",
         "color.inverse.interactive.destructive.text.pressed"
       ]
     },
@@ -10575,9 +11079,11 @@
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.pressed",
+        "color.interactive.destructive.indicator.pressed",
         "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.icon.pressed",
+        "color.inverse.interactive.destructive.indicator.pressed",
         "color.inverse.interactive.destructive.text.pressed"
       ]
     },
@@ -10590,9 +11096,11 @@
       "aliased_by": [
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.icon.hover",
+        "color.interactive.destructive.indicator.hover",
         "color.interactive.destructive.text.hover",
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.icon.hover",
+        "color.inverse.interactive.destructive.indicator.hover",
         "color.inverse.interactive.destructive.text.hover"
       ]
     },
@@ -10611,10 +11119,12 @@
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.icon.hover",
+        "color.interactive.destructive.indicator.hover",
         "color.interactive.destructive.text.hover",
         "color.inverse.icon.danger",
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.icon.hover",
+        "color.inverse.interactive.destructive.indicator.hover",
         "color.inverse.interactive.destructive.text.hover",
         "color.inverse.text.danger",
         "color.text.danger"
@@ -10630,10 +11140,12 @@
         "color.icon.danger-subtle",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.icon.rest",
+        "color.interactive.destructive.indicator.rest",
         "color.interactive.destructive.text.rest",
         "color.inverse.foreground.danger",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
+        "color.inverse.interactive.destructive.indicator.rest",
         "color.inverse.interactive.destructive.on-fill",
         "color.inverse.interactive.destructive.text.rest",
         "color.text.danger-subtle"
@@ -10650,9 +11162,11 @@
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.rest",
+        "color.interactive.destructive.indicator.rest",
         "color.interactive.destructive.text.rest",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
+        "color.inverse.interactive.destructive.indicator.rest",
         "color.inverse.interactive.destructive.text.rest"
       ]
     },
@@ -10715,10 +11229,12 @@
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.rest",
+        "color.interactive.destructive.indicator.rest",
         "color.interactive.destructive.text.rest",
         "color.inverse.icon.danger",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
+        "color.inverse.interactive.destructive.indicator.rest",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger",
         "color.text.danger"
@@ -10733,11 +11249,13 @@
       "aliased_by": [
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.icon.rest",
+        "color.interactive.destructive.indicator.rest",
         "color.interactive.destructive.text.rest",
         "color.inverse.foreground.danger",
         "color.inverse.icon.danger-subtle",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
+        "color.inverse.interactive.destructive.indicator.rest",
         "color.inverse.interactive.destructive.on-fill",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger-subtle"
@@ -10758,10 +11276,12 @@
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.icon.hover",
+        "color.interactive.destructive.indicator.hover",
         "color.interactive.destructive.text.hover",
         "color.inverse.icon.danger",
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.icon.hover",
+        "color.inverse.interactive.destructive.indicator.hover",
         "color.inverse.interactive.destructive.text.hover",
         "color.inverse.text.danger",
         "color.text.danger"
@@ -10776,9 +11296,11 @@
       "aliased_by": [
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.icon.hover",
+        "color.interactive.destructive.indicator.hover",
         "color.interactive.destructive.text.hover",
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.icon.hover",
+        "color.inverse.interactive.destructive.indicator.hover",
         "color.inverse.interactive.destructive.text.hover"
       ]
     },
@@ -10792,9 +11314,11 @@
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.pressed",
+        "color.interactive.destructive.indicator.pressed",
         "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.icon.pressed",
+        "color.inverse.interactive.destructive.indicator.pressed",
         "color.inverse.interactive.destructive.text.pressed"
       ]
     },
@@ -10807,9 +11331,11 @@
       "aliased_by": [
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.icon.pressed",
+        "color.interactive.destructive.indicator.pressed",
         "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.icon.pressed",
+        "color.inverse.interactive.destructive.indicator.pressed",
         "color.inverse.interactive.destructive.text.pressed"
       ]
     },

@@ -126,6 +126,8 @@ const INTERACTIVE_SLOT_SCOPES: Record<string, string[]> = {
   'on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
   text: ['TEXT_FILL'],
   border: ['STROKE_COLOR'],
+  // The selection mark (#3346) is a shape painted either way: a bar, thumb or disc fills, a ring or outline strokes.
+  indicator: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
   icon: ['FRAME_FILL', 'SHAPE_FILL'],
   overlay: ['FRAME_FILL', 'SHAPE_FILL'], // a translucent wash painted over a surface
   'subtle-fill': ['FRAME_FILL', 'SHAPE_FILL'], // the tinted wash — the fill at an opacity step (#1614)
