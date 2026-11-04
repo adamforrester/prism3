@@ -67,11 +67,16 @@
  *     `setMinimized` calling `agentLink.setOn(false)` → strip/link and strip/poll fail, by name). From Minimize to
  *     Restore the link's `since` holds and no `on: false` reaches the panel or the record, so a bounce (off, then on)
  *     shows too (mutation: `setOn(false); setOn(true)` in `setMinimized` → strip/since-min, strip/since-restore and strip/no-bounce fail)
- *     strip/place-min, strip/place-drag, strip/place-restore (#3327): each toggle calls `figma.ui.reposition` with the
- *     canvas position for the viewport at that moment (zoom 2 here), and a drag places nothing
- *   · strip-place (#3327): `windowPlacement` for Minimize (lower right, 16px in) and Restore (centered) at zoom 1 and 2,
- *     and a window larger than the canvas, against hand-worked literals (mutation: drop the `/ zoom` → strip-place/min-z2,
- *     strip-place/restore-z2, strip/place-min and strip/place-restore fail, by name)
+ *     strip/place-min, strip/place-drag, strip/place-restore, strip/kept-spot, strip/place-return (#3327, #3416): the
+ *     first Minimize in a file shrinks in place (the top-left `figma.ui.getPosition()` reads), a drag message places
+ *     nothing, Restore centers and keeps the strip's window-space spot for this file under a file id in root plugin
+ *     data, and the next Minimize puts the strip back there (zoom 2 here)
+ *   · strip-place (#3327, #3416): `stripPlacement` (in place the first time, no inward clamp, the remembered spot at zoom
+ *     1 and 2, each fallback) and `restorePlacement` (centered at zoom 1 and 2, a window larger than the canvas) against
+ *     hand-worked literals (mutations, each failing by name: the lower-right corner back → strip-place/first and
+ *     strip/place-min; the inward clamp back → strip-place/no-clamp; drop the `/ zoom` → strip-place/spot-z2 and
+ *     strip/place-return; the spot never checked for reach → strip-place/spot-off; the canvas top-left fallback dropped
+ *     → strip-place/both-off)
  *   · strip-text: the strip's line for each state, against literals (Q2 A, Q3 A)
  *   · reads (#3147 Phase 2a, #3309): `mailbox/<cmd>`, `envelope/<cmd>` and `no-write/<cmd>` for inspect, component-keys,
  *     audit-frames, snapshot and activity (its two panel notes and `activityExpected` in the fixture too, and an agent's own run, `activity/agent`), against `NodeShim` and the literals in `agent-read-fixture.ts`; plus inspect/unreadable,
@@ -94,7 +99,7 @@ import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
 import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripText, agentAge } from './src/agent-link-ui';
 import { createRunGuard, TITLE } from './src/run-guard';
-import { STRIP_MARGIN, windowPlacement } from './src/window-place';
+import { restorePlacement, stripPlacement } from './src/window-place';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
 import { NodeShim } from './file-shim';
 import type { NodeSpec } from './file-shim';
@@ -1012,9 +1017,13 @@ section('strip — minimizing resizes the window and never touches the link or i
   const cs = host.clientStorage as { setAsync: (k: string, v: unknown) => Promise<void> };
   const origResize = ui.resize, origSet = cs.setAsync;
   ui.resize = (w, h) => { sizes.push([w, h]); };
-  // #3327: the canvas as Figma reports it, at zoom 2, and every reposition the toggle asks for.
+  // #3327: the canvas as Figma reports it, at zoom 2, and every reposition the toggle asks for. #3416: the window's
+  // top-left as `getPosition` reads it, in both spaces; here window px (0,0) is canvas (100,200), and 2 px is 1 unit.
   const places: [number, number][] = [];
-  ui.reposition = (x, y) => { places.push([x, y]); };
+  const win = { x: 300, y: 100 };
+  const uiAt = ui as unknown as { getPosition?: () => { windowSpace: { x: number; y: number }; canvasSpace: { x: number; y: number } } };
+  uiAt.getPosition = () => ({ windowSpace: { ...win }, canvasSpace: { x: 100 + win.x / 2, y: 200 + win.y / 2 } });
+  ui.reposition = (x, y) => { places.push([x, y]); win.x = (x - 100) * 2; win.y = (y - 200) * 2; };
   host.viewport = { bounds: { x: 100, y: 200, width: 800, height: 500 }, zoom: 2 };
   cs.setAsync = async (k, v) => { kept.push([k, v]); };
   const minimizedPosts = () => posted.filter((m) => m.type === 'ui-minimized').map((m) => m.minimized);
@@ -1038,8 +1047,8 @@ section('strip — minimizing resizes the window and never touches the link or i
   await toUi({ type: 'minimize-ui', minimized: true });
   ok(JSON.stringify(since()) === JSON.stringify(since0), `strip/since-min: minimizing keeps the link's since, in the state and the record (${JSON.stringify({ was: since0, now: since() })})`);
   ok(JSON.stringify(sizes.at(-1)) === '[480,40]', `strip/size: Minimize resizes to the strip, 480×40, under the 380×420 floor (${JSON.stringify(sizes.at(-1))})`);
-  // 480×40 px at zoom 2 is 240×20 on the canvas, and the 16px margin is 8: 100+800-240-8, 200+500-20-8.
-  ok(JSON.stringify(places) === '[[652,672]]', `strip/place-min: Minimize parks the strip at the canvas's lower right, 16px in, at zoom 2 (${JSON.stringify(places)})`);
+  // The window's top-left was window (300,100), canvas 100+300/2, 200+100/2: the first Minimize keeps it.
+  ok(JSON.stringify(places) === '[[250,250]]', `strip/place-min: the first Minimize in a file shrinks in place, the top-left kept (${JSON.stringify(places)})`);
   ok(JSON.stringify(minimizedPosts()) === '[true]', `strip/answer: the main thread answers ui-minimized true (${JSON.stringify(minimizedPosts())})`);
   ok(main.agentLink.state().on === true && isOn() === true, 'strip/link: minimizing leaves the link on, in the state and in the link record');
   ok(timers.size === 1, `strip/poll: the poll stays armed while minimized (${timers.size} timer)`);
@@ -1057,16 +1066,25 @@ section('strip — minimizing resizes the window and never touches the link or i
   await toUi({ type: 'minimize-ui', minimized: true });
   ok(sizes.length === 2 && JSON.stringify(minimizedPosts()) === '[true]', `strip/repeat: a second Minimize does nothing (${sizes.length} resizes)`);
 
+  // The user drags the strip to window (1200,800) before Restore.
+  win.x = 1200; win.y = 800;
   await toUi({ type: 'minimize-ui', minimized: false });
   // 900×700 px at zoom 2 is 450×350 on the canvas, centered: 100+(800-450)/2, 200+(500-350)/2.
-  ok(JSON.stringify(places) === '[[652,672],[275,275]]', `strip/place-restore: Restore centers the window over the canvas, at zoom 2 (${JSON.stringify(places)})`);
+  ok(JSON.stringify(places) === '[[250,250],[275,275]]', `strip/place-restore: Restore centers the window over the canvas, at zoom 2 (${JSON.stringify(places)})`);
   ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false]', `strip/restore: Restore returns to 900×700, the size from before, and answers ui-minimized false (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts() })})`);
   ok(main.agentLink.state().on === true && timers.size === 1, 'strip/restore-link: after Restore the link is still on and its poll armed');
   ok(JSON.stringify(since()) === JSON.stringify(since0), `strip/since-restore: Restore keeps the link's since, in the state and the record (${JSON.stringify({ was: since0, now: since() })})`);
   ok(offTrail() === 0, `strip/no-bounce: from Minimize to Restore the link never published off, to the panel or the record (${offTrail()} off)`);
   root.setSharedPluginData = origLinkSet;
 
+  const fid = root.getPluginData('prism3:file-id');
+  const spot = kept.filter(([key]) => key.startsWith('prism3:strip-at:'));
+  ok(fid.length > 0 && JSON.stringify(spot) === JSON.stringify([[`prism3:strip-at:${fid}`, { x: 1200, y: 800 }]]),
+    `strip/kept-spot: Restore keeps the strip's spot, window (1200,800), for this file, keyed by its id (${JSON.stringify({ fid, spot })})`);
+
   await toUi({ type: 'minimize-ui', minimized: true });
+  // The window is centered at canvas (275,275), window (350,150): 275+(1200-350)/2, 275+(800-150)/2.
+  ok(JSON.stringify(places.at(-1)) === '[700,600]', `strip/place-return: the next Minimize puts the strip back where it was dragged (${JSON.stringify(places.at(-1))})`);
   await toUi({ type: 'agent-link', on: false });
   ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false,true,false]' && main.agentLink.state().on === false,
     `strip/turn-off: Turn off switches the link off and restores the full window (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts(), on: main.agentLink.state().on })})`);
@@ -1080,29 +1098,42 @@ section('strip — minimizing resizes the window and never touches the link or i
 
   ui.resize = origResize;
   delete ui.reposition;
+  delete uiAt.getPosition;
   delete host.viewport;
   cs.setAsync = origSet;
   await toUi({ type: 'agent-link', on: true });
 }
 
 /* ── strip-place (#3327) ─────────────────────────────────────────────────────────────────────────────── */
-section('strip-place — where Minimize and Restore put the window, against literals');
+section('strip-place — where Minimize and Restore put the window, against literals (#3327, #3416)');
 {
   // One visible canvas, read at zoom 1 and at zoom 2 (the same screen: the bounds halve). Expected canvas positions
-  // are worked by hand from the owner's decision; never computed with `windowPlacement`.
+  // are worked by hand from the owner's decisions on #3327 and #3416; never computed with the functions under test.
   const z1 = { x: 100, y: 200, width: 1600, height: 1000 }, z2 = { x: 100, y: 200, width: 800, height: 500 };
-  const at = (t: 'minimize' | 'restore', b: typeof z1, zoom: number, w: number, h: number) => JSON.stringify(windowPlacement(t, b, zoom, { width: w, height: h }));
-  ok(STRIP_MARGIN === 16, `strip-place/margin: the strip sits 16px in from the canvas's right and bottom (${STRIP_MARGIN})`);
-  // 100+1600-480-16, 200+1000-40-16
-  ok(at('minimize', z1, 1, 480, 40) === '{"x":1204,"y":1144}', `strip-place/min-z1: the strip at the lower right, zoom 1 (${at('minimize', z1, 1, 480, 40)})`);
-  // 100+800-240-8, 200+500-20-8
-  ok(at('minimize', z2, 2, 480, 40) === '{"x":652,"y":672}', `strip-place/min-z2: the strip at the lower right, zoom 2 (${at('minimize', z2, 2, 480, 40)})`);
+  const j = (p: unknown) => JSON.stringify(p);
+  const here1 = { window: { x: 300, y: 100 }, canvas: { x: 400, y: 300 } };
+  const strip = (b: typeof z1, zoom: number, here: typeof here1, spot: { x: number; y: number } | null) => j(stripPlacement(b, zoom, here, spot));
+  ok(strip(z1, 1, here1, null) === '{"x":400,"y":300}', `strip-place/first: the first Minimize keeps the window's top-left (${strip(z1, 1, here1, null)})`);
+  // Near the lower right, a 480×40 strip at (1650,1150) runs past the canvas's edge (1700,1200): it stays.
+  const edge = { window: { x: 1550, y: 950 }, canvas: { x: 1650, y: 1150 } };
+  ok(strip(z1, 1, edge, null) === '{"x":1650,"y":1150}', `strip-place/no-clamp: a strip by the edge is not pulled inward (${strip(z1, 1, edge, null)})`);
+  // 400+(1000-300), 300+(900-100)
+  ok(strip(z1, 1, here1, { x: 1000, y: 900 }) === '{"x":1100,"y":1100}', `strip-place/spot-z1: the remembered spot, reachable, zoom 1 (${strip(z1, 1, here1, { x: 1000, y: 900 })})`);
+  // 250+(1000-300)/2, 250+(900-100)/2
+  const here2 = { window: { x: 300, y: 100 }, canvas: { x: 250, y: 250 } };
+  ok(strip(z2, 2, here2, { x: 1000, y: 900 }) === '{"x":600,"y":650}', `strip-place/spot-z2: the remembered spot, reachable, zoom 2 (${strip(z2, 2, here2, { x: 1000, y: 900 })})`);
+  // 400+(5000-300) = 5100 is past the canvas's right edge (1700): in place instead.
+  ok(strip(z1, 1, here1, { x: 5000, y: 100 }) === '{"x":400,"y":300}', `strip-place/spot-off: a spot off the visible canvas falls back to in place (${strip(z1, 1, here1, { x: 5000, y: 100 })})`);
+  const away = { window: { x: -900, y: 100 }, canvas: { x: -500, y: 300 } };
+  ok(strip(z1, 1, away, { x: 9000, y: 100 }) === '{"x":100,"y":200}', `strip-place/both-off: spot and window both off the canvas start at its top-left (${strip(z1, 1, away, { x: 9000, y: 100 })})`);
+  ok(strip(z1, 1, away, null) === '{"x":100,"y":200}', `strip-place/first-off: a first Minimize off the canvas starts at its top-left (${strip(z1, 1, away, null)})`);
+  const at = (b: typeof z1, zoom: number, w: number, h: number) => j(restorePlacement(b, zoom, { width: w, height: h }));
   // 100+(1600-900)/2, 200+(1000-700)/2
-  ok(at('restore', z1, 1, 900, 700) === '{"x":450,"y":350}', `strip-place/restore-z1: the window centered, zoom 1 (${at('restore', z1, 1, 900, 700)})`);
+  ok(at(z1, 1, 900, 700) === '{"x":450,"y":350}', `strip-place/restore-z1: the window centered, zoom 1 (${at(z1, 1, 900, 700)})`);
   // 100+(800-450)/2, 200+(500-350)/2
-  ok(at('restore', z2, 2, 900, 700) === '{"x":275,"y":275}', `strip-place/restore-z2: the window centered, zoom 2 (${at('restore', z2, 2, 900, 700)})`);
+  ok(at(z2, 2, 900, 700) === '{"x":275,"y":275}', `strip-place/restore-z2: the window centered, zoom 2 (${at(z2, 2, 900, 700)})`);
   // A window wider and taller than the canvas keeps its top bar on screen: its top-left at the canvas's.
-  ok(at('restore', { x: 0, y: 0, width: 600, height: 400 }, 1, 900, 700) === '{"x":0,"y":0}', `strip-place/clamp: a window larger than the canvas starts at its top-left (${at('restore', { x: 0, y: 0, width: 600, height: 400 }, 1, 900, 700)})`);
+  ok(at({ x: 0, y: 0, width: 600, height: 400 }, 1, 900, 700) === '{"x":0,"y":0}', `strip-place/clamp: a window larger than the canvas starts at its top-left (${at({ x: 0, y: 0, width: 600, height: 400 }, 1, 900, 700)})`);
 }
 
 section('strip-text — the strip\'s line for each state (#2949, Q2 A and Q3 A)');
