@@ -305,7 +305,10 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
         const v = n[key];
         if (typeof v !== 'number' || typeof bv[key]?.id === 'string' || v <= 0 || (String(n.type) === 'INSTANCE' && key.startsWith('padding'))) continue;
         facts.redlines++;
-        const want = (values as Record<string, { token?: string; px?: number }>)[key];
+        const want = (values as Record<string, { token?: string; px?: number; source?: string }>)[key];
+        // A value the executor COMPUTES at paste (#3360, `firstLine`): the model carries the formula, not a number, and the
+        // row's own read-back (`anatomy-readback.ts` `firstLine`) checks the number; here, that the model claims it.
+        if (want?.source === 'computed') continue;
         if (want?.token !== undefined || want?.px !== v) miss(h.name, path, key, want ? JSON.stringify(want) : 'in the model', `host holds ${v}px, unbound`);
       }
       // Type.
@@ -408,9 +411,14 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
   };
   claim(spec.redlines, (h, n, part) => {
     const bv = (n.boundVariables ?? {}) as Record<string, { id?: unknown }>;
-    for (const [prop, v] of Object.entries(part.values) as [string, { token?: string; px?: number }][]) {
+    for (const [prop, v] of Object.entries(part.values) as [string, { token?: string; px?: number; source?: string }][]) {
       facts.claimed++;
       const key = Object.entries(HOST_GEOMETRY).find(([, p]) => p === prop)?.[0] ?? prop;
+      // COMPUTED at paste (#3360): the host must hold an unbound number there; its value is the row read-back's to check.
+      if (v.source === 'computed') {
+        if (typeof n[key] !== 'number' || (n[key] as number) < 0 || typeof bv[key]?.id === 'string') miss(h.name, part.part, prop, 'a computed unbound number', `host ${key} ${String(n[key])}${typeof bv[key]?.id === 'string' ? ', bound' : ''}`);
+        continue;
+      }
       if (v.token !== undefined) {
         const id = bv[key]?.id;
         if (typeof id !== 'string' || !varIs(ports.varName(id), v.token)) miss(h.name, part.part, prop, v.token, typeof id === 'string' ? `host binds ${ports.varName(id)}` : 'UNBOUND on the host');
