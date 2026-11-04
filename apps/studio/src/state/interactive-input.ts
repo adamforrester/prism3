@@ -231,6 +231,17 @@ export const INTERACTIVE_ROWS: readonly InteractiveRow[] = [
  *  key itself (an accent's palette). */
 export const interactivePaletteOf = (row: InteractiveRow): string =>
   row.paletteKey === 'link' ? theme.linkPalette : (theme.roleToPalette as Record<string, string>)[row.paletteKey] ?? row.paletteKey;
+/** What an overridden row holds in `mode` (#3391): the palette its override NAMES, and the step. Never the row's own
+ *  family: an override keeps the palette it was written under after the action palette moves, and the engine resolves
+ *  the palette it names. `null` for a row that is not an override row, or is not overridden in `mode`. */
+export const overrideHeldOf = (mode: string, row: InteractiveRow): { palette: string; step: string } | null => {
+  if (row.write !== 'override' && row.write !== 'inverse-fill') return null;
+  const ov = brandState.overrides?.[mode]?.[row.role];
+  return typeof ov?.step === 'string' ? { palette: ov.palette || interactivePaletteOf(row), step: ov.step } : null;
+};
+/** An overridden row's picker label, by the palette it holds: `Override · brand-neutral 350`. */
+export const overrideLabel = (held: { palette: string; step: string } | null): string =>
+  `Override · ${held ? `${held.palette} ${held.step}` : ''}`;
 /** Write a row in `mode`. `value` is a step key (an anchor as its number, an inverse fill as `''` or
  *  `‹palette›::‹step›`), or `undefined` for Auto. A read-out row writes nothing. */
 export const writeInteractiveRow = (mode: string, row: InteractiveRow, value: string | undefined): void => {
