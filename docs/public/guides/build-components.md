@@ -24,13 +24,13 @@ On a file that isn't set up yet, the same run sets it up first. See [Set up a fi
 
 ## What a build does
 
-For each set, the plugin: <!-- src: apps/plugin/src/main.ts:801-924 -->
+For each set, the plugin: <!-- src: apps/plugin/src/main.ts:802-925 -->
 
 - builds any set the chosen one contains first, such as the icon and focus ring inside a button;
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:889-890 -->
+- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:890-891 -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:147-148 -->
 
@@ -49,7 +49,7 @@ The status strip says how the run went, such as "Sets added" or "File updated". 
 | `⚠ N misses` | Something did not resolve or bind, such as a variable the file is missing. |
 | `✗ nothing built` | Nothing was in the file and nothing could be built. |
 
-A run of several sets is summed up in one line, such as "Built 3 sets" or "Built 2 of 3 sets". <!-- src: apps/studio/src/state/build-queue.ts:97-102 -->
+A run of several sets is summed up in one line, such as "Built 3 sets" or "Built 2 of 3 sets". <!-- src: apps/studio/src/state/build-queue.ts:99-104 -->
 
 A set that can't be built for this brand is listed with the reason: "Can't be built yet: …". <!-- src: apps/studio/src/preview/sections/component-sets.ts:26 -->
 
