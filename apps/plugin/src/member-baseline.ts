@@ -105,7 +105,10 @@ export const builtByPrism3 = (members: readonly OwnershipRead[]): ((m: Ownership
   return (m) => !!m.stamp && STAMP_SHAPE.test(m.stamp) && !(!!m.recordId && !!m.id && m.recordId !== m.id && ids.has(m.recordId));
 };
 
-/** The node fields the snapshot copies: everything the hash reads and everything `diffAnatomy` reads. */
+/** The node fields the snapshot copies: everything the hash reads and everything `diffAnatomy` reads. A field missing
+ *  here reads ∅ to the update's dry run and verify, whatever the file holds (#3388: the dialog body's `overflowDirection`,
+ *  VERTICAL in the file, reported unverified on every member). `roundtrip/snapshot reads as live` holds the list to the
+ *  live read. `overflowDirection` is read, not hashed: hashing it would move every built frame's baseline. */
 const SNAP_KEYS = [
   'visible', 'opacity', 'layoutMode', 'layoutWrap', 'primaryAxisSizingMode', 'counterAxisSizingMode',
   'primaryAxisAlignItems', 'counterAxisAlignItems', 'itemSpacing', 'counterAxisSpacing',
@@ -113,7 +116,7 @@ const SNAP_KEYS = [
   'cornerRadius', 'topLeftRadius', 'topRightRadius', 'bottomRightRadius', 'bottomLeftRadius',
   'strokeWeight', 'strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight', 'strokeAlign',
   'layoutGrow', 'layoutAlign', 'layoutPositioning', 'layoutSizingHorizontal', 'layoutSizingVertical', 'constraints',
-  'clipsContent', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight', 'width', 'height', 'x', 'y', 'targetAspectRatio',
+  'clipsContent', 'overflowDirection', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight', 'width', 'height', 'x', 'y', 'targetAspectRatio',
   'characters', 'fontSize', 'lineHeight', 'fontName', 'letterSpacing', 'textAutoResize', 'textAlignHorizontal', 'textAlignVertical',
   'textStyleId', 'effectStyleId', 'effects', 'fills', 'strokes', 'boundVariables', 'componentPropertyReferences',
   'isExposedInstance', 'componentProperties', 'vectorPaths',
