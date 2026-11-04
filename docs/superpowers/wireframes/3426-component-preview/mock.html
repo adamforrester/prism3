@@ -1,0 +1,91 @@
+<!--
+  THROWAWAY WIREFRAME for #3426 (Studio component previews). Not product code: `render.cjs` boots the built Studio,
+  opens Components, and puts this fragment in the preview pane, so the frame, rail and levers are the real chrome.
+  Chrome parts read only the chrome's own `--p3-*` variables. Brand parts read `--b-primary`, which the script copies
+  from the live Button specimen, so they wear the brand on screen. The numbered pins are wireframe annotations.
+-->
+<style>
+  .wf { font-family: var(--p3-font-ui); color: var(--p3-text); padding: var(--p3-space-500) var(--p3-space-400) var(--p3-space-400) var(--p3-space-500); display: grid; gap: var(--p3-space-300); }
+  .wf h2 { margin: 0; font-size: var(--p3-fs-20); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); }
+  .wf .meta { color: var(--p3-text-2); font-size: var(--p3-fs-14); margin-top: var(--p3-space-050); }
+  .wf .card { background: var(--p3-levers-bg); border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); padding: var(--p3-space-300); position: relative; }
+  .wf .cap { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-wide); text-transform: uppercase; color: var(--p3-text-2); margin: 0 0 var(--p3-space-050); }
+  .wf .sub { font-size: var(--p3-fs-14); color: var(--p3-text-2); margin: 0 0 var(--p3-space-200); }
+  .wf .stage { background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); padding: var(--p3-space-300); }
+  .wf .row { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-200); margin-bottom: var(--p3-space-200); }
+  .wf .seg { display: inline-flex; background: var(--p3-fill-1); border-radius: var(--p3-radius-lg); padding: var(--p3-space-025); }
+  .wf .seg span { font-size: var(--p3-fs-14); padding: var(--p3-space-075) var(--p3-space-150); border-radius: var(--p3-radius-md); }
+  .wf .seg .on { background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-ctl-edge); font-weight: var(--p3-fw-emphasis); }
+  .wf table { border-collapse: collapse; width: 100%; }
+  .wf th { font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); color: var(--p3-text-2); text-align: left; padding: 0 0 var(--p3-space-150); }
+  .wf td { padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-100) 0; }
+  .wf td.rh { font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); color: var(--p3-text-2); width: 92px; }
+  /* the brand's radio, as the plan would draw it (mock values: box per size, dot = share of the box) */
+  .r { display: inline-flex; align-items: center; gap: 8px; font: 14px/20px system-ui, sans-serif; color: #111; }
+  .r i { box-sizing: border-box; width: var(--box, 20px); height: var(--box, 20px); border-radius: 50%; border: 2px solid #6b6b6b; display: grid; place-items: center; flex: none; }
+  .r.sel i { border-color: var(--b-primary); }
+  .r.sel i::after { content: ''; width: var(--dot, 10px); height: var(--dot, 10px); border-radius: 50%; background: var(--b-primary); }
+  .r.hov i { border-color: #333; } .r.sel.hov i { filter: brightness(0.85); }
+  .r.foc i { outline: 2px solid var(--b-primary); outline-offset: 2px; }
+  .r.dis { color: #9a9a9a; } .r.dis i { border-color: #c4c4c4; } .r.sel.dis i { border-color: #c4c4c4; } .r.sel.dis i::after { background: #c4c4c4; }
+  .wf .cmp { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--p3-space-150); }
+  .wf .opt { background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); padding: var(--p3-space-200); display: grid; gap: var(--p3-space-150); align-content: start; }
+  .wf .opt.cur { border: var(--p3-bw-thick) solid var(--p3-ctl-edge); }
+  .wf .oh { display: flex; justify-content: space-between; align-items: baseline; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); }
+  .wf .tag { font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); color: var(--p3-inv-text); background: var(--p3-inv-bg); border-radius: var(--p3-radius-pill); padding: var(--p3-space-025) var(--p3-space-100); }
+  .wf .px { font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); color: var(--p3-text-2); }
+  .wf .use { justify-self: start; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-200); border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page); color: var(--p3-text); }
+  .wf .closed { display: flex; justify-content: space-between; color: var(--p3-text-2); font-size: var(--p3-fs-14); }
+  /* wireframe annotation pins: not product styling */
+  .pin { position: absolute; top: -11px; right: -11px; width: 22px; height: 22px; border-radius: 50%; background: #d4006a; color: #fff; font: 700 12px/22px system-ui, sans-serif; text-align: center; }
+  .pin.in { position: static; display: inline-block; margin-left: 8px; vertical-align: middle; }
+  .legend { font-size: var(--p3-fs-14); color: var(--p3-text); background: var(--p3-bg-page); border: 1px dashed #d4006a; border-radius: var(--p3-radius-xl); padding: var(--p3-space-200); display: grid; gap: var(--p3-space-100); }
+  .legend div { display: flex; gap: var(--p3-space-100); align-items: baseline; } .legend .pin { flex: none; }
+</style>
+<div class="wf" data-wf="component-preview">
+  <div><h2>Radios</h2><div class="meta">3 sets · Form · Light</div></div>
+
+  <section class="card"><span class="pin">1</span>
+    <p class="cap">Preview</p>
+    <p class="sub">Drawn from the plan that builds the design-file set, in this brand and mode.</p>
+    <div class="stage">
+      <div class="row"><span class="px">Radio row · label "Option"</span>
+        <span class="seg"><span>Small</span><span class="on">Medium</span><span>Large</span></span></div>
+      <table>
+        <tr><th></th><th>rest</th><th>hover</th><th>pressed</th><th>focus-visible</th><th>disabled</th></tr>
+        <tr><td class="rh">unselected</td>
+          <td><span class="r"><i></i>Option</span></td><td><span class="r hov"><i></i>Option</span></td><td><span class="r hov"><i></i>Option</span></td><td><span class="r foc"><i></i>Option</span></td><td><span class="r dis"><i></i>Option</span></td></tr>
+        <tr><td class="rh">selected</td>
+          <td><span class="r sel"><i></i>Option</span></td><td><span class="r sel hov"><i></i>Option</span></td><td><span class="r sel hov"><i></i>Option</span></td><td><span class="r sel foc"><i></i>Option</span></td><td><span class="r sel dis"><i></i>Option</span></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="card"><span class="pin">2</span>
+    <p class="cap">Compare · Radio dot size</p>
+    <p class="sub">Each option drawn from the same plan; only this setting changes.</p>
+    <div class="cmp">
+      <div class="opt cur"><div class="oh">50% <span class="tag">In use</span></div>
+        <span class="r sel" style="--box:16px;--dot:8px"><i></i>Small</span><span class="r sel" style="--box:20px;--dot:10px"><i></i>Medium</span><span class="r sel" style="--box:24px;--dot:12px"><i></i>Large</span>
+        <span class="px">dot 8 · 10 · 12 px</span></div>
+      <div class="opt"><div class="oh">60%</div>
+        <span class="r sel" style="--box:16px;--dot:10px"><i></i>Small</span><span class="r sel" style="--box:20px;--dot:12px"><i></i>Medium</span><span class="r sel" style="--box:24px;--dot:14px"><i></i>Large</span>
+        <span class="px">dot 10 · 12 · 14 px</span><button class="use">Use 60%</button></div>
+      <div class="opt"><div class="oh">70%</div>
+        <span class="r sel" style="--box:16px;--dot:12px"><i></i>Small</span><span class="r sel" style="--box:20px;--dot:14px"><i></i>Medium</span><span class="r sel" style="--box:24px;--dot:16px"><i></i>Large</span>
+        <span class="px">dot 12 · 14 · 16 px</span><button class="use">Use 70%</button></div>
+      <div class="opt"><div class="oh">80%</div>
+        <span class="r sel" style="--box:16px;--dot:12px"><i></i>Small</span><span class="r sel" style="--box:20px;--dot:16px"><i></i>Medium</span><span class="r sel" style="--box:24px;--dot:20px"><i></i>Large</span>
+        <span class="px">dot 12 · 16 · 20 px</span><button class="use">Use 80%</button></div>
+    </div>
+    <span class="pin" style="top:auto;bottom:24px">3</span>
+  </section>
+
+  <section class="card"><div class="closed"><span class="cap" style="margin:0">Sets in this family</span><span>›</span></div></section>
+
+  <div class="legend">
+    <div><span class="pin in">1</span><span>Default: every state at one size, the size switch above it. States and sizes come from the set's own axes.</span></div>
+    <div><span class="pin in">2</span><span>Compare: one column per option of a setting the family has, the one in use marked. Same specimen, same mode.</span></div>
+    <div><span class="pin in">3</span><span>Use writes the setting, the same write as the chips on the left (Q3426.3).</span></div>
+  </div>
+</div>
