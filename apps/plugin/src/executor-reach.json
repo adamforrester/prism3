@@ -29,6 +29,7 @@
     "49": ["dialog"],
     "50": ["card-number-field", "code-input", "code-input-cell", "counter", "password-field", "search-field", "select", "text-field", "textarea"],
     "51": ["field-message"],
-    "52": ["card-number-field", "code-input", "code-input-cell", "counter", "password-field", "search-field", "select", "text-field", "textarea"]
+    "52": ["card-number-field", "code-input", "code-input-cell", "counter", "password-field", "search-field", "select", "text-field", "textarea"],
+    "53": []
   }
 }

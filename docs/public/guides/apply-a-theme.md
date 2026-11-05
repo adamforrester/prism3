@@ -2,9 +2,9 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; retitled and rewritten around Update file for #3264). -->
 
-To write the brand you set in the studio into the open Figma file, choose **Update file** in the plugin's top bar, leave **Theme** ticked, and choose **Update file** in the dialog. <!-- src: apps/studio/src/state/update-file.ts:253-265 -->
-The item reads "The brand's variables and styles. Layers bound to them restyle at once." <!-- src: apps/studio/src/state/update-file.ts:264-265 -->
-It is ticked each time the dialog opens. <!-- src: apps/studio/src/state/update-file.ts:149-155 -->
+To write the brand you set in the studio into the open Figma file, choose **Update file** in the plugin's top bar, leave **Theme** ticked, and choose **Update file** in the dialog. <!-- src: apps/studio/src/state/update-file.ts:287-299 -->
+The item reads "The brand's variables and styles. Layers bound to them restyle at once." <!-- src: apps/studio/src/state/update-file.ts:298-299 -->
+It is ticked each time the dialog opens. <!-- src: apps/studio/src/state/update-file.ts:159-165 -->
 It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:108 -->
 
 Each run checks the file first and writes only if nothing conflicts. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:67-74 --> <!-- src: apps/plugin/src/preflight.ts:144-224 -->
@@ -29,8 +29,8 @@ The variables the plugin writes match the ones the engine emits for the same bra
 ## Run it
 
 1. Set the brand in the studio. See [Theme a brand](theme-a-brand.md).
-2. Choose **Update file** in the top bar. The dialog opens with **Theme** ticked. <!-- src: apps/studio/src/state/update-file.ts:253-264 -->
-3. Untick anything else that should wait, then choose **Update file**. The top bar's button reads **Updating** while it runs. <!-- src: apps/studio/src/state/update-file.ts:254 -->
+2. Choose **Update file** in the top bar. The dialog opens with **Theme** ticked. <!-- src: apps/studio/src/state/update-file.ts:287-298 -->
+3. Untick anything else that should wait, then choose **Update file**. The top bar's button reads **Updating** while it runs. <!-- src: apps/studio/src/state/update-file.ts:288 -->
 4. When the theme is written, the status strip says "Theme applied". The full result is in the Activity drawer. <!-- src: apps/studio/src/state/status-strip.ts:143 -->
 
 | Result | Meaning |
@@ -65,7 +65,7 @@ Two more cases stop the theme before it starts:
 
 ## Writing it again
 
-Run Update file with **Theme** ticked after any change. <!-- src: apps/studio/src/state/update-file.ts:264 -->
+Run Update file with **Theme** ticked after any change. <!-- src: apps/studio/src/state/update-file.ts:298 -->
 Content Prism3 wrote is updated in place, and a renamed token moves to its new name rather than being written twice. <!-- src: apps/plugin/src/apply-theme.ts:75-84 -->
 
-A token the brand no longer produces is reported, not deleted. To remove those, use the **Clean up** tab: see [Update a Figma file](update-a-file-safely.md#remove-what-the-brand-no-longer-uses). <!-- src: apps/studio/src/state/update-file.ts:257 -->
+A token the brand no longer produces is reported, not deleted. To remove those, use the **Clean up** tab: see [Update a Figma file](update-a-file-safely.md#remove-what-the-brand-no-longer-uses). <!-- src: apps/studio/src/state/update-file.ts:291 -->
