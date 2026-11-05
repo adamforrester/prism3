@@ -34,7 +34,9 @@ import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
-import { APPLY_STAGES, runApplyTheme, type ApplyStage, type ThemePace } from './apply-theme';
+import { APPLY_STAGES, runApplyTheme, themePlans, type ApplyStage, type ThemePace } from './apply-theme';
+import { emissionOf, themeDue } from './theme-emission';
+import { serializeBrandInput } from '@prism3/engine/persist-input';
 import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
@@ -71,7 +73,7 @@ import { listFamilyStyleNames } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
-import { holdsInput, restoreInput } from './persist-figma';
+import { restoreInput } from './persist-figma';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -1540,6 +1542,17 @@ const ledgerSets = async (): Promise<void> => {
  *  the stored brand, and materializes each present set once. It never runs the full check, and it reuses the sets the
  *  last read found (`presentCache`). The panel debounces its requests; `seq` lets it drop an answer a newer one has
  *  replaced. */
+/** #3422 Q44.1 A: the print of what Apply Theme would write for the panel's brand, for the last brand asked about. A
+ *  slider's recounts each ask once (about 0.2 s of planning); the same brand asked again is free. */
+let emissionMemo: { key: string; print: string } | null = null;
+const emissionNow = (input: BrandInput): string => {
+  const key = serializeBrandInput(input);
+  if (emissionMemo?.key !== key) emissionMemo = { key, print: emissionOf(themePlans(input)) };
+  return emissionMemo.print;
+};
+/** #3081 Q810 A, #3422 Q44.1 A: whether Theme would change the file: it does not hold the panel's brand, or the brand's
+ *  variables and styles were written by another emission than this plugin's (an engine update under the same brand). */
+const themeDiffers = (input: BrandInput | undefined): boolean => !!input && themeDue(figma.root, input, () => emissionNow(input));
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
     const cached = presentCache !== null && panelCache !== null ? { ids: presentCache, paneled: panelCache } : null;
@@ -1554,7 +1567,7 @@ const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void
     const print = printNow(input);
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
-    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
+    postToUi({ type: 'file-due', seq, present, theme: themeDiffers(input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }

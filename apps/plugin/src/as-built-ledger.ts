@@ -91,7 +91,7 @@ const fnvStream = () => {
     hex: (): string => h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0'),
   };
 };
-const fnv = (s: string): string => { const h = fnvStream(); h.add(s); return h.hex(); };
+export const fnv = (s: string): string => { const h = fnvStream(); h.add(s); return h.hex(); };
 
 const FACET_OF: Readonly<Record<string, Facet>> = {
   aspectRatio: 'size', minWidth: 'size', maxWidth: 'size', placementWidth: 'size', placementHeight: 'size', glyphPx: 'size',
