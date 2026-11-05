@@ -33,6 +33,9 @@
  *        `neededOf` without its `buildable` skip → `Q3306.3 A: a nested set that can't be built is not needed …`.
  *     Select all (owner, A): `selectAllOf` skipping needed sets → `Q3306.3, Select all A: Select all queues a needed set …`.
  *     .6 an on box taking out every set it could add (`toggleSets` without its chosen filter) → `Q3306.6 A: …`.
+ *   · #3439 (Q-IF.1–3 A, section 2c): `inFileOf` false when the file holds every set (`&& false`) → `Q-IF.1 A: a set the
+ *     file holds …`; true while the family can still add a set (its `addableOf` test dropped) → `Q-IF.3 A: a family
+ *     partly in the file keeps an active box …`.
  *   · search keeping a family only on its own label → `search: a family stays while any of its sets matches`.
  *   · Stop ending the run at once (before the current set's result) → `call 16: Stop waits for the set being built…`.
  *   · "Also builds" by component name again (`displayNameOf` bypassed) → `idea 7: the sets a build makes first…`.
@@ -55,7 +58,7 @@
  */
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
-import { addableOf, alsoBuilds, boxOfSets, costOf, deselectAllOf, displayNameOf, familiesToOpen, groupsOf, heldBy, neededOf, rootsOf, splitsOf, inListOrder, rowMatches, rowOfFocus, selectAllOf, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
+import { addableOf, alsoBuilds, boxOfSets, costOf, deselectAllOf, displayNameOf, familiesToOpen, groupsOf, heldBy, inFileOf, neededOf, rootsOf, splitsOf, inListOrder, rowMatches, rowOfFocus, selectAllOf, sentenceCase, setFocusKey, tiersOf, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
 import { TAXONOMY } from '../plugin/src/file-taxonomy';
 import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS, BANNER_STYLE_FILL_KEYS } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -332,6 +335,19 @@ const on6 = new Set(['button-group', 'button-destructive', 'button-neutral']);
 const off6b = toggleSets(catalog, buttons4, on6, has);
 ok(!off6b.on && JSON.stringify(off6b.ids) === JSON.stringify(['button-destructive', 'button-group', 'button-neutral']) && apply(on6, off6b).size === 0,
   `Q3306.6 A: Buttons on, Button needed: the family's tick takes out the three chosen sets, and Button goes with what needed it (${JSON.stringify(off6b)})`);
+
+console.log('\n2c. What the file holds (#3439, Q-IF.1–3 A)');
+// EXPECTED typed from the issue: a set or family the file holds whole is drawn checked and disabled; a family partly in
+// it keeps an active box; a box over nothing in the file (a set that can't be built) stays an empty cell.
+ok(inFileOf(catalog, ['badge'], ['badge']) && inFileOf(catalog, buttons, buttons),
+  'Q-IF.1 A: a set the file holds, and a family it holds whole, draw their box checked and disabled');
+ok(!inFileOf(catalog, radio, ['radio-control']) && boxOfSets(catalog, radio, new Set(), ['radio-control']) === 'off'
+  && JSON.stringify(toggleSets(catalog, radio, new Set(), ['radio-control'])) === JSON.stringify({ ids: ['radio-group', 'radio-row'], on: true }),
+  'Q-IF.3 A: a family partly in the file keeps an active box, and its tick adds only the missing sets');
+ok(inFileOf(catalog, radio, radio), 'Q-IF.3 A: once every set of a family is in the file, its box is checked and disabled');
+ok(!inFileOf(withOff, ['planted-off'], []) && !inFileOf(catalog, ['badge'], []), 'Q3129.6 A kept: a box over no set the file holds or could add is no box');
+ok(GROUPS_COPY.inFile === 'In file' && GROUPS_COPY.inFileName('Badge') === 'Badge is in this file',
+  'Q-IF.1 A, Q-IF.2 A: the tag reads In file; the box\'s name reads "{name} is in this file" (DRAFT)');
 
 console.log('\n3. Search (the Studio\'s search, #2700\'s edge state)');
 const checkbox = groups.flatMap((g) => g.rows).find((r) => r.label === 'Checkbox')!;
