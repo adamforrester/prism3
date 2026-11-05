@@ -5,8 +5,10 @@
  * artifact projects — Figma shell, WC/React code, Storybook, docs, `.ai.json`,
  * Code Connect (docs/19 §1). This file is the schema + a runtime validator; the
  * definitions themselves live one-file-per-component under `components/` (see
- * `components/button.ts`). Final on-disk format (TS object vs YAML+parser) is a
- * build decision (docs/14 §2) — the SHAPE is what this locks.
+ * `components/button.ts`). The on-disk format is decided (#3425, owner decision Q45 A):
+ * the TypeScript defs stay the only hand-edited form, and `component-defs-export.ts`
+ * publishes a generated, versioned JSON export of them, mappable to the Specs schema.
+ * The SHAPE is what this file locks.
  *
  * Seeded, not invented (docs/13 inspirations + KB):
  *  - Key spine mirrors the KB §15 agent-consumable schema (`components/_schema.md`):

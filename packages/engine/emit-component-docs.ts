@@ -6,6 +6,8 @@
  *     → out/components/components.ai.json      (PAYLOAD, machine-readable: every registered def)
  *     → out/components/<id>.md                 (PAYLOAD, human-readable: one page per def)
  *     → out/components/specs.json              (PAYLOAD: every projected def's spec model, #2830 — `component-specs.ts`)
+ *     → out/components/component-defs.json     (PAYLOAD: the component-defs export, brand-neutral, #3425 — `component-defs-export.ts`)
+ *     → out/components/component-defs.specs.json (PAYLOAD: the same as a Specs components set, #3425)
  *     → schema/component-maintainer.json       (NOT payload: each def's `codeOnly`, `notes.*` and `docGaps`)
  *
  * THE PAGE IS THE FIRST READER OF THE SECTION MODEL (#846). `component-doc-sections.ts` turns a def into
@@ -64,66 +66,20 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ComponentDef } from './component-schema';
-import { axisKindOf } from './component-schema';
 import type { DocField } from './component-doc-sections';
 import { docSections } from './component-doc-sections';
 import { componentDefs } from './components/index';
 import { componentSpec, projectComponentSpecs, renderSpecsMarkdown } from './component-specs';
 import { ENGINE_VERSION } from './version';
 import { DISPOSITION_NAMES } from './code-only-register';
+import { projectDef } from './project-def';
+import { exportComponentDefs, toSpecsComponents, componentDefsFileNames } from './component-defs-export';
 
 /** The sidecar's schema id. `schema/component-docs.schema.json` carries the same `$id`; both move together. */
 export const COMPONENT_DOCS_SCHEMA = 'prism3-component-docs/1.1';
 
-/** Drop `undefined` keys so an absent optional field is absent, not `null`. */
-const compact = <T extends Record<string, unknown>>(o: T): T =>
-  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
-
-/** One def's machine-readable entry: the shipped fields only. Field names mirror `ComponentDef`. */
-export const projectDef = (def: ComponentDef) =>
-  compact({
-    id: def.id,
-    name: def.name,
-    aliases: def.aliases ?? [],
-    category: def.category,
-    status: def.status,
-    summary: def.summary,
-    description: def.description,
-    inherits: def.inherits,
-    props: def.props.map((p) => compact({
-      name: p.name,
-      type: p.type,
-      default: p.default,
-      required: p.required ?? false,
-      values: p.values,
-      anyOf: p.anyOf,
-      minItems: p.minItems,
-      maxItems: p.maxItems,
-      deprecated: p.deprecated,
-      description: p.description,
-    })),
-    states: [...def.states],
-    variants: Object.fromEntries(Object.entries(def.variants).map(([axis, values]) => [axis, {
-      values: [...(values ?? [])],
-      kind: axisKindOf(def, axis),
-    }])),
-    accessibility: compact({ ...def.accessibility, wcag: def.accessibility.wcag ? [...def.accessibility.wcag] : undefined }),
-    content: def.content ? compact({ ...def.content }) : undefined,
-    docs: compact({ usage: def.docs.usage, do: def.docs.do ?? [], dont: def.docs.dont ?? [], contentGuidelines: def.docs.contentGuidelines }),
-    ai: compact({ ...def.ai, commonPartners: def.ai.commonPartners ?? [], triggerKeywords: def.ai.triggerKeywords ?? [] }),
-    motion: def.motion ? compact({ ...def.motion }) : undefined,
-    composition: compact({
-      composesWith: def.composition?.composesWith ?? [],
-      alternativeTo: def.composition?.alternativeTo ?? [],
-      supersedes: def.composition?.supersedes ?? [],
-      supersededBy: def.composition?.supersededBy ?? [],
-      planned: def.composition?.planned ?? [],
-      replacesPatterns: def.composition?.replacesPatterns ?? [],
-    }),
-    // #3441: what the design file does not fully carry, as data — each `anatomy.codeOnly` entry's class and
-    // disposition, in the def's order. The prose stays maintainer-only (#1623), so it is not here.
-    syncBoundary: (def.anatomy?.codeOnly ?? []).map((e) => ({ class: e.class, disposition: DISPOSITION_NAMES[e.disposition] })),
-  });
+// `projectDef` moved to its own I/O-free module (#3425) so a surface can bundle it; re-exported for existing readers.
+export { projectDef };
 
 export const projectComponentDocs = (defs: readonly ComponentDef[]) => ({
   $schema: COMPONENT_DOCS_SCHEMA,
@@ -289,7 +245,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   mkdirSync(COMPONENT_DOCS_DIR, { recursive: true });
   writeFileSync(resolve(COMPONENT_DOCS_DIR, 'components.ai.json'), JSON.stringify(projectComponentDocs(componentDefs), null, 2) + '\n');
   writeFileSync(resolve(COMPONENT_DOCS_DIR, 'specs.json'), JSON.stringify(projectComponentSpecs(componentDefs), null, 2) + '\n');
+  // #3425 — the component-defs export (brand-neutral) and its Specs-format projection. Per-brand exports are written
+  // on demand (`cli.ts --component-specs`, MCP `export_theme`, the Studio's Export), never committed.
+  const defsExport = exportComponentDefs(componentDefs);
+  const names = componentDefsFileNames(null);
+  writeFileSync(resolve(COMPONENT_DOCS_DIR, names.defs), JSON.stringify(defsExport, null, 2) + '\n');
+  writeFileSync(resolve(COMPONENT_DOCS_DIR, names.specs), JSON.stringify(toSpecsComponents(defsExport), null, 2) + '\n');
   for (const def of componentDefs) writeFileSync(resolve(COMPONENT_DOCS_DIR, `${def.id}.md`), renderMarkdown(def));
   writeFileSync(COMPONENT_MAINTAINER_FILE, JSON.stringify(projectComponentMaintainer(componentDefs), null, 2) + '\n');
-  console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json, specs.json + ${componentDefs.length} pages; and ${COMPONENT_MAINTAINER_FILE}`);
+  console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json, specs.json, component-defs.json, component-defs.specs.json + ${componentDefs.length} pages; and ${COMPONENT_MAINTAINER_FILE}`);
 }

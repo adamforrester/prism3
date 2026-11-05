@@ -12,7 +12,7 @@
  * new class is a line added here, by hand, with what it means. The gate fails the other way too: a
  * register line no entry uses is a dead class, and is removed or used.
  *
- * THE DISPOSITION NAMES ARE THE OWNER'S, AND ARE PLACEHOLDERS (Q3441.1). The keys are the stable ids the
+ * THE DISPOSITION NAMES ARE THE OWNER'S, KEPT AS BUILT (Q3441.1 A). The keys are the stable ids the
  * defs write; `DISPOSITION_NAMES` holds the names every artifact prints. The four names below are the
  * outside reference's (the sync boundary of `southleft/ds-contracts-poc`, `spec/normative.md` §2, MIT).
  * A rename is an edit to the values of that one constant; no def changes.

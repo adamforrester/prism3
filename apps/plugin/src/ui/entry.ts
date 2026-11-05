@@ -8,6 +8,8 @@
 // The component catalog, computed from the definitions this bundle carries, provided BEFORE the studio evaluates
 // (an import's body runs in import order), so the studio's Components page reads it from its first render (S8.1).
 import './component-catalog';
+// #3425 — Export component specs, computed from the same bundled definitions and provided the same way.
+import './component-specs-export';
 import '../../../studio/src/entry';
 import { mountAgentLink } from '../agent-link-ui';
 import { initFigmaTheme, restoreFigmaTheme } from '../../../studio/src/shell/theme';

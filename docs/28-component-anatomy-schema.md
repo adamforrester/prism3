@@ -207,8 +207,8 @@ lowered, refused or unsupported, and none is lost silently.
   `carried` (in full), `lowered` (a lossy form the entry names: a frozen number, a static placeholder),
   `refused` (kept out on purpose: code's behavior, semantics, keyboard or motion, or an owner hold) and
   `unsupported` (the tool has no property, binding or mode for it). Their printed names live in one
-  constant, `DISPOSITION_NAMES`, so renaming them changes no def. The names are an open owner question,
-  Q3441.1.
+  constant, `DISPOSITION_NAMES`, so renaming them changes no def. The owner kept these names
+  (Q3441.1 A).
 - **`description`** is the prose the entry always held. It still leads with the name an admission needs.
 
 `components.ai.json` ships each def's `syncBoundary` (class and disposition, never the prose), and
