@@ -24,8 +24,7 @@ Shown on the default member: size `medium`, status `default`.
 3. **Placeholder** — The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. Wraps rather than truncating, and the control grows taller.
 4. **Value**
 5. **Chevron glyph**
-6. **Focus ring**
-7. **Message** (optional)
+6. **Message** (optional)
 
 ## Styles
 
@@ -59,7 +58,7 @@ Use to choose one value from a known, bounded set where the options are not wort
 ## Accessibility
 
 - **Keyboard:** The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.
-- **Focus:** :focus-visible ring on the control, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field's own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.
+- **Focus:** :focus-visible draws the 2px focus edge on the control in place of its border: from the outer edge, at the control's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.
 - **Screen readers:** Trigger: a native \<select>, or a custom button or role="combobox" (ARIA 1.2) with aria-haspopup="listbox", aria-expanded and aria-controls. Popup: role="listbox" with role="option" children carrying aria-selected — the platform's or a listbox component's, not modeled here.
 
   The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is not the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native \<select> where its OS menu is acceptable, because it is correct for free.
@@ -87,7 +86,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 
 ## Related components
 
-- **Built from:** `field-label`, `field-message`, `focus-ring`
+- **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `text-field`, `radio-group`, `checkbox-group`, `segmented-control`
 - **Often used with:** `icon`
 - **Replaces:**
@@ -135,7 +134,6 @@ Generated from the plan that builds the design-file component: 84 members. Value
 | `container/control/chevronGlyph` | instance | every member |
 | `container/message` | instance | every member |
 | `container/control/content/value` | text | state=filled or focus-visible-filled or read-only |
-| `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
 
 Code-only states, with no design-file member: `pending`, `empty`.
 
@@ -450,7 +448,6 @@ Keyed by `status`, `state`.
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/control/chevronGlyph` nests `icon/chevron-down`
 - `container/message` nests `field-message` at `status=default`; follows `status`
-- `container/control/focusRing` nests `focus-ring` at `surface=default`
 
 | Property | Type | Default |
 | --- | --- | --- |

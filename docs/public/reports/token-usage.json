@@ -76,8 +76,18 @@
         },
         "card-number-field": {
           "keys": [
-            "border-width",
+            "border-width.disabled",
+            "border-width.empty",
+            "border-width.filled",
+            "border-width.hover",
+            "border-width.pending",
+            "border-width.read-only",
+            "border-width.rest",
             "caret-width"
+          ],
+          "keysNotDrawn": [
+            "border-width.empty",
+            "border-width.pending"
           ],
           "parts": {
             "caret": {
@@ -97,15 +107,14 @@
               }
             },
             "control": {
-              "members": 84,
-              "where": {}
-            },
-            "focusRing": {
-              "members": 24,
+              "members": 60,
               "where": {
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "disabled",
+                  "filled",
+                  "hover",
+                  "read-only",
+                  "rest"
                 ]
               }
             }
@@ -113,7 +122,11 @@
         },
         "code-input-cell": {
           "keys": [
-            "border-width",
+            "border-width.disabled",
+            "border-width.error",
+            "border-width.filled",
+            "border-width.hover",
+            "border-width.rest",
             "caret-width"
           ],
           "parts": {
@@ -126,15 +139,14 @@
               }
             },
             "container": {
-              "members": 28,
-              "where": {}
-            },
-            "focusRing": {
-              "members": 8,
+              "members": 20,
               "where": {
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "disabled",
+                  "error",
+                  "filled",
+                  "hover",
+                  "rest"
                 ]
               }
             }
@@ -142,22 +154,16 @@
         },
         "counter": {
           "keys": [
-            "border-width",
-            "outline.ring-border"
+            "border-width.disabled",
+            "border-width.rest"
           ],
           "parts": {
             "control": {
-              "members": 18,
-              "where": {}
-            },
-            "focusRing": {
-              "members": 3,
+              "members": 12,
               "where": {
-                "appearance": [
-                  "outline"
-                ],
                 "state": [
-                  "focus-visible"
+                  "disabled",
+                  "rest"
                 ]
               }
             }
@@ -297,8 +303,18 @@
         },
         "password-field": {
           "keys": [
-            "border-width",
+            "border-width.disabled",
+            "border-width.empty",
+            "border-width.filled",
+            "border-width.hover",
+            "border-width.pending",
+            "border-width.read-only",
+            "border-width.rest",
             "caret-width"
+          ],
+          "keysNotDrawn": [
+            "border-width.empty",
+            "border-width.pending"
           ],
           "parts": {
             "caret": {
@@ -318,15 +334,14 @@
               }
             },
             "control": {
-              "members": 84,
-              "where": {}
-            },
-            "focusRing": {
-              "members": 24,
+              "members": 60,
               "where": {
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "disabled",
+                  "filled",
+                  "hover",
+                  "read-only",
+                  "rest"
                 ]
               }
             }
@@ -359,8 +374,18 @@
         },
         "search-field": {
           "keys": [
-            "border-width",
+            "border-width.disabled",
+            "border-width.empty",
+            "border-width.filled",
+            "border-width.hover",
+            "border-width.pending",
+            "border-width.read-only",
+            "border-width.rest",
             "caret-width"
+          ],
+          "keysNotDrawn": [
+            "border-width.empty",
+            "border-width.pending"
           ],
           "parts": {
             "caret": {
@@ -380,15 +405,14 @@
               }
             },
             "control": {
-              "members": 84,
-              "where": {}
-            },
-            "focusRing": {
-              "members": 24,
+              "members": 60,
               "where": {
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "disabled",
+                  "filled",
+                  "hover",
+                  "read-only",
+                  "rest"
                 ]
               }
             }
@@ -396,19 +420,28 @@
         },
         "select": {
           "keys": [
-            "border-width"
+            "border-width.disabled",
+            "border-width.empty",
+            "border-width.filled",
+            "border-width.hover",
+            "border-width.pending",
+            "border-width.read-only",
+            "border-width.rest"
+          ],
+          "keysNotDrawn": [
+            "border-width.empty",
+            "border-width.pending"
           ],
           "parts": {
             "control": {
-              "members": 84,
-              "where": {}
-            },
-            "focusRing": {
-              "members": 24,
+              "members": 60,
               "where": {
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "disabled",
+                  "filled",
+                  "hover",
+                  "read-only",
+                  "rest"
                 ]
               }
             }
@@ -453,8 +486,18 @@
         },
         "text-field": {
           "keys": [
-            "border-width",
+            "border-width.disabled",
+            "border-width.empty",
+            "border-width.filled",
+            "border-width.hover",
+            "border-width.pending",
+            "border-width.read-only",
+            "border-width.rest",
             "caret-width"
+          ],
+          "keysNotDrawn": [
+            "border-width.empty",
+            "border-width.pending"
           ],
           "parts": {
             "caret": {
@@ -474,15 +517,14 @@
               }
             },
             "control": {
-              "members": 84,
-              "where": {}
-            },
-            "focusRing": {
-              "members": 24,
+              "members": 60,
               "where": {
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "disabled",
+                  "filled",
+                  "hover",
+                  "read-only",
+                  "rest"
                 ]
               }
             }
@@ -490,9 +532,19 @@
         },
         "textarea": {
           "keys": [
-            "border-width",
+            "border-width.disabled",
+            "border-width.empty",
+            "border-width.filled",
+            "border-width.hover",
+            "border-width.pending",
+            "border-width.read-only",
+            "border-width.rest",
             "caret-width",
             "grip-inset"
+          ],
+          "keysNotDrawn": [
+            "border-width.empty",
+            "border-width.pending"
           ],
           "parts": {
             "caret": {
@@ -504,15 +556,14 @@
               }
             },
             "control": {
-              "members": 84,
-              "where": {}
-            },
-            "focusRing": {
-              "members": 24,
+              "members": 60,
               "where": {
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "disabled",
+                  "filled",
+                  "hover",
+                  "read-only",
+                  "rest"
                 ]
               }
             },
@@ -639,24 +690,6 @@
               "where": {
                 "edge": [
                   "full-bleed"
-                ]
-              }
-            }
-          }
-        },
-        "counter": {
-          "keys": [
-            "ghost.ring-border"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 3,
-              "where": {
-                "appearance": [
-                  "ghost"
-                ],
-                "state": [
-                  "focus-visible"
                 ]
               }
             }
@@ -1450,6 +1483,24 @@
                 "state": [
                   "focus-visible",
                   "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "outline.border.focus-visible"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible"
                 ]
               }
             }
@@ -4585,13 +4636,12 @@
           ],
           "parts": {
             "control": {
-              "members": 6,
+              "members": 3,
               "where": {
                 "appearance": [
                   "outline"
                 ],
                 "state": [
-                  "focus-visible",
                   "rest"
                 ]
               }
@@ -17864,7 +17914,7 @@
         },
         "counter": {
           "keys": [
-            "ghost.ring-offset"
+            "ring-offset"
           ],
           "parts": {
             "focusRing": {
@@ -18136,141 +18186,11 @@
             }
           }
         },
-        "card-number-field": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 24,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "code-input-cell": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 8,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "counter": {
-          "keys": [
-            "outline.ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 3,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
         "focus-ring": {
           "keys": [
             "offset.field"
           ],
           "parts": {}
-        },
-        "password-field": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 24,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "search-field": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 24,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "select": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 24,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "text-field": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 24,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        },
-        "textarea": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 24,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
         }
       }
     },
@@ -18350,10 +18270,11 @@
         },
         "card-number-field": {
           "keys": [
-            "ring-width"
+            "border-width.focus-visible",
+            "border-width.focus-visible-filled"
           ],
           "parts": {
-            "focusRing": {
+            "control": {
               "members": 24,
               "where": {
                 "state": [
@@ -18381,10 +18302,11 @@
         },
         "code-input-cell": {
           "keys": [
-            "ring-width"
+            "border-width.focus-visible",
+            "border-width.focus-visible-filled"
           ],
           "parts": {
-            "focusRing": {
+            "container": {
               "members": 8,
               "where": {
                 "state": [
@@ -18397,12 +18319,24 @@
         },
         "counter": {
           "keys": [
+            "border-width.focus-visible",
             "ring-width"
           ],
           "parts": {
-            "focusRing": {
+            "control": {
               "members": 6,
               "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "ghost"
+                ],
                 "state": [
                   "focus-visible"
                 ]
@@ -18548,10 +18482,11 @@
         },
         "password-field": {
           "keys": [
-            "ring-width"
+            "border-width.focus-visible",
+            "border-width.focus-visible-filled"
           ],
           "parts": {
-            "focusRing": {
+            "control": {
               "members": 24,
               "where": {
                 "state": [
@@ -18579,10 +18514,11 @@
         },
         "search-field": {
           "keys": [
-            "ring-width"
+            "border-width.focus-visible",
+            "border-width.focus-visible-filled"
           ],
           "parts": {
-            "focusRing": {
+            "control": {
               "members": 24,
               "where": {
                 "state": [
@@ -18610,10 +18546,11 @@
         },
         "select": {
           "keys": [
-            "ring-width"
+            "border-width.focus-visible",
+            "border-width.focus-visible-filled"
           ],
           "parts": {
-            "focusRing": {
+            "control": {
               "members": 24,
               "where": {
                 "state": [
@@ -18686,10 +18623,11 @@
         },
         "text-field": {
           "keys": [
-            "ring-width"
+            "border-width.focus-visible",
+            "border-width.focus-visible-filled"
           ],
           "parts": {
-            "focusRing": {
+            "control": {
               "members": 24,
               "where": {
                 "state": [
@@ -18702,10 +18640,11 @@
         },
         "textarea": {
           "keys": [
-            "ring-width"
+            "border-width.focus-visible",
+            "border-width.focus-visible-filled"
           ],
           "parts": {
-            "focusRing": {
+            "control": {
               "members": 24,
               "where": {
                 "state": [
@@ -30753,7 +30692,6 @@
         "control.size.lg.line-box",
         "control.size.md.line-box",
         "control.size.sm.line-box",
-        "focus.ring.offset-field",
         "focus.ring.width",
         "icon.size.md",
         "icon.size.sm",
@@ -30943,7 +30881,6 @@
         "color.field.border.rest",
         "color.field.fill",
         "color.text.primary",
-        "focus.ring.offset-field",
         "focus.ring.width",
         "icon.size.md",
         "icon.size.sm",
@@ -30980,14 +30917,13 @@
       },
       "tokens": [
         "border-width.hairline",
-        "border-width.none",
+        "color.border.focus",
         "color.disabled.border",
         "color.disabled.text",
         "color.field.border.rest",
         "color.field.fill",
         "color.text.primary",
         "focus.ring.offset",
-        "focus.ring.offset-field",
         "focus.ring.width",
         "radius.sm",
         "size.lg.height",
@@ -32053,7 +31989,6 @@
         "control.size.lg.line-box",
         "control.size.md.line-box",
         "control.size.sm.line-box",
-        "focus.ring.offset-field",
         "focus.ring.width",
         "icon.size.sm",
         "radius.sm",
@@ -32374,7 +32309,6 @@
         "control.size.lg.line-box",
         "control.size.md.line-box",
         "control.size.sm.line-box",
-        "focus.ring.offset-field",
         "focus.ring.width",
         "icon.size.sm",
         "radius.sm",
@@ -32509,7 +32443,6 @@
         "color.icon.primary",
         "color.text.primary",
         "color.text.secondary",
-        "focus.ring.offset-field",
         "focus.ring.width",
         "icon.size.sm",
         "radius.sm",
@@ -32931,7 +32864,6 @@
         "control.size.lg.line-box",
         "control.size.md.line-box",
         "control.size.sm.line-box",
-        "focus.ring.offset-field",
         "focus.ring.width",
         "icon.size.sm",
         "radius.sm",
@@ -32991,7 +32923,6 @@
         "control.size.lg.line-box",
         "control.size.md.line-box",
         "control.size.sm.line-box",
-        "focus.ring.offset-field",
         "focus.ring.width",
         "icon.size.xs",
         "radius.sm",

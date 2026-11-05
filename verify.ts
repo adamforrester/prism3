@@ -1234,6 +1234,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-fill-under-hug.ts'),
   },
   {
+    // #3409 — reads the contract baseline, the defs, the committed emission and the preview spec; needs no build.
+    id: 'lint-token-consumers',
+    ciStep: 'Every contract token is read, or declared unread with a reason (#3409)',
+    cmd: engine('lint-token-consumers.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject

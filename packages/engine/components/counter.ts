@@ -52,6 +52,7 @@
  * (#2574), so this set carries none. 2 appearances × 3 sizes × 3 states = 18 members.
  */
 import { ComponentDef } from '../component-schema';
+import { fieldEdgeWidths, FOCUS_EDGE_DEFAULT_NOTE } from './text-field';
 
 /** The two stepper buttons: one nest, two cells. Each nests FlushIconButton.Neutral with `state` exposed (Q283.7). */
 const stepper = {
@@ -136,21 +137,19 @@ export const counter: ComponentDef = {
     // The stack spacing between label, row and message, the field family's.
     'root-gap': 'space.100',
     'radius': 'radius.sm',
-    'border-width': 'border-width.hairline',
-    // THE FOCUS RING (Q283.10 A): ghost takes the control offset, 2px, so the ring clears the round buttons;
-    // outline takes the field offset, as Text field does, the edge already separating it.
+    // THE FOCUS EDGE (#3399, Q22 A): outline's edge becomes Text field's 2px focus edge while the value has focus, in
+    // place of the border. Ghost draws no edge (it resolves no box paint), so the width reaches nothing there.
+    ...fieldEdgeWidths(['rest', 'focus-visible', 'disabled']),
+    // THE FOCUS RING, ghost only (Q283.10 A): the control offset, 2px, so the ring clears the round buttons.
     'ring-width': 'focus.ring.width',
-    'outline.ring-offset': 'focus.ring.offset-field',
-    'ghost.ring-offset': 'focus.ring.offset',
-    // #3328 (Q3328.2 A): outline's ring sits inside its edge, at its radius, as Text field's does; ghost draws no edge,
-    // so it has none to sit inside and keeps the outside ring.
-    'outline.ring-border': 'border-width.hairline',
-    'ghost.ring-border': 'border-width.none',
+    'ring-offset': 'focus.ring.offset',
 
     // ── PAINT ──
     // Outline: Text field's fill and edge. The edge is the field's own 3:1 role.
     'outline.fill': 'color.field.fill',
     'outline.border': 'color.field.border.rest',
+    // The focus edge in the focus role (#3399), as on Text field. The Counter has no status axis.
+    'outline.border.focus-visible': 'color.border.focus',
     // The value, full contrast on both appearances.
     'outline.label': 'color.text.primary',
     'ghost.label': 'color.text.primary',
@@ -192,7 +191,8 @@ export const counter: ComponentDef = {
         height: 'size.{size}.height',
         padding: { block: 'pad-y', inlineLabel: '{appearance}.size.{size}.pad-x' },
         radius: 'radius',
-        strokeWidth: 'border-width',
+        // Per state (#3399): the hairline, and the 2px focus edge while the value has focus.
+        strokeWidth: 'border-width.{state}',
         children: ['decrement', 'entry', 'increment', 'focusRing'],
         note: 'The row: the minus button, the value and the plus button. Outline draws the field\'s fill and edge with the glyphs 12px inside it (16px at large); ghost draws nothing, and the round buttons are its ends.',
       },
@@ -225,12 +225,13 @@ export const counter: ComponentDef = {
       focusRing: {
         kind: 'absolute',
         when: 'focus-visible',
+        // Ghost only (#3399): outline's own edge is the focus edge, so it draws no ring.
+        presentWhen: { appearance: ['ghost'] },
         nests: 'focus-ring',
-        inset: '{appearance}.ring-offset',
+        inset: 'ring-offset',
         strokeInset: 'ring-width',
-        borderInset: '{appearance}.ring-border',
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'The shared focus ring, around the whole row while the value has keyboard focus: inside the edge, at its radius, for outline (#3328); 2px outside the round buttons for ghost.',
+        note: 'The shared focus ring on ghost, 2px outside the round buttons, while the value has keyboard focus. Outline draws no ring: its edge becomes the 2px focus edge.',
       },
       message: {
         kind: 'nest',
@@ -273,12 +274,12 @@ export const counter: ComponentDef = {
       '2.1.1 Keyboard (the arrow, Page Up, Page Down, Home and End keys change the value; the buttons are not needed)',
       '4.1.3 Status Messages (a button press announces the new value through the shared polite live region)',
       '1.4.11 Non-text Contrast (the outline edge is the field edge; the glyphs target 3:1 against the page)',
-      '2.4.7 Focus Visible (the shared focus ring around the row)',
+      '2.4.7 Focus Visible (the 2px focus edge on outline, the shared focus ring around the row on ghost)',
       '2.5.8 Target Size (Minimum) (24×24, as intent, through each button\'s code-side hit area)',
       '2.5.5 Target Size (Enhanced) (targets 44×44 for each button at every size, through its code-side hit area)',
     ],
     keyboard: 'The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex="-1").',
-    focus: 'One focus ring around the whole row while the value has keyboard focus: inside the edge for outline, where the edge takes the focus color and a 2px band sits inside it at the row\'s radius; 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.',
+    focus: 'While the value has keyboard focus, outline draws the 2px focus edge in place of its edge, in the focus color, from the outer edge at the row\'s radius, with no ring and no gap, and the row keeps its size; ghost draws the shared focus ring 2px outside the buttons. The buttons never take focus from the keyboard, so they draw no ring of their own.',
     aria: 'The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, aria-valuetext where the number is shown formatted ("3 items"), and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. The buttons are not aria-hidden: they keep their names for pointer and touch users of assistive technology, as the ARIA Authoring Practices spin button example does. Every name is translatable, and the row mirrors right to left.',
   },
 
@@ -328,6 +329,7 @@ export const counter: ComponentDef = {
 
   notes: {
     contested: [
+      FOCUS_EDGE_DEFAULT_NOTE,
       'Appearance order: `outline` first, as Q283.4 A spelled it, so the Figma default and the code default are outline, while the wireframe decision made ghost the MVP. If ghost should be what a designer inserts, the order flips (an owner call).',
       'The value in Figma defaults to "1", the Oct 9 draft, while the code default is min, which defaults to 0 (Q283.7). A product card usually starts at 1; the two defaults differ on purpose until the owner says otherwise.',
       'TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance\'s properties under its layer name (decrement, increment).',
