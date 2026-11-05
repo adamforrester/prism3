@@ -272,7 +272,7 @@ import { fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './co
 import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict as applyVerdictOf, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
 
 let failed = 0;
@@ -363,6 +363,14 @@ const pdOfMember = (n: Node, k: string): string => (n.getSharedPluginData as (a:
 const varIdOf = async (w: World, name: string): Promise<string> =>
   (await w.api.variables.getLocalVariablesAsync()).find((v: { name: string }) => v.name.endsWith(`/${name}`)).id;
 
+/** #3326 PR 1 review S2: every verdict this suite reads, kept for `causes/every verdict` at the end. */
+const verdictsSeen: { r: Parameters<typeof applyVerdictOf>[0]; v: ReturnType<typeof applyVerdictOf> }[] = [];
+const applyVerdict = (r: Parameters<typeof applyVerdictOf>[0]): ReturnType<typeof applyVerdictOf> => {
+  const v = applyVerdictOf(r);
+  verdictsSeen.push({ r, v });
+  return v;
+};
+
 console.log('in-place update, applied (#2265 PR 2) — against the in-memory shim\n');
 const TAG = 'tag';
 
@@ -440,6 +448,9 @@ section('hash — a confirm over a file that moved since the check writes nothin
   const stamps = membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join();
   const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
   ok(!!res.refusedAll && /changed since the check/.test(res.refusedAll), `hash/refused: ${res.refusedAll}`);
+  // #3326: a refusal of the whole run is the run's own cause, the refusal its reason.
+  ok(JSON.stringify(applyVerdict(res).causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'update refused', reasons: [res.refusedAll] }]),
+    `causes/refused all: the run's cause, with the refusal as its reason (${JSON.stringify(applyVerdict(res).causes)})`);
   ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps && w.api._versions.length === 0, 'hash/nothing written: no stamp moved, no version saved');
 }
 
@@ -857,6 +868,19 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
     && v.lines[1] === 'radio-control: hand edits kept on 1 member hold back 2 changes the plan makes (dot: size → control/size/md/dot, dot: corner radius → radius/round). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.',
     `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
 
+  // #3326 PR 1 (Q3326.1 A): CAUSES, from the facts `ok` reads, never from the lines' words. A clean run has none; a set
+  // not verified, or not updated, is one cause whose reasons are the clauses its lines print after its name. The same
+  // outcome, its facts replaced. Mutations: the not-verified cause dropped → `causes/not verified`; its reasons taken
+  // from the wrong lines → the same; the refused cause dropped → `causes/refused set`; causes on a clean run → `causes/clean`.
+  ok(Array.isArray(v.causes) && v.causes.length === 0, `causes/clean: an ok run names no cause (${JSON.stringify(v.causes)})`);
+  const unverified = applyVerdict({ ...res, outcomes: [{ ...o, content: ['dot.width 14 → 16'] }] });
+  ok(!unverified.ok && JSON.stringify(unverified.causes) === JSON.stringify([{ kind: 'warn', subject: 'radio-control', what: 'not verified',
+    reasons: ['1 field still differs from the plan — dot.width 14 → 16.'] }]),
+    `causes/not verified: one cause for the set, its line's clause as the reason (${JSON.stringify(unverified.causes)})`);
+  const refusedSet = applyVerdict({ ...res, outcomes: [{ ...o, refused: 'the set moved since the check' }] });
+  ok(JSON.stringify(refusedSet.causes) === JSON.stringify([{ kind: 'bad', subject: 'radio-control', what: 'not updated', reasons: ['the set moved since the check.'] }]),
+    `causes/refused set: a set not updated is a cause with its reason (${JSON.stringify(refusedSet.causes)})`);
+
   // EVERY BOUND FIELD IN PLAIN WORDS (owner Q826 A): the layer name first, then the property as a designer says it, the
   // per-side fields merged into one word. The same outcome, its kept bindings replaced, read through the verdict. Each
   // family's word is typed here. Mutation: a family's word falling through to the field's key → that family's arm and
@@ -1003,6 +1027,8 @@ section('stop — a run that stops part-way finishes when the update runs again'
   const { res } = await confirm(w, [{ def: TAG, plans: next }]);
   ok(!!res.outcomes[0]?.stopped && /the host stopped/.test(res.outcomes[0].stopped!), `premise: the run stopped (${res.outcomes[0]?.stopped})`);
   ok(/^✗ update stopped at /.test(applyVerdict(res).headline), `stop/verdict: ${applyVerdict(res).headline}`);
+  ok(JSON.stringify(applyVerdict(res).causes) === JSON.stringify([{ kind: 'bad', subject: TAG, what: 'stopped', reasons: [res.outcomes[0].stopped] }]),
+    `causes/stopped: the set the run stopped at is its cause, the host's words its reason (${JSON.stringify(applyVerdict(res).causes)})`);
   const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
   ok(mid.counts.current === 0 && mid.counts.update === 45 && mid.handEdits.length === 0,
     `stop/out of date: every member still reads out of date, and none as a hand edit (${JSON.stringify(mid.counts)}, ${mid.handEdits.length} edits)`);
@@ -2048,6 +2074,9 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
   ok(!v.ok && v.headline === '✗ 1 set not updated' && v.lines[0] === 'button: 3 canvas labels drawn, 1 left as it is.',
     `idle/furniture: a set whose members were all left is not updated, though its furniture was drawn (${JSON.stringify(v)})`);
+  // #3326 PR 1 review S2. Mutation: the idle set's cause dropped (`applyVerdict`'s `isIdle` push) → `causes/idle`.
+  ok(JSON.stringify(v.causes) === JSON.stringify([{ kind: 'bad', subject: 'button', what: 'not updated', reasons: ['size=md: no as-built record'] }]),
+    `causes/idle: a set entered and left as it was is a cause, each member left with its reason (${JSON.stringify(v.causes)})`);
 }
 {
   // A RECORD-LESS SINGLE COMPONENT (#2373): the icons with no as-built record, as the NB master's unrecorded sets were.
@@ -6149,6 +6178,40 @@ section('kept views — a variable\'s value edited in the Variables panel drops 
   keepView(await readSetView(w.set() as never), viewEpoch());
   ok(keptCount() === 0, `values/no print: a read with no variables print to compare against is never kept (${keptCount()} kept)`);
   dropViews(); watchViews(false);
+}
+
+// #3326 PR 1 review S1: A STOP THE PERSON ASKED FOR, IN A FILE THAT NAMES ITS SET ITS OWN WAY. The set is "Tag set" in
+// the file and `tag` in the engine, as a library's sets are ("Button" for `button`). The stop comes before the first
+// write, so the set is left; its cause names the def, never the set's name in the file. Mutations: the halt's cause loop
+// dropped → this arm; `leftDefs` filled from the sets' names → this arm and `causes/every verdict`.
+section('causes — a stopped run names each set it left by its def id');
+{
+  const named = plansOf(TAG).map((p) => ({ ...JSON.parse(JSON.stringify(p)), component: 'Tag set' }) as AnatomyPlan);
+  const w = await world(TAG, named, { extraVars: ['space/999'] });
+  ok(String(w.set().name) === 'Tag set', `premise: the set is named "Tag set" in the file (${String(w.set().name)})`);
+  const targets = [{ def: TAG, plans: moveGap(named) }];
+  const pre = await previewUpdate(w.host, targets);
+  const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { stop: () => true });
+  ok(JSON.stringify(res.halted?.left) === JSON.stringify(['Tag set']), `premise: the stop left the set, by its name in the file (${JSON.stringify(res.halted)})`);
+  const v = applyVerdict(res);
+  ok(JSON.stringify(v.causes) === JSON.stringify([{ kind: 'warn', subject: TAG, what: 'not updated',
+    reasons: ['Stopped before the first write, as asked. Nothing was written. Not updated, and still due: Tag set.'] }]),
+    `causes/halted: the set the stop left is a cause, its subject the def id and the stop its reason (${JSON.stringify(v.causes)})`);
+}
+
+// #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite read. A verdict that is not ok says why: at least one
+// cause, and each subject is a def id (one of the engine's, or one a hand-written outcome names), or null for the run's
+// own cause. Never a set's name in the file. Mutations: any writer path's cause dropped, or a subject taken from a set's
+// name → `causes/every verdict`.
+{
+  const ids = new Set(componentDefs.map((d) => d.id));
+  const bad = verdictsSeen.filter(({ r, v }) => {
+    if (v.ok) return false;
+    const own = new Set([...ids, ...r.outcomes.map((o) => o.def), ...r.refused.map((x) => x.def)]);
+    return !v.causes.length || v.causes.some((c) => c.subject !== null && !own.has(c.subject));
+  });
+  ok(verdictsSeen.some(({ v }) => !v.ok) && !bad.length,
+    `causes/every verdict: each of the ${verdictsSeen.filter(({ v }) => !v.ok).length} verdicts not ok names a cause, each subject a def id (${JSON.stringify(bad.slice(0, 3).map(({ v }) => ({ headline: v.headline, causes: v.causes })))})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;

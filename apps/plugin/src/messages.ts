@@ -317,6 +317,35 @@ export type StyleGuideTableStatus = 'waiting' | 'drawing' | 'done' | 'failed';
 /** #3170, #3189: the runs a `run-progress` reading can be from. */
 export type RunProgressKind = 'read' | 'update' | 'apply-theme' | 'capture' | 'adopt';
 
+/**
+ * WHY A RUN IS NOT CLEAN, AS DATA (#3326, owner decision Q3326.1 A; #3308 Q3308.1 A). A verdict's `lines` are prose in the
+ * writer's order, so the Activity drawer could only mark a warning by its position or by matching its words: it took the
+ * first line as "the reason", and the owner's run showed "Button: 4 updated in place." as the reason for a warning that
+ * was the last line. A cause is what the writer already knows when it turns a run `⚠` or `✗`, sent beside `lines`, so the
+ * drawer draws it and never reads the text to find it.
+ *
+ * - `kind`: `warn`, the step did what it was asked, not cleanly; `bad`, it stopped or wrote nothing.
+ * - `subject`: the def id of the set the cause is about, or `null` when the cause is the run's own (a refusal, a throw).
+ *   An id, never words: the drawer names it from its catalog, so no writer words a set's name.
+ * - `what`: what happened to it, a short phrase the drawer prints after the subject ("built with problems").
+ * - `reasons`: every reason the writer gave, one per entry, in the writer's words. May be empty.
+ * - `step`: the step the cause belongs to, when the writer knows it. Update file's step names are the panel's, so the
+ *   panel fills it there (#3326 PR 2).
+ * - `why`, `stays`, `todo`: the cause's explanation, what the run left in place, and what to do (#3326 PR 4's words).
+ *
+ * A cause is present only on a verdict that is not `ok`. An empty list means the writer found none to name.
+ */
+export type Cause = {
+  readonly kind: 'warn' | 'bad';
+  readonly subject: string | null;
+  readonly what: string;
+  readonly reasons: readonly string[];
+  readonly step?: string;
+  readonly why?: string;
+  readonly stays?: string;
+  readonly todo?: string;
+};
+
 /** Messages the main thread sends TO the UI iframe. */
 export type MainToUi =
   /** Result of an `apply-theme` write: ok + a human summary (counts / any misses) for the UI.
@@ -354,7 +383,9 @@ export type MainToUi =
     completed: boolean;
     /** The summary's items, one per line (#2177; see `apply-result`): the set, each note after it, what was built
      *  first, each page header. */
-    lines: string[] }
+    lines: string[];
+    /** #3326: why the build is not clean, as data (`Cause`). Sent by every build verdict; absent from a host older than it. */
+    causes?: Cause[] }
   /** Result of the in-place update's dry run, or of a baseline capture (#2265) — the `{ok, headline, summary}`
    *  shape, its own kind for the one-kind-per-fact reason: "what would an update change" is not "did my build
    *  land", and must not overwrite the build's verdict on the Components page. Only the agent link sends the
@@ -362,6 +393,9 @@ export type MainToUi =
   | { type: 'component-update-result'; ok: boolean; headline: string; summary: string;
     /** The summary's items, one per line (#2177; see `apply-result`): one per set, then each closing line. */
     lines: string[];
+    /** #3326: why the update is not clean, as data (`Cause`). Sent by the applied update's verdict and by each `✗` that
+     *  carries one `why`; absent where a writer does not say its causes yet (the dry run, the capture, adopt, Draw specs). */
+    causes?: Cause[];
     /** #2858: after an Update that wrote, the library publish description for Figma's Publish library dialog. No
      *  Plugin API call sets it, so the drawer offers it with a Copy button. */
     publish?: string }

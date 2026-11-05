@@ -24,7 +24,7 @@ The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxon
 - A divider, then `Subcomponents`
 - A divider, then `Sandbox`, with `↳ File Components`
 
-The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:455-456 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5 -->
+The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:467-468 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5 -->
 
 Component pages are not created here. Each component page, such as `↳ Buttons` or `↳ Checkbox`, appears the first time a set for it is added, so a file never holds empty component pages. <!-- src: apps/plugin/src/file-taxonomy.ts:99-105 --> `↳ Icons & assets`, under Foundations, appears the same way. <!-- src: apps/plugin/src/file-taxonomy.ts:87 --> Pages under Components and Subcomponents sit in alphabetical order. <!-- src: apps/plugin/src/file-taxonomy.ts:94 --> <!-- src: apps/plugin/src/file-taxonomy.ts:178 -->
 
@@ -48,11 +48,11 @@ The names start with an underscore because Figma treats such components as priva
 
 ## The result
 
-The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1891-1893 -->
+The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1903-1905 -->
 
 | Result | Meaning |
 |---|---|
-| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1880 --> |
-| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1895 --> |
+| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1892 --> |
+| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1907 --> |
 
 While setup runs, a second request for it is refused: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:39-43 -->

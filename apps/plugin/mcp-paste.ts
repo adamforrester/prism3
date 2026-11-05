@@ -121,7 +121,7 @@ const liftPlugin: Plugin = {
 export const STEP_EXPORTS = [
   'runPreflight', 'runColor', 'runFloat', 'runStyles', 'runGrid', 'runFont', 'runMotion', 'runText', 'runPersist',
   'runReadbackVars', 'runReadbackStyles', 'runCleanupTheme',
-  'runComponentChunk', 'runComponentReactions', 'runComponentEmit', 'runReadbackComponents', 'runCleanupPage',
+  'runComponentPlace', 'runComponentChunk', 'runComponentReactions', 'runComponentEmit', 'runReadbackComponents', 'runCleanupPage',
 ] as const;
 
 /** Built ONCE, when this module loads (esbuild's synchronous API refuses plugins, and the lift above is
@@ -414,9 +414,20 @@ export const componentScripts = (input: BrandInput, requested: 'all' | string[])
       }));
       continue;
     }
+    // PAGE PLACEMENT FIRST, ONCE (#3414): its own script, so the file taxonomy `resolveComponentPage` reads is in this
+    // one script and not in every chunk's budget. Each chunk is then handed the page by name. An unmapped def (no
+    // page) builds on the current page, as it always has, and needs no placement.
+    if (page !== null) {
+      out.push({
+        phase: 'components', kind: 'component-place', label: `${def.id} page`, def: def.id, names,
+        purpose: `Finds or creates the '${page}' page '${names[0]}' builds on, in its section (moves no existing page).`,
+        expect: `{ ok: true, page: ${JSON.stringify(page)}, misses: [] }`,
+        js: assemble('runComponentPlace', { step: 0, of: 0, label: `${def.id} page`, def: def.id, page }),
+      });
+    }
     // The chunk budget is the ceiling minus this script's own wrapper, measured with an empty payload, so
     // `planSetChunks` packs to the room that is really left.
-    const wrapper = (chunk: number, chunks: number) => ({ step: 0, of: 0, label: `${def.id} ${chunk + 1}/${chunks}`, def: def.id, chunk, chunks });
+    const wrapper = (chunk: number, chunks: number) => ({ step: 0, of: 0, label: `${def.id} ${chunk + 1}/${chunks}`, def: def.id, page, chunk, chunks });
     const overhead = assemble('runComponentChunk', wrapper(999, 999), ['']).length + NUMBER_SLACK + 64;
     const chunks = planSetChunks(plans, SCRIPT_CEILING - overhead);
     for (const c of chunks) {
