@@ -5,8 +5,8 @@
  * ── THE OWNER'S SHAPE (the proposal on #2579, approved as recommended by Q327, 2026-10-16) ─────────────────────
  *
  * Four tones (`info | success | warning | danger`, FieldMessage's statuses and Badge's status tones less neutral),
- * subtle emphasis only (the tone's tint, no bold variant), and a `width` axis for placement: `contained` (a rounded
- * box inside a section) or `full` (a page-top bar: square, built wider, edged top and bottom only; Q533.4, built on its
+ * subtle emphasis only (the tone's tint, no bold variant), and an `edge` axis for placement: `contained` (a rounded
+ * box inside a section) or `full-bleed` (a page-top bar: square, built wider, edged top and bottom only; Q533.4, built on its
  * recommended answer for review). 4 × 2 = 8 members. No size axis (the brief
  * names none; density moves the spacing) and no state axis: a banner is not interactive, its buttons are.
  *
@@ -74,7 +74,7 @@ export const banner: ComponentDef = {
 
   props: [
     { name: 'tone', type: "enum: 'info' | 'success' | 'warning' | 'danger' | 'neutral'", values: ['info', 'success', 'warning', 'danger', 'neutral'], default: 'info', required: false, description: 'How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for other status news, and neutral for a message with no status, such as an announcement or a membership offer. Neutral sits on the secondary background with a neutral edge and shows no glyph.' },
-    { name: 'width', type: "enum: 'contained' | 'full'", values: ['contained', 'full'], default: 'contained', required: false, description: 'contained is a rounded box with an edge on all four sides, inside a section or card. full is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge.' },
+    { name: 'edge', type: "enum: 'contained' | 'full-bleed'", values: ['contained', 'full-bleed'], default: 'contained', required: false, description: 'contained is a rounded box with an edge on all four sides, inside a section or card. full-bleed is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge.' },
     { name: 'title', type: 'node', required: false, description: 'A short heading that names the issue ("Payment failed"), with no period at the end. When present, it labels the banner\'s region.' },
     { name: 'children', type: 'node', required: true, description: 'The body: what happened and what to do next, in one or two sentences. Usually plain text; it can hold a short list or other rich content instead. Never repeat the title.' },
     { name: 'headingLevel', type: "enum: 2 | 3 | 4 | 5 | 6", values: ['2', '3', '4', '5', '6'], default: '2', required: false, description: 'The heading level of the title, matched to where the banner sits in the page outline, so the outline stays in order.' },
@@ -90,11 +90,13 @@ export const banner: ComponentDef = {
   variants: {
     // `neutral` last (Q-BN3.2 A): info stays the code default and the first value.
     tone: ['info', 'success', 'warning', 'danger', 'neutral'],
-    width: ['contained', 'full'],
+    // #3392 (owner decision 2026-11-04): named for what it changes, the corners and which sides are edged, not
+    // for a width (#3383's rule); renamed from `width` / `full`, and existing Figma instances migrate in place.
+    edge: ['contained', 'full-bleed'],
   },
   // A banner's tone changes live (a process going from running to failed), so `tone` is runtime and holds one footprint:
-  // the glyph is the same size in every tone. `width` is chosen where the banner is placed.
-  axisKinds: { tone: 'runtime', width: 'authoring' },
+  // the glyph is the same size in every tone. `edge` is chosen where the banner is placed.
+  axisKinds: { tone: 'runtime', edge: 'authoring' },
 
   paintKeys: ['{tone}.{slot}', '{slot}'],
 
@@ -128,13 +130,13 @@ export const banner: ComponentDef = {
     // ── THE WIDTH FLOOR (#2971, owner decision 2026-10-23, Q2971.1–3 A): one minimum for both widths, the narrowest column
     // (`container.min`, 320, the reflow width), so a narrow host no longer wraps the body to a sliver.
     'min-width': 'container.min',
-    // ── THE EDGE'S SIDES (Q533.4, built on its recommended answer): contained is edged all round; full is a page-top bar,
+    // ── THE EDGE'S SIDES (Q533.4, built on its recommended answer): contained is edged all round; full-bleed is a page-top bar,
     // edged top and bottom only, so it runs into the page's sides. The top and bottom bind `border-width` on both.
-    'width.contained.edge-side': 'border-width.hairline',
-    'width.full.edge-side': 'border-width.none',
-    // ── CORNERS (the proposal's §5, DRAFT): contained rounds, full is square.
-    'width.contained.radius': 'radius.md',
-    'width.full.radius': 'radius.none',
+    'edge.contained.edge-side': 'border-width.hairline',
+    'edge.full-bleed.edge-side': 'border-width.none',
+    // ── CORNERS (the proposal's §5, DRAFT): contained rounds, full-bleed is square.
+    'edge.contained.radius': 'radius.md',
+    'edge.full-bleed.radius': 'radius.none',
     // ── SPACE (the proposal's §5, DRAFT). In `densitySpacing`: the padding, the glyph to the content, and the body to
     // the action. The title to the body is FIXED at 4px: one step down at compact would be
     // 2px, under the 4px gap floor (owner, 2026-09-29).
@@ -162,17 +164,17 @@ export const banner: ComponentDef = {
         // The glyph, the content and the dismiss button, top-aligned so the glyph and the dismiss button stay beside the
         // first line when the text wraps.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        // Built at 480 contained (the proposal's §9) and 960 full (Q533.4, built on its recommended answer), so the page-top
+        // Built at 480 contained (the proposal's §9) and 960 full-bleed (Q533.4, built on its recommended answer), so the page-top
         // bar reads wider on the canvas; a host stretches the instance either way.
-        builtSize: { axis: 'width', widths: { contained: 480, full: 960 } },
+        builtSize: { axis: 'edge', widths: { contained: 480, 'full-bleed': 960 } },
         // The floor (#2971): every member holds at least `container.min` (320) under a host that narrows it.
         minWidthKey: 'min-width',
         padding: { block: 'pad', inlineLabel: 'pad' },
         gap: 'gap',
-        radius: 'width.{width}.radius',
-        strokeEdges: { top: 'border-width', right: 'width.{width}.edge-side', bottom: 'border-width', left: 'width.{width}.edge-side' },
+        radius: 'edge.{edge}.radius',
+        strokeEdges: { top: 'border-width', right: 'edge.{edge}.edge-side', bottom: 'border-width', left: 'edge.{edge}.edge-side' },
         children: ['infoGlyph', 'successGlyph', 'warningGlyph', 'dangerGlyph', 'content', 'dismiss'],
-        note: 'The banner: the tone\'s tinted surface (the page color when the brand\'s Banner style is Outlined) with a 1px edge in the tone\'s border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full width: a square bar, edged top and bottom only.',
+        note: 'The banner: the tone\'s tinted surface (the page color when the brand\'s Banner style is Outlined) with a 1px edge in the tone\'s border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full-bleed: a square bar, edged top and bottom only.',
       },
       // FieldMessage's glyph per status (its header measures the artwork): the exclamation in a triangle for the most
       // serious tone, in a circle for a warning. Held for the owner: the proposal listed the glyph names in tone order.
@@ -291,14 +293,14 @@ export const banner: ComponentDef = {
       'the body — `children` is plain text in the common case and renders in the body paragraph; rich content (a list, an inline image) renders in the same place. Figma shows the first as the body text property and the second in the rich body slot.',
       'forced colors — the edge is a border, so it stays in the system border color when the browser removes the fill.',
       'the minimum width — `min-inline-size: min(var(--container-min), 100%)`, one floor for both widths: 320px, the narrowest column, so a narrow host does not wrap the body to a sliver. Clamped to the host, so in a host narrower than 320 (a 320px phone\'s 288px column) the banner takes the host\'s width and the page never scrolls sideways (1.4.10 Reflow). Figma binds the same floor as `container/min`, unclamped, since Figma has no min().',
-      'the full width — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member.',
+      'full-bleed — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member.',
       // #2924 (owner Q693 A, Q707 A): one banner style per brand, from the brand's bannerStyle setting.
       'Banner style (the brand\'s bannerStyle setting) — the fill binds `color.foreground.{tone}-subtle` at Tinted, the default, and `color.background.primary` at Outlined. The edge (`color.border.{tone}`), the glyph (`color.icon.{tone}`) and the inks bind the same tokens in both. One value for every banner the brand ships: emit the one fill, never a prop.',
     ],
   },
 
   figmaProperties: {
-    variantAxes: ['tone', 'width'],
+    variantAxes: ['tone', 'edge'],
     texts: {
       title: { part: 'title', default: 'Title', figmaName: 'title text' },
       // #3225 (Q-BN2.1 A, Q-BN2.3 A): keyed by `children`, the code prop it maps to; the default is the old slot
@@ -389,7 +391,7 @@ export const banner: ComponentDef = {
   notes: {
     contested: [
       'HELD FOR THE OWNER (#2579): the glyph per tone follows FieldMessage (danger: the exclamation in a triangle; warning: in a circle), where the proposal listed the glyph names in tone order; the title text property reads "title text" beside the "title" toggle, as Dialog\'s description does; the action row offset (space.150); the page under Components rather than a new feedback section.',
-      'HELD FOR THE OWNER (Q533.4): the full width is built on the recommended answer, a 960 bar, square, edged top and bottom only (the proposal\'s own top and bottom edge, now that the stroke binds per side, #2695). The alternatives are on #2786.',
+      'HELD FOR THE OWNER (Q533.4): full-bleed is built on the recommended answer, a 960 bar, square, edged top and bottom only (the proposal\'s own top and bottom edge, now that the stroke binds per side, #2695). The alternatives are on #2786.',
       'The brief\'s bold (high-contrast) emphasis is not built (Q327.1 A); it can follow, held on #3038.',
       'HELD FOR THE OWNER (#3225, DRAFT): the slot part is renamed `richBody`, so its SLOT property reads richBody in the panel, because a set holds one property per name and the approved `body` boolean needs `body`; the link gap is space.050, about one word space; the link text is the nested Link\'s own label, set on the instance as the action\'s "Action" is, because a host property cannot reach a nested instance\'s layer.',
     ],
@@ -397,7 +399,7 @@ export const banner: ComponentDef = {
       'That a live host keeps `layoutWrap: WRAP` together with BASELINE alignment on the body row, and wraps the link under the hugging body text at a narrow width (#3225). The shim reads both fields back; it does not model the second line.',
       'That a boolean can toggle a native slot\'s visibility on a live host (`rich body`), and that Update\'s property rename carries the SLOT property from body to richBody in place (#3225).',
       'That a placed banner with a host narrower than its built width keeps the body inside the banner: the body text hugs at a max width frozen at the built width, as every hugging text does (#1762).',
-      'That the native slot keeps a designer\'s body content across a tone or width switch, as it does across the accordion\'s expansion switch.',
+      'That the native slot keeps a designer\'s body content across a tone or edge switch, as it does across the accordion\'s expansion switch.',
       'Whether the nested buttons\' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466).',
     ],
     evolution: [
@@ -406,7 +408,7 @@ export const banner: ComponentDef = {
       'Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog\'s close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.',
       '#2971 (owner QA 2026-10-23; owner decision 2026-10-23, Q2971.1–3 A): one minimum width for both widths, `container.min` (320, the reflow width), bound as the root\'s `minWidth`; in code clamped to the host.',
       'Owner QA Q533 (2026-10-22): one text action only, with no second action, no outline action and no Button group (Q533.1), which supersedes Q327.6\'s two actions; the full width made visibly different (Q533.4).',
-      'Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full; title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role.',
+      'Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full (renamed to the `edge` axis, contained or full-bleed, by #3392); title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role.',
     ],
   },
 };
