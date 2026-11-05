@@ -23113,10 +23113,6 @@
         "caret": {
           "type": "container"
         },
-        "focusRing": {
-          "type": "instance",
-          "instanceOf": "focus-ring"
-        },
         "caretEnd": {
           "type": "container"
         }
@@ -23476,8 +23472,7 @@
                       }
                     ]
                   },
-                  "trailingVisual",
-                  "focusRing"
+                  "trailingVisual"
                 ]
               },
               "message"
@@ -25153,10 +25148,6 @@
         },
         "caret": {
           "type": "container"
-        },
-        "focusRing": {
-          "type": "instance",
-          "instanceOf": "focus-ring"
         }
       },
       "props": {
@@ -25483,8 +25474,7 @@
                       "placeholder",
                       "gripGlyph",
                       "value",
-                      "caret",
-                      "focusRing"
+                      "caret"
                     ]
                   },
                   {
@@ -31683,10 +31673,6 @@
         },
         "value": {
           "type": "text"
-        },
-        "focusRing": {
-          "type": "instance",
-          "instanceOf": "focus-ring"
         }
       },
       "props": {
@@ -31946,8 +31932,7 @@
                       "value"
                     ]
                   },
-                  "chevronGlyph",
-                  "focusRing"
+                  "chevronGlyph"
                 ]
               },
               "message"
@@ -47364,10 +47349,6 @@
         "caret": {
           "type": "container"
         },
-        "focusRing": {
-          "type": "instance",
-          "instanceOf": "focus-ring"
-        },
         "caretEnd": {
           "type": "container"
         }
@@ -47657,8 +47638,7 @@
                         ]
                       }
                     ]
-                  },
-                  "focusRing"
+                  }
                 ]
               },
               "message"
@@ -50616,7 +50596,7 @@
                   "$type": "color"
                 },
                 "strokes": {
-                  "$token": "color.field.border.rest",
+                  "$token": "color.border.focus",
                   "$type": "color"
                 }
               }
@@ -53622,10 +53602,6 @@
         "caret": {
           "type": "container"
         },
-        "focusRing": {
-          "type": "instance",
-          "instanceOf": "focus-ring"
-        },
         "caretEnd": {
           "type": "container"
         }
@@ -53936,8 +53912,7 @@
                       }
                     ]
                   },
-                  "trailingVisual",
-                  "focusRing"
+                  "trailingVisual"
                 ]
               },
               "message"
@@ -55607,10 +55582,6 @@
         "caret": {
           "type": "container"
         },
-        "focusRing": {
-          "type": "instance",
-          "instanceOf": "focus-ring"
-        },
         "caretEnd": {
           "type": "container"
         }
@@ -55803,7 +55774,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Returns the payment provider's mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus ring and message around the provider's input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope."
+              "description": "Returns the payment provider's mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus edge and message around the provider's input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope."
             }
           }
         },
@@ -55931,8 +55902,7 @@
                       }
                     ]
                   },
-                  "cardMark",
-                  "focusRing"
+                  "cardMark"
                 ]
               },
               "message"
@@ -60399,10 +60369,6 @@
         },
         "caret": {
           "type": "container"
-        },
-        "focusRing": {
-          "type": "instance",
-          "instanceOf": "focus-ring"
         }
       },
       "props": {
@@ -60500,8 +60466,7 @@
                   "digit",
                   "caret"
                 ]
-              },
-              "focusRing"
+              }
             ]
           }
         ],
