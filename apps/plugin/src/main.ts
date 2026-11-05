@@ -78,7 +78,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import { checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { PACE_MS, pacer } from './pace';
 import { materializeForBrand, materializerFor } from './brand-def';
-import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type LedgerEntry, type PlanPrint } from './as-built-ledger';
+import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
@@ -88,10 +88,11 @@ import type { ComponentDef } from '@prism3/engine/component-schema';
 import { createAgentLink } from './agent-link';
 import { createActivityLog, type ActivityProblem } from './activity-log';
 import { createDispatcher, componentCensus } from './agent-dispatch';
-import type { ReadHost } from './agent-reads';
+import type { ReadHost, ContextFacts } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
-import { dropFor as dropViewsFor, dropViews, keepView, keptView, viewEpoch, watchViews } from './member-views';
+import { dropFor as dropViewsFor, dropViews, keepView, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } from './member-views';
+import { breakingOf, type CheckProgress } from './update-plan';
 import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
@@ -1509,19 +1510,25 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
  * the panel shows such a set as Checking, and Update file's checklist never opens on it. The full read follows, a page
  * at a time (`fileSets`), and replaces it. Both carry `atOpen`, so the panel keeps an answer it asked for meanwhile.
  */
+/** #3300 B: what is due from the root ledger alone, against the stored brand (or `input`), as the read at open finds it:
+ *  no page loaded, so it is `partial` (`ledgerSets` says what it cannot see). Shared by `ledgerSets` and `context`. */
+const ledgerDue = async (time: <T>(stage: string, fn: () => T | Promise<T>) => Promise<T> = async (_s, fn) => fn()) => {
+  const ledger = await time('ledger read', () => readLedger(figma.root));
+  const present = componentDefs.filter((d) => d.figmaProperties && ledger[d.id]).map((d) => d.id);
+  // #3096 into #3090: the ledger's read prints too, as `fileSets` does, against the same stored brand: without a print
+  // a printed set under a moved engine reads `unrecorded`, and the panel's first answer would disagree with the full
+  // read on what is due. Printing projects the plans in memory and loads no page, a set at a time with the thread
+  // handed back; the full read after it finds those prints memoized.
+  const now = ledgerNow();
+  const print = printNow();
+  await nowYielding(now, present);
+  await printYielding(print, needsPrint(ledger, present, now));
+  const due = await time('due (ledger)', () => dueOf(ledger, present, now, print));
+  return { ledger, present, due };
+};
 const ledgerSets = async (): Promise<void> => {
   try {
-    const ledger = await timed('ledger read', () => readLedger(figma.root));
-    const present = componentDefs.filter((d) => d.figmaProperties && ledger[d.id]).map((d) => d.id);
-    // #3096 into #3090: the ledger's read prints too, as `fileSets` does, against the same stored brand: without a print
-    // a printed set under a moved engine reads `unrecorded`, and the panel's first answer would disagree with the full
-    // read on what is due. Printing projects the plans in memory and loads no page, a set at a time with the thread
-    // handed back; the full read after it finds those prints memoized.
-    const now = ledgerNow();
-    const print = printNow();
-    await nowYielding(now, present);
-    await printYielding(print, needsPrint(ledger, present, now));
-    const due = await timed('due (ledger)', () => dueOf(ledger, present, now, print));
+    const { present, due } = await ledgerDue(timed);
     // `setUp` is not read: it needs a document-wide search, so every page loaded. Only the checklist reads it, and the
     // checklist waits for the full read.
     postToUi({ type: 'file-sets', present, setUp: false, due, queued: queuedFor(present), partial: true, atOpen: true });
@@ -1588,6 +1595,8 @@ const handEditsPass = async (): Promise<void> => {
     // #3170: each set is found in the read just made, never by a search of the whole file per set, each in its own turn.
     const host = { ...hostApi(), root: rootOver(read) } as unknown as UpdateHost;
     const tick = pacer(breathe);
+    // #3364: the file's variables as the pass reads under them, so a check after a value edit reads every set again.
+    noteVariables(await variablesPrint(figma));
     for (const id of present) {
       if (stale()) return;
       const t = await timed('plan', () => passTarget(id, tick));
@@ -1615,8 +1624,17 @@ const checkSets = async (defs: readonly string[], input?: BrandInput): Promise<v
   try {
     const { targets, refused } = updateTargets(defs, input);
     // #3177: `previewUpdate` loads and searches the file a page per turn, once, for every set it reads.
+    // #3302 Q3302.1–.3 A: how far the check has got, for the dialog's foot and its rows: once every set is found, then as
+    // each is checked. A def the engine could not plan is checked already. Each set's line is its own preview's, ahead of
+    // what the answer works out over every set (`CheckProgress`); the answer below replaces it.
+    const total = targets.length + refused.length;
+    const onProgress = (p: CheckProgress): void => postToUi({
+      type: 'update-check-progress', done: refused.length + p.done, total, next: p.next,
+      ...(p.set?.preview ? { set: checkedSetOf({ ...p.set.preview, breaking: breakingOf(p.set.preview) }, p.set.def) } : {}),
+    });
     // #3313: each set the hand-edit pass read, and nothing has changed in since, is laid against as that pass read it.
-    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe, undefined, keptView);
+    // #3364: a variable's value edited since the pass read (no document change is heard for it) drops every kept read.
+    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe, undefined, { view: keptView, under: async (h) => noteVariables(await variablesPrint(h)) }, onProgress);
     r.refused.push(...refused);
     // `previewUpdate` adds a preview for each target it found, in the targets' order, and names the rest as missing or
     // refused, so the found targets pair with the previews one to one.
@@ -2194,6 +2212,45 @@ const dispatch = createDispatcher({
   census: () => componentCensus(figma as unknown as Parameters<typeof componentCensus>[0], ENGINE_VERSION),
   // #3147 Phase 2a: what the read-only node commands read. They only read it (`agent-reads.ts`).
   host: () => figma as unknown as ReadHost,
+  // #3300 B: the read-only `context` command's facts. Each read is caught on its own, so one that fails leaves the rest.
+  contextFacts: async (): Promise<ContextFacts> => {
+    let input: BrandInput | null = null;
+    let source: ContextFacts['prism3']['source'] = 'none';
+    try { input = restoreInput(figma.root); source = input ? 'local' : 'none'; } catch { source = 'unreadable'; }
+    let collections: string[] = [];
+    try { collections = (await figma.variables.getLocalVariableCollectionsAsync()).map((c) => c.name); } catch { /* unreadable → none */ }
+    let colorVars = 0;
+    try { colorVars = (await readFigmaVariables(figma.variables)).color.length; } catch { /* unreadable → 0 */ }
+    let sets: ContextFacts['sets'] = { present: 0, due: [], queued: [], partial: true };
+    let lastBuilt: string | null = null;
+    try {
+      const { ledger, present, due } = await ledgerDue();
+      const why = { definition: 'definition moved', engine: 'engine moved', executor: 'executor moved', panel: 'panel format moved' } as const satisfies Record<DueReason, string>;
+      sets = {
+        present: present.length,
+        due: Object.entries(due).flatMap(([set, d]) => d.state === 'due' ? [{ set, why: why[d.reason] }] : []),
+        queued: queuedFor(present),
+        partial: true,
+      };
+      // The newest engine any set was built with, by numeric `major.minor.patch`.
+      const num = (v: string) => v.split('.').map((x) => Number.parseInt(x, 10) || 0);
+      const newer = (x: string, y: string) => { const [p, q] = [num(x), num(y)]; for (let i = 0; i < 3; i++) if ((p[i] ?? 0) !== (q[i] ?? 0)) return (p[i] ?? 0) > (q[i] ?? 0); return false; };
+      for (const e of Object.values(ledger)) if (typeof e.engine === 'string' && (lastBuilt === null || newer(e.engine, lastBuilt))) lastBuilt = e.engine;
+    } catch { /* no ledger read → no sets */ }
+    return {
+      file: { name: figma.root.name, currentPage: figma.currentPage.name },
+      prism3: {
+        source,
+        // An input with no `modes` generates all four (`BrandInput.modes`), plus its custom modes.
+        brand: input ? { id: input.id, name: input.name ?? null, modes: [...(input.modes ?? ['light', 'dark', 'hc-light', 'hc-dark']), ...(input.customModes ?? []).map((m) => m.name)] } : null,
+        engine: { plugin: ENGINE_VERSION, lastBuilt },
+        collections,
+        themed: colorVars > 0,
+      },
+      sets,
+      commands: PRISM3_DEV ? [...AGENT_COMMANDS, 'run-code'] : [...AGENT_COMMANDS],
+    };
+  },
   status: async () => {
     let brand: 'present' | 'absent' | 'unreadable' = 'absent';
     try { brand = restoreInput(figma.root) ? 'present' : 'absent'; } catch { brand = 'unreadable'; }

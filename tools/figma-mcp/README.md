@@ -36,7 +36,8 @@ npx tsx tools/figma-mcp/plan.ts --brand aurora --apply --build all --cleanup --o
   `nb-redesign`, `wendys`.
 - `--apply` writes the theme scripts: pre-flight, writes, read-back.
 - `--build all` (or `--build button,text-field`) writes the component scripts in dependency order —
-  a def's nested and swapped-to defs come first — then one read-back per component page.
+  a def's nested and swapped-to defs come first — then one read-back per component page. A set's
+  first script places its page (`component-place`); its chunks then switch to that page by name.
 - `--cleanup` also writes the wipe scripts into `<out>/cleanup/`.
 
 The output is `001-….js`, `002-….js`, … and `manifest.json`. Each manifest entry has `order`,
@@ -149,6 +150,7 @@ npx tsx tools/figma-mcp/agent-link.ts send component-keys '{"sets":true}'       
 npx tsx tools/figma-mcp/agent-link.ts send audit-frames '{"ids":["12:34"],"legacy":{"components":["Old Button"]}}'
 npx tsx tools/figma-mcp/agent-link.ts send snapshot '{"id":"12:34","scale":1}'          # read-only: a local PNG
 npx tsx tools/figma-mcp/agent-link.ts send activity '{"limit":5}'                       # read-only: the Activity drawer's runs
+npx tsx tools/figma-mcp/agent-link.ts send context                                      # read-only: what the open file is
 npx tsx tools/figma-mcp/agent-link.ts read <id>                          # the result, or where the command is
 npx tsx tools/figma-mcp/agent-link.ts read <id> --path result.data.apply.misses
 ```
@@ -199,6 +201,10 @@ Rules:
 - **`activity` writes nothing either** (#3309). It returns the Activity drawer's runs this session, newest first, the
   panel's own runs included: read it to diagnose a run the owner started, such as "built with problems", instead of
   asking for the drawer's text. `result.data.runs[].problems` lists each set that was not clean and why.
+- **`context` writes nothing either** (#3300). Send it first in a file: it names the stored brand and its modes, the
+  variable collections, the sets Prism3 built and which are due (from the as-built ledger alone, so `partial`), the
+  commands that read and the ones that write, and what is read-only by default (Q3147.11): pages whose name contains
+  FINAL, locked layers and `Original · …` copies, each with its id. Leave those, and anything inside them, unchanged.
 - **No `cleanup` command exists**, because no panel action removes components. Use §4's scripts.
 - **The mailbox keeps the last 20 results.** Read each result before sending 20 more commands.
 

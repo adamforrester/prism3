@@ -390,6 +390,17 @@ ok(full.done && fv.headline === '⚠ Built 2 sets · 1 with problems' && !fv.ok 
   `a run with problems says how many, marked a warning, and names the one with problems (${fv.headline}; ${JSON.stringify(fv.lines)})`);
 ok(JSON.stringify(fv.causes) === JSON.stringify([iconCause, nested]),
   `causes/run reasons: a set built with problems carries the reasons its own build sent (${JSON.stringify(fv.causes)})`);
+// #3389 review N2: ONE CAUSE PER SET across the run. Focus Ring had problems in its own build, and Icon's build names it
+// again (a set it built first): the run carries one Focus Ring cause holding both builds' reasons, in order, each once.
+// Literal. (mutation: `runCauses` returning its list unmerged → `causes/run merged`)
+let twice = startRun('subcomponents', ['focus-ring', 'icon'], catalog);
+twice = record(twice, { id: 'focus-ring', result: 'issues', headline: '', causes: [{ ...nested, reasons: ['1 miss'] }] });
+twice = record(twice, { id: 'icon', result: 'issues', headline: '', causes: [iconCause, nested] });
+const tv = runVerdict(twice, catalog);
+ok(JSON.stringify(tv.causes) === JSON.stringify([
+  { kind: 'warn', subject: 'focus-ring', what: 'built with problems', reasons: ['1 miss', '2 misses'] },
+  iconCause,
+]), `causes/run merged: a set two builds name is one cause, with both builds' reasons (${JSON.stringify(tv.causes)})`);
 let clean = startRun('selection', ['button', 'button-destructive'], catalog);
 clean = record(record(clean, { id: 'button', result: 'ok', headline: '' }), { id: 'button-destructive', result: 'ok', headline: '' });
 const cv = runVerdict(clean, catalog);

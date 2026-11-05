@@ -18923,12 +18923,29 @@
           "members": 4
         },
         {
-          "part": "message/label",
+          "part": "message/captionCell",
+          "kind": "frame",
+          "members": 4
+        },
+        {
+          "part": "message/captionCell/label",
           "kind": "text",
           "members": 4
         },
         {
-          "part": "message/errorGlyph",
+          "part": "message/glyphCell",
+          "kind": "frame",
+          "members": 3,
+          "when": {
+            "status": [
+              "error",
+              "warning",
+              "success"
+            ]
+          }
+        },
+        {
+          "part": "message/glyphCell/errorGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -18938,7 +18955,7 @@
           }
         },
         {
-          "part": "message/warningGlyph",
+          "part": "message/glyphCell/warningGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -18948,7 +18965,7 @@
           }
         },
         {
-          "part": "message/successGlyph",
+          "part": "message/glyphCell/successGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -18979,7 +18996,25 @@
               }
             },
             {
-              "part": "message/errorGlyph",
+              "part": "message/captionCell",
+              "values": {
+                "paddingTop": {
+                  "source": "computed",
+                  "rule": "max(0, icon.size.xs − one label line) ÷ 2"
+                }
+              }
+            },
+            {
+              "part": "message/glyphCell",
+              "values": {
+                "paddingTop": {
+                  "source": "computed",
+                  "rule": "max(0, one label line − icon.size.xs) ÷ 2"
+                }
+              }
+            },
+            {
+              "part": "message/glyphCell/errorGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -18990,7 +19025,7 @@
               }
             },
             {
-              "part": "message/warningGlyph",
+              "part": "message/glyphCell/warningGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -19001,7 +19036,7 @@
               }
             },
             {
-              "part": "message/successGlyph",
+              "part": "message/glyphCell/successGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -19020,7 +19055,7 @@
           "where": {},
           "parts": [
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "textStyle": "type.caption.md.default"
             }
           ]
@@ -19036,7 +19071,7 @@
           },
           "parts": [
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "ink": "color.text.secondary"
             }
           ]
@@ -19047,11 +19082,11 @@
           },
           "parts": [
             {
-              "part": "message/errorGlyph",
+              "part": "message/glyphCell/errorGlyph",
               "icon": "color.icon.danger"
             },
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "ink": "color.text.danger"
             }
           ]
@@ -19062,11 +19097,11 @@
           },
           "parts": [
             {
-              "part": "message/warningGlyph",
+              "part": "message/glyphCell/warningGlyph",
               "icon": "color.icon.warning"
             },
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "ink": "color.text.warning"
             }
           ]
@@ -19077,11 +19112,11 @@
           },
           "parts": [
             {
-              "part": "message/successGlyph",
+              "part": "message/glyphCell/successGlyph",
               "icon": "color.icon.success"
             },
             {
-              "part": "message/label",
+              "part": "message/captionCell/label",
               "ink": "color.text.success"
             }
           ]
@@ -19089,7 +19124,7 @@
       ],
       "nesting": [
         {
-          "part": "message/errorGlyph",
+          "part": "message/glyphCell/errorGlyph",
           "kind": "instance",
           "component": "icon/warning-triangle",
           "variant": {},
@@ -19097,7 +19132,7 @@
           "exposes": []
         },
         {
-          "part": "message/warningGlyph",
+          "part": "message/glyphCell/warningGlyph",
           "kind": "instance",
           "component": "icon/error-circle",
           "variant": {},
@@ -19105,7 +19140,7 @@
           "exposes": []
         },
         {
-          "part": "message/successGlyph",
+          "part": "message/glyphCell/successGlyph",
           "kind": "instance",
           "component": "icon/check-circle",
           "variant": {},
@@ -23570,7 +23605,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.indicator.rest"
             },
             {
               "part": "control/dot",
@@ -23587,7 +23622,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.hover"
+              "stroke": "color.interactive.primary.indicator.hover"
             },
             {
               "part": "control/dot",
@@ -23604,7 +23639,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.pressed"
+              "stroke": "color.interactive.primary.indicator.pressed"
             },
             {
               "part": "control/dot",
@@ -23621,7 +23656,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.indicator.rest"
             },
             {
               "part": "control/dot",
@@ -24742,7 +24777,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24764,7 +24799,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24786,7 +24821,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24808,7 +24843,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24852,7 +24887,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24874,7 +24909,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24896,7 +24931,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -24918,7 +24953,7 @@
             },
             {
               "part": "track/thumb",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "track/thumb/offGlyph",
@@ -29323,7 +29358,7 @@
             {
               "part": "container",
               "fill": "color.interactive.primary.subtle-fill.selected",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.indicator.rest"
             },
             {
               "part": "container/content/leadingVisual",
@@ -29349,7 +29384,7 @@
             {
               "part": "container",
               "fill": "color.interactive.primary.subtle-fill.selected",
-              "stroke": "color.interactive.primary.border.hover"
+              "stroke": "color.interactive.primary.indicator.hover"
             },
             {
               "part": "container/content/leadingVisual",
@@ -29375,7 +29410,7 @@
             {
               "part": "container",
               "fill": "color.interactive.primary.subtle-fill.selected",
-              "stroke": "color.interactive.primary.border.pressed"
+              "stroke": "color.interactive.primary.indicator.pressed"
             },
             {
               "part": "container/content/leadingVisual",
@@ -29401,7 +29436,7 @@
             {
               "part": "container",
               "fill": "color.interactive.primary.subtle-fill.selected",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.indicator.rest"
             },
             {
               "part": "container/content/leadingVisual",
@@ -30183,7 +30218,7 @@
             },
             {
               "part": "container/indicator",
-              "fill": "color.interactive.primary.border.rest"
+              "fill": "color.interactive.primary.indicator.rest"
             }
           ]
         },
@@ -30207,7 +30242,7 @@
             },
             {
               "part": "container/indicator",
-              "fill": "color.interactive.primary.border.hover"
+              "fill": "color.interactive.primary.indicator.hover"
             }
           ]
         },
@@ -30231,7 +30266,7 @@
             },
             {
               "part": "container/indicator",
-              "fill": "color.interactive.primary.border.pressed"
+              "fill": "color.interactive.primary.indicator.pressed"
             }
           ]
         },
@@ -30255,7 +30290,7 @@
             },
             {
               "part": "container/indicator",
-              "fill": "color.interactive.primary.border.rest"
+              "fill": "color.interactive.primary.indicator.rest"
             }
           ]
         },
@@ -30789,7 +30824,7 @@
     "divider": {
       "id": "divider",
       "name": "Divider",
-      "members": 7,
+      "members": 14,
       "axes": [
         {
           "name": "orientation",
@@ -30818,6 +30853,15 @@
             "true"
           ],
           "kind": "variant"
+        },
+        {
+          "name": "emphasis",
+          "figmaName": "emphasis",
+          "values": [
+            "bold",
+            "subtle"
+          ],
+          "kind": "variant"
         }
       ],
       "codeOnlyStates": [],
@@ -30825,12 +30869,12 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 7
+          "members": 14
         },
         {
           "part": "container/rule",
           "kind": "frame",
-          "members": 5,
+          "members": 10,
           "when": {
             "labeled": [
               "false"
@@ -30840,7 +30884,7 @@
         {
           "part": "container/leadingRule",
           "kind": "frame",
-          "members": 2,
+          "members": 4,
           "when": {
             "labeled": [
               "true"
@@ -30850,7 +30894,7 @@
         {
           "part": "container/label",
           "kind": "text",
-          "members": 2,
+          "members": 4,
           "when": {
             "labeled": [
               "true"
@@ -30860,7 +30904,7 @@
         {
           "part": "container/trailingRule",
           "kind": "frame",
-          "members": 2,
+          "members": 4,
           "when": {
             "labeled": [
               "true"
@@ -31164,19 +31208,21 @@
       "colorKey": [
         "orientation",
         "inset",
-        "labeled"
+        "labeled",
+        "emphasis"
       ],
       "colors": [
         {
           "where": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
             }
           ]
         },
@@ -31184,12 +31230,27 @@
           "where": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "true"
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "none",
+            "labeled": "true",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/leadingRule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
             },
             {
               "part": "container/label",
@@ -31197,7 +31258,29 @@
             },
             {
               "part": "container/trailingRule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "none",
+            "labeled": "true",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/leadingRule",
+              "stroke": "color.border.primary"
+            },
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/trailingRule",
+              "stroke": "color.border.primary"
             }
           ]
         },
@@ -31205,12 +31288,27 @@
           "where": {
             "orientation": "horizontal",
             "inset": "inset",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "inset",
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
             }
           ]
         },
@@ -31218,12 +31316,27 @@
           "where": {
             "orientation": "horizontal",
             "inset": "middle-inset",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "horizontal",
+            "inset": "middle-inset",
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
             }
           ]
         },
@@ -31231,12 +31344,13 @@
           "where": {
             "orientation": "vertical",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
             }
           ]
         },
@@ -31244,12 +31358,27 @@
           "where": {
             "orientation": "vertical",
             "inset": "none",
-            "labeled": "true"
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "vertical",
+            "inset": "none",
+            "labeled": "true",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/leadingRule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
             },
             {
               "part": "container/label",
@@ -31257,7 +31386,29 @@
             },
             {
               "part": "container/trailingRule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "vertical",
+            "inset": "none",
+            "labeled": "true",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/leadingRule",
+              "stroke": "color.border.primary"
+            },
+            {
+              "part": "container/label",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/trailingRule",
+              "stroke": "color.border.primary"
             }
           ]
         },
@@ -31265,12 +31416,27 @@
           "where": {
             "orientation": "vertical",
             "inset": "middle-inset",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "parts": [
             {
               "part": "container/rule",
-              "fill": "color.border.secondary"
+              "stroke": "color.border.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "orientation": "vertical",
+            "inset": "middle-inset",
+            "labeled": "false",
+            "emphasis": "subtle"
+          },
+          "parts": [
+            {
+              "part": "container/rule",
+              "stroke": "color.border.primary"
             }
           ]
         }
@@ -32367,7 +32533,8 @@
           "variant": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "follows": [],
           "exposes": []
@@ -38590,7 +38757,8 @@
           "variant": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "follows": [],
           "exposes": []
@@ -38607,7 +38775,8 @@
           "variant": {
             "orientation": "horizontal",
             "inset": "none",
-            "labeled": "false"
+            "labeled": "false",
+            "emphasis": "bold"
           },
           "follows": [],
           "exposes": []
@@ -46783,11 +46952,11 @@
           "kind": "variant"
         },
         {
-          "name": "width",
-          "figmaName": "width",
+          "name": "edge",
+          "figmaName": "edge",
           "values": [
             "contained",
-            "full"
+            "full-bleed"
           ],
           "kind": "variant"
         }
@@ -46891,13 +47060,13 @@
         }
       ],
       "redlineKey": [
-        "width",
+        "edge",
         "tone"
       ],
       "redlines": [
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "info"
           },
           "parts": [
@@ -46984,7 +47153,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "info"
           },
           "parts": [
@@ -47071,7 +47240,7 @@
         },
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "success"
           },
           "parts": [
@@ -47158,7 +47327,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "success"
           },
           "parts": [
@@ -47245,7 +47414,7 @@
         },
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "warning"
           },
           "parts": [
@@ -47332,7 +47501,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "warning"
           },
           "parts": [
@@ -47419,7 +47588,7 @@
         },
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "danger"
           },
           "parts": [
@@ -47506,7 +47675,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "danger"
           },
           "parts": [
@@ -47593,7 +47762,7 @@
         },
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "neutral"
           },
           "parts": [
@@ -47669,7 +47838,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "neutral"
           },
           "parts": [
@@ -47762,13 +47931,13 @@
       ],
       "colorKey": [
         "tone",
-        "width"
+        "edge"
       ],
       "colors": [
         {
           "where": {
             "tone": "info",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -47793,7 +47962,7 @@
         {
           "where": {
             "tone": "info",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -47818,7 +47987,7 @@
         {
           "where": {
             "tone": "success",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -47843,7 +48012,7 @@
         {
           "where": {
             "tone": "success",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -47868,7 +48037,7 @@
         {
           "where": {
             "tone": "warning",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -47893,7 +48062,7 @@
         {
           "where": {
             "tone": "warning",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -47918,7 +48087,7 @@
         {
           "where": {
             "tone": "danger",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -47943,7 +48112,7 @@
         {
           "where": {
             "tone": "danger",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -47968,7 +48137,7 @@
         {
           "where": {
             "tone": "neutral",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -47989,7 +48158,7 @@
         {
           "where": {
             "tone": "neutral",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -48432,7 +48601,7 @@
           "parts": [
             {
               "part": "frame/pressHalo/hoverHalo/disc",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             }
           ]
         },
@@ -48447,7 +48616,7 @@
             },
             {
               "part": "frame/pressHalo/hoverHalo/disc",
-              "fill": "color.interactive.neutral.border.hover"
+              "fill": "color.interactive.neutral.indicator.hover"
             }
           ]
         },
@@ -48466,7 +48635,7 @@
             },
             {
               "part": "frame/pressHalo/hoverHalo/disc",
-              "fill": "color.interactive.neutral.border.pressed"
+              "fill": "color.interactive.neutral.indicator.pressed"
             }
           ]
         },
@@ -48477,7 +48646,7 @@
           "parts": [
             {
               "part": "frame/pressHalo/hoverHalo/disc",
-              "fill": "color.interactive.neutral.border.rest"
+              "fill": "color.interactive.neutral.indicator.rest"
             }
           ]
         },

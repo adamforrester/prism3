@@ -40,10 +40,10 @@
 import { normalizeDisabledStrategy } from '@prism3/engine/theme';
 import { brandState, currentMode, getPath, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived, resolvedModes } from '../state/verdict';
-import { overrideOf, rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
+import { rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
   BUILT_IN_COLUMNS, LINK_ROWS, addAccent, isTextLinkRow, linkSurfacesOf, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
-  REST_LABEL, removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
+  REST_LABEL, overrideHeldOf, overrideLabel, removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
   type InteractiveRow, type LinkRungState,
 } from '../state/interactive-input';
 import { paletteRefOptions } from '../levers/controls';
@@ -336,14 +336,15 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       current = overridden ? { palette, step: steps.find((k) => Number(k) === v) ?? String(v) } : at && at.palette === palette ? at : null;
       autoName = `${palette} ${baselineAnchorStepOf(r.role, mode, r.column!)}`;
     } else if (r.write === 'inverse-fill') {
-      const ov = brandState.overrides?.[mode]?.[r.role];
-      overridden = typeof ov?.step === 'string';
-      current = overridden ? { palette: ov!.palette, step: ov!.step } : at;
+      const held = overrideHeldOf(mode, r);
+      overridden = held !== null;
+      current = held ?? at;
       autoName = `${baselineStepOf(r.role, mode)} (crisp)`;
     } else {
-      const ov = overrideOf(mode, r.role);
-      overridden = ov !== undefined;
-      current = overridden ? { palette, step: ov! } : at;
+      // By the palette the override names (#3391), not this row's family: the engine resolves the one it names.
+      const held = overrideHeldOf(mode, r);
+      overridden = held !== null;
+      current = held ?? at;
       autoName = at && !overridden ? `${at.palette} ${at.step}` : `${palette} ${baselineStepOf(r.role, mode)}`;
     }
     const textLink = isTextLinkRow(r);
@@ -358,7 +359,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const measured = res.against && res.against !== 'self' && typeof res.ratio === 'number';
     const ratio = !measured ? null : textLink && (res.min ?? 0) > 0 ? worstRatio(res.hex, linkGround(res, roles)) : res.ratio!;
     const below = ratio !== null && (res.min ?? 0) > 0 && ratio + 1e-9 < res.min!;
-    const now = overridden ? `Override · ${current ? `${current.palette} ${current.step}` : ''}` : `Auto · ${autoName}`;
+    const now = overridden ? overrideLabel(current) : `Auto · ${autoName}`;
     const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), 'int-pick');
     btn.type = 'button';
     btn.id = `p3-ipick-${r.role.replace(/\./g, '-')}`;

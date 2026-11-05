@@ -258,6 +258,21 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'for a label on a photo or any busy ground. Still disjoint: it names a paint treatment, not a text role.',
   },
   {
+    axis: 'emphasis',
+    values: ['bold', 'subtle'],
+    defs: ['divider'],
+    relation: 'disjoint',
+    reason:
+      'How strongly a divider\'s rule reads (#3382, owner Q15 revised A): `bold` on `color.border.secondary`, `subtle` on '
+      + '`color.border.primary`. It REUSES `emphasis` for the reason badge did — the same question, how prominent the '
+      + 'thing reads against what is around it — and with badge\'s own two words, which mean the same here: the stronger '
+      + 'and the quieter paint of one element. DISJOINT from canonical, as badge\'s is: a paint strength, not a text role. '
+      + 'It differs from badge\'s set in ORDER and in having no `surface`: `bold` LEADS because it is the code default '
+      + 'and Figma\'s default member, the color every divider had before the axis, so placed dividers and every nesting '
+      + 'host keep their color; and a rule never brings its own background, so `surface` has nothing to name. The axis '
+      + 'name is held for the owner on the PR (the routing said `strength`).',
+  },
+  {
     axis: 'type',
     values: ['status', 'count', 'dot'],
     defs: ['badge'],
@@ -857,24 +872,23 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'width',
     values: ['auto', 'full'],
     defs: ['button', 'button-destructive', 'button-neutral'],
-    relation: 'canonical',
+    relation: 'sole',
     reason:
-      'CANONICAL since the banner took the axis name (#2579): the set its `contained | full` is described against. '
-      + 'Whether the button takes its content\'s width or its container\'s — two values because there is no '
+      'SOLE again since the banner\'s axis was renamed `edge` (#3392); it was CANONICAL while the banner shared the name '
+      + '(#2579). Whether the button takes its content\'s width or its container\'s — two values because there is no '
       + 'third that is not a layout concern belonging to the container. Named for the BEHAVIOR rather than '
       + 'a measurement, so it survives a brand re-deriving its dimensions.',
   },
   {
-    axis: 'width',
-    values: ['contained', 'full'],
+    axis: 'edge',
+    values: ['contained', 'full-bleed'],
     defs: ['banner'],
-    relation: 'overlapping',
+    relation: 'sole',
     reason:
-      'Where a banner sits (#2579, owner decision Q327.3 A): a rounded box inside a section, or square-cornered across the '
-      + 'page. OVERLAPPING, argued: `full` means the same thing in both sets, the container\'s whole width, and that is why '
-      + 'the name is shared rather than a new `placement` (a schema change Q327.3 declined). `contained` replaces `auto` '
-      + 'because a banner never hugs its content; it fills its section either way. `contained` LEADS because it is the '
-      + 'code default and Figma\'s default member (Q347).',
+      'Where a banner sits, named for what changes (#3392, owner decision 2026-11-04; was `width` = `contained | full`, '
+      + 'owner decision Q327.3 A): a rounded box edged on all four sides inside a section, or a square bar edged top and '
+      + 'bottom only that runs edge to edge across the page. The corners and the drawn sides are what move, so the axis '
+      + 'is not a width (#3383\'s rule). `contained` LEADS because it is the code default and Figma\'s default member (Q347).',
   },
   {
     axis: 'weight',

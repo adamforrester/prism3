@@ -2121,7 +2121,7 @@
         "kind": "component set",
         "page": "↳ Divider",
         "section": "Components",
-        "members": 7,
+        "members": 14,
         "variantProperties": [
           {
             "name": "orientation",
@@ -2143,6 +2143,13 @@
             "values": [
               "false",
               "true"
+            ]
+          },
+          {
+            "name": "emphasis",
+            "values": [
+              "bold",
+              "subtle"
             ]
           }
         ],
@@ -3154,10 +3161,10 @@
             ]
           },
           {
-            "name": "width",
+            "name": "edge",
             "values": [
               "contained",
-              "full"
+              "full-bleed"
             ]
           }
         ],

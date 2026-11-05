@@ -55,7 +55,8 @@
  * Slider: the track takes `fill` (`color.field.border.rest`), the selected bar takes `indicator`
  * (`color.interactive.neutral.border.rest`), the value readout takes `label` (`color.text.primary`) and the
  * milestones take `body` (`color.text.secondary`). None moves with hover or press: the state is on the thumb.
- * Thumb: the disc's `indicator` steps rest / hover / pressed on the same ink; the inner halo is a 4px `border`
+ * Thumb: the disc's `indicator` steps rest / hover / pressed on the neutral selection mark
+ * (`color.interactive.neutral.indicator.*`, #3346), the same value as the bar's ink by default; the inner halo is a 4px `border`
  * stroke at hover and pressed, and the outer halo a `fill` at pressed only, both `color.border.primary`.
  * Disabled: the track `color.disabled.fill`; the bar and the disc together `color.disabled.icon`; text
  * `color.disabled.text`; no halo.
@@ -98,10 +99,11 @@ export const sliderThumb: ComponentDef = {
     'border.hover': 'color.border.primary',
     'border.pressed': 'color.border.primary',
     'fill.pressed': 'color.border.primary',
-    // THE DISC (Q550 a): neutral ink, stepping at hover and press.
-    'indicator': 'color.interactive.neutral.border.rest',
-    'indicator.hover': 'color.interactive.neutral.border.hover',
-    'indicator.pressed': 'color.interactive.neutral.border.pressed',
+    // THE DISC (Q550 a): the neutral selection mark (#3346), stepping at hover and press. It matches the label's
+    // color, so a brand that quiets its outline edges never reaches the disc.
+    'indicator': 'color.interactive.neutral.indicator.rest',
+    'indicator.hover': 'color.interactive.neutral.indicator.hover',
+    'indicator.pressed': 'color.interactive.neutral.indicator.pressed',
     // Disabled (contrast-exempt): the disc dims with the Slider's selected bar; no halo.
     'disabled.indicator': 'color.disabled.icon',
     'focus-ring': 'color.border.focus',
@@ -233,6 +235,7 @@ export const sliderThumb: ComponentDef = {
     evolution: [
       '2026-10-16 (#2669): built with the Slider to the approved proposal (all calls A). A nested component, not a part of the Slider, so the minimum thumb of a range can stay at rest while the maximum thumb shows the state (Q349 `_` prefix).',
       '2026-10-22 (#2669, owner Q550): an ink disc on the track with no ring, a size axis (18 / 24 / 30px), and a halo in color.border.primary, 4px at hover and 8px pressed. 15 members.',
+      '2026-11 (#3346): the disc follows `interactive.neutral.indicator.*`, the selection mark, which matches the label\'s color, so a brand\'s outline-edge setting never reaches it. It bound `interactive.neutral.border.*`.',
     ],
   },
 };

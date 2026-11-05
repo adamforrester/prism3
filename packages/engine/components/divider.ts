@@ -16,7 +16,7 @@
  * IT CHANGES THE COLOR IN CODE (#2569, owner Q259 3A). A decorative rule paints `color.border.secondary`, a
  * decorative rung at ~2:1. A separator (decorative=false) marks a boundary someone has to perceive, so it
  * paints `color.border.tertiary`, the first neutral edge the engine contracts at 3:1 on every page and surface
- * tier; this closes the tinted-surface limit Q208/Q227 documented (#2498). The binding is `separator.fill`, a
+ * tier; this closes the tinted-surface limit Q208/Q227 documented (#2498). The binding is `separator.rule.border`, a
  * CODE-ONLY paint: the Figma set keeps the decorative default, and `lint-paint.ts` names the key as unreached.
  *
  * ── `inset`: A FIGMA VARIANT AXIS (owner Q190.2 A) ───────────────────────────────────────────────
@@ -43,11 +43,25 @@
  * the `fill` and fills the root's content box on both axes (`grow` along it, `crossAxisFill` across), so the rule is the root less its
  * inset. With no inset the two coincide and the pixels are exactly the 1px box this def first shipped.
  *
- * A filled box rather than a stroke: a stroke draws inside a box's bounds on all four sides, so a 1px
- * horizontal rule drawn as a stroke would need a 0-height box and a bottom-only stroke, which `PartDef` cannot
- * say (Figma's per-side stroke weights are not bindable here). A 1px box with a fill is the same pixels, in
- * code as in Figma: `block-size: var(--border-width-hairline); background: var(--color-border-secondary)` (a
- * separator's is `--color-border-tertiary`, above).
+ * A STROKE, NOT A FILL (#3382, owner Q15 revised A). The rule paints its `border` slot as a stroke, weight bound to
+ * `border-width.hairline`. Border color variables are scoped to strokes, so a fill bound to one hid it from Figma's
+ * fill picker and a designer could not rebind the rule by hand; as a stroke it shows in the stroke picker. The pixels
+ * are unchanged: both executors draw a stroke INSIDE the node's bounds (`strokeAlign: 'INSIDE'`), so a box one
+ * hairline thick with a one-hairline inside stroke is covered edge to edge by that stroke, exactly the area the fill
+ * covered. Before #3382 this def argued a stroke would need a 0-height box and a bottom-only weight; the inside
+ * alignment is why it does not. Code is unaffected by Figma's scoping and keeps painting a box:
+ * `block-size: var(--border-width-hairline); background: var(--color-border-secondary)` (subtle's is
+ * `--color-border-primary`; a separator's is `--color-border-tertiary`, above).
+ *
+ * ── `emphasis`: HOW STRONGLY THE RULE READS (#3382, owner Q15 revised A) ─────────────────────────
+ *
+ * `bold | subtle`, each bound to its own border role: `bold` is `color.border.secondary`, the color every divider
+ * painted before #3382, and `subtle` is `color.border.primary`, the lighter edge. A per-use choice, with no brand
+ * setting. The axis REUSES the `emphasis` name Badge already carries as `subtle | bold` (`VARIANT_AXES`), because it is
+ * the same question, how strongly a thing reads against what is around it, and a second name for one question is the
+ * #756 failure. The routing named it `strength`; the PR holds that naming for the owner. `bold` LEADS, so it is the
+ * code default and Figma's default member: every divider placed before #3382, and every host that nests one, keeps
+ * its rendered color. An AUTHORING axis: a rule's strength is chosen where it is placed.
  *
  * FILLING THE PARENT is a placement fact, and the root sets no `fill` sizing for it. A root has no parent in
  * its own def; `sizing.x: 'fill'` with a `placementWidth` is the idiom for a root that fills across, but it is
@@ -67,8 +81,8 @@
  *
  * The visible defaults are approved (owner Q190.3 A): horizontal and vertical, `border-width.hairline`,
  * `color.border.secondary`, fills its parent, no states, its own `↳ Divider` page after Tabs. Held back as
- * options the issue named but no consumer has asked for yet: a `thick` thickness and a `color.border.primary`
- * variant.
+ * an option the issue named but no consumer has asked for yet: a `thick` thickness. The `color.border.primary`
+ * variant it also held back is `emphasis=subtle` since #3382.
  *
  * ── `labeled`: THE RULE BROKEN BY A SHORT CENTERED LABEL (#3051, owner Q3051.1–.7, all A) ──────────
  *
@@ -85,7 +99,7 @@
  * box (the checkbox row's #1201 construction), so the root is exactly one label line tall and each line sits on
  * its middle. The label is `type.label.md.default` in `color.text.secondary` (Q3051.4 A, Q3051.5 A), held at 4.5:1
  * on the page tiers its `.ai.json` lists (`sits_on`) by `test.ts` (#3051; a brand with `secondaryTextGround: page`
- * promises only `background.primary`, Q3212.6 A); the lines keep the plain rule's `color.border.secondary` and hairline. Center
+ * promises only `background.primary`, Q3212.6 A); the lines keep the plain rule's color (per `emphasis`, #3382) and hairline. Center
  * only (Q3051.3 A); inset `none` only (Q3051.6 A), so `excludeCoordinates` removes the two insets × labeled.
  * Placeholder copy "Or", sentence case (Q3051.7 A).
  *
@@ -125,11 +139,12 @@ export const divider: ComponentDef = {
   status: 'draft',
   summary: 'A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.',
   description:
-    'A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. A labeled divider breaks the rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label (12px when vertical), and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.',
+    'A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. Bold by default; subtle draws it in the lighter border color, for a quieter break. A labeled divider breaks the rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label (12px when vertical), and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.',
 
   props: [
     { name: 'orientation', type: "enum: 'horizontal' | 'vertical'", values: ['horizontal', 'vertical'], default: 'horizontal', required: false, description: 'Which way the rule runs. horizontal spans the width of its container and separates content stacked above and below it; vertical spans the height of its container and separates items side by side. A vertical rule sets aria-orientation="vertical"; horizontal is the default and needs no attribute.' },
     { name: 'inset', type: "enum: 'none' | 'inset' | 'middle-inset'", values: ['none', 'inset', 'middle-inset'], default: 'none', required: false, description: 'How far the rule sits in from its container\'s edges. none runs edge to edge; inset starts the rule 16px in from the start edge, so it lines up with indented content such as list text after an avatar; middle-inset indents both ends. The start edge follows text direction. A vertical rule takes none or middle-inset only.' },
+    { name: 'emphasis', type: "enum: 'bold' | 'subtle'", values: ['bold', 'subtle'], default: 'bold', required: false, description: 'How strongly the rule reads. bold (the default) draws it in border.secondary; subtle draws it in border.primary, the lighter border color, for a break that should recede. Both are decorative strengths: a rule that marks a real break sets decorative to false instead.' },
     { name: 'decorative', type: 'boolean', default: true, required: false, description: 'Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden="true". Set false when the rule marks a real break in the content: it becomes a separator, an <hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background. It has no effect on a labeled divider, where the label marks the break.' },
     { name: 'label', type: 'string', required: false, description: 'One short word that breaks the rule in the middle, such as Or. Setting it makes a labeled divider: a line on each side, centered on the label. No inset only. A vertical labeled divider keeps the label upright, with a line above and below it. Screen readers read the label as plain text and skip the two lines. Pass the translated word.' },
   ],
@@ -142,23 +157,31 @@ export const divider: ComponentDef = {
     inset: ['none', 'inset', 'middle-inset'],
     // #3051 (Q3051.1 A): `false` first, so the inserted member is the plain rule, as in code (no label).
     labeled: ['false', 'true'],
+    // #3382 (owner Q15 revised A): `bold` first, so the default member is the color every divider had before.
+    emphasis: ['bold', 'subtle'],
   },
-  // A rule runs one way, sits at one inset and carries a label or not where it is placed, and none of them
-  // changes on screen.
-  axisKinds: { orientation: 'authoring', inset: 'authoring', labeled: 'authoring' },
+  // A rule runs one way, sits at one inset, carries a label or not and reads bold or subtle where it is placed, and
+  // none of them changes on screen.
+  axisKinds: { orientation: 'authoring', inset: 'authoring', labeled: 'authoring', emphasis: 'authoring' },
 
   // #3051, #3143: the label-to-line gap follows density, as every gap does, on each orientation's own key.
   densitySpacing: ['horizontal.gap', 'vertical.gap'],
 
-  // One ink for every member: the rule's `fill`.
-  paintKeys: ['{slot}'],
+  // One edge per strength: the rule's `border` stroke (#3382), keyed by `emphasis`.
+  // `{slot}` answers the label's ink, which does not change with strength.
+  paintKeys: ['{emphasis}.{slot}', '{slot}'],
 
   tokens: {
-    // THE COLOR (DRAFT, owner item). `color.border.secondary` is the decorative rung of the edge ladder.
-    'fill': 'color.border.secondary',
+    // THE COLOR, per strength (#3382, owner Q15 revised A), drawn as the rule's STROKE. `bold` is
+    // `color.border.secondary`, the decorative rung of the edge ladder and every divider's color before #3382; `subtle`
+    // is `color.border.primary`, the lighter edge. Both are stroke-scoped border roles (`lint-paint.ts` arm 5).
+    'bold.border': 'color.border.secondary',
+    'subtle.border': 'color.border.primary',
+    // THE STROKE WEIGHT (#3382): the hairline, so the inside stroke covers the hairline-thick box exactly.
+    'rule.stroke': 'border-width.hairline',
     // A SEPARATOR'S COLOR (#2569, owner Q259 3A) — code only: a divider with decorative=false paints the first
     // neutral edge contracted at 3:1 on every page and surface tier. No Figma member draws it (see header).
-    'separator.fill': 'color.border.tertiary',
+    'separator.rule.border': 'color.border.tertiary',
     // THE LABEL (#3051, Q3051.4 A and Q3051.5 A): the medium label style in the secondary text ink, the part that
     // carries meaning, so it is held at 4.5:1 against the page tiers its `.ai.json` lists (`test.ts` #3051).
     'label': 'color.text.secondary',
@@ -245,15 +268,18 @@ export const divider: ComponentDef = {
         // `target` because the schema requires exactly one — NOT an interaction claim, the same
         // schema-satisfying use veil's and focus-ring's single box make.
         role: 'target',
-        paintSlots: ['fill'],
-        // #3051: the plain rule and the labeled member's two lines are ONE rule in pieces, so they share the fill.
+        // #3382: a STROKE, not a fill, so the border role shows in Figma's stroke picker. Inside-aligned at the
+        // hairline weight on a hairline-thick box, so it covers the box exactly: the same pixels the fill drew.
+        paintSlots: ['border'],
+        strokeWidth: 'rule.stroke',
+        // #3051: the plain rule and the labeled member's two lines are ONE rule in pieces, so they share the stroke.
         paintGroup: 'rule',
         // Fills the root's content box on both axes, so the rule is the footprint less the inset.
         grow: true,
         crossAxisFill: true,
         // #3051: the plain rule only. A labeled divider draws its two lines and the label instead.
         presentWhen: { labeled: ['false'] },
-        note: 'The rule itself: one box, one fill, no children. Its thickness is the hairline border width; its length fills the container it sits in, less the inset, so the standalone length is a placeholder a host stretches.',
+        note: 'The rule itself: one box drawn as a stroke in the border color, bold or subtle, with no children. Its thickness is the hairline border width; its length fills the container it sits in, less the inset, so the standalone length is a placeholder a host stretches.',
       },
       // #3051 (Q3051.1 A): the labeled member's three cells. Each line GROWS along the root's main axis and binds the
       // hairline as its thickness across it (#3143: both keys per orientation), so the two split what the label leaves
@@ -261,7 +287,8 @@ export const divider: ComponentDef = {
       leadingRule: {
         kind: 'box',
         role: 'presentation',
-        paintSlots: ['fill'],
+        paintSlots: ['border'],
+        strokeWidth: 'rule.stroke',
         paintGroup: 'rule',
         grow: true,
         width: '{orientation}.line.width',
@@ -278,7 +305,8 @@ export const divider: ComponentDef = {
       trailingRule: {
         kind: 'box',
         role: 'presentation',
-        paintSlots: ['fill'],
+        paintSlots: ['border'],
+        strokeWidth: 'rule.stroke',
         paintGroup: 'rule',
         grow: true,
         width: '{orientation}.line.width',
@@ -289,24 +317,25 @@ export const divider: ComponentDef = {
     },
     codeOnly: [
       // MUST NOT lead with `orientation` or `inset` (axes this def projects) — see the `admits()` trap.
-      'decorative — a code prop with no Figma property. A Figma boolean only shows or hides a node, and neither value hides the rule, so the Figma set draws the decorative default. true (the default) renders `aria-hidden="true"` (a `<div>`, or an `<hr>` with `role="none"` as well) in `color.border.secondary`; false renders an `<hr>` for a horizontal rule, or `<div role="separator" aria-orientation="vertical">` for a vertical one, in `color.border.tertiary` (the `separator.fill` binding), which reaches 3:1 on every background.',
+      'decorative — a code prop with no Figma property. A Figma boolean only shows or hides a node, and neither value hides the rule, so the Figma set draws the decorative default. true (the default) renders `aria-hidden="true"` (a `<div>`, or an `<hr>` with `role="none"` as well) in its emphasis color, `color.border.secondary` at bold or `color.border.primary` at subtle; false (at either emphasis) renders an `<hr>` for a horizontal rule, or `<div role="separator" aria-orientation="vertical">` for a vertical one, in `color.border.tertiary` (the `separator.rule.border` binding), which reaches 3:1 on every background.',
       'filling the container — a divider spans its container: a horizontal rule `inline-size: 100%` (or the stretch a flex or grid column gives it), a vertical rule `align-self: stretch` in a row. Figma cannot hold that for a standalone component, which has no parent, so the standalone member binds a nominal length (`container.narrow` across, `size.md.height` tall) and a host that nests it stretches the instance with `crossAxisFill`.',
       'the element — for a separator (decorative=false), use `<hr>` for a horizontal rule: it is a separator to assistive technology with no extra attributes. Reset its border and margin (`border: 0; margin: 0`) and paint it as a box: `block-size: var(--border-width-hairline); background: var(--color-border-tertiary)`. A vertical rule is a `<div role="separator" aria-orientation="vertical">` with `inline-size` set to the hairline instead, because `<hr>` is horizontal by default. Never give a divider focus: a separator that is not a splitter takes no place in the tab order.',
       'the inset in code — a margin on logical edges, so it mirrors in right-to-left text: `margin-inline-start: var(--space-200)` at inset, both `margin-inline` sides at middle-inset, and `margin-block: var(--space-100)` for a vertical middle inset. Figma holds the same distances as the divider\'s padding.',
       'forced colors — under `forced-colors: active` a background is replaced, and a 1px box painted only by `background` can disappear. Give it `background: CanvasText` (or a `border-block-start` in place of the background) inside a `@media (forced-colors: active)` block so the rule survives.',
       // #3051 — MUST NOT lead with `labeled` (an axis this def projects): see the `admits()` trap.
-      'the labeled divider in code — a non-empty `label` makes it; there is no separate prop. Markup: `<div class="divider" data-labeled><span class="divider-line" aria-hidden="true"></span><span class="divider-label">Or</span><span class="divider-line" aria-hidden="true"></span></div>`, with `display: flex; align-items: center; gap: var(--space-300)` on the wrapper, `flex: 1 1 0; block-size: var(--border-width-hairline); background: var(--color-border-secondary)` on each line, and `font: var(--type-label-md-default); color: var(--color-text-secondary); white-space: nowrap` on the label. Vertical, the same three spans with `flex-direction: column; gap: var(--space-150); inline-size: max-content; min-block-size: 56px` on the wrapper and `flex: 1 1 0; inline-size: var(--border-width-hairline)` on each line, the label upright between them. `inset="none"` only: refuse (or ignore) a label on an inset divider.',
-      'the labeled divider\'s semantics — ARIA 1.2 makes a separator\'s children presentational, so a `role="separator"` wrapper would hide the label from assistive technology. The wrapper takes no role and no `aria-hidden`, both lines are `aria-hidden="true"`, and the label is plain text in the reading order, read as "Or" between the two groups. `decorative` has no effect on a labeled divider, and its lines keep `color.border.secondary`. Not focusable. Under forced colors the lines take `background: CanvasText`, as the plain rule does; the label keeps the system text color.',
+      'the labeled divider in code — a non-empty `label` makes it; there is no separate prop. Markup: `<div class="divider" data-labeled><span class="divider-line" aria-hidden="true"></span><span class="divider-label">Or</span><span class="divider-line" aria-hidden="true"></span></div>`, with `display: flex; align-items: center; gap: var(--space-300)` on the wrapper, `flex: 1 1 0; block-size: var(--border-width-hairline); background: var(--color-border-secondary)` on each line (`--color-border-primary` at subtle), and `font: var(--type-label-md-default); color: var(--color-text-secondary); white-space: nowrap` on the label. Vertical, the same three spans with `flex-direction: column; gap: var(--space-150); inline-size: max-content; min-block-size: 56px` on the wrapper and `flex: 1 1 0; inline-size: var(--border-width-hairline)` on each line, the label upright between them. `inset="none"` only: refuse (or ignore) a label on an inset divider.',
+      'the labeled divider\'s semantics — ARIA 1.2 makes a separator\'s children presentational, so a `role="separator"` wrapper would hide the label from assistive technology. The wrapper takes no role and no `aria-hidden`, both lines are `aria-hidden="true"`, and the label is plain text in the reading order, read as "Or" between the two groups. `decorative` has no effect on a labeled divider, and its lines keep their emphasis color. Not focusable. Under forced colors the lines take `background: CanvasText`, as the plain rule does; the label keeps the system text color.',
       'RTL — the labeled divider is symmetric, so nothing moves; flex order and logical properties mirror it for free.',
       'text expansion — the label hugs its word and the lines take what is left, so a longer translation shortens both lines equally. Keep it to one or two words; the label does not wrap.',
     ],
   },
 
   figmaProperties: {
-    // One axis, two members. No state axis (no states), no texts, no swaps.
-    variantAxes: ['orientation', 'inset', 'labeled'],
+    // No state axis (no states), no swaps. #3382 adds `emphasis`, which doubles the set.
+    variantAxes: ['orientation', 'inset', 'labeled', 'emphasis'],
     // A vertical rule takes no start-only inset (the header gives the reason), and a labeled rule takes no inset
-    // (#3051 Q3051.6 A, #3143 Q3143.4 A), so the set is seven members: five plain and two labeled, one each way.
+    // (#3051 Q3051.6 A, #3143 Q3143.4 A), so each strength is seven members: five plain and two labeled, one each way,
+    // and the set is fourteen (#3382).
     excludeCoordinates: [
       { orientation: ['vertical'], inset: ['inset'] },
       { inset: ['inset', 'middle-inset'], labeled: ['true'] },
@@ -349,6 +378,7 @@ export const divider: ComponentDef = {
       'Leave a divider decorative unless it marks a real break in the content, so a screen reader is not told about every visual line',
       'Use a labeled divider with Or between two alternative ways to do one thing, such as two ways to sign in',
       'Use a vertical labeled divider only where both groups are at least 56px tall; between two single buttons, stack them and use a horizontal one',
+      'Use subtle where a bold rule would compete with the content it separates, such as rows of a dense list',
     ],
     dont: [
       'Put a divider between every item in a list; increase the spacing instead',
@@ -367,7 +397,7 @@ export const divider: ComponentDef = {
     // sits beside it, though its first cut nests none. The brief's other partners (menu, card, stack, toolbar) are not
     // registered defs yet, so they wait in `composition.planned`.
     commonPartners: ['accordion', 'list'],
-    triggerKeywords: ['divider', 'separator', 'rule', 'horizontal rule', 'vertical rule', 'hr', 'line between sections', 'section break', 'or divider', 'labeled divider', 'text divider'],
+    triggerKeywords: ['divider', 'separator', 'rule', 'horizontal rule', 'vertical rule', 'hr', 'line between sections', 'section break', 'or divider', 'labeled divider', 'text divider', 'subtle divider', 'light divider'],
     generationPriority: 3,
   },
 
@@ -384,11 +414,15 @@ export const divider: ComponentDef = {
 
   notes: {
     contested: [
-      'Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the decorative rung of the edge ladder, ~2:1 against the page since #2569; a separator, decorative=false, paints `color.border.tertiary` in code); filling the container; no states; its own Figma page. Held back: a `thick` thickness and a `color.border.primary` variant, each one more axis value when a consumer needs it.',
+      'Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the decorative rung of the edge ladder, ~2:1 against the page since #2569; a separator, decorative=false, paints `color.border.tertiary` in code); filling the container; no states; its own Figma page. Held back: a `thick` thickness, one more axis value when a consumer needs it. The `color.border.primary` variant held back here is `emphasis=subtle` since #3382.',
+      'THE AXIS NAME (#3382): the owner decided subtle and bold variants; the routing named the axis `strength`, and this def reuses `emphasis`, Badge\'s name for the same question with the same two words. Held for the owner on the PR: renaming to `strength` is a new `VARIANT_AXES` name that has to argue it is a different question from Badge\'s.',
       'DECORATIVE BY DEFAULT (owner Q190.1 A, after the brief): `decorative` defaults to true and hides the rule from assistive technology. The inverse default, a separator everywhere, is the more common real-world bug: a screen reader announces a separator between every toolbar button.',
       'THE INSET STEPS ARE DRAFT (owner Q190.2 A): `space.200` for the start and both-ends insets, `space.100` for a vertical middle inset, the closest existing steps; the brief names no token. A vertical rule takes no start-only inset, so the Figma set is five members.',
       'THE LABELED DIVIDER (#3051) is built on the proposal\'s recommendations, held for the owner\'s confirmation in the PR: Q3051.1 A a `labeled` axis plus a `label` text property and prop; Q3051.2 A no role on the wrapper, the lines aria-hidden, the label read as text; Q3051.3 A center only (the brief\'s `labelPosition` start and end are a later value addition, `alignment: center | start | end`); Q3051.4 A `type.label.md.default` with `space.300`; Q3051.5 A `color.text.secondary`; Q3051.6 A horizontal, inset `none` only (reopened for vertical by #3143); Q3051.7 A "Or", sentence case.',
       'THE VERTICAL LABELED DIVIDER (#3143, owner Q3143.1–.7, all A): the label upright with a line above and below; the root hugging the label across (`sizingWhen`); `space.150` between the label and each line, following density; inset `none` only, so seven members; a 56px minimum and a 68px (`size.xl.height`) standalone member; Or between alternatives only, a group title stays a heading; the Q3051.2 accessibility contract unchanged, with no `aria-orientation`.',
+    ],
+    evolution: [
+      'EMPHASIS AND THE STROKE (#3382, owner Q15 revised A): a `bold | subtle` axis, bold on `color.border.secondary` (the color every divider had before) and subtle on `color.border.primary`, with no brand setting; and the rule drawn as an inside stroke at the hairline weight rather than a fill, so the border role shows in Figma\'s stroke picker. Bold leads, so placed dividers and every nesting host keep their color. The axis reuses Badge\'s `emphasis` name rather than the routed `strength`, held for the owner on the PR.',
     ],
     unverified: [
       'A HOST STRETCHING A BOUND LENGTH. The standalone member binds its length to a variable; a host that nests it with `crossAxisFill` projects the instance as STRETCH on that axis. That stretch overriding the inherited width binding on the real Figma host is expected but not yet measured — the first nesting host (Accordion) is where it gets measured.',

@@ -117,6 +117,9 @@ const mkPage = (divider: boolean): ShimPage => {
 };
 
 const posted: any[] = [];
+/** #3326 PR 1 review S2: every build and Update verdict this suite's runs posted, for `causes/every verdict`. */
+const verdicts: any[] = [];
+const isVerdict = (m: any): boolean => m?.type === 'component-result' || m?.type === 'component-update-result';
 // The variables and styles Badge binds are in the file, as after Apply Theme, so a build with every template present is
 // clean (✓) and Q284.3's ⚠ can only come from the missing template (`templates/build warns` and `… clean`).
 const badgePlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'badge')!, { swapTarget: SWAP_TARGET });
@@ -179,7 +182,7 @@ const empty = async () => [];
 const listeners: Record<string, ((e: unknown) => void)[]> = {};
 Object.assign(shim, {
   showUI: () => undefined,
-  ui: { postMessage: (m: unknown) => { posted.push(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
+  ui: { postMessage: (m: unknown) => { posted.push(m); if (isVerdict(m)) verdicts.push(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
   clientStorage: { getAsync: async () => undefined, setAsync: async () => undefined },
   // #3091: the listeners `main.ts` registers, kept so an arm can fire Figma's `documentchange` as a hand edit does.
   on: (ev: string, fn: (e: unknown) => void) => { (listeners[ev] ??= []).push(fn); },
@@ -546,6 +549,14 @@ ok(second?.completed === false && second?.ok === false,
 // 3. The early return.
 const unknown = await build('no-such-def');
 ok(unknown?.completed === false && unknown?.ok === false, `C1: an unknown def posts completed: false (completed ${unknown?.completed})`);
+// #3326 PR 1 review S2: the build's own causes, beyond the template's. Mutations: the no-set cause replaced with `[]`
+// (`main.ts` `buildCauses`) → `causes/refused`; the unknown def's cause dropped → `causes/unknown`.
+ok(second?.causes?.length === 1 && second.causes[0].kind === 'bad' && second.causes[0].subject === 'badge' && second.causes[0].what === 'could not be built'
+  && /^nothing built — set '.+' on this page varies by different axes and was left as it is$/.test(String(second.causes[0].reasons?.[0])),
+  `causes/refused: a set the executor refused could not be built, the refusal its first reason (${JSON.stringify(second?.causes)})`);
+ok(unknown?.causes?.length === 1 && unknown.causes[0].kind === 'bad' && unknown.causes[0].subject === null && unknown.causes[0].what === 'unknown def'
+  && String(unknown.causes[0].reasons?.[0]).includes('no-such-def'),
+  `causes/unknown: an unknown def is the run's own cause, naming the id asked for (${JSON.stringify(unknown?.causes)})`);
 
 // 4. #2177: each verdict's lines are its summary's items, in the summary's words. The oracle is the summary itself, the
 //    prose every reader had before #2177: the lines, in order, are pieces of it, and what lies between them is only the
@@ -908,6 +919,28 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   const other = specTargets(api, undefined, { id: '9:2' });
   ok(names(other).length === 0 && twice(other),
     `specs/page by id: a fresh object for page 9:2, which holds the other badge alone, skips that badge for its twin and draws nothing (${JSON.stringify({ targets: names(other), skipped: other.skipped })})`);
+}
+
+// #3326 PR 1 review S2: A BUILD WITH MISSES OF ITS OWN. Tag binds variables and styles this file does not hold, so its
+// build misses them, and those misses are the reasons it was built with problems. The style is typed here, a name the
+// file lacks. Mutation: the build's own misses (`...real`) dropped from its cause → `causes/misses`.
+const tagBuilt = await build('tag');
+const tagCause = tagBuilt?.causes?.find((c: any) => c.subject === 'tag');
+ok(tagBuilt?.ok === false && tagCause?.kind === 'warn' && tagCause.what === 'built with problems'
+  && (tagCause.reasons as string[]).includes('label.textStyle -> label/md/emphasis'),
+  `causes/misses: a build that missed the file's style names it among its reasons (${JSON.stringify(tagCause)?.slice(0, 300)})`);
+
+// #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite's runs posted. A verdict that is not ok says why: at
+// least one cause, each subject an engine def id, or null for the run's own cause. Mutations: any of the build's or the
+// Update's causes dropped → `causes/every verdict`.
+{
+  const ids = new Set(componentDefs.map((d) => d.id));
+  // Draw specs posts a `component-update-result` too, with no causes yet: outside #3326 PR 1's four writers, filed
+  // as #3404. Its verdicts are left out by their headline, which only Draw specs words.
+  const notOk = verdicts.filter((v) => v.ok === false && !/spec panel|to spec|draw specs/.test(String(v.headline)));
+  const bad = notOk.filter((v) => !Array.isArray(v.causes) || !v.causes.length || v.causes.some((c: any) => c.subject !== null && !ids.has(c.subject)));
+  ok(notOk.length > 0 && !bad.length,
+    `causes/every verdict: each of the ${notOk.length} verdicts not ok names a cause, each subject a def id (${JSON.stringify(bad.slice(0, 3).map((v) => ({ headline: v.headline, causes: v.causes })))})`);
 }
 
 console.log(`\n${executed - failed}/${executed} build-completed assertions passed.`);

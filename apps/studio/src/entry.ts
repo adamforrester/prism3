@@ -24,7 +24,7 @@ import { resolvePreview } from '@prism3/engine/resolve-preview';
 import { toDesignMd } from '@prism3/engine/design-md';
 import type { Origin } from './provenance';
 import { clearInput, persistActivityHeightPx, persistInput, restoreActivityHeightPx, restoreInput, type LocalStore } from './persist-local';
-import { hook } from './shell/dom';
+import { glyph, h, hook } from './shell/dom';
 import { initTheme } from './shell/theme';
 import { initActivityHeight } from './shell/activity';
 import { BRANDS, BOOT_BRAND, brandState, initSession, rebuild, setPersist, setPath, subscribe } from './state/store';
@@ -127,10 +127,14 @@ if (PRISM3_HOST === 'figma') mountResizeGrip();
 build();
 
 // ---- 7. a saved brand the engine refused (#1989) -----------------------------------------------------
-// Web only (`refusedBrand` is never set in the plugin). Mounted on `body`, ahead of `#app`, for the reason
-// the resize grip is: `#app` is re-rendered wholesale on every state change, and this has to outlive that.
-// It wears the existing error card and button classes, pinned light like the legacy surfaces, because this
-// fix adds no stylesheet rules. (The frame's error line moved to the chrome's error strip in UI redesign S13.1.)
+// Web only (`refusedBrand` is never set in the plugin). Mounted outside what re-renders (below), for the reason the
+// resize grip is: `#app` is re-rendered wholesale on every state change, and this has to outlive that.
+// #1999 (owner decision Q1999.1 A): it is the chrome's error strip, `.p3-errstrip`, in both themes, the pattern the owner
+// approved for a refused restore (G18 A, N-2 A, S13.1): the warning glyph, the three lines in danger ink in
+// `.p3-errstrip-text`, then the two buttons as `.p3-btn` in a `.p3-confirm-row` under them. It was #1997's legacy error
+// card and buttons, pinned light, because that fix's freeze allowed no stylesheet change. The copy and the hooks are
+// #1997's, unchanged. One rule in `chrome.css` lifts the narrow tier's cap on the strip inside the start window, so its
+// buttons stay in view at 380.
 //
 // The refused brand is still in storage, and stays there until the next successful rebuild persists over
 // it, which is the first brand chosen. So the notice says that, and offers the two things worth doing
@@ -138,14 +142,12 @@ build();
 // Read through a cast: assigned inside `bootBrand`, so TypeScript's flow analysis narrows the `let` to `null` here.
 const refused = refusedBrand as RefusedBrand | null;
 if (refused) {
-  const card = hook(document.createElement('div'), 'refused-brand');
-  card.className = 'errbar';
-  card.dataset.theme = 'light';
+  const card = hook(h('div', 'p3-errstrip'), 'refused-brand');
   card.setAttribute('role', 'alert');
-  const line = (text: string): HTMLParagraphElement => { const p = document.createElement('p'); p.textContent = text; return p; };
+  const line = (text: string): HTMLElement => h('p', 'p3-confirm-line', text);
   const btn = (text: string, role: string, run: () => void): HTMLButtonElement => {
-    const b = hook(document.createElement('button'), role);
-    b.type = 'button'; b.className = 'barbtn'; b.textContent = text; b.onclick = run;
+    const b = hook(h('button', 'p3-btn'), role);
+    b.type = 'button'; b.textContent = text; b.onclick = run;
     return b;
   };
   const exportIt = (): void => {
@@ -160,13 +162,16 @@ if (refused) {
   let offOrigin: (() => void) | null = null;
   const dismiss = (): void => { card.remove(); offOrigin?.(); offOrigin = null; };
   const clearIt = (): void => { clearInput(localStorage); dismiss(); };
-  card.append(
+  const text = h('div', 'p3-errstrip-text');
+  const row = h('div', 'p3-confirm-row');
+  row.append(btn('Export saved brand', 'refused-brand-export', exportIt), btn('Clear saved brand', 'refused-brand-clear', clearIt));
+  text.append(
     line("The saved brand didn't open, so the studio started without it."),
     line(refused.message),
     line('Choosing a brand replaces the saved one. Export it first to keep a copy as design.md.'),
-    btn('Export saved brand', 'refused-brand-export', exportIt),
-    btn('Clear saved brand', 'refused-brand-clear', clearIt),
+    row,
   );
+  card.append(glyph('warn'), text);
   // UI redesign S12: a refused brand is always a first run, so the start window is open over the studio, and a notice
   // above `#app` would sit under its scrim, out of reach. It opens the window's body instead, inside the focus the
   // window keeps; the window closes only on a load, which dismisses the notice first (below).

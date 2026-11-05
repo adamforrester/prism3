@@ -86,8 +86,10 @@
  */
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { ENGINE_VERSION } from '@prism3/engine/version';
+import { serializeBrandInput } from '@prism3/engine/persist-input';
+import type { BrandInput } from '@prism3/engine/theme';
 import { MAILBOX, AGENT_COMMANDS, READ_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
-import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT } from './agent-read-fixture';
+import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, AT, contextExpected } from './agent-read-fixture';
 import { ACTIVITY_KEEP } from './src/activity-log';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
@@ -96,6 +98,9 @@ import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripTex
 import { createRunGuard, TITLE } from './src/run-guard';
 import { STRIP_MARGIN, windowPlacement } from './src/window-place';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
+import { NodeShim } from './file-shim';
+import type { NodeSpec } from './file-shim';
+import { EXECUTOR_REVISION } from './src/executor-revision';
 import { OP_TITLE } from '../studio/src/shell/activity';
 
 let failed = 0;
@@ -1165,6 +1170,7 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
     ['audit-frames', ARGS.audit, EXPECTED.audit],
     ['snapshot', ARGS.snapshot, EXPECTED.snapshot],
     ['activity', { since: probe.latest }, activityExpected(probe.latest, Math.min(probe.total + 2, ACTIVITY_KEEP), g.PRISM3_BUILD as string)],
+    ['context', {}, contextExpected('agent-link test file', ENGINE_VERSION)],
   ];
   ok(ARMS.map((a) => a[0]).join() === READ_COMMANDS.join(), `reads: every read command has an arm here (${READ_COMMANDS.join(', ')})`);
   for (const [cmd, args, want] of ARMS) {
@@ -1233,6 +1239,71 @@ section('reads — inspect, component-keys, audit-frames, snapshot and activity 
     };
     ok(canon(atRead(got)) === canon(want),
       `activity/agent: an agent's build-components is logged as the agent's run, named by its command — got ${canon(atRead(got)).slice(0, 300)}`);
+  }
+  // #3300 B: `context/protected` — each protected default, listed exactly, on its own line so a miss names the rule.
+  // (mutations: the FINAL test dropped → `context/protected/final`; the walk going inside a locked node →
+  // `context/protected/locked`; the `Original · ` test dropped → `context/protected/originals`)
+  {
+    const d = (await run('context', {})).r.result?.data as { protected: { finalPages: unknown; locked: unknown; originals: unknown } };
+    const want = contextExpected('agent-link test file', ENGINE_VERSION).protected;
+    ok(canon(d?.protected?.finalPages) === canon(want.finalPages), `context/protected/final: the page whose name contains FINAL is listed, and nothing on it apart (${canon(d?.protected?.finalPages)})`);
+    ok(canon(d?.protected?.locked) === canon(want.locked), `context/protected/locked: each locked node is listed once, and nothing inside one apart (${canon(d?.protected?.locked)})`);
+    ok(canon(d?.protected?.originals) === canon(want.originals), `context/protected/originals: the \`Original · …\` copy is listed, and nothing inside it apart (${canon(d?.protected?.originals)})`);
+  }
+  // #3300 B: `context/brand` — a stored brand is read back as the file's (`source: local`), and one this build cannot read
+  // says so (`unreadable`) rather than `none`. Both written to the root as Apply Theme stores it, and removed after.
+  {
+    const key = k('prism3', 'brandInput');
+    const had = store.get(key);
+    store.set(key, serializeBrandInput({ id: 'example', name: 'Example', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput));
+    const local = (await run('context', {})).r.result?.data as { prism3?: { source?: string; brand?: unknown } };
+    ok(local?.prism3?.source === 'local' && canon(local.prism3.brand) === canon({ id: 'example', name: 'Example', modes: ['light', 'dark'] }),
+      `context/brand: a stored brand reads as local, with its id, name and modes (${canon(local?.prism3)})`);
+    store.set(key, '{"v":999}');
+    const bad = (await run('context', {})).r.result?.data as { prism3?: { source?: string; brand?: unknown } };
+    ok(bad?.prism3?.source === 'unreadable' && bad.prism3.brand === null, `context/brand: a stored brand this build cannot read says unreadable, not none (${canon(bad?.prism3)})`);
+    if (had === undefined) store.delete(key); else store.set(key, had);
+  }
+  // #3300 B (review nit 1): `context/ledger` — the ledger-derived fields, from a stored as-built ledger with two sets at
+  // different engines. `button` names today's engine and a definition hash no def has, so it is due as `definition moved`;
+  // `badge` names an older engine and no print, so it is due as `engine moved`. `lastBuilt` is the NEWER of the two, by
+  // number: a string compare would read '0.9.0' as newer than today's '0.2xx.0'. `badge`, the older, is listed FIRST, so
+  // a `lastBuilt` that keeps the first entry it meets, or never replaces it, reads '0.9.0' and fails (review nit, #3355).
+  // The ledger is a typed literal in the record's own shape (`{ v: 1, sets }`), not built with `recordSets`.
+  // (mutations: `lastBuilt` keeps the oldest, or never replaces the first → `context/ledger/lastBuilt`; the two reasons swapped → `context/ledger/due`)
+  {
+    const key = k('', 'prism3:asBuilt');
+    const had = store.get(key);
+    store.set(key, JSON.stringify({ v: 1, sets: {
+      badge: { def: 'not-a-def-hash', rev: EXECUTOR_REVISION, engine: '0.9.0' },
+      button: { def: 'not-a-def-hash', rev: EXECUTOR_REVISION, engine: ENGINE_VERSION },
+    } }));
+    const d = (await run('context', {})).r.result?.data as { sets?: { present?: number; due?: unknown }; prism3?: { engine?: { lastBuilt?: unknown } } };
+    ok(d?.sets?.present === 2, `context/ledger/present: the two sets the ledger names are counted present (${canon(d?.sets)})`);
+    ok(canon([...((d?.sets?.due ?? []) as { set: string }[])].sort((a, b) => a.set.localeCompare(b.set))) === canon([{ set: 'badge', why: 'engine moved' }, { set: 'button', why: 'definition moved' }]),
+      `context/ledger/due: each due set names why — badge's older engine, button's moved definition (${canon(d?.sets?.due)})`);
+    ok(d?.prism3?.engine?.lastBuilt === ENGINE_VERSION, `context/ledger/lastBuilt: the newest engine any set was built with (${canon(d?.prism3?.engine)})`);
+    if (had === undefined) store.delete(key); else store.set(key, had);
+  }
+  // #3300 B (review nit 2): `context/caps` — the list cap and the walk cap at their real values. One page: 51 locked
+  // frames, 51 `Original · ` copies, then 20,000 plain rectangles, so the walk passes 20,000 nodes. The numbers are
+  // literals, not `CONTEXT_LIST_CAP` / `CONTEXT_NODE_CAP`, so a moved cap fails here.
+  // (mutations: the list cap dropped → `context/caps/list`; the walk cap dropped → `context/caps/truncated`)
+  {
+    const many = (n: number, f: (i: number) => NodeSpec): NodeSpec[] => Array.from({ length: n }, (_, i) => f(i));
+    const big = new NodeShim([{ id: 'PB', type: 'PAGE', name: 'Many', children: [
+      ...many(51, (i) => ({ id: `BL${i}`, type: 'FRAME', name: `Locked ${i}`, width: 10, height: 10, locked: true })),
+      ...many(51, (i) => ({ id: `BO${i}`, type: 'FRAME', name: `Original · Screen ${i}`, width: 10, height: 10 })),
+      ...many(20_000, (i) => ({ id: `BR${i}`, type: 'RECTANGLE', name: `Rect ${i}`, width: 10, height: 10 })),
+    ] }], { styles: {}, variables: {} });
+    const was = root.children;
+    root.children = big.pages;
+    const d = (await run('context', {})).r.result?.data as { protected?: { locked?: unknown[]; originals?: unknown[]; counts?: { locked?: number; originals?: number } }; truncated?: unknown };
+    root.children = was;
+    const p = d?.protected;
+    ok(p?.locked?.length === 50 && p?.counts?.locked === 51 && p?.originals?.length === 50 && p?.counts?.originals === 51,
+      `context/caps/list: 50 of 51 locked nodes and 50 of 51 originals are listed, and the counts say 51 (${canon(p?.counts)}, listed ${p?.locked?.length}/${p?.originals?.length})`);
+    ok(d?.truncated === true, `context/caps/truncated: a walk past 20,000 nodes stops and says truncated (${canon(d?.truncated)})`);
   }
   root.children = saved.children;
   h.getNodeByIdAsync = saved.node; h.getStyleByIdAsync = saved.style; h.variables.getVariableByIdAsync = saved.variable;

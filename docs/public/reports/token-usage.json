@@ -8,9 +8,9 @@
   ],
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; keysNotDrawn lists those of them no member draws, when another key draws the same token; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
-    "emitted": 802,
-    "used": 275,
-    "unusedSemantic": 247,
+    "emitted": 820,
+    "used": 281,
+    "unusedSemantic": 259,
     "unusedPrimitive": 280,
     "components": 60
   },
@@ -32,7 +32,7 @@
         "banner": {
           "keys": [
             "border-width",
-            "width.contained.edge-side"
+            "edge.contained.edge-side"
           ],
           "parts": {
             "container": {
@@ -168,6 +168,7 @@
             "horizontal.false.height",
             "horizontal.line.height",
             "horizontal.line.width",
+            "rule.stroke",
             "vertical.false.width",
             "vertical.line.height",
             "vertical.line.width"
@@ -178,7 +179,7 @@
           ],
           "parts": {
             "container": {
-              "members": 5,
+              "members": 10,
               "where": {
                 "labeled": [
                   "false"
@@ -186,7 +187,7 @@
               }
             },
             "leadingRule": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "none"
@@ -196,8 +197,16 @@
                 ]
               }
             },
+            "rule": {
+              "members": 10,
+              "where": {
+                "labeled": [
+                  "false"
+                ]
+              }
+            },
             "trailingRule": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "none"
@@ -622,14 +631,14 @@
       "components": {
         "banner": {
           "keys": [
-            "width.full.edge-side"
+            "edge.full-bleed.edge-side"
           ],
           "parts": {
             "container": {
               "members": 5,
               "where": {
-                "width": [
-                  "full"
+                "edge": [
+                  "full-bleed"
                 ]
               }
             }
@@ -1690,6 +1699,52 @@
             }
           }
         },
+        "divider": {
+          "keys": [
+            "subtle.border"
+          ],
+          "parts": {
+            "leadingRule": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ]
+              }
+            },
+            "rule": {
+              "members": 5,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "labeled": [
+                  "false"
+                ]
+              }
+            },
+            "trailingRule": {
+              "members": 2,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "inset": [
+                  "none"
+                ],
+                "labeled": [
+                  "true"
+                ]
+              }
+            }
+          }
+        },
         "provider-logo": {
           "keys": [
             "tile.border"
@@ -1733,12 +1788,15 @@
       "components": {
         "divider": {
           "keys": [
-            "fill"
+            "bold.border"
           ],
           "parts": {
             "leadingRule": {
               "members": 2,
               "where": {
+                "emphasis": [
+                  "bold"
+                ],
                 "inset": [
                   "none"
                 ],
@@ -1750,6 +1808,9 @@
             "rule": {
               "members": 5,
               "where": {
+                "emphasis": [
+                  "bold"
+                ],
                 "labeled": [
                   "false"
                 ]
@@ -1758,6 +1819,9 @@
             "trailingRule": {
               "members": 2,
               "where": {
+                "emphasis": [
+                  "bold"
+                ],
                 "inset": [
                   "none"
                 ],
@@ -2171,7 +2235,7 @@
         },
         "divider": {
           "keys": [
-            "separator.fill"
+            "separator.rule.border"
           ],
           "parts": {}
         },
@@ -7105,21 +7169,6 @@
     "color.interactive.neutral.border.hover": {
       "type": "color",
       "components": {
-        "_slider-thumb": {
-          "keys": [
-            "indicator.hover"
-          ],
-          "parts": {
-            "disc": {
-              "members": 3,
-              "where": {
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.border.hover"
@@ -7209,21 +7258,6 @@
     "color.interactive.neutral.border.pressed": {
       "type": "color",
       "components": {
-        "_slider-thumb": {
-          "keys": [
-            "indicator.pressed"
-          ],
-          "parts": {
-            "disc": {
-              "members": 3,
-              "where": {
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.border.pressed"
@@ -7313,22 +7347,6 @@
     "color.interactive.neutral.border.rest": {
       "type": "color",
       "components": {
-        "_slider-thumb": {
-          "keys": [
-            "indicator"
-          ],
-          "parts": {
-            "disc": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.border"
@@ -7398,24 +7416,9 @@
         },
         "switch-control": {
           "keys": [
-            "off.border",
-            "off.indicator"
+            "off.border"
           ],
           "parts": {
-            "thumb": {
-              "members": 16,
-              "where": {
-                "selection": [
-                  "off"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            },
             "track": {
               "members": 4,
               "where": {
@@ -8332,6 +8335,88 @@
               "where": {
                 "state": [
                   "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.interactive.neutral.indicator.hover": {
+      "type": "color",
+      "components": {
+        "_slider-thumb": {
+          "keys": [
+            "indicator.hover"
+          ],
+          "parts": {
+            "disc": {
+              "members": 3,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.interactive.neutral.indicator.pressed": {
+      "type": "color",
+      "components": {
+        "_slider-thumb": {
+          "keys": [
+            "indicator.pressed"
+          ],
+          "parts": {
+            "disc": {
+              "members": 3,
+              "where": {
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.interactive.neutral.indicator.rest": {
+      "type": "color",
+      "components": {
+        "_slider-thumb": {
+          "keys": [
+            "indicator"
+          ],
+          "parts": {
+            "disc": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "switch-control": {
+          "keys": [
+            "off.indicator"
+          ],
+          "parts": {
+            "thumb": {
+              "members": 16,
+              "where": {
+                "selection": [
+                  "off"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ]
               }
@@ -9407,66 +9492,6 @@
               }
             }
           }
-        },
-        "radio-control": {
-          "keys": [
-            "checked.border.hover"
-          ],
-          "parts": {
-            "control": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "checked"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "status": [
-                  "default"
-                ]
-              }
-            }
-          }
-        },
-        "tab-item": {
-          "keys": [
-            "selected.fill.hover"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
-        "tag": {
-          "keys": [
-            "selected.border.hover"
-          ],
-          "parts": {
-            "container": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "type": [
-                  "select"
-                ]
-              }
-            }
-          }
         }
       }
     },
@@ -9513,66 +9538,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "radio-control": {
-          "keys": [
-            "checked.border.pressed"
-          ],
-          "parts": {
-            "control": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "checked"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "status": [
-                  "default"
-                ]
-              }
-            }
-          }
-        },
-        "tab-item": {
-          "keys": [
-            "selected.fill.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
-        "tag": {
-          "keys": [
-            "selected.border.pressed"
-          ],
-          "parts": {
-            "container": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "type": [
-                  "select"
                 ]
               }
             }
@@ -9627,69 +9592,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "radio-control": {
-          "keys": [
-            "checked.border"
-          ],
-          "parts": {
-            "control": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "checked"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "status": [
-                  "default"
-                ]
-              }
-            }
-          }
-        },
-        "tab-item": {
-          "keys": [
-            "selected.fill"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
-        "tag": {
-          "keys": [
-            "selected.border"
-          ],
-          "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "select"
                 ]
               }
             }
@@ -10364,6 +10266,204 @@
                 "state": [
                   "focus-visible",
                   "rest"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.interactive.primary.indicator.hover": {
+      "type": "color",
+      "components": {
+        "radio-control": {
+          "keys": [
+            "checked.border.hover"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "selected.fill.hover"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "tag": {
+          "keys": [
+            "selected.border.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "type": [
+                  "select"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.interactive.primary.indicator.pressed": {
+      "type": "color",
+      "components": {
+        "radio-control": {
+          "keys": [
+            "checked.border.pressed"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "selected.fill.pressed"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "tag": {
+          "keys": [
+            "selected.border.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "type": [
+                  "select"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.interactive.primary.indicator.rest": {
+      "type": "color",
+      "components": {
+        "radio-control": {
+          "keys": [
+            "checked.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "selected.fill"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "tag": {
+          "keys": [
+            "selected.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "select"
                 ]
               }
             }
@@ -15768,7 +15868,7 @@
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "none"
@@ -16386,7 +16486,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "orientation": [
                   "horizontal"
@@ -21056,13 +21156,13 @@
       "components": {
         "banner": {
           "keys": [
-            "width.contained.radius"
+            "edge.contained.radius"
           ],
           "parts": {
             "container": {
               "members": 5,
               "where": {
-                "width": [
+                "edge": [
                   "contained"
                 ]
               }
@@ -21225,14 +21325,14 @@
         },
         "banner": {
           "keys": [
-            "width.full.radius"
+            "edge.full-bleed.radius"
           ],
           "parts": {
             "container": {
               "members": 5,
               "where": {
-                "width": [
-                  "full"
+                "edge": [
+                  "full-bleed"
                 ]
               }
             }
@@ -22261,7 +22361,7 @@
           ],
           "parts": {
             "container": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "middle-inset",
@@ -23041,7 +23141,7 @@
           ],
           "parts": {
             "container": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "inset": [
                   "none"
@@ -23281,7 +23381,7 @@
           ],
           "parts": {
             "container": {
-              "members": 7,
+              "members": 14,
               "where": {}
             }
           }
@@ -24468,7 +24568,7 @@
           ],
           "parts": {
             "container": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "inset": [
                   "middle-inset"
@@ -25066,7 +25166,7 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 6,
               "where": {
                 "inset": [
                   "middle-inset",
@@ -25430,7 +25530,7 @@
           ],
           "parts": {
             "container": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "inset",
@@ -25909,7 +26009,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "orientation": [
                   "horizontal"
@@ -28842,7 +28942,7 @@
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "inset": [
                   "none"
@@ -29325,7 +29425,7 @@
           ],
           "parts": {
             "container": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "inset": [
                   "none"
@@ -29966,9 +30066,9 @@
         "color.border.focus",
         "color.border.primary",
         "color.disabled.icon",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
-        "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.indicator.hover",
+        "color.interactive.neutral.indicator.pressed",
+        "color.interactive.neutral.indicator.rest",
         "control.size.lg.thumb",
         "control.size.md.thumb",
         "control.size.sm.thumb",
@@ -30113,16 +30213,16 @@
     "banner": {
       "members": 10,
       "axes": {
+        "edge": [
+          "contained",
+          "full-bleed"
+        ],
         "tone": [
           "danger",
           "info",
           "neutral",
           "success",
           "warning"
-        ],
-        "width": [
-          "contained",
-          "full"
         ]
       },
       "tokens": [
@@ -30944,8 +31044,12 @@
       "drawnNotDeclared": []
     },
     "divider": {
-      "members": 7,
+      "members": 14,
       "axes": {
+        "emphasis": [
+          "bold",
+          "subtle"
+        ],
         "inset": [
           "inset",
           "middle-inset",
@@ -30962,6 +31066,7 @@
       },
       "tokens": [
         "border-width.hairline",
+        "color.border.primary",
         "color.border.secondary",
         "color.border.tertiary",
         "color.text.secondary",
@@ -32145,10 +32250,10 @@
         "color.disabled.fill",
         "color.field.border.hover",
         "color.field.border.rest",
-        "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
-        "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.indicator.hover",
+        "color.interactive.primary.indicator.pressed",
+        "color.interactive.primary.indicator.rest",
         "control.size.lg.dot",
         "control.size.lg.height",
         "control.size.md.dot",
@@ -32569,6 +32674,7 @@
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.indicator.rest",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
@@ -32656,12 +32762,12 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
-        "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
-        "color.interactive.primary.border.rest",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.icon.rest",
+        "color.interactive.primary.indicator.hover",
+        "color.interactive.primary.indicator.pressed",
+        "color.interactive.primary.indicator.rest",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
         "color.interactive.primary.text.rest",
@@ -32754,9 +32860,9 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
-        "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
-        "color.interactive.primary.border.rest",
+        "color.interactive.primary.indicator.hover",
+        "color.interactive.primary.indicator.pressed",
+        "color.interactive.primary.indicator.rest",
         "color.interactive.primary.subtle-fill.selected",
         "focus.ring.offset",
         "focus.ring.width",
@@ -33034,6 +33140,9 @@
       "color.icon.warning-subtle",
       "color.interactive.destructive.fill.focused",
       "color.interactive.destructive.fill.selected",
+      "color.interactive.destructive.indicator.hover",
+      "color.interactive.destructive.indicator.pressed",
+      "color.interactive.destructive.indicator.rest",
       "color.interactive.destructive.overlay.selected",
       "color.interactive.neutral.fill.focused",
       "color.interactive.neutral.fill.selected",
@@ -33080,12 +33189,21 @@
       "color.inverse.icon.warning-subtle",
       "color.inverse.interactive.destructive.fill.focused",
       "color.inverse.interactive.destructive.fill.selected",
+      "color.inverse.interactive.destructive.indicator.hover",
+      "color.inverse.interactive.destructive.indicator.pressed",
+      "color.inverse.interactive.destructive.indicator.rest",
       "color.inverse.interactive.destructive.overlay.selected",
       "color.inverse.interactive.neutral.fill.focused",
       "color.inverse.interactive.neutral.fill.selected",
+      "color.inverse.interactive.neutral.indicator.hover",
+      "color.inverse.interactive.neutral.indicator.pressed",
+      "color.inverse.interactive.neutral.indicator.rest",
       "color.inverse.interactive.neutral.overlay.selected",
       "color.inverse.interactive.primary.fill.focused",
       "color.inverse.interactive.primary.fill.selected",
+      "color.inverse.interactive.primary.indicator.hover",
+      "color.inverse.interactive.primary.indicator.pressed",
+      "color.inverse.interactive.primary.indicator.rest",
       "color.inverse.interactive.primary.overlay.selected",
       "color.inverse.text.brand",
       "color.inverse.text.brand-subtle",

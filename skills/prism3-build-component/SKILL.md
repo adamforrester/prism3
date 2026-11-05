@@ -419,7 +419,7 @@ whose actual value comes from the host, not from the plan.
   `outlineInteraction` is not `none` (owner, 2026-09-29). It is brand-dependent in the token contract. On a
   `none` brand `applyOutlineInteraction` drops the binding, and the selected state is the outline and the
   check alone.
-  Bind the outline to `color.interactive.primary.border.*` at `border-width.thick` (2px), through a
+  Bind the outline to `color.interactive.primary.indicator.*`, the selection mark, at `border-width.thick` (2px), through a
   `{selection}`-keyed `strokeWidth`, so the unselected member keeps `border-width.hairline`; both executors draw
   the stroke inside the box, so the thicker outline adds no width. Keep the label's type binding the same at
   both selection values — no bold on select, so the label keeps its width — and keep its ink the unselected
@@ -428,7 +428,13 @@ whose actual value comes from the host, not from the plan.
   selected is a flow cell of its own, so the selected member is one glyph and one gap wider than the
   unselected one, and a row of them reflows on toggle unless the component reserves that width (Tag does not:
   the owner let it widen, 2026-09-29). At hover and pressed the tint holds and the outline steps to
-  `interactive.primary.border.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
+  `interactive.primary.indicator.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
+
+  **A selection mark is a shape, so it binds `color.interactive.<c>.indicator.*`, never a text role and never the
+  outline edge** (#3346, owner 2026-11-03). That covers the selected outline above, a selected tab's bar, a checked
+  radio's ring, a switch's thumb and a slider's disc. The indicator matches the label's color, overrides included,
+  and a brand that quiets its outline edges (`border.*`) leaves it alone. No shape binds `interactive.<c>.text.*`, even
+  where the values match.
 
   **The one exception to the constant weight: a choice between peers in a row** (Tab, and the Segmented
   control's segment; owner decision). There the selected label takes the emphasis weight, and an invisible
@@ -497,6 +503,28 @@ exception is a part that is never placed on its own: field-label dims through it
 `placement` axis, a `selected` state for a tag or a segmented control) is asking for a schema change,
 which is an owner decision: flag it in the PR with the case for it, and never add it to either list
 to clear a validator error.
+
+**A variant only when layout or structure changes (#3383, owner decision Q3 A).** Variant counts
+multiply: every axis in `figmaProperties.variantAxes` multiplies the projected set by its value count, so
+an axis has to earn its place by changing what the member is built from. Before you add one, sort what
+actually differs between its values:
+
+| What differs | Declare it as |
+|---|---|
+| Layout or structure: stacked versus side by side, a part replaced, padding that moves with a part | A variant axis |
+| One part shown or hidden | A `booleans` entry (the node-visibility boolean below) |
+| Text content | A `texts` entry |
+| A choice the nested component already offers | `nest-exposed` on that part (§3), not an axis on the parent |
+| Width only | No axis. The component fills its container; the parent, or the spacing inside it, sets the width |
+| Color only, for a state or a status | A variant axis: Figma has no other way to repaint a member without an override |
+
+Never name an axis for a viewport or a width (`desktop`/`mobile`, `wide`/`narrow`): the parent controls
+the width. Where the layout really changes between breakpoints, the axis names the layout
+(`stacked`/`inline`), and the parent picks the member. Where the narrow member is the wide one at a smaller
+width, build one member and let the container set the width. Button's
+`leading` and `trailing` slot axes hold to the rule rather than break it: the slot moves the box's
+padding, which is layout. When a def you are writing seems to need an axis the table sends elsewhere,
+flag it in the PR with the case for it; the exception is the owner's call.
 
 **Selection-axis vocabulary (#1326 decision 1).** Switch spells its axis `[off, on]`;
 checkbox and radio spell theirs `[unchecked, checked]`, checkbox adding `indeterminate`. The
@@ -824,7 +852,8 @@ one until that arc builds it.
 5. The root part is named for its role; `codeOnly` is non-empty, carries the brief's code-tier rules, and
    no entry leads with the name of an axis or state the def projects.
 6. Every naming choice matches the settled canon in §6: the naming table, the `_` prefix, lowercase Figma
-   property names, and a first member that carries the code default on every axis.
+   property names, and a first member that carries the code default on every axis. Every variant axis
+   passes the variant rule in §6; a show/hide, a text, a nested choice or a width is not an axis.
 7. No border binds an icon or text role; an invalid state is the `status` axis, not an `error` state; a
    state a consumer sets has its own prop; repeated children sit in an `items` slot.
 8. The def is in every gate list in §7, its docs page and JSON entry are regenerated, both baselines

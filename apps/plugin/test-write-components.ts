@@ -2488,7 +2488,11 @@ ok(fmCollapse.length === 0 && fmRun.misses.length === 0,
   `#1575 field-message assembles with NO misses — one shared caption behind the bound property, nothing to collapse (${fmRun.misses.join('; ') || 'none'})`);
 
 const fmMembers = fmPage.children[0].children as Node[];
-const fmKids = (m: Node): Node[] => (m.children as Node[]) ?? [];
+/** The row's content. Since #3360 the glyph sits in `glyphCell` and the caption in `captionCell` (the glyph centers on the
+ *  caption's first line), so this reads one level in through those two cells, and only those: any other FRAME stays a
+ *  child here, where arm (3) below finds it. */
+const FM_CELLS = new Set(['glyphCell', 'captionCell']);
+const fmKids = (m: Node): Node[] => ((m.children as Node[]) ?? []).flatMap((c) => (c.type === 'FRAME' && FM_CELLS.has(String(c.name)) ? ((c.children as Node[]) ?? []) : [c]));
 /** The status glyph: since #2380 an INSTANCE of its icon component, the only instance a member of this def
  *  has — the member itself is the row, the caption is a TEXT. */
 const fmArt = (m: Node): Node[] => fmKids(m).filter((c) => c.type === 'INSTANCE');
@@ -2512,7 +2516,7 @@ ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'statu
 // `test-roundtrip.ts` on a synthetic def.
 const fmCaption = (m: Node): string => String(fmKids(m).find((c) => c.type === 'TEXT')?.characters ?? '<none>');
 const fmCaptions = fmMembers.map(fmCaption);
-const fmDeclared = fmPlans.map((p) => String((p.root.children ?? []).find((c) => c.characters !== undefined)?.characters));
+const fmDeclared = fmPlans.map((p) => String((p.root.children ?? []).flatMap((c) => (FM_CELLS.has(c.name) ? c.children ?? [] : [c])).find((c) => c.characters !== undefined)?.characters));
 ok(new Set(fmDeclared).size === 1 && fmDeclared[0] === 'This is a status message.',
   `#1575 the def declares ONE caption across all four status members — no byVariant spread (${[...new Set(fmDeclared)].join(' | ')})`);
 // AT THE NODE: all four read the set's one declared default, by design.
@@ -3028,7 +3032,7 @@ for (const st of ['rest', 'hover', 'pressed', 'focus-visible']) {
   const u = [...uStrokes][0], c = [...cStrokes][0];
   ok(uStrokes.size === 1 && cStrokes.size === 1
      && !!u && u.startsWith('color/field/border')
-     && !!c && c.startsWith('color/interactive/primary/border')
+     && !!c && c.startsWith('color/interactive/primary/indicator')   // the selection mark since #3346
      && u !== c,
     `#1423 radio's ring RECOLORS across selection at \`${st}\` — unchecked resolves the field-border edge and checked the interactive brand edge, differing (unchecked ${u ?? 'none'}, checked ${c ?? 'none'})`);
 }
@@ -4024,13 +4028,18 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const f = fullFor(all);
     const page: Page = { children: [] };
-    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [CAPTION]: lineBox } });
+    // #3360: the executor pads the shorter of the glyph's cell and the caption's by half the difference, reading the
+    // caption's line off the text node's own metrics and the glyph off its variable's value. So the caption style's
+    // metrics are this file's line box (font size and a PIXELS line height both at it), and the glyph variable resolves
+    // to the size the shim binds it to, so the two agree with the boxes the layout model draws.
+    const styleMetrics = { [CAPTION]: { fontSize: lineBox, lineHeight: { unit: 'PIXELS' as const, value: lineBox } } };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [CAPTION]: lineBox }, styleMetrics, varOverrides: { 'icon/size/xs': GLYPH } });
     const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
     await prebuildDependencies(host, { defs, project, host: shim as any, build });
     const r = await build(host);
     const setNamed = (id: string) => page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
     const boxes = (id: string) => new Map(((setNamed(id)?.children as Node[] | undefined) ?? []).map((m) => [String(m.name), { w: Math.round(m.width as number), h: Math.round(m.height as number) }]));
-    return { r, boxes, foot: r.misses.filter((m) => m.startsWith('footprint -> ')) };
+    return { r, boxes, setNamed, foot: r.misses.filter((m) => m.startsWith('footprint -> ')) };
   };
   // Every member compared with its own `status=default` sibling — the rest of its name held fixed. Worked out
   // here from the member NAMES, not from the executor's cohort key.
@@ -4043,14 +4052,18 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     }
     return out;
   };
-  const SHORT = GLYPH - 1;   // the nb-redesign shape: a caption line box one pixel under the glyph
+  // The nb-redesign shape: a caption line box shorter than the glyph. TWO px under rather than its one since #3360, so the
+  // caption's set-down (half the difference, in every status) is a whole px and the rounded boxes below stay exact.
+  const SHORT = GLYPH - 2;
+  const SET_DOWN = (GLYPH - SHORT) / 2;
 
   // (0) THE SEED IS LOAD-BEARING: without the floor, a short caption makes the default message row shorter
-  // than a status one — the owner's defect reproduced here, or every arm below passes on nothing.
+  // than a status one — the owner's defect reproduced here, or every arm below passes on nothing. Since #3360 the
+  // default row is the set-down caption, SET_DOWN + SHORT, still a px under the glyph.
   const bare = await buildFile(byDef('text-field'), SHORT, unfloored);
   const bareFm = bare.boxes('field-message');
-  ok(bareFm.get('status=default')?.h === SHORT && bareFm.get('status=error')?.h === GLYPH,
-    `message-row seed: with no floor, a ${SHORT}px caption row measures ${SHORT} in the default message and ${GLYPH} beside the glyph (default ${bareFm.get('status=default')?.h}, error ${bareFm.get('status=error')?.h})`);
+  ok(bareFm.get('status=default')?.h === SET_DOWN + SHORT && bareFm.get('status=error')?.h === GLYPH,
+    `message-row seed: with no floor, a ${SHORT}px caption row measures ${SET_DOWN + SHORT} (set down ${SET_DOWN}) in the default message and ${GLYPH} beside the glyph (default ${bareFm.get('status=default')?.h}, error ${bareFm.get('status=error')?.h})`);
 
   // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select (3 x 4).
   // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5. And select's
@@ -4083,6 +4096,46 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const tallFm = [...tall.boxes('field-message').values()].map((b) => b.h);
   ok(tallFm.length === 4 && tallFm.every((h) => h === TALL) && tall.foot.length === 0,
     `message-row: with a ${TALL}px caption the row hugs the caption in every status, not the ${GLYPH}px floor ([${tallFm.join(', ')}], ${tall.foot.length} footprint misses)`);
+
+  // (e) #3360 (owner Q-FM1 A): THE GLYPH CENTERS ON THE CAPTION'S FIRST LINE, measured on the BUILT nodes, through the
+  // real executor and the shim's layout model. The glyph's middle and the first line's middle are summed up the parent
+  // chain from each node's own `y` to the member, for a one-line caption and then the same caption made long enough to
+  // wrap to two lines (asserted, not assumed). EXPECTED: the two middles agree, worked from this file's own line box
+  // (half a line below the caption's top), never from the def. Three shapes: a line SHORTER than the glyph (the caption
+  // sets down), TALLER (the glyph sets down) and a FRACTION of a px shorter (the inset is taken off the line as the text
+  // renders it). Mutations, each failing `#3360 built: … first line` by name: main's def, the glyph straight in the
+  // `start` row; the row's `firstLine` dropped; and the executor's line taken off `Math.round` (the fractional shape).
+  const yIn = (n: Node, member: Node): number => { let y = 0; for (let c: Node | null = n; c && c !== member; c = c.parent as Node | null) y += (c.y as number) || 0; return y; };
+  const walk = (n: Node, f: (x: Node) => void): void => { f(n); ((n.children as Node[]) ?? []).forEach((c) => walk(c, f)); };
+  const offLine: string[] = [];
+  let measuredBuilt = 0;
+  // A FRACTIONAL line too, 0.6px under the glyph as a 15.4px caption sits under a 16px one: the executor must take the
+  // inset off the line as the text renders it, and a line rounded first sets the caption 0.2px off here.
+  const FRACTIONAL = GLYPH - 0.6;
+  for (const line of [SHORT, TALL, FRACTIONAL]) {
+    const built = await buildFile(byDef('text-field'), line);
+    const members = ((built.setNamed('field-message')?.children as Node[] | undefined) ?? []).filter((m) => !/status=default/.test(String(m.name)));
+    const parts = members.map((member) => {
+      let glyph: Node | undefined, caption: Node | undefined;
+      walk(member, (x) => { if (x.type === 'INSTANCE' && !glyph) glyph = x; if (x.type === 'TEXT' && !caption) caption = x; });
+      return { member, glyph, caption };
+    });
+    // One line first, in every member; then one long caption, which every member shows (a characters-bound TEXT writes
+    // through to the set's one property, #1575), and every member again at two lines.
+    for (const lines of [1, 2]) {
+      if (lines === 2) parts.forEach((x) => { if (x.caption) x.caption.characters = 'Enter a valid email address, like name@example.com, so we can reach you.'; });
+      for (const { member, glyph, caption } of parts) {
+        if (!glyph || !caption) { offLine.push(`${String(member.name)}: no glyph or caption`); continue; }
+        const textH = caption.height as number;
+        if (Math.abs(textH - lines * line) > 0.01) { offLine.push(`${String(member.name)} ${line}px: the caption measures ${textH}, not ${lines} line(s)`); continue; }
+        measuredBuilt++;
+        const glyphMid = yIn(glyph, member) + (glyph.height as number) / 2, lineOneMid = yIn(caption, member) + line / 2;
+        if (Math.abs(glyphMid - lineOneMid) > 0.01) offLine.push(`${String(member.name)} ${line}px ${lines}-line: glyph middle ${glyphMid} vs line one ${lineOneMid}`);
+      }
+    }
+  }
+  ok(measuredBuilt === 3 * 3 * 2 && offLine.length === 0,
+    `#3360 built: the field message's glyph centers on the caption's first line, on a one- and a two-line caption, with the line shorter, taller and a fraction of a px shorter than the glyph (${measuredBuilt} of 18 measured${offLine.length ? ` — OFF: ${offLine.slice(0, 4).join('; ')}` : ''})`);
 }
 
 // ---- THE TEXTAREA CONTROL IS `rows` LINES TALL, PLUS PADDING (its Figma projection) ----------------
@@ -5436,7 +5489,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       id(cv.paddingBottom), id(cv.paddingLeft), id(cv.paddingRight), m.minWidth ?? null, strokeVar(m),
       ...(/type=dismissible/.test(name) ? [id(sv.width), id(sv.height), slot?.counterAxisSizingMode, id(bv.itemSpacing)] : [])];
     const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', null, null, 'AUTO', 'MAX', INSET[size],
-      'space/0', 'space/0', null, st === 'disabled' ? 'color/disabled/border' : `color/interactive/primary/border/${st === 'hover' || st === 'pressed' ? st : 'rest'}`,
+      // #3346: the selected line is the selection mark; the unselected line stays the primary edge (Q589).
+      'space/0', 'space/0', null, st === 'disabled' ? 'color/disabled/border' : `color/interactive/primary/${/selection=selected/.test(name) ? 'indicator' : 'border'}/${st === 'hover' || st === 'pressed' ? st : 'rest'}`,
       ...(/type=dismissible/.test(name) ? [`icon/size/${GLYPH[size]}`, null, 'AUTO', X_GAP[size]] : [])];
     if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${name}: ${got.join(' / ')}`);
   }

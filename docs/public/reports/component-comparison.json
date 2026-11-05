@@ -352,9 +352,9 @@
           "danger",
           "neutral"
         ],
-        "width": [
+        "edge": [
           "contained",
-          "full"
+          "full-bleed"
         ]
       },
       "props": [
@@ -370,11 +370,11 @@
           ]
         },
         {
-          "name": "width",
+          "name": "edge",
           "default": "contained",
           "values": [
             "contained",
-            "full"
+            "full-bleed"
           ]
         },
         {
@@ -1744,6 +1744,10 @@
         "labeled": [
           "false",
           "true"
+        ],
+        "emphasis": [
+          "bold",
+          "subtle"
         ]
       },
       "props": [
@@ -1762,6 +1766,14 @@
             "none",
             "inset",
             "middle-inset"
+          ]
+        },
+        {
+          "name": "emphasis",
+          "default": "bold",
+          "values": [
+            "bold",
+            "subtle"
           ]
         },
         {
@@ -5693,7 +5705,27 @@
         ]
       }
     ],
+    "edge": [
+      {
+        "values": [
+          "contained",
+          "full-bleed"
+        ],
+        "components": [
+          "banner"
+        ]
+      }
+    ],
     "emphasis": [
+      {
+        "values": [
+          "bold",
+          "subtle"
+        ],
+        "components": [
+          "divider"
+        ]
+      },
       {
         "values": [
           "bold",
@@ -6396,15 +6428,6 @@
           "button-destructive",
           "button-neutral"
         ]
-      },
-      {
-        "values": [
-          "contained",
-          "full"
-        ],
-        "components": [
-          "banner"
-        ]
       }
     ]
   },
@@ -6941,6 +6964,16 @@
         "default": 6000
       }
     ],
+    "edge": [
+      {
+        "id": "banner",
+        "default": "contained",
+        "values": [
+          "contained",
+          "full-bleed"
+        ]
+      }
+    ],
     "emphasis": [
       {
         "id": "badge",
@@ -6949,6 +6982,14 @@
           "subtle",
           "bold",
           "surface"
+        ]
+      },
+      {
+        "id": "divider",
+        "default": "bold",
+        "values": [
+          "bold",
+          "subtle"
         ]
       },
       {
@@ -9648,14 +9689,6 @@
     ],
     "width": [
       {
-        "id": "banner",
-        "default": "contained",
-        "values": [
-          "contained",
-          "full"
-        ]
-      },
-      {
         "id": "code-input",
         "default": "auto",
         "values": [
@@ -9888,9 +9921,10 @@
       "subject": "axis emphasis",
       "components": [
         "badge",
+        "divider",
         "field-label"
       ],
-      "detail": "the emphasis axis takes 2 value sets — [bold, subtle, surface] in badge; [primary, secondary] in field-label"
+      "detail": "the emphasis axis takes 3 value sets — [bold, subtle] in divider; [bold, subtle, surface] in badge; [primary, secondary] in field-label"
     },
     {
       "kind": "axis values",
@@ -10073,17 +10107,6 @@
         "link"
       ],
       "detail": "the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link"
-    },
-    {
-      "kind": "axis values",
-      "subject": "axis width",
-      "components": [
-        "banner",
-        "button",
-        "button-destructive",
-        "button-neutral"
-      ],
-      "detail": "the width axis takes 2 value sets — [auto, full] in button, button-destructive, button-neutral; [contained, full] in banner"
     },
     {
       "kind": "size order",

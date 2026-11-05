@@ -10,12 +10,12 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (114)
+## Findings (113)
 
 ### axis values
 
 - **axis appearance** — the appearance axis takes 3 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter
-- **axis emphasis** — the emphasis axis takes 2 value sets — [bold, subtle, surface] in badge; [primary, secondary] in field-label
+- **axis emphasis** — the emphasis axis takes 3 value sets — [bold, subtle] in divider; [bold, subtle, surface] in badge; [primary, secondary] in field-label
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis provider** — the provider axis takes 2 value sets — [apple, facebook, google] in sign-in-button; [apple-pay, google-pay, paypal, shop-pay] in wallet-button
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in link, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
@@ -26,7 +26,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis tone** — the tone axis takes 2 value sets — [danger, info, neutral, success, warning] in badge, banner; [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon
 - **axis type** — the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
-- **axis width** — the width axis takes 2 value sets — [auto, full] in button, button-destructive, button-neutral; [contained, full] in banner
 
 ### axis without prop
 
@@ -259,7 +258,9 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | filled, outline, text | button, button-destructive, button-neutral |
 |  | ghost, outline | counter |
 | direction | from-bottom, from-left, from-right, from-top, full | veil |
-| emphasis | bold, subtle, surface | badge |
+| edge | contained, full-bleed | banner |
+| emphasis | bold, subtle | divider |
+|  | bold, subtle, surface | badge |
 |  | primary, secondary | field-label |
 | expansion | collapsed, expanded | _accordion-indicator, accordion |
 | footer | fill, inline, none, stacked | dialog |
@@ -315,7 +316,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 | weight | bold, regular | field-label |
 |  | default, emphasis | link |
 | width | auto, full | button, button-destructive, button-neutral |
-|  | contained, full | banner |
 
 Icon's `name` axis is the icon set itself and is covered by the [icon usage](icon-usage.md) report.
 
@@ -466,6 +466,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | dismissible | banner | false | — |
 |  | toast | true | — |
 | emphasis | badge | subtle | subtle, bold, surface |
+|  | divider | bold | bold, subtle |
 |  | field-label | primary | primary, secondary |
 | fullWidth | button | false | — |
 |  | button-destructive | false | — |
@@ -848,6 +849,5 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | veil | dark | dark, light |
 | weight | field-label | regular | regular, bold |
 |  | link | emphasis | emphasis, default |
-| width | banner | contained | contained, full |
-|  | code-input | auto | auto, full |
+| width | code-input | auto | auto, full |
 |  | segmented-control | auto | auto, full |

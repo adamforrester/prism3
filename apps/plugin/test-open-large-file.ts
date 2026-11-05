@@ -100,6 +100,7 @@ import { planComponentName } from '@prism3/engine/anatomy-figma';
 import { NS, persistInput } from './src/persist-figma';
 import { STAMP_KEY } from './src/write-components';
 import { writeBaseline } from './src/member-baseline';
+import { nestedFirst, type UpdateTarget } from './src/update-plan';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -238,19 +239,22 @@ Object.assign(root, {
   },
 });
 
-const posted: { at: number; loads: number; msg: any }[] = [];
+/** The stand-in's local variables (#3364): none until `check/values`. */
+const standVars: { id: string; name: string; resolvedType: string; valuesByMode: Record<string, unknown> }[] = [];
+const posted: { at: number; loads: number; msg: any; turn?: number }[] = [];
 const listeners: Record<string, ((e: unknown) => void)[]> = {};
 const t0 = { at: 0 };
 Object.assign(shim, {
   showUI: () => undefined,
-  ui: { postMessage: (m: unknown) => { posted.push({ at: Date.now() - t0.at, loads, msg: m }); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
+  ui: { postMessage: (m: unknown) => { posted.push({ at: Date.now() - t0.at, loads, msg: m, turn: turnNo }); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
   clientStorage: { getAsync: async () => undefined, setAsync: async () => undefined },
   // #3313: the listeners `main.ts` registers, kept so the template's check arms can fire a hand edit's `documentchange`.
   on: (ev: string, fn: (e: unknown) => void) => { (listeners[ev] ??= []).push(fn); },
   loadAllPagesAsync: async () => { for (const p of pages) loadOne(p); allCalled = true; },
   setCurrentPageAsync: async () => undefined,
-  // No variable in the stand-in: prune and the style guide read the collections before their page loads.
-  variables: { ...(shim.variables as object), getLocalVariableCollectionsAsync: async () => [], getLocalVariablesAsync: async () => [] },
+  // No variable in the stand-in: prune and the style guide read the collections before their page loads. #3364's arm
+  // (`check/values`) adds one, late, and edits its value: `standVars`.
+  variables: { ...(shim.variables as object), getLocalVariableCollectionsAsync: async () => [], getLocalVariablesAsync: async () => standVars },
   getNodeByIdAsync: async () => null,
   listAvailableFontsAsync: async () => [],
   getLocalPaintStylesAsync: shim.getLocalPaintStylesAsync ?? (async () => []),
@@ -269,7 +273,7 @@ timings.push = (...e: { stage: string; ms: number }[]) => Array.prototype.push.c
 g.PRISM3_OPEN_TIMINGS = timings;
 
 const { ACTIONS } = await import('./src/main');
-const { dropViews, keepView, keptCount, keptView, viewEpoch } = await import('./src/member-views');
+const { dropViews, keepView, keptCount, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } = await import('./src/member-views');
 const { freshView, readSetView } = await import('./src/update-plan');
 
 /* ── open the plugin ───────────────────────────────────────────────────────────────────────────────── */
@@ -858,6 +862,10 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   theart();
   panelLive = false;
   calls = 0; callsIn.clear(); kindReadsIn.clear(); loads = 0;
+  // #3364: the kept views and the variables print cleared, as a fresh open finds them, so the reads the check below
+  // reuses are kept under the print the pass itself takes, not one an earlier arm's check left in the module. Mutation:
+  // the pass's `noteVariables(await variablesPrint(figma))` removed → `check/views` and `check/calls`.
+  watchViews(false); watchViews(true);
   const from = posted.length;
   const start = wall();
   counting = true;
@@ -920,7 +928,8 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   // #3313: THE UPDATE CHECK ON THE TEMPLATE, after the open above, every set the template holds ticked. On `main` it made
   // 2.6M host calls: every member read again, and every component's name read once per set (`fileBlockers`).
   //   · `check/calls`: the check makes at most `CHECK_CAP` host calls. Mutations, each → `check/calls`: `fileBlockers`
-  //     reading every component's name per set again; the check not given the pass's reads (`keptView` dropped).
+  //     reading every component's name per set again; the check not given the pass's reads (`keptView` dropped); the
+  //     pass's own variables print removed (#3364: its reads are then refused, as on the first check after an open).
   //   · `check/same`: the check's answer is the same, whole, whether it lays its plans against the pass's reads, against
   //     them a second time, or against a fresh read of every set.
   //   · `check/views`: every set the pass read is kept, and each kept read, as the check hands it on (`freshView`), is a
@@ -930,7 +939,7 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   //     edited set is read again. Mutation: the listener's drop removed → `check/drops`.
   // Measured, not asserted: the check's host calls on a fresh read of every set.
   const CHECK_CAP = 900_000;
-  const checkOf = async (): Promise<{ msg: any; calls: number }> => {
+  const checkOf = async (): Promise<{ msg: any; calls: number; progress: { msg: any; turn: number; i: number }[]; answerAt: number }> => {
     const at = posted.length;
     calls = 0; callsIn.clear();
     counting = true;
@@ -938,7 +947,9 @@ console.log('\n  Capture baseline and Adopt (#3189)');
     const got = () => posted.slice(at).find((p) => p.msg?.type === 'update-check');
     for (let i = 0; i < 24000 && !got(); i++) await new Promise((res) => realTimeout(res, 5));
     counting = false;
-    return { msg: got()?.msg ?? null, calls };
+    const after = posted.slice(at);
+    const progress = after.flatMap((p, i) => (p.msg?.type === 'update-check-progress' ? [{ msg: p.msg, turn: p.turn ?? -1, i }] : []));
+    return { msg: got()?.msg ?? null, calls, progress, answerAt: after.findIndex((p) => p.msg?.type === 'update-check') };
   };
   const kept = await checkOf();
   const again = await checkOf();
@@ -972,7 +983,53 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   const setIn = (m: any): string => text((m?.sets ?? []).find((x: any) => x.def === touched));
   ok(!!edited2.msg && text(edited2.msg) === text(fresh.msg) && setIn(edited2.msg) !== setIn(kept.msg),
     `check/drops: a hand edit to ${touched} after the pass is in the next check's answer, as a fresh read gives it (${setIn(edited2.msg) === setIn(kept.msg) ? 'the edit is missing' : 'the edit is there'}; ${text(edited2.msg) === text(fresh.msg) ? 'same as fresh' : 'differs from fresh'})`);
+  // #3302 Q3302.1–.3 A, Q3302.4 A: the check says how far it has got, for the dialog's foot and rows.
+  //   · `check/progress`: once every set is found it posts done 0 of N, then one reading per set, done 1 to N in order,
+  //     each naming the set just checked and the one checked next, each in a turn of its own, all before the answer.
+  //     The sets are checked nested first since #3343 (`nestedFirst`), so the readings come in that order, not the
+  //     targets' own; the premise holds that the two orders differ here, so the reading order is really exercised.
+  //     Mutations, each → `check/progress`: the first reading (done 0) dropped; the hand-back after each set dropped;
+  //     the loop walking the targets' own order again.
+  // Measured: how many sets' lines the answer changed from the reading (the sets' moves are worked out at the end).
+  {
+    const pr = kept.progress;
+    const N = tdefs.length;
+    const dones = pr.map((p) => p.msg.done);
+    const names = pr.slice(1).map((p) => p.msg.set?.def ?? null);
+    const nexts = pr.map((p) => p.msg.next);
+    const targets: UpdateTarget[] = tdefs.map((d) => ({ def: d.id, plans: plansOf.get(d.id)!, ...(d.figmaProperties!.emitAsComponents ? { single: true } : {}) }));
+    const want = nestedFirst(targets).map((t) => t.def);
+    const asked = tdefs.map((d) => d.id);
+    ok(want.length === N && [...want].sort().join() === [...asked].sort().join() && want.join() !== asked.join(),
+      `check/progress premise: the nested-first order holds all ${N} sets and differs from the targets' own (first at index ${want.findIndex((x, i) => x !== asked[i])})`);
+    const turns = pr.map((p) => p.turn);
+    const ordered = JSON.stringify(dones) === JSON.stringify(Array.from({ length: N + 1 }, (_, i) => i)) && pr.every((p) => p.msg.total === N);
+    const named = JSON.stringify(names) === JSON.stringify(want) && JSON.stringify(nexts) === JSON.stringify([...want, null]);
+    const paced = turns.every((t, i) => i === 0 || t > turns[i - 1]);
+    const before = pr.every((p) => p.i < kept.answerAt);
+    ok(ordered && named && paced && before,
+      `check/progress: the check posts done 0 of ${N} once every set is found, then each set as it is checked, nested first, naming it and the next, each in its own turn, before the answer (${pr.length} readings; in order ${ordered}, named ${named}, a turn each ${paced}, before the answer ${before})`);
+    const finals = new Map((kept.msg?.sets ?? []).map((x: any) => [x.def, JSON.stringify(x)]));
+    const moved = pr.slice(1).filter((p) => p.msg.set && finals.get(p.msg.set.def) !== JSON.stringify(p.msg.set)).length;
+    console.log(`    the answer changed ${moved} of ${N} sets' lines from their readings`);
+  }
   console.log(`    the check's host calls: ${kept.calls} over the pass's reads, ${fresh.calls} reading every set`);
+  //   · `check/progress refused`: a def the engine can't plan counts as checked from the start, so the count still
+  //     reaches N: done 1 of N, then 2 to N, and the answer names it refused. Here one def's `anatomy` throws on read,
+  //     so planning it fails, and it is put back after. Mutation: `done: refused.length + p.done` → `done: p.done`.
+  {
+    const bad = tdefs.find((d) => !d.figmaProperties!.emitAsComponents)!;
+    const desc = Object.getOwnPropertyDescriptor(bad, 'anatomy')!;
+    Object.defineProperty(bad, 'anatomy', { get() { throw new Error('a stand-in def the engine cannot plan'); }, configurable: true, enumerable: true });
+    let r: Awaited<ReturnType<typeof checkOf>>;
+    try { r = await checkOf(); } finally { Object.defineProperty(bad, 'anatomy', desc); }
+    const N = tdefs.length;
+    const dones = r.progress.map((p) => p.msg.done);
+    const counts = JSON.stringify(dones) === JSON.stringify(Array.from({ length: N }, (_, i) => i + 1)) && r.progress.every((p) => p.msg.total === N);
+    const named = (r.msg?.refused ?? []).some((x: any) => x.def === bad.id);
+    ok(counts && named,
+      `check/progress refused: with ${bad.id} refused by the engine, the count starts at 1 of ${N} and reaches ${N} of ${N}, and the answer names it refused (done ${JSON.stringify(dones.length > 4 ? [...dones.slice(0, 2), '…', ...dones.slice(-2)] : dones)}; named ${named})`);
+  }
 
   // #3348: A WRITE DROPS EVERY KEPT VIEW, as it starts and as it ends (`guarded`): a write moves members with no change
   // the views hear in time. Each set's read is kept again here, then a write runs: one the guard brackets (an update of
@@ -987,6 +1044,30 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   await ACTIONS.updateComponents(['no-such-def'], 'no-such-hash', {}, tbrand, { post: probe, data: probe });
   ok(keptBefore === tsets.length && during === 0, `check/write start: a write drops every kept view as it starts (${keptBefore} kept before it, ${during} inside it)`);
   ok(during !== null && keptCount() === 0, `check/write end: a view kept while a write runs is dropped as it ends (${keptCount()} kept after it)`);
+
+  // #3364: A VARIABLE'S VALUE EDITED BETWEEN TWO CHECKS, through `main.ts`'s own check. Figma hears no document change for
+  // a value edited in the Variables panel, yet a member bound to it re-resolves. The stand-in gains one float variable,
+  // and every set's read is kept under the file's print, as the pass keeps it. A first check reuses them; then the
+  // variable's value is edited, and a member of an unedited set re-resolves (its opacity, which a variable can bind),
+  // with no `documentchange` sent. The second check must be a fresh read's answer, whole.
+  //   · `check/values`. Mutation: `checkSets` not printing the variables as the check starts (`under` a no-op) →
+  //     `check/values` (the second check lays its plans against the stale read).
+  standVars.push({ id: 'V:3364', name: 'stand/opacity', resolvedType: 'FLOAT', valuesByMode: { 'm:0': 1 } });
+  noteVariables(await variablesPrint(shim as never));
+  for (const { set } of tsets) keepView(await readSetView(set, undefined, noVars), viewEpoch());
+  const vKept = keptCount();
+  const vFirst = await checkOf();
+  const vDef = tdefs[unedited[2]].id;
+  const vMember = raws.get(tpages.find((p) => p.name === vDef)!.children[0])!.children[0];
+  standVars[0].valuesByMode = { 'm:0': 0.5 };
+  raws.get(vMember)!.opacity = 0.5;
+  const vSecond = await checkOf();
+  dropViews();
+  const vFresh = await checkOf();
+  const vSet = (m: any): string => text((m?.sets ?? []).find((x: any) => x.def === vDef));
+  ok(vKept === tsets.length && !!vSecond.msg && vSet(vFirst.msg) !== vSet(vFresh.msg) && text(vSecond.msg) === text(vFresh.msg),
+    `check/values: a variable's value edited between two checks, with no document change, is in the second check's answer, as a fresh read gives it (${vKept} kept; ${vDef} ${vSet(vFirst.msg) === vSet(vFresh.msg) ? 'did not move' : 'moved'}; second ${text(vSecond.msg) === text(vFresh.msg) ? 'same as fresh' : 'differs from fresh'})`);
+  standVars.length = 0;
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');

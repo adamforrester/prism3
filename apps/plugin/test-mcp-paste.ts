@@ -37,6 +37,8 @@
  *   · pack: the transport encoding round-trips every example brand's plans
  *   · components: dependency order, every script compiles, the `loadAllPagesAsync` adapter
  *   · size: every script for every example brand is ≤ SCRIPT_CEILING
+ *   · size/pages (#3414): no chunk script carries the file taxonomy, so a new component page costs a chunk nothing;
+ *     each set is placed once, by its own script, before its first chunk
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -49,7 +51,7 @@ import type { FileShimOpts as Opts } from './file-shim';
 import type { StepReport, Ledger } from './src/mcp-steps';
 import {
   themeScripts, themeCleanupScript, componentScripts, componentCleanupScripts, number, buildOrder, compareReadback,
-  mergeLedgers, brandFromDesignMd, summarize, ENGINE_VERSION, SCRIPT_CEILING,
+  mergeLedgers, brandFromDesignMd, summarize, ENGINE_VERSION, SCRIPT_CEILING, bundleStep,
 } from './mcp-paste';
 
 let failed = 0;
@@ -494,6 +496,45 @@ for (const [id, input] of ALL_BRANDS) { await section(`size/${id}`, async () => 
   const over = scripts.filter((s) => s.js.length > SCRIPT_CEILING);
   ok(over.length === 0, `size/${id}: all ${scripts.length} scripts are ≤ ${SCRIPT_CEILING} characters (largest: ${worst.label}, ${worst.js.length})${over.length ? ` — OVER: ${over.map((s) => `${s.label} ${s.js.length}`).join(', ')}` : ''}`);
 }); }
+
+/* ── size/pages (#3414) ──────────────────────────────────────────────────────────────────────────────── */
+// A chunk script's headroom must not shrink as the file taxonomy gains pages. It did: every chunk's bundle carried the
+// whole taxonomy (`runComponentChunk` → `placeOnPage` → `resolveComponentPage`), so each new component page took its
+// entry's characters out of every chunk of every set, and Dialog's one-member chunks were left 46 characters under the
+// ceiling. Placement is now one `component-place` script per set, and a chunk finds its page by name.
+//
+// THE EXPECTATION IS LITERAL: a taxonomy leaf ships, minified, as `page:"<name>"` (unquoted key, as esbuild prints an
+// object literal; a script's `__D` is JSON, whose keys are quoted, so it cannot match). Zero of them in a chunk
+// script means a page added to the taxonomy adds zero characters to any chunk. The place bundle must carry them, or
+// the zero proves nothing about the pattern. Mutation: `runComponentChunk` calling `placeOnPage` again (the full
+// taxonomy back in every chunk) → `size/pages: no chunk script carries a taxonomy entry`.
+await section('size/pages', async () => {
+  const LEAF = /page:"[^"]*"/g;
+  const placeLeaves = bundleStep('runComponentPlace').match(LEAF) ?? [];
+  ok(placeLeaves.includes('page:"Dialog"') && placeLeaves.includes('page:"Buttons"') && placeLeaves.length >= 40,
+    `size/pages: the placement bundle carries the taxonomy, so the pattern below can see it (${placeLeaves.length} entries, Dialog's and Buttons' among them)`);
+  const input = PARITY[1][1];
+  const scripts = number(componentScripts(input, 'all'));
+  const chunks = scripts.filter((s) => s.kind === 'component-chunk');
+  const carrying = chunks.filter((s) => (s.js.match(LEAF) ?? []).length > 0);
+  ok(chunks.length > 100 && carrying.length === 0,
+    `size/pages: no chunk script carries a taxonomy entry (${carrying.length} of ${chunks.length} do${carrying.length ? ` — ${carrying[0].label}: ${(carrying[0].js.match(LEAF) ?? []).length} entries` : ''})`);
+  // Every set placed once, before its first chunk, on the page its chunks are handed by name. Dialog's, literally.
+  const pageOf = (s: { js: string }) => (unpack(JSON.parse(/^const __D=(.*);$/m.exec(s.js)![1])) as { page?: string | null }).page;
+  const wrong = [...new Set(chunks.map((s) => s.def!))].flatMap((def) => {
+    const own = scripts.filter((s) => s.def === def);
+    const place = own.filter((s) => s.kind === 'component-place');
+    const first = own.findIndex((s) => s.kind === 'component-chunk');
+    const pages = new Set(own.filter((s) => s.kind === 'component-chunk').map(pageOf));
+    if (place.length === 0) return pages.size === 1 && pages.has(null) ? [] : [`${def}: no place script, chunks on ${[...pages].join(', ')}`];
+    if (place.length !== 1 || own.indexOf(place[0]) > first) return [`${def}: ${place.length} place script(s), first chunk at ${first}`];
+    return pages.size === 1 && pages.has(pageOf(place[0])) ? [] : [`${def}: placed on ${pageOf(place[0])}, chunks on ${[...pages].join(', ')}`];
+  });
+  ok(wrong.length === 0, `size/pages: every set is placed once, before its first chunk, on the page its chunks switch to by name${wrong.length ? ` — ${wrong.slice(0, 3).join('; ')}` : ''}`);
+  const dialog = scripts.filter((s) => s.def === 'dialog');
+  ok(dialog[0]?.kind === 'component-place' && pageOf(dialog[0]) === '↳ Dialog' && dialog.filter((s) => s.kind === 'component-chunk').every((s) => pageOf(s) === '↳ Dialog'),
+    `size/pages: dialog is placed on '↳ Dialog' first, and every one of its chunks switches to '↳ Dialog' (${dialog.map((s) => `${s.kind}:${pageOf(s)}`).slice(0, 2).join(', ')}, …)`);
+});
 
 console.log(failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass');
 process.exit(failed ? 1 : 0);
