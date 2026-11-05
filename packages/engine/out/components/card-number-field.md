@@ -26,8 +26,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 5. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
 6. **Value**
 7. **Card mark** (optional) — The card network's tile at the trailing edge, in its own colors: the generic tile until the network is known, then that network's. As tall as an icon, with the tile's own proportion. Decorative; the network is stated in text.
-8. **Focus ring**
-9. **Message** (optional)
+8. **Message** (optional)
 
 ## Styles
 
@@ -64,7 +63,7 @@ Use for a payment card's number in a checkout or a saved-card form. The field ne
 ## Accessibility
 
 - **Keyboard:** Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.
-- **Focus:** The input takes TextField's focus ring. With a hosted input, the ring follows the provider's focus event, and clicking the label focuses the provider's input.
+- **Focus:** The input takes TextField's 2px focus edge, in place of its border. With a hosted input, the edge follows the provider's focus event, and clicking the label focuses the provider's input.
 - **Screen readers:** textbox (a native \<input inputmode="numeric">, or the payment provider's hosted input inside its frame)
 
   The host wires the label, aria-describedby and aria-invalid as TextField does. The tile is aria-hidden. The detected network's name is a visually hidden description on the input, added to aria-describedby and never a live region, so typing is not interrupted by speech. Reformatting is not announced. With a hosted input, the label text is also passed to the provider's own label option, because a label outside the frame cannot name the input inside it.
@@ -95,7 +94,7 @@ Label = "Card number", sentence case, no trailing colon. Placeholder = a format 
 
 ## Related components
 
-- **Built from:** `field-label`, `field-message`, `focus-ring`
+- **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `text-field`
 - **Often used with:** `text-field`, `provider-logo`, `button`, `wallet-button`
 - **Replaces:**
@@ -125,7 +124,7 @@ Label = "Card number", sentence case, no trailing colon. Placeholder = a format 
 | `brand` | enum: 'generic' \| 'amex' \| 'diners-club' \| 'discover' \| 'maestro' \| 'mastercard' \| 'visa' | `generic` | no | The card network the field shows: generic until the leading digits tell the network, then that network's tile. Set it from the card-type detection, or from the payment provider's card-brand event when the provider hosts the input. Card networks only: a wallet or pay-later tile is never a value, because no card number names one. |
 | `brandName` | string | — | no | The detected network's name in the app's own words, such as "Visa". It goes in a visually hidden description on the input, linked by aria-describedby, so the network is never conveyed by the tile alone. Leave it empty while brand is generic. |
 | `showCardMark` | boolean | `true` | no | Whether the tile shows. On by default; the field shows the generic tile before it knows the network. |
-| `renderInput` | function | — | no | Returns the payment provider's mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus ring and message around the provider's input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope. |
+| `renderInput` | function | — | no | Returns the payment provider's mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus edge and message around the provider's input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope. |
 | `isPending` | boolean | `false` | no | Async validation in progress; sets aria-busy; does not block typing. |
 | `leadingIcon` | slot | — | no | An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | TextField's three tiers: the input type and the nested label scale with it. The tile is 20px tall at small and medium and 24px at large, its width from the tile's proportion. Every size keeps the input's 44px target. |
@@ -151,7 +150,6 @@ Generated from the plan that builds the design-file component: 84 members. Value
 | `container/message` | instance | every member |
 | `container/control/content/entry/value` | text | state=filled or focus-visible-filled or read-only |
 | `container/control/content/entry/caret` | frame | state=focus-visible |
-| `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
 | `container/control/content/entry/caretEnd` | frame | state=focus-visible-filled |
 
 Code-only states, with no design-file member: `pending`, `empty`.
@@ -453,7 +451,6 @@ Keyed by `status`, `state`.
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/control/cardMark` is a swap slot, property `↳ swap card mark`, shown by `card mark`, default `payment/generic`
 - `container/message` nests `field-message` at `status=default`; follows `status`
-- `container/control/focusRing` nests `focus-ring` at `surface=default`
 
 | Property | Type | Default |
 | --- | --- | --- |

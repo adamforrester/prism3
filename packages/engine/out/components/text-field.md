@@ -26,8 +26,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 5. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
 6. **Value**
 7. **Trailing visual** (optional) — An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.
-8. **Focus ring**
-9. **Message** (optional)
+8. **Message** (optional)
 
 ## Styles
 
@@ -63,7 +62,7 @@ Use for free-form, non-enumerable single-line input — names, titles, SKUs, ide
 ## Accessibility
 
 - **Keyboard:** Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are separate tab stops with their own accessible names. Escape clears when clearable.
-- **Focus:** :focus-visible ring, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field's own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the \<input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
+- **Focus:** :focus-visible draws the 2px focus edge in place of the border: from the field's outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the \<input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
 - **Screen readers:** textbox (native \<input>)
 
   The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
@@ -94,7 +93,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 
 ## Related components
 
-- **Built from:** `field-label`, `field-message`, `focus-ring`
+- **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`
 - **Often used with:** `icon`, `button`, `spinner`
 - **Replaces:**
@@ -152,7 +151,6 @@ Generated from the plan that builds the design-file component: 84 members. Value
 | `container/message` | instance | every member |
 | `container/control/content/entry/value` | text | state=filled or focus-visible-filled or read-only |
 | `container/control/content/entry/caret` | frame | state=focus-visible |
-| `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
 | `container/control/content/entry/caretEnd` | frame | state=focus-visible-filled |
 
 Code-only states, with no design-file member: `pending`, `empty`.
@@ -482,7 +480,6 @@ Keyed by `status`, `state`.
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/control/trailingVisual` is a swap slot, property `↳ swap trailing icon`, shown by `trailing icon`
 - `container/message` nests `field-message` at `status=default`; follows `status`
-- `container/control/focusRing` nests `focus-ring` at `surface=default`
 
 | Property | Type | Default |
 | --- | --- | --- |

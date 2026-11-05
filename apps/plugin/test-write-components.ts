@@ -5341,7 +5341,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const kinds = new Set(figmaAnatomySet(materializeForBrand(def(id), input), { swapTarget: SWAP }).map((p) => {
       const b = find(p.root, 'control')?.bound ?? {};
       if (b.strokeTopWeight === 'border-width/none' && b.strokeLeftWeight === 'border-width/none' && b.strokeRightWeight === 'border-width/none' && /^border-width\/(hairline|thick)$/.test(b.strokeBottomWeight) && !('strokeWeight' in b)) return 'underline';
-      if (b.strokeWeight === 'border-width/hairline' && !('strokeBottomWeight' in b)) return 'outline';
+      // An outline control binds one scalar weight: the hairline, and the 2px focus edge at focus (#3399).
+      if (/^(border-width\/hairline|focus\/ring\/width)$/.test(b.strokeWeight) && !('strokeBottomWeight' in b)) return 'outline';
       return `odd(${JSON.stringify(b)})`;
     }));
     return kinds.size === 1 ? [...kinds][0] : `mixed(${[...kinds].join(', ')})`;

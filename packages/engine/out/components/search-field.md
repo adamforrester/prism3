@@ -26,8 +26,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 5. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
 6. **Value**
 7. **Trailing visual** (optional) — An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.
-8. **Focus ring**
-9. **Message** (optional)
+8. **Message** (optional)
 
 ## Styles
 
@@ -62,7 +61,7 @@ Use for a query that finds or filters: a site search, a search within a section,
 ## Accessibility
 
 - **Keyboard:** Tab reaches the input, then the clear button while the field holds a value. Enter submits the host's form. Escape empties the field. Enter or Space on the clear button empties the field and returns focus to the input.
-- **Focus:** The input takes TextField's focus ring. The clear button takes its own focus ring, and pressing it moves focus back to the input.
+- **Focus:** The input takes TextField's 2px focus edge, in place of its border. The clear button takes its own focus ring, and pressing it moves focus back to the input.
 - **Screen readers:** searchbox (native \<input type="search">), plus a native \<button type="button"> to clear it
 
   The host wires the label, aria-describedby and aria-invalid as TextField does. A hidden label stays in the DOM, visually hidden, never display: none. The clear button carries aria-label="Clear search" and aria-controls naming the input; the cleared state is announced once through the app's shared polite live region: "Search cleared". While results load, aria-busy.
@@ -94,7 +93,7 @@ Label = noun phrase, sentence case, no trailing colon, naming what is searched. 
 
 ## Related components
 
-- **Built from:** `field-label`, `field-message`, `focus-ring`
+- **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `text-field`
 - **Often used with:** `icon`, `icon-button`, `spinner`
 - **Replaces:**
@@ -149,7 +148,6 @@ Generated from the plan that builds the design-file component: 84 members. Value
 | `container/message` | instance | every member |
 | `container/control/content/entry/value` | text | state=filled or focus-visible-filled or read-only |
 | `container/control/content/entry/caret` | frame | state=focus-visible |
-| `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
 | `container/control/content/entry/caretEnd` | frame | state=focus-visible-filled |
 
 Code-only states, with no design-file member: `pending`, `empty`.
@@ -479,7 +477,6 @@ Keyed by `status`, `state`.
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`, default `search`
 - `container/control/trailingVisual` is a swap slot, property `↳ swap trailing icon`, shown by `trailing icon`, default `close-filled`
 - `container/message` nests `field-message` at `status=default`; follows `status`
-- `container/control/focusRing` nests `focus-ring` at `surface=default`
 
 | Property | Type | Default |
 | --- | --- | --- |
