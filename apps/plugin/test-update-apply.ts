@@ -865,7 +865,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   // #3421 (Q39 A): the kept dot holds back the plan's size and corner bindings on it, so the verdict names them and the
   // headline says a set kept edits over changes. Typed here.
   ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place · 1 set kept edits over changes'
-    && v.lines[1] === 'radio-control: hand edits kept on 1 member hold back 2 changes the plan makes (dot: size → control/size/md/dot, dot: corner radius → radius/round). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.',
+    && v.lines[1] === 'radio-control: hand edits kept on 1 member keep out 2 of the plan\'s values (dot: size → control/size/md/dot, dot: corner radius → radius/round). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.',
     `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
 
   // #3326 PR 1 (Q3326.1 A): CAUSES, from the facts `ok` reads, never from the lines' words. A clean run has none; a set
@@ -4496,8 +4496,18 @@ section('field style — a field set built in one Field style is redrawn in plac
       const v = applyVerdict(res);
       ok(pre.sets[0].counts.update === n && v.ok, `field style/${tag}: all ${n} members read to update, and one apply succeeds (${JSON.stringify(pre.sets[0].counts)}; ${v.headline}${v.ok ? '' : ` — ${v.lines.slice(0, 2).join(' | ').slice(0, 240)}`})`);
       const after = identityOf(w.set());
-      const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
-      ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+      // THE RING IS UNDERLINE'S ALONE (#3399, Q22 A): the outline edge's border is the focus edge and draws no ring, so
+      // Underline → Outline removes the focus members' ring node, and that node only. Every other node keeps its id; the
+      // ring is checked gone, and the exclusion is checked to have excluded something.
+      const RING = /(^|\/)focusRing#\d+$/;
+      const dropsRing = toName === 'outline';
+      const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => !(dropsRing && RING.test(path)) && after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
+      const ringsBefore = [...before.members.values()].filter((b) => [...b.kids.keys()].some((k) => RING.test(k))).length;
+      const ringsAfter = [...after.members.values()].filter((b) => [...b.kids.keys()].some((k) => RING.test(k))).length;
+      ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids${dropsRing ? ', but for the ring Outline does not draw' : ''} (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+      // 24 = 3 sizes × 4 statuses × the 2 focus states, typed.
+      ok(dropsRing ? ringsBefore === 24 && ringsAfter === 0 : ringsBefore === 0 && ringsAfter === 24,
+        `field style/${tag} ring (#3399): the focus ring is on all 24 focus members under underline and on none under outline (before ${ringsBefore}, after ${ringsAfter})`);
       // THE WASH (#2774, then #2926): until #2926 an outline hover washed and had to draw translucent; since #2926 no
       // field washes under either style, so no plan asks for one in either direction.
       const washed = to.filter((p) => /\/overlay\//.test(String(findPart(p.root as unknown as Node, 'control')?.paints?.fills ?? ''))).map((p) => planComponentName(p));

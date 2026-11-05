@@ -376,6 +376,38 @@ for (const brand of GATED) {
     ok(wrong.length === 0, `${brand} washes (#2365): each of the ${washes.length} is written as its color alias at its opacity alias, as the emission plans${wrong.length ? ` — ${wrong.slice(0, 4).join('; ')}` : ''}`);
     report(`${brand} export`, diffs.filter((d) => !carved.includes(d)), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE', 'DESCRIPTION']);
 
+    // #3399 (Q22 A, Q22.1 A): WHAT THE FOCUS EDGE BINDS, AS APPLY THEME WRITES IT. A focused field's edge is its own stroke,
+    // weighted by `focus/ring/width` and painted in `color/border/focus` or its status role, at the field's
+    // `radius/sm`; at rest the weight is `border-width/hairline`. Each must be a variable in the file Apply Theme left,
+    // and the two weights must resolve, through any alias chain, to the literal 2px and 1px in every mode, so the edge a
+    // designer gets in an applied file is the edge the components were built against.
+    {
+      const EDGE: Record<string, number | null> = {
+        'focus/ring/width': 2, 'border-width/hairline': 1, 'radius/sm': null,
+        'color/border/focus': null, 'color/border/danger': null, 'color/border/warning': null, 'color/border/success': null, 'color/field/border/rest': null,
+      };
+      const byTail = (tail: string) => file.vars.filter((v: any) => v.name === tail || String(v.name).endsWith(`/${tail}`));
+      const resolveNum = (v: any, modeId: string, depth = 0): unknown => {
+        const val = v?.valuesByMode?.[modeId] ?? Object.values(v?.valuesByMode ?? {})[0];
+        if (val && typeof val === 'object' && (val as any).type === 'VARIABLE_ALIAS' && depth < 8) {
+          const t: any = file.vars.find((x: any) => x.id === (val as any).id);
+          return resolveNum(t, Object.keys(t?.valuesByMode ?? {}).includes(modeId) ? modeId : Object.keys(t?.valuesByMode ?? {})[0], depth + 1);
+        }
+        return val;
+      };
+      const off: string[] = [];
+      for (const [tail, px] of Object.entries(EDGE)) {
+        const found = byTail(tail);
+        if (found.length === 0) { off.push(`${tail}: not in the file`); continue; }
+        if (px === null) continue;
+        for (const v of found) for (const modeId of Object.keys(v.valuesByMode ?? {})) {
+          const got = resolveNum(v, modeId);
+          if (got !== px) off.push(`${v.name} @${modeId}: ${J(got)}, not ${px}`);
+        }
+      }
+      ok(off.length === 0, `${brand} focus edge (#3399): Apply Theme writes every variable the focus edge binds (${Object.keys(EDGE).join(', ')}), the focus width resolving to 2px and the hairline to 1px in every mode${off.length ? ` — ${off.slice(0, 4).join('; ')}` : ''}`);
+    }
+
     // Motion, both exports against the engine's DTCG (#2394, #2412).
     const motion = dtcgMotion(brand);
     motionFloors(brand, motion);

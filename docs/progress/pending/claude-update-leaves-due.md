@@ -12,7 +12,7 @@ The reference brand's master, after #3402 (`interactive.*.indicator.*`), showed 
 
 - **Ordering.** The dry run marks a set `themeBlocked` when every blocker is a variable or a text or effect style the plans name (`update-plan.ts`). With Theme ticked, the update step takes such a set (`updatableOf`). The step checks again after Theme (`recheckFirst`), and accepts the changed hash only for those sets (`recheckHolds`, now shared by `apps/studio/src/main.ts`). The row says "Updated after Theme — Theme writes the variables and styles it binds first". A set still blocked after Theme is refused by name in the verdict.
 - **Kept edits.** Under Keep, `heldOf` names what the dry run's `conflict` hand edits hold back: the members, and each change on that node in the designer's words (`border → color/…`, `dot: size → …`). The verdict names every one, and the headline adds "· N sets kept edits over changes". `ledgerAfter` (moved out of `main.ts`) records the entry with `held`, and `dueOf` reads such an otherwise-current set as `kept`. Update file lists it under a new **Kept edits** group with its own Keep / Overwrite / Accept as baseline select, sent as `UpdateChoices.sets`. A line under the hand-edit select says what each choice does.
-- **The build record.** In update mode the executor files a bound read-back on a kept node under `kept` (`keptCount`, five named), not `misses`, through one test shared with the verdict (`keptBoundOf`). This is an executor change, so `EXECUTOR_REVISION` rises to **53**: #3380 and #3399 each hold 52. `executor-reach.json` gains `"52": []` and `"53": []`; the reach lint measured 0 sets redrawn.
+- **The build record.** In update mode the executor files a bound read-back on a kept node under `kept` (`keptCount`, five named), not `misses`, through one test shared with the verdict (`keptBoundOf`). This is an executor change, so `EXECUTOR_REVISION` rises to **53**, above main's 52 (#3399). `executor-reach.json` gains `"53": []`, and main's 52 entry stands; the reach lint measured 0 sets redrawn.
 
 ### The gate
 
@@ -37,6 +37,8 @@ The Theme step is modeled as the variables arriving (`liveVars`, a new shim opti
 - #3435: switch-control's and tab-item's misses, not reproduced here.
 - #3436: a second Keep run over a kept set records it as current.
 
-### Left for the owner
+### Owner decisions (2026-11-05)
 
-The new strings are DRAFT, Q3421.1–.6 in the PR. Kept edits sets are not counted in the badge, because Keep changes nothing on a run.
+- **Q3421.2 A, Q3421.5 A:** the verdict line and the Kept edits set's line say the kept edits "keep out N of the plan's values", not "hold back N changes the plan makes". Some named entries are values the plan bound before and after, which the hand edit dropped, so they are not changes this update makes. The headline stays as drafted, and the result stays ✓.
+- **Q3421.1, .3, .4, .6 A:** as drafted.
+- **Q3421.7 A:** Kept edits sets are not counted in the badge, because Keep changes nothing on a run.

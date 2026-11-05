@@ -28,8 +28,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 7. **Caret end** — The insertion point on the focused field that holds a value, immediately after the value, in the value ink. Code draws the native caret where the user is typing.
 8. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
 9. **Value**
-10. **Focus ring**
-11. **Message** (optional)
+10. **Message** (optional)
 
 ## Styles
 
@@ -64,7 +63,7 @@ Use for a password, a PIN typed as text, or any other secret a user types. The f
 ## Accessibility
 
 - **Keyboard:** Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.
-- **Focus:** The input takes TextField's focus ring. The button takes Button's own focus ring. Pressing the button never moves focus.
+- **Focus:** The input takes TextField's 2px focus edge, in place of its border. The button takes Button's own focus ring. Pressing the button never moves focus.
 - **Screen readers:** textbox (native \<input type="password">, switched to type="text" while shown), plus a native \<button type="button">
 
   The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app's shared polite live region: "Your password is shown" / "Your password is hidden".
@@ -96,7 +95,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 
 ## Related components
 
-- **Built from:** `field-label`, `field-message`, `focus-ring`, `button`
+- **Built from:** `field-label`, `field-message`, `button`
 - **Instead, consider:** `text-field`
 - **Often used with:** `list`
 - **Replaces:**
@@ -150,7 +149,6 @@ Generated from the plan that builds the design-file component: 84 members. Value
 | `container/message` | instance | every member |
 | `container/control/content/entry/value` | text | state=filled or focus-visible-filled or read-only |
 | `container/control/content/entry/caret` | frame | state=focus-visible |
-| `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
 | `container/control/content/entry/caretEnd` | frame | state=focus-visible-filled |
 
 Code-only states, with no design-file member: `pending`, `empty`.
@@ -455,7 +453,6 @@ Keyed by `status`, `state`.
 - `container/labelRow/toggle` nests `button` at `appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false`; `state=disabled` takes `state=disabled`; exposes `label`
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/message` nests `field-message` at `status=default`; follows `status`
-- `container/control/focusRing` nests `focus-ring` at `surface=default`
 
 | Property | Type | Default |
 | --- | --- | --- |

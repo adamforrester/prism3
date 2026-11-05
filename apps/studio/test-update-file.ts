@@ -289,7 +289,7 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
   ok(recheckHolds(['button'], [{ def: 'button', hash: 'a', themeBlocked: true }] as never, [{ def: 'button', hash: 'b' }] as never)
     && !recheckHolds(['button'], [{ def: 'button', hash: 'a' }] as never, [{ def: 'button', hash: 'b' }] as never),
     '#3421 order: after Theme a theme-blocked set may read otherwise; any other set must read as reviewed');
-  ok(UPDATE_COPY.keptLine({ members: 12, changes: ['border → color/x'] }) === '12 members hold back 1 change: border → color/x',
+  ok(UPDATE_COPY.keptLine({ members: 12, changes: ['border → color/x'] }) === '12 members keep out 1 of the plan’s values: border → color/x',
     'Q39 A copy: a Kept edits set\'s line names its members and each change held back');
 }
 
