@@ -50,7 +50,10 @@ import type { ComponentSpec } from '@prism3/engine/component-specs';
 import { figmaVarName, figmaTextStyleName } from '@prism3/engine/anatomy-figma';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, varValue } from './component-shim';
-import { materializeForBrand } from './src/brand-def';
+import { materializeForBrand, materializerFor } from './src/brand-def';
+import { brandMaterializer } from '@prism3/engine/component-defs-export';
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine/theme';
 import { planTargets, prebuildDependencies } from './src/build-deps';
 import { reactionMap } from './src/reactions';
 import { readSpecTag } from './src/spec-tag';
@@ -711,6 +714,17 @@ ok(inventory.length > 0 && inventory.some((i) => i.plans > 0), `the corpus produ
   // which is what Apply builds for a file with no brand settings; a lever in one and not the other fails here by def.
   const drift = componentDefs.filter((d) => JSON.stringify(specMaterialize(d)) !== JSON.stringify(materializeForBrand(d, null))).map((d) => d.id);
   ok(drift.length === 0, `spec read-back: specMaterialize matches materializeForBrand(def, null) on all ${componentDefs.length} defs${drift.length ? ` — differs on ${drift.join(', ')}` : ''}`);
+
+  // #3425 — THE COMPONENT-DEFS EXPORT'S BRAND MATERIALIZATION restates `materializerFor` too (`brandMaterializer`, the
+  // engine must not import a surface). Held to it on every def for every example brand, for no brand, and for one brand
+  // with every component setting off its default, so a lever added to one and not the other fails here by brand and def.
+  const offBrand = { ...(exampleBrands as Record<string, BrandInput>).prism3, id: 'off-defaults', controlShape: 'pill', fieldStyle: 'underline', searchFieldStyle: 'outline', tagStyle: 'underline', dialogTitleSize: 'small', bannerStyle: 'outlined', density: 'compact', buttonIcons: 'edges', buttonContentSize: 'smaller', buttonMinWidthMultiplier: 3, buttonLabelWeight: 'default', buttonTextHover: 'fill' } as BrandInput;
+  for (const [label, input] of [['no brand', null], ...Object.entries(exampleBrands as Record<string, BrandInput>), ['every setting off its default', offBrand]] as [string, BrandInput | null][]) {
+    const engineSide = brandMaterializer(input);
+    const pluginSide = materializerFor(input);
+    const differ = componentDefs.filter((d) => JSON.stringify(engineSide(d)) !== JSON.stringify(pluginSide(d))).map((d) => d.id);
+    ok(differ.length === 0, `defs export: brandMaterializer matches materializerFor for ${label} on all ${componentDefs.length} defs${differ.length ? ` — differs on ${differ.join(', ')}` : ''}`);
+  }
 }
 
 if (INVENTORY) {

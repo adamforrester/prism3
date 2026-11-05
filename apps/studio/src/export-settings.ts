@@ -84,7 +84,7 @@ export const AVAILABLE_SOURCES: readonly ExportSource[] = ['generated'];
 // Artifacts — the first level. Which output, then its settings.
 // ===========================================================================================
 
-export type ArtifactId = 'dtcg' | 'design-md';
+export type ArtifactId = 'dtcg' | 'design-md' | 'component-specs';
 
 export interface ArtifactDef {
   readonly id: ArtifactId;
@@ -93,7 +93,8 @@ export interface ArtifactDef {
 }
 
 /**
- * Two artifacts. Style-Dictionary-native is NOT a third — #720's 2026-08-12 note: the consumability
+ * Three artifacts: the tokens, the brief and, since #3425, the component specs. Style-Dictionary-native is NOT one of
+ * them — #720's 2026-08-12 note: the consumability
  * thesis (#635) is that stock Style Dictionary reads our DTCG with no custom code, asserted on every
  * CI run, so an SD-specific artifact would imply the DTCG needs adapting for SD. Do not build an
  * emitter to justify a UI level.
@@ -112,6 +113,13 @@ export const ARTIFACTS: readonly ArtifactDef[] = [
     id: 'design-md',
     label: 'Brand brief',
     desc: 'The few anchors this brand is generated from, as Markdown. Import it back here to get the brand again.',
+  },
+  {
+    // #3425 (owner decision Q45 A; DRAFT wording for the owner, Q3425.1): the component-defs export for the brand on
+    // screen, its component settings resolved, and the same as a Specs components set.
+    id: 'component-specs',
+    label: 'Component specs',
+    desc: "Every component's props, states, parts and the tokens each part binds, built with this brand's component settings. As Prism3 JSON and in the Specs format.",
   },
 ];
 

@@ -51,6 +51,15 @@
  *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), with role and ARIA under
  *      one Screen readers row (`SCREEN READERS`); F5 the
  *      maintainer record's `docGaps` names every section not drawn and every part note held back.
+ *   G  THE COMPONENT-DEFS EXPORT (#3425). `out/components/component-defs.json` validates against the AUTHORED
+ *      `schema/component-defs.schema.json`, its `format` names the schema's `$id`, its two version stamps are
+ *      `version.ts`'s, and it holds every registered def and no other; each entry's `def` IS its `components.ai.json`
+ *      entry and its `spec` IS its `specs.json` entry, and its `digest` is the FNV-1a of the two, recomputed here
+ *      (`DEFS DEF` / `DEFS SPEC` / `DEFS DIGEST`). A brand export is never committed, so it is held live: one per
+ *      example brand plus one with every component setting off its default validates against the same schema, its
+ *      `brand.settings` say what the input set (literals here, `DEFS SETTINGS`), and Tag, Text field, Dialog, Banner and
+ *      Radio each draw a different spec with and without the one setting that moves them (Radio's dot moves px only). The Specs mapping is held
+ *      outside the engine, by a stock validator over the published schema (`packages/tokens/check-specs.mjs`).
  *
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────
  *
@@ -79,7 +88,9 @@
  * TITLE`) · the sections reversed (`SECTION ORDER`) · the raw part notes rendered on the page (`ANATOMY
  * LINE (page)`, `HELD-BACK NOTE (page)`) · each axis's last value as the specimen (`SPECIMEN (page)`) · a
  * partner already under Built from repeated under Often used with (`EXTRA VALUE (page)`) · role and ARIA as
- * two rows (`SCREEN READERS (page)`).
+ * two rows (`SCREEN READERS (page)`). Arm G (#3425): `radio-control`'s `def.ai.avoidWhen` hand-edited in the committed
+ * export (`DEFS DEF` + `DEFS DIGEST`; `regen --check` names the file too) · a field added to `tag`'s entry and one of its
+ * colors moved (`DEFS SCHEMA` + `DEFS SPEC` + `DEFS DIGEST`).
  *
  * WHAT THIS DOES NOT CHECK: that the committed forms match what the projector emits NOW — that is
  * `regen.ts --check`'s job — and whether a sentence reads well; the prose gates own that for the payload.
@@ -91,6 +102,9 @@ import type { ComponentDef } from './component-schema';
 import { docSections } from './component-doc-sections';
 import { componentDefs } from './components/index';
 import { validate } from './json-schema-lite';
+import { exportComponentDefs } from './component-defs-export';
+import type { BrandInput } from './theme';
+import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DIR = resolve(here, 'out', 'components');
@@ -722,6 +736,63 @@ for (const def of itemsSizeHosts) {
   if (!unescape(pages.get(def.id) ?? '').includes(ITEMS_SIZE_NOTE)) note(`ITEMS SIZE NOTE (page): out/components/${def.id}.md does not carry the items size note`);
 }
 
+// ---- ARM G: the component-defs export (#3425, owner decision Q45 A) ------------------------------------------------
+// ACTUAL is the committed export on disk. EXPECTED is the two committed projections it composes (each held to the defs
+// by the arms above and by `regen --check`), the authored schema, and `version.ts`. The digest is recomputed with this
+// file's own FNV-1a, never the exporter's. A brand export is never committed, so it is held live: for every example
+// brand, and for one brand with every component setting off its default, it validates against the same schema, its
+// `brand.settings` say what the input set (literals here), and a setting that moves a spec moves it.
+const DEFS_FILE = resolve(DIR, 'component-defs.json');
+const DEFS_SCHEMA = JSON.parse(readFileSync(resolve(here, 'schema', 'component-defs.schema.json'), 'utf8'));
+const fnv = (str: string): string => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
+let defsChecked = 0;
+if (!existsSync(DEFS_FILE)) note('DEFS EXPORT: out/components/component-defs.json does not exist — run `npx tsx packages/engine/regen.ts`');
+else {
+  const defsText = readFileSync(DEFS_FILE, 'utf8');
+  const ex = JSON.parse(defsText);
+  const specsDoc = JSON.parse(readFileSync(resolve(DIR, 'specs.json'), 'utf8'));
+  for (const e of validate(DEFS_SCHEMA, ex)) note(`DEFS SCHEMA: ${e}`);
+  if (ex.format !== DEFS_SCHEMA.$id) note(`DEFS SCHEMA: the export's format (${ex.format}) does not name the schema's $id (${DEFS_SCHEMA.$id}) — bump both together`);
+  if (ex.engineVersion !== ENGINE_VERSION) note(`DEFS VERSION: engineVersion ${ex.engineVersion} is not version.ts's ENGINE_VERSION ${ENGINE_VERSION}`);
+  if (ex.contractVersion !== CONTRACT_VERSION) note(`DEFS VERSION: contractVersion ${ex.contractVersion} is not version.ts's CONTRACT_VERSION ${CONTRACT_VERSION}`);
+  if (ex.brand !== null) note('DEFS BRAND: the committed export is the brand-neutral one, so its `brand` is null');
+  if (PRISM2.test(defsText)) note('PRISM 2: component-defs.json names Prism 2 — no shipped artifact may cite it');
+  const exIds = Object.keys(ex.components ?? {});
+  for (const id of ids) if (!ex.components?.[id]) note(`DEFS MISSING: def \`${id}\` is registered but has no entry in component-defs.json`);
+  for (const id of exIds) if (!ids.includes(id)) note(`DEFS STALE: \`${id}\` is in component-defs.json but no registered def has that id`);
+  for (const id of exIds) {
+    const c = ex.components[id];
+    if (JSON.stringify(c.def) !== JSON.stringify(entries[id])) note(`DEFS DEF: \`${id}\`'s def in component-defs.json is not its entry in components.ai.json`);
+    const sp = specsDoc.components?.[id];
+    if (JSON.stringify(c.spec) !== JSON.stringify(sp)) note(`DEFS SPEC: \`${id}\`'s spec in component-defs.json is not its entry in specs.json${sp ? '' : ' (specs.json has none)'}`);
+    const body = { def: c.def, ...(c.spec ? { spec: c.spec } : {}) };
+    if (c.digest !== fnv(JSON.stringify(body))) note(`DEFS DIGEST: \`${id}\`'s digest ${c.digest} is not the FNV-1a of its entry (${fnv(JSON.stringify(body))}) — the entry moved without its digest`);
+    defsChecked++;
+  }
+}
+const exampleBrands: Record<string, BrandInput> = JSON.parse(readFileSync(resolve(here, 'schema', 'example-brands.json'), 'utf8'));
+const OFF = { controlShape: 'pill', fieldStyle: 'underline', searchFieldStyle: 'outline', tagStyle: 'underline', dialogTitleSize: 'small', bannerStyle: 'outlined', density: 'compact', radioDot: 80, raisedSurface: 'white' } as const;
+const brandCases: [string, BrandInput][] = [...Object.entries(exampleBrands), ['every setting off its default', { ...exampleBrands.prism3, ...OFF } as BrandInput]];
+if (brandCases.length < 3) note(`DEFS BRANDS: ${brandCases.length} brand cases — schema/example-brands.json is not being read`);
+for (const [label, input] of brandCases) {
+  const bx = exportComponentDefs(componentDefs, { brand: input });
+  for (const e of validate(DEFS_SCHEMA, bx)) note(`DEFS SCHEMA (${label}): ${e}`);
+  if (bx.brand?.id !== input.id) note(`DEFS BRAND (${label}): brand.id ${bx.brand?.id} is not the input's ${input.id}`);
+  if (Object.keys(bx.components).length !== ids.length) note(`DEFS BRAND (${label}): ${Object.keys(bx.components).length} components, not the registry's ${ids.length}`);
+}
+const off = exportComponentDefs(componentDefs, { brand: brandCases[brandCases.length - 1][1] });
+for (const [k, v] of Object.entries(OFF)) if ((off.brand?.settings as Record<string, unknown> | undefined)?.[k] !== v) note(`DEFS SETTINGS: a brand that sets ${k}: ${v} exports ${k}: ${JSON.stringify((off.brand?.settings as Record<string, unknown> | undefined)?.[k])}`);
+// A setting that moves a spec moves it. Each id below draws differently under the setting named, so its spec under the
+// off-defaults brand cannot equal its spec under the same brand with that ONE setting back at its default (both carry
+// px, so the comparison sees the setting and nothing else). `radioDot` moves a token's value, not a binding: it must
+// move the px on Radio's spec while leaving every token name where it was.
+const offInput = brandCases[brandCases.length - 1][1];
+const without = (k: keyof typeof OFF) => { const b: Record<string, unknown> = { ...offInput }; delete b[k]; return exportComponentDefs(componentDefs, { brand: b as BrandInput }); };
+for (const [id, setting] of [['tag', 'tagStyle'], ['text-field', 'fieldStyle'], ['dialog', 'dialogTitleSize'], ['banner', 'bannerStyle'], ['radio-control', 'radioDot']] as const)
+  if (JSON.stringify(off.components[id]?.spec) === JSON.stringify(without(setting).components[id]?.spec)) note(`DEFS SETTINGS: \`${id}\`'s spec is the same with and without ${setting}: ${OFF[setting]} — the brand's setting did not reach it`);
+const names = (spec: unknown): string => JSON.stringify(spec, (k, v) => (k === 'px' ? undefined : v));
+if (names(off.components['radio-control']?.spec) !== names(without('radioDot').components['radio-control']?.spec)) note('DEFS SETTINGS: radioDot moved a token NAME on `radio-control`\'s spec — it moves a value, so only px may change');
+
 // ---- report ----------------------------------------------------------------------------------
 if (fail.length) {
   console.error(`\n✗ component docs — ${fail.length} problem(s):\n`);
@@ -732,4 +803,5 @@ if (fail.length) {
 console.log(`  ✓ clean — ${ids.length} defs in all three files; ${declared.length - UNUSED_IN_CORPUS.size} schema fields represented (${UNUSED_IN_CORPUS.size} unused in the corpus, exempt); ` +
   `${jsonChecked} def leaves round-trip to the JSON, ${pageChecked} strings to their page section, ${cellChecked} values to their table cell, ${kindChecked} axis kinds to both; ` +
   `${maintChecked} maintainer entries in the record and none of ${probed} in either payload form (${shared} shared verbatim with a shipped field of the same def); no Prism 2 in the payload (${keptInRecord} maintainer entries name it, kept in the record only); ` +
+  `component-defs export: ${defsChecked} entries match both projections and their digests, ${brandCases.length} brand exports valid; ` +
   `section model: ${sourceChecked} source values in their own section, ${sectionsChecked} sections drawn as the data gives, ${stripped} emptied sections not drawn, every page's sections matching, ${anatomyChecked} page Anatomy lines as the def gives.`);
