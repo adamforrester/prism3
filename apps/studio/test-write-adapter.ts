@@ -83,7 +83,10 @@ accepts('component-result with a cause holding every field', { type: 'component-
   { kind: 'component-result', ok: false, headline: '⚠ built', summary: 's', completed: true, lines: ['s'], causes: [{ ...CAUSE, step: 'Build', why: 'w', stays: 'The set stays as it was.', todo: 't' }] });
 accepts('component-update-result with no causes found', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], causes: [] },
   { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['s'], publish: null, causes: [] });
-for (const [label, bad] of [['an unknown kind', { ...CAUSE, kind: 'note' }], ['a numeric subject', { ...CAUSE, subject: 3 }], ['a reason not a string', { ...CAUSE, reasons: ['a', 2] }], ['no what', { ...CAUSE, what: undefined }], ['a todo not a string', { ...CAUSE, todo: 1 }],
+// #3326 PR 2 (Q3390.3 A): `note` is a cause kind, carried through on any verdict, a clean one included.
+accepts('component-update-result with a note', { type: 'component-update-result', ok: true, headline: '✓ updated 4 in place', summary: 's', lines: ['s'], causes: [{ ...CAUSE, kind: 'note', subject: null }] },
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 4 in place', summary: 's', lines: ['s'], publish: null, causes: [{ ...CAUSE, kind: 'note', subject: null }] });
+for (const [label, bad] of [['an unknown kind', { ...CAUSE, kind: 'info' }], ['a numeric subject', { ...CAUSE, subject: 3 }], ['a reason not a string', { ...CAUSE, reasons: ['a', 2] }], ['no what', { ...CAUSE, what: undefined }], ['a todo not a string', { ...CAUSE, todo: 1 }],
   // #3326 PR 1 review N3: each optional field is checked, so `causesOf` losing any one of them fails its arm by name.
   ['a step not a string', { ...CAUSE, step: 1 }], ['a why not a string', { ...CAUSE, why: 1 }], ['a stays not a string', { ...CAUSE, stays: 1 }]] as const) {
   accepts(`component-result whose causes hold ${label}`, { type: 'component-result', ok: false, completed: true, headline: '⚠ built', summary: 's', lines: ['s'], causes: [CAUSE, bad] },

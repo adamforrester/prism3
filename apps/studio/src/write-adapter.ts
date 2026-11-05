@@ -291,7 +291,7 @@ const causesOf = (x: unknown): readonly Cause[] | null => {
   const out: Cause[] = [];
   for (const e of x as unknown[]) {
     const c = (e ?? {}) as Record<string, unknown>;
-    if ((c.kind !== 'warn' && c.kind !== 'bad') || (c.subject !== null && typeof c.subject !== 'string') || typeof c.what !== 'string'
+    if ((c.kind !== 'warn' && c.kind !== 'bad' && c.kind !== 'note') || (c.subject !== null && typeof c.subject !== 'string') || typeof c.what !== 'string'
       || !Array.isArray(c.reasons) || !c.reasons.every((r) => typeof r === 'string') || !opt(c.step) || !opt(c.why) || !opt(c.stays) || !opt(c.todo)) return null;
     out.push({ kind: c.kind, subject: c.subject, what: c.what, reasons: [...c.reasons as string[]],
       ...(typeof c.step === 'string' ? { step: c.step } : {}), ...(typeof c.why === 'string' ? { why: c.why } : {}),

@@ -237,15 +237,23 @@ const BUSY_LABEL = 'Updating';
 /** #3113 (Q3113.2 A): the drawer draws a verdict as a mark in its status ink and the headline's words, without the
  *  leading mark. Typed here from the decision, not imported from the drawer. */
 const WORDS = (headline) => headline.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+/** #3326 PR 2 (the approved renders: "Applied", "File set up"): a step of Update file's run draws its verdict's words
+ *  with the first letter raised. A build the checklist runs is its To add step, so its words read this way. */
+const STEP = (headline) => { const w = WORDS(headline); return w ? w[0].toUpperCase() + w.slice(1) : w; };
 
 const readSurfaces = (page) => page.evaluate(() => {
   const btn = document.querySelector('[data-p3="update-file"]');
   const busy = btn ? btn.getAttribute('aria-busy') === 'true' : null;
   const label = btn ? (busy ? btn.querySelector('[data-p3="label-busy"]') : btn.querySelector('[data-p3="label-idle"]'))?.textContent.replace(/^…\s*/, '').trim() ?? null : null;
-  const row = document.querySelector('[data-p3="activity-op"][data-op="components"]');
-  const pill = row?.querySelector('[data-p3="op-verdict"]');
-  // #3113 (Q3113.5 A): a bad result's first line is its reason, set apart before the mono lines; the detail is both.
-  const parts = row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-summary"]')] : [];
+  // #3326 PR 2 (Q3326.4 A): a build Update file runs is its To add step, inside the run's one row ("Update file"); the
+  // run's row is read when there is one, else the Build set row. The run's verdict is the strip's; the build's own words
+  // are its step's, and its lines sit in that step behind the step's own disclosure (Q3326.6 A).
+  const run = document.querySelector('[data-p3="activity-op"][data-op="update"]');
+  const row = run ?? document.querySelector('[data-p3="activity-op"][data-op="components"]');
+  const pill = row?.querySelector('[data-p3="op-head"] [data-p3="op-verdict"]');
+  const stepWords = run ? [...run.querySelectorAll('[data-p3="op-step-words"]')].map((n) => n.textContent) : [];
+  const parts = run ? [...run.querySelectorAll('[data-p3="op-step-lines"]')] : row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-summary"]')] : [];
+  const shown = run ? !!run.querySelector('[data-p3="op-body"]')?.checkVisibility() : parts.every((n) => n.checkVisibility());
   const drawer = document.querySelector('[data-p3="activity-drawer"]');
   const preview = document.querySelector('[data-p3="components-style-guide"]');
   return {
@@ -254,10 +262,10 @@ const readSurfaces = (page) => page.evaluate(() => {
     disabled: btn ? btn.disabled : null,
     previewShown: !!preview,
     pageFraction: /\d+ of \d+/.test(preview?.textContent ?? ''),
-    barVerdict: row && row.dataset.state !== 'running' && pill && !pill.hidden ? [pill.textContent] : [],
+    barVerdict: row && row.dataset.state !== 'running' && pill && !pill.hidden ? [pill.textContent, ...stepWords] : [],
     barPending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
     // Shown, read the way the browser decides it: the row's body and the drawer's are hidden with `hidden`.
-    detail: parts.length && parts.every((n) => n.checkVisibility()) ? parts.map((n) => n.textContent).join('') : null,
+    detail: parts.length && shown ? parts.map((n) => n.textContent).join('') : null,
     drawerOpen: drawer?.dataset.open === 'true',
   };
 });
@@ -491,7 +499,7 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
   const closing = (await page.evaluate(() => window.__queues)).slice(queuesBefore);
   ok(JSON.stringify(closing) === JSON.stringify([{ type: 'add-queue', ids: [], on: false }]),
     `#3129 Q3129.2 A: a finished Update file run posts one queue write of no ids — posted ${JSON.stringify(closing)}`);
-  ok(during.button === BUSY_LABEL && during.busy && after.barVerdict.some((t) => (t ?? '').includes('built 648')),
+  ok(during.button === BUSY_LABEL && during.busy && after.barVerdict.some((t) => (t ?? '').includes(STEP('built 648'))),
     `the proving build: the probe sees the busy label, then the result — read "${during.button}" (busy ${during.busy}), then ${JSON.stringify(after.barVerdict)}`);
   ok(JSON.stringify(await builds(page)) === '["button"]', `the build posts the set ticked — posted ${JSON.stringify(await builds(page))}`);
   await page.close();
@@ -521,10 +529,10 @@ for (const c of CONDITIONS) {
   ok(after.busy === false, `${c.name}: Update file is no longer busy, so another run can be started`);
 
   // The verdict is VISIBLE: the drawer carries the host's own headline.
-  ok(after.barVerdict.some((t) => (t ?? '') === WORDS(c.msg.headline)), `${c.name}: the Activity row carries the verdict's words "${WORDS(c.msg.headline)}"`);
+  ok(after.barVerdict.some((t) => (t ?? '') === STEP(c.msg.headline)), `${c.name}: the run's To add step carries the verdict's words "${STEP(c.msg.headline)}"`);
 
   // No pending text survives the verdict. ABSENCE, judged against what the same probe saw during this build (#1831).
-  const barLanded = after.barVerdict.some((t) => (t ?? '') === WORDS(c.msg.headline));
+  const barLanded = after.barVerdict.some((t) => (t ?? '') === STEP(c.msg.headline));
   hooks.absent(ok, { seen: during.barPending.some((t) => /24 of 648/.test(t ?? '')) && barLanded, state: "the Activity row's progress during the build, then its verdict" },
     after.barPending.length === 0, `${c.name}: no stale fraction is left in the Activity row beside the verdict`);
 
@@ -532,8 +540,8 @@ for (const c of CONDITIONS) {
   // clean one does not pin it: concept v6 collapses the whole drawer COLLAPSE_MS (4 s) after a success
   // (UI redesign S11). Asserted because the misses live in the detail, and this suite exists because of them.
   if (c.verdictOpens) {
-    ok(after.detail !== null && after.detail.length > 0, `${c.name}: the detail row is open, so the misses are readable without a click`);
-    ok((after.detail ?? '').includes(c.msg.summary.slice(0, 24)), `${c.name}: the open detail carries the host's own summary`);
+    ok(after.detail !== null && after.detail.length > 0, `${c.name}: the run's row is open, its To add step holding the misses (#3326 Q3326.6 A: behind the step's own disclosure)`);
+    ok((after.detail ?? '').includes(c.msg.summary.slice(0, 24)), `${c.name}: the open row's To add step carries the host's own summary`);
   } else {
     // v6 holds the collapse while the pointer is over the drawer, and the click that started the build
     // can leave it there once the drawer opens under it: move it off, as a designer reading the page would.
@@ -629,9 +637,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#1679 while the reference back-off waits, the pill reads exactly "Retrying property links…" — read ${JSON.stringify(retrying.barPending)}`);
 
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
-  await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? '').includes('built 648'), null, { timeout: 5000 }).catch(() => {});
+  // #3326 PR 2: the build is Update file's To add step, so its words land on that step of the run's row.
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="update"] [data-p3="op-step-words"]')].some((n) => (n.textContent ?? '').includes('Built 648')), null, { timeout: 5000 }).catch(() => {});
   const landed = await readSurfaces(page);
-  ok(landed.barVerdict.some((t) => (t ?? '').includes('built 648')), 'a verdict arriving off-page lands in the Activity drawer, which is what survives navigation');
+  ok(landed.barVerdict.some((t) => (t ?? '').includes(STEP('built 648'))), 'a verdict arriving off-page lands in the Activity drawer, which is what survives navigation');
 
   await gotoComponents(page);
   const back = await readSurfaces(page);
@@ -785,14 +794,18 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && ['file-setup', 'apply-theme', 'build-components', 'style-guide', 'style-guide-catalog-request'].includes(m.type)) window.__posts.push(m.type); });
   });
   const posts = () => page.evaluate(() => window.__posts.slice());
+  // #3326 PR 2 (Q3326.4 A): Set up file is a step of Update file's run, so it is read on the run's row: while the run is
+  // out, its progress (the step out now); once it ends, the Set up file step's own verdict words.
   const readFs = () => page.evaluate(() => {
-    const row = document.querySelector('[data-p3="activity-op"][data-op="filesetup"]');
+    const row = document.querySelector('[data-p3="activity-op"][data-op="update"]');
     const btn = document.querySelector('[data-p3="update-file"]');
+    const step = row ? [...row.querySelectorAll('[data-p3="op-step"]')].find((n) => n.querySelector('[data-p3="op-step-name"]')?.textContent === 'Set up file') : null;
     return {
       busy: btn ? btn.getAttribute('aria-busy') === 'true' : null,
       state: row?.dataset.state ?? null,
-      verdict: row && row.dataset.state !== 'running' ? [...row.querySelectorAll('[data-p3="op-verdict"]')].map((n) => n.textContent) : [],
+      verdict: step ? [...step.querySelectorAll('[data-p3="op-step-words"]')].map((n) => n.textContent) : [],
       pending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
+      own: !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"]'),
     };
   });
   // #3129 Q3129.10 A: the queue is the file's, so one set queued (Button) is what the sets step builds.
@@ -809,8 +822,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
   await page.waitForFunction(() => window.__posts.length > 0, null, { timeout: 3000 }).catch(() => {});
   const pending = await readFs();
-  ok(JSON.stringify(await posts()) === '["file-setup"]' && pending.busy === true && pending.state === 'running',
-    `#1845 the run starts with Set up file alone, Update file busy and the setup row running — posted ${JSON.stringify(await posts())}, busy ${pending.busy}, row ${pending.state}`);
+  ok(JSON.stringify(await posts()) === '["file-setup"]' && pending.busy === true && pending.state === 'running' && pending.pending.some((t) => t.includes('Setting up file…')) && !pending.own,
+    `#1845 the run starts with Set up file alone, Update file busy and the run's row running on "Setting up file…", with no Set up file row of its own — posted ${JSON.stringify(await posts())}, busy ${pending.busy}, row ${pending.state}, ${JSON.stringify(pending.pending)}`);
   await reopen(page);
   const line = await page.locator('[data-p3="update-running"]').textContent().catch(() => null);
   // #3308 (Q3308.4 A): Set up file, Theme, To add, Style guides, then the cover.
@@ -819,9 +832,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added, 2 template assets built' });
   await page.waitForFunction(() => window.__posts.includes('apply-theme'), null, { timeout: 4000 }).catch(() => {});
   const done = await readFs();
-  ok(done.verdict.length === 1 && done.verdict[0] === 'file set up', `#1845 exactly one verdict on the Set up file row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
-  hooks.absent(ok, { seen: pending.state === 'running', state: 'the Set up file row running' },
-    done.pending.length === 0, `#1845 no pending text is left on the Set up file row beside the verdict — found ${JSON.stringify(done.pending)}`);
+  hooks.absent(ok, { seen: pending.state === 'running', state: 'the run\'s row running on Set up file' },
+    !done.pending.some((t) => t.includes('Setting up file…')), `#1845 no Set up file pending text is left once its verdict lands — found ${JSON.stringify(done.pending)}`);
   ok(JSON.stringify(await posts()) === '["file-setup","apply-theme"]', `#2909 the setup's verdict starts the theme step, and nothing else — posted ${JSON.stringify(await posts())}`);
   await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
   await page.waitForFunction(() => window.__posts.includes('build-components'), null, { timeout: 4000 }).catch(() => {});
@@ -836,6 +848,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const after = await readSurfaces(page);
   ok(JSON.stringify(await posts()) === '["file-setup","apply-theme","build-components"]' && after.busy === false,
     `#2909 Stop in the sets step lets the set being built finish, posts nothing after it, and frees Update file — posted ${JSON.stringify(await posts())}, busy ${after.busy}`);
+  // #1845, read once the run ends (its steps are drawn then): exactly one verdict on the Set up file step, the headline's
+  // words in sentence case, and no Set up file row of its own.
+  const ended = await readFs();
+  ok(ended.verdict.length === 1 && ended.verdict[0] === 'File set up' && !ended.own, `#1845 exactly one verdict on the run's Set up file step, in the headline's words — read ${JSON.stringify(ended.verdict)}, own row ${ended.own}`);
   ok(errors.length === 0, `#1845 file setup: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -1106,8 +1122,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //   · `firstPhase` naming the previous set (`[...host.setBuilds.keys()].at(-1)`) → both panel lines.
 {
   const { page, errors } = await openPanel();
-  const phaseOf = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-progress"] b')].map((n) => n.textContent));
-  const running = () => page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
+  // #3326 PR 2 (Q3326.4 A): a panel build runs as Update file's To add step, on the run's row; an agent's on Build set's.
+  const phaseOf = (op = 'update') => page.evaluate((k) => [...document.querySelectorAll(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-progress"] b`)].map((n) => n.textContent), op);
+  const running = (op = 'update') => page.waitForFunction((k) => document.querySelector(`[data-p3="activity-op"][data-op="${k}"]`)?.dataset.state === 'running', op, { timeout: 5000 }).catch(() => {});
 
   for (const [id, name, sent] of [['button', 'Button', '["button"]'], ['tag', 'Tag', '["button","tag"]']]) {
     await runSets(page, [id], `#2088 ${name}`);
@@ -1122,8 +1139,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   }
 
   await post(page, { type: 'agent-started', id: 'p1', cmd: 'build-components' });
-  await running();
-  const agent = await phaseOf();
+  await running('components');
+  const agent = await phaseOf('components');
   ok(agent.length === 1 && agent[0] === 'Building the set…',
     `#2088 an agent's build reads exactly "Building the set…" before its first boundary — read ${JSON.stringify(agent)}`);
   await post(page, { type: 'agent-finished', id: 'p1', cmd: 'build-components' });
@@ -1154,9 +1171,11 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const { page, errors } = await openPanel();
   const posted = () => builds(page);
   const waitPosts = (n) => page.waitForFunction((k) => window.__builds.length >= k, n, { timeout: 4000 }).catch(() => {});
-  const opState = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"]')?.dataset.state ?? null);
-  const history = () => page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-history-entry"]').length);
-  const verdict = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? null);
+  // #3326 PR 2 (Q3326.4 A): the run is Update file's, one row; its To add step carries the queue's one result.
+  const opState = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="update"]')?.dataset.state ?? null);
+  const history = () => page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="update"] [data-p3="op-history-entry"]').length);
+  const verdict = () => page.evaluate(() => { const st = [...document.querySelectorAll('[data-p3="activity-op"][data-op="update"] [data-p3="op-step"]')].find((n) => n.querySelector('[data-p3="op-step-name"]')?.textContent === 'To add');
+    return st?.querySelector('[data-p3="op-step-words"]')?.textContent ?? null; });
   const result = (id) => post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
   const ORDER = ['tag', 'badge', 'divider'];
   await runSets(page, ['tag', 'badge', 'divider'], '#2700 a run of three');

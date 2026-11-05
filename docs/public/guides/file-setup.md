@@ -12,7 +12,7 @@ It is the first item of the **Update file** checklist, **Set up file**, listed w
 3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:319 -->
 
 Once the file is set up, the checklist no longer lists the setup item. <!-- src: apps/studio/src/shell/update-file.ts:244 -->
-Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:95-102 --> If a setup failed, the Activity drawer offers **Set up again**. <!-- src: apps/studio/src/shell/activity.ts:213 -->
+Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:95-102 --> If a setup failed, the run stops there, and the Activity drawer offers **Update again**, which opens Update file again. <!-- src: apps/studio/src/shell/activity.ts:239 -->
 
 ## The pages it creates
 
