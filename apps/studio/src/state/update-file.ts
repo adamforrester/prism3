@@ -339,7 +339,7 @@ export const UPDATE_COPY = {
   kept: 'Kept edits',
   keptSub: (n: number): string => `${plural(n)} hold hand edits over changes the plan makes. Each stays here until Overwrite or Accept as baseline is chosen for it.`,
   keptLine: (h: { readonly members: number; readonly changes: readonly string[] }): string =>
-    `${h.members} member${h.members === 1 ? '' : 's'} hold back ${h.changes.length} change${h.changes.length === 1 ? '' : 's'}${h.changes.length ? `: ${h.changes.slice(0, 3).join(', ')}${h.changes.length > 3 ? `, ${h.changes.length - 3} more` : ''}` : ''}`,
+    `${h.members} member${h.members === 1 ? ' keeps' : 's keep'} out ${h.changes.length} of the plan’s values${h.changes.length ? `: ${h.changes.slice(0, 3).join(', ')}${h.changes.length > 3 ? `, ${h.changes.length - 3} more` : ''}` : ''}`,
   keptChoice: (name: string): string => `Hand edits on ${name}`,
   // #3083 (the owner's Q3083.4 A, 2026-10-28; DRAFT): the short forms, for the compact select in the foot.
   handChoice: { keep: 'Keep', overwrite: 'Overwrite', accept: 'Accept as baseline' } as Record<HandEditChoice, string>,

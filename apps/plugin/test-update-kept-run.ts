@@ -25,6 +25,8 @@
  *   · the ordering fix dropped (`updatableOf` back to `!c.blocked`) → `order/in the run`, `after/0 due`;
  *   · a fully kept set recorded as current (`ledgerAfter` drops `held`) → `after/kept listed`;
  *   · a kept-edit read-back filed as a miss in the build record (`kept` not split out) → `record/kept apart`.
+ *   · `themeBlocked` when any blocker is Theme's (`lacks.theme > 0`) → `theme only/nest`;
+ *   · `themeBlocked` ignoring the dry run's own blockers (`!had` dropped) → `theme only/dry run`.
  *
  * This file drives the helpers itself, so it does not see `main.ts`'s wiring. `test-update-kept-main.ts` posts the same
  * run to the real `main.ts`, and `test:chrome` section ia2 drives the Studio dialog's re-check (#3428's review).
@@ -41,7 +43,7 @@ import { applyUpdate, applyVerdict, ledgerAfter, previewHashOf, type ApplyHost }
 import { dueOf, entryFor, printOf, readLedger, recordSets } from './src/as-built-ledger';
 import { NS } from './src/persist-figma';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
-import { checkScopeOf, defaultTicks, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, type FileSets } from '../studio/src/state/update-file';
+import { checkScopeOf, defaultTicks, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
 import { leafForDef } from './src/file-taxonomy';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 
@@ -126,6 +128,32 @@ const defs = updateDefsOf(ticks, { sets: seen }, [], keptSetsOf(catalog, f0));
 const steps = stepsOf({ ...ticks, update: new Set(defs) }, f0, []);
 ok(defs.length === 2 && steps.join(',') === 'theme,update',
   `order/in the run: the update step takes both sets, after Theme (steps ${steps.join(', ')}; defs ${defs.join(', ')})`);
+
+// ONLY THEME BLOCKS IT (#3428's delta review): a set rides the Theme run only when every blocker is Theme's. Here tag
+// still lacks the indicator variables, and also has one blocker Theme cannot clear, so it must read blocked, not
+// "Updated after Theme". Two worlds: a nested component the file lacks (a non-Theme line among the file's lacks), and
+// a plan member the dry run refuses (a blocker found before the file's lacks are read).
+const ROW_BLOCKED = 'Can’t be updated in place yet; the agent’s update check says why';
+const ROW_AFTER_THEME = 'Updated after Theme — Theme writes the variables and styles it binds first';
+{
+  const lacking = { ...host, root: { ...host.root, findAllWithCriteria: (c: { types: string[] }) => host.root.findAllWithCriteria(c).filter((n) => String((n as { name?: unknown }).name) !== 'icon/close') } } as unknown as ApplyHost;
+  const p = (await previewUpdate(lacking, targetsOf(['tag']))).sets[0];
+  const c = checkedSetOf(p, 'tag');
+  ok(p.blockers.some((b) => b.startsWith('Not in this file: icon/close.')) && p.blockers.some((b) => b.includes('the plan binds') && b.includes('not in this file')),
+    `theme only/premise nest: tag lacks icon/close and the indicator variables (${JSON.stringify(p.blockers)})`);
+  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true) === ROW_BLOCKED && UPDATE_COPY.checked(c, true) !== ROW_AFTER_THEME,
+    `theme only/nest: a set that also lacks a nested component is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true)])})`);
+}
+{
+  const plans = plansNow.get('tag')!;
+  const stray = { ...plans[0], gridAxisOrder: [], coord: {}, size: undefined, slotAxes: [] } as unknown as AnatomyPlan;
+  const p = (await previewUpdate(host, [{ def: 'tag', plans: [...plans, stray] }])).sets[0];
+  const c = checkedSetOf(p, 'tag');
+  ok(p.blockers[0]?.startsWith('the plan names a member that is not a coordinate: ') && p.blockers.slice(1).length > 0 && p.blockers.slice(1).every((b) => b.includes('the plan binds') && b.includes('not in this file')),
+    `theme only/premise dry run: the dry run refuses a member first, and the file lacks only the indicator variables (${JSON.stringify(p.blockers)})`);
+  ok(c.blocked && c.themeBlocked === undefined && UPDATE_COPY.checked(c, true) === ROW_BLOCKED && UPDATE_COPY.checked(c, true) !== ROW_AFTER_THEME,
+    `theme only/dry run: a set the dry run already refuses is not theme-blocked, and its row does not read "Updated after Theme" (${JSON.stringify([c.themeBlocked ?? null, UPDATE_COPY.checked(c, true)])})`);
+}
 
 // THE THEME STEP: the brand's variables are written, the indicator ones with them.
 for (const v of INDICATOR) liveVars.add(v);

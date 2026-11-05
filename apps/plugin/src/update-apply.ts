@@ -1044,12 +1044,12 @@ const keptProps = (o: SetOutcome): string => {
   return said.length ? ` (${said.join(', ')})` : '';
 };
 
-/** #3421 (Q39 A; DRAFT wording for the owner, Q3421.2): one set's held changes, three named, then how many more. */
+/** #3421 (Q39 A; the owner's Q3421.2 A, 2026-11-05): one set's held changes, every one named. */
 export const heldLine = (set: string, h: { members: readonly string[] | number; changes: readonly string[] }): string => {
   const k = typeof h.members === 'number' ? h.members : h.members.length;
   // Every change named: the gate's rule is that no change a kept edit holds back goes unsaid (#3421 item 4).
   const named = h.changes.join(', ');
-  return `${set}: hand edits kept on ${n(k, 'member')} hold back ${n(h.changes.length, 'change')} the plan makes (${named}). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.`;
+  return `${set}: hand edits kept on ${n(k, 'member')} keep out ${h.changes.length} of the plan's values (${named}). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.`;
 };
 
 const NOT_RECORDED = '.asBuilt -> NOT RECORDED';

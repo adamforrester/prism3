@@ -865,7 +865,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   // #3421 (Q39 A): the kept dot holds back the plan's size and corner bindings on it, so the verdict names them and the
   // headline says a set kept edits over changes. Typed here.
   ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place · 1 set kept edits over changes'
-    && v.lines[1] === 'radio-control: hand edits kept on 1 member hold back 2 changes the plan makes (dot: size → control/size/md/dot, dot: corner radius → radius/round). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.',
+    && v.lines[1] === 'radio-control: hand edits kept on 1 member keep out 2 of the plan's values (dot: size → control/size/md/dot, dot: corner radius → radius/round). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.',
     `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
 
   // #3326 PR 1 (Q3326.1 A): CAUSES, from the facts `ok` reads, never from the lines' words. A clean run has none; a set
