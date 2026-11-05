@@ -7767,40 +7767,55 @@ arm: {
   measureTag('unselected label on the page', ref('unselected.label'), [], 4.5);
   measureTag('unselected edge on the page', ref('unselected.border'), [], 3);
 
-  // #3328 (owner decisions Q3328.1 A, Q3328.2 A): THE FIELD FOCUS PASSES WCAG 2.4.13, IN EVERY CORPUS BRAND AND MODE. A
-  // focused field's band inside its border changes from the field's fill over the page (what an unfocused field shows
-  // there) to `border.focus`, so the criterion's two numbers are measured on those pixels, against LITERAL thresholds:
-  // the change is at least 3:1, and the band is at least 2px thick, read off each brand's emitted `focus.ring.width`.
-  // That the band sits INSIDE the border (so the border's own rest→focus change, about 1.5:1, is not what is counted)
-  // is the executor arm `#3328 field focus geometry`'s claim. Each listed control's own fill key, so a control rebound
-  // to another fill is measured on it. 5 brands × 4 modes = 20 cells per control, a literal.
+  // #3399 (owner decisions Q22 A, Q22.1 A, Q3399.1 A): THE DEFAULT FIELD'S FOCUS EDGE PASSES WCAG 2.4.13 ON ITS INNER
+  // BAND, IN EVERY CORPUS BRAND AND MODE. A focused default field draws its 2px focus edge in place of its border, from
+  // the outer edge in: the inner 1px changes from the field's fill over the page to `border.focus`, the outer 1px from
+  // the rest border. The inner change is ASSERTED against the LITERAL 3:1 of SC 2.4.13. The outer change is REPORTED,
+  // never asserted: Q3399.1 A accepted that it sits below 3:1 (both are mid-luminance roles; 1.19–2.21:1 when decided),
+  // the same AA-met trade-off Q22.1 A took for status fields, and each def carries it in `notes.contested`
+  // (`FOCUS_EDGE_DEFAULT_NOTE`, held to that decision's name below). The edge's width, read off each brand's emitted
+  // `focus.ring.width`, is held to the literal 2px. The roles are typed here (`field.border.rest`, `field.fill`,
+  // `border.focus`), and each control is held to binding them under its own keys, so a control rebound to another role
+  // fails by name rather than being measured on whatever it moved to. 5 brands × 4 modes = 20 cells per control.
+  // That the edge IS the border (2px, from the outer edge, at the control's radius, in the status color on a status
+  // field) is the executor arm `#3399 field focus edge`'s claim.
   {
-    const FOCUS_FIELDS: [string, string][] = [
-      ['text-field', 'fill'], ['textarea', 'fill'], ['select', 'fill'], ['password-field', 'fill'], ['search-field', 'fill'],
-      ['card-number-field', 'fill'], ['code-input-cell', 'fill'], ['counter', 'outline.fill'],
+    const REST_BORDER = 'field.border.rest', FILL = 'field.fill', FOCUS = 'border.focus';
+    // control → [its rest-border key, its fill key, its focused-border key], all typed.
+    const FOCUS_FIELDS: [string, string, string, string][] = [
+      ['text-field', 'border', 'fill', 'border.focus-visible'], ['textarea', 'border', 'fill', 'border.focus-visible'],
+      ['select', 'border', 'fill', 'border.focus-visible'], ['password-field', 'border', 'fill', 'border.focus-visible'],
+      ['search-field', 'border', 'fill', 'border.focus-visible'], ['card-number-field', 'border', 'fill', 'border.focus-visible'],
+      ['code-input-cell', 'border', 'fill', 'border.focus-visible'], ['counter', 'outline.border', 'outline.fill', 'outline.border.focus-visible'],
     ];
     const low: string[] = [];
     let cells = 0;
-    let min = Infinity;
-    for (const [id, key] of FOCUS_FIELDS) {
+    let minEdge = Infinity, maxEdge = 0, minBand = Infinity;
+    for (const [id, borderKey, fillKey, focusKey] of FOCUS_FIELDS) {
       const fd = componentDefs.find((d) => d.id === id);
-      const fill = fd?.tokens[key]?.replace(/^color\./, '');
-      if (!fd || !fill) { low.push(`${id}: no '${key}' fill`); continue; }
+      if (!fd) { low.push(`${id}: no def`); continue; }
+      for (const [key, role] of [[borderKey, REST_BORDER], [fillKey, FILL], [focusKey, FOCUS]] as const)
+        if (fd.tokens[key] !== `color.${role}`) low.push(`${id}: '${key}' binds ${fd.tokens[key] ?? 'nothing'}, not color.${role}`);
       let n = 0;
       for (const [brand, th] of tagThemes()) for (const m of resolveAllModes(th)) {
         const page = m.roles['background.primary']?.hex ? hexToRgb(m.roles['background.primary'].hex) : undefined;
         // A transparent fill resolves to the palette's `transparent` primitive, emitted as #000000 with no alpha, so it is
         // read as what it paints, nothing: the page shows through.
-        const clear = String(m.roles[fill]?.path ?? '').endsWith('.transparent');
-        const under = page && (clear ? page : colorOf(m.roles, fill, page));
-        const focus = under && colorOf(m.roles, 'border.focus', under);
-        if (!under || !focus) { low.push(`${id} ${brand}/${m.mode}: missing ${!under ? fill : 'border.focus'}`); continue; }
-        const r = contrast(focus, under);
+        const clear = String(m.roles[FILL]?.path ?? '').endsWith('.transparent');
+        const under = page && (clear ? page : colorOf(m.roles, FILL, page));
+        const rest = under && colorOf(m.roles, REST_BORDER, under);
+        const focus = under && colorOf(m.roles, FOCUS, under);
+        if (!under || !rest || !focus) { low.push(`${id} ${brand}/${m.mode}: missing ${!under ? FILL : !rest ? REST_BORDER : FOCUS}`); continue; }
+        const edge = contrast(focus, rest), band = contrast(focus, under);
         n++; cells++;
-        min = Math.min(min, r);
-        if (r < 3) low.push(`${id} ${brand}/${m.mode} ${r.toFixed(2)}`);
+        minEdge = Math.min(minEdge, edge); maxEdge = Math.max(maxEdge, edge); minBand = Math.min(minBand, band);
+        // rest → focus: reported in the message below, not asserted (Q3399.1 A).
+        if (band < 3) low.push(`${id} ${brand}/${m.mode}: fill → focus ${band.toFixed(2)}`);
       }
       if (n !== TAG_CELLS) low.push(`${id}: ${n} of ${TAG_CELLS} cells`);
+      // The decided trade-off is recorded on the def (Q3399.1 A), by the decision's name, a literal.
+      if (!(fd.notes?.contested ?? []).some((c) => c.includes('owner decision Q3399.1 A')))
+        low.push(`${id}: notes.contested does not record the default focus edge trade-off (Q3399.1 A)`);
     }
     const widths: string[] = [];
     for (const brand of ['nb', 'aurora', 'harbor', 'prism3', 'wendys']) {
@@ -7809,12 +7824,42 @@ arm: {
       // The resolved px the emission states beside the alias (`$extensions.prism3.px`), so the literal 2 is read off
       // what a consumer gets, not off the def.
       const v = t[root]?.focus?.ring?.width?.$extensions?.prism3?.px;
-      const px = typeof v === 'number' ? v : NaN;
-      widths.push(`${brand} ${px}`);
-      if (!(px >= 2)) low.push(`${brand}: focus.ring.width ${JSON.stringify(v)}, under the 2px band 2.4.13 asks for`);
+      widths.push(`${brand} ${v}`);
+      if (v !== 2) low.push(`${brand}: focus.ring.width ${JSON.stringify(v)}, not the 2px focus edge`);
     }
+    console.log(`  · #3399 field focus (Q3399.1 A, reported, not asserted): the default field's rest border → focus edge is ${minEdge.toFixed(2)}–${maxEdge.toFixed(2)}:1 across ${cells} control × brand × mode cells`);
     ok(cells === FOCUS_FIELDS.length * TAG_CELLS && low.length === 0,
-      `#3328 field focus 2.4.13: on all ${FOCUS_FIELDS.length} field controls the band inside the border changes from the field's fill over the page to border.focus at ≥3:1 in all ${cells} of ${FOCUS_FIELDS.length * TAG_CELLS} brand × mode cells (lowest ${min.toFixed(2)}), and the band is ≥2px in every corpus brand (${widths.join(', ')})${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''}`);
+      `#3399 field focus 2.4.13: on all ${FOCUS_FIELDS.length} default field controls the focus edge changes from the fill over the page at ≥3:1 (lowest ${minBand.toFixed(2)}) in all ${cells} of ${FOCUS_FIELDS.length * TAG_CELLS} brand × mode cells, and is 2px in every corpus brand (${widths.join(', ')}); each def records the trade-off (Q3399.1 A). Reported, not asserted: rest border → focus ${minEdge.toFixed(2)}–${maxEdge.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''}`);
+  }
+  // #3399: TEXTAREA'S RESIZE GRIP CLEARS THE 2PX FOCUS EDGE. The grip's 16px artboard is pinned `grip-inset` (the 1px
+  // hairline) in from the bottom-right corner, so at focus the artboard overlaps the 2px edge by 1px. What matters is
+  // whether the DRAWN glyph reaches the edge's pixels: its farthest point on the 0 0 24 24 artboard, scaled to the
+  // emitted icon size, plus the inset, must stay more than the literal 2px in from the outer edge on both axes, in
+  // every corpus brand. The glyph is read off its path (absolute M/L/Z only, so every number pair is a point); the
+  // sizes off each brand's emitted px. Measured when added: 3.86px, so the inset stays the hairline.
+  {
+    const EDGE = 2;
+    const ta = componentDefs.find((d) => d.id === 'textarea');
+    const bad: string[] = [];
+    if (ta?.tokens['grip-size'] !== 'icon.size.xs') bad.push(`grip-size binds ${ta?.tokens['grip-size']}, not icon.size.xs`);
+    if (ta?.tokens['grip-inset'] !== 'border-width.hairline') bad.push(`grip-inset binds ${ta?.tokens['grip-inset']}, not border-width.hairline`);
+    const d = ICON_PATHS['resize-grip'];
+    if (/[^MLZ\d.\s-]/.test(d)) bad.push(`resize-grip path uses a command other than absolute M/L/Z: ${d}`);
+    const nums = (d.match(/-?\d*\.?\d+/g) ?? []).map(Number);
+    let far = 0; // the glyph's largest x or y on the 24-unit artboard: its reach toward the bottom-right corner
+    for (let k = 0; k + 1 < nums.length; k += 2) far = Math.max(far, nums[k], nums[k + 1]);
+    const clear: string[] = [];
+    for (const brand of ['nb', 'aurora', 'harbor', 'prism3', 'wendys']) {
+      const t = JSON.parse(readFileSync(resolve(HERE, `out/${brand}.tokens.json`), 'utf8'));
+      const root = t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+      const size = root?.icon?.size?.xs?.$extensions?.prism3?.px, inset = root?.['border-width']?.hairline?.$extensions?.prism3?.px;
+      if (typeof size !== 'number' || typeof inset !== 'number') { bad.push(`${brand}: no icon.size.xs / border-width.hairline px`); continue; }
+      const gap = inset + size * (24 - far) / 24; // from the control's outer edge to the glyph's nearest drawn point
+      clear.push(`${brand} ${gap.toFixed(2)}px`);
+      if (!(gap > EDGE)) bad.push(`${brand}: the grip glyph reaches ${gap.toFixed(2)}px from the outer edge, inside the ${EDGE}px focus edge`);
+    }
+    ok(nums.length >= 4 && bad.length === 0,
+      `#3399 textarea grip clears the focus edge: the resize grip's drawn glyph stays more than ${EDGE}px in from the control's bottom-right edge in every corpus brand (${clear.join(', ')})${bad.length ? ` — ${bad.join('; ')}` : ''}`);
   }
 }
 
@@ -9533,9 +9578,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     // Represented, not counted: each brand's body and caption both carry it.
     for (const g of ['body', 'caption']) if (!groups.has(g)) bad.push(`${b}: no type.${g} entry to carry the guidance`);
   }
-  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
   for (const want of ['**Strikethrough is a modifier, not a style.**', '<del><span class="visually-hidden">Original price: </span>', '<ins><span class="visually-hidden">Sale price: </span>'])
-    if (!skill.includes(want)) bad.push(`prism3-consume: no "${want}"`);
+    if (!skill.includes(want)) bad.push(`prism3-build-ui: no "${want}"`);
   ok(bad.length === 0,
     `#2340: strikethrough is a modifier on body and caption's styles, never a style, in all five brands' .ai.json, and the consume skill carries the accessible price pattern (${carried} entries${bad.length ? `; ${bad.length}: ${bad.slice(0, 4).join(' | ')}` : ''})`);
 }
@@ -10318,7 +10363,7 @@ arm: {
   // The exact names the consume skill hands an agent, read from the SHIPPED skill — the oracle for "every
   // name the skill tells you to use has an entry". Backticked, dotted, lower-case, at most one wildcard
   // segment; file names (`.json`) and the private primitives it names only as the wrong choice are out.
-  const consumeSkill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const consumeSkill = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
   // A name the skill cites as the WRONG choice ("not `focus.ring.size`") is a counter-example, not a name to use.
   const consumeNames = [...new Set([...consumeSkill.matchAll(/`([a-z][a-z0-9-]*(?:\.(?:[a-z0-9-]+|\*))+)`/g)]
     .filter((m) => !/\bnot\s*$/.test(consumeSkill.slice(Math.max(0, m.index! - 6), m.index)))
@@ -17718,7 +17763,7 @@ arm: {
 
       // (2b) #2318 (owner decision Q157, 2026-10-09): THE FOCUSED FIELD THAT HOLDS A VALUE, `state=focus-visible-filled`,
       // on all three fields at every size and status. What it shows is typed here from the decision, never read off the
-      // def: the value in the value ink and no placeholder, the focus ring, the focus border at default status and the
+      // def: the value in the value ink and no placeholder, no ring (#3399: the border is the 2px focus edge), the focus border at default status and the
       // status's own border otherwise, and (owner Q166 C) on text-field ONLY a caret immediately AFTER the value, in its own
       // `caretEnd` part, with no caret before it; textarea and select draw no caret at all. ACTUAL is the emitted plan. And
       // the set carries the 12 new members per field, 4 per size.
@@ -17735,9 +17780,11 @@ arm: {
             const value = findIn(root, 'value');
             if (value?.paints?.fills !== 'color/text/primary') bad.push(`${at}: value ink ${String(value?.paints?.fills)}`);
             if (findIn(root, 'placeholder')) bad.push(`${at}: the placeholder is drawn`);
-            if (!findIn(root, 'focusRing')) bad.push(`${at}: no focus ring`);
+            // #3399 (Q22 A): no ring; the border itself is the 2px focus edge.
+            if (findIn(root, 'focusRing')) bad.push(`${at}: a focus ring is drawn over the focus edge`);
             const ctl = findIn(root, 'control');
             if (ctl?.paints?.strokes !== BORDER[status]) bad.push(`${at}: border ${String(ctl?.paints?.strokes)}, want ${BORDER[status]}`);
+            if (ctl?.bound?.strokeWeight !== 'focus/ring/width') bad.push(`${at}: edge weight ${String(ctl?.bound?.strokeWeight)}, want focus/ring/width`);
             const names = order(root);
             if (names.includes('caret')) bad.push(`${at}: a caret is drawn before the value`);
             if (def === textField) {
@@ -17750,7 +17797,7 @@ arm: {
           const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
           const added = set.filter((p) => planComponentName(p).includes('state=focus-visible-filled'));
           ok(bad.length === 0 && seen === 12 && added.length === 12,
-            `#2318 ${def.id}: the focused field that holds a value shows the value in text.primary, no placeholder, the focus ring and the focus (or status) border, ${def === textField ? 'with the caret immediately after the value' : 'with no caret'}, in all 12 new members (${added.length} built${bad.length ? `; WRONG: ${bad.slice(0, 4).join(' | ')}` : ''})`);
+            `#2318 ${def.id}: the focused field that holds a value shows the value in text.primary, no placeholder, no ring and the 2px focus edge in the focus (or status) color, ${def === textField ? 'with the caret immediately after the value' : 'with no caret'}, in all 12 new members (${added.length} built${bad.length ? `; WRONG: ${bad.slice(0, 4).join(' | ')}` : ''})`);
         }
       }
 
@@ -20116,7 +20163,8 @@ arm: {
       outline: { small: 'space/150', medium: 'space/150', large: 'space/200' },
       ghost: { small: 'space/0', medium: 'space/0', large: 'space/0' },
     };
-    const RING: Record<string, string> = { outline: 'focus/ring/offset-field', ghost: 'focus/ring/offset' };
+    // #3399 (Q22 A): outline draws no ring, its edge is the 2px focus edge; ghost keeps the ring at the control offset.
+    const RING: Record<string, string | undefined> = { outline: undefined, ghost: 'focus/ring/offset' };
     const plans = figmaAnatomySet(counter, { swapTarget: 'FPO-default-icon' });
     ok(JSON.stringify(counter.variants?.appearance) === JSON.stringify(['outline', 'ghost']) && JSON.stringify(counter.variants?.size) === JSON.stringify(SIZES)
       && JSON.stringify(counter.figmaProperties?.stateAxis?.values) === JSON.stringify(STATES) && plans.length === 18,
@@ -20143,19 +20191,22 @@ arm: {
       if (control?.bound?.height !== HEIGHT[sz] || control?.bound?.paddingLeft !== INSET[ap][sz] || control?.bound?.paddingRight !== INSET[ap][sz] || entry?.minWidth !== 32)
         offRow.push(`${name}: height ${control?.bound?.height}, insets ${control?.bound?.paddingLeft}/${control?.bound?.paddingRight}, value ${entry?.minWidth} wide`);
       const own = control ? planPaintVars({ ...control, children: [] }) : [];
-      const wantPaint = ap === 'ghost' ? [] : st === 'disabled' ? ['color/disabled/border'] : ['color/field/fill', 'color/field/border/rest'];
+      const wantPaint = ap === 'ghost' ? [] : st === 'disabled' ? ['color/disabled/border'] : ['color/field/fill', st === 'focus-visible' ? 'color/border/focus' : 'color/field/border/rest'];
+      // The edge weight (#3399): the hairline, and the focus width while the value has focus. Literals.
+      const wantWeight = st === 'focus-visible' ? 'focus/ring/width' : 'border-width/hairline';
+      if (control?.bound?.strokeWeight !== wantWeight) offPaint.push(`${name}: edge weight ${control?.bound?.strokeWeight}, want ${wantWeight}`);
       if (JSON.stringify([...own].sort()) !== JSON.stringify([...wantPaint].sort())) offPaint.push(`${name}: box paints [${own.join(', ')}], want [${wantPaint.join(', ')}]`);
       const value = entry?.children.find((c) => c.name === 'value');
       const ink = st === 'disabled' ? 'color/disabled/text' : 'color/text/primary';
       if (value?.paints?.fills !== ink) offPaint.push(`${name}: value ${value?.paints?.fills}, want ${ink}`);
       const ring = control?.children.find((c) => c.name === 'focusRing');
-      if ((st === 'focus-visible') !== !!ring || (ring && ring.absoluteInset !== RING[ap])) offRing.push(`${name}: ring ${ring ? ring.absoluteInset : 'absent'}`);
+      if ((st === 'focus-visible' && RING[ap] !== undefined) !== !!ring || (ring && ring.absoluteInset !== RING[ap])) offRing.push(`${name}: ring ${ring ? ring.absoluteInset : 'absent'}`);
     }
     ok(offNest.length === 0, `#2427 counter/nests: both buttons nest FlushIconButton.Neutral exposing [state], outline → flush and ghost → round (Q287 A), at rest unless the Counter is disabled (Q283.7)${offNest.length ? ` — ${offNest.slice(0, 3).join('; ')}` : ''}`);
     ok(offLabel.length === 0, `#2427 counter/label-dims: the nested FieldLabel is primary and regular (#3200) at the Counter's size, disabled on the Counter's disabled members and at rest on the rest${offLabel.length ? ` — ${offLabel.slice(0, 3).join('; ')}` : ''}`);
     ok(offRow.length === 0, `#2427 counter/row: the row is 36 / 44 / 56 tall (Q287 A), inset 12 / 12 / 16 on outline and 0 on ghost, the value at least 32 wide (Q283.13 A)${offRow.length ? ` — ${offRow.slice(0, 3).join('; ')}` : ''}`);
-    ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the disabled edge at disabled), ghost paints no box at any state, the value full contrast until disabled${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
-    ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, at the control offset on ghost (Q283.10 A) and the field offset on outline${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
+    ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the focus edge at focus-visible, #3399; the disabled edge at disabled), ghost paints no box at any state, the value full contrast until disabled${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
+    ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, on ghost only, at the control offset (Q283.10 A); outline draws none, its edge is the focus edge (#3399)${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
     const b = counter.figmaProperties?.booleans ?? {};
     ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
       && counter.props.find((x) => x.name === 'showLabel')?.default === false,
@@ -27322,68 +27373,97 @@ arm: {
             `parity #1388: both executors write the SAME non-zero concentric ring radius — a hard-square (radius 0) ring or a divergence between the two derivations fails here (plugin ${ringCorners(fvPlugPage)} vs paste ${ringCorners(fvPastePage)})`);
         }
 
-        // #3328 (owner decisions Q3328.1 A, Q3328.2 A): A FOCUSED FIELD DRAWS ITS FOCUS INSIDE ITSELF, AT ITS OWN RADIUS.
-        // Every listed control's focus-visible member (the Counter's outline one), built through BOTH executors, read
-        // off the pages. The expected numbers are LITERALS from the decision, not read off the def or the plan: the
-        // field's border is 1px (`border-width/hairline`, pinned at 1 here as it is in every corpus brand), so the ring
-        // sits exactly 1px inside the field on every side, 2px smaller than the field on each axis; its four corners
-        // are BOUND to the very variable the field's corners are (the field's radius token, never a literal number);
-        // and the band that changes from the page to the focus ink, the ring's 2px stroke less any of it lying over the
-        // border, is the 2px WCAG 2.4.13 counts. An outer ring, a literal radius and a 2px-total focus each fail here.
+        // #3399 (owner decisions Q22 A, Q22.1 A): A FOCUSED FIELD DRAWS A 2PX FOCUS EDGE IN PLACE OF ITS BORDER. Every
+        // field control's focus members (the Counter's outline ones), at every size, status and focus state, built
+        // through BOTH executors at two brand radii, 1 (the reference brand's) and 8, and read off the pages. Every
+        // expected value is a LITERAL from the decision, never read off the def or the plan:
+        //   · THE EDGE IS 2PX: the field's own stroke weight is bound to `focus/ring/width`, pinned at 2 here (and emitted
+        //     at 2 in every corpus brand, `#3399 field focus 2.4.13`);
+        //   · IT STARTS AT THE OUTER EDGE AND MOVES NOTHING: the stroke is drawn INSIDE and left out of the layout;
+        //   · ITS RADIUS IS THE CONTROL'S: the edge is the control's own stroke, and its four corners read back the pinned
+        //     brand radius, 1 or 8; no other node in the member draws a stroke, so no ring sits inside at radius − inset;
+        //   · ITS COLOR IS THE STATUS ROLE: `border/focus` on default, `border/danger` · `border/warning` ·
+        //     `border/success` on error · warning · success, so the status stays visible while focused;
+        //   · NO RING: no node named `focusRing`, and no instance of `focus-ring`, anywhere in the member.
+        // #3372's inset ring, a ring at the control radius minus its inset, and a near-black error edge each fail here.
         {
-          const FIELD_BORDER = 1;
-          const RING = 2;
-          const FOCUS_CONTROLS: [string, Record<string, string>][] = [
-            ['text-field', {}], ['textarea', {}], ['select', {}], ['password-field', {}], ['search-field', {}],
-            ['card-number-field', {}], ['code-input-cell', {}], ['counter', { appearance: 'outline' }],
+          const EDGE = 2;
+          const RADII = [1, 8];
+          const ROLE: Record<string, string> = { default: 'V:color/border/focus', error: 'V:color/border/danger', warning: 'V:color/border/warning', success: 'V:color/border/success' };
+          // control id → [the frame part's name, the extra coordinate, the focus states it projects]. Typed here.
+          const FOCUS_CONTROLS: [string, string, Record<string, string>, string[]][] = [
+            ['text-field', 'control', {}, ['focus-visible', 'focus-visible-filled']], ['textarea', 'control', {}, ['focus-visible', 'focus-visible-filled']],
+            ['select', 'control', {}, ['focus-visible', 'focus-visible-filled']], ['password-field', 'control', {}, ['focus-visible', 'focus-visible-filled']],
+            ['search-field', 'control', {}, ['focus-visible', 'focus-visible-filled']], ['card-number-field', 'control', {}, ['focus-visible', 'focus-visible-filled']],
+            ['code-input-cell', 'container', {}, ['focus-visible', 'focus-visible-filled']], ['counter', 'control', { appearance: 'outline' }, ['focus-visible']],
           ];
           const walkN = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walkN))];
           const targetsOf = (n: FigmaNodePlan): string[] => [n.nestTarget, n.swapTarget, ...(n.children ?? []).flatMap(targetsOf)].filter((x): x is string => typeof x === 'string');
+          const planWalk = (n: FigmaNodePlan): FigmaNodePlan[] => [n, ...(n.children ?? []).flatMap(planWalk)];
           const wrong: string[] = [];
-          let measured = 0;
-          for (const [id, coord] of FOCUS_CONTROLS) {
+          const seen = new Set<string>();
+          let measured = 0, expected = 0;
+          for (const [id, frame, coord, focusStates] of FOCUS_CONTROLS) {
             const fd = componentDefs.find((d) => d.id === id);
-            const plan = fd && figmaAnatomySet(fd, { swapTarget: 'FPO-default-icon' })
-              .find((p) => (p.coord as Record<string, string>).state === 'focus-visible' && Object.entries(coord).every(([k, v]) => (p.coord as Record<string, string>)[k] === v));
-            if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
-            const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': FIELD_BORDER, 'focus/ring/offset-field': 0, 'focus/ring/width': RING } };
-            const pastePage: StubPage = { children: [] };
-            const plugPage: StubPage = { children: [] };
-            await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
-            await plugRun([plan], { ...opts, page: plugPage });
-            for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
-              const all = (page.children as Record<string, unknown>[]).flatMap(walkN);
-              const ring = all.find((n) => n.name === 'focusRing');
-              const host = all.find((n) => ((n.children as Record<string, unknown>[]) ?? []).includes(ring as Record<string, unknown>));
-              if (!ring || !host) { wrong.push(`${id} ${path}: no ring or host`); continue; }
-              const [W, H] = [host.width as number, host.height as number];
-              if (!(ring.x === FIELD_BORDER && ring.y === FIELD_BORDER && ring.width === W - 2 * FIELD_BORDER && ring.height === H - 2 * FIELD_BORDER))
-                wrong.push(`${id} ${path}: ring at ${ring.x},${ring.y} ${ring.width}×${ring.height} in a ${W}×${H} field, not ${FIELD_BORDER}px inside it on every side (an outer ring sits at a negative offset)`);
-              const hb = (host.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
-              const rb = (ring.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
-              for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) {
-                if (!hb[corner]?.id) wrong.push(`${id} ${path}: the field binds no ${corner}, so the claim is unfalsifiable`);
-                else if (rb[corner]?.id !== hb[corner]!.id) wrong.push(`${id} ${path}: ring ${corner} is ${rb[corner]?.id ? `bound to ${rb[corner]!.id}` : `the literal ${String(ring[corner])}`}, not the field's own ${hb[corner]!.id}`);
+            if (!fd) { wrong.push(`${id}: no def`); continue; }
+            const members = figmaAnatomySet(fd, { swapTarget: 'FPO-default-icon' }).filter((p) => {
+              const c = p.coord as Record<string, string>;
+              return focusStates.includes(c.state) && Object.entries(coord).every(([k, v]) => c[k] === v);
+            });
+            const statuses = id === 'code-input-cell' || id === 'counter' ? ['default'] : Object.keys(ROLE);
+            const sizes = fd.variants?.size ?? [];
+            expected += statuses.length * sizes.length * focusStates.length * RADII.length * 2;
+            for (const plan of members) {
+              const c = plan.coord as Record<string, string>;
+              const status = c.status ?? 'default';
+              seen.add(`${id}/${plan.size}/${status}/${c.state}`);
+              const at = `${id} ${plan.size}/${status}/${c.state}`;
+              const host = planWalk(plan.root).find((n) => n.name === frame);
+              if (!host) { wrong.push(`${at}: no '${frame}' in the plan`); continue; }
+              if (planWalk(plan.root).some((n) => n.name === 'focusRing' || n.nestTarget === 'focus-ring')) wrong.push(`${at} plan: a focus ring is nested`);
+              const radiusVar = host.bound?.topLeftRadius;
+              if (!radiusVar) { wrong.push(`${at}: the field binds no corner radius, so the claim is unfalsifiable`); continue; }
+              for (const R of RADII) {
+                const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varValues: { [radiusVar]: R, 'focus/ring/width': EDGE } };
+                const pastePage: StubPage = { children: [] };
+                const plugPage: StubPage = { children: [] };
+                await runPayload(planToPluginJs(plan), { ...opts, page: pastePage });
+                await plugRun([plan], { ...opts, page: plugPage });
+                for (const [path, page] of [['paste', pastePage], ['plugin', plugPage]] as const) {
+                  const top = (page.children as Record<string, unknown>[])[0];
+                  const all = top ? walkN(top) : [];
+                  // A root frame (the Code cell's) is the built COMPONENT itself, which the plugin path places inside a set.
+                  const node = frame === plan.root.name ? all.find((n) => n.type === 'COMPONENT') ?? top : all.find((n) => n.name === frame);
+                  const where = `${at} r=${R} ${path}`;
+                  if (!node) { wrong.push(`${where}: no '${frame}' built`); continue; }
+                  const bv = (node.boundVariables ?? {}) as Record<string, { id?: string; value?: number } | undefined>;
+                  // Per side: a bound `strokeWeight` splits across the four side weights on the host (#1332), as the stub models.
+                  for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'])
+                    if (bv[side]?.id !== 'V:focus/ring/width' || bv[side]!.value !== EDGE)
+                      wrong.push(`${where}: ${side} ${bv[side]?.id ?? `the literal ${String(node.strokeWeight)}`} = ${String(bv[side]?.value)}, not the ${EDGE}px focus width`);
+                  if (node.strokeAlign !== 'INSIDE' || node.strokesIncludedInLayout !== false)
+                    wrong.push(`${where}: stroke ${String(node.strokeAlign)}, in layout ${String(node.strokesIncludedInLayout)} — the edge must run in from the outer edge and move nothing`);
+                  const paint = ((node.strokes as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+                  if (paint !== ROLE[status]) wrong.push(`${where}: edge color ${String(paint)}, not ${ROLE[status]}`);
+                  for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'])
+                    if (bv[corner]?.value !== R) wrong.push(`${where}: ${corner} ${String(bv[corner]?.value ?? node[corner])}, not the control radius ${R}`);
+                  const rings = all.filter((n) => n !== node && (n.name === 'focusRing' || (Array.isArray(n.strokes) && (n.strokes as { boundVariables?: { color?: { id?: string } } }[]).some((p) => Object.values(ROLE).includes(p.boundVariables?.color?.id ?? '')))));
+                  for (const r of rings) wrong.push(`${where}: '${String(r.name)}' draws a focus stroke at ${String(r.x)},${String(r.y)}, radius ${String(r.topLeftRadius)}, beside the edge`);
+                  measured++;
+                }
               }
-              // 2.4.13's band: the ring's stroke runs inward from its edge; what lies over the field's border changes
-              // from the rest border, not from the page, and does not count.
-              const band = (ring.x as number) + RING - Math.max(ring.x as number, FIELD_BORDER);
-              if (band < 2) wrong.push(`${id} ${path}: ${band}px of the focus band changes from the page (WCAG 2.4.13 asks 2px); the rest lies over the border`);
-              measured++;
             }
           }
-          ok(measured === FOCUS_CONTROLS.length * 2 && wrong.length === 0,
-            `#3328 field focus geometry: on all ${FOCUS_CONTROLS.length} field controls, through both executors (${measured} of ${FOCUS_CONTROLS.length * 2} builds), the focus ring sits ${FIELD_BORDER}px inside the field on every side, takes the field's own corner variables, and leaves a 2px band inside the border${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+          ok(measured === expected && seen.size * RADII.length * 2 === expected && wrong.length === 0,
+            `#3399 field focus edge: on all ${FOCUS_CONTROLS.length} field controls, at every size, status and focus state and at radius ${RADII.join(' and ')}, through both executors (${measured} of ${expected} builds), the focused field draws its own ${EDGE}px edge from the outer edge at the control's radius, in the focus color or its status color, with no ring${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
         }
 
         // #3328 Q-F1 A (owner, 2026-11-03): AN UNDERLINE-EDGE FIELD KEEPS THE OUTSIDE FOCUS RING. The underline has no
-        // side border to sit inside, so `applyFieldStyle` drops `borderInset` and the ring goes back outside at the
-        // control offset (#2695 Q3). Every field the lever reaches, Search's own underline style included, drawn under
-        // underline and built through BOTH executors. EXPECTED is typed here: the plan carries no absoluteBorderInset,
-        // and the ring sits OUTSIDE the field by the control offset plus its own stroke, compensated outward
-        // (2 + 2 = 4px on every side, at the pinned values below). The outline edge's inside ring sits at +1, and a ring
-        // that kept the border inset under underline sits at -(offset - border) = -1; both fail here.
-        // Mutation: `applyFieldStyle` keeps `borderInset` under underline → this line fails by name.
+        // side border to become the focus edge, so since #3399 `applyFieldStyle` ADDS the ring the outline edge no longer
+        // draws, outside at the control offset (#2695 Q3). Every field the lever reaches, Search's own underline style
+        // included, drawn under underline and built through BOTH executors. EXPECTED is typed here: the ring sits OUTSIDE
+        // the field by the control offset plus its own stroke, compensated outward (2 + 2 = 4px on every side, at the
+        // pinned values below). Mutation: `applyFieldStyle` stops adding the ring → this line fails by name.
         {
           const UNDERLINE_FIELDS = ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input-cell'];
           const OFFSET = 2;
@@ -27401,7 +27481,6 @@ arm: {
             if (!plan) { wrong.push(`${id}: no focus-visible member`); continue; }
             const pr = planRing(plan.root);
             if (!pr) { wrong.push(`${id}: the plan carries no focusRing`); continue; }
-            if (pr.absoluteBorderInset !== undefined) wrong.push(`${id} plan: the underline ring carries absoluteBorderInset '${pr.absoluteBorderInset}', so it is sited inside an edge with no side border`);
             const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon', ...new Set(targetsOf(plan.root))], varOverrides: { 'border-width/hairline': 1, 'focus/ring/offset': OFFSET, 'focus/ring/width': RING } };
             const pastePage: StubPage = { children: [] };
             const plugPage: StubPage = { children: [] };
@@ -27419,7 +27498,7 @@ arm: {
             }
           }
           ok(measured === UNDERLINE_FIELDS.length * 2 && wrong.length === 0,
-            `#3328 Q-F1 underline keeps the outside ring: on all ${UNDERLINE_FIELDS.length} underline-edge fields, through both executors (${measured} of ${UNDERLINE_FIELDS.length * 2} builds), the focus ring carries no border inset and sits 4px outside the field on every side${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+            `#3328 Q-F1 underline keeps the outside ring: on all ${UNDERLINE_FIELDS.length} underline-edge fields, through both executors (${measured} of ${UNDERLINE_FIELDS.length * 2} builds), the focus ring is there and sits 4px outside the field on every side${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
         }
 
         // #1009 ACROSS BOTH PATHS. The paste path's write is one line in a generated string, which no
@@ -28260,9 +28339,17 @@ arm: {
       const cbPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(checkboxControl, part, patch);
       ibBroke('an EMPTY presentWhen fails — a gate on no axis is not "always present"', /declares an EMPTY 'presentWhen'/, cbPart('checkGlyph', { presentWhen: {} }));
       ibBroke('gating the anatomy ROOT fails — a coordinate whose root is absent has no tree', /is the anatomy ROOT and declares 'presentWhen'/, cbPart('control', { presentWhen: { selection: ['checked'] } }));
-      // Two presence mechanisms on one part. `present()` reads `when` through an early return, so one of
-      // the two silently decides and the other reads as though it were still doing work.
-      ibBroke('an `absolute` (already state-gated by `when`) declaring presentWhen fails', /is kind 'absolute' and declares 'presentWhen' as well as its own 'when'/, cbPart('focusRing', { presentWhen: { selection: ['checked'] } }));
+      // Two STATE gates on one part: an absolute part is already gated by state through `when`, so a `presentWhen` on the
+      // state says it twice. A VARIANT gate on an absolute part composes with `when` (#3399, the Counter's ghost-only
+      // ring), so it validates, and the projection honours both: present at the gated value and state only.
+      ibBroke('an `absolute` (already state-gated by `when`) declaring presentWhen on the state fails', /is kind 'absolute' and declares 'presentWhen' on 'state' as well as its own 'when'/, cbPart('focusRing', { presentWhen: { state: ['focus-visible'] } }));
+      {
+        const gated = cbPart('focusRing', { presentWhen: { selection: ['checked'] } });
+        const errs = validateComponentDef(gated).errors;
+        const at = (selection: string, state: string) => planPartNames(figmaAnatomyPlan(gated, gated.variants.size?.[0], { status: 'default', selection, state } as never).root).includes('focusRing');
+        ok(errs.length === 0 && at('checked', 'focus-visible') && !at('unchecked', 'focus-visible') && !at('checked', 'rest'),
+          `#3399 an \`absolute\` gated on a VARIANT axis validates and AND-composes with its \`when\`: the ring at selection=checked × focus-visible, absent at unchecked and at rest (errors ${JSON.stringify(errs)}; checked/focus ${at('checked', 'focus-visible')}, unchecked/focus ${at('unchecked', 'focus-visible')}, checked/rest ${at('checked', 'rest')})`);
+      }
       // The axis has to be one the def declares AND one Figma enumerates — two separate rules, because a
       // def can declare an axis it does not project (`variants` is the code contract, `variantAxes` the
       // Figma one) and a gate on the second kind is dropped from every member of the set.
@@ -31489,11 +31576,10 @@ arm: {
   // `strokeEdges` (#2695) IS argued for here, and it is the same field split by side rather than a third thing: the
   // WIDTH of this part's own stroke, one key per side, so the underline field can leave three sides at 0. Color stays
   // with `paintSlots` and style with codeOnly; the two width fields are refused together on one part.
-  // `borderInset` (#3328) is excluded for `strokeInset`'s reason: it names the width of the HOST's border, which a ring
-  // sits inside, not a stroke of the part's own.
-  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset' && f !== 'borderInset');
-  ok(partDefFields.includes('strokeInset') && partDefFields.includes('borderInset'),
-    'focus-ring wall 1b: the exclusions below are REPRESENTED — `strokeInset` and `borderInset` are really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
+  // (`borderInset`, #3328, was excluded here for `strokeInset`'s reason until #3399 removed it with the ring it sited.)
+  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset');
+  ok(partDefFields.includes('strokeInset'),
+    'focus-ring wall 1b: the exclusion below is REPRESENTED — `strokeInset` is really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
   ok(declaresOwnStroke.join(',') === 'strokeWidth,strokeEdges',
     `focus-ring wall 1b: PartDef declares EXACTLY TWO fields for a part's own stroke, both its WIDTH: 'strokeWidth' (#1266) and its per-side form 'strokeEdges' (#2695 — got [${declaresOwnStroke.join(', ')}]). A ring IS a stroke, and a stroke is three things: its color left for 'paintSlots' in #933, its WIDTH is this field, and its STYLE has no Figma property to bind to (a dash rhythm is a 'dashPattern', not a keyword) so it stays in codeOnly under #740. The geometry vocabulary beside it is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'width', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names ANOTHER component's stroke to compensate for (#801), not this part's own`);
   // AND THE CONSEQUENCE, measured rather than inferred from the declaration above: the def projects and
@@ -31790,7 +31876,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -31831,6 +31917,9 @@ arm: {
       const onState = axis === 'state';
       const rest: Record<string, string> = {};
       if (statesOf(def).includes('rest') && !onState) rest.state = 'rest';
+      // An ABSOLUTE part (#3399: the Counter's ghost-only ring) is also gated by its own `when`, so it is read at that
+      // state: at rest it is absent at every value, and the gate would read as dead.
+      if (part.kind === 'absolute' && part.when !== undefined) rest.state = typeof part.when === 'string' ? part.when : part.when[0];
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
       // A SIZE-SPARSE GRID (#2983): badge's count and dot have no small member, and `size` above is the def's SECOND
       // size. A coordinate the set lacks at that size is read at the first size where it exists.
@@ -37244,10 +37333,10 @@ arm: {
     `#2443 lint-hit-target: FLUSH_SIZES is exactly ['medium', 'large'], the 44×44 flush scope (owner Q170 B) (got: ${constOf('FLUSH_SIZES') ?? 'not found'})`);
   ok(constOf('FLUSH_SMALL_SIZES') === "['small']",
     `#2443 lint-hit-target: FLUSH_SMALL_SIZES is exactly ['small'], the 24×24 flush scope (owner Q174 B) (got: ${constOf('FLUSH_SMALL_SIZES') ?? 'not found'})`);
-  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
   const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
   ok(!!para && missing(para).length === 0,
-    `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
+    `#2408 prism3-build-ui: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
 // ---- Progress (#2670): the approved calls as literals, and its contrast on every committed brand × mode ----
@@ -37693,11 +37782,13 @@ arm: {
   const borderRoles = Object.entries(cellDef.tokens).filter(([k]) => k.split('.').includes('border')).map(([, v]) => v);
   ok(borderRoles.length >= 5 && borderRoles.every((v) => !/^color\.(text|icon)\./.test(v)),
     `#2428 code-input: every cell border binds a border role, never a text or icon role (Q346) (${borderRoles.join(', ')})`);
-  // The ring and the caret: the ring on both active states, the caret on the active empty cell only.
+  // The focus edge and the caret: since #3399 (Q22 A) the active cell draws no ring, its border is the 2px focus edge
+  // on both active states; the caret on the active empty cell only.
   const ringAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'focusRing'));
+  const edgeAt = CELL_STATES.filter((st) => cellAt('medium', st)!.root.bound?.strokeWeight === 'focus/ring/width');
   const caretAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'caret'));
-  ok(JSON.stringify(ringAt) === JSON.stringify(['focus-visible', 'focus-visible-filled']) && JSON.stringify(caretAt) === JSON.stringify(['focus-visible']),
-    `#2428 code-input: the focus ring on the active cells (${ringAt.join(', ')}) and the caret on the active empty cell (${caretAt.join(', ')}) (Q321.6 A)`);
+  ok(ringAt.length === 0 && JSON.stringify(edgeAt) === JSON.stringify(['focus-visible', 'focus-visible-filled']) && JSON.stringify(caretAt) === JSON.stringify(['focus-visible']),
+    `#2428 code-input: the 2px focus edge on the active cells (${edgeAt.join(', ')}), no ring on any cell (${ringAt.join(', ') || 'none'}), and the caret on the active empty cell (${caretAt.join(', ')}) (Q321.6 A, #3399)`);
 
   // (5) THE ITEMS SLOT (Q329 A): a native slot, 6 cells by default, 4 to 8, the cell preferred and the only offer; each
   // default cell follows the field's size.
@@ -39851,13 +39942,13 @@ arm: {
     return JSON.stringify(kids(root)) !== JSON.stringify(['labelRow', 'control', 'message'])
       || JSON.stringify(kids(find(root, 'labelRow'))) !== JSON.stringify(['labelCell', 'toggle'])
       || JSON.stringify(kids(find(root, 'labelCell'))) !== JSON.stringify(['label'])
-      // The focus ring is built only on the two focus members, so the box is [content] elsewhere.
-      || JSON.stringify(kids(find(root, 'control'))) !== JSON.stringify((p.coord as Record<string, string>).state.startsWith('focus-visible') ? ['content', 'focusRing'] : ['content'])
+      // No focus ring on any member (#3399): the box's own border is the focus edge, so the box is [content] throughout.
+      || JSON.stringify(kids(find(root, 'control'))) !== JSON.stringify(['content'])
       || find(find(root, 'control')!, 'toggle') !== undefined
       || find(root, 'trailingVisual') !== undefined;
   });
   ok(anatomyBad.length === 0,
-    `#2317 password-field anatomy: [labelRow, control, message]; the label row holds [labelCell, toggle], the box [content] (and the focus ring when focused), so the toggle sits on the label row outside the box and there is no trailing slot (Q301.2 B)${anatomyBad.length ? ` — WRONG on ${anatomyBad.length}: ${planComponentName(anatomyBad[0])} ${JSON.stringify({ root: kids(anatomyBad[0].root as PN), labelRow: kids(find(anatomyBad[0].root as PN, 'labelRow')), control: kids(find(anatomyBad[0].root as PN, 'control')) })}` : ''}`);
+    `#2317 password-field anatomy: [labelRow, control, message]; the label row holds [labelCell, toggle], the box [content] (no ring when focused: its border is the focus edge, #3399), so the toggle sits on the label row outside the box and there is no trailing slot (Q301.2 B)${anatomyBad.length ? ` — WRONG on ${anatomyBad.length}: ${planComponentName(anatomyBad[0])} ${JSON.stringify({ root: kids(anatomyBad[0].root as PN), labelRow: kids(find(anatomyBad[0].root as PN, 'labelRow')), control: kids(find(anatomyBad[0].root as PN, 'control')) })}` : ''}`);
 
   // THE TOGGLE'S LOOK AND STATE (Q301.3 B, Q301 item 2 of the brief): the nested Button member per field coordinate,
   // typed here. Status never reaches it; disabled is the only field state that moves it.
@@ -39931,7 +40022,7 @@ arm: {
   // Password adds exactly ONE key, typed here: the toggle instance's zero block padding (#3347), which holds the label
   // row to the label's line. Any other key the toggle edge adds, or one TextField loses, fails here by name.
   ok(JSON.stringify(pw.tokens) === JSON.stringify({ ...textField.tokens, 'toggle.pad-block': 'space.0' }) && textField.anatomy?.parts.trailingVisual !== undefined
-    && JSON.stringify(textField.anatomy?.parts.control.children) === JSON.stringify(['content', 'trailingVisual', 'focusRing'])
+    && JSON.stringify(textField.anatomy?.parts.control.children) === JSON.stringify(['content', 'trailingVisual'])
     && textField.anatomy?.parts.labelRow === undefined && textField.anatomy?.parts.toggle === undefined,
     `#2317 field factory: Password binds TextField's token block plus the toggle's one padding key (#3347), and TextField keeps its own anatomy (a trailing slot in the box, no label row, no toggle)`);
 
@@ -40014,14 +40105,14 @@ arm: {
     '#2888 Q?4 A: the Figma `label` switch is Figma-only; the code prop is `hideLabel`, default false (visible)');
 
   // ON EVERY MEMBER (Q?3 A, Q?5 A): the search glyph built visible, the clear glyph built hidden, the label switchable, and
-  // nothing in the box but the value row, the clear slot and the ring (no submit button).
+  // nothing in the box but the value row and the clear slot (no submit button, and no ring since #3399).
   const memberBad = sfPlans.filter((p) => {
     const r = p.root as PN, lead = find(r, 'leadingVisual'), trail = find(r, 'trailingVisual'), label = find(r, 'label'), ctl = find(r, 'control');
-    const focus = String((p.coord as Record<string, string>).state).startsWith('focus-visible');
     return lead?.swapTarget !== 'icon/search' || lead.visible === false
       || trail?.swapTarget !== 'icon/close-filled' || trail.visible !== false
       || label?.visibleProp !== 'label'
-      || JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(focus ? ['content', 'trailingVisual', 'focusRing'] : ['content', 'trailingVisual']);
+      // No ring on any member (#3399): the box's border is the focus edge.
+      || JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(['content', 'trailingVisual']);
   });
   ok(memberBad.length === 0,
     `#2888 search-field members: the search glyph shown, the clear glyph hidden, the label behind the label switch, and no submit button in the box, on all 84${memberBad.length ? ` — WRONG on ${memberBad.length}: ${planComponentName(memberBad[0])}` : ''}`);
@@ -40168,12 +40259,11 @@ arm: {
   const lost = Object.keys(textField.tokens).filter((k) => cf.tokens[k] !== textField.tokens[k]);
   ok(lost.length === 0 && JSON.stringify(own) === JSON.stringify({ 'size.small.mark-height': 'icon.size.sm', 'size.medium.mark-height': 'icon.size.sm', 'size.large.mark-height': 'icon.size.md' }),
     `#2343 PR 4 field factory: the Card number field binds TextField's token block key for key, plus the tile's height at 20 / 20 / 24 and nothing else (added ${JSON.stringify(own)}; differs ${JSON.stringify(lost)})`);
-  // ON EVERY MEMBER: the box holds the value row, the tile and the ring, and no trailing glyph; the tile is built shown,
+  // ON EVERY MEMBER: the box holds the value row and the tile (no ring since #3399), and no trailing glyph; the tile is built shown,
   // starts at the generic tile, is a swap behind the card mark switch, and keeps its own paint under the aspect lock.
   const memberBad = cfPlans.filter((p) => {
     const r = p.root as PN, ctl = find(r, 'control'), tile = find(r, 'cardMark');
-    const focus = String((p.coord as Record<string, string>).state).startsWith('focus-visible');
-    return JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(focus ? ['content', 'cardMark', 'focusRing'] : ['content', 'cardMark'])
+    return JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(['content', 'cardMark'])
       || find(r, 'trailingVisual') !== undefined
       || tile?.type !== 'INSTANCE_SWAP' || tile.visible === false || tile.visibleProp !== 'card mark'
       || !/^provider-logo\/[a-z]+\/generic$/.test(tile.swapTarget ?? '') || tile.fixedPaint !== true || tile.aspectLock !== true || tile.descendantFills !== undefined;

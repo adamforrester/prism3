@@ -6,7 +6,7 @@
  * glyph, a visible label by default, five states).
  *
  * ONE CALL TO THE FIELD FACTORY (Password field's pattern, Q301.8 A). Everything TextField is — the token block, the
- * seven projected states, `status`, the size system, the nested FieldLabel, FieldMessage and focus ring — comes from
+ * seven projected states, `status`, the size system, the nested FieldLabel, FieldMessage and focus edge — comes from
  * `makeTextField` in `text-field.ts`, so a fix there reaches this field without a copy. What this file states is what
  * differs:
  *
@@ -26,7 +26,7 @@
  * The wording "Clear search" and "Search cleared" is the owner's (Q514, approved as drafted).
  */
 import { ComponentDef } from '../component-schema';
-import { makeTextField } from './text-field';
+import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
 
 const built: ComponentDef = makeTextField({
   id: 'search-field',
@@ -93,7 +93,7 @@ const built: ComponentDef = makeTextField({
       '2.4.13 Focus Appearance (intent)',
     ],
     keyboard: 'Tab reaches the input, then the clear button while the field holds a value. Enter submits the host\'s form. Escape empties the field. Enter or Space on the clear button empties the field and returns focus to the input.',
-    focus: 'The input takes TextField\'s focus ring. The clear button takes its own focus ring, and pressing it moves focus back to the input.',
+    focus: 'The input takes TextField\'s 2px focus edge, in place of its border. The clear button takes its own focus ring, and pressing it moves focus back to the input.',
     aria: 'The host wires the label, aria-describedby and aria-invalid as TextField does. A hidden label stays in the DOM, visually hidden, never display: none. The clear button carries aria-label="Clear search" and aria-controls naming the input; the cleared state is announced once through the app\'s shared polite live region: "Search cleared". While results load, aria-busy.',
   },
 
@@ -130,7 +130,7 @@ const built: ComponentDef = makeTextField({
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring'],
+    composesWith: ['field-label', 'field-message'],
     alternativeTo: ['text-field'],
     replacesPatterns: ['search field with no label', 'two clear buttons in a search field', 'clear button on an empty search field'],
     planned: ['combobox'],
@@ -144,6 +144,8 @@ const built: ComponentDef = makeTextField({
 
   notes: {
     contested: [
+      FOCUS_EDGE_STATUS_NOTE,
+      FOCUS_EDGE_DEFAULT_NOTE,
       'Its own style lever (owner decision Q514 taking Q?1 A), rather than a `style` variant on the set (B: 168 members, and style as a code coordinate, which #2721 kept out of every field) or both (C).',
       'The clear button is TextField\'s trailing glyph built hidden (Q?3 A), rather than an engine piece that ties a part\'s visibility to state (B) or a switch on by default that shows a clear button on an empty field (C, Prism 2).',
       'Four statuses kept (Q?6 A), rather than Prism 2\'s set with no status axis (B), so the field stays one factory call.',

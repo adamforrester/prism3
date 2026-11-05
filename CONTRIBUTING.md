@@ -1350,6 +1350,12 @@ npx tsx packages/engine/lint-fill-under-hug.ts      # no projected member stretc
                                                     # subject is the plans the executors build from.
                                                     # Its height twins (#3014) pass only the fills
                                                     # MEASURED_SAFE names as measured on a real file.
+npx tsx packages/engine/lint-token-consumers.ts     # every guaranteed contract token is read by a def,
+                                                    # an alias in the committed emission or the preview
+                                                    # spec, or is declared in UNREAD_BY_DESIGN with a
+                                                    # reason and the count it claims (#3409, Q33 A).
+                                                    # The register is authored; a held entry is an
+                                                    # owner question, never a deletion.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
@@ -1841,7 +1847,7 @@ against current docs before building on them (Context7 or the live docs), becaus
 drift.
 
 If you're using the packaged skills, `skills/prism3-theme` (authoring a brand)
-and `skills/prism3-consume` (building UI from generated tokens) are the two that
+and `skills/prism3-build-ui` (building UI from generated tokens) are the two that
 exist; `.claude/commands/review-pr.md` runs an independent PR review.
 
 ---

@@ -98,7 +98,7 @@ export const BRIDGE_INSTRUCTIONS = [
   "- On a library instance, change component properties only: no fills, padding, radius or size. Spacing goes on the parent's auto layout, bound to a `space.*` variable.",
   "- Bind semantic roles by exact name (`color.*`, `space.*`), never `core.*` primitives. Read a role's `avoid_when` before you use it.",
   '- Save a named version before a write. Never delete a page.',
-  'Start with figma_status, then figma_run `context`. Full rules: prism3://skills/prism3-rebind and prism3://skills/prism3-consume. Each command, with what it writes and refuses: prism3://commands.',
+  'Start with figma_status, then figma_run `context`. Full rules: prism3://skills/prism3-rebind and prism3://skills/prism3-build-ui. Each command, with what it writes and refuses: prism3://commands.',
 ].join('\n');
 
 /**
@@ -109,11 +109,15 @@ export const BRIDGE_INSTRUCTIONS = [
  */
 export const RESOURCES = [
   { uri: 'prism3://skills/prism3-rebind', path: 'skills/prism3-rebind/SKILL.md', mimeType: 'text/markdown', name: 'prism3-rebind skill', description: 'How to move a Figma file onto Prism3 without detaching: the mapping pass, the traps, the audit.' },
-  { uri: 'prism3://skills/prism3-consume', path: 'skills/prism3-consume/SKILL.md', mimeType: 'text/markdown', name: 'prism3-consume skill', description: "How to bind Prism3's semantic roles by name, honor `avoid_when` and check contrast." },
+  { uri: 'prism3://skills/prism3-build-ui', path: 'skills/prism3-build-ui/SKILL.md', mimeType: 'text/markdown', name: 'prism3-build-ui skill', description: "How to bind Prism3's semantic roles by name, honor `avoid_when` and check contrast." },
   { uri: 'prism3://commands', path: 'docs/public/reference/commands.json', mimeType: 'application/json', name: 'commands.json', description: 'Every agent-link command with its args, what it writes and what it refuses, and every MCP tool.' },
   { uri: 'prism3://figma-conventions', path: 'docs/public/reference/figma-conventions.json', mimeType: 'application/json', name: 'figma-conventions.json', description: 'How a Prism3 Figma file is laid out and named: pages, sets, the `_` prefix, slots, variables.' },
   { uri: 'prism3://llms.txt', path: 'docs/public/llms.txt', mimeType: 'text/plain', name: 'llms.txt', description: 'The index of the public Prism3 docs.' },
 ] as const;
+
+/** URIs this bridge once served under another name (#3412). A read of one still fails with resource-not-found, but
+ *  the error names the new URI, so an agent holding an old note can find the file. */
+export const RENAMED_RESOURCES: Record<string, string> = { 'prism3://skills/prism3-consume': 'prism3://skills/prism3-build-ui' };
 
 /** MCP's resource-not-found error code. */
 export const RESOURCE_NOT_FOUND = -32002;
@@ -656,7 +660,11 @@ export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: strin
     case 'resources/read': {
       const uri = req.params?.uri;
       const r = RESOURCES.find((x) => x.uri === uri);
-      if (!r) return { jsonrpc: '2.0', id, error: { code: RESOURCE_NOT_FOUND, message: `Resource not found: ${uri}`, data: { uri } } };
+      if (!r) {
+        const now = typeof uri === 'string' ? RENAMED_RESOURCES[uri] : undefined;
+        const message = now ? `Resource not found: ${uri} was renamed; read ${now}` : `Resource not found: ${uri}`;
+        return { jsonrpc: '2.0', id, error: { code: RESOURCE_NOT_FOUND, message, data: now ? { uri, renamedTo: now } : { uri } } };
+      }
       const got = loadResources().get(r.uri)!;
       if ('error' in got) return err(-32603, got.error);
       return ok({ contents: [{ uri: r.uri, mimeType: r.mimeType, text: got.text, _meta: { 'prism3/engineVersion': ENGINE_VERSION } }] });

@@ -218,7 +218,7 @@ jobs:
 
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
-      # was not. Its first run found `prism3-consume` teaching the pre-rename `action.*` family,
+      # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,
       # which an agent would emit as references resolving to nothing.
       - name: Skills gate (shipped skills make true claims)
         run: npx --yes tsx@4 packages/engine/lint-skills.ts
@@ -821,6 +821,12 @@ jobs:
       # is the plans the executors build from.
       - name: No member fills a width that hugs (#2928)
         run: npx --yes tsx@4 packages/engine/lint-fill-under-hug.ts
+
+      # #3409, owner decision Q33 A — every token in the guaranteed contract is read by a def, an alias in the
+      # committed emission or the preview spec, or is declared unread in the gate's authored register with a reason
+      # and the count it claims. Tokens that look like they should be bound are held there as owner questions.
+      - name: Every contract token is read, or declared unread with a reason (#3409)
+        run: npx --yes tsx@4 packages/engine/lint-token-consumers.ts
 
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because

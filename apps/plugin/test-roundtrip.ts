@@ -2047,6 +2047,68 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 }
 
 
+// ── #3399: THE FOCUS EDGE, BUILT AND READ BACK — HOST-TRUTH ──────────────────────────────────────────
+// Owner decisions Q22 A and Q22.1 A: a focused field draws a 2px focus edge in place of its border, from the outer
+// edge, at its own radius, with no ring; in the status color on an error, warning or success field. Each field set is
+// built by the real executor into the host shim, and every focus member is read off the nodes, against literals typed
+// here: its frame's four side weights bound to `focus/ring/width` (each rest member's to `border-width/hairline`), the
+// stroke drawn INSIDE and out of the layout, the edge painted in the status role, the corners bound to the same
+// variable as the rest member's (the field's own radius), and no `focusRing` node anywhere in the member.
+{
+  const ROLE: Record<string, string> = { default: 'color/border/focus', error: 'color/border/danger', warning: 'color/border/warning', success: 'color/border/success' };
+  const FIELDS: [string, string | null, string][] = [
+    ['text-field', 'control', ''], ['textarea', 'control', ''], ['select', 'control', ''], ['password-field', 'control', ''],
+    ['search-field', 'control', ''], ['card-number-field', 'control', ''], ['code-input-cell', null, ''], ['counter', 'control', 'appearance=outline'],
+  ];
+  const SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+  type N = { name?: string; strokeAlign?: string; strokesIncludedInLayout?: boolean; strokes?: { boundVariables?: { color?: { id?: string } } }[]; boundVariables?: Record<string, { id?: string }>; children?: N[] };
+  const walk = (n: N): N[] => [n, ...(n.children ?? []).flatMap(walk)];
+  const off: string[] = [];
+  let focusMembers = 0;
+  for (const [id, frame, pin] of FIELDS) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+    const varById = new Map(vars.map((v) => [v.id, v.name.replace(/^[^/]+\//, '')] as const));
+    const nameOf = (b?: { id?: string }) => varById.get(String(b?.id)) ?? 'unbound';
+    const members = (page.children[0]?.children ?? []) as unknown as N[];
+    const coordOf = (m: N) => Object.fromEntries(String(m.name).split(', ').map((kv) => kv.split('=') as [string, string]));
+    const frameOf = (m: N) => (frame === null ? m : walk(m).find((n) => n.name === frame));
+    for (const m of members) {
+      const c = coordOf(m);
+      if (pin && !String(m.name).split(', ').includes(pin)) continue;
+      const focus = String(c.state).startsWith('focus-visible');
+      const status = c.status ?? 'default';
+      const f = frameOf(m);
+      const at = `${id} ${m.name}`;
+      if (!f) { off.push(`${at}: no ${frame}`); continue; }
+      const weights = SIDES.map((k) => nameOf(f.boundVariables?.[k]));
+      const want = focus ? 'focus/ring/width' : c.state === 'disabled' ? undefined : 'border-width/hairline';
+      if (want && weights.some((w) => w !== want)) off.push(`${at}: side weights ${weights.join(' ')}, want ${want}`);
+      if (!focus) continue;
+      focusMembers++;
+      if (f.strokeAlign !== 'INSIDE' || f.strokesIncludedInLayout !== false) off.push(`${at}: stroke ${f.strokeAlign}, in layout ${f.strokesIncludedInLayout}`);
+      const paint = nameOf(f.strokes?.[0]?.boundVariables?.color);
+      if (paint !== ROLE[status]) off.push(`${at}: edge ${paint}, want ${ROLE[status]}`);
+      const rest = members.find((x) => x !== m && JSON.stringify({ ...coordOf(x), state: '' }) === JSON.stringify({ ...c, state: '' }) && coordOf(x).state === (c.state === 'focus-visible' ? 'rest' : 'filled'));
+      const restFrame = rest && frameOf(rest);
+      for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) {
+        const got = nameOf(f.boundVariables?.[corner]), was = nameOf(restFrame?.boundVariables?.[corner]);
+        if (got === 'unbound' || got !== was) off.push(`${at}: ${corner} ${got}, the rest member's ${was}`);
+      }
+      if (walk(m).some((n) => n.name === 'focusRing')) off.push(`${at}: a focusRing node is built`);
+    }
+  }
+  // 6 fields × 3 sizes × 4 statuses × 2 focus states = 144, the Code cell's 4 sizes × 2 = 8, the Counter's outline 3.
+  ok(focusMembers === 155 && off.length === 0,
+    `#3399 focus edge as built: in all ${focusMembers} of 155 focus members of the 8 field sets, the frame's four side weights read back focus/ring/width (hairline at rest), drawn inside and out of the layout, in the status role, at the rest member's own corner radius, with no focusRing node${off.length ? ` — ${off.length} off: ${off.slice(0, 4).join(' | ')}` : ''}`);
+}
+
+
 // ── #1670: THE SPINNER, BUILT AND READ BACK — HOST-TRUTH ─────────────────────────────────────────────
 // The owner's spec, checked on what the executor LEFT on the nodes rather than on the plan: four standalone
 // `spinner/<size>` components, each holding a track and an arc; the track at 20% LAYER opacity (the one
