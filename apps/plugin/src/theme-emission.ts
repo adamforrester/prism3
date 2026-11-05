@@ -10,16 +10,30 @@
  * The print is the FNV of the plans' JSON: every collection, variable, value and style Apply Theme writes. It moves with
  * the engine's output, not with its version, so a plugin build that writes the same variables reads the same.
  *
- * A file whose input was saved with no print (by a plugin before this one, or by an agent's paste, `mcp-steps.ts`
- * `runPersist`) reads as differing: nothing says what was written, so Theme is due until a Theme run stamps it.
+ * The MCP paste writes the same stamp: `mcp-paste.ts` works the print out in Node from the plans it cuts into scripts, and
+ * its persist step (`mcp-steps.ts` `runPersist`) stamps it, so a pasted file and a plugin-themed one hold the same data.
+ * A file whose input was saved with no print (by a plugin before this one) reads as differing: nothing says what was
+ * written, so Theme is due until a Theme run stamps it.
+ *
+ * The hash is its own, the ledger's FNV-1a in two 32-bit halves (`as-built-ledger.ts`), so the paste's bundle, which
+ * carries this module, does not carry the ledger.
  */
 import type { ThemePlans } from './apply-theme';
 import type { SharedDataPort } from './persist-figma';
 import { NS, holdsInput } from './persist-figma';
 import type { BrandInput } from '@prism3/engine/theme';
-import { fnv } from './as-built-ledger';
 
 export const EMISSION_KEY = 'themeEmission';
+
+const fnv = (s: string): string => {
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ c, 0x811c9dc5) >>> 0;
+  }
+  return h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');
+};
 
 /** The print of what Apply Theme writes from these plans. */
 export const emissionOf = (p: Pick<ThemePlans, 'colorPlan' | 'floatPlan' | 'fontPlan' | 'motionPlan' | 'stylesPlan' | 'gridPlan' | 'textPlan'>): string =>

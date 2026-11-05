@@ -54,8 +54,11 @@ lines this change moved (`lint-guide-claims`).
     `main.ts` would send in its world, so #3421's ordering fix fires again. Mutations: the recount reading the input
     alone fails `q44.1/engine moved`, `q44.1/no print`, `order/theme due` and #3428's arms; Apply Theme not stamping
     fails each brand's `#3422 Q44.1 A` arm.
-  - **Trap:** a brand saved with no print reads as differing: a file themed by a plugin before this one, or by an
-    agent's paste (`mcp-steps.ts` `runPersist`, left alone to keep the paste scripts small, #3414). Theme counts once
-    there, until a Theme run stamps the print.
+  - The MCP paste stamps the same print: `mcp-paste.ts` works it out in Node from the plans it cuts, and `runPersist`
+    writes it. `test-mcp-paste.ts`'s parity arms, which compare the paste's shared data with the plugin's, caught the
+    paste without it. `theme-emission.ts` keeps its own copy of the ledger's FNV so the paste bundle does not carry the
+    ledger.
+  - **Trap:** a brand saved with no print reads as differing: a file themed by a plugin before this one. Theme counts
+    once there, until a Theme run stamps the print.
 
 **Version.** `engine: patch`, as #3428 now declares too: the repo's practice for a plugin behavior change.
