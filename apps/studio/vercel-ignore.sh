@@ -13,9 +13,11 @@
 #
 # WHAT CAN CHANGE THE SITE. Vercel runs `build:site --workspace @prism3/studio`, which bundles
 # `apps/studio/src/entry.ts` (which imports `main.ts`) and copies `apps/studio/index.html`. Measured against esbuild's own metafile, that
-# bundle's only out-of-`apps/studio/` inputs are `packages/engine/**` and `packages/engine/schema/**`. The Figma plugin
-# is NOT part of this build and cannot affect the deployed site, so `apps/plugin/**` is deliberately
-# absent from the trigger list.
+# bundle's only out-of-`apps/studio/` inputs are `packages/engine/**`, `packages/engine/schema/**` and ONE plugin
+# file, `apps/plugin/src/causes.ts`: the Activity cause phrases and their merge, which Studio imports at run time
+# (#3326 PR 1). The rest of the Figma plugin is NOT part of this build and cannot affect the deployed site, so
+# `apps/plugin/**` is absent from the trigger list except for that one file. Its own imports are type-only, so
+# nothing else of the plugin's comes with it.
 #
 # WHY EXCLUSIONS RATHER THAN A LIST OF BUNDLED FILES. Only 26 of the engine's 52 `.ts` files are
 # actually imported by the bundle; the rest are CLI entry points, emitters, gates and the test
@@ -81,7 +83,8 @@ EXCLUDED=(
 # --- end excluded
 
 # `docs/public` is copied whole to the site's `/docs` by `build-site.mjs` (#2637), so a docs change is a site change.
-PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine docs/public)
+# `apps/plugin/src/causes.ts` is the one plugin file the web bundle reads (#3326 PR 1; see the header).
+PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine docs/public apps/plugin/src/causes.ts)
 for f in "${EXCLUDED[@]}"; do PATHS+=(":(exclude)packages/engine/$f"); done
 
 # WHAT THE DIFF IS AGAINST (#1953). Not `HEAD^`: a branch whose newest commit touches only docs (a progress
