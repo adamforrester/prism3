@@ -17,9 +17,9 @@ A message that sits in the page flow and stays until the user dismisses it or th
 
 ## Anatomy
 
-Shown on the default member: tone `info`, width `contained`.
+Shown on the default member: tone `info`, edge `contained`.
 
-1. **Container** — The banner: the tone's tinted surface (the page color when the brand's Banner style is Outlined) with a 1px edge in the tone's border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full width: a square bar, edged top and bottom only.
+1. **Container** — The banner: the tone's tinted surface (the page color when the brand's Banner style is Outlined) with a 1px edge in the tone's border color, drawn inside so it adds no size. Contained: rounded, edged all round. Full-bleed: a square bar, edged top and bottom only.
 2. **Info glyph** (optional) — The info glyph, an i in a circle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
 3. **Success glyph** (optional) — The success glyph, a check in a circle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
 4. **Warning glyph** (optional) — The warning glyph, an exclamation in a circle, hidden from assistive technology: the text carries the meaning, and the shape tells the tones apart without color.
@@ -40,7 +40,7 @@ Shown on the default member: tone `info`, width `contained`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `tone` | `info`, `success`, `warning`, `danger`, `neutral` | at runtime | How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for other status news, and neutral for a message with no status, such as an announcement or a membership offer. Neutral sits on the secondary background with a neutral edge and shows no glyph. |
-| `width` | `contained`, `full` | once, when authored | contained is a rounded box with an edge on all four sides, inside a section or card. full is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge. |
+| `edge` | `contained`, `full-bleed` | once, when authored | contained is a rounded box with an edge on all four sides, inside a section or card. full-bleed is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge. |
 
 ## Usage guidelines
 
@@ -114,7 +114,7 @@ Titles are short, specific and in sentence case, with no period. The body states
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `tone` | enum: 'info' \| 'success' \| 'warning' \| 'danger' \| 'neutral' | `info` | no | How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for other status news, and neutral for a message with no status, such as an announcement or a membership offer. Neutral sits on the secondary background with a neutral edge and shows no glyph. |
-| `width` | enum: 'contained' \| 'full' | `contained` | no | contained is a rounded box with an edge on all four sides, inside a section or card. full is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge. |
+| `edge` | enum: 'contained' \| 'full-bleed' | `contained` | no | contained is a rounded box with an edge on all four sides, inside a section or card. full-bleed is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge. |
 | `title` | node | — | no | A short heading that names the issue ("Payment failed"), with no period at the end. When present, it labels the banner's region. |
 | `children` | node | — | yes | The body: what happened and what to do next, in one or two sentences. Usually plain text; it can hold a short list or other rich content instead. Never repeat the title. |
 | `headingLevel` | enum: 2 \| 3 \| 4 \| 5 \| 6 | `2` | no | The heading level of the title, matched to where the banner sits in the page outline, so the outline stays in order. |
@@ -153,9 +153,9 @@ Generated from the plan that builds the design-file component: 10 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `width`, `tone`.
+Keyed by `edge`, `tone`.
 
-**width=contained, tone=info**
+**edge=contained, tone=info**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -167,7 +167,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 412px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=full, tone=info**
+**edge=full-bleed, tone=info**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -179,7 +179,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 892px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=contained, tone=success**
+**edge=contained, tone=success**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -191,7 +191,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 412px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=full, tone=success**
+**edge=full-bleed, tone=success**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -203,7 +203,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 892px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=contained, tone=warning**
+**edge=contained, tone=warning**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -215,7 +215,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 412px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=full, tone=warning**
+**edge=full-bleed, tone=warning**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -227,7 +227,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 892px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=contained, tone=danger**
+**edge=contained, tone=danger**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -239,7 +239,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 412px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=full, tone=danger**
+**edge=full-bleed, tone=danger**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -251,7 +251,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 892px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=contained, tone=neutral**
+**edge=contained, tone=neutral**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -262,7 +262,7 @@ Keyed by `width`, `tone`.
 | `container/content/bodyRow/bodyText` | — | — | — | — | — | max width 448px (literal) |
 | `container/content/actions` | `space.150` / — / — / — | — | — | — | — | — |
 
-**width=full, tone=neutral**
+**edge=full-bleed, tone=neutral**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -284,18 +284,9 @@ Keyed by nothing: one row covers every member.
 
 ### Color
 
-Keyed by `tone`, `width`.
+Keyed by `tone`, `edge`.
 
-**tone=info, width=contained**
-
-| Part | Fill | Stroke | Ink | Icon |
-| --- | --- | --- | --- | --- |
-| `container` | `color.foreground.info-subtle` | `color.border.info` | — | — |
-| `container/infoGlyph` | — | — | — | `color.icon.info` |
-| `container/content/titleBox/title` | — | — | `color.text.primary` | — |
-| `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
-
-**tone=info, width=full**
+**tone=info, edge=contained**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -304,7 +295,16 @@ Keyed by `tone`, `width`.
 | `container/content/titleBox/title` | — | — | `color.text.primary` | — |
 | `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
 
-**tone=success, width=contained**
+**tone=info, edge=full-bleed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.foreground.info-subtle` | `color.border.info` | — | — |
+| `container/infoGlyph` | — | — | — | `color.icon.info` |
+| `container/content/titleBox/title` | — | — | `color.text.primary` | — |
+| `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
+
+**tone=success, edge=contained**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -313,7 +313,7 @@ Keyed by `tone`, `width`.
 | `container/content/titleBox/title` | — | — | `color.text.primary` | — |
 | `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
 
-**tone=success, width=full**
+**tone=success, edge=full-bleed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -322,7 +322,7 @@ Keyed by `tone`, `width`.
 | `container/content/titleBox/title` | — | — | `color.text.primary` | — |
 | `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
 
-**tone=warning, width=contained**
+**tone=warning, edge=contained**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -331,7 +331,7 @@ Keyed by `tone`, `width`.
 | `container/content/titleBox/title` | — | — | `color.text.primary` | — |
 | `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
 
-**tone=warning, width=full**
+**tone=warning, edge=full-bleed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -340,7 +340,7 @@ Keyed by `tone`, `width`.
 | `container/content/titleBox/title` | — | — | `color.text.primary` | — |
 | `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
 
-**tone=danger, width=contained**
+**tone=danger, edge=contained**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -349,7 +349,7 @@ Keyed by `tone`, `width`.
 | `container/content/titleBox/title` | — | — | `color.text.primary` | — |
 | `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
 
-**tone=danger, width=full**
+**tone=danger, edge=full-bleed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -358,7 +358,7 @@ Keyed by `tone`, `width`.
 | `container/content/titleBox/title` | — | — | `color.text.primary` | — |
 | `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
 
-**tone=neutral, width=contained**
+**tone=neutral, edge=contained**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -366,7 +366,7 @@ Keyed by `tone`, `width`.
 | `container/content/titleBox/title` | — | — | `color.text.primary` | — |
 | `container/content/bodyRow/bodyText` | — | — | `color.text.primary` | — |
 
-**tone=neutral, width=full**
+**tone=neutral, edge=full-bleed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
