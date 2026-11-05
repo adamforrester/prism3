@@ -210,25 +210,10 @@ const OUT_FIGMA = join(import.meta.dirname, 'out', 'figma');
  * than regenerated: a gate that decided for itself which zeroes were intended would have classified #801's
  * as intended too.
  */
-const FIELD_RING =
-  "the FIELD offset (`focus.ring.offset-field`, 0 in every brand) is focus-ring's own `offset: 'field'`: the input's border is the separation, and a gap outside it reads as a double border (focus-ring.ts, the `offset` prop). Since #3328 (Q3328.1 A) the ring sits INSIDE the field's border (`borderInset`, held by `MUST_SIT_INSIDE_BORDER` below), so it is drawn inside the border, never across it; under the underline Field style it drops `borderInset` and compensates its own stroke outward";
 const ZERO_OK: Record<string, string> = {
-  'text-field.focusRing': FIELD_RING,
-  'select.focusRing': FIELD_RING,
-  'textarea.focusRing': FIELD_RING,
-  // #2317: the Password field's box and ring are TextField's, from the shared field factory.
-  'password-field.focusRing': FIELD_RING,
-  // #2888: the Search field's too.
-  'search-field.focusRing': FIELD_RING,
-  // #2343 PR 4: the Card number field's too.
-  'card-number-field.focusRing': FIELD_RING,
-  // #2427: the Counter's OUTLINE members take the field offset for the same reason (their edge is the field's); its
-  // GHOST members take the control offset, 2px (owner Q283.10 A), so they never reach this admission at gap 0.
-  // `test.ts` holds the ghost offset against a literal, since a ghost member rebound to the field offset would be
-  // admitted here.
-  'counter.focusRing': `on appearance=outline only: ${FIELD_RING}`,
-  // #2428: the Code cell is a field box too, ringed at the field offset as TextField is.
-  'code-input-cell.focusRing': FIELD_RING,
+  // #3399 (Q22 A): the fields drew the last zero-gap rings (`focus.ring.offset-field`). Their border is now the focus
+  // edge and they nest no ring at the outline edge; the underline style adds one at the control offset, 2px. A field
+  // ring that comes back at a 0 gap fails here until its reason is written down again.
 };
 
 /**
@@ -241,13 +226,11 @@ const MUST_COVER = [
   'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing', 'wallet-button.focusRing', 'sign-in-button.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
-  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing', 'card-number-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing', '_slider-thumb.focusRing',
   'counter.focusRing',
   'pagination-item.focusRing',
-  'code-input-cell.focusRing',
 ];
 
 /**
@@ -262,13 +245,11 @@ const MUST_CLEAR_STROKE = [
   'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing', 'wallet-button.focusRing', 'sign-in-button.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
-  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing', 'card-number-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing', '_slider-thumb.focusRing',
   'counter.focusRing',
   'pagination-item.focusRing',
-  'code-input-cell.focusRing',
 ];
 
 /**
@@ -290,20 +271,6 @@ const NOT_STROKE_CLEARED: Record<string, string> = {};
  * so a def that drops the declaration fails by name below rather than shrinking the list.
  */
 const MUST_DRAW_INSIDE = ['accordion.focusRing'];
-
-/**
- * THE FIELD RINGS DRAWN INSIDE THEIR FIELD'S BORDER (#3328, owner decisions Q3328.1 A and Q3328.2 A). Each declares a
- * `borderInset` naming the SAME key its host's frame strokes with, and the plan must carry it: the executors then site
- * the ring that border's width inside the field, at the field's radius. Checked per member and brand: the key is the
- * host's own `strokeWidth` key (a ring inside a border of another width overlaps it or leaves a sliver), it resolves
- * above 0 (at 0 the ring is sited outside, the old outer frame), and the gap it adds to is 0. Typed here, not read off
- * the defs, so a def that drops `borderInset` (the outer ring returning) fails by name below. The Counter is held at
- * appearance=outline; its ghost keys the border to `border-width.none` and keeps the outside ring (Q283.10 A).
- */
-const MUST_SIT_INSIDE_BORDER = [
-  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing',
-  'card-number-field.focusRing', 'code-input-cell.focusRing', 'counter.focusRing',
-];
 
 /** The naming convention, restated rather than imported from the projector — shortcut 1 above. */
 const nameOf = (ref: string): string => ref.replace(/\./g, '/');
@@ -390,16 +357,16 @@ const sited = (n: FigmaNodePlan, parent: FigmaNodePlan | null = null): Sited[] =
  *  projector emitted anything at all. `when` is carried because it is the state the inset is
  *  supposed to appear at, and at no other. `strokeKey` is OPTIONAL on the def and its absence is a
  *  claim ("this part's nested component draws nothing inward"), which C tests rather than trusts. */
-type Declared = { part: string; insetKey: string; strokeKey?: string; borderKey?: string; when?: readonly string[] };
+type Declared = { part: string; insetKey: string; strokeKey?: string; when?: readonly string[] };
 /** The def's `when`, one state or a list (#2318: the field ring names two), read HERE as a list rather than through
  *  the schema's helper, so this gate keeps its own reading of the declaration. */
 const whenList = (w: unknown): readonly string[] | undefined =>
   typeof w === 'string' ? [w] : Array.isArray(w) ? w.map(String) : undefined;
 const declaredInsets = (def: ComponentDef): Declared[] =>
   Object.entries(def.anatomy?.parts ?? {})
-    .map(([part, p]) => ({ part, ...(p as { kind?: string; inset?: string; strokeInset?: string; borderInset?: string; when?: unknown }) }))
+    .map(([part, p]) => ({ part, ...(p as { kind?: string; inset?: string; strokeInset?: string; when?: unknown }) }))
     .filter((p): p is typeof p & { kind: string; inset: string } => p.kind === 'absolute' && typeof p.inset === 'string')
-    .map(({ part, inset, strokeInset, borderInset, when }) => ({ part, insetKey: inset, strokeKey: strokeInset, borderKey: borderInset, when: whenList(when) }));
+    .map(({ part, inset, strokeInset, when }) => ({ part, insetKey: inset, strokeKey: strokeInset, when: whenList(when) }));
 
 /** THE GEOMETRY A GAP IMPLIES, restated so a failure prints coordinates a reader can check against a
  *  Figma inspector. `gap` is the background a designer sees; `stroke` is what the nested component
@@ -425,8 +392,6 @@ const covered = new Set<string>();
  *  every remaining check passes. */
 const strokeCovered = new Set<string>();
 const insideCovered = new Set<string>();
-/** Field rings checked sitting inside their host's border in every brand (#3328), per `<def>.<part>`. */
-const borderCovered = new Set<string>();
 let coords = 0;
 let valueChecks = 0;
 
@@ -448,10 +413,17 @@ for (const def of componentDefs) {
 
   // Every (size, state) coordinate the def declares. States matter: `when` gates the part, so a plan
   // for the wrong state must carry NO inset — the second half of D.
-  for (const size of sizes) {
+  // Every other axis at its first value, and ALSO at each value a declared part's own variant gate names (#3399: the
+  // Counter's ring exists on ghost only, its second appearance), so a gated part is reached rather than reported absent.
+  const firsts: Record<string, string> = {};
+  for (const [axis, values] of Object.entries(def.variants ?? {})) if (axis !== 'size') firsts[axis] = values[0];
+  const pins: Record<string, string>[] = [firsts];
+  for (const d of declared)
+    for (const [axis, values] of Object.entries(def.anatomy.parts[d.part]?.presentWhen ?? {}))
+      if (axis !== 'state' && axis in firsts && !values.includes(firsts[axis])) pins.push({ ...firsts, [axis]: values[0] });
+  for (const size of sizes) for (const pin of pins) {
     for (const state of [...(def.states ?? []), undefined]) {
-      const slots: Record<string, unknown> = { state, leading: true, trailing: true };
-      for (const [axis, values] of Object.entries(def.variants ?? {})) if (axis !== 'size') slots[axis] = values[0];
+      const slots: Record<string, unknown> = { state, leading: true, trailing: true, ...pin };
       let plan: AnatomyPlan;
       try {
         plan = figmaAnatomyPlan(def, size, slots as never);
@@ -459,7 +431,7 @@ for (const def of componentDefs) {
         continue;   // a coordinate this def does not project; other gates own that
       }
       coords++;
-      const at = `${def.id}/${size ?? 'one size'}/state=${state ?? 'none'}`;
+      const at = `${def.id}/${size ?? 'one size'}${pin === firsts ? '' : `/${Object.entries(pin).filter(([k, v]) => firsts[k] !== v).map(([k, v]) => `${k}=${v}`).join('/')}`}/state=${state ?? 'none'}`;
 
       for (const { node, parent } of sited(plan.root)) {
         const d = byPart.get(node.name);
@@ -498,32 +470,6 @@ for (const def of componentDefs) {
         }
         if (node.absoluteInset !== nameOf(ref))
           failures.push(`${at}: '${node.name}'.absoluteInset is '${node.absoluteInset}', and the def's own key '${d.insetKey}' → '${ref}' names '${nameOf(ref)}'`);
-
-        // ---- INSIDE THE HOST'S BORDER (#3328): the plan carries the def's key, the key is the host's own stroke, and
-        // where it resolves above 0 the ring is sited inside the field at a 0 gap in every brand. ---------------------
-        if (d.borderKey !== undefined) {
-          const borderRef = refOf(d.borderKey);
-          const hostStroke = parent.bound?.strokeWeight;
-          if (!borderRef) failures.push(`${at}: '${node.name}' declares borderInset key '${d.borderKey}' and def.tokens binds no such key`);
-          else if (node.absoluteBorderInset !== nameOf(borderRef))
-            failures.push(`${at}: the def declares '${node.name}'.borderInset ('${d.borderKey}' → '${borderRef}') and the plan carries ${node.absoluteBorderInset ? `'${node.absoluteBorderInset}'` : 'no absoluteBorderInset'} — the executors then site the ring OUTSIDE the field, the outer frame #3328 removed`);
-          else {
-            const widths = bs.map((b) => vars.get(b)!.get(node.absoluteBorderInset!));
-            if (widths.some((w) => w === undefined)) failures.push(`${at}: '${node.name}'.absoluteBorderInset → '${node.absoluteBorderInset}' is not a FLOAT in every brand (${widths.join(', ')})`);
-            else if (widths.some((w) => w! > 0)) {
-              if (node.absoluteBorderInset !== hostStroke)
-                failures.push(`${at}: '${node.name}' sits inside a border of '${node.absoluteBorderInset}', and its host '${parent.name}' strokes with '${hostStroke ?? 'no bound stroke weight'}' — a ring inside a border of another width overlaps it or leaves a sliver between them (#3328)`);
-              let clean = true;
-              for (const brand of bs) {
-                const gap = vars.get(brand)!.get(node.absoluteInset);
-                const bw = vars.get(brand)!.get(node.absoluteBorderInset)!;
-                if (gap !== 0 || !(bw > 0)) { clean = false; failures.push(`${at}: '${node.name}' sits inside its field's border, and in brand '${brand}' its gap is ${gap} and the border ${bw} — inside means a 0 gap and a border above 0 (#3328)`); }
-                else valueChecks++;
-              }
-              if (clean && node.absoluteBorderInset === hostStroke) borderCovered.add(`${def.id}.${node.name}`);
-            }
-          }
-        }
 
         // ---- A, the stroke half: does what this part NESTS draw inward, and is it compensated? --
         // The question is asked of the NESTED def, so the host cannot answer it about itself. Three
@@ -718,14 +664,6 @@ for (const m of MUST_COVER)
   if (!covered.has(m))
     failures.push(`SCOPE NOT REPRESENTED: '${m}' is a known absolute inset part and this run checked no plan carrying it. If it was legitimately removed, drop it from MUST_COVER in this file in the same PR; otherwise a clean run here means nothing.`);
 
-for (const m of MUST_SIT_INSIDE_BORDER)
-  if (!borderCovered.has(m))
-    failures.push(`INSIDE BORDER NOT EXERCISED: '${m}' draws its focus inside its field's border by owner decision (Q3328.1 A, #3328), and this run checked no plan carrying it with absoluteBorderInset naming its host's stroke, above 0 at a 0 gap in every brand. Either the def dropped borderInset (the outer ring is back) or the plan stopped carrying it.`);
-for (const def of componentDefs)
-  for (const d of declaredInsets(def))
-    if (d.borderKey !== undefined && !MUST_SIT_INSIDE_BORDER.includes(`${def.id}.${d.part}`))
-      failures.push(`BORDER INSET NOT RECORDED: '${def.id}.${d.part}' declares borderInset '${d.borderKey}' and is not in MUST_SIT_INSIDE_BORDER, so if it stops sitting inside its border nothing fails. Add it there (#3328).`);
-notes.push(`inside the border (#3328): ${[...borderCovered].sort().join(', ') || 'NONE'}`);
 
 for (const m of MUST_DRAW_INSIDE)
   if (!insideCovered.has(m))

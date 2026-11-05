@@ -49,6 +49,7 @@
  * bottom line, 2px with the ring at the 2px offset when active and `border.danger` in error. The field's gaps stay.
  */
 import { ComponentDef } from '../component-schema';
+import { fieldEdgeWidths, FOCUS_EDGE_DEFAULT_NOTE } from './text-field';
 
 // The cell geometry per size (owner decision Q330 A): width, height. Literal px, no new token.
 const CELL_WIDTH = { medium: 48, small: 44, large: 56, xlarge: 68 };
@@ -62,7 +63,7 @@ export const codeInputCell: ComponentDef = {
   status: 'draft',
   summary: 'One cell of a code input: a box holding one character of the code. Used only inside a code input.',
   description:
-    'One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus ring and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.',
+    'One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus edge and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.',
 
   props: [
     { name: 'digit', type: 'string', required: false, description: 'The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it.' },
@@ -89,11 +90,9 @@ export const codeInputCell: ComponentDef = {
     'size.small.radius': 'radius.sm',
     'size.large.radius': 'radius.sm',
     'size.xlarge.radius': 'radius.lg',
-    'border-width': 'border-width.hairline',
+    // Text field's edge weight per state (#3399): the hairline, and the 2px focus edge on the active cell.
+    ...fieldEdgeWidths(['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error']),
     'pad': 'space.0',
-    // The focus ring at the field offset (0): the cell's own border supplies the separation, as on Text field.
-    'ring-width': 'focus.ring.width',
-    'ring-offset': 'focus.ring.offset-field',
     'caret-width': 'border-width.hairline',
 
     // ── THE CHARACTER (owner decision Q330 A: 16, 20, 24, 40) — the body step at small, the title steps above it. No
@@ -130,14 +129,15 @@ export const codeInputCell: ComponentDef = {
         kind: 'box',
         role: 'target',
         paintSlots: ['fill', 'border'],
-        children: ['content', 'focusRing'],
+        // No focus ring (#3399): the active cell's border is the focus edge. The underline Field style adds the ring back.
+        children: ['content'],
         layout: { direction: 'column', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         // Each size's cell, built at its literal width and height (owner decision Q330 A); `content` takes the height.
         builtSize: { axis: 'size', widths: CELL_WIDTH, heights: CELL_HEIGHT, grow: 'content' },
         // THE FILL-WIDTH FLOOR (owner decision Q330 A): a cell set to fill shrinks to share the row, never below 32.
         minWidth: 32,
         radius: 'size.{size}.radius',
-        strokeWidth: 'border-width',
+        strokeWidth: 'border-width.{state}',
         note: 'The cell: one box per character, as wide and tall as its size sets. Set to fill, it shares the row with the other cells and stops at 32px wide.',
       },
       content: {
@@ -169,27 +169,16 @@ export const codeInputCell: ComponentDef = {
         presentWhen: { state: ['filled', 'focus-visible-filled', 'error'] },
         note: 'The character, in its size\'s text style, centered in the cell. Tabular figures in code, so every digit is one width.',
       },
-      focusRing: {
-        kind: 'absolute',
-        when: ['focus-visible', 'focus-visible-filled'],
-        nests: 'focus-ring',
-        inset: 'ring-offset',
-        strokeInset: 'ring-width',
-        // Inside the cell's border, at its own radius (#3328, Q3328.1 A), as on Text field.
-        borderInset: 'border-width',
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'The shared focus ring on the active cell, where the next character goes, drawn inside the cell\'s border at its own radius.',
-      },
     },
     codeOnly: [
       'the cell in code — an aria-hidden element the code input draws; it is never focusable and has no role. The one input under the cells takes focus, the name and the value.',
-      'the active cell — the cell at the input\'s caret, or the last cell once the code is complete, carries the ring while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input\'s caret position, never a DOM focus move.',
+      'the active cell — the cell at the input\'s caret, or the last cell once the code is complete, carries the 2px focus edge while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input\'s caret position, never a DOM focus move.',
       'the caret — Figma draws a static bar; code draws a blinking bar on the active empty cell, or hides the native caret and draws none, and stops blinking under prefers-reduced-motion.',
       'tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.',
       'the character\'s optical centering — in code its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`), so the cell centers the figure itself, whatever the brand font\'s ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered. Figma keeps vertical trim inside a text style, so the Figma character carries its size\'s text style untrimmed and centers its line box.',
       'fill width — Figma keeps each cell at its size until a designer sets it to fill; code\'s `width="full"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size\'s.',
       'style — the cell\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).',
-      'forced-colors — the borders become system-color borders and the active cell\'s ring a system-color outline, so the active cell still shows.',
+      'forced-colors — the borders become system-color borders and the active cell\'s focus edge a 2px system-color border, so the active cell still shows.',
     ],
   },
 
@@ -207,11 +196,11 @@ export const codeInputCell: ComponentDef = {
     role: 'none: an aria-hidden drawing; the code input\'s one input carries the role, the name and the value',
     wcag: [
       '1.4.11 Non-text Contrast (targets 3:1 for the cell border against the page)',
-      '2.4.7 Focus Visible (the ring on the active cell)',
-      '2.4.13 Focus Appearance (the shared focus ring, as intent)',
+      '2.4.7 Focus Visible (the focus edge on the active cell)',
+      '2.4.13 Focus Appearance (the 2px focus edge, as intent)',
     ],
     keyboard: 'None of its own: the code input\'s input takes every key.',
-    focus: 'Never focused itself. While the code input\'s input has focus, the active cell shows the focus ring, drawn inside the cell: its border takes the focus color and a 2px band sits inside it, at the cell\'s radius.',
+    focus: 'Never focused itself. While the code input\'s input has focus, the active cell draws the 2px focus edge in place of its border: from the outer edge, at the cell\'s own radius, with no ring and no gap, and the cell keeps its size (in CSS, an outline of the focus width at a negative offset of the same width, in the focus color).',
     aria: 'aria-hidden="true". A screen reader meets the code input\'s one input and its whole value, never a cell.',
   },
 
@@ -232,7 +221,7 @@ export const codeInputCell: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['focus-ring'],
+    composesWith: [],
     alternativeTo: [],
     replacesPatterns: ['one input per character of a one-time code'],
     supersededBy: [],
@@ -241,11 +230,12 @@ export const codeInputCell: ComponentDef = {
   motion: {
     enter: 'None.',
     exit: 'None.',
-    reduceMotion: 'The caret does not blink; the ring and borders change at once, with no transition.',
+    reduceMotion: 'The caret does not blink; the focus edge and borders change at once, with no transition.',
   },
 
   notes: {
     contested: [
+      FOCUS_EDGE_DEFAULT_NOTE,
       'The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field\'s names for the same ring and caret. Renaming them is a schema change held for the owner.',
       'The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand\'s bold title weight (strong on most brands), and the small one Text field\'s body step in the default weight. A brand\'s own title ladder sets the exact size.',
     ],
@@ -389,7 +379,7 @@ export const codeInput: ComponentDef = {
       'ONE INPUT — `<input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" spellcheck="false">` lies over the cells, which are aria-hidden. Assistive technology meets one textbox with one name and one value. A code with letters sets inputMode text, autocapitalize characters, and drops the pattern. Never one input per cell: paste and the phone\'s code suggestion then fill one cell (W3C Understanding SC 3.3.8).',
       'NORMALIZE, THEN FILL — spaces, hyphens and dashes are removed before counting, and characters past `length` are dropped without an error. The input carries no native `maxlength`: a browser cuts pasted text to it before any handler runs, so `123-456` would arrive as `123-45` and a valid code would read as incomplete. The handler strips first, then caps at `length`. A pasted or suggested code fills every cell. Paste is never blocked.',
       'onComplete — fires once when the value reaches `length`, again only after the value changes and reaches it again. No auto-submit: the page decides, so a typo never locks a user out (SC 3.2.2).',
-      'the drawn caret and the active cell — DOM focus never moves. Typing advances the active cell; Backspace removes the last character and moves the ring back; arrow keys, Home and End move the native caret and the ring follows. A click on any cell focuses the input with the caret at the end.',
+      'the drawn caret and the active cell — DOM focus never moves. Typing advances the active cell; Backspace removes the last character and moves the focus edge back; arrow keys, Home and End move the native caret and the ring follows. A click on any cell focuses the input with the caret at the end.',
       'AFTER AN ERROR — the value stays, with the caret at the end and the text selected: the next keystroke replaces the code and Backspace edits it. The field never clears itself.',
       'pending — not projected: a real state in code (the code is being checked: aria-busy and a polite "Checking code" status, the input still editable) whose look is the rest look, so it has no Figma variant.',
       'the field\'s status and state in Figma — a placed field\'s cells are the designer\'s (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member\'s default cells show that member\'s state, as a fresh insert\'s starting point. In code the input drives every cell.',
@@ -421,11 +411,11 @@ export const codeInput: ComponentDef = {
       '3.2.2 On Input (no auto-submit)',
       '4.1.2 Name, Role, Value (one textbox, one name, one value)',
       '1.4.11 Non-text Contrast (targets 3:1 for the cell border)',
-      '2.4.13 Focus Appearance (the ring on the active cell, as intent)',
+      '2.4.13 Focus Appearance (the 2px focus edge on the active cell, as intent)',
       '2.5.8 Target Size (the row of cells is one target)',
     ],
     keyboard: 'One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.',
-    focus: 'Focus stays on the one input. The active cell, where the next character goes, shows the focus ring.',
+    focus: 'Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.',
     aria: 'aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.',
   },
 
