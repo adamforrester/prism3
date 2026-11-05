@@ -52,7 +52,7 @@
  * (#2574), so this set carries none. 2 appearances × 3 sizes × 3 states = 18 members.
  */
 import { ComponentDef } from '../component-schema';
-import { fieldEdgeWidths } from './text-field';
+import { fieldEdgeWidths, FOCUS_EDGE_DEFAULT_NOTE } from './text-field';
 
 /** The two stepper buttons: one nest, two cells. Each nests FlushIconButton.Neutral with `state` exposed (Q283.7). */
 const stepper = {
@@ -329,6 +329,7 @@ export const counter: ComponentDef = {
 
   notes: {
     contested: [
+      FOCUS_EDGE_DEFAULT_NOTE,
       'Appearance order: `outline` first, as Q283.4 A spelled it, so the Figma default and the code default are outline, while the wireframe decision made ghost the MVP. If ghost should be what a designer inserts, the order flips (an owner call).',
       'The value in Figma defaults to "1", the Oct 9 draft, while the code default is min, which defaults to 0 (Q283.7). A product card usually starts at 1; the two defaults differ on purpose until the owner says otherwise.',
       'TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance\'s properties under its layer name (decrement, increment).',

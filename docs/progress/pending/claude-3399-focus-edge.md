@@ -23,25 +23,32 @@ Counter (outline). Counter's ghost and every underline-edge field keep the outsi
   ledgers, with `lint-absolute-inset`'s `MUST_SIT_INSIDE_BORDER`. `EXECUTOR_REVISION` 51 → 52 (see the PR for the
   collision with #3380's reservation); `executor-reach.json` names the 9 sets, measured clean.
 
-### Held for the owner
+### The default field's 2.4.13 (Q3399.1 A)
 
 **The default field's rest border → focus change is 1.19–2.21:1, not ≥3:1, in every corpus brand and mode.** The
 decision's premise was a `neutral.400` border going to near-black (~5.6:1). Here `border.focus` is the brand's action color,
 and `field.border.rest` is a mid-gray held at 3:1 against the page, so the two sit close in luminance. The inner 1px
-(fill → focus) changes at 4.56:1 or more everywhere. So the default field is in the same position Q22.1 A accepted for the
-status fields: AA met, and SC 2.4.13 rests on the inner 1px band. The gate `#3399 field focus 2.4.13` asserts the literal
-3:1 as specified and fails by name until the owner decides.
+(fill → focus) changes at 4.56:1 or more everywhere. The owner took option A (2026-11-04): the default field falls under the
+trade-off Q22.1 A accepted for status fields, AA met and SC 2.4.13 resting on the inner 1px band.
+`#3399 field focus 2.4.13` now asserts fill → focus ≥ 3:1 (a literal from SC 2.4.13) and the 2px width, and reports
+rest → focus without asserting on it. Every def the edge reaches records the trade-off in `notes.contested`
+(`FOCUS_EDGE_DEFAULT_NOTE`), and the arm holds it there by the decision's name. Options B (a darker field focus role) and
+C (a wider edge) were not taken.
 
 ### What a Field style switch now does
 
 Switching Field style in place (#2695 Q16 A) still keeps the set, every member and every other node, but the 24 focus
 members gain the ring going to Underline and lose it going to Outline, since only Underline draws one.
-`test-update-apply.ts` holds both directions to the literal 24.
+`test-update-apply.ts` holds both directions to the literal 24. This follows from two decisions already taken (Q22 A: the outline
+edge draws no ring; #3328 Q-F1 A: the underline edge keeps one), so it is the expected result, not a defect. The ring holds
+no designer content, so nothing a designer authored is lost. No change and no owner question.
 
 ### Traps
 
 - The test stub models host truth for a bound weight: `strokeWeight` splits across the four per-side keys (#1332). An arm
   reading `boundVariables.strokeWeight` sees nothing.
 - On the plugin path a root-frame member (the Code cell) sits inside a component set, so `page.children[0]` is the set.
-- Textarea's grip sits 1px in from the corner (`grip-inset`, the hairline); at the 2px focus edge its artboard overlaps the
-  edge by 1px. Whether the glyph's drawing reaches that pixel is not measured. Unchanged here; flagged in the PR.
+- Textarea's grip sits 1px in from the corner (`grip-inset`, the hairline), so at the 2px focus edge its 16px artboard
+  overlaps the edge by 1px. Measured: the drawn glyph's farthest point is 19.71 on its 24-unit artboard, so it stays 3.86px
+  in from the outer edge and never reaches the edge's pixels. The inset stays the hairline; `#3399 textarea grip clears the
+  focus edge` holds the glyph more than the literal 2px in, in every corpus brand.

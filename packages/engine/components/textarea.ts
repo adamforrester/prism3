@@ -90,7 +90,7 @@
  * switch holding the two) would still leave a stray gap with the footer on and both inside it off.
  */
 import { ComponentDef } from '../component-schema';
-import { fieldEdgeWidths, FOCUS_EDGE_STATUS_NOTE } from './text-field';
+import { fieldEdgeWidths, FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE } from './text-field';
 
 export const textarea: ComponentDef = {
   id: 'textarea',
@@ -581,6 +581,7 @@ export const textarea: ComponentDef = {
     ],
     contested: [
       FOCUS_EDGE_STATUS_NOTE,
+      FOCUS_EDGE_DEFAULT_NOTE,
       'resize as a VARIANT AXIS vs a prop — brief §15 lists `resize: [none, vertical, auto]` under `variants`, and §4 calls it "more like an author-chosen variant than a runtime state". Declared here as a prop ONLY. Two reasons: `VARIANT_AXES` is closed (#847) and does not contain `resize`, and adding it would duplicate a member already carried by the prop — the exact criticism `modifiers` carries in the vocabulary\'s own header (#845). The named alternative is to admit `resize` to `VARIANT_AXES` with a stated reason, which is the right move IF the drag handle turns out to need a projected Figma member. It did not: the grip is pinned out of the flow, so it moves no box and a `resize handle` boolean carries it (2026-09-25).',
       'modifiers: [auto-grow, show-count] — brief §15 lists these as an axis. Not declared, and NOT a judgment call: `modifiers` is not in `VARIANT_AXES`. #845 removed it — from both defs that carried it and from the vocabulary itself (`component-schema.ts` §2 of the closed-vocabulary header: "**RESOLVED (#845): removed, from both defs and from this list**"; `button.ts` opens its variants block with `NO modifiers AXIS`). Since `variants` is typed `Partial<Record<VariantAxis, string[]>>`, declaring it does not compile, and `validateComponentDef` rejects it a second time at runtime. The reason it was removed is the same one that would disqualify it here — its values are not alternatives along one dimension: `auto-grow` is already a value of `resize`, `show-count` is already a boolean prop, and a textarea can be both at once, which is what makes them booleans rather than coordinates. The real alternative is to petition to RE-OPEN `VARIANT_AXES` with a stated reason, the way the `resize` entry above contemplates for itself. (An earlier version of this entry said the alternative was to "declare it and accept the duplication", which reads as a trade-off available to the author and is not one — the file would not build. Corrected in #904; the conclusion never moved, only the reason under it.)',
       'The focus indicator on a large surface — brief §4 argues a saturated ring around a 600×400 textarea is visual noise and favors an inset indicator or a background/border tint (Atlassian). Since #3399 (Q22 A) no field draws a ring: the field\'s own border becomes the 2px focus edge, so the indicator is the edge of the box, inset, though still saturated rather than a tint. The alternative is a tint or a large-surface token, which is engine surface a def should not author unilaterally.',

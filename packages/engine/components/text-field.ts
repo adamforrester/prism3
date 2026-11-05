@@ -65,9 +65,17 @@ export const FOCUS_EDGE_STATES: readonly string[] = ['focus-visible', 'focus-vis
 export const fieldEdgeWidths = (states: readonly string[]): Record<string, string> =>
   Object.fromEntries(states.map((s) => [`border-width.${s}`, FOCUS_EDGE_STATES.includes(s) ? 'focus.ring.width' : 'border-width.hairline']));
 
+/**
+ * The decided trade-off for a DEFAULT field's focus edge (#3399, Q3399.1 A), recorded on every field the focus edge
+ * reaches: with a status axis beside `FOCUS_EDGE_STATUS_NOTE`, without one (Code input cell, Counter) on its own.
+ * `test.ts` `#3399 field focus 2.4.13` asserts the fill → focus 3:1 and reports rest → focus.
+ */
+export const FOCUS_EDGE_DEFAULT_NOTE =
+  'The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field\'s border becomes a 2px edge in the focus color. The inner 1px changes from the field\'s fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring\'s look.';
+
 /** The decided trade-off (#3399, Q22.1 A), recorded on every field with a status axis. */
 export const FOCUS_EDGE_STATUS_NOTE =
-  'The focus edge on a field with a status (#3399, owner decision Q22.1 A): while focused, an error, warning or success field draws its 2px focus edge in the status color, not the focus color, so the status stays visible while the user types (Material and Primer do the same). The alternative, the focus color over every status, hides the status while the field has focus. The decided trade-off: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band, which changes from the field\'s fill to the status color; the outer 1px keeps the status color it had at rest. A default field changes on both pixels, from its rest border and its fill to the focus color.';
+  'The focus edge on a field with a status (#3399, owner decision Q22.1 A): while focused, an error, warning or success field draws its 2px focus edge in the status color, not the focus color, so the status stays visible while the user types (Material and Primer do the same). The alternative, the focus color over every status, hides the status while the field has focus. The decided trade-off: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band, which changes from the field\'s fill to the status color; the outer 1px keeps the status color it had at rest. A default field is under the same trade-off (see the note on the default focus edge).';
 
 /**
  * THE FIELD FACTORY (#2317, owner decision Q301.8 A) — `makeButton`'s pattern applied to the text field. One
@@ -837,6 +845,7 @@ export const textField: ComponentDef = makeTextField({
     ],
     contested: [
       FOCUS_EDGE_STATUS_NOTE,
+      FOCUS_EDGE_DEFAULT_NOTE,
       'Bundled props vs composed slots — ship both: props for the 90% vertical-form case, composed FieldLabel/FieldMessage slots for the 10% custom layout (brief §3).',
       'How far to split the typed family — NumberField separate; SearchField/PasswordField thin specializations; email/url/tel stay as type+attributes (brief §3).',
       'Validation ownership/timing — presentational default; the form library owns timing (brief §3, §6).',

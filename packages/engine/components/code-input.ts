@@ -49,7 +49,7 @@
  * bottom line, 2px with the ring at the 2px offset when active and `border.danger` in error. The field's gaps stay.
  */
 import { ComponentDef } from '../component-schema';
-import { fieldEdgeWidths } from './text-field';
+import { fieldEdgeWidths, FOCUS_EDGE_DEFAULT_NOTE } from './text-field';
 
 // The cell geometry per size (owner decision Q330 A): width, height. Literal px, no new token.
 const CELL_WIDTH = { medium: 48, small: 44, large: 56, xlarge: 68 };
@@ -235,6 +235,7 @@ export const codeInputCell: ComponentDef = {
 
   notes: {
     contested: [
+      FOCUS_EDGE_DEFAULT_NOTE,
       'The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field\'s names for the same ring and caret. Renaming them is a schema change held for the owner.',
       'The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand\'s bold title weight (strong on most brands), and the small one Text field\'s body step in the default weight. A brand\'s own title ladder sets the exact size.',
     ],

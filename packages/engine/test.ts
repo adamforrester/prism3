@@ -7767,11 +7767,14 @@ arm: {
   measureTag('unselected label on the page', ref('unselected.label'), [], 4.5);
   measureTag('unselected edge on the page', ref('unselected.border'), [], 3);
 
-  // #3399 (owner decisions Q22 A, Q22.1 A): THE DEFAULT FIELD'S FOCUS EDGE PASSES WCAG 2.4.13, IN EVERY CORPUS BRAND AND
-  // MODE. A focused default field draws its 2px focus edge in place of its border, from the outer edge in: the outer 1px
-  // changes from the rest border to `border.focus`, the inner 1px from the field's fill over the page. Both changes are
-  // measured against the LITERAL 3:1 of SC 2.4.13, and the edge's width, read off each brand's emitted
-  // `focus.ring.width`, against the literal 2px. The roles are typed here (`field.border.rest`, `field.fill`,
+  // #3399 (owner decisions Q22 A, Q22.1 A, Q3399.1 A): THE DEFAULT FIELD'S FOCUS EDGE PASSES WCAG 2.4.13 ON ITS INNER
+  // BAND, IN EVERY CORPUS BRAND AND MODE. A focused default field draws its 2px focus edge in place of its border, from
+  // the outer edge in: the inner 1px changes from the field's fill over the page to `border.focus`, the outer 1px from
+  // the rest border. The inner change is ASSERTED against the LITERAL 3:1 of SC 2.4.13. The outer change is REPORTED,
+  // never asserted: Q3399.1 A accepted that it sits below 3:1 (both are mid-luminance roles; 1.19–2.21:1 when decided),
+  // the same AA-met trade-off Q22.1 A took for status fields, and each def carries it in `notes.contested`
+  // (`FOCUS_EDGE_DEFAULT_NOTE`, held to that decision's name below). The edge's width, read off each brand's emitted
+  // `focus.ring.width`, is held to the literal 2px. The roles are typed here (`field.border.rest`, `field.fill`,
   // `border.focus`), and each control is held to binding them under its own keys, so a control rebound to another role
   // fails by name rather than being measured on whatever it moved to. 5 brands × 4 modes = 20 cells per control.
   // That the edge IS the border (2px, from the outer edge, at the control's radius, in the status color on a status
@@ -7787,7 +7790,7 @@ arm: {
     ];
     const low: string[] = [];
     let cells = 0;
-    let minEdge = Infinity, minBand = Infinity;
+    let minEdge = Infinity, maxEdge = 0, minBand = Infinity;
     for (const [id, borderKey, fillKey, focusKey] of FOCUS_FIELDS) {
       const fd = componentDefs.find((d) => d.id === id);
       if (!fd) { low.push(`${id}: no def`); continue; }
@@ -7805,11 +7808,14 @@ arm: {
         if (!under || !rest || !focus) { low.push(`${id} ${brand}/${m.mode}: missing ${!under ? FILL : !rest ? REST_BORDER : FOCUS}`); continue; }
         const edge = contrast(focus, rest), band = contrast(focus, under);
         n++; cells++;
-        minEdge = Math.min(minEdge, edge); minBand = Math.min(minBand, band);
-        if (edge < 3) low.push(`${id} ${brand}/${m.mode}: border → focus ${edge.toFixed(2)}`);
+        minEdge = Math.min(minEdge, edge); maxEdge = Math.max(maxEdge, edge); minBand = Math.min(minBand, band);
+        // rest → focus: reported in the message below, not asserted (Q3399.1 A).
         if (band < 3) low.push(`${id} ${brand}/${m.mode}: fill → focus ${band.toFixed(2)}`);
       }
       if (n !== TAG_CELLS) low.push(`${id}: ${n} of ${TAG_CELLS} cells`);
+      // The decided trade-off is recorded on the def (Q3399.1 A), by the decision's name, a literal.
+      if (!(fd.notes?.contested ?? []).some((c) => c.includes('owner decision Q3399.1 A')))
+        low.push(`${id}: notes.contested does not record the default focus edge trade-off (Q3399.1 A)`);
     }
     const widths: string[] = [];
     for (const brand of ['nb', 'aurora', 'harbor', 'prism3', 'wendys']) {
@@ -7821,8 +7827,39 @@ arm: {
       widths.push(`${brand} ${v}`);
       if (v !== 2) low.push(`${brand}: focus.ring.width ${JSON.stringify(v)}, not the 2px focus edge`);
     }
+    console.log(`  · #3399 field focus (Q3399.1 A, reported, not asserted): the default field's rest border → focus edge is ${minEdge.toFixed(2)}–${maxEdge.toFixed(2)}:1 across ${cells} control × brand × mode cells`);
     ok(cells === FOCUS_FIELDS.length * TAG_CELLS && low.length === 0,
-      `#3399 field focus 2.4.13: on all ${FOCUS_FIELDS.length} default field controls the focus edge changes from the rest border at ≥3:1 (lowest ${minEdge.toFixed(2)}) and from the fill over the page at ≥3:1 (lowest ${minBand.toFixed(2)}) in all ${cells} of ${FOCUS_FIELDS.length * TAG_CELLS} brand × mode cells, and is 2px in every corpus brand (${widths.join(', ')})${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''}`);
+      `#3399 field focus 2.4.13: on all ${FOCUS_FIELDS.length} default field controls the focus edge changes from the fill over the page at ≥3:1 (lowest ${minBand.toFixed(2)}) in all ${cells} of ${FOCUS_FIELDS.length * TAG_CELLS} brand × mode cells, and is 2px in every corpus brand (${widths.join(', ')}); each def records the trade-off (Q3399.1 A). Reported, not asserted: rest border → focus ${minEdge.toFixed(2)}–${maxEdge.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''}`);
+  }
+  // #3399: TEXTAREA'S RESIZE GRIP CLEARS THE 2PX FOCUS EDGE. The grip's 16px artboard is pinned `grip-inset` (the 1px
+  // hairline) in from the bottom-right corner, so at focus the artboard overlaps the 2px edge by 1px. What matters is
+  // whether the DRAWN glyph reaches the edge's pixels: its farthest point on the 0 0 24 24 artboard, scaled to the
+  // emitted icon size, plus the inset, must stay more than the literal 2px in from the outer edge on both axes, in
+  // every corpus brand. The glyph is read off its path (absolute M/L/Z only, so every number pair is a point); the
+  // sizes off each brand's emitted px. Measured when added: 3.86px, so the inset stays the hairline.
+  {
+    const EDGE = 2;
+    const ta = componentDefs.find((d) => d.id === 'textarea');
+    const bad: string[] = [];
+    if (ta?.tokens['grip-size'] !== 'icon.size.xs') bad.push(`grip-size binds ${ta?.tokens['grip-size']}, not icon.size.xs`);
+    if (ta?.tokens['grip-inset'] !== 'border-width.hairline') bad.push(`grip-inset binds ${ta?.tokens['grip-inset']}, not border-width.hairline`);
+    const d = ICON_PATHS['resize-grip'];
+    if (/[^MLZ\d.\s-]/.test(d)) bad.push(`resize-grip path uses a command other than absolute M/L/Z: ${d}`);
+    const nums = (d.match(/-?\d*\.?\d+/g) ?? []).map(Number);
+    let far = 0; // the glyph's largest x or y on the 24-unit artboard: its reach toward the bottom-right corner
+    for (let k = 0; k + 1 < nums.length; k += 2) far = Math.max(far, nums[k], nums[k + 1]);
+    const clear: string[] = [];
+    for (const brand of ['nb', 'aurora', 'harbor', 'prism3', 'wendys']) {
+      const t = JSON.parse(readFileSync(resolve(HERE, `out/${brand}.tokens.json`), 'utf8'));
+      const root = t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+      const size = root?.icon?.size?.xs?.$extensions?.prism3?.px, inset = root?.['border-width']?.hairline?.$extensions?.prism3?.px;
+      if (typeof size !== 'number' || typeof inset !== 'number') { bad.push(`${brand}: no icon.size.xs / border-width.hairline px`); continue; }
+      const gap = inset + size * (24 - far) / 24; // from the control's outer edge to the glyph's nearest drawn point
+      clear.push(`${brand} ${gap.toFixed(2)}px`);
+      if (!(gap > EDGE)) bad.push(`${brand}: the grip glyph reaches ${gap.toFixed(2)}px from the outer edge, inside the ${EDGE}px focus edge`);
+    }
+    ok(nums.length >= 4 && bad.length === 0,
+      `#3399 textarea grip clears the focus edge: the resize grip's drawn glyph stays more than ${EDGE}px in from the control's bottom-right edge in every corpus brand (${clear.join(', ')})${bad.length ? ` — ${bad.join('; ')}` : ''}`);
   }
 }
 

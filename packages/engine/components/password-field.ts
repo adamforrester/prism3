@@ -23,7 +23,7 @@
  * as is the masked value "••••••••".
  */
 import { ComponentDef } from '../component-schema';
-import { FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
+import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
 
 export const passwordField: ComponentDef = makeTextField({
   id: 'password-field',
@@ -138,6 +138,7 @@ export const passwordField: ComponentDef = makeTextField({
   notes: {
     contested: [
       FOCUS_EDGE_STATUS_NOTE,
+      FOCUS_EDGE_DEFAULT_NOTE,
       'The button\'s position (owner decision Q301.2 B): on the label row, end-aligned, rather than beside the box (A) or below the field (C). The button\'s code hit area does not move the row.',
       'The button\'s size and the row\'s height (owner decision Q380 A, #2804): a small text Button at every field size, and a row one label line tall, rather than a button that follows the field\'s size and a row as tall as the button (36, 44 and 56px at small, medium and large). The label now sits 8px above the box at every size, where TextField\'s label sits, instead of 17, 19.5 and 24px. Link was considered for the control and declined: Show is an action, so it is a button for assistive tech (WCAG 4.1.2); the text appearance gives it the link look.',
       'The button\'s code-side hit area at medium and large (owner question on #2809, option A built): 44×44, anchored so its bottom edge sits on the label row\'s bottom edge, which keeps Button\'s 44 floor for a nested flush Button (#1741, Q170 B) without reaching into the input box. The alternatives: 24×24 at every size as a named exception to the floor (B), or a row that grows to 44 on coarse pointers only (C).',

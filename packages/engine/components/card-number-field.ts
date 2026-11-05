@@ -38,7 +38,7 @@
 import { ComponentDef } from '../component-schema';
 import { PROVIDER_LOGO_NAMES } from '../provider-logo-glyphs';
 import { PROVIDER_LOGO_KINDS } from '../provider-logo-set';
-import { FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
+import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
 
 /** The payment tiles: every mark the set draws on the tile artboard, by kind, so a kind renamed in the set (`card/` →
  *  `payment/`, PR 3) reaches this field without an edit. */
@@ -177,6 +177,7 @@ export const cardNumberField: ComponentDef = makeTextField({
   notes: {
     contested: [
       FOCUS_EDGE_STATUS_NOTE,
+      FOCUS_EDGE_DEFAULT_NOTE,
       'The PaymentField group (#2429 Q1 A) is a separate component and the follow-up (PR 4b): this field ships first, and the expiration date and security code are TextFields until the group composes them.',
       'The tile at the disabled member keeps its own colors (no opacity), because any dimming recolors the provider\'s mark. The box, the value and the label carry the disabled skin. Built A; held for the owner in the PR (Q-C1).',
       'The tile\'s presence is a switch, on by default, backed by showCardMark (#2429 table, card mark on). The alternative is a tile that is always there.',

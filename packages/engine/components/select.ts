@@ -126,7 +126,7 @@
  * projected plan changes, which is the `ENGINE_VERSION` trigger this def already carries.
  */
 import { ComponentDef } from '../component-schema';
-import { fieldEdgeWidths, FOCUS_EDGE_STATUS_NOTE } from './text-field';
+import { fieldEdgeWidths, FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE } from './text-field';
 
 export const select: ComponentDef = {
   id: 'select',
@@ -663,6 +663,7 @@ export const select: ComponentDef = {
   notes: {
     contested: [
       FOCUS_EDGE_STATUS_NOTE,
+      FOCUS_EDGE_DEFAULT_NOTE,
       'Native <select> vs a custom listbox — this def models the closed control both share and leaves the open menu to the platform (native-first). A fully custom, styleable menu is a separate listbox/popover surface, chosen when the native menu\'s look is unacceptable and the extra ARIA cost is accepted.',
       'SINGLE vs MULTIPLE choice — the brief carries a `multiple` prop (§3, §15: value becomes an array, Space toggles and keeps the list open, a token or count summary, leading checkboxes). This def is single-choice by decision (#1699, owner-delegated): a choice of several values goes to Checkbox.Group, or to a multi-select, not built yet. The alternative is `multiple` here, which changes the keyboard contract and the value type, so it is a second component\'s worth of behavior behind one flag.',
       'THE BRIEF\'S OTHER VARIANT AXES, NOT DECLARED (brief §4, §15). `size` [small, medium, large] was deferred (#1699 decision 2) and is now declared and projected (#2266, the field sizing system). `density` [comfortable, compact] follows the brand\'s density lever rather than a per-component axis. `selection` [single, multiple] and `multi-summary` [count, tokens] are the single-choice decision above. `rendering` [native, custom] is the native-first call in the first entry: this def models the closed control both share. `mode: creatable` blurs toward a combobox (brief §4) and belongs with that component, not built yet. None is in `VARIANT_AXES` today, which is closed (#847).',

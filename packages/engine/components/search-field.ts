@@ -26,7 +26,7 @@
  * The wording "Clear search" and "Search cleared" is the owner's (Q514, approved as drafted).
  */
 import { ComponentDef } from '../component-schema';
-import { FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
+import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
 
 const built: ComponentDef = makeTextField({
   id: 'search-field',
@@ -145,6 +145,7 @@ const built: ComponentDef = makeTextField({
   notes: {
     contested: [
       FOCUS_EDGE_STATUS_NOTE,
+      FOCUS_EDGE_DEFAULT_NOTE,
       'Its own style lever (owner decision Q514 taking Q?1 A), rather than a `style` variant on the set (B: 168 members, and style as a code coordinate, which #2721 kept out of every field) or both (C).',
       'The clear button is TextField\'s trailing glyph built hidden (Q?3 A), rather than an engine piece that ties a part\'s visibility to state (B) or a switch on by default that shows a clear button on an empty field (C, Prism 2).',
       'Four statuses kept (Q?6 A), rather than Prism 2\'s set with no status axis (B), so the field stays one factory call.',
