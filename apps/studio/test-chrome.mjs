@@ -1355,7 +1355,8 @@ const PROBE = (opt) => {
   for (const svg of drawn.filter((n) => n.matches('svg.p3-ico'))) {
     const c = parse(getComputedStyle(svg).color, `${label(svg.parentElement)} glyph`);
     const g = groundOf(svg.parentElement);
-    if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)), off: offOf(svg), ink: getComputedStyle(svg).color, canary: !!svg.closest('[data-ccanary]') });
+    // #3439: a mark inside a check's own box sits on the box's fill, so a disabled one is held to the box's roles (DB1 A).
+    if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)), off: offOf(svg), ink: getComputedStyle(svg).color, canary: !!svg.closest('[data-ccanary]'), inBox: !!svg.closest('.p3-check-box') });
   }
   // shadows, on every chrome element and its pseudo-elements, drawn or not. T5's sanctioned use (#3113, the owner,
   // 2026-10-28), typed here and nowhere read from the stylesheet: the Activity drawer's own box-shadow, while it overlays the
@@ -1807,9 +1808,13 @@ const checkExempt = (m, where) => {
     if (!want) continue;
     const got = drawnSkin(x);
     const labels = [...new Set(m.text.filter((t) => t.off === x.i).map((t) => paintOf(t.ink)))];
-    const marks = [...new Set(m.glyphs.filter((g) => g.off === x.i).map((g) => paintOf(g.ink)))];
-    ok(got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && labels.every((c) => c === want.ink) && marks.every((c) => c === want.glyph),
-      `${where}: the exempted ${x.el} draws Prism3's disabled ${appearance} roles for ${m.scheme}: ${want.roles} (want fill ${want.fill}, edge ${want.edge}, ink ${want.ink}, glyph ${want.glyph}; drew ${JSON.stringify({ ...got, labels, glyphs: marks })})`);
+    const marks = [...new Set(m.glyphs.filter((g) => g.off === x.i && !g.inBox).map((g) => paintOf(g.ink)))];
+    // #3439: a check's mark inside its own box (a checked, disabled box, first drawn on Components for a set in the file)
+    // sits on the box's `disabled.fill`, so it is held to `disabled.on-fill`, as DB1 A holds the fixed Light row's mark.
+    const boxMarks = [...new Set(m.glyphs.filter((g) => g.off === x.i && g.inBox).map((g) => paintOf(g.ink)))];
+    const onFill = PRISM3_DISABLED[m.scheme]?.ink;
+    ok(got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && labels.every((c) => c === want.ink) && marks.every((c) => c === want.glyph) && boxMarks.every((c) => c === onFill),
+      `${where}: the exempted ${x.el} draws Prism3's disabled ${appearance} roles for ${m.scheme}: ${want.roles}${boxMarks.length ? ', its box\'s mark color.disabled.on-fill' : ''} (want fill ${want.fill}, edge ${want.edge}, ink ${want.ink}, glyph ${want.glyph}${boxMarks.length ? `, box mark ${onFill}` : ''}; drew ${JSON.stringify({ ...got, labels, glyphs: marks, boxMarks })})`);
   }
 };
 
@@ -18076,8 +18081,9 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(bd.text === '2' && bd.name === 'Update file, 2 due', `${where}: Q2909.8 A: Update file carries a badge of 2, the due sets, and says so in its name (${JSON.stringify(bd)})`);
       await goPlace(page, 'components');
       const st = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-p3="cp-row"][data-set], [data-p3="cp-member"][data-set]')].map((r) => [r.dataset.set, [...r.querySelectorAll('[data-p3="cp-status-tag"]')].map((t) => t.dataset.status)])));
-      ok(JSON.stringify(st.tag) === JSON.stringify(['hand']) && JSON.stringify(st.badge) === JSON.stringify(['unchecked']) && JSON.stringify(st.select) === JSON.stringify(['due']) && JSON.stringify(st.counter) === JSON.stringify(['new']),
-        `${where}: Q2909.8 A: Components' rows show each set's status: Tag Hand-edited, Badge Not checked yet, Select Due, Counter Not in file (${JSON.stringify({ tag: st.tag, badge: st.badge, select: st.select, counter: st.counter })})`);
+      // #3439 Q-IF.2 A: a set the file holds carries In file first.
+      ok(JSON.stringify(st.tag) === JSON.stringify(['infile', 'hand']) && JSON.stringify(st.badge) === JSON.stringify(['infile', 'unchecked']) && JSON.stringify(st.select) === JSON.stringify(['infile', 'due']) && JSON.stringify(st.counter) === JSON.stringify(['new']),
+        `${where}: Q2909.8 A, #3439 Q-IF.2 A: Components' rows show each set's status: Tag In file · Hand-edited, Badge In file · Not checked yet, Select In file · Due, Counter Not in file (${JSON.stringify({ tag: st.tag, badge: st.badge, select: st.select, counter: st.counter })})`);
       // #3422 Q44 A: Theme opens ticked only when the badge's recount says the file differs from the brand. The Pill this
       // case chose is not applied, so the recount says it differs (seq 0: every later ask's answer replaces it).
       await postMsg(page, { type: 'file-due', seq: 0, present: FILE.present, theme: true, due: DUE });
@@ -18596,6 +18602,12 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 // The first build's, kept: Due named by code name again (`nameOf` the catalog name) → `3129 figma … P5: Due names its
 // sets as Components does …`; Remove all shown from one row → `3129 figma … Q3129.8 A: Remove all from two rows up …`;
 // Add all on a set-up file → `3129 figma … Q3129.9 A: an empty queue on a set-up file …`.
+// #3439 (Q-IF.1–3 A, superseding Q3129.6 A's empty cell for a set the file holds): the empty cell drawn again
+// (`boxOrCell` returning the cell whenever nothing is addable) → `3129 figma … Q-IF.1 A: a set or family the file holds
+// draws its box checked and disabled …`; the In file tag dropped (`statusTags`' `inFile` line) → `3129 figma … Q-IF.2 A:
+// In file sits first among a row's tags …` (and `ia2 figma … #3439 Q-IF.2 A`); a family partly in the file given a
+// disabled box (`boxOrCell` holding any box over a set the file holds) → `3129 figma … Q-IF.3 A: a family partly in the
+// file keeps an active box …`.
 // And in IA2: Remove's refocus dropped → `IA2 figma … #3129 Q3129.7 A: Remove takes the set out …` (focus left on the
 // dialog). The model's rules (list order, the badge's parts and name, the To add status, the ticks, the two-state family
 // box, the tier actions' sets) fail in `test-update-file.ts` and `test-component-groups.ts` by name.
@@ -18614,7 +18626,18 @@ const S_FILE = { type: 'file-sets', present: S_PRESENT, setUp: true, due: S_DUE,
 // R5, typed from the list: the set lines that carry their row's box (a set alone on its row, or the first set of a
 // family listed at a section's edge), and the parts that carry none.
 const S_BOXED_SETS = ['password-field', 'search-field', 'card-number-field', 'code-input', 'textarea', 'counter'];
-const S_UNBOXED_PARTS = ['code-input-cell', 'accordion', '_accordion-indicator', 'radio-control', 'radio-group', 'radio-row', 'select', 'text-field', 'badge'];
+const S_UNBOXED_PARTS = ['code-input-cell', 'accordion', '_accordion-indicator', 'radio-control', 'radio-group', 'radio-row', 'checkbox-control', 'checkbox-row'];
+// #3439 Q-IF.1 A, typed from S_PRESENT and the list: the boxes over sets the file holds whole, drawn checked and disabled
+// and named "{name} is in this file" (DRAFT), by key. Buttons and Icons & assets split (#3306), so each set the file holds
+// has its own; Buttons and Tag are sections of one family, so the section's box is the family's; Fields and Other
+// components are sections of several rows, so theirs stay as they are.
+const S_IN_FILE = [
+  ['sec=buttons', 'Buttons'], ['setbox=button', 'Button'], ['setbox=button-destructive', 'Button.Destructive'], ['setbox=button-group', 'Button.Group'], ['setbox=button-neutral', 'Button.Neutral'],
+  ['row=components|Select', 'Select'], ['row=components|Text field', 'Text field'],
+  ['sec=tags', 'Tag'],
+  ['row=components|Badge', 'Badge'], ['row=components|Checkbox', 'Checkbox'], ['row=components|Divider', 'Divider'], ['row=components|Veil', 'Veil'],
+  ['row=subcomponents|Field Label', 'Field label'], ['row=subcomponents|Field Message', 'Field message'], ['row=subcomponents|Focus Ring', 'Focus ring'], ['setbox=icon', 'Icon'], ['row=subcomponents|Spinner', 'Spinner'],
+];
 // #3306 Q3306.1 A, typed from the proposal's table: the sets of the families with two or more roots that the sample file
 // lacks, each with a box of its own (Icon is in the file, and Buttons is whole in it, so neither has one).
 const S_SPLIT_SETS = ['icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'provider-logo'];
@@ -18760,8 +18783,10 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
         settingsHolds: !!settings?.querySelector('[data-p3="cp-shared"]') && settings.getAttribute('aria-labelledby') === settings.querySelector('[data-p3="cp-settings-caption"]')?.id,
         badge: { text: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null },
         // #3306: each set box (its own key), and each held box with its name, title, state and its row's status tags.
-        setBoxes: [...document.querySelectorAll('[data-p3="cp-box"][data-key^="setbox="]')].map((b) => b.dataset.key.slice(7)),
-        held: [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"]) > [data-p3="cp-box"][aria-disabled="true"]')].map((b) => {
+        // #3439: an in-file set box (read below, by its name) is not one the file could add.
+        setBoxes: [...document.querySelectorAll('[data-p3="cp-box"][data-key^="setbox="]:not([aria-label$=" is in this file"])')].map((b) => b.dataset.key.slice(7)),
+        // #3439: an in-file box is disabled too; it is read on its own below, by its name.
+        held: [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"]) > [data-p3="cp-box"][aria-disabled="true"]:not([aria-label$=" is in this file"])')].map((b) => {
           const row = b.parentElement;
           return [row.dataset.set, b.getAttribute('aria-checked'), b.getAttribute('aria-label'), b.title, [...row.querySelectorAll('[data-p3="cp-status-tag"]')].map((t) => [t.dataset.status, t.textContent])];
         }),
@@ -18769,20 +18794,52 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
         // Link is a section of one row, so the section's box is the row's (R5, Q8 A), held as the row's would be.
         linkSec: (() => { const b = sec('links'); return b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label'), b.title] : null; })(),
         linkTags: [...(document.querySelector('[data-set="link"]')?.querySelectorAll('[data-p3="cp-status-tag"]') ?? [])].map((t) => [t.dataset.status, t.textContent]),
+        // #3439 Q-IF.1 A: every box named as in the file, by key, with its state; and every box checked and disabled that is
+        // neither held nor named so (none should be).
+        inFile: [...document.querySelectorAll('[data-p3="components-list"] [data-p3="cp-box"][aria-label$=" is in this file"]')].map((b) => [b.dataset.key, b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label')]),
+        // #3439 Q-IF.3 A: Icons & assets, partly in the file (Icon in, Provider logo not): its family box, before any tick.
+        partFamily: (() => { const b = fam('subcomponents|Icons & assets'); return b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label')] : null; })(),
+        // #3439 Q-IF.2 A: each row's tags, as [status, words], read off the drawn rows and family rows.
+        tags: Object.fromEntries([...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"])')].map((r) => [r.dataset.set ?? r.dataset.row,
+          [...r.querySelectorAll('[data-p3="cp-status-tag"]')].map((t) => [t.dataset.status, t.textContent])])),
       };
     });
     ok(S_BOXED_SETS.every((id) => st.boxedSets.includes(id)) && !S_UNBOXED_PARTS.some((id) => st.boxedSets.includes(id)) && st.families.accordion !== 'none' && st.families.breadcrumbs !== 'none',
-      `${where}: R5: one box per family: on each row the file could add a set of, a family's row or a set alone on its row, and none on a part or a set the file holds (${JSON.stringify({ boxed: st.boxedSets, wrong: S_UNBOXED_PARTS.filter((id) => st.boxedSets.includes(id)), missing: S_BOXED_SETS.filter((id) => !st.boxedSets.includes(id)) })})`);
-    ok(st.families.accordion === 'true' && st.families.breadcrumbs === 'false' && st.families.checkbox === 'none' && st.sec.radios === 'mixed' && st.flush === 'mixed',
-      `${where}: Q3306.2 A: a family's box is three-state, a needed set counted: Accordion (all queued) on, Breadcrumbs off, Checkbox (in the file) none, Radio (one of three queued) mixed, Flush icon button (one of three needed) mixed (${JSON.stringify({ ...st.families, radio: st.sec.radios, flush: st.flush })})`);
-    ok(st.sec.buttons === 'none' && st.sec.tags === 'none' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.components === 'mixed' && st.sec.subcomponents === 'mixed',
-      `${where}: call 8, Q3129.6 A, Q3306.2 A: section boxes: Buttons and Tag (all in the file) none, Fields and Other components mixed, Dialog on, Subcomponents mixed by its needed set (${JSON.stringify(st.sec)})`);
+      `${where}: R5: one box per family: on each row the file could add a set of, a family's row or a set alone on its row, and none on a part (${JSON.stringify({ boxed: st.boxedSets, wrong: S_UNBOXED_PARTS.filter((id) => st.boxedSets.includes(id)), missing: S_BOXED_SETS.filter((id) => !st.boxedSets.includes(id)) })})`);
+    ok(st.families.accordion === 'true' && st.families.breadcrumbs === 'false' && st.families.checkbox === 'true' && st.sec.radios === 'mixed' && st.flush === 'mixed',
+      `${where}: Q3306.2 A: a family's box is three-state, a needed set counted: Accordion (all queued) on, Breadcrumbs off, Checkbox (in the file) checked (#3439), Radio (one of three queued) mixed, Flush icon button (one of three needed) mixed (${JSON.stringify({ ...st.families, radio: st.sec.radios, flush: st.flush })})`);
+    ok(st.sec.buttons === 'true' && st.sec.tags === 'true' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.components === 'mixed' && st.sec.subcomponents === 'mixed',
+      `${where}: call 8, Q3306.2 A, #3439 Q-IF.1 A: section boxes: Buttons and Tag (one family each, all in the file) checked, Fields and Other components mixed, Dialog on, Subcomponents mixed by its needed set (${JSON.stringify(st.sec)})`);
     ok(JSON.stringify([...st.setBoxes].sort()) === JSON.stringify([...S_SPLIT_SETS].sort()),
       `${where}: Q3306.1 A: a family with two or more roots has a box on each set the file could add, and no other family has one (${JSON.stringify(st.setBoxes)})`);
     ok(JSON.stringify(st.held) === JSON.stringify([['flush-icon-button-neutral', 'true', S_NEEDED['flush-icon-button-neutral'], S_NEEDED['flush-icon-button-neutral'], [['needed', 'Needed']]]])
       && JSON.stringify(st.linkSec) === JSON.stringify(['true', 'true', S_NEEDED.link, S_NEEDED.link]) && JSON.stringify(st.linkTags) === JSON.stringify([['needed', 'Needed']]),
       `${where}: Q3306.2 A, Q3306.4 A: a needed set is ticked and held, its tag reads Needed, and its box's name and title name the set that needs it (${JSON.stringify({ held: st.held, link: st.linkSec, linkTags: st.linkTags })})`);
     ok(JSON.stringify([...st.queuedTags].sort()) === JSON.stringify([...S_QUEUED].sort()), `${where}: Q3129.4 A: the queued sets' tag reads To add (${JSON.stringify(st.queuedTags)})`);
+    {
+      // #3439 Q-IF.1 A: a set or family the file holds whole draws its box checked and disabled, named as in the file.
+      const want = S_IN_FILE.map(([k, n]) => [k, 'true', 'true', `${n} is in this file`]).sort((a, b) => a[0].localeCompare(b[0]));
+      const got = [...st.inFile].sort((a, b) => a[0].localeCompare(b[0]));
+      ok(JSON.stringify(got) === JSON.stringify(want),
+        `${where}: Q-IF.1 A: a set or family the file holds draws its box checked and disabled, named "{name} is in this file" (DRAFT), and nothing else does (${JSON.stringify({ missing: want.filter((x) => !got.some((y) => JSON.stringify(y) === JSON.stringify(x))), extra: got.filter((x) => !want.some((y) => JSON.stringify(y) === JSON.stringify(x))) })})`);
+      // #3439 Q-IF.2 A: In file first; a family the file holds part of carries it too (Icons & assets: Icon in, Provider logo not).
+      // The sample file's hand-edit pass is still running, so a set it holds also reads Checking… (`statusesOf`).
+      const T = { infile: ['infile', 'In file'], due: ['due', 'Due'], checking: ['checking', 'Checking…'], new: ['new', 'Not in file'] };
+      const wantTags = { button: [T.infile, T.due, T.checking], divider: [T.infile, T.checking], 'components|Checkbox': [T.infile, T.checking], 'subcomponents|Icons & assets': [T.infile, T.checking, T.new], counter: [T.new] };
+      const gotTags = Object.fromEntries(Object.keys(wantTags).map((k) => [k, st.tags[k] ?? null]));
+      const notFirst = Object.entries(st.tags).filter(([, t]) => t.some(([x]) => x === 'infile') && t[0][0] !== 'infile').map(([k]) => k);
+      ok(JSON.stringify(gotTags) === JSON.stringify(wantTags) && notFirst.length === 0 && Object.values(st.tags).some((t) => t.length > 1),
+        `${where}: Q-IF.2 A: In file sits first among a row's tags, on a set the file holds and on a family it holds a set of; a set it lacks reads Not in file alone (${JSON.stringify({ got: gotTags, notFirst })})`);
+      ok(JSON.stringify(st.partFamily) === JSON.stringify(['false', null, 'Add all of Icons & assets to file']),
+        `${where}: Q-IF.3 A: a family partly in the file keeps an active box, named to add (Icons & assets: Icon in the file, Provider logo not) (${JSON.stringify(st.partFamily)})`);
+      // A tick on an in-file box writes nothing (it is aria-disabled, so the click is dispatched as a person's would land).
+      const before = await page.evaluate(() => window.__q.filter((m) => m.type === 'add-queue').length);
+      await page.evaluate(() => document.querySelector('[data-p3="cp-box"][data-key="row=components|Badge"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+      await settle(page);
+      const inTick = await page.evaluate((n) => ({ posts: window.__q.filter((m) => m.type === 'add-queue').length - n,
+        checked: document.querySelector('[data-p3="cp-box"][data-key="row=components|Badge"]')?.getAttribute('aria-checked') ?? null }), before);
+      ok(inTick.posts === 0 && inTick.checked === 'true', `${where}: Q-IF.1 A: an in-file box writes nothing when ticked, and stays checked (${JSON.stringify(inTick)})`);
+    }
     ok(st.named.accordion === 'Add all of Accordion to file' && st.named.counter === 'Add Counter to file' && st.named.password === 'Add Password field to file' && st.named.radio === 'Add all Radio to file',
       `${where}: Q3129.4 A: a family's box is named "Add all of {family} to file", a set's alone "Add {set} to file" (${JSON.stringify(st.named)})`);
     ok(st.names['password-field'] === st.names.select && st.names.counter === st.names.badge && st.names.select > 0,
@@ -18851,10 +18908,21 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     // R5: Radio's control in the file and nothing of Radio queued: the family's box queues its two missing parts.
     await postMsg(page, { ...S_FILE, present: [...S_PRESENT, 'radio-control'], queued: S_QUEUED.filter((id) => id !== 'radio-control') });
     await page.waitForFunction(() => document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).catch(() => {});
+    // #3439 Q-IF.3 A: the box of a family partly in the file stays active, and each row shows its own state.
+    const partBox = await page.evaluate(() => { const b = document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]');
+      const tags = (id) => [...(document.querySelector(`[data-set="${id}"]`)?.querySelectorAll('[data-p3="cp-status-tag"]') ?? [])].map((t) => t.dataset.status);
+      return { box: b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label')] : null, control: tags('radio-control'), group: tags('radio-group') }; });
     await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=radios"]'));
     const part = await lastQ();
     ok(canon(part) === canon({ type: 'add-queue', ids: ['radio-group', 'radio-row'], on: true }),
       `${where}: R5: a family partly in the file: its box queues the missing parts, never the one the file holds (${JSON.stringify(part)})`);
+    // #3439 Q-IF.3 A: once the whole family is in the file, its box is checked and disabled.
+    await postMsg(page, { ...S_FILE, present: [...S_PRESENT, 'radio-control', 'radio-group', 'radio-row'], queued: S_QUEUED.filter((id) => id !== 'radio-control') });
+    await page.waitForFunction(() => document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]')?.getAttribute('aria-disabled') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const wholeBox = await page.evaluate(() => { const b = document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]'); return b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label')] : null; });
+    ok(JSON.stringify(partBox.box) === JSON.stringify(['false', null, 'Add all Radio to file']) && JSON.stringify(partBox.control) === JSON.stringify(['infile', 'unchecked']) && JSON.stringify(partBox.group) === JSON.stringify(['new'])
+      && JSON.stringify(wholeBox) === JSON.stringify(['true', 'true', 'Radio is in this file']),
+      `${where}: Q-IF.3 A: a family partly in the file keeps an active box, each row shows its own state, and once the whole family is in, its box is checked and disabled (${JSON.stringify({ part: partBox, whole: wholeBox })})`);
     step = 'the tier actions';
     await postMsg(page, S_FILE);
     await page.waitForFunction(() => !document.querySelector('[data-p3="cp-deselect-all"][data-key="cp-deselect-all=components"]')?.disabled, null, { timeout: 5000 }).catch(() => {});
@@ -18881,11 +18949,13 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await page.keyboard.press('Escape');
     step = 'a file that lacks no set';
     await postMsg(page, { ...S_FILE, present: ENGINE_SETS, queued: [] });
-    await page.waitForFunction(() => !document.querySelector('[data-p3="components-list"] [role="checkbox"]'), null, { timeout: 5000 }).catch(() => {});
-    const full = await page.evaluate(() => ({ boxes: document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]').length,
-      acts: document.querySelectorAll('[data-p3="cp-tier-actions"]').length, caps: document.querySelectorAll('[data-p3="cp-tier-caption"]').length }));
-    hooks.absent(ok, { seen: st.tierHead.acts.length === 2 && full.caps > 0, state: 'a tier\'s actions on its caption line, and the captions drawn' }, full.boxes === 0 && full.acts === 0,
-      `${where}: R1 (DRAFT): a tier with nothing the file could add carries no Select all or Deselect all, and no row a box (${JSON.stringify(full)})`);
+    await page.waitForFunction(() => !document.querySelector('[data-p3="cp-tier-actions"]'), null, { timeout: 5000 }).catch(() => {});
+    // #3439 Q-IF.1 A: every box left is an in-file box: checked, disabled and named so.
+    const full = await page.evaluate(() => { const bs = [...document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]')];
+      return { boxes: bs.length, active: bs.filter((b) => b.getAttribute('aria-checked') !== 'true' || b.getAttribute('aria-disabled') !== 'true' || !/ is in this file$/.test(b.getAttribute('aria-label') ?? '')).map((b) => b.dataset.key),
+        acts: document.querySelectorAll('[data-p3="cp-tier-actions"]').length, caps: document.querySelectorAll('[data-p3="cp-tier-caption"]').length }; });
+    hooks.absent(ok, { seen: st.tierHead.acts.length === 2 && full.caps > 0, state: 'a tier\'s actions on its caption line, and the captions drawn' }, full.boxes > 0 && full.active.length === 0 && full.acts === 0,
+      `${where}: R1 (DRAFT), #3439 Q-IF.1 A: a tier with nothing the file could add carries no Select all or Deselect all, and every box is checked and disabled, as in the file (${JSON.stringify(full)})`);
     // ── Update file ─────────────────────────────────────────────────────────────────────────
     step = 'Update file: Components, To add and Due';
     await postMsg(page, S_FILE);

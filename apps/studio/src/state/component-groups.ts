@@ -41,8 +41,10 @@
  * that needs one drops it. A needed set's box is ticked and held (`heldBy`), and a tick on it does nothing.
  *   A tick on a box that is off or mixed queues the sets it could add that are neither chosen nor needed; on one that is
  * on, it takes out the sets chosen under it, and a set a chosen set elsewhere needs stays held (Q3306.6 A, `toggleSets`).
- * A row or section with nothing to add has no box. A tier's Select all and Deselect all (R1) queue, or take out, the sets
- * of its rows shown (`selectAllOf`).
+ * A row with nothing to add whose sets the file holds has its box drawn checked and disabled (#3439 Q-IF.1 A, `inFileOf`,
+ * superseding Q3129.6 A's empty cell for it); a family partly in the file keeps an active box, since it still has sets to
+ * add (Q-IF.3 A). A row with nothing to add and nothing in the file, and a section of several rows with nothing to add,
+ * have no box. A tier's Select all and Deselect all (R1) queue, or take out, the sets of its rows shown (`selectAllOf`).
  *
  * Copy here is the wireframe's, which the owner approved as DRAFT (#2700): every string is DRAFT until the owner signs
  * the copy off. US English, `docs/voice-standard.md`.
@@ -134,6 +136,10 @@ export const GROUPS_COPY = {
   /** #3129 R2: the caption over the shared settings, the tier above Components (the owner's words). */
   settingsTier: 'Component settings',
   addSet: (name: string): string => `Add ${name} to file`,
+  /** #3439 Q-IF.1 A: an in-file box's name. DRAFT (the issue's draft); the final wording is the owner's. */
+  inFileName: (name: string): string => `${name} is in this file`,
+  /** #3439 Q-IF.2 A: the status tag a set in the file carries first, mirroring Update file's "Not in file". */
+  inFile: 'In file',
   addAllOf: (label: string): string => `Add all of ${label} to file`,
   addAll: (title: string): string => `Add all ${title} to file`,
   /** Q10 A on #2905: the section titles as drafted in wireframe v2, Tag's included (placed by #2931 Q579 A). */
@@ -264,9 +270,15 @@ export const neededOf = (catalog: Catalog, queue: Iterable<string>, present: rea
   return out;
 };
 
+/** #3439 Q-IF.1 A, Q-IF.3 A: a box drawn checked and disabled: the file holds a set of `ids` and could add none of them.
+ *  A family partly in the file still has sets to add, so its box stays active (`boxOfSets`). */
+export const inFileOf = (catalog: Catalog, ids: readonly string[], present: readonly string[]): boolean =>
+  !addableOf(catalog, ids, present).length && ids.some((id) => present.includes(id));
+
 export type BoxState = 'on' | 'mixed' | 'off';
 /** A box over sets (call 8 A, #3129, #3306 Q3306.2 A): on when every set it could add is chosen or needed, off when none
- *  is, mixed between. A box over no set to add is off, and is not drawn (Q3129.6 A). */
+ *  is, mixed between. A box over no set to add is off: it is drawn checked and disabled when the file holds its sets
+ *  (`inFileOf`, #3439 Q-IF.1 A), else not drawn (Q3129.6 A). */
 export const boxOfSets = (catalog: Catalog, ids: readonly string[], queue: ReadonlySet<string>, present: readonly string[]): BoxState => {
   const ok = addableOf(catalog, ids, present);
   const needed = neededOf(catalog, queue, present);
