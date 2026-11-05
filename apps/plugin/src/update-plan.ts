@@ -175,6 +175,10 @@ export type SetPreview = {
    *  none. Never capped. */
   removedLayers?: { path: string; members: number }[];
   blockers: string[];
+  /** #3421 — every blocker is a variable or a text or effect style the plans name that the file lacks: what the brand's
+   *  Theme writes. Update file runs Theme first, so it checks such a set again after Theme and updates it in the same run.
+   *  Absent otherwise. */
+  themeBlocked?: true;
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
   changes: Change[];
@@ -1471,7 +1475,12 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
     // (`prebuildDependencies`); an update does not build other components.
     // #3313's names, read once, plus what an unblocked target earlier in this run adds (#3343): no host read per set.
-    preview.blockers.push(...await fileBlockers(host, t.plans, v.set, addedThisRun.size ? new Set([...have, ...addedThisRun]) : have));
+    const had = preview.blockers.length;
+    const lacks = await fileBlockers(host, t.plans, v.set, addedThisRun.size ? new Set([...have, ...addedThisRun]) : have);
+    preview.blockers.push(...lacks.lines);
+    // #3421: every blocker is a variable or a style the brand's Theme writes, so a run whose Theme step goes first can
+    // update the set after it (Update file checks it again then). Never in the hash: the blockers already are.
+    if (!had && lacks.lines.length && lacks.theme === lacks.lines.length) preview.themeBlocked = true;
     if (!preview.blockers.length) for (const n of providedNames(t, v.name)) addedThisRun.add(n);
     // THE CANVAS FURNITURE (#2803): what the page lacks of the set's labels and backdrops is a change, so "update again"
     // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
@@ -1604,26 +1613,31 @@ const absentNests = (have: ReadonlySet<string>, plans: readonly AnatomyPlan[]): 
  * the rest and report each as a miss; an update would leave a published set half-changed, which is worse (§7).
  * A host with no `loadFontAsync` checks no font: the plugin's host is `figma`, which always has it.
  */
-const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, have: ReadonlySet<string>): Promise<string[]> => {
+const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, have: ReadonlySet<string>): Promise<{ lines: string[]; theme: number }> => {
   const out: string[] = [];
+  // #3421: how many of `out` are a variable or a text or effect style the plans name: what Apply Theme writes.
+  let theme = 0;
   const absent = absentNests(have, plans);
   if (absent.length) out.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
   const roots = plans.map((x) => x.root);
   const vars = new Set((await host.variables.getLocalVariablesAsync()).map((v) => tailOf(v.name)).filter(Boolean) as string[]);
   const noVar = [...new Set(roots.flatMap((r) => [...planBoundVars(r), ...planPaintVars(r)]))].filter((v) => !vars.has(v));
+  if (noVar.length) theme++;
   if (noVar.length) out.push(`${noVar.length} variable${noVar.length === 1 ? '' : 's'} the plan binds ${noVar.length === 1 ? 'is' : 'are'} not in this file (${noVar.slice(0, 3).join(', ')})`);
   const styles = await host.getLocalTextStylesAsync();
   const byName = new Map(styles.map((s) => [s.name, s] as const));
   const wantStyles = [...new Set(roots.flatMap(planTextStyles))];
   const noStyle = wantStyles.filter((s) => !byName.has(s));
+  if (noStyle.length) theme++;
   if (noStyle.length) out.push(`text style${noStyle.length === 1 ? '' : 's'} not in this file: ${noStyle.slice(0, 3).join(', ')}`);
   const effects = new Set((await host.getLocalEffectStylesAsync()).map((s) => s.name));
   const noEffect = [...new Set(roots.flatMap(planEffectStyles))].filter((s) => !effects.has(s));
+  if (noEffect.length) theme++;
   if (noEffect.length) out.push(`effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${noEffect.slice(0, 3).join(', ')}`);
   // Nests are named above, with what to build first; a swap target is named here.
   const noSwap = planTargets(plans).filter((n) => !have.has(n) && !absent.includes(n));
   if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${noSwap.slice(0, 3).join(', ')}`);
-  if (!host.loadFontAsync) return out;
+  if (!host.loadFontAsync) return { lines: out, theme };
   const fonts = new Map<string, { family: string; style: string }>();
   for (const s of wantStyles) { const f = byName.get(s)?.fontName; if (f) fonts.set(`${f.family}|${f.style}`, f); }
   const walk = (n: unknown): void => {
@@ -1643,7 +1657,7 @@ const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set
     try { await host.loadFontAsync(f); } catch { failed.push(`${f.family} ${f.style}`); }
   }
   if (failed.length) out.push(`fonts: ${failed.join(', ')} will not load, so text could not be written`);
-  return out;
+  return { lines: out, theme };
 };
 
 export type CaptureResult = { sets: { def: string; set: string; recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };
@@ -1734,6 +1748,7 @@ export const setUpToDate = upToDate;
 export const checkedSetOf = (p: SetPreview, def: string): CheckedSet => ({
   def, hash: p.previewHash, members: p.counts.members, update: p.counts.update, add: p.counts.add, drop: p.counts.drop,
   handEdited: p.counts.handEdited, noBaseline: p.counts.noBaseline, blocked: p.blockers.length > 0, upToDate: upToDate(p),
+  ...(p.themeBlocked ? { themeBlocked: true as const } : {}),
   ...(p.breaking?.length ? { breaks: breakingSummary(p.breaking) } : {}),
 });
 

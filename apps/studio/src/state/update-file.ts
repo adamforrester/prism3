@@ -5,7 +5,9 @@
  * THE CHECKLIST (owner decisions Q2909.2 A, Q2909.5 A, Q668 A). Update file is the plugin's one global write. It always
  * opens the checklist, even when only the theme is to be written (Q2909.2 A). Its items, in the order they run:
  *   · Set up file, only on a file that is not set up: the first checklist on such a file is the setup (Q668 A);
- *   · Theme: the brand's variables and styles (today's Apply Theme), ticked;
+ *   · Theme: the brand's variables and styles (today's Apply Theme), ticked only when the file's variables differ from
+ *     the brand, the signal the badge counts (`themeDueOf`, #3422 Q44 A); else unticked and "Up to date", and still
+ *     tickable to apply it again. A file that is not set up holds no brand, so its Theme is always ticked;
  *   · To add (#3129, Q832 A, Q3129.7–10 A): the file's add queue, the sets chosen on Components, in Components' order
  *     and with its names (`queuedOf`). A queued set runs: its row has no tick, only Remove, and Remove all from two
  *     rows up. A file that is not set up starts with nothing queued and offers Add all, which writes every set it lacks
@@ -67,6 +69,8 @@ export type Ticks = {
   /** #3137 Q3137.1 A: the Usage panels group's one tick. */
   readonly panels: boolean;
   readonly update: ReadonlySet<string>; readonly handEdits: HandEditChoice;
+  /** #3421 (Q39 A): each Kept edits set's own choice, by def; a set not named keeps its edits (`keep`) and is not run. */
+  readonly kept: ReadonlyMap<string, HandEditChoice>;
 };
 
 /** The sets the file could add: buildable, and not in the file, in catalog order. Components' boxes and Add all act on
@@ -103,6 +107,14 @@ export const runOrderOf = (f: Pick<FileSets, 'docBlockLacks'> | null, queued: re
 };
 /** The sets the ledger reads as due (Q2909.8 A), in catalog order. */
 export const dueSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'due').map((e) => e.id);
+/** #3421 (Q39 A): the sets whose last update kept hand edits over changes the plan makes, in catalog order. Listed under
+ *  Kept edits until an update overwrites those edits or accepts them as the baseline. */
+export const keptSetsOf = (catalog: Catalog, f: Pick<FileSets, 'present' | 'due'>): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'kept').map((e) => e.id);
+/** #3421: the Kept edits sets a choice other than Keep sends to the update step, in catalog order of `kept`. */
+export const keptRunOf = (t: Pick<Ticks, 'kept'>, kept: readonly string[]): string[] => kept.filter((id) => (t.kept.get(id) ?? 'keep') !== 'keep');
+/** #3421: the per-set choices the update step carries (`UpdateChoices.sets`): one for each Kept edits set it runs. */
+export const keptChoicesOf = (t: Pick<Ticks, 'kept'>, defs: readonly string[]): Record<string, HandEditChoice> =>
+  Object.fromEntries([...t.kept].filter(([id, c]) => c !== 'keep' && defs.includes(id)));
 /** The sets the file holds that the ledger has no entry for, in catalog order: only the full check can tell. */
 export const unrecordedOf = (catalog: Catalog, f: FileSets): string[] => catalog.filter((e) => f.present.includes(e.id) && (f.due[e.id]?.state ?? 'unrecorded') === 'unrecorded').map((e) => e.id);
 /** Whether Update file's checklist is still waiting on the file (#3110): no answer since it asked (`asked`, the reading
@@ -134,8 +146,16 @@ export type LiveDue = { readonly present: readonly string[]; readonly theme: boo
  *  compares the file's brand with the panel's. */
 /** #3137 Q3137.4 A: the Usage panels group counts as one item (`panels`), however many sets it lists. */
 export type BadgeParts = { readonly add: number; readonly due: number; readonly theme: boolean; readonly panels: boolean };
+/** #3422 Q44 A: whether the file's variables differ from the brand the panel holds, as the live recount last said. False
+ *  before its first answer and when it could not read the file. The badge counts Theme on it, and Theme opens ticked on it,
+ *  so the two agree. */
+export const themeDueOf = (live: LiveDue | null): boolean => !!live && !live.error && live.theme;
+/** #3422 Q44.2 A (the review's recommendation; the owner's to confirm): whether the live recount measured the file and
+ *  found it matching the brand. Only then does the Theme row read "Up to date". Before the first answer, when it could
+ *  not read the file, or on the demo brand (no recount is shown), nothing was compared, so the row has no tag. */
+export const themeMatchesOf = (live: LiveDue | null): boolean => !!live && !live.error && !live.theme;
 export const badgeParts = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null): BadgeParts => {
-  if (live && !live.error) return { add: queuedOf(catalog, live, queue).length, due: dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }), theme: live.theme, panels: panelSetsOf(catalog, live, queue).length > 0 };
+  if (live && !live.error) return { add: queuedOf(catalog, live, queue).length, due: dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }), theme: themeDueOf(live), panels: panelSetsOf(catalog, live, queue).length > 0 };
   return { add: f && !f.error ? queuedOf(catalog, f, queue).length : 0, due: dueCount(catalog, f), theme: false, panels: !!f && !f.error && panelSetsOf(catalog, f, queue).length > 0 };
 };
 export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null = null): number => {
@@ -146,12 +166,13 @@ export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue |
  *  edits, such as a slider drag or typing, never one a keystroke. */
 export const DUE_DEBOUNCE_MS = 250;
 
-/** The ticks the checklist opens with (Q2909.2 A, Q2909.8 A, Q3129.10 A): the theme always, and every due set, keeping
- *  hand edits; on a file that is not set up, the setup and the style guides too. No set is queued for it: the queue is
- *  the file's (#3129), so a fresh file starts with nothing to add until Add all or Components. */
-export const defaultTicks = (catalog: Catalog, f: FileSets, queue: readonly string[] | null = null): Ticks => {
+/** The ticks the checklist opens with (Q2909.2 A, Q2909.8 A, Q3129.10 A): every due set, keeping hand edits; the theme
+ *  only when the file's variables differ from the brand (#3422 Q44 A, `themeDueOf`, which supersedes Q2909.2 A's
+ *  always-ticked theme); on a file that is not set up, the setup, the theme and the style guides. No set is queued for it:
+ *  the queue is the file's (#3129), so a fresh file starts with nothing to add until Add all or Components. */
+export const defaultTicks = (catalog: Catalog, f: FileSets, queue: readonly string[] | null = null, live: LiveDue | null = null): Ticks => {
   const fresh = !f.setUp;
-  return { setup: fresh, theme: true, guides: fresh, panels: panelSetsOf(catalog, f, queue).length > 0, update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep' };
+  return { setup: fresh, theme: fresh || themeDueOf(live), guides: fresh, panels: panelSetsOf(catalog, f, queue).length > 0, update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep', kept: new Map() };
 };
 
 /** The steps a set of ticks runs, in order. Set up file is a step only on a file that is not set up; `sets` only while
@@ -165,25 +186,45 @@ export const stepsOf = (t: Ticks, f: FileSets, queued: readonly string[]): StepK
  *  brand, the one the run leaves in the file. So the counts shown are the ones written, and the next load agrees. */
 export const brandFor = <B>(theme: boolean, panel: B): B | undefined => (theme ? panel : undefined);
 
-/** What the scoped check says of the ticked sets the update would act on: the ones it read and did not block. */
+/** Whether the scoped check's reading of a set lets the run update it: not blocked; or (#3421) blocked only by variables
+ *  or styles the brand's Theme writes, in a run whose Theme step goes first. */
+const runnable = (c: CheckedSetView, theme: boolean): boolean => !c.blocked || (theme && !!c.themeBlocked);
+/** What the scoped check says of the ticked sets the update would act on: the ones it read and did not block, and
+ *  (#3421) with Theme ticked, the ones only Theme's variables and styles block. The run checks those again after Theme. */
 export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }): string[] =>
-  [...t.update].filter((id) => check.sets.some((c) => c.def === id && !c.blocked));
+  [...t.update].filter((id) => check.sets.some((c) => c.def === id && runnable(c, t.theme)));
+/** #3421: whether the update step must check its sets again before it applies: it covers other sets than the check read,
+ *  or a set the check read as blocked only until Theme writes what it needs. */
+export const recheckFirst = (defs: readonly string[], checkedFor: readonly string[] | null, check: { readonly sets: readonly CheckedSetView[] }): boolean =>
+  checkedFor === null || defs.length !== checkedFor.length || !defs.every((id) => checkedFor.includes(id))
+    || defs.some((id) => check.sets.some((c) => c.def === id && c.blocked));
+/** #3421: the run's check again, before its update applies: each set must read as the person reviewed it, apart from a
+ *  set reviewed as blocked only by Theme's variables and styles, which Theme has written since, so it reads otherwise
+ *  now. That set's check is the one the apply echoes. */
+export const recheckHolds = (defs: readonly string[], reviewed: readonly CheckedSetView[], now: readonly CheckedSetView[]): boolean =>
+  defs.every((id) => {
+    const was = reviewed.find((c) => c.def === id);
+    const is = now.find((c) => c.def === id);
+    return !!was && !!is && (was.hash === is.hash || !!was.themeBlocked);
+  });
 /** #3137 Q3137.2 A: the update step's defs: the ticked Due sets and, while the Usage panels tick is on, the panel sets,
  *  each one the scoped check read and did not block. */
-export const updateDefsOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }, panelSets: readonly string[]): string[] =>
-  [...new Set([...updatableOf(t, check), ...(t.panels ? panelSets.filter((id) => check.sets.some((c) => c.def === id && !c.blocked)) : [])])];
+export const updateDefsOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }, panelSets: readonly string[], kept: readonly string[] = []): string[] =>
+  [...new Set([...updatableOf(t, check), ...(t.panels ? panelSets.filter((id) => check.sets.some((c) => c.def === id && !c.blocked)) : []),
+    // #3421 (Q39 A): a Kept edits set given Overwrite or Accept as baseline, as the check read it.
+    ...keptRunOf(t, kept).filter((id) => check.sets.some((c) => c.def === id && runnable(c, t.theme)))])];
 /** #3137 Q3137.5 A: up to this many names show inline in the Usage panels group; past it, under a closed disclosure. */
 export const PANELS_INLINE = 6;
 /** #3137: the sets the scoped check reads as the checklist opens: the Due sets and, while ticked, the panel sets. */
-export const checkScopeOf = (due: readonly string[], t: Pick<Ticks, 'panels'>, panelSets: readonly string[]): string[] =>
-  [...new Set([...due, ...(t.panels ? panelSets : [])])];
+export const checkScopeOf = (due: readonly string[], t: Pick<Ticks, 'panels'> & Partial<Pick<Ticks, 'kept'>>, panelSets: readonly string[], kept: readonly string[] = []): string[] =>
+  [...new Set([...due, ...(t.panels ? panelSets : []), ...(t.kept ? keptRunOf({ kept: t.kept }, kept) : [])])];
 
 /** A set's statuses, as Components' list and the checklist show them (Q2909.8 A): Not in file, or To add once it is in
  *  the add queue (#3129 Q3129.4 A), or Needed while a queued set nests it (#3306 Q3306.2 A; Components reads that from
  *  `neededOf`, this function never returns it); or Due; Hand-edited (first class, beside Due when both); Not checked yet; Checking
  *  while the background pass has not reached it, or, for a set the ledger does not name, while the file is still being
  *  read (#3110); else Up to date. Empty before the host has said anything. */
-export type SetStatus = 'queued' | 'needed' | 'new' | 'due' | 'hand' | 'unchecked' | 'checking' | 'current';
+export type SetStatus = 'queued' | 'needed' | 'new' | 'due' | 'kept' | 'hand' | 'unchecked' | 'checking' | 'current';
 export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<string, { readonly edited: number }>, pass: 'idle' | 'running' | 'done', queue: readonly string[] | null = null): SetStatus[] => {
   if (!f || f.error) return [];
   if (!f.present.includes(id)) return f.partial ? ['checking'] : queue?.includes(id) ? ['queued'] : ['new'];
@@ -191,6 +232,8 @@ export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<str
   const h = hand.get(id);
   const out: SetStatus[] = [];
   if (due === 'due') out.push('due');
+  // #3421 (Q39 A): kept edits over changes the plan makes, listed until resolved.
+  if (due === 'kept') out.push('kept');
   if (h && h.edited > 0) out.push('hand');
   if (due === 'unrecorded') out.push('unchecked');
   if (!h && pass === 'running' && due !== 'unrecorded') out.push('checking');
@@ -206,7 +249,9 @@ export type UpdateRun = {
   /** The sets the `sets` step builds: the add queue, in Components' order (#3129). */
   readonly sets: readonly string[];
   /** The sets the `update` step updates in place, the check's hash it echoes, and the hand-edit choice. */
-  readonly update: { readonly defs: readonly string[]; readonly previewHash: string; readonly handEdits: HandEditChoice } | null;
+  readonly update: { readonly defs: readonly string[]; readonly previewHash: string; readonly handEdits: HandEditChoice;
+    /** #3421: each Kept edits set's own choice (`keptChoicesOf`). Absent when none. */
+    readonly sets?: Readonly<Record<string, HandEditChoice>> } | null;
   readonly results: readonly StepResult[];
   readonly stopping: boolean;
   readonly done: boolean;
@@ -263,6 +308,8 @@ export const UPDATE_COPY = {
   setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Documentation has it on.',
   theme: 'Theme',
   themeSub: 'The brand’s variables and styles. Layers bound to them restyle at once.',
+  /** #3422 Q44 A: the Theme row's tag when the file's variables already match the brand. The sets' own status word. */
+  themeCurrent: 'Up to date',
   /** #3129 (Q832 A, Q3129.7–11 A): the add queue's group and the due sets' group. DRAFT, the wireframe's own words.
    *  R6 (the owner, 2026-10-28): both sit under one section, Components, at Theme's level, as its two subtitles. */
   components: 'Components',
@@ -290,15 +337,29 @@ export const UPDATE_COPY = {
   checkedOf: (done: number, total: number): string => `Checked ${done} of ${plural(total)}`,
   checkingSet: 'Checking…',
   checkError: 'Couldn’t check the sets. Close this and try again.',
-  checked: (c: CheckedSetView): string => c.blocked ? 'Can’t be updated in place yet; the agent’s update check says why'
+  /** #3421 (DRAFT, Q3421.1): a set only Theme's variables and styles block, with Theme ticked. */
+  afterTheme: 'Updated after Theme — Theme writes the variables and styles it binds first',
+  checked: (c: CheckedSetView, theme = false): string => c.blocked ? (theme && c.themeBlocked ? UPDATE_COPY.afterTheme : 'Can’t be updated in place yet; the agent’s update check says why')
     : c.upToDate ? 'No member changes' : [`${c.update} of ${c.members} members change`, c.add ? `${c.add} added` : '', c.drop ? `${c.drop} kept and marked deprecated` : '', c.handEdited ? `${c.handEdited} edited by hand` : ''].filter(Boolean).join(' · '),
   handEdits: 'Hand edits',
+  /** #3421 (owner decision Q39 A; DRAFT, Q3421.3–.6): what each hand-edit choice does, said under the choice; the Kept
+   *  edits section; and each kept set's line. */
+  handHint: {
+    keep: 'Keep: each edit stays. A set whose edits hold back changes is listed under Kept edits until resolved.',
+    overwrite: 'Overwrite: the plan’s values replace each edit.',
+    accept: 'Accept as baseline: each edit stays and becomes the record, so it is no longer listed.',
+  } as Record<HandEditChoice, string>,
+  kept: 'Kept edits',
+  keptSub: (n: number): string => `${plural(n)} hold hand edits over changes the plan makes. Each stays here until Overwrite or Accept as baseline is chosen for it.`,
+  keptLine: (h: { readonly members: number; readonly changes: readonly string[] }): string =>
+    `${h.members} member${h.members === 1 ? ' keeps' : 's keep'} out ${h.changes.length} of the plan’s values${h.changes.length ? `: ${h.changes.slice(0, 3).join(', ')}${h.changes.length > 3 ? `, ${h.changes.length - 3} more` : ''}` : ''}`,
+  keptChoice: (name: string): string => `Hand edits on ${name}`,
   // #3083 (the owner's Q3083.4 A, 2026-10-28; DRAFT): the short forms, for the compact select in the foot.
   handChoice: { keep: 'Keep', overwrite: 'Overwrite', accept: 'Accept as baseline' } as Record<HandEditChoice, string>,
   unrecorded: (n: number): string => `${n} set${n === 1 ? '' : 's'} not checked yet: built before Prism3 kept a record.`,
   checkUnrecorded: (n: number): string => `Check ${n} set${n === 1 ? '' : 's'}`,
   saves: 'Saves a version first. If Figma refuses the save, nothing is written.',
-  status: { queued: 'To add', needed: 'Needed', new: 'Not in file', due: 'Due', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
+  status: { queued: 'To add', needed: 'Needed', new: 'Not in file', due: 'Due', kept: 'Kept edits', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
   /** Q3129.11 A: the badge's name, split: "Update file, 7 to add, 3 due", with ", theme" when the Theme item counts, and
    *  (#3137 Q3137.4 A) ", usage panels" when the Usage panels group does. */
   badgeName: (p: BadgeParts): string => ['Update file', p.add ? `${p.add} to add` : '', p.due ? `${p.due} due` : '', p.theme ? 'theme' : '', p.panels ? 'usage panels' : ''].filter(Boolean).join(', '),

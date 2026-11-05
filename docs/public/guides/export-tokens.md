@@ -34,7 +34,7 @@ With **One per mode** <!-- src: apps/studio/src/export-settings.ts:214 -->, the 
 A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and CI checks that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:22-25 --> <!-- src: packages/tokens/check-consumability.mjs:261-270 -->
 The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the layout tokens themselves; the per-breakpoint detail the engine keeps for its own use is left out of these files. <!-- src: packages/engine/emit-dtcg-overlay.ts:37-41 -->
 
-Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1289-1296 -->
+Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1290-1297 -->
 
 The same brand exports the same files from the web studio and from the plugin; CI compares the two byte for byte. <!-- src: apps/studio/test-export-parity.mjs:1-3 --> <!-- src: apps/studio/test-export-parity.mjs:251 -->
 

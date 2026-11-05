@@ -38,7 +38,7 @@ import type { UpdateFileLend } from './shell/update-file';
 import type { StatusLend } from './shell/status-strip';
 import { agentHeard, heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
-import { brandFor, DUE_DEBOUNCE_MS, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { brandFor, DUE_DEBOUNCE_MS, recheckHolds, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
@@ -1976,7 +1976,7 @@ const panelBrand = (theme: boolean): BrandInput | undefined => brandFor(theme, l
 const runTheme = (steps: readonly StepKey[] | undefined): boolean => !!steps?.includes('theme');
 const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {
   updatePhase = 'apply';
-  commit.postUpdateSets(u.defs, previewHash, u.handEdits, panelBrand(runTheme(updateRun?.steps)));
+  commit.postUpdateSets(u.defs, previewHash, u.handEdits, panelBrand(runTheme(updateRun?.steps)), u.sets);
 };
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
@@ -2042,7 +2042,8 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   if (step === 'theme' && m.kind === 'apply-result') { endStep(m.ok, m.headline); return; }
   if ((step === 'update' || step === 'cover') && updatePhase === 'recheck' && m.kind === 'update-check') {
     const u = inPlaceOf(step)!;
-    const same = !m.error && u.defs.every((id) => { const was = updateReviewed.find((c) => c.def === id); const now = m.sets.find((c) => c.def === id); return !!was && !!now && was.hash === now.hash; });
+    // #3421: a set reviewed as blocked only by Theme's variables and styles reads otherwise now that Theme wrote them.
+    const same = !m.error && recheckHolds(u.defs, updateReviewed, m.sets);
     if (!same) { updatePhase = null; endStep(false, m.error ?? UPDATE_MOVED); return; }
     postUpdate(u, m.previewHash);
     return;
@@ -2156,7 +2157,7 @@ const updateFileLend: UpdateFileLend = {
     if (updateRun || restoreFailure) return;
     updateStopped = null;
     updateReviewed = update?.checked ?? [];
-    updateRun = startUpdate(steps, sets, update ? { defs: update.defs, previewHash: update.previewHash, handEdits: update.handEdits } : null);
+    updateRun = startUpdate(steps, sets, update ? { defs: update.defs, previewHash: update.previewHash, handEdits: update.handEdits, ...(update.sets && Object.keys(update.sets).length ? { sets: update.sets } : {}) } : null);
     stripRun = startStripRun(Date.now());
     stripLine = null;
     writesMoved();

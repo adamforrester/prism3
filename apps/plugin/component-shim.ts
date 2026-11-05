@@ -97,6 +97,9 @@ export type FileNode =
   | { name: string; type: 'FRAME' | 'GROUP' };
 
 export type ShimOpts = {
+  /** #3421: the file's variable names as a set the test holds, read live, so a test can model Apply Theme writing the
+   *  variables a later plan binds (`names` IS this set). Absent: the names are `vars`, fixed. */
+  liveVars?: Set<string>;
   vars?: string[]; styles?: string[]; effects?: string[]; comps?: string[]; page?: Page; insetValue?: unknown;
   /** Per-NAME resolved values, where `insetValue` overrides every name at once. Both exist because they
    *  answer different questions: `insetValue` reaches the not-a-number case, and this gives the ring's two
@@ -519,7 +522,7 @@ export const fixHostMethods = <T extends object>(o: T): T => {
 };
 
 export const makeShim = (opts: ShimOpts = {}) => {
-  const names = new Set(opts.vars ?? []);
+  const names = opts.liveVars ?? new Set(opts.vars ?? []);
   // #2265 PR 2 — `identities`: one counter for node ids, one for component keys, never reused.
   let nodeSeq = 0;
   let setSeq = 0;

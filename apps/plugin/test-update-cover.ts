@@ -148,8 +148,10 @@ ok(fixedOn(shim, 'getNodeByIdAsync') && fixedOn(root, 'findAllWithCriteria'), 'f
   ok(JSON.stringify(stepsOf({ ...t, theme: false }, fresh, ['badge'])) === JSON.stringify(['setup', 'sets', 'guides']),
     `steps/no theme: with Theme unticked there is no cover step (${stepsOf({ ...t, theme: false }, fresh, ['badge']).join(', ')})`);
   const setUp = { ...fresh, setUp: true };
-  ok(JSON.stringify(stepsOf(defaultTicks(catalog, setUp), setUp, [])) === JSON.stringify(['theme']),
-    `steps/set up: on a file already set up there is no cover step (${stepsOf(defaultTicks(catalog, setUp), setUp, []).join(', ')})`);
+  // #3422 Q44 A: a set-up file whose variables differ from the brand, so Theme opens ticked.
+  const tu = defaultTicks(catalog, setUp, null, { present: [], theme: true, error: null, due: {} });
+  ok(JSON.stringify(stepsOf(tu, setUp, [])) === JSON.stringify(['theme']),
+    `steps/set up: on a file already set up there is no cover step (${stepsOf(tu, setUp, []).join(', ')})`);
 }
 
 /* ── 2. the run ───────────────────────────────────────────────────────────────────────────────────────────────── */

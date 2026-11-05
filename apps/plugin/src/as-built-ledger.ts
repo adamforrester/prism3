@@ -67,7 +67,11 @@ export type Facet = typeof FACETS[number];
 export type PlanPrint = { readonly plan: string; readonly parts: Readonly<Record<string, string>>; readonly set: string };
 /** `panel` (#3205): the usage-panel format (`PANEL_FORMAT`) the set's panel was last checked at, on a family's lead set
  *  while Documentation has the panels on. Absent on any other set, and on an entry from before it. */
-export type LedgerEntry = { readonly def: string; readonly rev: number; readonly engine: string; readonly print?: PlanPrint; readonly panel?: number };
+/** `held` (#3421, owner decision Q39 A): the update that wrote the entry kept hand edits the plan would also have changed,
+ *  so the set holds its edits in place of those changes: how many members, and each change kept out, as the verdict
+ *  names it. Absent when the update wrote every change, and on any build. */
+export type Held = { readonly members: number; readonly changes: readonly string[] };
+export type LedgerEntry = { readonly def: string; readonly rev: number; readonly engine: string; readonly print?: PlanPrint; readonly panel?: number; readonly held?: Held };
 export type Ledger = Readonly<Record<string, LedgerEntry>>;
 
 type DataRoot = { getPluginData?(key: string): string; setPluginData?(key: string, value: string): void };
@@ -157,7 +161,10 @@ const isPrint = (v: unknown): v is PlanPrint => !!v && typeof v === 'object' && 
 const isEntry = (v: unknown): v is LedgerEntry => !!v && typeof v === 'object'
   && typeof (v as LedgerEntry).def === 'string' && typeof (v as LedgerEntry).rev === 'number' && typeof (v as LedgerEntry).engine === 'string'
   && ((v as LedgerEntry).print === undefined || isPrint((v as LedgerEntry).print))
-  && ((v as LedgerEntry).panel === undefined || typeof (v as LedgerEntry).panel === 'number');
+  && ((v as LedgerEntry).panel === undefined || typeof (v as LedgerEntry).panel === 'number')
+  && ((v as LedgerEntry).held === undefined || isHeld((v as LedgerEntry).held));
+const isHeld = (v: unknown): v is Held => !!v && typeof v === 'object' && typeof (v as Held).members === 'number'
+  && Array.isArray((v as Held).changes) && (v as Held).changes.every((c) => typeof c === 'string');
 
 /** The file's ledger, by def id. */
 export const readLedger = (root: DataRoot): Ledger => {
@@ -204,6 +211,9 @@ export const movedOf = (was: PlanPrint, is: PlanPrint): Moved => {
 
 export type DueReason = 'definition' | 'engine' | 'executor' | 'panel';
 export type SetDue = { readonly state: 'current' | 'unrecorded' }
+  /** #3421 (Q39 A): otherwise current, but its last update kept hand edits over changes the plan makes (`held`). Listed
+   *  under Kept edits until an update overwrites them or accepts them as the baseline. */
+  | { readonly state: 'kept'; readonly held: Held }
   | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
   | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: Moved };
 
@@ -244,6 +254,13 @@ export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: str
     const was = ledger[id];
     const is = now(id);
     if (out[id].state === 'current' && is?.panel !== undefined && was?.panel !== is.panel) out[id] = { state: 'due', reason: 'panel' };
+  }
+  // KEPT EDITS (#3421, Q39 A): a set its last update recorded with changes held back by kept hand edits is never read as
+  // current: it is listed under Kept edits until a later update writes those changes or accepts the edits. A set due for
+  // another reason reads due: its update meets the same edits again, and its check names them.
+  for (const id of present) {
+    const held = ledger[id]?.held;
+    if (out[id].state === 'current' && held) out[id] = { state: 'kept', held };
   }
   return out;
 };
