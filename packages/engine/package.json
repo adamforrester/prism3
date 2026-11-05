@@ -9,6 +9,7 @@
     "./anatomy-figma": "./anatomy-figma.ts",
     "./anatomy-readback": "./anatomy-readback.ts",
     "./component-specs": "./component-specs.ts",
+    "./component-defs-export": "./component-defs-export.ts",
     "./button-spacing": "./button-spacing.ts",
     "./color": "./color.ts",
     "./color-order": "./color-order.ts",
