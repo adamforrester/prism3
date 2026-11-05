@@ -78,7 +78,7 @@ or token it belongs to, or is omitted from the projection and kept in the Prism3
 | a token value | `TokenReference` (`$token`, `$type: dimension`); a brand export prefixes the brand's root |
 | a literal or derived px | a number |
 | `textStyle` | `styles.typography`, `TokenReference` (`$type: typography`) |
-| `fill` / `stroke` / `ink` / `icon` | `backgroundColor` / `strokes` / `textColor` / `fillColor`, `TokenReference` (`$type: color`) |
+| `fill` / `stroke` / `ink` / `icon` | `backgroundColor` / `strokes` / `textColor` / `fillColor`, `TokenReference` (`$type: color`) ; `icon` lands on the element for its part, which is an `instance` element (a nested icon) far more often than a `glyph` one: see the traps |
 | per-brand px | `TokenReference.$extensions["com.prism3"].px` |
 
 **What Prism3 carries that Specs has no place for, kept in the Prism3 export and omitted from the projection:**
@@ -112,7 +112,17 @@ or token it belongs to, or is omitted from the projection and kept in the Prism3
   `@directededges/specs-schema` 0.39.0 (pinned exact, integrity in the lockfile) with stock Ajv, and checks that the
   projection carries every component, code prop, axis, part and token of the export and nothing else. Mutations: a
   free-string prop without its disambiguator fails `[VALID]` (`oneOf`); a token renamed in the projection fails
-  `[REPRESENTED]`.
+  `[REPRESENTED]`. `[REPRESENTED]` compares token *sets*, so it cannot see where a token lands; `[PLACED]` (added in
+  review) reads every export binding at the Specs key a literal register in the gate names (the mapping table, typed
+  out, not read from the projector), on its part's element, in the default or in the variant configured at its row's
+  coordinate: 5,622 bindings. Mutations: `fill` written to `textColor` and `ink` to `backgroundColor` fails
+  `[PLACED] button container … fill … belongs at styles.backgroundColor … (it sits at styles.textColor)`; padding
+  left and right swapped fails `[PLACED] button container … paddingRight … belongs at styles.padding.end`; the
+  coordinate fix below reverted fails `[PLACED] banner: two variants are configured …`. `[PLACED]` found one defect
+  on its first run: Banner's redline and color rows name the same coordinate in different key orders, and the
+  projector keyed variants on the raw object, so nine Banner coordinates were each two variants, one with the
+  geometry and one with the colors. Variants are now keyed on the coordinate in axis order (1,346 → 1,337 variants;
+  only Banner moves).
 - **The materializer restatement:** `apps/plugin/test-roundtrip.ts` holds `brandMaterializer` to the plugin's
   `materializerFor` on every def, for no brand, each example brand and one brand with every setting off its default.
   Mutation: the tag-style lever dropped from `brandMaterializer` fails `… for every setting off its default … differs on tag`.
@@ -123,6 +133,15 @@ or token it belongs to, or is omitted from the projection and kept in the Prism3
   `default`, matches both. The projection writes `default: null` or adds `examples`, which only the string shape
   admits. Drop that and seven components fail.
 - The Specs package exports its schemas, not its `package.json`; `check-specs.mjs` resolves a schema to find it.
+- **`icon` → `fillColor` lands on `instance` elements.** The published schema describes `fillColor` as "Glyph fill
+  color. Present on GLYPH element type only" (and `textColor` as TEXT only). That is description text, not a
+  constraint, so the projection validates; but in the committed projection 981 of the 1,039 `fillColor` styles sit on
+  `instance` elements (a nested icon, e.g. `button.leadingVisual`) and 58 on `glyph` ones. A Specs reader that keys on
+  element type may drop them. Kept as is, on purpose: the icon color is a binding of the part that holds the nested
+  icon, and Specs has no other color key for an instance; omitting it would lose the binding, and moving it under
+  `$extensions` is not open on `Element` styles. Recorded here and in the mapping table rather than changed.
+- A coordinate written in two key orders (`{tone, width}` and `{width, tone}`) is one coordinate: the projector keys
+  variants on it in axis order. `[PLACED]` fails on two variants with the same configuration.
 - `cli.ts --component-specs` without `--out` writes into `packages/engine/out/`, where the files are untracked and make
   `regen --check` count two more. Pass `--out`.
 

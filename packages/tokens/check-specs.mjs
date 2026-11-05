@@ -21,6 +21,14 @@
  *                  the default configuration at each axis's first value, and exactly the token names the export's
  *                  spec binds (gradients aside: Specs has no home for a gradient's token list, and the mapping table
  *                  says so).
+ *   [PLACED]       every binding lands where the mapping table names it: each export binding (a color role, a text
+ *                  style, a padding side, a gap or size) is read at the Specs key a literal register below names, on
+ *                  the element for its part, in the default when its row's coordinate is the default's and in the
+ *                  variant whose configuration is that coordinate otherwise. [REPRESENTED] compares token sets, so a
+ *                  fill written to `textColor` or a left padding written to `end` passes it; this arm is what fails.
+ *                  The register is typed out here, not read from the projector (docs/34): it restates the PR's
+ *                  mapping table, and a projector that drifts from the table fails here by name. A coordinate is
+ *                  also one variant: two variants with the same configuration fail here.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -111,6 +119,62 @@ for (const id of exportIds) {
   for (const t of got) if (!want.has(t)) fail('[REPRESENTED]', `${id}: token \`${t}\` is in the projection and bound nowhere in the export`);
 }
 if (!failures.some((f) => f.startsWith('[REPRESENTED]'))) pass('[REPRESENTED]', `${checked} components: every prop, axis, part and token of the export is in the projection, and nothing else`);
+
+// ---- [PLACED] ----------------------------------------------------------------------------------
+// The mapping table, typed out: export field → path under an element's `styles`. Not imported, not derived.
+const PLACE = {
+  fill: ['backgroundColor'], stroke: ['strokes'], ink: ['textColor'], icon: ['fillColor'],   // spec.colors[].parts[]
+  textStyle: ['typography'],                                                                // spec.type[].parts[]
+  paddingTop: ['padding', 'top'], paddingRight: ['padding', 'end'],                         // spec.redlines[].parts[].values
+  paddingBottom: ['padding', 'bottom'], paddingLeft: ['padding', 'start'],
+  gap: ['itemSpacing'], height: ['height'], minHeight: ['minHeight'],
+  width: ['width'], minWidth: ['minWidth'], maxWidth: ['maxWidth'],
+};
+const leafOf = (p) => p.slice(p.lastIndexOf('/') + 1);
+const sameCoord = (a, b) => { const ka = Object.keys(a), kb = Object.keys(b); return ka.length === kb.length && ka.every((k) => a[k] === b[k]); };
+let placed = 0;
+const placedBefore = failures.length;
+for (const id of exportIds) {
+  const e = prism.components[id];
+  const s = specs.components[id];
+  if (!s || !e.spec) continue;
+  const root = prism.brand ? `${prism.brand.root}.` : '';
+  const first = Object.fromEntries(e.spec.axes.map((a) => [a.name, a.values[0]]));
+  const seen = [];
+  for (const v of s.variants ?? []) {
+    if (seen.some((c) => sameCoord(c, v.configuration ?? {}))) fail('[PLACED]', `${id}: two variants are configured ${JSON.stringify(v.configuration)} — a coordinate is one variant, or a reader keeps one and loses the other's styles`);
+    seen.push(v.configuration ?? {});
+  }
+  const stylesAt = (where, part) => {
+    const isDefault = Object.entries(where).every(([k, v]) => first[k] === v);
+    const target = isDefault ? s.default : (s.variants ?? []).find((v) => sameCoord(v.configuration ?? {}, where));
+    if (!target) return { miss: `no ${isDefault ? 'default' : `variant configured ${JSON.stringify(where)}`}` };
+    const el = target.elements?.[part] ?? target.elements?.[leafOf(part)];
+    if (!el) return { miss: `no element for part \`${part}\` in ${isDefault ? 'the default' : `the variant ${JSON.stringify(where)}`}` };
+    return { styles: el.styles ?? {} };
+  };
+  const at = (styles, path) => path.reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), styles);
+  const check = (where, part, field, want) => {
+    const { styles, miss } = stylesAt(where, part);
+    const loc = `${id} ${part} ${JSON.stringify(where)}: ${field}`;
+    if (miss) { fail('[PLACED]', `${loc} — ${miss}`); return; }
+    const got = at(styles, PLACE[field]);
+    const ok = typeof want === 'number' ? got === want : got?.$token === `${root}${want}`;
+    if (!ok) {
+      const elsewhere = Object.entries(PLACE).filter(([, p]) => { const v = at(styles, p); return typeof want === 'number' ? v === want : v?.$token === `${root}${want}`; }).map(([, p]) => p.join('.'));
+      fail('[PLACED]', `${loc} \`${want}\` belongs at styles.${PLACE[field].join('.')}, found ${JSON.stringify(got?.$token ?? got)}${elsewhere.length ? ` (it sits at styles.${elsewhere.join(', styles.')})` : ''}`);
+    } else placed++;
+  };
+  for (const r of e.spec.colors) for (const p of r.parts) for (const k of ['fill', 'stroke', 'ink', 'icon']) if (p[k]) check(r.where, p.part, k, p[k]);
+  for (const r of e.spec.type) for (const p of r.parts) check(r.where, p.part, 'textStyle', p.textStyle);
+  for (const r of e.spec.redlines) for (const p of r.parts) for (const [k, v] of Object.entries(p.values)) {
+    if (!PLACE[k] || !v) continue;                       // rowGap, build sizes…: omitted from Specs, by the table
+    if (v.token) check(r.where, p.part, k, v.token);
+    else if (typeof v.px === 'number') check(r.where, p.part, k, v.px);
+  }
+}
+if (placed < 1000) fail('[PLACED]', `only ${placed} bindings placed — the walk found too little to mean anything`);
+if (failures.length === placedBefore) pass('[PLACED]', `${placed} bindings, each at the Specs key the mapping table names`);
 
 if (failures.length) {
   console.error(`\n✗ check-specs: ${failures.length} failure(s)`);

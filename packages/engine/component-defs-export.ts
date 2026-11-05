@@ -211,6 +211,8 @@ export const exportComponentDefs = (defs: readonly ComponentDef[], opts: { brand
 //                                         a literal or derived px → a number
 //   textStyle                           → styles.typography TokenReference {$type: typography}
 //   fill / stroke / ink / icon          → backgroundColor / strokes / textColor / fillColor, TokenReference {$type: color}
+//                                         (`icon` sits on its part's element, usually an `instance`: Specs
+//                                         describes fillColor as glyph-only, in prose, not as a constraint)
 //   per-brand px                        → TokenReference.$extensions["com.prism3"].px
 //
 //   OMITTED (kept in the Prism3 export): accessibility, content, docs, ai (incl. avoidWhen), motion, composition
@@ -301,10 +303,14 @@ export const toSpecsComponent = (entry: ComponentDefEntry, root: string | null):
   const defaultCoord: SpecWhere = Object.fromEntries(spec.axes.map((a) => [a.name, a.values[0]]));
   const isDefault = (w: SpecWhere) => Object.entries(w).every(([k, v]) => defaultCoord[k] === v);
   const rows = new Map<string, { where: SpecWhere; elements: Map<string, Json> }>();
+  const axisRank = (name: string) => { const i = spec.axes.findIndex((a) => a.name === name); return i < 0 ? spec.axes.length : i; };
   const into = (where: SpecWhere, part: string, styles: Json) => {
     if (!Object.keys(styles).length) return;
-    const id = isDefault(where) ? '' : JSON.stringify(where);
-    if (!rows.has(id)) rows.set(id, { where, elements: new Map() });
+    // One variant per coordinate, whatever key order the row wrote it in: redline and color rows can name the same
+    // coordinate as `{tone, width}` and `{width, tone}`, and keying on the raw object made two variants of it.
+    const coord: SpecWhere = Object.fromEntries(Object.entries(where).sort(([a], [b]) => axisRank(a) - axisRank(b) || a.localeCompare(b)));
+    const id = isDefault(coord) ? '' : JSON.stringify(coord);
+    if (!rows.has(id)) rows.set(id, { where: coord, elements: new Map() });
     const els = rows.get(id)!.elements;
     els.set(key(part), { ...(els.get(key(part)) ?? {}), ...styles });
   };
