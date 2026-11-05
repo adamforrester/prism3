@@ -143,7 +143,7 @@
  *   · ONE HOME PER PAGE (V1): every place names its literal home view and title (`EXPECT_HOME`), visited in
  *     two orders; scrolling the page and focusing its controls never changes it; nothing offers "Keep this
  *     view" (V12).
- *   · INSPECT (F1): the verdict reads the decided count (884) and opens Inspect › Contrast over the legacy
+ *   · INSPECT (F1): the verdict reads the decided count (956; 884 until #3346) and opens Inspect › Contrast over the legacy
  *     frame, with Health first and its literal lines; Tokens redraws in place from its own controls (the Decisions
  *     log, its third view, was cut by #2909 Q2909.7 A; its two unique notes are on their levers); Back and Escape close it to the page, its scroll
  *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
@@ -329,8 +329,8 @@
  *   · v5 answer 4: Brand name and Token namespace side by side at 1280, 640 and 380, both hosts.
  *   · T2: the placeholder (`pds3`) and the reserved (`prism`) namespaces warn in v6's words; a draft reaches
  *     nothing until Rename namespace and its confirm; Escape closes the confirm back to the field.
- *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (442 of 884, from Health's
- *     literal 221 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
+ *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (478 of 956, from Health's
+ *     literal 239 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
  *     its reason until dark is back, and dark back does not bring it back.
  *   · The name reaches the bar per keystroke (the `identity` topic) and the persisted brand; personality and the
  *     custom modes reach the brand; the Style guide's own select redraws it inside the preview (the lent repaint).
@@ -2704,11 +2704,11 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 // =============================================================================================
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
-const VERDICT_LINE = 'All 884 pairs at or above floor';
+const VERDICT_LINE = 'All 956 pairs at or above floor';   // 884 until #3346 added the 18 selection-mark roles per mode
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
-const HEALTH_LINE = 'All 884 pairs at or above their minimum.';
+const HEALTH_LINE = 'All 956 pairs at or above their minimum.';
 const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
-const HEALTH_MODES = ['Light: 221 of 221 at or above', 'Dark: 221 of 221 at or above', 'High contrast light: 221 of 221 at or above', 'High contrast dark: 221 of 221 at or above'];
+const HEALTH_MODES = ['Light: 239 of 239 at or above', 'Dark: 239 of 239 at or above', 'High contrast light: 239 of 239 at or above', 'High contrast dark: 239 of 239 at or above'];
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
  *  (section "IA v2 phase 2" holds them). The notes still ship: the committed default theme still records them. */
 const INSPECT_TABS = ['Contrast', 'Tokens'];
@@ -4750,12 +4750,12 @@ const SOFT_SETS = [['radiusScale', 'soft'], ['shadow.softness', 'soft']];
 /** T2 (v4 review) in concept v6's words: the namespace warning for each reserved or placeholder value. */
 const NS_WARN = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
   prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
-/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 221 gated pairs per mode (Health's literal). */
+/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 239 gated pairs per mode (Health's literal). */
 const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
 /** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
  *  decision in the words chosen for it, typed here. */
 const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
-const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 442 pairs leave the verdict (884 becomes 442).';
+const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 478 pairs leave the verdict (956 becomes 478).';
 const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
 const checkState = (page, sel) => page.evaluate((x) => { const b = document.querySelector(x); return b ? { checked: b.getAttribute('aria-checked'), locked: b.getAttribute('aria-disabled') === 'true', note: b.querySelector('.p3-check-note')?.textContent } : null; }, sel);
@@ -4876,7 +4876,7 @@ for (const host of ['web', 'figma']) {
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 2);
   const hcd = await checkState(page, '[data-p3="mode-on-hc-dark"]');
   const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict-tip"]')?.textContent);
-  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 442 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 478 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
   ok(hcd?.checked === 'false' && hcd.locked && hcd.note === 'Off while dark is off: it follows dark.', `Q3: high contrast dark stays off and locked while dark is off, and says why (${JSON.stringify(hcd)})`);
   // A locked check keeps its focus stop (aria-disabled), so it is activated the way a keyboard user would:
   // Playwright refuses a click on an aria-disabled element, which is itself the pointer half of the claim.
@@ -11361,7 +11361,7 @@ for (const { w, h } of WIDTHS) {
 // 29b. The owner's "A · Menu bar" (2026-10-05), three behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
-//     fixture, whose count is derived by hand there: 2 of 884, 2 modes. The plugin's is a restore of a one-mode
+//     fixture, whose count is derived by hand there: 2 of 956, 2 modes. The plugin's is a restore of a one-mode
 //     brand with the same Light override; its count is read from its own line.
 //   · THE PLUGIN'S THEME MENU: Match Figma, Light and Dark, in that order, Match Figma checked by default and the
 //     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
@@ -11411,7 +11411,7 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
         const c1 = await page.evaluate(CONTRAST_PROBE);
         const lead = /^(\d+) of \d+ below floor, \d+ modes?$/.exec(c1.tip ?? '');
-        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 884 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
+        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 956 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
           `${where}: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor (${JSON.stringify(c1)})`);
         ok(c1.name === `Verdict: ${c1.tip}. Open Inspect, Contrast`, `${where}: Contrast keeps its name, the full line ("${c1.name}")`);
 
@@ -18026,14 +18026,53 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const askedSets = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'file-sets-request'));
       ok(askedSets.length >= 1 && askedSets.every((m) => canon(m.input) === canon(PANEL_BRAND)) && asked.every((m) => canon(m.input) === canon(PANEL_BRAND)),
         `${where}: Q699 A: the checklist's due read and its check each send the brand the panel holds (${askedSets.length} file-sets-request; ${[...askedSets, ...asked].map((m) => wireDiff(m.input, PANEL_BRAND)).join(', ')})`);
-      const waiting = await page.evaluate(() => ({ go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null, line: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => n.textContent) }));
-      ok(waiting.go === true && waiting.line.every((l) => l === 'Checking what changes…'), `${where}: Q2909.8 A: until the check answers, each due set says so and the update waits (${JSON.stringify(waiting)})`);
       const sets = [
         { def: 'button', hash: 'hb', members: 648, update: 12, add: 0, drop: 0, handEdited: 2, noBaseline: 0, blocked: false, upToDate: false, breaks: 'Breaks library consumers: 1 layer removed.' },
         { def: 'select', hash: 'hs', members: 30, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: true },
       ];
+      // #3302 (the owner's Q3302.1–.3 A, 2026-11-02; the strings approved as written): the check's progress in the
+      // dialog's foot, before Cancel, the chrome's own bar filled by sets: "Reading this file…" with the bar empty until
+      // every set is found, then "Checked n of N sets". The row being checked reads "Checking…", a checked row its result,
+      // a row not reached nothing. Nothing moves by time (#3150): no animation or transition on the bar, and the foot reads
+      // the same a moment later. Literals, the owner's. MUTATIONS: every row reading "Checking…" while the check is out →
+      // `#3302 Q3302.2 A`; the foot's count left at "Reading this file…" → `#3302 Q3302.1 A`.
+      const progressOf = () => page.evaluate(() => {
+        const wrap = document.querySelector('[data-p3="update-check-progress"]'), bar = document.querySelector('[data-p3="update-check-bar"]');
+        const foot = wrap?.closest('.p3-bardlg-foot'), cancel = document.querySelector('[data-p3="update-cancel"]');
+        const cs = bar ? getComputedStyle(bar) : null;
+        return {
+          text: document.querySelector('[data-p3="update-check-count"]')?.textContent ?? null,
+          bar: bar ? { tag: bar.tagName.toLowerCase(), value: bar.value, max: bar.max, label: bar.getAttribute('aria-label'), anim: cs.animationName, trans: cs.transitionDuration } : null,
+          inFoot: !!foot && !!cancel && foot.contains(cancel), beforeCancel: !!wrap && !!cancel && !!(wrap.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING),
+          rows: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => [n.closest('.p3-upd-setrow')?.querySelector('[data-p3="update-due-set"]')?.dataset.id ?? null, n.textContent, n.dataset.state ?? null]),
+          go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
+        };
+      });
+      const reading = await progressOf();
+      await new Promise((r) => setTimeout(r, 600));
+      const later = await progressOf();
+      ok(reading.text === 'Reading this file…' && reading.bar?.tag === 'progress' && reading.bar.value === 0 && reading.bar.max === 1 && reading.bar.label === 'Reading this file…'
+        && reading.inFoot && reading.beforeCancel && reading.go === true && JSON.stringify(reading.rows) === JSON.stringify([['button', '', 'waiting'], ['select', '', 'waiting']]),
+        `${where}: #3302 Q3302.3 A: before the first set the foot reads "Reading this file…" before Cancel, the bar empty, no row has a line, and the update waits (${JSON.stringify(reading)})`);
+      ok(reading.bar?.anim === 'none' && /^0s(, 0s)*$/.test(reading.bar?.trans ?? '') && JSON.stringify(later) === JSON.stringify(reading),
+        `${where}: #3302, #3150: the progress moves only as the host reports a set: no animation or transition on its bar, and the foot and rows read the same 600 ms later (${JSON.stringify({ anim: reading.bar?.anim, trans: reading.bar?.trans, same: JSON.stringify(later) === JSON.stringify(reading) })})`);
+      await postMsg(page, { type: 'update-check-progress', done: 0, total: 2, next: 'button' });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-check-count"]')?.textContent === 'Checked 0 of 2 sets', null, { timeout: 5000 }).catch(() => {});
+      const first = await progressOf();
+      await postMsg(page, { type: 'update-check-progress', done: 1, total: 2, next: 'select', set: sets[0] });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-check-count"]')?.textContent === 'Checked 1 of 2 sets', null, { timeout: 5000 }).catch(() => {});
+      const second = await progressOf();
+      ok(first.text === 'Checked 0 of 2 sets' && first.bar?.value === 0 && first.bar.max === 2 && first.bar.label === 'Checked 0 of 2 sets'
+        && second.text === 'Checked 1 of 2 sets' && second.bar?.value === 1 && second.bar.max === 2 && second.bar.label === 'Checked 1 of 2 sets' && second.go === true,
+        `${where}: #3302 Q3302.1 A: the foot reads "Checked n of N sets", the bar filled by sets, as each set is checked, and the update waits for the answer (${JSON.stringify({ first: [first.text, first.bar], second: [second.text, second.bar] })})`);
+      ok(JSON.stringify(first.rows) === JSON.stringify([['button', 'Checking…', 'checking'], ['select', '', 'waiting']])
+        && JSON.stringify(second.rows) === JSON.stringify([['button', '12 of 648 members change · 2 edited by hand', 'checked'], ['select', 'Checking…', 'checking']]),
+        `${where}: #3302 Q3302.2 A: only the row being checked reads "Checking…", a checked row shows its result as it lands, and a row not reached shows nothing (${JSON.stringify({ first: first.rows, second: second.rows })})`);
       await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
       await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      const done = await progressOf();
+      ok(done.text === null && done.bar === null && done.rows.every(([, , st]) => st === 'checked'),
+        `${where}: #3302: once the check answers, the foot's progress is gone and every row carries the answer's line (${JSON.stringify({ text: done.text, rows: done.rows })})`);
       const ck = await page.evaluate(() => ({
         rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => ({ id: b.dataset.id, on: b.getAttribute('aria-checked'), why: b.querySelector('[data-p3="update-set-due"]')?.textContent ?? null })),
         lines: [...document.querySelectorAll('[data-p3="update-set-check"]')].map((n) => n.textContent),
@@ -20591,6 +20630,56 @@ if (runs('3335')) {
     } finally { await ctx.close(); }
   }
 } // 3335
+// #3391: an override is labeled on screen by the palette it NAMES, not by its row's family. The brand holds a brand
+// color `brand-neutral` and an override on the primary border that points at it, under the primary family and then
+// with the action palette on neutral (the case as found). The ORACLE is the override the page persisted, read back
+// out of its storage, never the helper the button calls; so the row's family put back at the button's own site
+// (`color-interactive.ts`) fails here by name, which `test-interactive-input.ts` §9 cannot see. The picker offers
+// the row's own ramp only, so it must mark none of it current.
+if (runs('3391')) {
+  console.log(`\nColor › Interactive: an override reads by the palette it names (#3391)\n${'='.repeat(78)}`);
+  const ROLE = 'interactive.primary.border.rest', BC = 'brand-neutral', STEP = '350';
+  for (const action of [null, 'neutral']) {
+    const where = `3391 web light 1280${action ? `, action palette ${action}` : ''}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+    let step = 'seed';
+    try {
+      await page.evaluate(([role, bc, st, act]) => {
+        const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+        (blob.input.brandColors ??= []).push({ name: bc, oklch: { l: 0.62, c: 0.012, h: 240 } });
+        ((blob.input.overrides ??= {}).light ??= {})[role] = { palette: bc, step: st };
+        if (act) blob.input.actionPalette = act;
+        localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+      }, [ROLE, BC, STEP, action]);
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+      step = 'place';
+      await goPlace(page, 'color-interactive');
+      await settle(page);
+      const p = await persisted(page);
+      const held = p?.overrides?.light?.[ROLE];
+      ok(held?.palette === BC && held?.step === STEP && (action === null || p?.actionPalette === action),
+        `${where}: premise, the page holds the override on ${BC} ${STEP} (${JSON.stringify(held ?? null)}, action palette ${p?.actionPalette ?? 'primary'})`);
+      const btn = page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${ROLE}"]`);
+      const label = (await btn.locator('.p3-btn-label').textContent())?.trim() ?? '';
+      const want = `Override · ${held?.palette} ${held?.step}`;
+      ok(label === want, `#3391 ${where}: the button reads by the palette the override names, "${want}" (got "${label}")`);
+      step = 'picker';
+      await hooks.click(btn);
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      const pk = await page.evaluate(() => {
+        const el = document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]');
+        return { palette: el?.querySelector('[data-p3="step-picker-palette"]')?.value ?? null, pressed: el?.querySelector('[aria-pressed="true"]')?.dataset.step ?? null };
+      });
+      // The picker offers the row's own ramp only, so the palette the override names is not on it: no step of the
+      // offered ramp is the current one (the bug marked "<row family> 350" as current).
+      ok(pk.palette !== BC && pk.pressed === null, `#3391 ${where}: the picker marks no step of ${pk.palette} as current, since the override names ${BC} (${JSON.stringify(pk)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3391
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

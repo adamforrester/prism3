@@ -374,18 +374,43 @@ const v = runVerdict(r, catalog);
 ok(v.headline === 'Stopped after 2 of 4 sets' && !v.ok, `a stopped run says so (${v.headline})`);
 ok(JSON.stringify(v.lines) === JSON.stringify(['Built Button on ↳ Buttons.', 'Button.Destructive: build failed.', 'Not built: Dialog, TextField.']),
   `idea 13: the summary names what was built where, what failed, and what a stop left (${JSON.stringify(v.lines)})`);
+// #3326 PR 1 (Q3326.1 A, #3308 Q3308.1 A): the run's causes, as data. The failed set with no cause of its own still gets
+// one; each set a stop left is one too. Literal. (mutation: `runCauses` skipping a result → `causes/run stopped`)
+ok(JSON.stringify(v.causes) === JSON.stringify([
+  { kind: 'bad', subject: 'button-destructive', what: 'could not be built', reasons: [] },
+  { kind: 'warn', subject: 'dialog', what: 'not built', reasons: [] },
+  { kind: 'warn', subject: 'text-field', what: 'not built', reasons: [] },
+]), `causes/run stopped: the failed set and each set the stop left are causes (${JSON.stringify(v.causes)})`);
 let full = startRun('subcomponents', ['focus-ring', 'icon'], catalog);
 full = record(full, { id: 'focus-ring', result: 'ok', headline: '' });
-full = record(full, { id: 'icon', result: 'issues', headline: '' });
+// The set's own build sent its cause (the template line), and one about a set it built first: both kept, the set's
+// reasons carried whole. (mutation: `runCauses` dropping a set's own causes → `causes/run reasons`)
+const iconCause = { kind: 'warn' as const, subject: 'icon', what: 'built with problems', reasons: ['No usage panels drawn: this file has no _Doc-block component. Run Set up file, then build again.'] };
+const nested = { kind: 'warn' as const, subject: 'focus-ring', what: 'built with problems', reasons: ['2 misses'] };
+full = record(full, { id: 'icon', result: 'issues', headline: '', causes: [iconCause, nested] });
 const fv = runVerdict(full, catalog);
 // #3308: marked `⚠`, as one set's "with problems" build is, so Activity counts it a warning and not a failure.
 ok(full.done && fv.headline === '⚠ Built 2 sets · 1 with problems' && !fv.ok && fv.lines.includes('Icon: built with problems.'),
   `a run with problems says how many, marked a warning, and names the one with problems (${fv.headline}; ${JSON.stringify(fv.lines)})`);
+ok(JSON.stringify(fv.causes) === JSON.stringify([iconCause, nested]),
+  `causes/run reasons: a set built with problems carries the reasons its own build sent (${JSON.stringify(fv.causes)})`);
+// #3389 review N2: ONE CAUSE PER SET across the run. Focus Ring had problems in its own build, and Icon's build names it
+// again (a set it built first): the run carries one Focus Ring cause holding both builds' reasons, in order, each once.
+// Literal. (mutation: `runCauses` returning its list unmerged → `causes/run merged`)
+let twice = startRun('subcomponents', ['focus-ring', 'icon'], catalog);
+twice = record(twice, { id: 'focus-ring', result: 'issues', headline: '', causes: [{ ...nested, reasons: ['1 miss'] }] });
+twice = record(twice, { id: 'icon', result: 'issues', headline: '', causes: [iconCause, nested] });
+const tv = runVerdict(twice, catalog);
+ok(JSON.stringify(tv.causes) === JSON.stringify([
+  { kind: 'warn', subject: 'focus-ring', what: 'built with problems', reasons: ['1 miss', '2 misses'] },
+  iconCause,
+]), `causes/run merged: a set two builds name is one cause, with both builds' reasons (${JSON.stringify(tv.causes)})`);
 let clean = startRun('selection', ['button', 'button-destructive'], catalog);
 clean = record(record(clean, { id: 'button', result: 'ok', headline: '' }), { id: 'button-destructive', result: 'ok', headline: '' });
 const cv = runVerdict(clean, catalog);
 ok(cv.ok && cv.headline === 'Built 2 sets' && JSON.stringify(cv.lines) === JSON.stringify(['Built Button, Button.Destructive on ↳ Buttons.']),
   `a clean run of one family reads as one line for its page (${cv.headline}; ${JSON.stringify(cv.lines)})`);
+ok(JSON.stringify(cv.causes) === '[]', `causes/run clean: a clean run names no cause (${JSON.stringify(cv.causes)})`);
 ok(startRun('selection', [], catalog).done, 'a run of nothing is over before it starts');
 // #3308: the owner's first-run queue, in the list's order (Components' families: Buttons, Checkbox group and its row,
 // Icons & assets, Link, Badge). Typed here. The run builds each set after the queued sets it nests, so the plugin's own

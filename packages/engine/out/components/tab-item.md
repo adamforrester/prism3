@@ -9,7 +9,7 @@
 
 ## Overview
 
-One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline and the primary text color, so the state never rests on color alone. A selected tab's label is set in the emphasis weight, and every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.
+One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline in the color of its label, and the label is set in the emphasis weight, so the state never rests on color alone. Every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.
 
 - **Purpose:** One trigger inside Tabs that shows its panel in place when selected.
 - **Use when:** Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.
@@ -27,7 +27,7 @@ Shown on the default member: selection `unselected`, size `medium`.
 6. **Label reserve** — The label again, in the selected weight, never seen: it holds every tab at its bold width (Q226 A).
 7. **Label** — The tab text, one line: regular when unselected, in the emphasis weight when selected.
 8. **Count** (optional) — An optional count after the label, the shared count badge.
-9. **Indicator** — The 2px bar along the tab's bottom edge. It is always there, so the label sits in the same place in both states. A selected tab paints it in the primary border color; an unselected tab paints it in a neutral border color at hover and pressed only, a preview of where the selected bar would go.
+9. **Indicator** — The 2px bar along the tab's bottom edge. It is always there, so the label sits in the same place in both states. A selected tab paints it in its label's color; an unselected tab paints it in a neutral border color at hover and pressed only, a lighter preview of where the selected bar would go.
 10. **Focus ring** — The shared focus ring, around the whole tab while it has keyboard focus. It can sit on a different tab from the selected one.
 
 ## Styles
@@ -233,7 +233,7 @@ Keyed by `selection`, `state`.
 | `container/content/leadingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
 | `container/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.primary.text.rest` | — |
 | `container/content/labelBox/label` | — | — | `color.interactive.primary.text.rest` | — |
-| `container/indicator` | `color.interactive.primary.border.rest` | — | — | — |
+| `container/indicator` | `color.interactive.primary.indicator.rest` | — | — | — |
 
 **selection=selected, state=hover**
 
@@ -242,7 +242,7 @@ Keyed by `selection`, `state`.
 | `container/content/leadingVisual` | — | — | — | `color.interactive.primary.icon.hover` |
 | `container/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.primary.text.hover` | — |
 | `container/content/labelBox/label` | — | — | `color.interactive.primary.text.hover` | — |
-| `container/indicator` | `color.interactive.primary.border.hover` | — | — | — |
+| `container/indicator` | `color.interactive.primary.indicator.hover` | — | — | — |
 
 **selection=selected, state=pressed**
 
@@ -251,7 +251,7 @@ Keyed by `selection`, `state`.
 | `container/content/leadingVisual` | — | — | — | `color.interactive.primary.icon.pressed` |
 | `container/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.primary.text.pressed` | — |
 | `container/content/labelBox/label` | — | — | `color.interactive.primary.text.pressed` | — |
-| `container/indicator` | `color.interactive.primary.border.pressed` | — | — | — |
+| `container/indicator` | `color.interactive.primary.indicator.pressed` | — | — | — |
 
 **selection=selected, state=focus-visible**
 
@@ -260,7 +260,7 @@ Keyed by `selection`, `state`.
 | `container/content/leadingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
 | `container/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.primary.text.rest` | — |
 | `container/content/labelBox/label` | — | — | `color.interactive.primary.text.rest` | — |
-| `container/indicator` | `color.interactive.primary.border.rest` | — | — | — |
+| `container/indicator` | `color.interactive.primary.indicator.rest` | — | — | — |
 
 **selection=selected, state=disabled**
 

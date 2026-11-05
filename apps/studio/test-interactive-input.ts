@@ -22,6 +22,7 @@ import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as I from './src/state/interactive-input';
 import * as O from './src/state/outline-hover-input';
+import * as P from './src/state/palette-input';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -227,6 +228,68 @@ O.setOutlineHoverSetStep('light', 'destructive', 'pressed', 'neutral.200');
 ok(same(store.brandState.outlineHoverFill, { light: { sets: { destructive: { hover: 'neutral.100', pressed: 'neutral.200' } } } }) && takes(), `its Pressed pick joins it (${JSON.stringify(store.brandState.outlineHoverFill)})`);
 O.setOutlineHoverSetStep('light', 'destructive', 'hover', undefined);
 ok(!('outlineHoverFill' in store.brandState), `Auto on the set's Hover removes its entry, its emptied sets and its emptied mode, so the key goes (${JSON.stringify(store.brandState.outlineHoverFill)})`);
+
+console.log('\n9. #3391: an override is labeled by the palette it names, and removing that palette says so');
+{
+  // THE FIXTURE: a brand color named like a palette (`brand-neutral`), and an override on the primary border that
+  // points at it, as the reference brand's master held after its action palette moved. The ORACLE for "the palette it
+  // names" is the engine's own resolution (`resolveAllModes`' path), never the module's helper.
+  const ROLE = 'interactive.primary.border.rest', STEP = '350', BC = 'brand-neutral';
+  const fixture = (): void => {
+    reset();
+    (store.brandState.brandColors ??= []).push({ name: BC, oklch: { l: 0.62, c: 0.012, h: 240 } });
+    store.rebuild();
+    I.writeInteractiveRow('light', row, STEP);   // under the primary family: the row's own write
+    store.brandState.overrides!.light![ROLE] = { palette: BC, step: STEP };
+  };
+  const row = I.INTERACTIVE_ROWS.find((r) => r.role === ROLE)!;
+  const resolvedPalette = (role = ROLE): string | undefined => {
+    const roles = resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === 'light')?.roles as Record<string, { path?: string } | undefined>;
+    const parts = roles?.[role]?.path?.split('.') ?? [];
+    const i = parts.indexOf('palette');
+    return i >= 0 ? parts[i + 1] : undefined;
+  };
+  ok(row?.write === 'override', `premise: ${ROLE} is an override row (${row?.write})`);
+  fixture();
+  ok(I.interactivePaletteOf(row) !== BC && takes() && resolvedPalette() === BC,
+    `premise: the row's own family is ${I.interactivePaletteOf(row)}, and the engine resolves the override to ${resolvedPalette()}`);
+  const label = I.overrideLabel(I.overrideHeldOf('light', row));
+  ok(label === 'Override · brand-neutral 350', `#3391 label: the override reads by the palette it names, "Override · brand-neutral 350" (got "${label}")`);
+  // The case as found: the action palette moved to neutral, and the override still names brand-neutral.
+  store.brandState.actionPalette = 'neutral';
+  const moved = I.overrideLabel(I.overrideHeldOf('light', row));
+  ok(takes() && resolvedPalette() === BC && moved === 'Override · brand-neutral 350',
+    `#3391 label: with the action palette on neutral, the label still reads "Override · brand-neutral 350" (got "${moved}", engine ${resolvedPalette()})`);
+  ok(I.overrideHeldOf('dark', row) === null && I.overrideLabel(null) === 'Override · ', 'a row with no override in the mode holds nothing');
+
+  // THE WARNING: the remove confirm names the role, and what it says (the brand won't build) is the engine's answer.
+  const i = store.brandState.brandColors!.findIndex((b) => b.name === BC);
+  const effects = P.removalEffects(BC);
+  ok(effects.includes(`1 role is still overridden to it: ${ROLE} — the brand won't build until it's re-picked.`),
+    `#3391 warning: removing ${BC} lists the override that still names it (${JSON.stringify(effects)})`);
+  store.brandState.overrides!.dark = { 'interactive.primary.text.rest': { palette: BC, step: '700' }, [ROLE]: { palette: BC, step: STEP } };
+  const two = P.removalEffects(BC).at(-1);
+  ok(two === `2 roles are still overridden to it: ${ROLE}, interactive.primary.text.rest — the brand won't build until each is re-picked.`,
+    `#3391 warning: two roles across two modes are counted once each (got "${two}")`);
+  ok(!P.removalEffects('primary').some((e) => e.includes('overridden')), 'a palette no override names gets no override line');
+  P.removeBrandColor(i);
+  // `brandTheme` alone takes it: the refusal comes when the modes resolve, which every build does.
+  let refused = '';
+  try { resolveAllModes(brandTheme(structuredClone(store.brandState))); } catch (e) { refused = (e as Error).message; }
+  ok(refused.includes(`unknown palette '${BC}'`),
+    `#3391 warning, what it claims: with ${BC} removed and the overrides left, the engine refuses the brand (${refused || 'it built'})`);
+
+  // The inverse fill's rest row (write 'inverse-fill') reads through the same helper: an override there that names
+  // brand-neutral is labeled by it too, by the engine's resolved path again.
+  const INV = 'inverse.interactive.primary.fill.rest';
+  const inv = I.INTERACTIVE_ROWS.find((r) => r.role === INV)!;
+  fixture();
+  store.brandState.overrides!.light![INV] = { palette: BC, step: STEP };
+  ok(inv?.write === 'inverse-fill' && takes() && resolvedPalette(INV) === BC,
+    `premise: ${INV} is an inverse-fill row (${inv?.write}), and the engine resolves its override to ${resolvedPalette(INV)}`);
+  const invLabel = I.overrideLabel(I.overrideHeldOf('light', inv));
+  ok(invLabel === 'Override · brand-neutral 350', `#3391 label, inverse fill: the override reads by the palette it names, "Override · brand-neutral 350" (got "${invLabel}")`);
+}
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
 if (failed) process.exit(1);

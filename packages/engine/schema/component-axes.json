@@ -113,16 +113,16 @@
   },
   "banner": {
     "axes": {
+      "edge": [
+        "contained",
+        "full-bleed"
+      ],
       "tone": [
         "danger",
         "info",
         "neutral",
         "success",
         "warning"
-      ],
-      "width": [
-        "contained",
-        "full"
       ]
     },
     "members": 10,
@@ -528,6 +528,10 @@
   },
   "divider": {
     "axes": {
+      "emphasis": [
+        "bold",
+        "subtle"
+      ],
       "inset": [
         "inset",
         "middle-inset",
@@ -542,7 +546,7 @@
         "vertical"
       ]
     },
-    "members": 7,
+    "members": 14,
     "properties": {
       "label": "TEXT"
     }

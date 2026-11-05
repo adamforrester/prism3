@@ -52,6 +52,10 @@
  *   templates/missing…  a file without `_Label` or `_inverse-backdrop` (#2598): one line for the run, naming each
  *                 missing template and Set up file, and the update's summary carries it. Mutations: the line dropped →
  *                 `templates/missing build`; one line per set → the same; the summary left out → `templates/update summary`.
+ *   templates/cause…  the same line as data (#3326 PR 1, Q3326.1 A): `withTemplateWarning` adds one cause per set that
+ *                 lacked a template, its reason that set's template line, merged with a cause the verdict already holds
+ *                 for it. Mutations: the line dropped from `templateCauses`' reasons, its prose left → `templates/cause
+ *                 build`, `templates/cause update`, `templates/cause merge`; the merge dropped → `templates/cause merge`.
  *   placement/…   sets deleted and rebuilt on Buttons and Icon button with the header and the third set kept (#2598): each
  *                 lands under the header in the first free slot from its left edge, the first with its labels on that
  *                 edge and its frame where the first build put it (#2735). Mutations: the frame on the header's edge
@@ -88,8 +92,9 @@ import { captureBaselines, previewUpdate, previewLine, previewVerdict, type Upda
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
+import type { Cause } from './src/messages';
 import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
 
@@ -301,6 +306,28 @@ section('draw — the executor places, tags, redraws and clears');
   const withLine = withFurnitureItems(verdict, updateItems);
   ok(withLine.summary === `grid: 3 updated in place.\n${updateItems[0]}.` && withLine.lines[1] === `${updateItems[0]}.` && withLine.ok && withLine.headline === verdict.headline,
     `templates/update summary: the update's summary and lines both carry the line (${JSON.stringify(withLine.summary)})`);
+
+  // #3326 PR 1 (Q3326.1 A) — THE TEMPLATE LINE AS A CAUSE. The verdict the line turns `⚠` names, as data, each set it is
+  // about and the line as that set's reason, so the drawer never finds the warning by its words. Read off `causes`
+  // only: the prose arms above still pass when the cause is dropped, which is what makes these the cause's own gate.
+  // The wording is written out here, never read off the module.
+  const otherSet = { ...none2, def: 'other' };
+  const built = withTemplateWarning({ ok: true, headline: '✓ built 8', causes: [] as Cause[] }, [none, otherSet, o], 'build');
+  const buildReason = `${both}.`;
+  ok(!built.ok && built.headline === '⚠ built 8' && JSON.stringify(built.causes) === JSON.stringify([
+    { kind: 'warn', subject: 'grid', what: 'built with problems', reasons: [buildReason] },
+    { kind: 'warn', subject: 'other', what: 'built with problems', reasons: [buildReason] },
+  ]), `templates/cause build: one cause per set that lacked a template, the template line its reason (${JSON.stringify(built.causes)})`);
+  const updated = withTemplateWarning({ ok: true, headline: '✓ updated 3 in place', causes: [] as Cause[] }, [noLabel], 'update');
+  ok(JSON.stringify(updated.causes) === JSON.stringify([{ kind: 'warn', subject: 'grid', what: 'updated with problems',
+    reasons: ['No canvas labels drawn: this file has no _Label component. Run Set up file, then update again.'] }]),
+    `templates/cause update: the update's cause names the set and the update's line (${JSON.stringify(updated.causes)})`);
+  // A set the verdict already holds a cause for keeps one cause: its reasons first, the template line after.
+  const merged = withTemplateWarning({ ok: false, headline: '⚠ 1 set not verified', causes: [{ kind: 'warn', subject: 'grid', what: 'not verified', reasons: ['1 field still differs'] }] as Cause[] }, [none], 'update');
+  ok(merged.causes.length === 1 && merged.causes[0].what === 'not verified' && JSON.stringify(merged.causes[0].reasons) === JSON.stringify(['1 field still differs', `${both.replace('then build again', 'then update again')}.`]),
+    `templates/cause merge: one cause per set, the template line after the set's own reason (${JSON.stringify(merged.causes)})`);
+  const clean = { ok: true, headline: '✓ built 8', causes: [] as Cause[] };
+  ok(withTemplateWarning(clean, [o, again], 'build') === clean, `templates/cause none: a file with both templates leaves the verdict and its causes as they were`);
   clearFurniture(page, 'grid');
 }
 
@@ -644,7 +671,8 @@ section('thin row — Divider: a 1px row draws its label centered, with no brack
 {
   // Divider's PLAIN members (#3051): since the labeled member (16px, one label line box) joined the horizontal row, no
   // row of the real set is thinner than its label, so the rule is held on the five plain members, the set as it stood.
-  const { plans, page, set } = await buildOnPage('divider', (p) => (p.coord as Record<string, string>).labeled !== 'true');
+  // #3382: at one strength (bold), so the emphasis axis adds no outer row band around them.
+  const { plans, page, set } = await buildOnPage('divider', (p) => (p.coord as Record<string, string>).labeled !== 'true' && (p.coord as Record<string, string>).emphasis !== 'subtle');
   // The shim sizes a member from its bindings, not their values, so the live sizes are written here: the horizontal
   // rule is `border-width.hairline` (1px) tall, the vertical one its nominal length, and the labeled rule (#3051) one
   // label line box, `type.label.md.line-box` (16px). Literals, as measured live.

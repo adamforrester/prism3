@@ -1899,6 +1899,23 @@
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
             }
           },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.600}",
+              "$description": "primary interactive indicator — rest (the selection mark; matches the label)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.700}",
+              "$description": "primary interactive indicator — hover (the selection mark; matches the label)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.800}",
+              "$description": "primary interactive indicator — pressed (the selection mark; matches the label)"
+            }
+          },
           "overlay": {
             "hover": {
               "$type": "color",
@@ -2008,6 +2025,23 @@
               "$description": "destructive interactive border — pressed (the outline edge; follows the ink)"
             }
           },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.600}",
+              "$description": "destructive interactive indicator — rest (the selection mark; matches the label)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.700}",
+              "$description": "destructive interactive indicator — hover (the selection mark; matches the label)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.800}",
+              "$description": "destructive interactive indicator — pressed (the selection mark; matches the label)"
+            }
+          },
           "overlay": {
             "hover": {
               "$type": "color",
@@ -2108,6 +2142,23 @@
               "$type": "color",
               "$value": "{ads.core.palette.neutral.750}",
               "$description": "neutral interactive border — pressed (the outline edge; follows the ink)"
+            }
+          },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.neutral.950}",
+              "$description": "neutral interactive indicator — rest (the selection mark; matches the label)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.neutral.850}",
+              "$description": "neutral interactive indicator — hover (the selection mark; matches the label)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.neutral.750}",
+              "$description": "neutral interactive indicator — pressed (the selection mark; matches the label)"
             }
           },
           "overlay": {
@@ -2645,6 +2696,23 @@
                 "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
               }
             },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.450}",
+                "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.350}",
+                "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.250}",
+                "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)"
+              }
+            },
             "overlay": {
               "hover": {
                 "$type": "color",
@@ -2747,6 +2815,23 @@
                 "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
               }
             },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.400}",
+                "$description": "destructive interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.300}",
+                "$description": "destructive interactive indicator on an inverse surface — hover (the selection mark; matches the label)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.200}",
+                "$description": "destructive interactive indicator on an inverse surface — pressed (the selection mark; matches the label)"
+              }
+            },
             "overlay": {
               "hover": {
                 "$type": "color",
@@ -2847,6 +2932,23 @@
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.200}",
                 "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.neutral.025}",
+                "$description": "neutral interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{ads.core.palette.neutral.100}",
+                "$description": "neutral interactive indicator on an inverse surface — hover (the selection mark; matches the label)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{ads.core.palette.neutral.200}",
+                "$description": "neutral interactive indicator on an inverse surface — pressed (the selection mark; matches the label)"
               }
             },
             "overlay": {

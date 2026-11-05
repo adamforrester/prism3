@@ -7,7 +7,7 @@
  * × five states = 30 members. Line tabs only (Q177.4); a contained style waits for the segmented control.
  *
  * THE SELECTED CUE (Q178.1 A, revised by Q226 A on 2026-10-10): the primary text ink, the label in the EMPHASIS
- * weight (regular when unselected), and a 2px bar in the primary border role (`border-width.thick`), sitting on the
+ * weight (regular when unselected), and a 2px bar in the primary selection-mark role (`border-width.thick`), sitting on the
  * list's 1px `color.border.primary` baseline, overlapping it with bottom edges aligned (#3344). The weight moves, the width does not: a zero-height, clipping
  * `reserve` holds a bold copy of the label (`labelReserve`, driven by the same Label property), so the label box is
  * always as wide as the bold label and selecting a tab never moves its box or its neighbors (the footprint rule
@@ -20,6 +20,12 @@
  * and reading lighter than the selected bar sharpens the difference Q224/Q225 asked for. The accessible
  * neutral edge is now `border.tertiary`; the hover bar does not need it.
  * A selected tab's hover and pressed step its primary bar and label, also with no wash.
+ *
+ * THE BAR'S COLOR (#3346, owner Q1 revised A, 2026-11-03): `color.interactive.primary.indicator.*`, the selection
+ * mark, which matches the label's color as resolved, overrides included. It was `interactive.primary.border.*`, which
+ * a brand may tune for outline buttons: the reference brand's light-grey outline edge made a light-grey bar under a
+ * near-black label. A shape never binds the text role, even where the values match, so the bar has its own. The
+ * hover bar stays on `border.secondary` as a named exception (Q2 A), and pressed leaves the bar as it is (Q3 A).
  *
  * The bar is ONE always-present box painting its `fill` slot, keyed per selection. `fill` is structural, so
  * at `disabled` it paints only where a REST key exists (`anatomy-figma.ts` `paintKeyOf`): a disabled selected
@@ -36,7 +42,7 @@ export const tab: ComponentDef = {
   status: 'draft',
   summary: 'One trigger in a tab list. Selected, it shows an underline and switches the panel below.',
   description:
-    'One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline and the primary text color, so the state never rests on color alone. A selected tab\'s label is set in the emphasis weight, and every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.',
+    'One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline in the color of its label, and the label is set in the emphasis weight, so the state never rests on color alone. Every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The tab text: a short noun, one or two words. One line; a tab list that runs out of room scrolls rather than wrapping.' },
@@ -101,7 +107,7 @@ export const tab: ComponentDef = {
     'unselected.icon.hover': 'color.interactive.neutral.icon.hover',
     'unselected.icon.pressed': 'color.interactive.neutral.icon.pressed',
 
-    // SELECTED — the primary ink and a 2px bar in the primary border role, which step with interaction. No wash.
+    // SELECTED — the primary ink and a 2px bar in the primary selection mark, which step with interaction. No wash.
     'selected.label': 'color.interactive.primary.text.rest',
     'selected.label.hover': 'color.interactive.primary.text.hover',
     'selected.label.pressed': 'color.interactive.primary.text.pressed',
@@ -110,9 +116,9 @@ export const tab: ComponentDef = {
     'selected.icon.pressed': 'color.interactive.primary.icon.pressed',
     // The bar paints its `fill` slot: `fill` is structural, so the disabled branch paints it only where a rest
     // key exists — a disabled selected tab keeps a disabled bar, a disabled unselected one has none.
-    'selected.fill': 'color.interactive.primary.border.rest',
-    'selected.fill.hover': 'color.interactive.primary.border.hover',
-    'selected.fill.pressed': 'color.interactive.primary.border.pressed',
+    'selected.fill': 'color.interactive.primary.indicator.rest',
+    'selected.fill.hover': 'color.interactive.primary.indicator.hover',
+    'selected.fill.pressed': 'color.interactive.primary.indicator.pressed',
 
     'disabled.label': 'color.disabled.text',
     'disabled.icon': 'color.disabled.icon',
@@ -195,7 +201,7 @@ export const tab: ComponentDef = {
         // stretch was written, and a longer label on an instance kept the old width. Out of the flow and constrained
         // `STRETCH`, the bar follows the tab's width; `lint-fill-under-hug.ts` refuses the old shape in every def.
         foot: true,
-        note: 'The 2px bar along the tab\'s bottom edge. It is always there, so the label sits in the same place in both states. A selected tab paints it in the primary border color; an unselected tab paints it in a neutral border color at hover and pressed only, a preview of where the selected bar would go.',
+        note: 'The 2px bar along the tab\'s bottom edge. It is always there, so the label sits in the same place in both states. A selected tab paints it in its label\'s color; an unselected tab paints it in a neutral border color at hover and pressed only, a lighter preview of where the selected bar would go.',
       },
       focusRing: {
         kind: 'absolute',
@@ -281,11 +287,10 @@ export const tab: ComponentDef = {
   },
 
   notes: {
-    contested: [
-      'Pressed on an unselected tab shows the same neutral bar as hover; only the label ink steps (interactive.neutral.text.pressed). Whether pressed needs a cue of its own is held for the owner (#2416), not invented here.',
-    ],
+    contested: [],
     unverified: [],
     evolution: [
+      '2026-11 (#3346): the selected bar binds `interactive.primary.indicator.*`, the selection mark, which matches the label\'s color, so a brand\'s outline-edge setting never reaches it. The hover preview stays on `border.secondary` by decision (Q2 A), and pressed on an unselected tab shows the same bar as hover, with only the label ink stepping (Q3 A); both were held as contested items.',
       '2026-10-10 (Q225 A, Q226 A): the selected label in the emphasis weight and the unselected in the default weight, with every tab held at its bold width by a hidden bold copy of the label, so selecting still never moves the neighbors. Revises Q178.1 A\'s one weight; its goal stands.',
       '2026-10-09 (#2416): owner decisions Q177 (the nested Tab + Tabs shape, line tabs only, its own page), Q178.1 A (primary label plus a 2px primary bar on a 1px border.primary baseline, one weight), Q178.2 B (no hover wash; a 2px neutral bar previews the selected bar), Q179 A (names Tab and Tabs, S/M/L, the count as a nested Badge, automatic activation). The hover bar\'s role, border.secondary, was the build PR\'s technical pick: contracted at 3:1 against the page when picked (#1745), and a decorative ~2:1 rung since #2569 (owner Q259 C), which the bar keeps: a pointer-only preview reads lighter than the selected bar.',
     ],

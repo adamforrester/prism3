@@ -27,7 +27,8 @@
       "variant": {
         "orientation": "horizontal",
         "inset": "none",
-        "labeled": "false"
+        "labeled": "false",
+        "emphasis": "bold"
       }
     },
     {
@@ -804,7 +805,8 @@
       "variant": {
         "orientation": "horizontal",
         "inset": "none",
-        "labeled": "false"
+        "labeled": "false",
+        "emphasis": "bold"
       }
     },
     {
@@ -816,7 +818,8 @@
       "variant": {
         "orientation": "horizontal",
         "inset": "none",
-        "labeled": "false"
+        "labeled": "false",
+        "emphasis": "bold"
       }
     },
     {

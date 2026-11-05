@@ -1090,7 +1090,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 7,
+    "members": 14,
     "nests": []
   },
   {

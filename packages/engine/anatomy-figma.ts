@@ -2819,7 +2819,8 @@ export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
  *     selected state (Q590 A). Focus adds only the ring: the line keeps its weight.
  *   · THE LINE'S COLOR (#2945, owner Q589 and Q589.1 A): `interactive.primary.border.{rest,hover,pressed}` on BOTH
  *     selections, the selected keys copied onto the unselected ones, so selection is the 1px → 2px step and the check
- *     (Q589.2 A). It replaces Q513.7's `interactive.neutral.border` under Underline only; the pill keeps neutral.
+ *     (Q589.2 A). Since #3346 the selected line is the selection mark, `interactive.primary.indicator.*`, and the copy
+ *     onto the unselected keys swaps it back to `border.*`: the same value by default, an edge rather than a mark. It replaces Q513.7's `interactive.neutral.border` under Underline only; the pill keeps neutral.
  *   · NO FILL IN ANY STATE (Q513.2, Q513.3): every `overlay` key goes, the neutral hover and pressed wash and the
  *     selected tint alike.
  *   · THE CORNER: `radius.none`, whatever the pill's round rung.
@@ -2850,8 +2851,10 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
   for (const sel of def.variants?.selection ?? [])
     for (const st of statesOf(def))
       tokens[`underline.${sel}.line.${st}`] = sel === 'selected' || st === 'hover' || st === 'pressed' ? 'border-width.thick' : 'border-width.hairline';
-  // Q589, Q589.1 A: the unselected line is the selected line's primary family, stepping with it.
-  for (const k of Object.keys(def.tokens)) if (k.startsWith('selected.border') && k !== 'selected.border-width') tokens[`un${k}`] = def.tokens[k];
+  // Q589, Q589.1 A: the unselected line is the selected line's primary family, stepping with it. The selected line is
+  // the selection mark (`interactive.primary.indicator.*`, #3346); an unselected line is an edge, not a mark, so it
+  // takes the same family's `border.*`, the role Q589 named. Both resolve to the label's color by default.
+  for (const k of Object.keys(def.tokens)) if (k.startsWith('selected.border') && k !== 'selected.border-width') tokens[`un${k}`] = def.tokens[k].replace(/^(color\.interactive\.[^.]+\.)indicator\./, '$1border.');
   // Q592.2 A: no 4px leading inset on the dismissible label row, so its layer gap is the whole visible distance. At
   // comfortable it is written here; `applySpacingDensity` recomputes it from `visibleGaps` (visible − 0) elsewhere.
   for (const v of def.variants?.size ?? []) {

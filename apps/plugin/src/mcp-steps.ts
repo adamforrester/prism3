@@ -547,17 +547,55 @@ const placeOnPage = async (defId: string, notes: { loadAllPages?: string }): Pro
 };
 
 /**
+ * PAGE PLACEMENT, A STEP OF ITS OWN (#3414) — find-or-create the def's section page, run once before a set's first
+ * chunk. `resolveComponentPage` reads the whole file taxonomy (every section, every leaf, to anchor a created page),
+ * and a chunk that called it carried that taxonomy in its bundle: every component page the taxonomy gained took its
+ * entry's characters out of every chunk of every set, until a one-member chunk went over `SCRIPT_CEILING`. Here it
+ * runs once; each chunk then switches to the page by the name this step was planned with (`pageByName`). The page
+ * this step lands on is checked against that name, so a taxonomy and generator that disagree fail here, by name,
+ * rather than on a later chunk.
+ */
+export const runComponentPlace = async (raw: unknown): Promise<StepReport> => {
+  const d = unpack(raw) as StepBase & { def: string; page: string };
+  const notes: { loadAllPages?: string } = {};
+  const r = base(d, 'component-place', { mode: 'live' }, null);
+  delete (r as Partial<StepReport>).shared;
+  r.def = d.def;
+  try {
+    r.page = await placeOnPage(d.def, notes);
+    r.misses = r.page === d.page ? [] : [`${d.def}.page -> ${JSON.stringify(r.page)}, planned ${JSON.stringify(d.page)}`];
+  } catch (e) {
+    r.threw = (e as Error)?.message ?? String(e);
+  }
+  r.host = notes;
+  r.ok = !r.threw && !(r.misses?.length);
+  return r;
+};
+
+/** Switch to the page a `component-place` step made, by NAME (dividers excluded, as `file-setup.ts` finds pages), or
+ *  stay on the current page for a def the taxonomy does not map (`page: null`). Never creates a page: an absent one
+ *  is a thrown error naming the step that makes it. */
+const pageByName = async (page: string | null): Promise<string> => {
+  if (page === null) return figma.currentPage.name;
+  const found = figma.root.children.find((p) => !(p as { isPageDivider?: boolean }).isPageDivider && p.name === page);
+  if (!found) throw new Error(`the page ${JSON.stringify(page)} is not in the file: run this set's component-place script first`);
+  await figma.setCurrentPageAsync(found as PageNode);
+  return found.name;
+};
+
+/**
  * One CHUNK of a component set — the engine's `planSetChunks` payload, run on the def's page through the
- * adapted `figma`. The payload is idempotent by member name, so re-running a chunk skips what is there.
+ * adapted `figma`. The payload is idempotent by member name, so re-running a chunk skips what is there. The page is
+ * the one `runComponentPlace` made, found by name: placement is not in this bundle (#3414).
  */
 export const runComponentChunk = async (raw: unknown, payloads: Payload[]): Promise<StepReport> => {
-  const d = unpack(raw) as StepBase & { def: string; chunk: number; chunks: number };
+  const d = unpack(raw) as StepBase & { def: string; page: string | null; chunk: number; chunks: number };
   const notes: { loadAllPages?: string; pageLoadFailures?: string[] } = {};
   const r = base(d, 'component-chunk', { mode: 'live' }, null);
   delete (r as Partial<StepReport>).shared;
   r.def = d.def;
   try {
-    r.page = await placeOnPage(d.def, notes);
+    r.page = await pageByName(d.page);
     const out = await payloads[0](componentFigma(figma, notes));
     r.result = out;
     r.misses = (out.misses as string[] | undefined) ?? [];

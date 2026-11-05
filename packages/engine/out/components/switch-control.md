@@ -150,7 +150,7 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.background.tertiary` | `color.interactive.neutral.border.rest` | — | — |
-| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
 **selection=off, status=default, state=hover**
@@ -158,7 +158,7 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.background.tertiary` | `color.interactive.neutral.border.hover` | — | — |
-| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
 **selection=off, status=default, state=pressed**
@@ -166,7 +166,7 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.background.tertiary` | `color.interactive.neutral.border.pressed` | — | — |
-| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
 **selection=off, status=default, state=focus-visible**
@@ -174,7 +174,7 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.background.tertiary` | `color.interactive.neutral.border.rest` | — | — |
-| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
 **selection=off, status=default, state=disabled**
@@ -190,7 +190,7 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.background.tertiary` | `color.border.danger` | — | — |
-| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
 **selection=off, status=error, state=hover**
@@ -198,7 +198,7 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.background.tertiary` | `color.border.danger` | — | — |
-| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
 **selection=off, status=error, state=pressed**
@@ -206,7 +206,7 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.background.tertiary` | `color.border.danger` | — | — |
-| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
 **selection=off, status=error, state=focus-visible**
@@ -214,7 +214,7 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.background.tertiary` | `color.border.danger` | — | — |
-| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
 **selection=off, status=error, state=disabled**

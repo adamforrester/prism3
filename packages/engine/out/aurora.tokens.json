@@ -8896,6 +8896,146 @@
               }
             }
           },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.600}",
+              "$description": "primary interactive indicator — rest (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.accent.600",
+                  "contrast": 6.85,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.accent.400}",
+                      "aliasOf": "ads.core.palette.accent.400",
+                      "contrast": 5.8,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.accent.650}",
+                      "aliasOf": "ads.core.palette.accent.650",
+                      "contrast": 8.3,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.accent.350}",
+                      "aliasOf": "ads.core.palette.accent.350",
+                      "contrast": 7.36,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.700}",
+              "$description": "primary interactive indicator — hover (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.accent.700",
+                  "contrast": 10.03,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.accent.300}",
+                      "aliasOf": "ads.core.palette.accent.300",
+                      "contrast": 7.95,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.accent.750}",
+                      "aliasOf": "ads.core.palette.accent.750",
+                      "contrast": 11.95,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.accent.250}",
+                      "aliasOf": "ads.core.palette.accent.250",
+                      "contrast": 9.97,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.800}",
+              "$description": "primary interactive indicator — pressed (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.accent.800",
+                  "contrast": 13.92,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.accent.200}",
+                      "aliasOf": "ads.core.palette.accent.200",
+                      "contrast": 10.65,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.accent.850}",
+                      "aliasOf": "ads.core.palette.accent.850",
+                      "contrast": 16.08,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.accent.150}",
+                      "aliasOf": "ads.core.palette.accent.150",
+                      "contrast": 13.31,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
+          },
           "overlay": {
             "hover": {
               "$type": "color",
@@ -9834,6 +9974,146 @@
               }
             }
           },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.600}",
+              "$description": "destructive interactive indicator — rest (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.danger.600",
+                  "contrast": 4.89,
+                  "against": "background.tertiary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.danger.400}",
+                      "aliasOf": "ads.core.palette.danger.400",
+                      "contrast": 4.86,
+                      "against": "background.tertiary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.danger.650}",
+                      "aliasOf": "ads.core.palette.danger.650",
+                      "contrast": 8.22,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.danger.350}",
+                      "aliasOf": "ads.core.palette.danger.350",
+                      "contrast": 7.44,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.700}",
+              "$description": "destructive interactive indicator — hover (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.danger.700",
+                  "contrast": 7.22,
+                  "against": "background.tertiary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.danger.300}",
+                      "aliasOf": "ads.core.palette.danger.300",
+                      "contrast": 6.65,
+                      "against": "background.tertiary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.danger.750}",
+                      "aliasOf": "ads.core.palette.danger.750",
+                      "contrast": 11.99,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.danger.250}",
+                      "aliasOf": "ads.core.palette.danger.250",
+                      "contrast": 10.09,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.800}",
+              "$description": "destructive interactive indicator — pressed (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.danger.800",
+                  "contrast": 10.27,
+                  "against": "background.tertiary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.danger.200}",
+                      "aliasOf": "ads.core.palette.danger.200",
+                      "contrast": 8.94,
+                      "against": "background.tertiary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.danger.850}",
+                      "aliasOf": "ads.core.palette.danger.850",
+                      "contrast": 16.35,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.danger.150}",
+                      "aliasOf": "ads.core.palette.danger.150",
+                      "contrast": 13.37,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
+          },
           "overlay": {
             "hover": {
               "$type": "color",
@@ -10635,6 +10915,146 @@
               "$type": "color",
               "$value": "{ads.core.palette.neutral.750}",
               "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.neutral.750",
+                  "contrast": 11.69,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.neutral.200}",
+                      "aliasOf": "ads.core.palette.neutral.200",
+                      "contrast": 10.81,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.neutral.750}",
+                      "aliasOf": "ads.core.palette.neutral.750",
+                      "contrast": 11.69,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.neutral.200}",
+                      "aliasOf": "ads.core.palette.neutral.200",
+                      "contrast": 11.68,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.neutral.950}",
+              "$description": "neutral interactive indicator — rest (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.neutral.950",
+                  "contrast": 19.43,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.neutral.025}",
+                      "aliasOf": "ads.core.palette.neutral.025",
+                      "contrast": 18.13,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.black}",
+                      "aliasOf": "ads.core.palette.black",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.white}",
+                      "aliasOf": "ads.core.palette.white",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.neutral.850}",
+              "$description": "neutral interactive indicator — hover (the selection mark; matches the label)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "ads.core.palette.neutral.850",
+                  "contrast": 16.06,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{ads.core.palette.neutral.100}",
+                      "aliasOf": "ads.core.palette.neutral.100",
+                      "contrast": 14.05,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{ads.core.palette.neutral.850}",
+                      "aliasOf": "ads.core.palette.neutral.850",
+                      "contrast": 16.06,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{ads.core.palette.neutral.100}",
+                      "aliasOf": "ads.core.palette.neutral.100",
+                      "contrast": 15.19,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ]
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.neutral.750}",
+              "$description": "neutral interactive indicator — pressed (the selection mark; matches the label)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -15262,6 +15682,146 @@
                 }
               }
             },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.450}",
+                "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.accent.450",
+                    "contrast": 4.87,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.accent.550}",
+                        "aliasOf": "ads.core.palette.accent.550",
+                        "contrast": 5.31,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.accent.350}",
+                        "aliasOf": "ads.core.palette.accent.350",
+                        "contrast": 7.36,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.accent.650}",
+                        "aliasOf": "ads.core.palette.accent.650",
+                        "contrast": 8.3,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.350}",
+                "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.accent.350",
+                    "contrast": 6.8,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.accent.650}",
+                        "aliasOf": "ads.core.palette.accent.650",
+                        "contrast": 7.75,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.accent.250}",
+                        "aliasOf": "ads.core.palette.accent.250",
+                        "contrast": 9.97,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.accent.750}",
+                        "aliasOf": "ads.core.palette.accent.750",
+                        "contrast": 11.95,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{ads.core.palette.accent.250}",
+                "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.accent.250",
+                    "contrast": 9.23,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.accent.750}",
+                        "aliasOf": "ads.core.palette.accent.750",
+                        "contrast": 11.16,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.accent.150}",
+                        "aliasOf": "ads.core.palette.accent.150",
+                        "contrast": 13.31,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.accent.850}",
+                        "aliasOf": "ads.core.palette.accent.850",
+                        "contrast": 16.08,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
             "overlay": {
               "hover": {
                 "$type": "color",
@@ -16126,6 +16686,146 @@
                 }
               }
             },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.400}",
+                "$description": "destructive interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.danger.400",
+                    "contrast": 4.86,
+                    "against": "inverse.background.tertiary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.danger.600}",
+                        "aliasOf": "ads.core.palette.danger.600",
+                        "contrast": 4.89,
+                        "against": "inverse.background.tertiary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.danger.350}",
+                        "aliasOf": "ads.core.palette.danger.350",
+                        "contrast": 7.44,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.danger.650}",
+                        "aliasOf": "ads.core.palette.danger.650",
+                        "contrast": 8.22,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.300}",
+                "$description": "destructive interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.danger.300",
+                    "contrast": 6.65,
+                    "against": "inverse.background.tertiary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.danger.700}",
+                        "aliasOf": "ads.core.palette.danger.700",
+                        "contrast": 7.22,
+                        "against": "inverse.background.tertiary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.danger.250}",
+                        "aliasOf": "ads.core.palette.danger.250",
+                        "contrast": 10.09,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.danger.750}",
+                        "aliasOf": "ads.core.palette.danger.750",
+                        "contrast": 11.99,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{ads.core.palette.danger.200}",
+                "$description": "destructive interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.danger.200",
+                    "contrast": 8.94,
+                    "against": "inverse.background.tertiary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.danger.800}",
+                        "aliasOf": "ads.core.palette.danger.800",
+                        "contrast": 10.27,
+                        "against": "inverse.background.tertiary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.danger.150}",
+                        "aliasOf": "ads.core.palette.danger.150",
+                        "contrast": 13.37,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.danger.850}",
+                        "aliasOf": "ads.core.palette.danger.850",
+                        "contrast": 16.35,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
             "overlay": {
               "hover": {
                 "$type": "color",
@@ -16947,6 +17647,146 @@
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.200}",
                 "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.neutral.200",
+                    "contrast": 10.81,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.neutral.750}",
+                        "aliasOf": "ads.core.palette.neutral.750",
+                        "contrast": 10.91,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.neutral.200}",
+                        "aliasOf": "ads.core.palette.neutral.200",
+                        "contrast": 11.68,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.neutral.750}",
+                        "aliasOf": "ads.core.palette.neutral.750",
+                        "contrast": 11.69,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{ads.core.palette.neutral.025}",
+                "$description": "neutral interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.neutral.025",
+                    "contrast": 18.13,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.neutral.950}",
+                        "aliasOf": "ads.core.palette.neutral.950",
+                        "contrast": 18.13,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.white}",
+                        "aliasOf": "ads.core.palette.white",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.black}",
+                        "aliasOf": "ads.core.palette.black",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{ads.core.palette.neutral.100}",
+                "$description": "neutral interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "ads.core.palette.neutral.100",
+                    "contrast": 14.05,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{ads.core.palette.neutral.850}",
+                        "aliasOf": "ads.core.palette.neutral.850",
+                        "contrast": 14.99,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{ads.core.palette.neutral.100}",
+                        "aliasOf": "ads.core.palette.neutral.100",
+                        "contrast": 15.19,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{ads.core.palette.neutral.850}",
+                        "aliasOf": "ads.core.palette.neutral.850",
+                        "contrast": 16.06,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{ads.core.palette.neutral.200}",
+                "$description": "neutral interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",

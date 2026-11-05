@@ -16,7 +16,7 @@
  *
  * PURE-adjacent: imports only TYPES (the plugin's wire contract) + DOM. No `node:*`.
  */
-import type { UiToMain, MainToUi, OfType, StyleGuideOptions, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideCatalogTable, StyleGuideKind } from '../../plugin/src/messages';
+import type { UiToMain, MainToUi, OfType, Cause, StyleGuideOptions, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideCatalogTable, StyleGuideKind } from '../../plugin/src/messages';
 
 /** A host→UI notification after the adapter has validated it at the boundary. Not a wire type: the
  *  wire carries `messages.ts` `MainToUi` (tagged `type`); the adapter checks each field and hands the UI
@@ -25,10 +25,12 @@ export type HostMessage =
   // `lines` (#2177): the summary's items, one per line in the Activity drawer; `null` from a host that sends none, or a
   // malformed list, and the drawer then shows `summary` as its one line.
   | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null }
-  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null }
+  // `causes` (#3326): why the run is not clean, as the writer sent it (`Cause`); `null` from a host that sends none, or a
+  // malformed list.
+  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null; causes: readonly Cause[] | null }
   // #2265 — the in-place update's dry run, or a baseline capture: what an update WOULD change, which is not
   // whether a build landed, so it has its own kind and never overwrites the build's verdict.
-  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null }
+  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null }
   // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
   // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
@@ -100,7 +102,9 @@ export type HostMessage =
   | { kind: 'hand-edits'; def: string; members: number; edited: number }
   | { kind: 'hand-edits-done' }
   // #2909 Q2909.8 A — the full check scoped to the flagged sets: each set's counts and the hash its update must echo.
-  | { kind: 'update-check'; previewHash: string; sets: readonly CheckedSetView[]; missing: readonly string[]; error: string | null };
+  | { kind: 'update-check'; previewHash: string; sets: readonly CheckedSetView[]; missing: readonly string[]; error: string | null }
+  // #3302 Q3302.1–.3 A — how far that check has got: `done` of `total` sets, the one being checked now, and the one just checked.
+  | { kind: 'update-check-progress'; done: number; total: number; next: string | null; set: CheckedSetView | null };
 
 /** A set as the as-built ledger reads it (#2909 Q2909.8 A, `apps/plugin/src/as-built-ledger.ts`). */
 export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
@@ -278,6 +282,24 @@ const verdict = <K extends VerdictKind>(kind: K, m: Untrusted<OfType<MainToUi, V
 const linesOf = (x: unknown): readonly string[] | null =>
   Array.isArray(x) && x.length > 0 && x.every((l) => typeof l === 'string') ? x as string[] : null;
 
+/** A verdict's `causes` (#3326): each a `Cause` whose every field has its type, or none at all. Like `linesOf`, a list
+ *  with one malformed entry is dropped whole: a cause drawn without its subject or reasons would mark the wrong thing. An
+ *  empty list is kept, since it says the writer found none. */
+const causesOf = (x: unknown): readonly Cause[] | null => {
+  if (!Array.isArray(x)) return null;
+  const opt = (v: unknown): boolean => v === undefined || typeof v === 'string';
+  const out: Cause[] = [];
+  for (const e of x as unknown[]) {
+    const c = (e ?? {}) as Record<string, unknown>;
+    if ((c.kind !== 'warn' && c.kind !== 'bad') || (c.subject !== null && typeof c.subject !== 'string') || typeof c.what !== 'string'
+      || !Array.isArray(c.reasons) || !c.reasons.every((r) => typeof r === 'string') || !opt(c.step) || !opt(c.why) || !opt(c.stays) || !opt(c.todo)) return null;
+    out.push({ kind: c.kind, subject: c.subject, what: c.what, reasons: [...c.reasons as string[]],
+      ...(typeof c.step === 'string' ? { step: c.step } : {}), ...(typeof c.why === 'string' ? { why: c.why } : {}),
+      ...(typeof c.stays === 'string' ? { stays: c.stays } : {}), ...(typeof c.todo === 'string' ? { todo: c.todo } : {}) });
+  }
+  return out;
+};
+
 const count = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
 /** A build's progress reading, from the panel's own build or an agent's: `null` when the numbers are
  *  unusable. `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
@@ -381,9 +403,9 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // `completed` (S8.2, C1): required of the host (`messages.ts`), and never inferred from `ok`. Only a literal `true`
   // reads as a build that ran to the end. A malformed value is not dropped (a dropped terminal result leaves the
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
-  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines) }),
+  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines), causes: causesOf(m.causes) }),
   'component-update-result': (m) => ({ ...verdict('component-update-result', m, '✓ checked', '✗ check failed'), lines: linesOf(m.lines),   // #2265
-    publish: typeof m.publish === 'string' && m.publish ? m.publish : null }),   // #2858
+    publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes) }),   // #2858, #3326
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
   'style-guide-result': (m) => {   // #259
     // S11.2: a cancelled run says how far it got; a malformed `stopped` is left off rather than guessed.
@@ -541,6 +563,12 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   },
   'update-check': (m) => ({ kind: 'update-check', previewHash: str(m.previewHash) ? m.previewHash : '', missing: Array.isArray(m.missing) ? (m.missing as unknown[]).filter(str) : [],
     sets: Array.isArray(m.sets) ? (m.sets as unknown[]).flatMap(checkedSet) : [], error: str(m.error) && m.error ? m.error : null }),
+  // #3302: a reading with a count of the wrong type is dropped; a set that does not read as one is left out of it.
+  'update-check-progress': (m) => {
+    const done = count(m.done), total = count(m.total);
+    if (done === null || total === null || done > total) return null;
+    return { kind: 'update-check-progress', done, total, next: isId(m.next) ? m.next : null, set: checkedSet(m.set)[0] ?? null };
+  },
   'agent-result': null,
   'agent-progress': (m) => {
     const raw = m.progress && typeof m.progress === 'object' ? m.progress as Record<string, unknown> : null;

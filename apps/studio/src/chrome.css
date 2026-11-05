@@ -1989,6 +1989,12 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-handsel > .p3-sub { white-space: nowrap; }
 .p3-upd-handsel > .p3-selwrap { flex: none; }
 .p3-frame[data-w="narrow"] .p3-upd-handsel { flex-basis: 100%; }
+/* #3302 (the owner's Q3302.1 A, 2026-11-02): the check's progress at the foot's start, the chrome's own bar at the strip's
+   width and the count beside it in the secondary ink; Cancel and Update file stay at the end. At 380 the buttons wrap
+   under it as the row runs out. The bar moves only as a set is checked (#3150). */
+.p3-upd-progress { display: flex; align-items: center; gap: var(--p3-space-100); margin-right: auto; min-width: 0; }
+.p3-upd-prog { flex: none; width: calc(2 * var(--p3-ctl-h)); }
+.p3-upd-progtext { white-space: nowrap; }
 .p3-upd-handrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); padding-left: var(--p3-space-300); }
 .p3-upd-saves { padding-left: var(--p3-space-300); }
 /* #2909 Q2909.8 A: a set's statuses on Components' list, after its meta. */
