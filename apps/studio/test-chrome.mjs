@@ -18364,6 +18364,17 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
       await postMsg(page, { type: 'update-check', previewHash: 'H-TB0', missing: [], refused: [], sets: TB0 });
       await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      // Theme ticked by hand when it opened unticked (#3422 Q44 A: the last recount here said the file matches); the
+      // toggle asks the file and the check again, answered as before. This arm is about the run with Theme ticked.
+      if ((await page.locator('[data-p3="update-check-theme"]').getAttribute('aria-checked')) === 'false') {
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, { type: 'update-check', previewHash: 'H-TB0', missing: [], refused: [], sets: TB0 });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      }
       await page.evaluate(() => { window.__ia2.length = 0; });
       await hooks.click(page.locator('[data-p3="update-go"]'));
       await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
