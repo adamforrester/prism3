@@ -61,7 +61,8 @@ import {
 // The component catalog, which the set build asks whether a set can be built (UI redesign S8.2: the Components page
 // itself lists it, from `preview/components.ts`; the Button options moved to `domains/components.ts`).
 import { componentCatalog } from './state/component-catalog';
-import { currentOf, positionOf, record, runVerdict, RUN_COPY, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
+import { currentOf, positionOf, record, runCauses, runVerdict, RUN_COPY, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
+import { CAUSE_WHAT } from '../../plugin/src/causes';
 import { displayNameOf, entryOf } from './state/component-groups';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
@@ -1816,14 +1817,14 @@ const stopSets = (): void => { if (!run) return; run = stopRun(run); invalidate(
  *  build as still running, and sees one result when the run ends. A run of one set keeps the plugin's own verdict. */
 const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'component-result' }>, posted: string | null): void => {
   if (!run || posted === null || currentOf(run) !== posted) return;
-  run = record(run, { id: posted, result: host.setBuilds.get(posted) ?? (m.ok ? 'ok' : m.completed ? 'issues' : 'failed'), headline: m.headline });
+  run = record(run, { id: posted, result: host.setBuilds.get(posted) ?? (m.ok ? 'ok' : m.completed ? 'issues' : 'failed'), headline: m.headline, causes: m.causes });
   if (!run.done) { postCurrent(); return; }
   const ended = run;
   run = null;
-  const verdict = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: m.ok, headline: m.headline, lines: [...(m.lines ?? [])] };
+  const verdict = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: m.ok, headline: m.headline, lines: [...(m.lines ?? [])], causes: [...(m.causes ?? [])] };
   lastRun = { run: ended, verdict };
   if (ended.ids.length > 1) {
-    setHost({ componentState: { ok: verdict.ok, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, openDetail: verdict.ok ? null : 'components' });
+    setHost({ componentState: { ok: verdict.ok, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines, causes: verdict.causes }, openDetail: verdict.ok ? null : 'components' });
     // #3309: the run's one result, which only the panel computes, for the agent link's `activity`.
     commit.noteActivity('components', verdict.ok, verdict.headline, verdict.lines);
   }
@@ -1834,12 +1835,13 @@ const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'compon
 const runRefused = (message: string): void => {
   const id = run ? currentOf(run) : null;
   if (!run || !id) return;
-  const ended = record(stopRun(run), { id, result: 'failed', headline: message });
+  // #3326: the refused set's cause carries the host's words as its reason.
+  const ended = record(stopRun(run), { id, result: 'failed', headline: message, causes: [{ kind: 'bad', subject: id, what: CAUSE_WHAT.failed, reasons: [message] }] });
   run = null;
-  const v = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: false, headline: RUN_COPY.failed(entryOf(componentCatalog(), id)?.name ?? id), lines: [] };
-  const verdict = { ok: false, headline: v.headline, lines: [...v.lines, message] };
+  const v = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: false, headline: RUN_COPY.failed(entryOf(componentCatalog(), id)?.name ?? id), lines: [], causes: runCauses(ended) };
+  const verdict = { ok: false, headline: v.headline, lines: [...v.lines, message], causes: v.causes };
   lastRun = { run: ended, verdict };
-  setHost({ componentState: { ok: false, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, componentProgress: null, componentDef: null, openDetail: 'components' });
+  setHost({ componentState: { ok: false, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines, causes: verdict.causes }, componentProgress: null, componentDef: null, openDetail: 'components' });
   commit.noteActivity('components', false, verdict.headline, verdict.lines);
 };
 /** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
