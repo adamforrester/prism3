@@ -19785,7 +19785,8 @@ const runUpdate3326 = async (page, sets, narrow) => {
   await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
   await postMsg(page, { type: 'file-sets', ...sets });
   await hooks.need(page, '[data-p3="update-check-theme"]', WAIT);
-  await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+  // #3422: on a set-up file with nothing measured, Theme opens unticked, so untick it only when it is ticked.
+  if ((await page.locator('[data-p3="update-check-theme"]').getAttribute('aria-checked')) === 'true') await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
   await postMsg(page, { type: 'file-sets', ...sets });
   await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
   await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
