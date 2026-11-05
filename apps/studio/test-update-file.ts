@@ -278,7 +278,8 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     'Q39 A update: the update step takes a Kept edits set given Overwrite, and leaves one on Keep');
   ok(same(keptChoicesOf(tko, ['button', 'tag']), { tag: 'overwrite' }), 'Q39 A run: the set\'s own choice rides the update (`UpdateChoices.sets`)');
   const tb = { sets: [{ def: 'button', hash: 'a', blocked: true, themeBlocked: true }] as never };
-  ok(same(updateDefsOf(tk, tb, []), ['button']) && same(updateDefsOf({ ...tk, theme: false }, tb, []), []),
+  // Theme's tick set here, both ways: since #3422 (Q44 A) the default tick follows the live recount, which this arm is not about.
+  ok(same(updateDefsOf({ ...tk, theme: true }, tb, []), ['button']) && same(updateDefsOf({ ...tk, theme: false }, tb, []), []),
     '#3421 order: a set blocked only by Theme\'s variables rides a run with Theme, and not one without');
   ok(recheckFirst(['button'], ['button'], tb), '#3421 order: such a set is checked again after Theme, not applied under the check\'s hash');
   ok(recheckHolds(['button'], [{ def: 'button', hash: 'a', themeBlocked: true }] as never, [{ def: 'button', hash: 'b' }] as never)
