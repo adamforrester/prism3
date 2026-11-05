@@ -37,7 +37,8 @@ always an item.
 say when it is, and that it reads "Up to date" otherwise. The other guides' citations into `update-file.ts` follow the
 lines this change moved (`lint-guide-claims`).
 
-**After review: two recommended options, built as their own commits, the owner's to confirm.**
+**After review: two recommended options, built as their own commits. The owner confirmed both on 2026-11-05 (Q44.1 A,
+Q44.2 A).**
 
 - **Q44.2 A: "Up to date" only when measured.** The tag rendered on `!themeDueOf(live)`, which is also true before the
   recount answers, when it failed, and on the demo brand: nothing had been compared. It now renders on
@@ -58,6 +59,10 @@ lines this change moved (`lint-guide-claims`).
     writes it. `test-mcp-paste.ts`'s parity arms, which compare the paste's shared data with the plugin's, caught the
     paste without it. `theme-emission.ts` keeps its own copy of the ledger's FNV so the paste bundle does not carry the
     ledger.
+  - **What the print covers.** The delta review hashed `colorPlan` alone in `emissionOf`, and all five gates that read
+    the print passed. `test-build-completed.ts` now moves each of the seven plans Apply Theme writes in turn, by literal
+    name, and expects the print to move and the recount to read Theme due each time (`q44.1/print covers <plan>`). That
+    mutation fails the six arms after `colorPlan` by name.
   - **Trap:** a brand saved with no print reads as differing: a file themed by a plugin before this one. Theme counts
     once there, until a Theme run stamps the print.
 
