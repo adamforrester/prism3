@@ -711,6 +711,28 @@ ok(dP?.theme === true, `q44.1/no print: the stored brand A, saved with no print 
 if (printA !== undefined) sharedData.set(`prism3:${EMISSION_KEY}`, printA);
 const dA2 = (await ask({ type: 'due-request', input: brandA, seq: 33 }, 'file-due'))[0];
 ok(!!printA && dA2?.theme === false, `q44.1/control: with the print put back, A has nothing to apply again (theme ${dA2?.theme})`);
+// #3432's delta review: WHAT THE PRINT COVERS. An engine update can move any one of the seven plans Apply Theme writes,
+// with the brand unchanged. Each plan is moved in turn (a key added, or an entry appended), and the print must move with
+// it, and the recount through `main.ts` must read Theme due against a stamp of the moved print. The names are literals,
+// not read off `emissionOf`. MUTATION: `emissionOf` hashing `colorPlan` alone → `q44.1/print covers floatPlan` and the
+// five plans after it.
+const PRINTED = ['colorPlan', 'floatPlan', 'fontPlan', 'motionPlan', 'stylesPlan', 'gridPlan', 'textPlan'] as const;
+const plansA = themePlans(brandA);
+const moved = (x: unknown): unknown => {
+  const c = JSON.parse(JSON.stringify(x)) as unknown;
+  if (Array.isArray(c)) return [...c, { moved: true }];
+  return { ...(c as Record<string, unknown>), moved: true };
+};
+let seqP = 40;
+for (const k of PRINTED) {
+  const there = plansA[k] !== undefined && JSON.stringify(plansA[k]).length > 2;
+  const other = emissionOf({ ...plansA, [k]: moved(plansA[k]) });
+  sharedData.set(`prism3:${EMISSION_KEY}`, other);
+  const d = (await ask({ type: 'due-request', input: brandA, seq: seqP++ }, 'file-due'))[0];
+  ok(there && other !== printA && d?.theme === true,
+    `q44.1/print covers ${k}: an engine move in ${k} alone moves the print, so the recount reads Theme due (plan present ${there}; print ${other === printA ? 'unchanged' : 'moved'}; theme ${d?.theme})`);
+}
+if (printA !== undefined) sharedData.set(`prism3:${EMISSION_KEY}`, printA);
 // Theme stores B, as the run's Theme step does: Theme's item drops, the set stays due until the update writes it.
 themeStores(brandB);
 const dS = (await ask({ type: 'due-request', input: brandB, seq: 4 }, 'file-due'))[0];
