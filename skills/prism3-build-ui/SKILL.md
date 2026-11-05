@@ -1,5 +1,5 @@
 ---
-name: prism3-consume
+name: prism3-build-ui
 description: >-
   Build accessible, on-brand UI from a Prism3-generated token system. Teaches an
   agent to consume the generated tokens well — reference semantic roles by name
@@ -15,7 +15,9 @@ when_to_use: >-
   design.md brief.
 ---
 
-# prism3-consume — using a Prism3 token system to build compliant UI
+# prism3-build-ui — using a Prism3 token system to build compliant UI
+
+> `prism3-build-ui` was named `prism3-consume` until #3412.
 
 You have a **generated** token system: a brand brief was expanded by the Prism3 engine
 into a full, contrast-verified token tree. Your job is to bind UI to it **the way the
@@ -172,6 +174,23 @@ one `size`: `small` is a 12px label over a 14px input, `medium` (the default) 14
 only: under `@media (pointer: coarse)`, set the small input's font size to 16px, because iOS
 Safari zooms the page when it focuses an input under 16px. Don't stop the zoom with
 `maximum-scale=1`: that blocks pinch zoom too.
+
+## Never do: habits that make UI look machine-made
+
+Each of these passes a contrast check and still makes the result look generated rather than
+designed. Each one adds a mark the system gives no meaning to. Don't do it; use the Prism3 part
+or role in the third column instead.
+
+| Never | Why it fails | Use instead |
+|---|---|---|
+| **A thick border on one side of a card** to make it stand out | No Prism3 part draws a one-sided stripe, so it looks like a status with no status behind it, and color is its only signal. | For a status, a Banner: the tone's subtle fill, a full 1px edge in `border.success` (or the tone's own border role) and a glyph shape per tone. For an important card, put the emphasis in the content: a `type.title.*` heading or an action. |
+| **Dashed or dotted lines** as decoration | Prism3 draws every rule solid; even the focus ring is solid (`focus.ring.style`), because a dashed line breaks up at small sizes. A dash reads as a state, such as a drop target or an empty slot, so a decorative one signals something that isn't there. | Space first: a `space.*` step between groups. When space alone leaves the grouping unclear, a Divider: a solid 1px rule in `border.secondary`, or `border.primary` when it's subtle. |
+| **A label on everything**: an eyebrow over every heading, a caption under every value, a badge on every row | When every item is labeled, none stands out, and each label is one more string a screen reader reads aloud. | Let the heading and the layout do the grouping. Use `type.eyebrow.*` once per section at most, and a Badge only for a status the user needs. A form field keeps its field label: that one is required. |
+| **A gradient nobody asked for** | A brand's gradient tokens, where it ships any, are for brand and marketing surfaces, and no text promise holds on them: each one's `avoid_when` names the worst ratio measured across it. On a product screen a gradient adds a contrast question with no answer. | A solid surface role: `background.primary`, or `foreground.brand` for a brand moment. Use a gradient only where the brief asks for one, and read its `avoid_when` first. |
+| **One radius on every corner** | Prism3 sets the radius per part, and the difference carries meaning: a status Badge is `radius.sm` so it never reads as a Tag, a Tag is `radius.round`, and a Button is `radius.md`. One radius everywhere erases that difference. | Take each component's radius from its spec. For a new surface, use the radius of the nearest Prism3 part. |
+| **An icon beside every heading, button and row** | An icon helps when it is faster to read than the word, or when it tells two things apart (each Banner tone has its own glyph shape). Everywhere else it competes with the text, and a decorative icon is hidden from assistive technology, so it adds nothing there. | An Icon only where it carries meaning, at an `icon.size.*` step and in `icon.primary` or `icon.secondary`. An Icon button with an accessible name when the icon is the whole control. |
+| **Status color as decoration**: green for good news, a brand fill on a tip | The status roles (`foreground.success`, `text.danger` and the rest) mean a status. Spent on decoration, they stop meaning anything, and the next real error looks like decoration. | The neutral roles (`text.primary`, `background.secondary`) for content that carries no status. A status role only for a status, with a glyph or text beside the color. |
+| **Opacity to quiet text**, such as `opacity: 0.6` on a label | Opacity mixes the text with whatever is behind it, so its ratio changes with every surface and every mode, and no contract covers the result. | `text.secondary`, or `text.tertiary` for large text and non-essential text. Each is measured on its `sits_on` surfaces in every mode. |
 
 ## The self-check (do this before you finish)
 

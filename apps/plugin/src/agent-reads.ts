@@ -346,7 +346,7 @@ export const CONTEXT_NODE_CAP = 20_000;
 /** At most this many locked nodes and this many originals are listed; the rest are counted. */
 export const CONTEXT_LIST_CAP = 50;
 /** Where to read more (the desktop bridge serves each, #3300 A). */
-export const CONTEXT_READ_FIRST = ['prism3://skills/prism3-rebind', 'prism3://skills/prism3-consume', 'prism3://commands'] as const;
+export const CONTEXT_READ_FIRST = ['prism3://skills/prism3-rebind', 'prism3://skills/prism3-build-ui', 'prism3://commands'] as const;
 /** The engine's own MCP server, for brand work: the bridge points at it and does not proxy it (Q3300.4 A). */
 export const ENGINE_MCP = { server: 'prism3-engine', for: 'validate or change the brand input', tools: ['validate_brand', 'theme_brand', 'export_theme'] } as const;
 

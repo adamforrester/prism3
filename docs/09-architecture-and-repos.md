@@ -71,7 +71,7 @@ prism3/                            (this repo — grows into the monorepo)
 │   ├── plugin/                    the plugin adapter (Figma sandbox host)
 │   └── tokenpress/                the Figma -> DTCG exporter, ported in (@prism3/tokenpress)
 ├── docs/                          the numbered design record + superpowers/
-├── skills/                        shipped product skills (prism3-theme, prism3-consume)
+├── skills/                        shipped product skills (prism3-theme, prism3-build-ui)
 └── tools/                         measurement harnesses, run by hand, outside CI
     ├── exporter-comparison/       both DTCG exporters over one brand, differences classified
     └── nest-exposed-cost/         what exposing a nested part's properties costs the parent

@@ -126,10 +126,12 @@ more:
   | URI | File |
   |---|---|
   | `prism3://skills/prism3-rebind` | `skills/prism3-rebind/SKILL.md` |
-  | `prism3://skills/prism3-consume` | `skills/prism3-consume/SKILL.md` |
+  | `prism3://skills/prism3-build-ui` | `skills/prism3-build-ui/SKILL.md` |
   | `prism3://commands` | `docs/public/reference/commands.json` |
   | `prism3://figma-conventions` | `docs/public/reference/figma-conventions.json` |
   | `prism3://llms.txt` | `docs/public/llms.txt` |
+
+  `prism3://skills/prism3-build-ui` was `prism3://skills/prism3-consume` until #3412. A read of the old URI fails with resource-not-found, and the error names the new one.
 
   Each file is under `skills/` or `docs/public/`, so it is text that is already public. Nothing is read
   live from the Figma file as a resource.

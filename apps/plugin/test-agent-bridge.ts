@@ -1141,7 +1141,7 @@ section('instructions + resources — what a fresh agent reads on connecting (#3
   // The five resources and a phrase each must carry, by hand. A phrase that moves in its file fails here by name.
   const SENTINELS: Record<string, string> = {
     'prism3://skills/prism3-rebind': 'never detach',
-    'prism3://skills/prism3-consume': 'avoid_when',
+    'prism3://skills/prism3-build-ui': 'avoid_when',
     'prism3://commands': '"apply-theme"',
     'prism3://figma-conventions': 'How a Prism3 Figma file is laid out',
     'prism3://llms.txt': 'Prism3 is a design-token engine',
@@ -1161,6 +1161,12 @@ section('instructions + resources — what a fresh agent reads on connecting (#3
   }
   const missing = await rpc('resources/read', { uri: 'prism3://no-such-thing' });
   ok(missing.error?.code === -32002, `resources/resolve: an unknown URI fails with resource-not-found, -32002 (${JSON.stringify(missing.error ?? missing.result)})`);
+  // #3412: the skill once served as prism3://skills/prism3-consume is prism3://skills/prism3-build-ui. The old URI still
+  // fails, and the error names the new one, written here by hand.
+  const [OLD_URI, NEW_URI] = ['prism3://skills/prism3-consume', 'prism3://skills/prism3-build-ui'];
+  const renamed = await rpc('resources/read', { uri: OLD_URI });
+  ok(renamed.error?.code === -32002 && String(renamed.error?.message).includes(NEW_URI) && renamed.error?.data?.renamedTo === NEW_URI,
+    `resources/renamed: the old prism3-consume URI fails with -32002 and names prism3://skills/prism3-build-ui (${JSON.stringify(renamed.error ?? renamed.result)})`);
 
   // §6: structural, not a deny list. Every served file sits under one of two public roots, and the served list is the
   // module's list (so the roots are checked on what is actually served).
