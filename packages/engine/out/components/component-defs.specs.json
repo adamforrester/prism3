@@ -57407,18 +57407,18 @@
             }
           }
         },
-        "width": {
+        "edge": {
           "type": "string",
           "enum": [
             "contained",
-            "full"
+            "full-bleed"
           ],
           "default": "contained",
           "$extensions": {
             "com.prism3": {
-              "type": "enum: 'contained' | 'full'",
+              "type": "enum: 'contained' | 'full-bleed'",
               "required": false,
-              "description": "contained is a rounded box with an edge on all four sides, inside a section or card. full is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge."
+              "description": "contained is a rounded box with an edge on all four sides, inside a section or card. full-bleed is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge."
             }
           }
         },
@@ -57534,7 +57534,7 @@
       "default": {
         "configuration": {
           "tone": "info",
-          "width": "contained"
+          "edge": "contained"
         },
         "layout": [
           {
@@ -57690,7 +57690,7 @@
         {
           "configuration": {
             "tone": "info",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "elements": {
             "container": {
@@ -57805,7 +57805,7 @@
         {
           "configuration": {
             "tone": "success",
-            "width": "contained"
+            "edge": "contained"
           },
           "elements": {
             "container": {
@@ -57920,7 +57920,7 @@
         {
           "configuration": {
             "tone": "success",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "elements": {
             "container": {
@@ -58035,7 +58035,7 @@
         {
           "configuration": {
             "tone": "warning",
-            "width": "contained"
+            "edge": "contained"
           },
           "elements": {
             "container": {
@@ -58150,7 +58150,7 @@
         {
           "configuration": {
             "tone": "warning",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "elements": {
             "container": {
@@ -58265,7 +58265,7 @@
         {
           "configuration": {
             "tone": "danger",
-            "width": "contained"
+            "edge": "contained"
           },
           "elements": {
             "container": {
@@ -58380,7 +58380,7 @@
         {
           "configuration": {
             "tone": "danger",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "elements": {
             "container": {
@@ -58495,7 +58495,7 @@
         {
           "configuration": {
             "tone": "neutral",
-            "width": "contained"
+            "edge": "contained"
           },
           "elements": {
             "container": {
@@ -58594,7 +58594,7 @@
         {
           "configuration": {
             "tone": "neutral",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "elements": {
             "container": {
