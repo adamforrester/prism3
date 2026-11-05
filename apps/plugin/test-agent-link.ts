@@ -70,15 +70,20 @@
  *     Restore the link's `since` holds and no `on: false` reaches the panel or the record, so a bounce (off, then on)
  *     shows too (mutation: `setOn(false); setOn(true)` in `setMinimized` → strip/since-min, strip/since-restore and strip/no-bounce fail)
  *     strip/place-min, strip/place-drag, strip/place-restore, strip/kept-spot, strip/place-return (#3327, #3416): the
- *     first Minimize in a file shrinks in place (the top-left `figma.ui.getPosition()` reads), a drag message places
+ *     first Minimize in a file shrinks in place by `resize` alone and repositions nothing, a drag message places
  *     nothing, Restore centers and keeps the strip's window-space spot for this file under a file id in root plugin
- *     data, and the next Minimize puts the strip back there (zoom 2 here)
- *   · strip-place (#3327, #3416): `stripPlacement` (in place the first time, no inward clamp, the remembered spot at zoom
- *     1 and 2, each fallback) and `restorePlacement` (centered at zoom 1 and 2, a window larger than the canvas) against
- *     hand-worked literals (mutations, each failing by name: the lower-right corner back → strip-place/first and
- *     strip/place-min; the inward clamp back → strip-place/no-clamp; drop the `/ zoom` → strip-place/spot-z2 and
- *     strip/place-return; the spot never checked for reach → strip-place/spot-off; the canvas top-left fallback dropped
- *     → strip-place/both-off)
+ *     data, and the next Minimize puts the strip back there (zoom 2 here) (mutation, review of #3420 S2: in place
+ *     repositioned to `getPosition().canvasSpace` → strip/place-min, strip/place-drag, strip/place-restore fail)
+ *   · strip-place (#3327, #3416): `stripPlacement` (in place the first time, returned as null; no inward clamp, by the
+ *     edge in place or on a remembered spot; the remembered spot at zoom 1 and 2; each fallback) and `restorePlacement`
+ *     (centered at zoom 1 and 2, a window larger than the canvas) against hand-worked literals (mutations, each failing
+ *     by name: the lower-right corner back → strip-place/first and strip/place-min; the inward clamp back →
+ *     strip-place/no-clamp; a clamp on the remembered spot only → strip-place/spot-edge, strip/place-return and
+ *     strip-relaunch/return; drop the `/ zoom` → strip-place/spot-z2 and strip/place-return; the spot never checked
+ *     for reach → strip-place/spot-off; the canvas top-left fallback dropped → strip-place/both-off)
+ *   · strip-relaunch (#3416; review of #3420, S1): a second launch of `main.ts`, into a host whose root plugin data and
+ *     `clientStorage` already hold this file's id and spot, reads the spot at start, and its first Minimize lands on it
+ *     (mutation: the start-up read dropped → strip-relaunch/return fails by name). Last in the suite.
  *   · strip-text: the strip's line for each state, against literals (Q2 A, Q3 A)
  *   · reads (#3147 Phase 2a, #3309): `mailbox/<cmd>`, `envelope/<cmd>` and `no-write/<cmd>` for inspect, component-keys,
  *     audit-frames, snapshot and activity (its two panel notes and `activityExpected` in the fixture too, and an agent's own run, `activity/agent`), against `NodeShim` and the literals in `agent-read-fixture.ts`; plus inspect/unreadable,
@@ -1055,8 +1060,10 @@ section('strip — minimizing resizes the window and never touches the link or i
   await toUi({ type: 'minimize-ui', minimized: true });
   ok(JSON.stringify(since()) === JSON.stringify(since0), `strip/since-min: minimizing keeps the link's since, in the state and the record (${JSON.stringify({ was: since0, now: since() })})`);
   ok(JSON.stringify(sizes.at(-1)) === '[480,40]', `strip/size: Minimize resizes to the strip, 480×40, under the 380×420 floor (${JSON.stringify(sizes.at(-1))})`);
-  // The window's top-left was window (300,100), canvas 100+300/2, 200+100/2: the first Minimize keeps it.
-  ok(JSON.stringify(places) === '[[250,250]]', `strip/place-min: the first Minimize in a file shrinks in place, the top-left kept (${JSON.stringify(places)})`);
+  // The window's top-left was window (300,100), canvas 100+300/2, 200+100/2: the first Minimize keeps it, by `resize`
+  // alone. No `reposition` at all (review of #3420, S2): a reposition to `canvasSpace` would move the window on a host
+  // where `getPosition` and `reposition` address different points of it.
+  ok(JSON.stringify(places) === '[]' && JSON.stringify(win) === '{"x":300,"y":100}', `strip/place-min: the first Minimize in a file shrinks in place and repositions nothing (${JSON.stringify({ places, win })})`);
   ok(JSON.stringify(minimizedPosts()) === '[true]', `strip/answer: the main thread answers ui-minimized true (${JSON.stringify(minimizedPosts())})`);
   ok(main.agentLink.state().on === true && isOn() === true, 'strip/link: minimizing leaves the link on, in the state and in the link record');
   ok(timers.size === 1, `strip/poll: the poll stays armed while minimized (${timers.size} timer)`);
@@ -1067,7 +1074,7 @@ section('strip — minimizing resizes the window and never touches the link or i
   ok(r.ok === true && calls.includes('seedFromFile') && timers.size === 1, `strip/claims: a command sent while minimized is claimed and run, and the poll re-arms (${r.ok}, ${timers.size} timer)`);
 
   await toUi({ type: 'resize-ui', width: 600, height: 500, commit: true });
-  ok(places.length === 1, `strip/place-drag: a drag message places nothing; only a toggle does (${places.length} repositions)`);
+  ok(places.length === 0, `strip/place-drag: a drag message places nothing; only a toggle does (${places.length} repositions)`);
   ok(JSON.stringify(sizes.at(-1)) === '[480,40]' && kept.length === 1, `strip/late-drag: a drag message while minimized neither resizes nor keeps a size (${JSON.stringify({ last: sizes.at(-1), kept: kept.length })})`);
   ok(!kept.some(([, v]) => JSON.stringify(v) === '{"width":480,"height":40}'), 'strip/never-kept: the strip size is never kept as the window size');
 
@@ -1078,7 +1085,7 @@ section('strip — minimizing resizes the window and never touches the link or i
   win.x = 1200; win.y = 800;
   await toUi({ type: 'minimize-ui', minimized: false });
   // 900×700 px at zoom 2 is 450×350 on the canvas, centered: 100+(800-450)/2, 200+(500-350)/2.
-  ok(JSON.stringify(places) === '[[250,250],[275,275]]', `strip/place-restore: Restore centers the window over the canvas, at zoom 2 (${JSON.stringify(places)})`);
+  ok(JSON.stringify(places) === '[[275,275]]', `strip/place-restore: Restore centers the window over the canvas, at zoom 2 (${JSON.stringify(places)})`);
   ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false]', `strip/restore: Restore returns to 900×700, the size from before, and answers ui-minimized false (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts() })})`);
   ok(main.agentLink.state().on === true && timers.size === 1, 'strip/restore-link: after Restore the link is still on and its poll armed');
   ok(JSON.stringify(since()) === JSON.stringify(since0), `strip/since-restore: Restore keeps the link's since, in the state and the record (${JSON.stringify({ was: since0, now: since() })})`);
@@ -1121,17 +1128,22 @@ section('strip-place — where Minimize and Restore put the window, against lite
   const j = (p: unknown) => JSON.stringify(p);
   const here1 = { window: { x: 300, y: 100 }, canvas: { x: 400, y: 300 } };
   const strip = (b: typeof z1, zoom: number, here: typeof here1, spot: { x: number; y: number } | null) => j(stripPlacement(b, zoom, here, spot));
-  ok(strip(z1, 1, here1, null) === '{"x":400,"y":300}', `strip-place/first: the first Minimize keeps the window's top-left (${strip(z1, 1, here1, null)})`);
+  // In place is null: `main.ts` then resizes and does not reposition (review of #3420, S2).
+  ok(strip(z1, 1, here1, null) === 'null', `strip-place/first: the first Minimize keeps the window's top-left, in place (${strip(z1, 1, here1, null)})`);
   // Near the lower right, a 480×40 strip at (1650,1150) runs past the canvas's edge (1700,1200): it stays.
   const edge = { window: { x: 1550, y: 950 }, canvas: { x: 1650, y: 1150 } };
-  ok(strip(z1, 1, edge, null) === '{"x":1650,"y":1150}', `strip-place/no-clamp: a strip by the edge is not pulled inward (${strip(z1, 1, edge, null)})`);
+  ok(strip(z1, 1, edge, null) === 'null', `strip-place/no-clamp: a strip by the edge is not pulled inward (${strip(z1, 1, edge, null)})`);
   // 400+(1000-300), 300+(900-100)
   ok(strip(z1, 1, here1, { x: 1000, y: 900 }) === '{"x":1100,"y":1100}', `strip-place/spot-z1: the remembered spot, reachable, zoom 1 (${strip(z1, 1, here1, { x: 1000, y: 900 })})`);
   // 250+(1000-300)/2, 250+(900-100)/2
   const here2 = { window: { x: 300, y: 100 }, canvas: { x: 250, y: 250 } };
   ok(strip(z2, 2, here2, { x: 1000, y: 900 }) === '{"x":600,"y":650}', `strip-place/spot-z2: the remembered spot, reachable, zoom 2 (${strip(z2, 2, here2, { x: 1000, y: 900 })})`);
+  // 400+(1500-300), 300+(1000-100): (1600,1200), on the canvas, but a 480×40 strip there runs 380 past its right edge
+  // (1700) and 40 past its bottom (1200). Reachable, so it goes back exactly there: no clamp on the remembered spot
+  // either (review of #3420, N1; a clamp would give (1220,1160)).
+  ok(strip(z1, 1, here1, { x: 1500, y: 1000 }) === '{"x":1600,"y":1200}', `strip-place/spot-edge: a remembered spot by the canvas's edge is not pulled inward (${strip(z1, 1, here1, { x: 1500, y: 1000 })})`);
   // 400+(5000-300) = 5100 is past the canvas's right edge (1700): in place instead.
-  ok(strip(z1, 1, here1, { x: 5000, y: 100 }) === '{"x":400,"y":300}', `strip-place/spot-off: a spot off the visible canvas falls back to in place (${strip(z1, 1, here1, { x: 5000, y: 100 })})`);
+  ok(strip(z1, 1, here1, { x: 5000, y: 100 }) === 'null', `strip-place/spot-off: a spot off the visible canvas falls back to in place (${strip(z1, 1, here1, { x: 5000, y: 100 })})`);
   const away = { window: { x: -900, y: 100 }, canvas: { x: -500, y: 300 } };
   ok(strip(z1, 1, away, { x: 9000, y: 100 }) === '{"x":100,"y":200}', `strip-place/both-off: spot and window both off the canvas start at its top-left (${strip(z1, 1, away, { x: 9000, y: 100 })})`);
   ok(strip(z1, 1, away, null) === '{"x":100,"y":200}', `strip-place/first-off: a first Minimize off the canvas starts at its top-left (${strip(z1, 1, away, null)})`);
@@ -1449,6 +1461,48 @@ section('doc-settings — Documentation\'s settings are kept in the file and rea
   const def = posted.find((m) => m?.type === 'doc-settings');
   ok(def?.settings?.panels === true && def?.settings?.cover === true && def?.settings?.styleGuide === null,
     `doc-settings/defaults: a malformed record reads as both switches on — ${JSON.stringify(def)}`);
+}
+
+/* ── strip-relaunch (#3416; review of #3420, S1) ─────────────────────────────────────────────────────── */
+// "Remembered per file" matters most across launches, and that path is the start-up read: the file's id from root
+// plugin data, then `clientStorage` under `prism3:strip-at:<id>`. So the plugin is launched a second time, into a host
+// that already holds both, and its first Minimize must land on the stored spot, not in place. Last in the suite: the
+// second launch takes over `figma` and the UI's message handler. (mutation: drop the start-up read in `main.ts` →
+// strip-relaunch/return fails by name.)
+section('strip-relaunch — a new launch puts the first Minimize on the spot this file kept');
+{
+  const relaunchStore = new Map<string, string>([['prism3:file-id', 'f-relaunch']]);
+  const asked: string[] = [];
+  const places: [number, number][] = [];
+  // As in the strip section: window px (0,0) is canvas (100,200), zoom 2, the window at window (300,100).
+  const win = { x: 300, y: 100 };
+  let onmessage: null | ((m: unknown) => void) = null;
+  const launch2: Record<string, unknown> = {
+    ...host,
+    ui: {
+      postMessage: () => undefined,
+      get onmessage() { return onmessage; },
+      set onmessage(f: null | ((m: unknown) => void)) { onmessage = f; },
+      resize: () => undefined,
+      getPosition: () => ({ windowSpace: { ...win }, canvasSpace: { x: 100 + win.x / 2, y: 200 + win.y / 2 } }),
+      reposition: (x: number, y: number) => { places.push([x, y]); },
+    },
+    clientStorage: {
+      getAsync: async (key: string) => { asked.push(key); return key === 'prism3:strip-at:f-relaunch' ? { x: 1200, y: 800 } : undefined; },
+      setAsync: async () => undefined,
+    },
+    root: { ...root, getPluginData: (key: string) => relaunchStore.get(key) ?? '', setPluginData: (key: string, v: string) => { relaunchStore.set(key, v); } },
+    viewport: { bounds: { x: 100, y: 200, width: 800, height: 500 }, zoom: 2 },
+  };
+  g.figma = launch2;
+  await import('./src/main?relaunch');
+  for (let i = 0; i < 20; i++) await settle();
+  ok(asked.includes('prism3:strip-at:f-relaunch'), `strip-relaunch/read: at start, the plugin reads this file's spot by its id (${JSON.stringify(asked)})`);
+  (onmessage as unknown as (m: unknown) => void)({ type: 'minimize-ui', minimized: true });
+  for (let i = 0; i < 20; i++) await settle();
+  // The window at canvas (250,250), window (300,100); the kept spot window (1200,800): 250+(1200-300)/2, 250+(800-100)/2.
+  ok(JSON.stringify(places) === '[[700,600]]', `strip-relaunch/return: the first Minimize after a relaunch puts the strip on the spot this file kept (${JSON.stringify(places)})`);
+  g.figma = host;
 }
 
 console.log(`\n${failed === 0 ? '✅ ALL PASS' : `❌ ${failed} FAILED`} — ${executed} assertions executed`);

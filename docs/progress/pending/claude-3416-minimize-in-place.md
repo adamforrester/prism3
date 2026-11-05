@@ -13,13 +13,26 @@ centers.
 (Plugin API reference, `figma.ui`; `@figma/plugin-typings` `UIAPI.getPosition`). So the iframe reports nothing:
 `main.ts` reads the position at each toggle. The strip's spot is read at Restore, which is where the user last left it.
 
+**This comes from the API reference and the typings, not from the host.** Three things the strip leans on have not
+been observed in real Figma, and the test shim builds each one in, so no headless arm can fail on them:
+- (a) `getPosition()` reflects a drag by the user, not only the last `reposition`;
+- (b) `getPosition().canvasSpace` and `reposition(x, y)` address the same point of the window (both the iframe's
+  top-left, or both the title bar's);
+- (c) `windowSpace` is stable within a session.
+
+So the first Minimize of a reachable window doesn't depend on any of them: shrinking in place is `resize` alone, with no
+`reposition` (review of #3420, S2). Had it repositioned to `canvasSpace`, a host where (b) is false would move every
+first Minimize by the offset between the two, the jump #3416 rules out. The return to a remembered spot depends on all
+three. They are the owner's real-Figma checks.
+
 ### What landed
 
 - `apps/plugin/src/window-place.ts`: `stripPlacement(bounds, zoom, here, spot)` and `restorePlacement(bounds, zoom,
   size)`, both pure. `windowPlacement` and `STRIP_MARGIN` are gone. The spot is kept in window space, because "where the
   user dragged it" is a place on the screen, and a canvas position moves with every pan and zoom. It is turned back
   into canvas units through the window's own position, read in both spaces: `here.canvas + (spot - here.window) / zoom`.
-- `main.ts`: Minimize reads the position before the resize and places the strip. Restore keeps the strip's window-space
+- `main.ts`: Minimize reads the position before the resize. In place, it only resizes; otherwise it repositions the
+  strip. Restore keeps the strip's window-space
   spot in `clientStorage` under `prism3:strip-at:<file id>`, then centers. The spot is read once at start, so
   Minimize answers at once.
 
@@ -33,15 +46,20 @@ file, like the ones `doc-settings.ts` and `as-built-ledger.ts` already make. The
 ### Gaps
 
 - A strip closed while minimized (the plugin quit without Restore) isn't kept: the spot is read at Restore only.
-- The headless tests hold the arithmetic, not the look. A real-Figma check is still owed, on the owner's machine.
+- The headless tests hold the arithmetic, not the look. A real-Figma check is still owed, on the owner's machine:
+  (a)–(c) above, and that the first Minimize keeps the window exactly where it was.
 
 ### The tests
 
 `test-agent-link.ts`:
 - `strip-place/*`: the first Minimize keeps the top-left, no clamp by the edge, the remembered spot at zoom 1 and 2,
   each fallback, and Restore centered. All against hand-worked literals.
+- `strip-place/spot-edge`: a remembered spot by the canvas's edge isn't pulled inward.
 - `strip/place-min`, `strip/kept-spot`, `strip/place-return`: the same rules through `main.ts`, with a `getPosition`
-  shim.
+  shim. `strip/place-min` also checks that the first Minimize repositions nothing.
+- `strip-relaunch/read`, `strip-relaunch/return`: `main.ts` launched a second time, into a host that already holds the
+  file's id and its spot. The first Minimize lands on the stored spot. This is the cross-launch half of "remembered per
+  file".
 
 Mutations, from a `wip:` commit, each failing by name:
 - the lower-right corner back → `strip-place/first`, `strip/place-min`;
@@ -49,7 +67,11 @@ Mutations, from a `wip:` commit, each failing by name:
 - drop the `/ zoom` → `strip-place/spot-z2`, `strip/place-return`;
 - the spot never checked for reach → `strip-place/spot-off`;
 - the canvas top-left fallback dropped → `strip-place/both-off`;
-- the spot not kept at Restore → `strip/kept-spot`, `strip/place-return`.
+- the spot not kept at Restore → `strip/kept-spot`, `strip/place-return`;
+- in place repositioned to `canvasSpace` again → `strip/place-min`, `strip/place-drag`, `strip/place-restore`;
+- the start-up read of the stored spot dropped → `strip-relaunch/return`;
+- a clamp on the remembered spot only → `strip-place/spot-edge`, `strip/place-return`, `strip-relaunch/return`.
 
-Two public guides cite `main.ts` by line, and the new lines moved four of those citations, so they move here too
-(`lint-guide-claims.ts`).
+Five public guides cite the plugin's `main.ts` by line, and the new lines moved them, so they move here too. Each was
+re-pointed by content, against main's cited block, so the range-only ones `lint-guide-claims.ts` can't check are right
+as well.

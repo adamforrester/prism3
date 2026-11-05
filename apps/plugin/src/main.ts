@@ -231,8 +231,9 @@ const setMinimized = (minimized: boolean): void => {
     beforeStrip = uiSize;
     figma.ui.resize(STRIP_SIZE.width, STRIP_SIZE.height);
     if (here && canPlace()) {
-      const { x, y } = stripPlacement(figma.viewport.bounds, figma.viewport.zoom, here, stripSpot);
-      figma.ui.reposition(x, y);
+      // Null is in place: `resize` has already kept the top-left, so nothing is repositioned (`window-place.ts`).
+      const to = stripPlacement(figma.viewport.bounds, figma.viewport.zoom, here, stripSpot);
+      if (to) figma.ui.reposition(to.x, to.y);
     }
   } else {
     // Where the strip is now is where the user last left it: kept for this file's next Minimize.
