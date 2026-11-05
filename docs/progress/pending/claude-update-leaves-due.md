@@ -24,6 +24,17 @@ The reference brand's master, after #3402 (`interactive.*.indicator.*`), showed 
 
 The Theme step is modeled as the variables arriving (`liveVars`, a new shim option). What Apply Theme writes is `test-readback-parity.ts`'s subject.
 
+**The wiring, after review.** That gate calls `ledgerAfter` and `recheckHolds` itself, so it checks the helpers, not the wiring: reverting `main.ts`'s `acted` to record each acted set without `held` passed it, and so did the seven plugin tests that load `main.ts`. Two more checks drive the wiring:
+
+- `apps/plugin/test-update-kept-main.ts` posts the run to the real `main.ts` under the strict shim: the check, the Theme step, the check again, `update-sets`, then `file-sets`. It reads the ledger off the root's plugin data and the due state from `main.ts`'s own answer. `acted` built without `held` fails `main/held recorded` and `main/kept listed`. `update-sets` dropping the per-set choices fails `main/overwrite chosen`, which reads the rings off the host.
+- `test:chrome` section `ia2` gains an arm where a set only Theme blocks rides the run. The Studio driver's re-check done by strict hash equality fails it by name.
+
+**Trap:** under the strict shim, the root's own search answers a set's members as references, with ids that are not the nodes'. So an in-place update through it reads every member as "not built by Prism3". The new test gives each page its own search over its real nodes, as Figma's does. The run's read then searches a page at a time (`run-read.ts`), and the components the sets nest are real ones on a page of their own. No host method is patched.
+
+**Filed while doing this:**
+- #3435: switch-control's and tab-item's misses, not reproduced here.
+- #3436: a second Keep run over a kept set records it as current.
+
 ### Left for the owner
 
 The new strings are DRAFT, Q3421.1–.6 in the PR. Kept edits sets are not counted in the badge, because Keep changes nothing on a run.

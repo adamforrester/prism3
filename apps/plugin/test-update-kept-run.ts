@@ -25,6 +25,9 @@
  *   · the ordering fix dropped (`updatableOf` back to `!c.blocked`) → `order/in the run`, `after/0 due`;
  *   · a fully kept set recorded as current (`ledgerAfter` drops `held`) → `after/kept listed`;
  *   · a kept-edit read-back filed as a miss in the build record (`kept` not split out) → `record/kept apart`.
+ *
+ * This file drives the helpers itself, so it does not see `main.ts`'s wiring. `test-update-kept-main.ts` posts the same
+ * run to the real `main.ts`, and `test:chrome` section ia2 drives the Studio dialog's re-check (#3428's review).
  */
 import { makeShim } from './component-shim';
 import type { Node, Page } from './component-shim';

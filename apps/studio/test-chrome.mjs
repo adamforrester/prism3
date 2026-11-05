@@ -18310,6 +18310,36 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const dropped = await badgeNow();
       ok(ran.length >= 1 && ran.every((m) => canon(m.input) === canon(HAIRLINE)) && dropped.text === null && dropped.name === null,
         `${where}: Q810 A: the badge drops after a run: the panel asks for the count after the run's verdicts, and the answer (the brand applied, the sets written) leaves no badge and the label alone as the name (${ran.length} asked; ${JSON.stringify(dropped)})`);
+      // #3421 (Q39 A): A SET ONLY THEME BLOCKS RIDES THE RUN. The check reads Select blocked only by variables Theme writes
+      // (`themeBlocked`), so with Theme ticked the update step takes it, checks it again after Theme, and posts under the
+      // new check's hash: the set's own hash moved, because Theme wrote what it binds (`recheckHolds`). What is read is
+      // what the panel posts. MUTATION: the Studio driver's re-check by strict hash equality (`apps/studio/src/main.ts`)
+      // → this arm, by name.
+      step = 'a set only Theme blocks';
+      const TB0 = [sets[0], { ...sets[1], hash: 'hs-0', update: 4, upToDate: false, blocked: true, themeBlocked: true }];
+      const TB1 = [sets[0], { ...sets[1], hash: 'hs-1', update: 4, upToDate: false, blocked: false }];
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-TB0', missing: [], refused: [], sets: TB0 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      const reTB = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-check-request').map((m) => m.defs));
+      await postMsg(page, { type: 'update-check', previewHash: 'H-TB1', missing: [], refused: [], sets: TB1 });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
+      const sentTB = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets').map((m) => ({ defs: m.defs, previewHash: m.previewHash })));
+      ok(JSON.stringify(reTB) === '[["button","select"]]' && JSON.stringify(sentTB) === '[{"defs":["button","select"],"previewHash":"H-TB1"}]',
+        `${where}: #3421 Q39 A: a set only Theme blocks rides the run: after Theme it is checked again, and the update posts it under the new check's hash (${JSON.stringify({ rechecked: reTB, sent: sentTB })})`);
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await page.waitForFunction(() => window.__ia2.filter((m) => m.type === 'file-sets-request').length >= 1, null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { ...FILE, due: CURRENT });
+      const ranTB = await nextAsk();
+      await answer(ranTB.at(-1)?.seq ?? 0, false, CURRENT);
       // No brand chosen yet: a fresh plugin page, the load's read landing before the host's restore answers (its library
       // probe can be slow), then the start moment. The panel holds only the boot placeholder, so it asks nothing, and a
       // live answer planted anyway is not shown: the badge keeps the load's read (2). Choosing a brand starts the asks.
