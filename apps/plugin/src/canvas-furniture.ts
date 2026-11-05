@@ -52,6 +52,8 @@ import { builtByPrism3, readBaseline } from './member-baseline';
 import { LABEL_COLUMN_KEY, labelColumns, readLabelColumn } from './label-columns';
 import { DOC_BLOCK_SET } from './doc-block';
 import { panelItems, type PanelOutcome } from './doc-panel';
+import type { Cause } from './messages';
+import { cause, mergeCauses, CAUSE_WHAT } from './causes';
 
 export { CANVAS_FURNITURE };
 /** Shared plugin data namespace and key the tag lives under. The namespace is `persist-figma.ts`'s `NS`. */
@@ -836,13 +838,26 @@ export const withFurnitureItems = <V extends { summary: string; lines: string[] 
 };
 
 /**
+ * THE TEMPLATE LINE'S CAUSES (#3326 PR 1, Q3326.1 A): one per set that lacked a template, its reason the template line
+ * for that set alone (`templatesLine`, the approved words), so the drawer can mark the set the warning is about without
+ * finding the line by its text. A build's set reads "built with problems", an update's "updated with problems".
+ */
+export const templateCauses = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): Cause[] =>
+  outcomes.filter((o) => o.missing?.length).map((o) =>
+    cause('warn', o.def, action === 'build' ? CAUSE_WHAT.built : CAUSE_WHAT.updated, [`${templatesLine([o], action)}.`]));
+
+/**
  * A MISSING TEMPLATE MAKES THE RUN A WARNING (#2598, owner decision Q284.3 A): the build or update worked, but the page
  * is incomplete. The verdict turns `ok: false`, the state every partial result already takes (a build's set reads
  * "issues" and the panel opens its detail), and a `✓` headline becomes `⚠` over the same words, so no new pill copy
  * exists. A headline already `⚠` or `✗` is left as it is: it already reads as not clean. A run with every template
  * present is returned unchanged.
+ *
+ * #3326: the same predicate adds the template line's causes (`templateCauses`) to the verdict's own, so a run is never
+ * turned `⚠` by a template without the cause that says which set and why.
  */
-export const withTemplateWarning = <V extends { ok: boolean; headline: string }>(verdict: V, outcomes: readonly FurnitureOutcome[]): V =>
+export const withTemplateWarning = <V extends { ok: boolean; headline: string; causes?: Cause[] }>(verdict: V, outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): V =>
   outcomes.some((o) => o.missing?.length)
-    ? { ...verdict, ok: false, headline: verdict.headline.startsWith('✓') ? `⚠${verdict.headline.slice(1)}` : verdict.headline }
+    ? { ...verdict, ok: false, headline: verdict.headline.startsWith('✓') ? `⚠${verdict.headline.slice(1)}` : verdict.headline,
+      causes: mergeCauses(verdict.causes, templateCauses(outcomes, action)) }
     : verdict;

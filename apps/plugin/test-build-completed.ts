@@ -40,7 +40,8 @@
  * (`withFurnitureItems(applyVerdict(r), …)`) → `templates/update verdict`. The warning (Q284.3 A) dropped from the
  * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
  * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
- * `templates/update clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
+ * `templates/update clean`. #3326: `withTemplateWarning`'s causes dropped (its `templateCauses`) → `causes/build`,
+ * `causes/update`; the build's own causes sent on a clean run → `causes/clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
  * `furnish` hook without `panelFor` → `panel/update drawn`. Documentation's switches (#2995, the file's
  * `prism3:docSettings`): Build ignoring Usage panels off (`main.ts`, the `readDocSettings(figma.root).panels` before
  * `panelBeside` read as `true`) → `docs/panels off`; Update ignoring it (`main.ts` `updateTargets`, its
@@ -116,6 +117,9 @@ const mkPage = (divider: boolean): ShimPage => {
 };
 
 const posted: any[] = [];
+/** #3326 PR 1 review S2: every build and Update verdict this suite's runs posted, for `causes/every verdict`. */
+const verdicts: any[] = [];
+const isVerdict = (m: any): boolean => m?.type === 'component-result' || m?.type === 'component-update-result';
 // The variables and styles Badge binds are in the file, as after Apply Theme, so a build with every template present is
 // clean (✓) and Q284.3's ⚠ can only come from the missing template (`templates/build warns` and `… clean`).
 const badgePlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'badge')!, { swapTarget: SWAP_TARGET });
@@ -178,7 +182,7 @@ const empty = async () => [];
 const listeners: Record<string, ((e: unknown) => void)[]> = {};
 Object.assign(shim, {
   showUI: () => undefined,
-  ui: { postMessage: (m: unknown) => { posted.push(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
+  ui: { postMessage: (m: unknown) => { posted.push(m); if (isVerdict(m)) verdicts.push(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
   clientStorage: { getAsync: async () => undefined, setAsync: async () => undefined },
   // #3091: the listeners `main.ts` registers, kept so an arm can fire Figma's `documentchange` as a hand edit does.
   on: (ev: string, fn: (e: unknown) => void) => { (listeners[ev] ??= []).push(fn); },
@@ -437,6 +441,13 @@ ok(!!first && first.ok === false && first.completed === true && String(first.hea
   `templates/build warns: no _Label makes the build's verdict ⚠, ok false, completed (ok ${first?.ok}, "${first?.headline}")`);
 ok(!!applied && applied.ok === false && String(applied.headline).startsWith('⚠'),
   `templates/update warns: no _Label makes the Update's verdict ⚠, ok false (ok ${applied?.ok}, "${applied?.headline}")`);
+// #3326 PR 1 (Q3326.1 A): the posted verdicts name the warning's cause as data, Badge with the template line for it as
+// its reason, so the drawer never finds it by position (the owner's run showed a per-set line as the reason). Literal.
+const causeOf = (m: Record<string, any> | undefined) => JSON.stringify(m?.causes);
+ok(causeOf(first) === JSON.stringify([{ kind: 'warn', subject: 'badge', what: 'built with problems', reasons: [`${NO_LABEL}.`] }]),
+  `causes/build: the build's verdict names Badge as built with problems, the template line its reason (${causeOf(first)})`);
+ok(causeOf(applied) === JSON.stringify([{ kind: 'warn', subject: 'badge', what: 'updated with problems', reasons: [`${NO_LABEL_UPDATE}.`] }]),
+  `causes/update: the Update's verdict names Badge as updated with problems, the template line its reason (${causeOf(applied)})`);
 // Then Set up file's own template builder makes them, as the line asks, and the same build and Update read ✓ again.
 const { ensureFurnitureTemplates } = await import('./src/furniture-templates');
 const componentsPage = mkPage(false);
@@ -468,6 +479,8 @@ const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', ha
   .find((m) => m?.type === 'component-update-result');
 ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('✓') && !String(applied2.summary).includes('No canvas labels') && !String(applied2.summary).includes('No usage panels'),
   `templates/update clean: with the templates in the file, the same Update stays ✓ (ok ${applied2?.ok}, "${applied2?.headline}", ${JSON.stringify(applied2?.summary)})`);
+ok(causeOf(withTemplates) === '[]' && causeOf(applied2) === '[]',
+  `causes/clean: with the templates in the file, the build and the Update name no cause (${causeOf(withTemplates)}; ${causeOf(applied2)})`);
 // #846: the real Update's dry run reads the panel (`updateTargets` gives each target its def) and its apply redraws it
 // (the per-def `furnish` hook passes `panelFor`). The panel is nudged off its spot, so it is the set's only work.
 const livePanel = () => (badgePage?.children ?? []).filter((c) => { try { return JSON.parse(String((c as any).getSharedPluginData?.('prism3', 'docPanel') || 'null'))?.state === 'live'; } catch { return false; } });
@@ -536,6 +549,14 @@ ok(second?.completed === false && second?.ok === false,
 // 3. The early return.
 const unknown = await build('no-such-def');
 ok(unknown?.completed === false && unknown?.ok === false, `C1: an unknown def posts completed: false (completed ${unknown?.completed})`);
+// #3326 PR 1 review S2: the build's own causes, beyond the template's. Mutations: the no-set cause replaced with `[]`
+// (`main.ts` `buildCauses`) → `causes/refused`; the unknown def's cause dropped → `causes/unknown`.
+ok(second?.causes?.length === 1 && second.causes[0].kind === 'bad' && second.causes[0].subject === 'badge' && second.causes[0].what === 'could not be built'
+  && /^nothing built — set '.+' on this page varies by different axes and was left as it is$/.test(String(second.causes[0].reasons?.[0])),
+  `causes/refused: a set the executor refused could not be built, the refusal its first reason (${JSON.stringify(second?.causes)})`);
+ok(unknown?.causes?.length === 1 && unknown.causes[0].kind === 'bad' && unknown.causes[0].subject === null && unknown.causes[0].what === 'unknown def'
+  && String(unknown.causes[0].reasons?.[0]).includes('no-such-def'),
+  `causes/unknown: an unknown def is the run's own cause, naming the id asked for (${JSON.stringify(unknown?.causes)})`);
 
 // 4. #2177: each verdict's lines are its summary's items, in the summary's words. The oracle is the summary itself, the
 //    prose every reader had before #2177: the lines, in order, are pieces of it, and what lies between them is only the
@@ -898,6 +919,28 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   const other = specTargets(api, undefined, { id: '9:2' });
   ok(names(other).length === 0 && twice(other),
     `specs/page by id: a fresh object for page 9:2, which holds the other badge alone, skips that badge for its twin and draws nothing (${JSON.stringify({ targets: names(other), skipped: other.skipped })})`);
+}
+
+// #3326 PR 1 review S2: A BUILD WITH MISSES OF ITS OWN. Tag binds variables and styles this file does not hold, so its
+// build misses them, and those misses are the reasons it was built with problems. The style is typed here, a name the
+// file lacks. Mutation: the build's own misses (`...real`) dropped from its cause → `causes/misses`.
+const tagBuilt = await build('tag');
+const tagCause = tagBuilt?.causes?.find((c: any) => c.subject === 'tag');
+ok(tagBuilt?.ok === false && tagCause?.kind === 'warn' && tagCause.what === 'built with problems'
+  && (tagCause.reasons as string[]).includes('label.textStyle -> label/md/emphasis'),
+  `causes/misses: a build that missed the file's style names it among its reasons (${JSON.stringify(tagCause)?.slice(0, 300)})`);
+
+// #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite's runs posted. A verdict that is not ok says why: at
+// least one cause, each subject an engine def id, or null for the run's own cause. Mutations: any of the build's or the
+// Update's causes dropped → `causes/every verdict`.
+{
+  const ids = new Set(componentDefs.map((d) => d.id));
+  // Draw specs posts a `component-update-result` too, with no causes yet: outside #3326 PR 1's four writers, filed
+  // as #3404. Its verdicts are left out by their headline, which only Draw specs words.
+  const notOk = verdicts.filter((v) => v.ok === false && !/spec panel|to spec|draw specs/.test(String(v.headline)));
+  const bad = notOk.filter((v) => !Array.isArray(v.causes) || !v.causes.length || v.causes.some((c: any) => c.subject !== null && !ids.has(c.subject)));
+  ok(notOk.length > 0 && !bad.length,
+    `causes/every verdict: each of the ${notOk.length} verdicts not ok names a cause, each subject a def id (${JSON.stringify(bad.slice(0, 3).map((v) => ({ headline: v.headline, causes: v.causes })))})`);
 }
 
 console.log(`\n${executed - failed}/${executed} build-completed assertions passed.`);

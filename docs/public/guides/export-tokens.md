@@ -11,8 +11,8 @@ There are two ways to get token files out, and they start from different places:
 
 1. Open **Export** in the rail. <!-- src: apps/studio/src/shell/pages.ts:512 -->
 2. Choose **Design tokens**: "The token set in the W3C design-token format, aliases intact: a base file and one overlay per mode. These are the files a build reads." <!-- src: apps/studio/src/export-settings.ts:104-109 -->
-3. Set the options. The file list and a preview beside them update as you change them. <!-- src: apps/studio/src/main.ts:1452-1456 -->
-4. Choose **↓ Download tokens**. <!-- src: apps/studio/src/main.ts:1484 -->
+3. Set the options. The file list and a preview beside them update as you change them. <!-- src: apps/studio/src/main.ts:1453-1457 -->
+4. Choose **↓ Download tokens**. <!-- src: apps/studio/src/main.ts:1485 -->
 
 *[Screenshot placeholder: the Export area with Design tokens selected and the file list.]*
 
@@ -34,7 +34,7 @@ With **One per mode** <!-- src: apps/studio/src/export-settings.ts:206 -->, the 
 A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and CI checks that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:22-25 --> <!-- src: packages/tokens/check-consumability.mjs:261-270 -->
 The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the layout tokens themselves; the per-breakpoint detail the engine keeps for its own use is left out of these files. <!-- src: packages/engine/emit-dtcg-overlay.ts:37-41 -->
 
-Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1288-1295 -->
+Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1289-1296 -->
 
 The same brand exports the same files from the web studio and from the plugin; CI compares the two byte for byte. <!-- src: apps/studio/test-export-parity.mjs:1-3 --> <!-- src: apps/studio/test-export-parity.mjs:251 -->
 
