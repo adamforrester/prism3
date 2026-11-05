@@ -31,6 +31,8 @@ The Theme step is modeled as the variables arriving (`liveVars`, a new shim opti
 
 **Trap:** under the strict shim, the root's own search answers a set's members as references, with ids that are not the nodes'. So an in-place update through it reads every member as "not built by Prism3". The new test gives each page its own search over its real nodes, as Figma's does. The run's read then searches a page at a time (`run-read.ts`), and the components the sets nest are real ones on a page of their own. No host method is patched.
 
+**Version.** The PR first declared that no engine bump was owed. The review found it disagreed with #3432, and the repo's practice is a `patch` change note for a plugin behavior change (#3128, #3137, #3145), so it carries one (`packages/engine/changes/claude-update-leaves-due.md`).
+
 **Filed while doing this:**
 - #3435: switch-control's and tab-item's misses, not reproduced here.
 - #3436: a second Keep run over a kept set records it as current.
