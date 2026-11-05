@@ -2,16 +2,16 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Update file checklist for #3264). -->
 
-Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1816-1886 -->
-It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet: "The pages, the templates and the style-guide cells. The cover too, while Documentation has it on." <!-- src: apps/studio/src/state/update-file.ts:269-270 -->
+Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1836-1906 -->
+It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet: "The pages, the templates and the style-guide cells. The cover too, while Documentation has it on." <!-- src: apps/studio/src/state/update-file.ts:303-304 -->
 
 ## Set up a new file
 
-1. Choose **Update file** in the plugin's top bar. On a file that isn't set up, the dialog says "This file isn't set up for Prism3 yet. This first update sets it up." <!-- src: apps/studio/src/state/update-file.ts:267 -->
-2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:269 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:155-162 -->
-3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:328 -->
+1. Choose **Update file** in the plugin's top bar. On a file that isn't set up, the dialog says "This file isn't set up for Prism3 yet. This first update sets it up." <!-- src: apps/studio/src/state/update-file.ts:301 -->
+2. Leave **Set up file** ticked. <!-- src: apps/studio/src/state/update-file.ts:303 --> The theme and the style guides are ticked too, so one run sets up the file, writes the theme and draws the token tables. <!-- src: apps/studio/src/state/update-file.ts:165-172 -->
+3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:376 -->
 
-Once the file is set up, the checklist no longer lists the setup item. <!-- src: apps/studio/src/shell/update-file.ts:256 -->
+Once the file is set up, the checklist no longer lists the setup item. <!-- src: apps/studio/src/shell/update-file.ts:258 -->
 Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:95-102 --> If a setup failed, the Activity drawer offers **Set up again**. <!-- src: apps/studio/src/shell/activity.ts:207 -->
 
 ## The pages it creates
@@ -24,7 +24,7 @@ The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxon
 - A divider, then `Subcomponents`
 - A divider, then `Sandbox`, with `↳ File Components`
 
-The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:455-456 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5 -->
+The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:466-467 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5 -->
 
 Component pages are not created here. Each component page, such as `↳ Buttons` or `↳ Checkbox`, appears the first time a set for it is added, so a file never holds empty component pages. <!-- src: apps/plugin/src/file-taxonomy.ts:99-105 --> `↳ Icons & assets`, under Foundations, appears the same way. <!-- src: apps/plugin/src/file-taxonomy.ts:87 --> Pages under Components and Subcomponents sit in alphabetical order. <!-- src: apps/plugin/src/file-taxonomy.ts:94 --> <!-- src: apps/plugin/src/file-taxonomy.ts:178 -->
 
@@ -44,15 +44,15 @@ On `↳ File Components`, setup builds the components the plugin draws page furn
 | `_Doc-block` | The blocks a usage panel is drawn from. <!-- src: apps/plugin/src/doc-block.ts:42 --> |
 | `_style-guide-swatches`, `_style-guide-text-cells`, `_style-guide-spacing-cells` | The cells [Build style guides](style-guides.md) draws its tables from. <!-- src: apps/plugin/src/style-guide-cells.ts:26-28 --> |
 
-The names start with an underscore because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, setup uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:1839-1868 -->
+The names start with an underscore because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, setup uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:1859-1888 -->
 
 ## The result
 
-The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1883-1885 -->
+The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:1903-1905 -->
 
 | Result | Meaning |
 |---|---|
-| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1872 --> |
-| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1887 --> |
+| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1892 --> |
+| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1907 --> |
 
 While setup runs, a second request for it is refused: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:39-43 -->

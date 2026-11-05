@@ -41,7 +41,7 @@ import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { saveBeforeBuild, saveVersion } from './version-title';
-import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type ApplyProgress, type UpdateChoices } from './update-apply';
+import { applyUpdate, applyVerdict, ledgerAfter, previewHashOf, type ApplyHost, type ApplyProgress, type UpdateChoices } from './update-apply';
 import { scaffoldSkeleton, resolveComponentPage, fileComponentsPageOf } from './file-setup';
 import { emptiedLine, pageMovesDue, pageMovesLine, relocateSets, type RelocateOutcome } from './page-moves';
 import { ensureFileComponents } from './file-components';
@@ -55,6 +55,7 @@ import { blockHeadersLines, headerFor, pageHeaderItems, placeBlockHeaders } from
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
 import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
+import { cause, runCause, CAUSE_WHAT } from './causes';
 import { ensureFurnitureTemplates } from './furniture-templates';
 import { builtDocBlockItem, ensureDocBlock, docBlockNote, docBlockThemed, DOC_BLOCK_DEFS, type DocBlockApi, type DocBlockResult } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
@@ -738,7 +739,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       // was — the disagreement is between two bundles, so naming only one side of it is half a diagnosis.
       sink.data({ build: { def: defId, known: componentDefs.map((d) => d.id) } });
       const unknown = `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`;
-      postVerdict({ type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: unknown, lines: [unknown] }, sink);
+      postVerdict({ type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: unknown, lines: [unknown], causes: [runCause('✗ unknown def', unknown)] }, sink);
       return;
     }
     // REFUSED BY DECLARATION (#869) — the def's own `notStandalone`, quoted verbatim as the summary.
@@ -756,7 +757,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
     // moment, and paraphrasing it here would be a second copy to keep true.
     if (def.figmaProperties?.notStandalone) {
       const why = def.figmaProperties.notStandalone;
-      postVerdict({ type: 'component-result', ok: false, completed: false, headline: '✗ not buildable on its own', summary: why, lines: [why] }, sink);
+      postVerdict({ type: 'component-result', ok: false, completed: false, headline: '✗ not buildable on its own', summary: why, lines: [why], causes: [cause('bad', def.id, CAUSE_WHAT.failed, [why])] }, sink);
       return;
     }
     // `controlShape` (#1163) and weight availability (#1605) are BRAND levers, so they enter here — where the
@@ -974,10 +975,17 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       // the STALE lines are in `misses` and are not counted in `skipped`, so the equality already fails.
       // Stated rather than left to be re-derived, because it is the one place where the right behaviour
       // comes out of an expression that does not mention the new field.
+      // #3326 PR 1 (Q3326.1 A): why the build is not clean, by the rule its `ok` reads: a miss that is not a skipped or
+      // stale member, the stale note once, or no set at all. The template line's causes join in `withTemplateWarning`.
+      const ok = r.set !== null && r.misses.length === r.skipped;
+      const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
+      const buildCauses = ok ? [] : r.set === null
+        ? [cause('bad', def.id, CAUSE_WHAT.failed, [head[0], ...real])]
+        : [cause('warn', def.id, CAUSE_WHAT.built, [...real, ...(r.stale && staleItem ? [staleItem] : [])])];
       // A missing furniture template makes the run a warning (Q284.3 A, `withTemplateWarning`).
       postVerdict(withTemplateWarning({
         type: 'component-result' as const,
-        ok: r.set !== null && r.misses.length === r.skipped,
+        ok,
         completed: r.set !== null,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale, r.refsRelinked),
         ...fromClauses([
@@ -985,12 +993,12 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
           ['. ', alsoBuiltItem(alsoBuilt)], ['. ', builtDocBlockItem(docBlock)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
           ...furnitureItems(furniture, 'build').map((x) => ['. ', x] as const),
         ]),
-      }, furniture), sink);
+        causes: buildCauses,
+      }, furniture, 'build'), sink);
       verdictPosted = true;
       // #3309: the sets this run left not clean, and why, by the rule its `ok` reads: a miss that is not a skipped or
       // stale member (those are named once, in the stale note), and a missing canvas template. A set built first counts.
       try {
-        const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
         const reasons = [...real, ...(r.stale && staleItem ? [staleItem] : []), ...furnitureItems(furniture.filter((o) => o.missing?.length), 'build')];
         const problems: ActivityProblem[] = [
           ...alsoBuilt.filter((d) => d.misses > 0).map((d) => ({ set: d.id, reasons: [`${d.misses} misses`] })),
@@ -1083,6 +1091,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
         type: 'component-result', ok: false, completed: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
         ...fromClauses([['', `component build failed: ${(e as Error).message}`], [' — ', partial ? partialWriteItem(partial) : '']]),
+        // #3326: the host's own words first, then what the throw left on the canvas, as the summary leads with them.
+        causes: [cause('bad', e instanceof DependencyBuildError ? e.dependency : defId ?? button.id, CAUSE_WHAT.failed,
+          [(e as Error)?.message ?? String(e), ...(partial ? [partialWriteItem(partial)] : [])])],
       }, sink);
     }
   }
@@ -1666,9 +1677,16 @@ const updateTargets = (defId: string | readonly string[] | undefined, input?: Br
   return { targets, unknown: null, refused };
 };
 const breathe = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+/** #3421: the per-set hand-edit choices an `update-sets` carries, each a known choice, as `UpdateChoices.sets`; undefined
+ *  when there are none. */
+const keptChoices = (x: unknown): UpdateChoices['sets'] => {
+  if (!x || typeof x !== 'object') return undefined;
+  const e = Object.entries(x as Record<string, unknown>).filter(([, v]) => v === 'keep' || v === 'overwrite' || v === 'accept');
+  return e.length ? Object.fromEntries(e.map(([k, v]) => [k, { handEdits: v as 'keep' | 'overwrite' | 'accept' }])) : undefined;
+};
 const unknownDef = (defId: string, sink: ActionSink): void => {
   const why = `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`;
-  postVerdict({ type: 'component-update-result', ok: false, headline: '✗ unknown def', summary: why, lines: [why] }, sink);
+  postVerdict({ type: 'component-update-result', ok: false, headline: '✗ unknown def', summary: why, lines: [why], causes: [runCause('✗ unknown def', why)] }, sink);
 };
 
 const updateComponents = async (defId: string | readonly string[] | undefined, previewHash: string | null, choices: UpdateChoices | undefined, input: BrandInput | undefined, sink: ActionSink): Promise<void> => {
@@ -1714,20 +1732,22 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
     // #3082 Q811 A: with the print of the plans the apply laid, the target's own.
     const now = ledgerNow(input);
-    const acted = Object.fromEntries(r.outcomes.filter((o) => !o.refused).flatMap((o) => {
-      const e = now(o.def);
-      const plans = targets.find((t) => t.def === o.def)?.plans;
-      return e && plans ? [[o.def, { ...e, print: printOf(plans) }] as const] : [];
-    }));
+    // #3421 (Q39 A): a set whose kept hand edits held changes back carries them (`held`), so it is listed under Kept edits.
+    const acted = ledgerAfter(r.outcomes, (def) => {
+      const e = now(def);
+      const plans = targets.find((t) => t.def === def)?.plans;
+      return e && plans ? { ...e, print: printOf(plans) } : null;
+    });
     try { recordSets(figma.root, acted); } catch { /* read as due again; the next update records it */ }
     // Q811 A: the apply is a write, so the sets that are current by their print are recorded now too. Not the check above.
     restampQuiet();
     sink.data({ update: { mode: 'apply', ...r, furniture } });
     // #2858: the library publish description, which the Activity drawer offers with a Copy button.
-    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture), ...(r.publish ? { publish: r.publish } : {}) }, sink);
+    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture, 'update'), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
-    postVerdict({ type: 'component-update-result', ok: false, headline: previewHash === null ? '✗ check failed' : '✗ update failed', summary: why, lines: [why] }, sink);
+    const headline = previewHash === null ? '✗ check failed' : '✗ update failed';
+    postVerdict({ type: 'component-update-result', ok: false, headline, summary: why, lines: [why], causes: [runCause(headline, why)] }, sink);
   }
 };
 
@@ -2332,7 +2352,8 @@ onUiMessage((msg: UiToMain) => {
     case 'update-sets':
       // #2909: Update file's in-place update of the sets its checklist ticked, under the check's hash. Guarded, as the
       // agent's confirmed `update-components` is: the same action.
-      void ACTIONS.updateComponents(msg.defs, msg.previewHash, { handEdits: msg.handEdits }, msg.input, uiSink);
+      // #3421 (Q39 A): a Kept edits set's own choice rides `sets` (`UpdateChoices.sets`), over the one for every set.
+      void ACTIONS.updateComponents(msg.defs, msg.previewHash, { handEdits: msg.handEdits, ...(keptChoices(msg.sets) ? { sets: keptChoices(msg.sets) } : {}) }, msg.input, uiSink);
       return;
     case 'update-stop':
       // #3170 Q3170.4 A: read by the panel's running update at its next set boundary; nothing running, nothing to stop.

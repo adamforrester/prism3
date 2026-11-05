@@ -50,7 +50,7 @@
 import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
 import { planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { partRenames, type ComponentRename } from '@prism3/engine/component-renames';
-import { applyComponentPlan, emitCoordValue, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
+import { applyComponentPlan, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
@@ -66,9 +66,12 @@ import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf, slotTextMigrationOf } from '@prism3/engine/component-renames';
 import { fillSlotText, type SlotTextOutcome, type TextMigNode } from './slot-text-migration';
 import { saveVersion } from './version-title';
+import type { LedgerEntry } from './as-built-ledger';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 import { ABOUT_NAME, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
 import { publishDescription } from './library-about';
+import type { Cause } from './messages';
+import { cause, runCause, mergeCauses, CAUSE_WHAT } from './causes';
 import { COVER_NAME, coverIsWork, coverLine, coverPageOnlyLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -146,6 +149,10 @@ export type SetOutcome = {
    *  edit kept, as asked, never a miss. Absent when none. */
   keptBound?: { member: string; part: string; field: string }[];
   handEdits: HandEditChoice;
+  /** #3421 (owner decision Q39 A) — under `keep`, the hand edits the plan would also have changed (the dry run's
+   *  `conflict`): the members that hold them, and each change the update left out, as `part field`. The verdict names
+   *  them, and the set's ledger entry carries them, so Update file lists it under Kept edits. Absent when none. */
+  held?: { members: string[]; changes: string[] };
   /** Verify (a): every identity change the dry run did not list. */
   identity: string[];
   /** Verify (b): every field the updated members still differ from their plans in. */
@@ -206,7 +213,10 @@ export type ApplyResult = {
   /** #3170 Q3170.4 A — the person stopped the run ("Stop after <set>"): it finished the set it was on and wrote no set
    *  after it. `after` is the last set finished (null when the stop came before the first write, and nothing was
    *  written), `done` of `total` the sets written, `left` the sets not touched. Absent when the run was not stopped. */
-  halted?: { after: string | null; done: number; total: number; left: string[] };
+  halted?: { after: string | null; done: number; total: number; left: string[];
+    /** #3326 PR 1 review S1: the def id of each set in `left`, in the same order. A set's name in the file is not its
+     *  def id (a library names its sets its own way), and a cause's `subject` is always a def id. */
+    leftDefs: string[] };
 };
 
 /** #3170 part 2: one reading of how far an apply has got (`run-progress` in the plugin). `check`, the dry run before the
@@ -341,6 +351,75 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
   return { members, skipped, kept, unrecorded, restamp, earlierRecord };
 };
 
+/** THE LEDGER AFTER AN APPLY (#2909 Q2909.8 A; #3421, owner decision Q39 A): each set the apply acted on, recorded as
+ *  built from today's def (`entryOf`, `null` when it cannot be worked out). A refused set records nothing. A set whose
+ *  kept hand edits held changes back is recorded with them (`held`), so the due read lists it under Kept edits and
+ *  never as current. */
+export const ledgerAfter = (outcomes: readonly SetOutcome[], entryOf: (def: string) => LedgerEntry | null): Record<string, LedgerEntry> =>
+  Object.fromEntries(outcomes.filter((o) => !o.refused).flatMap((o) => {
+    const e = entryOf(o.def);
+    if (!e) return [];
+    const { held: _was, ...rest } = e;
+    return [[o.def, o.held ? { ...rest, held: { members: o.held.members.length, changes: o.held.changes } } : rest] as const];
+  }));
+
+/** #3421 (Q39 A): the changes kept hand edits hold back. Under `keep` only: `overwrite` writes them, and `accept` makes
+ *  the edits the record, so the set stops being listed. A conflicting edit is one on a node the plan also changes
+ *  (`dryRunSet`); each is named by the dry run's own change on that node, `part field`, or by its path where the dry
+ *  run lists none. Only members this update configures count: a skipped member is reported as skipped. */
+export const heldOf = (p: SetPreview, members: ReadonlyMap<string, unknown>, choice: HandEditChoice, plans: ReadonlyMap<string, AnatomyPlan> = new Map()): { members: string[]; changes: string[] } | null => {
+  if (choice !== 'keep') return null;
+  const moved = new Map(p.moves.map((m) => [m.from, m.to] as const));
+  const names = new Set<string>();
+  const changes = new Set<string>();
+  for (const h of p.handEdits) {
+    const at = moved.get(h.member) ?? h.member;
+    if (!h.conflict || h.structural || !members.has(at)) continue;
+    names.add(at);
+    const path = h.path.replace(/#\d+$/, '');
+    const onPart = p.changes.filter((c) => c.part === path);
+    // The dry run's changes on that node, those it sampled on a held member first (a change other members make alone,
+    // where nothing was edited, is not held back); every change on the node where none sampled one.
+    // A paint change the dry run did not sample this member for is its own when it binds what this member's plan binds.
+    const node = nodeAt(plans.get(at)?.root, path);
+    const own = node?.paints ? JSON.stringify(node.paints) : null;
+    const mine = onPart.filter((c) => c.sample.includes(h.member) || (c.field === 'paints' && own !== null && c.to === own));
+    for (const c of mine.length ? mine : onPart) for (const w of changeWords(c)) changes.add(w);
+    if (!onPart.length) changes.add(path === '.' ? 'the member' : path);
+  }
+  return names.size ? { members: [...names], changes: [...changes] } : null;
+};
+/** The plan node a member-relative path names (`.` the member, then child names joined by `/`). */
+const nodeAt = (n: AnatomyPlan['root'] | undefined, path: string): AnatomyPlan['root'] | undefined => {
+  if (!n || path === '.') return n;
+  let at: AnatomyPlan['root'] | undefined = n;
+  for (const seg of path.split('/')) at = at?.children?.find((c) => c.name === seg);
+  return at;
+};
+/** #3421 (DRAFT wording, Q3421.2): one dry-run change, in the designer's words: `border → <variable>` on the member,
+ *  `<part>: fill → <variable>` on a part. A paint change names each paint the plan binds; any other change its field. */
+const PAINT_WORD: Record<string, string> = { fills: 'fill', strokes: 'border' };
+const changeWords = (c: SetPreview['changes'][number]): string[] => {
+  const at = c.part === '.' ? '' : `${c.part}: `;
+  if (c.field === 'paints') {
+    try {
+      const to = JSON.parse(c.to) as Record<string, unknown>;
+      const words = Object.entries(to).map(([k, v]) => `${at}${PAINT_WORD[k] ?? k} → ${typeof v === 'string' ? v : JSON.stringify(v)}`);
+      if (words.length) return words;
+    } catch { /* not the dry run's JSON: named by its field below */ }
+  }
+  // A field binding (`bound`) reads `width→<var>, height→<var>, …`: each field in its plain word, each word once.
+  if (c.field === 'bound') {
+    const words = new Map<string, string>();
+    for (const pair of c.to.split(', ')) {
+      const [f, v] = pair.split('→');
+      if (f && v !== undefined) { const w = KEPT_FIELD_WORD[f] ?? f; if (!words.has(w)) words.set(w, v); }
+    }
+    if (words.size) return [...words].map(([w, v]) => `${at}${w} → ${v}`);
+  }
+  return [`${at}${c.field} → ${c.to}`];
+};
+
 /** The members `plan` left for the current stamp alone (#2379). Each is checked against its record first, and again
  *  after: a member that differs from it is not stamped, and anything written to one while it was stamped is a
  *  content failure, by name. */
@@ -393,6 +472,8 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
   const plans = new Map(t.plans.map((x) => [planComponentName(x), x] as const));
+  const held = heldOf(p, work.members, opts.handEdits, plans);
+  if (held) out.held = held;
 
   // ── A SINGLE-COMPONENT DEF'S OWN NAME (#3148), first: each component under the earlier id takes the current one, in
   // place, so it keeps its id and key and every placed instance keeps pointing at it. Everything below reads the
@@ -535,12 +616,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   // edits kept. A binding not held on a node no one edited stays a miss.
   const keptBound: { member: string; part: string; field: string }[] = [];
   out.misses = out.misses.filter((x) => {
-    for (const [member, { keep }] of work.members) {
-      if (!keep.size || !x.startsWith(`bound ${member}/`)) continue;
-      const m = /^(.+)\.([A-Za-z]+) -> DISCARDED \(/.exec(x.slice(`bound ${member}/`.length));
-      if (m && [...keep].some((k) => k === m[1] || k.endsWith(`/${m[1]}`))) { keptBound.push({ member, part: m[1], field: m[2] }); return false; }
-    }
-    return true;
+    const k = keptBoundOf(x, work.members);
+    if (k) keptBound.push(k);
+    return !k;
   });
   if (keptBound.length) out.keptBound = keptBound;
 
@@ -786,7 +864,7 @@ export const applyUpdate = async (
   // PREFLIGHT EVERY SET, before anything is written anywhere.
   const ordered = nestedFirst(targets);
   const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet; stampOnly?: boolean }[] = [];
-  const furnishing: SetPreview[] = [];
+  const furnishing: (SetPreview & { def: string })[] = [];
   for (const t of ordered) {
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
     const live = p ? await liveFor(host, t, p.set, opts.ledger) : undefined;
@@ -804,7 +882,7 @@ export const applyUpdate = async (
     // which `settle` draws through `opts.furnish` once the apply is done, and the named version below covers it.
     if (nothing && furnitureDueCount(p.furniture)) {
       res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [], furniture: p.furniture });
-      furnishing.push(p);
+      furnishing.push({ ...p, def: t.def });
       continue;
     }
     if (nothing) {
@@ -843,9 +921,10 @@ export const applyUpdate = async (
   // #3170 Q3170.4 A: STOPPED BEFORE THE FIRST WRITE, during the check. Nothing is written, no version saved.
   const halt = (done: number): void => {
     const left = [...ready.slice(done).map((x) => x.p.set), ...furnishing.map((p) => p.set)];
+    const leftDefs = [...ready.slice(done).map((x) => x.t.def), ...furnishing.map((p) => p.def)];
     // A set whose only work was its furniture is drawn in `settle`, after the sets: stopped, it is left as it is too.
     res.outcomes = res.outcomes.filter((o) => !furnishing.some((p) => p.set === o.set));
-    res.halted = { after: done ? ready[done - 1].p.set : null, done, total: ready.length, left };
+    res.halted = { after: done ? ready[done - 1].p.set : null, done, total: ready.length, left, leftDefs };
     opts.progress?.({ phase: 'finish', item: null, done, total: ready.length });
   };
   if (opts.stop?.()) { halt(0); return res; }
@@ -965,6 +1044,14 @@ const keptProps = (o: SetOutcome): string => {
   return said.length ? ` (${said.join(', ')})` : '';
 };
 
+/** #3421 (Q39 A; DRAFT wording for the owner, Q3421.2): one set's held changes, three named, then how many more. */
+export const heldLine = (set: string, h: { members: readonly string[] | number; changes: readonly string[] }): string => {
+  const k = typeof h.members === 'number' ? h.members : h.members.length;
+  // Every change named: the gate's rule is that no change a kept edit holds back goes unsaid (#3421 item 4).
+  const named = h.changes.join(', ');
+  return `${set}: hand edits kept on ${n(k, 'member')} hold back ${n(h.changes.length, 'change')} the plan makes (${named}). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.`;
+};
+
 const NOT_RECORDED = '.asBuilt -> NOT RECORDED';
 /** The members the build wrote but could not finish: each one's as-built record was refused, so `finishUpdated` left its
  *  stamp as it was and the next dry run reads it out of date (#2477). Named only when the build also listed it as
@@ -990,10 +1077,13 @@ const haltedLine = (h: NonNullable<ApplyResult['halted']>): string =>
 /** Whether the run wrote to the cover. */
 const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'none';
 
-export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
+/** A set the apply entered and wrote nothing to (see `idle` in `applyVerdict`). */
+const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved;
+
+export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
   if (r.refusedAll) {
     const lines = [`Nothing was updated: ${r.refusedAll}.`];
-    return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines };
+    return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   // A miss from the build's own pass is a set not verified, as an identity or content difference is (#2477): the set
@@ -1003,7 +1093,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
   // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
   // Furniture drawn for it does not change that (#2803 review): its members still hold what the dry run listed.
-  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved).length;
+  const idle = r.outcomes.filter((o) => isIdle(o)).length;
   const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
   // A member not finished is not counted as updated: the next dry run reads it out of date (#2477).
   const done = (o: SetOutcome): number => o.updated.length - unfinishedOf(o).members.length;
@@ -1019,9 +1109,13 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   const tablesMoved = r.relocatedTables?.length ?? 0;
   const headers = r.headers?.length ?? 0;
   const lines: string[] = [];
+  // #3326 PR 1 (Q3326.1 A): why the run is not clean, per set, from the same facts its `ok` reads: a set stopped, one
+  // not verified, one not updated. Each reason is the clause its line already prints after the set's name.
+  const causes: Cause[] = [];
   for (const o of r.outcomes) {
-    if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
+    if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); causes.push(cause('bad', o.def, CAUSE_WHAT.notUpdated, [`${o.refused}.`])); continue; }
     if (o.stopped) {
+      causes.push(cause('bad', o.def, CAUSE_WHAT.stopped, [o.stopped]));
       lines.push(`${o.set}: stopped (${o.stopped}). ${n(o.updated.length, 'member')} updated; the rest are unchanged and still read as out of date. Run the update again to finish, or undo once to revert it.`);
       continue;
     }
@@ -1044,9 +1138,13 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     // A set the apply entered with nothing to write reads as its dry run read it (Q205 A): never "already up to date"
     // for a set the dry run doesn't call up to date (one Adopt could claim a member of, #2495).
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : o.asPreviewed && !o.asPreviewed.upToDate ? o.asPreviewed.line : `${o.set}: already up to date.`);
+    // #3421 (Q39 A; DRAFT wording, Q3421.2): the changes kept hand edits held back, by set, member count and change.
+    if (o.held) lines.push(heldLine(o.set, o.held));
+    if (isIdle(o)) causes.push(cause('bad', o.def, CAUSE_WHAT.notUpdated, o.skipped.map((x) => `${x.member}: ${x.reason}`)));
     // DRAFT wording for the owner (#2649): the placed instances whose rows became slot items.
     if (o.carriedText) lines.push(`${o.set}: ${n(o.carriedText.instances, 'instance')} carried: ${n(o.carriedText.moved, 'body', 'bodies')} moved into the text property, ${o.carriedText.rich} kept in the slot, ${o.carriedText.emptied} left empty.`);
     if (o.carried) lines.push(`${o.set}: ${n(o.carried.instances, 'instance')} carried into the slot, ${n(o.carried.items, 'item')} in all.${o.carried.limits.length ? ` Outside the slot's limits: ${o.carried.limits.join('; ')}.` : ''}`);
+    const at = lines.length;
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still ${o.content.length === 1 ? 'differs' : 'differ'} from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
     // DRAFT wording for the owner (#2477, the issue's option A): a member written but not finished, by name.
@@ -1058,10 +1156,14 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     }
     // DRAFT wording for the owner (#2477): any other miss the build's pass reported, with its own reason.
     if (others.length) lines.push(`${o.set}: ${n(others.length, 'part')} not written as planned — ${others.slice(0, 3).join('; ')}${others.length > 3 ? '; …' : ''}.`);
+    // The set is not verified by exactly the lines above (identity, content, a member not finished, a part not written).
+    if (o.identity.length || o.content.length || o.misses.length) {
+      causes.push(cause('warn', o.def, CAUSE_WHAT.notVerified, lines.slice(at).map((l) => l.slice(`${o.set}: `.length))));
+    }
   }
   // #2831: what the update broke for library consumers, in its own section, as the dry run's.
   lines.push(...breakingSection(r.outcomes, true));
-  for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
+  for (const x of r.refused) { lines.push(`${x.def}: not updated. ${x.reason}.`); causes.push(cause('bad', x.def, CAUSE_WHAT.notUpdated, [`${x.reason}.`])); }
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   // #2989: the sets moved to their pages, and any page the move left empty, for the owner to delete by hand.
@@ -1069,7 +1171,11 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   lines.push(...blockHeadersLines(r.headers, true));
   if (r.emptied?.length) lines.push(emptiedLine(r.emptied));
   // #3170 Q3170.4 A (DRAFT wording): the stop the person asked for, and the sets it left as they were.
-  if (r.halted) lines.push(haltedLine(r.halted));
+  if (r.halted) {
+    lines.push(haltedLine(r.halted));
+    // A stop the person asked for: each set it left is not updated, and the stop is the reason.
+    for (const def of r.halted.leftDefs) causes.push(cause('warn', def, CAUSE_WHAT.notUpdated, [haltedLine(r.halted)]));
+  }
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.
   // #2859: the library cover, kept current before it.
@@ -1102,5 +1208,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                         : r.about?.drawn ? `✓ ${ABOUT_NAME} drawn`
                           // DRAFT wording for the owner (#2859): a run whose only work was the cover.
                           : coverDid(r.cover) ? `✓ ${COVER_NAME} ${r.cover!.did === 'drawn' ? 'drawn' : 'updated'}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
-  return { ok: !stopped && !r.halted && !failed.length && !refused, headline: `${headline}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines };
+  // #3421: Keep is a choice, so the run goes on; the headline says how many sets hold changes back, never a bare ✓.
+  const held = r.outcomes.filter((o) => o.held).length;
+  const ok = !stopped && !r.halted && !failed.length && !refused;
+  return { ok, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
 };
