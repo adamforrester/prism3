@@ -4184,7 +4184,7 @@
         "Family": "Agent metadata",
         "Files": "`out/<brand>.ai.json` ×5",
         "Writer (file:line)": "`emit-dtcg.ts:52` (`buildAiMetadata`, `ai-metadata.ts`)",
-        "Consumers (file:line)": "Skills `skills/prism3-consume/SKILL.md:12,36`, `skills/prism3-theme/SKILL.md:163`; MCP serves the same content live (`mcp.ts:552`, as `ai-metadata.json`); `apps/studio/chrome/glyphs.mjs:40`; prose gates"
+        "Consumers (file:line)": "Skills `skills/prism3-build-ui/SKILL.md:12,36`, `skills/prism3-theme/SKILL.md:163`; MCP serves the same content live (`mcp.ts:552`, as `ai-metadata.json`); `apps/studio/chrome/glyphs.mjs:40`; prose gates"
       },
       {
         "Family": "Fidelity report",
@@ -4912,12 +4912,12 @@
       ]
     },
     {
-      "name": "prism3-consume",
+      "name": "prism3-build-ui",
       "audience": "agent working WITH Prism3 (UI builder)",
       "purpose": "Build accessible on-brand UI from generated tokens: semantic roles by name, modes, avoid_when, contrast self-check",
-      "source": "skills/prism3-consume/SKILL.md:2-14",
+      "source": "skills/prism3-build-ui/SKILL.md:2-14",
       "files": [
-        "skills/prism3-consume/SKILL.md"
+        "skills/prism3-build-ui/SKILL.md"
       ]
     },
     {
@@ -5480,7 +5480,7 @@
       "group": "10.2 MCP server",
       "doc": null,
       "id": "1",
-      "docSays": "skills/prism3-consume/SKILL.md:178: \"Call `list_levers` to learn the knobs and `theme_brand` to get the tree + `.ai.json` for the brand\"",
+      "docSays": "skills/prism3-build-ui/SKILL.md:178: \"Call `list_levers` to learn the knobs and `theme_brand` to get the tree + `.ai.json` for the brand\"",
       "codeSays": "theme_brand returns neither by default. Both are opt-in via `include` (default `['notes']`): mcp.ts:267, 403, 488-489"
     },
     {

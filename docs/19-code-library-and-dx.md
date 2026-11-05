@@ -136,7 +136,7 @@ want ownership — but it's now the *exception path*, from a clean package, not 
   current code with zero hand-authoring.
 - **AI surface — mirror the token-layer win.** A rich component **`.ai.json` registry** (toward
   Wolosin's 12 fields — `when_to_use` / `avoid_when` / `common_partners` / `trigger_keywords`, KB
-  `03 §7`) + **one portable `component-consume` skill** (the analog of `prism3-consume`), measured by the
+  `03 §7`) + **one portable `component-consume` skill** (the analog of `prism3-build-ui`), measured by the
   same eval discipline. Lesson carried from the token result: the *portable skill beat the per-role data
   dump* — so **one strong skill + a rich registry over 40 thin per-component skills**; per-item skills
   only where a component is genuinely idiosyncratic. Three learnings folded in from `13` (inspirations):

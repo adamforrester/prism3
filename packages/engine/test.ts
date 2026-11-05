@@ -9578,9 +9578,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     // Represented, not counted: each brand's body and caption both carry it.
     for (const g of ['body', 'caption']) if (!groups.has(g)) bad.push(`${b}: no type.${g} entry to carry the guidance`);
   }
-  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
   for (const want of ['**Strikethrough is a modifier, not a style.**', '<del><span class="visually-hidden">Original price: </span>', '<ins><span class="visually-hidden">Sale price: </span>'])
-    if (!skill.includes(want)) bad.push(`prism3-consume: no "${want}"`);
+    if (!skill.includes(want)) bad.push(`prism3-build-ui: no "${want}"`);
   ok(bad.length === 0,
     `#2340: strikethrough is a modifier on body and caption's styles, never a style, in all five brands' .ai.json, and the consume skill carries the accessible price pattern (${carried} entries${bad.length ? `; ${bad.length}: ${bad.slice(0, 4).join(' | ')}` : ''})`);
 }
@@ -10363,7 +10363,7 @@ arm: {
   // The exact names the consume skill hands an agent, read from the SHIPPED skill — the oracle for "every
   // name the skill tells you to use has an entry". Backticked, dotted, lower-case, at most one wildcard
   // segment; file names (`.json`) and the private primitives it names only as the wrong choice are out.
-  const consumeSkill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const consumeSkill = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
   // A name the skill cites as the WRONG choice ("not `focus.ring.size`") is a counter-example, not a name to use.
   const consumeNames = [...new Set([...consumeSkill.matchAll(/`([a-z][a-z0-9-]*(?:\.(?:[a-z0-9-]+|\*))+)`/g)]
     .filter((m) => !/\bnot\s*$/.test(consumeSkill.slice(Math.max(0, m.index! - 6), m.index)))
@@ -37323,10 +37323,10 @@ arm: {
     `#2443 lint-hit-target: FLUSH_SIZES is exactly ['medium', 'large'], the 44×44 flush scope (owner Q170 B) (got: ${constOf('FLUSH_SIZES') ?? 'not found'})`);
   ok(constOf('FLUSH_SMALL_SIZES') === "['small']",
     `#2443 lint-hit-target: FLUSH_SMALL_SIZES is exactly ['small'], the 24×24 flush scope (owner Q174 B) (got: ${constOf('FLUSH_SMALL_SIZES') ?? 'not found'})`);
-  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
   const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
   ok(!!para && missing(para).length === 0,
-    `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
+    `#2408 prism3-build-ui: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
 // ---- Progress (#2670): the approved calls as literals, and its contrast on every committed brand × mode ----
