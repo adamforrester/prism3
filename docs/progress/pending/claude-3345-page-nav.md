@@ -3,7 +3,7 @@
 ### What landed
 - **PageNav** (`page-nav`) and **PageNav.Item** (`page-nav-item`), built from the owner decisions of 2026-11-03 on #3345. A page-to-page switch is a `<nav>` of links with `aria-current="page"`; Tabs stays for in-place panels (Q1 A). The look is Link's, not the tab look (Q2): the item nests Link, at its standalone look: the other pages plain at rest and underlined at hover (Q7 B), and the current page plain, with Link's 2px current-page bar (`selection=selected`). There's no baseline. Two components, 6 members.
 - **`currentIndicator: full | partial`**, the brand setting (Q2 A). Partial is the engine default (Q10 B): round(0.5 × the title's width), centered. Full is the title's width. It moves Link's current-page bar, because a nested instance can't differ from its main component, so every current link in a brand draws the same bar.
-- **`footShare`**, a part field. Both executors draw a foot bar at a share of its parent, centered, constrained `SCALE` across so a longer label keeps the share. The readback reads the constraint off the plan's share, and `test-roundtrip.ts` builds and reads back the Partial-materialized Link (`link@partial`) so that branch is gated. `EXECUTOR_REVISION` is raised for it, to 52, which redraws `link` alone.
+- **`footShare`**, a part field. Both executors draw a foot bar at a share of its parent, centered, constrained `SCALE` across so a longer label keeps the share. The readback reads the constraint off the plan's share, and `test-roundtrip.ts` builds and reads back the Partial-materialized Link (`link@partial`) so that branch is gated. `EXECUTOR_REVISION` is raised for it, to 53, which redraws `link` alone.
 
 ### Gates
 Arms in `packages/engine/test.ts`, each with literals typed from the decision comment:

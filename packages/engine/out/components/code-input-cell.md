@@ -9,7 +9,7 @@
 
 ## Overview
 
-One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus ring and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.
+One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus edge and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.
 
 - **Purpose:** Show one character of a one-time code inside a code input.
 - **Use when:** Only as a child of CodeInput. Generate CodeInput, which places one cell per character and sets which one is active.
@@ -23,7 +23,6 @@ Shown on the default member: size `medium`.
 2. **Content** — Centers the character, or the caret on the active empty cell.
 3. **Caret** — The insertion point on the active empty cell, in the character ink, as tall as the character.
 4. **Digit** — The character, in its size's text style, centered in the cell. Tabular figures in code, so every digit is one width.
-5. **Focus ring** — The shared focus ring on the active cell, where the next character goes, drawn inside the cell's border at its own radius.
 
 ## Styles
 
@@ -52,7 +51,7 @@ Use inside CodeInput only, one cell per character of the code. In a design, add 
 ## Accessibility
 
 - **Keyboard:** None of its own: the code input's input takes every key.
-- **Focus:** Never focused itself. While the code input's input has focus, the active cell shows the focus ring, drawn inside the cell: its border takes the focus color and a 2px band sits inside it, at the cell's radius.
+- **Focus:** Never focused itself. While the code input's input has focus, the active cell draws the 2px focus edge in place of its border: from the outer edge, at the cell's own radius, with no ring and no gap, and the cell keeps its size (in CSS, an outline of the focus width at a negative offset of the same width, in the focus color).
 - **Screen readers:** none: an aria-hidden drawing; the code input's one input carries the role, the name and the value
 
   aria-hidden="true". A screen reader meets the code input's one input and its whole value, never a cell.
@@ -60,14 +59,14 @@ Use inside CodeInput only, one cell per character of the code. In a design, add 
 ### WCAG
 
 - 1.4.11 Non-text Contrast (targets 3:1 for the cell border against the page)
-- 2.4.7 Focus Visible (the ring on the active cell)
-- 2.4.13 Focus Appearance (the shared focus ring, as intent)
+- 2.4.7 Focus Visible (the focus edge on the active cell)
+- 2.4.13 Focus Appearance (the 2px focus edge, as intent)
 
 ### Motion
 
 - **Enter:** None.
 - **Exit:** None.
-- **Reduced motion:** The caret does not blink; the ring and borders change at once, with no transition.
+- **Reduced motion:** The caret does not blink; the focus edge and borders change at once, with no transition.
 
 ## Content guidelines
 
@@ -75,7 +74,6 @@ One character per cell.
 
 ## Related components
 
-- **Built from:** `focus-ring`
 - **Often used with:** `code-input`
 - **Replaces:**
   - one input per character of a one-time code
@@ -104,7 +102,6 @@ Generated from the plan that builds the design-file component: 28 members. Value
 | `container/content` | frame | every member |
 | `container/content/digit` | text | state=filled or focus-visible-filled or error |
 | `container/content/caret` | frame | state=focus-visible |
-| `container/focusRing` | instance | state=focus-visible or focus-visible-filled |
 
 ### Spacing and size
 
@@ -206,8 +203,6 @@ Keyed by `state`.
 | `container/content/digit` | — | — | `color.text.primary` | — |
 
 ### Nesting and properties
-
-- `container/focusRing` nests `focus-ring` at `surface=default`
 
 | Property | Type | Default |
 | --- | --- | --- |

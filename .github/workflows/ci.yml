@@ -822,6 +822,12 @@ jobs:
       - name: No member fills a width that hugs (#2928)
         run: npx --yes tsx@4 packages/engine/lint-fill-under-hug.ts
 
+      # #3409, owner decision Q33 A — every token in the guaranteed contract is read by a def, an alias in the
+      # committed emission or the preview spec, or is declared unread in the gate's authored register with a reason
+      # and the count it claims. Tokens that look like they should be bound are held there as owner questions.
+      - name: Every contract token is read, or declared unread with a reason (#3409)
+        run: npx --yes tsx@4 packages/engine/lint-token-consumers.ts
+
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
       # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running

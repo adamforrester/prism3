@@ -3654,7 +3654,7 @@
           "3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste"
         ],
         "keyboard": "Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are separate tab stops with their own accessible names. Escape clears when clearable.",
-        "focus": ":focus-visible ring, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field's own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.",
+        "focus": ":focus-visible draws the 2px focus edge in place of the border: from the field's outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.",
         "aria": "The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir=\"auto\" on the input so content direction can differ from UI direction."
       },
       "content": {
@@ -3709,8 +3709,7 @@
       "composition": {
         "composesWith": [
           "field-label",
-          "field-message",
-          "focus-ring"
+          "field-message"
         ],
         "alternativeTo": [
           "textarea",
@@ -3966,7 +3965,7 @@
           "2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so Textarea does not set its target"
         ],
         "keyboard": "Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.",
-        "focus": ":focus-visible with the field ring, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field's own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width). forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.",
+        "focus": ":focus-visible draws Text field's 2px focus edge in place of the border: from the outer edge, at the field's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color). forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.",
         "aria": "The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is announced, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir=\"auto\" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition."
       },
       "content": {
@@ -4024,8 +4023,7 @@
       "composition": {
         "composesWith": [
           "field-label",
-          "field-message",
-          "focus-ring"
+          "field-message"
         ],
         "alternativeTo": [
           "text-field",
@@ -5730,7 +5728,7 @@
           "4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size"
         ],
         "keyboard": "The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.",
-        "focus": ":focus-visible ring on the control, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field's own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.",
+        "focus": ":focus-visible draws the 2px focus edge on the control in place of its border: from the outer edge, at the control's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.",
         "aria": "The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is not the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native <select> where its OS menu is acceptable, because it is correct for free."
       },
       "content": {
@@ -5760,7 +5758,6 @@
         "commonPartners": [
           "field-label",
           "field-message",
-          "focus-ring",
           "icon"
         ],
         "triggerKeywords": [
@@ -5780,8 +5777,7 @@
       "composition": {
         "composesWith": [
           "field-label",
-          "field-message",
-          "focus-ring"
+          "field-message"
         ],
         "alternativeTo": [
           "text-field",
@@ -8916,7 +8912,7 @@
           "2.4.13 Focus Appearance (intent)"
         ],
         "keyboard": "Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.",
-        "focus": "The input takes TextField's focus ring. The button takes Button's own focus ring. Pressing the button never moves focus.",
+        "focus": "The input takes TextField's 2px focus edge, in place of its border. The button takes Button's own focus ring. Pressing the button never moves focus.",
         "aria": "The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes (\"Show password\" / \"Hide password\"), not aria-pressed. Each change is announced once through the app's shared polite live region: \"Your password is shown\" / \"Your password is hidden\"."
       },
       "content": {
@@ -8968,7 +8964,6 @@
         "composesWith": [
           "field-label",
           "field-message",
-          "focus-ring",
           "button"
         ],
         "alternativeTo": [
@@ -9734,12 +9729,12 @@
           "2.1.1 Keyboard (the arrow, Page Up, Page Down, Home and End keys change the value; the buttons are not needed)",
           "4.1.3 Status Messages (a button press announces the new value through the shared polite live region)",
           "1.4.11 Non-text Contrast (the outline edge is the field edge; the glyphs target 3:1 against the page)",
-          "2.4.7 Focus Visible (the shared focus ring around the row)",
+          "2.4.7 Focus Visible (the 2px focus edge on outline, the shared focus ring around the row on ghost)",
           "2.5.8 Target Size (Minimum) (24×24, as intent, through each button's code-side hit area)",
           "2.5.5 Target Size (Enhanced) (targets 44×44 for each button at every size, through its code-side hit area)"
         ],
         "keyboard": "The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex=\"-1\").",
-        "focus": "One focus ring around the whole row while the value has keyboard focus: inside the edge for outline, where the edge takes the focus color and a 2px band sits inside it at the row's radius; 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.",
+        "focus": "While the value has keyboard focus, outline draws the 2px focus edge in place of its edge, in the focus color, from the outer edge at the row's radius, with no ring and no gap, and the row keeps its size; ghost draws the shared focus ring 2px outside the buttons. The buttons never take focus from the keyboard, so they draw no ring of their own.",
         "aria": "The value has role=\"spinbutton\", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, aria-valuetext where the number is shown formatted (\"3 items\"), and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object (\"Increase quantity\"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled=\"true\" and stays in the accessibility tree. The buttons are not aria-hidden: they keep their names for pointer and touch users of assistive technology, as the ARIA Authoring Practices spin button example does. Every name is translatable, and the row mirrors right to left."
       },
       "content": {
@@ -10707,7 +10702,7 @@
           "2.4.13 Focus Appearance (intent)"
         ],
         "keyboard": "Tab reaches the input, then the clear button while the field holds a value. Enter submits the host's form. Escape empties the field. Enter or Space on the clear button empties the field and returns focus to the input.",
-        "focus": "The input takes TextField's focus ring. The clear button takes its own focus ring, and pressing it moves focus back to the input.",
+        "focus": "The input takes TextField's 2px focus edge, in place of its border. The clear button takes its own focus ring, and pressing it moves focus back to the input.",
         "aria": "The host wires the label, aria-describedby and aria-invalid as TextField does. A hidden label stays in the DOM, visually hidden, never display: none. The clear button carries aria-label=\"Clear search\" and aria-controls naming the input; the cleared state is announced once through the app's shared polite live region: \"Search cleared\". While results load, aria-busy."
       },
       "content": {
@@ -10759,8 +10754,7 @@
       "composition": {
         "composesWith": [
           "field-label",
-          "field-message",
-          "focus-ring"
+          "field-message"
         ],
         "alternativeTo": [
           "text-field"
@@ -10906,7 +10900,7 @@
           "name": "renderInput",
           "type": "function",
           "required": false,
-          "description": "Returns the payment provider's mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus ring and message around the provider's input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope."
+          "description": "Returns the payment provider's mount point, the element its hosted input mounts into. With it, the field draws the label, box, tile, focus edge and message around the provider's input and never renders the card number input itself. Without it, the field renders a native input, which puts the page outside the lightest card-data compliance scope."
         },
         {
           "name": "isPending",
@@ -10994,7 +10988,7 @@
           "2.4.13 Focus Appearance (intent)"
         ],
         "keyboard": "Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.",
-        "focus": "The input takes TextField's focus ring. With a hosted input, the ring follows the provider's focus event, and clicking the label focuses the provider's input.",
+        "focus": "The input takes TextField's 2px focus edge, in place of its border. With a hosted input, the edge follows the provider's focus event, and clicking the label focuses the provider's input.",
         "aria": "The host wires the label, aria-describedby and aria-invalid as TextField does. The tile is aria-hidden. The detected network's name is a visually hidden description on the input, added to aria-describedby and never a live region, so typing is not interrupted by speech. Reformatting is not announced. With a hosted input, the label text is also passed to the provider's own label option, because a label outside the frame cannot name the input inside it."
       },
       "content": {
@@ -11049,8 +11043,7 @@
       "composition": {
         "composesWith": [
           "field-label",
-          "field-message",
-          "focus-ring"
+          "field-message"
         ],
         "alternativeTo": [
           "text-field"
@@ -11701,7 +11694,7 @@
       "category": "form",
       "status": "draft",
       "summary": "One cell of a code input: a box holding one character of the code. Used only inside a code input.",
-      "description": "One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus ring and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.",
+      "description": "One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus edge and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.",
       "props": [
         {
           "name": "digit",
@@ -11768,11 +11761,11 @@
         "role": "none: an aria-hidden drawing; the code input's one input carries the role, the name and the value",
         "wcag": [
           "1.4.11 Non-text Contrast (targets 3:1 for the cell border against the page)",
-          "2.4.7 Focus Visible (the ring on the active cell)",
-          "2.4.13 Focus Appearance (the shared focus ring, as intent)"
+          "2.4.7 Focus Visible (the focus edge on the active cell)",
+          "2.4.13 Focus Appearance (the 2px focus edge, as intent)"
         ],
         "keyboard": "None of its own: the code input's input takes every key.",
-        "focus": "Never focused itself. While the code input's input has focus, the active cell shows the focus ring, drawn inside the cell: its border takes the focus color and a 2px band sits inside it, at the cell's radius.",
+        "focus": "Never focused itself. While the code input's input has focus, the active cell draws the 2px focus edge in place of its border: from the outer edge, at the cell's own radius, with no ring and no gap, and the cell keeps its size (in CSS, an outline of the focus width at a negative offset of the same width, in the focus color).",
         "aria": "aria-hidden=\"true\". A screen reader meets the code input's one input and its whole value, never a cell."
       },
       "docs": {
@@ -11804,12 +11797,10 @@
       "motion": {
         "enter": "None.",
         "exit": "None.",
-        "reduceMotion": "The caret does not blink; the ring and borders change at once, with no transition."
+        "reduceMotion": "The caret does not blink; the focus edge and borders change at once, with no transition."
       },
       "composition": {
-        "composesWith": [
-          "focus-ring"
-        ],
+        "composesWith": [],
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
@@ -12006,11 +11997,11 @@
           "3.2.2 On Input (no auto-submit)",
           "4.1.2 Name, Role, Value (one textbox, one name, one value)",
           "1.4.11 Non-text Contrast (targets 3:1 for the cell border)",
-          "2.4.13 Focus Appearance (the ring on the active cell, as intent)",
+          "2.4.13 Focus Appearance (the 2px focus edge on the active cell, as intent)",
           "2.5.8 Target Size (the row of cells is one target)"
         ],
         "keyboard": "One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.",
-        "focus": "Focus stays on the one input. The active cell, where the next character goes, shows the focus ring.",
+        "focus": "Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.",
         "aria": "aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
       },
       "content": {

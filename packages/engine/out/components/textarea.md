@@ -25,9 +25,8 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 3. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.
 4. **Value** — The entered value, in the value ink. Shown on the filled, focused filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.
 5. **Grip glyph** (optional)
-6. **Focus ring**
-7. **Message**
-8. **Counter**
+6. **Message**
+7. **Counter**
 
 ## Styles
 
@@ -65,7 +64,7 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 ## Accessibility
 
 - **Keyboard:** Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.
-- **Focus:** :focus-visible with the field ring, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field's own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width). forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
+- **Focus:** :focus-visible draws Text field's 2px focus edge in place of the border: from the outer edge, at the field's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color). forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
 - **Screen readers:** textbox (native \<textarea>), with the implicit aria-multiline="true"
 
   The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is announced, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.
@@ -96,7 +95,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 
 ## Related components
 
-- **Built from:** `field-label`, `field-message`, `focus-ring`
+- **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `text-field`, `select`
 - **Often used with:** `button`, `icon`, `spinner`
 - **Replaces:**
@@ -154,7 +153,6 @@ Generated from the plan that builds the design-file component: 84 members. Value
 | `container/body/messageRow/counterCell/counter` | text | every member |
 | `container/body/control/value` | text | state=filled or focus-visible-filled or read-only |
 | `container/body/control/caret` | frame | state=focus-visible |
-| `container/body/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
 
 Code-only states, with no design-file member: `pending`, `empty`.
 
@@ -481,7 +479,6 @@ Keyed by `status`, `state`.
 - `container/label` nests `field-label` at `size=medium, emphasis=primary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
 - `container/body/control/gripGlyph` nests `icon/resize-grip`
 - `container/body/messageRow/messageCell/message` nests `field-message` at `status=default`; follows `status`
-- `container/body/control/focusRing` nests `focus-ring` at `surface=default`
 
 | Property | Type | Default |
 | --- | --- | --- |

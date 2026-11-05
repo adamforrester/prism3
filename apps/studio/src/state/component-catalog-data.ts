@@ -570,8 +570,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "field-label",
       "icon",
-      "field-message",
-      "focus-ring"
+      "field-message"
     ]
   },
   {
@@ -614,8 +613,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "field-label",
       "icon",
-      "field-message",
-      "focus-ring"
+      "field-message"
     ]
   },
   {
@@ -871,8 +869,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "field-label",
       "icon",
-      "field-message",
-      "focus-ring"
+      "field-message"
     ]
   },
   {
@@ -1406,8 +1403,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-label",
       "button",
       "icon",
-      "field-message",
-      "focus-ring"
+      "field-message"
     ]
   },
   {
@@ -1645,8 +1641,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "field-label",
       "icon",
-      "field-message",
-      "focus-ring"
+      "field-message"
     ]
   },
   {
@@ -1702,8 +1697,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-label",
       "icon",
       "provider-logo",
-      "field-message",
-      "focus-ring"
+      "field-message"
     ]
   },
   {
@@ -1785,9 +1779,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "buildable": true,
     "reason": null,
     "members": 28,
-    "nests": [
-      "focus-ring"
-    ]
+    "nests": []
   },
   {
     "id": "code-input",

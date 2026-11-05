@@ -40,7 +40,7 @@
  *
  *   rest          → `field.border.rest`      (the bare `border` key — the rest fallback)
  *   hover         → `field.border.hover`     (`border.hover`)
- *   focus-visible → `border.focus`           (`border.focus-visible`)
+ *   focus-visible → `border.focus`           (`border.focus-visible`), at the 2px focus width (#3399)
  *   read-only     → `field.border.rest`      (`border.read-only` — the editable boundary, text-field's binding, #1710)
  *   error         → `border.danger`          (`error.border.{state}` — a status-led, border-ONLY swap)
  *   warning       → `border.warning`         (`warning.border.{state}`)
@@ -126,6 +126,7 @@
  * projected plan changes, which is the `ENGINE_VERSION` trigger this def already carries.
  */
 import { ComponentDef } from '../component-schema';
+import { fieldEdgeWidths, FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE } from './text-field';
 
 export const select: ComponentDef = {
   id: 'select',
@@ -249,12 +250,8 @@ export const select: ComponentDef = {
     'icon-size': 'icon.size.sm',
     // 1px, the field/button edge weight — NOT the 2px control weight the selection controls carry
     // (`border-width.thick`). A select is a field, so it takes the field's hairline.
-    'border-width': 'border-width.hairline',
-    // The nested focus ring's geometry — the ring owns its own COLOR, so only the width (to compensate
-    // the inset, #801) and the FIELD offset (0 — an input's own border supplies the separation) are
-    // bound here.
-    'ring-width': 'focus.ring.width',
-    'ring-offset': 'focus.ring.offset-field',
+    // Per state since #3399: the hairline, and the 2px focus edge at both focus states, as on Text field.
+    ...fieldEdgeWidths(['rest', 'hover', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'empty']),
 
     // ── FILL — the field chrome (#1341/#1342, owner-decided). `field.fill` is TRANSPARENT by default, so the
     // control shows the page in every state. Hover is the border alone since #2926 (see the header).
@@ -273,7 +270,7 @@ export const select: ComponentDef = {
     // value ink above it — text-field's binding.
     'border.read-only': 'color.field.border.rest',
     // The status-led swaps, each bound per non-disabled state so it wins over the neutral progression above
-    // and persists through hover and focus (the focus RING, a separate part, still carries the focus signal).
+    // and persists through hover and focus (at focus it is the 2px focus edge, #3399, so the status keeps its color).
     // At `disabled` the cross-cutting `disabled.border` takes over. #1517 (owner-directed, Prism 2 parity):
     // `warning` and `success` now swap the border TOO, mirroring `error` — the field signals status on BOTH
     // the border and the nested message. Each status value maps to its OWN border role (`error` → `danger`,
@@ -448,15 +445,16 @@ export const select: ComponentDef = {
         // chevron and a few characters (DRAFT for the owner on #2266).
         minWidth: 120,
         radius: 'radius',
-        // The edge weight (#1266's field) — 1px, the field hairline, bound rather than left to the
-        // executors' fallback so a brand re-runging its border floor moves it.
-        strokeWidth: 'border-width',
+        // The edge weight (#1266's field), per state (#3399): the 1px hairline, and the 2px focus edge at both
+        // focus states. Bound rather than left to the executors' fallback, so a brand re-runging either moves it.
+        strokeWidth: 'border-width.{state}',
         // Symmetric padding — a select does not take #326's slot-aware asymmetry (the leading glyph sits
         // inside `content`, not against the box edge), so `inlineVisual` is omitted and both inline sides
         // fall back to the label inset.
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
         gap: 'size.{size}.gap',
-        children: ['content', 'chevronGlyph', 'focusRing'],
+        // No focus ring (#3399): the border is the focus edge. The underline Field style adds the outside ring back.
+        children: ['content', 'chevronGlyph'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
       // and `layoutGrow` in Figma, `flex: 1` in code. The value and placeholder wrap inside it (#1758), and
@@ -508,22 +506,6 @@ export const select: ComponentDef = {
         glyph: 'chevron-down',
         size: 'icon-size',
         note: 'The disclosure affordance, aria-hidden — the control\'s role conveys that it opens a menu. A downward chevron, painted the primary icon role so it matches the value text and the leading glyph (#1343).',
-      },
-      // THE FOCUS RING — the shared indicator, nested as an absolute sibling of the control's contents so
-      // it rings the CONTROL (not the whole field) and takes no cell. `field` offset (0) because an
-      // input's own border already supplies the separation. Fixed to the default surface (select carries
-      // no surface axis).
-      focusRing: {
-        kind: 'absolute',
-        // At both focus states (#2318): the empty field and the one holding a value are rung alike.
-        when: ['focus-visible', 'focus-visible-filled'],
-        nests: 'focus-ring',
-        inset: 'ring-offset',
-        strokeInset: 'ring-width',
-        // Inside the field's border, at its own radius (#3328, Q3328.1 A), as on Text field.
-        borderInset: 'border-width',
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke — so the focus signal never contends with the control\'s own border.',
       },
       // THE NESTED MESSAGE (nest-fixed, FOLLOWING status). An in-flow instance of `field-message` whose
       // single projected axis, `status`, is DRIVEN by select's `status` axis via `follow` — a same-name,
@@ -622,7 +604,7 @@ export const select: ComponentDef = {
       '4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size',
     ],
     keyboard: 'The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.',
-    focus: ':focus-visible ring on the control, drawn inside the field: the border takes the focus color and a 2px band sits inside it, at the field\'s own radius, with no outer ring (in CSS, an outline with a negative offset of the border width plus the band width), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.',
+    focus: ':focus-visible draws the 2px focus edge on the control in place of its border: from the outer edge, at the control\'s own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.',
     aria: 'The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is not the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native <select> where its OS menu is acceptable, because it is correct for free.',
   },
 
@@ -652,7 +634,7 @@ export const select: ComponentDef = {
     primaryPurpose: 'Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.',
     whenToUse: 'One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.',
     avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
-    commonPartners: ['field-label', 'field-message', 'focus-ring', 'icon'],
+    commonPartners: ['field-label', 'field-message', 'icon'],
     // No `combobox` (brief §10: the mis-conflation, a different component) and no `menu` (a menu performs an
     // action, a select sets a value — brief §12; it is an alternative, not this) (#1699).
     triggerKeywords: ['select', 'dropdown', 'picker', 'choose', 'option list'],
@@ -661,7 +643,7 @@ export const select: ComponentDef = {
 
   composition: {
     // What the anatomy nests (#1700). The leading glyph and the chevron are partners, not parts.
-    composesWith: ['field-label', 'field-message', 'focus-ring'],
+    composesWith: ['field-label', 'field-message'],
     alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control'],
     replacesPatterns: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
@@ -680,6 +662,8 @@ export const select: ComponentDef = {
 
   notes: {
     contested: [
+      FOCUS_EDGE_STATUS_NOTE,
+      FOCUS_EDGE_DEFAULT_NOTE,
       'Native <select> vs a custom listbox — this def models the closed control both share and leaves the open menu to the platform (native-first). A fully custom, styleable menu is a separate listbox/popover surface, chosen when the native menu\'s look is unacceptable and the extra ARIA cost is accepted.',
       'SINGLE vs MULTIPLE choice — the brief carries a `multiple` prop (§3, §15: value becomes an array, Space toggles and keeps the list open, a token or count summary, leading checkboxes). This def is single-choice by decision (#1699, owner-delegated): a choice of several values goes to Checkbox.Group, or to a multi-select, not built yet. The alternative is `multiple` here, which changes the keyboard contract and the value type, so it is a second component\'s worth of behavior behind one flag.',
       'THE BRIEF\'S OTHER VARIANT AXES, NOT DECLARED (brief §4, §15). `size` [small, medium, large] was deferred (#1699 decision 2) and is now declared and projected (#2266, the field sizing system). `density` [comfortable, compact] follows the brand\'s density lever rather than a per-component axis. `selection` [single, multiple] and `multi-summary` [count, tokens] are the single-choice decision above. `rendering` [native, custom] is the native-first call in the first entry: this def models the closed control both share. `mode: creatable` blurs toward a combobox (brief §4) and belongs with that component, not built yet. None is in `VARIANT_AXES` today, which is closed (#847).',

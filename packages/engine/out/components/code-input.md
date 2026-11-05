@@ -60,7 +60,7 @@ Use for a short, fixed-length code sent by text message, email or an authenticat
 ## Accessibility
 
 - **Keyboard:** One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.
-- **Focus:** Focus stays on the one input. The active cell, where the next character goes, shows the focus ring.
+- **Focus:** Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.
 - **Screen readers:** textbox (one native \<input>); the cells are aria-hidden
 
   aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.
@@ -74,7 +74,7 @@ Use for a short, fixed-length code sent by text message, email or an authenticat
 - 3.2.2 On Input (no auto-submit)
 - 4.1.2 Name, Role, Value (one textbox, one name, one value)
 - 1.4.11 Non-text Contrast (targets 3:1 for the cell border)
-- 2.4.13 Focus Appearance (the ring on the active cell, as intent)
+- 2.4.13 Focus Appearance (the 2px focus edge on the active cell, as intent)
 - 2.5.8 Target Size (the row of cells is one target)
 
 ### Motion

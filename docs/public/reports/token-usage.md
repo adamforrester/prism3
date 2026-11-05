@@ -25,15 +25,12 @@ Type: dimension. Bound by 26 component(s).
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
-| card-number-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
+| card-number-field | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
-|  |  | control | every member (84 of 84) |
-|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| code-input-cell | `border-width`, `caret-width` | caret | state: focus-visible (4 of 28) |
-|  |  | container | every member (28 of 28) |
-|  |  | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
-| counter | `border-width`, `outline.ring-border` | control | every member (18 of 18) |
-|  |  | focusRing | appearance: outline · state: focus-visible (3 of 18) |
+|  |  | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
+| code-input-cell | `border-width.disabled`, `border-width.error`, `border-width.filled`, `border-width.hover`, `border-width.rest`, `caret-width` | caret | state: focus-visible (4 of 28) |
+|  |  | container | state: disabled, error, filled, hover, rest (20 of 28) |
+| counter | `border-width.disabled`, `border-width.rest` | control | state: disabled, rest (12 of 18) |
 | divider | `horizontal.false.height`, `horizontal.line.height`, `horizontal.line.width` (not drawn), `rule.stroke`, `vertical.false.width`, `vertical.line.height` (not drawn), `vertical.line.width` | container | labeled: false (10 of 14) |
 |  |  | leadingRule | inset: none · labeled: true (4 of 14) |
 |  |  | rule | labeled: false (10 of 14) |
@@ -45,27 +42,22 @@ Type: dimension. Bound by 26 component(s).
 | icon-button-destructive | `border-width` | container | every member (216 of 216) |
 | icon-button-neutral | `border-width` | container | every member (216 of 216) |
 | pagination-item | `border-width` | container | every member (87 of 87) |
-| password-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
+| password-field | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
-|  |  | control | every member (84 of 84) |
-|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+|  |  | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
 | provider-logo | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 86) |
-| search-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
+| search-field | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
-|  |  | control | every member (84 of 84) |
-|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| select | `border-width` | control | every member (84 of 84) |
-|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+|  |  | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
+| select | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest` | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
 | sign-in-button | `border-width` | container | every member (96 of 96) |
 | tabs | `baseline-height` | baseline | every member (6 of 6) |
 | tag | `unselected.border-width` | container | selection: unselected (30 of 45) |
-| text-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
+| text-field | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
-|  |  | control | every member (84 of 84) |
-|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| textarea | `border-width`, `caret-width`, `grip-inset` | caret | state: focus-visible (12 of 84) |
-|  |  | control | every member (84 of 84) |
-|  |  | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+|  |  | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
+| textarea | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width`, `grip-inset` | caret | state: focus-visible (12 of 84) |
+|  |  | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
 |  |  | gripGlyph | every member (84 of 84) |
 | wallet-button | `border-width` | container | every member (68 of 68) |
 
@@ -85,12 +77,11 @@ Type: dimension. Bound by 3 component(s).
 
 ### `border-width.none`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | banner | `edge.full-bleed.edge-side` | container | edge: full-bleed (5 of 10) |
-| counter | `ghost.ring-border` | focusRing | appearance: ghost · state: focus-visible (3 of 18) |
 
 ### `border-width.thick`
 
@@ -174,7 +165,7 @@ Type: color. Bound by 12 component(s).
 
 ### `color.border.focus`
 
-Type: color. Bound by 22 component(s).
+Type: color. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -185,6 +176,7 @@ Type: color. Bound by 22 component(s).
 | card-number-field | `border.focus-visible`, `border.focus-visible-filled` | control | state: focus-visible, focus-visible-filled · status: default (6 of 84) |
 | checkbox-control | `focus-ring` | (not drawn) | — |
 | code-input-cell | `border.focus-visible`, `border.focus-visible-filled` | container | state: focus-visible, focus-visible-filled (8 of 28) |
+| counter | `outline.border.focus-visible` | control | appearance: outline · state: focus-visible (3 of 18) |
 | focus-ring | `border` | ring | surface: default (1 of 2) |
 | icon-button | `focus-ring` | (not drawn) | — |
 | icon-button-destructive | `focus-ring` | (not drawn) | — |
@@ -450,7 +442,7 @@ Type: color. Bound by 11 component(s).
 | card-number-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
 | checkbox-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest · status: default (9 of 90) |
 | code-input-cell | `border` | container | state: filled, rest (8 of 28) |
-| counter | `outline.border` | control | appearance: outline · state: focus-visible, rest (6 of 18) |
+| counter | `outline.border` | control | appearance: outline · state: rest (3 of 18) |
 | password-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
 | radio-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest · status: default (9 of 60) |
 | search-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
@@ -2438,7 +2430,7 @@ Type: dimension. Bound by 22 component(s).
 | button-destructive | `ring-offset` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-offset` | focusRing | state: focus-visible (96 of 576) |
 | checkbox-control | `ring-offset` | focusRing | state: focus-visible (18 of 90) |
-| counter | `ghost.ring-offset` | focusRing | appearance: ghost · state: focus-visible (3 of 18) |
+| counter | `ring-offset` | focusRing | appearance: ghost · state: focus-visible (3 of 18) |
 | flush-icon-button | `ring-offset` | focusRing | state: focus-visible (12 of 60) |
 | flush-icon-button-destructive | `ring-offset` | focusRing | state: focus-visible (12 of 60) |
 | flush-icon-button-neutral | `ring-offset` | focusRing | state: focus-visible (12 of 60) |
@@ -2458,20 +2450,12 @@ Type: dimension. Bound by 22 component(s).
 
 ### `focus.ring.offset-field`
 
-Type: dimension. Bound by 10 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `ring-offset` | focusRing | state: focus-visible (24 of 48) |
-| card-number-field | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| code-input-cell | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
-| counter | `outline.ring-offset` | focusRing | appearance: outline · state: focus-visible (3 of 18) |
 | focus-ring | `offset.field` | (not drawn) | — |
-| password-field | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| search-field | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| select | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| text-field | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| textarea | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 
 ### `focus.ring.style`
 
@@ -2491,10 +2475,11 @@ Type: dimension. Bound by 29 component(s).
 | button | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-destructive | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-width` | focusRing | state: focus-visible (96 of 576) |
-| card-number-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+| card-number-field | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
 | checkbox-control | `ring-width` | focusRing | state: focus-visible (18 of 90) |
-| code-input-cell | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
-| counter | `ring-width` | focusRing | state: focus-visible (6 of 18) |
+| code-input-cell | `border-width.focus-visible`, `border-width.focus-visible-filled` | container | state: focus-visible, focus-visible-filled (8 of 28) |
+| counter | `border-width.focus-visible`, `ring-width` | control | state: focus-visible (6 of 18) |
+|  |  | focusRing | appearance: ghost · state: focus-visible (3 of 18) |
 | flush-icon-button | `ring-width` | focusRing | state: focus-visible (12 of 60) |
 | flush-icon-button-destructive | `ring-width` | focusRing | state: focus-visible (12 of 60) |
 | flush-icon-button-neutral | `ring-width` | focusRing | state: focus-visible (12 of 60) |
@@ -2504,17 +2489,17 @@ Type: dimension. Bound by 29 component(s).
 | icon-button-neutral | `ring-width` | focusRing | state: focus-visible (36 of 216) |
 | link | `ring-width` | focusRing | state: focus-visible (48 of 192) |
 | pagination-item | `ring-width` | focusRing | state: focus-visible · type: next, page, previous (21 of 87) |
-| password-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+| password-field | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
 | radio-control | `ring-width` | focusRing | state: focus-visible (12 of 60) |
-| search-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+| search-field | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
 | segmented-control-segment | `ring-width` | focusRing | state: focus-visible (6 of 30) |
-| select | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+| select | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
 | sign-in-button | `ring-width` | focusRing | state: focus-visible (24 of 96) |
 | switch-control | `ring-width` | focusRing | state: focus-visible (8 of 40) |
 | tab-item | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-width` | focusRing | state: focus-visible (9 of 45) |
-| text-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| textarea | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
+| text-field | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
+| textarea | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
 | wallet-button | `ring-width` | focusRing | state: focus-visible (34 of 68) |
 
 ### `icon.size.lg`
@@ -3789,9 +3774,9 @@ Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fi
 
 ### card-number-field
 
-31 token(s); 84 design-file member(s).
+30 token(s); 84 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### checkbox-control
 
@@ -3823,15 +3808,15 @@ Declared, not drawn: `color.disabled.text`
 
 ### code-input-cell
 
-22 token(s); 28 design-file member(s).
+21 token(s); 28 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.text.primary`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xl`, `icon.size.xs`, `radius.lg`, `radius.sm`, `space.0`, `type.body.md.default`, `type.title.2xl.strong`, `type.title.md.strong`, `type.title.sm.strong`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.text.primary`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xl`, `icon.size.xs`, `radius.lg`, `radius.sm`, `space.0`, `type.body.md.default`, `type.title.2xl.strong`, `type.title.md.strong`, `type.title.sm.strong`
 
 ### counter
 
-22 token(s); 18 design-file member(s).
+21 token(s); 18 design-file member(s).
 
-`border-width.hairline`, `border-width.none`, `color.disabled.border`, `color.disabled.text`, `color.field.border.rest`, `color.field.fill`, `color.text.primary`, `focus.ring.offset`, `focus.ring.offset-field`, `focus.ring.width`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.text`, `color.field.border.rest`, `color.field.fill`, `color.text.primary`, `focus.ring.offset`, `focus.ring.width`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### dialog
 
@@ -3987,9 +3972,9 @@ Declared, not drawn: `color.border.focus`
 
 ### password-field
 
-31 token(s); 84 design-file member(s).
+30 token(s); 84 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### progress
 
@@ -4029,9 +4014,9 @@ Declared, not drawn: `color.disabled.text`
 
 ### search-field
 
-30 token(s); 84 design-file member(s).
+29 token(s); 84 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### segmented-control
 
@@ -4049,9 +4034,9 @@ Declared, not drawn: `color.border.focus`
 
 ### select
 
-27 token(s); 84 design-file member(s).
+26 token(s); 84 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### sign-in-button
 
@@ -4111,15 +4096,15 @@ Declared, not drawn: `color.border.focus`
 
 ### text-field
 
-30 token(s); 84 design-file member(s).
+29 token(s); 84 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### textarea
 
-30 token(s); 84 design-file member(s).
+29 token(s); 84 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.disabled.text`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.secondary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.xs`, `radius.sm`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.caption.md.default`
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.disabled.text`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.secondary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.width`, `icon.size.xs`, `radius.sm`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.caption.md.default`
 
 ### toast
 

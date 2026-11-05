@@ -402,16 +402,6 @@
     },
     {
       "from": "card-number-field",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
-      "from": "card-number-field",
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
@@ -664,16 +654,6 @@
       "follow": [
         "status"
       ]
-    },
-    {
-      "from": "code-input-cell",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
     },
     {
       "from": "counter",
@@ -1265,16 +1245,6 @@
     },
     {
       "from": "password-field",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
-      "from": "password-field",
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
@@ -1455,16 +1425,6 @@
     },
     {
       "from": "search-field",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
-      "from": "search-field",
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
@@ -1563,16 +1523,6 @@
     },
     {
       "from": "segmented-control-segment",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
-      "from": "select",
       "to": "focus-ring",
       "part": "focusRing",
       "partKind": "absolute",
@@ -1833,16 +1783,6 @@
     },
     {
       "from": "text-field",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
-      "from": "text-field",
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
@@ -1873,16 +1813,6 @@
       "follow": [
         "status"
       ]
-    },
-    {
-      "from": "textarea",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
     },
     {
       "from": "textarea",
@@ -2162,13 +2092,11 @@
     "card-number-field": {
       "nests": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestsTransitively": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -2236,20 +2164,15 @@
       "nestsTransitively": [
         "code-input-cell",
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestedBy": [],
       "affectedByChange": [],
       "inheritedBy": []
     },
     "code-input-cell": {
-      "nests": [
-        "focus-ring"
-      ],
-      "nestsTransitively": [
-        "focus-ring"
-      ],
+      "nests": [],
+      "nestsTransitively": [],
       "nestedBy": [
         "code-input"
       ],
@@ -2430,9 +2353,7 @@
         "button",
         "button-destructive",
         "button-neutral",
-        "card-number-field",
         "checkbox-control",
-        "code-input-cell",
         "counter",
         "flush-icon-button",
         "flush-icon-button-destructive",
@@ -2442,17 +2363,12 @@
         "icon-button-neutral",
         "link",
         "pagination-item",
-        "password-field",
         "radio-control",
-        "search-field",
         "segmented-control-segment",
-        "select",
         "sign-in-button",
         "switch-control",
         "tab-item",
         "tag",
-        "text-field",
-        "textarea",
         "wallet-button"
       ],
       "affectedByChange": [
@@ -2465,12 +2381,9 @@
         "button-destructive",
         "button-group",
         "button-neutral",
-        "card-number-field",
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
-        "code-input",
-        "code-input-cell",
         "counter",
         "dialog",
         "flush-icon-button",
@@ -2488,10 +2401,8 @@
         "radio-control",
         "radio-group",
         "radio-row",
-        "search-field",
         "segmented-control",
         "segmented-control-segment",
-        "select",
         "sign-in-button",
         "slider",
         "switch-control",
@@ -2499,8 +2410,6 @@
         "tab-item",
         "tabs",
         "tag",
-        "text-field",
-        "textarea",
         "toast",
         "wallet-button"
       ],
@@ -2672,8 +2581,7 @@
       "nests": [
         "button",
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestsTransitively": [
         "button",
@@ -2763,13 +2671,11 @@
     "search-field": {
       "nests": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestsTransitively": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -2807,13 +2713,11 @@
     "select": {
       "nests": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestsTransitively": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -2948,13 +2852,11 @@
     "text-field": {
       "nests": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestsTransitively": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestedBy": [
         "slider"
@@ -2970,13 +2872,11 @@
     "textarea": {
       "nests": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestsTransitively": [
         "field-label",
-        "field-message",
-        "focus-ring"
+        "field-message"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -3036,8 +2936,8 @@
     "checkbox-control": 1,
     "checkbox-group": 3,
     "checkbox-row": 2,
-    "code-input": 2,
-    "code-input-cell": 1,
+    "code-input": 1,
+    "code-input-cell": 0,
     "counter": 2,
     "dialog": 3,
     "divider": 0,
