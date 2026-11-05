@@ -4496,8 +4496,18 @@ section('field style — a field set built in one Field style is redrawn in plac
       const v = applyVerdict(res);
       ok(pre.sets[0].counts.update === n && v.ok, `field style/${tag}: all ${n} members read to update, and one apply succeeds (${JSON.stringify(pre.sets[0].counts)}; ${v.headline}${v.ok ? '' : ` — ${v.lines.slice(0, 2).join(' | ').slice(0, 240)}`})`);
       const after = identityOf(w.set());
-      const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
-      ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+      // THE RING IS UNDERLINE'S ALONE (#3399, Q22 A): the outline edge's border is the focus edge and draws no ring, so
+      // Underline → Outline removes the focus members' ring node, and that node only. Every other node keeps its id; the
+      // ring is checked gone, and the exclusion is checked to have excluded something.
+      const RING = /(^|\/)focusRing#\d+$/;
+      const dropsRing = toName === 'outline';
+      const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => !(dropsRing && RING.test(path)) && after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
+      const ringsBefore = [...before.members.values()].filter((b) => [...b.kids.keys()].some((k) => RING.test(k))).length;
+      const ringsAfter = [...after.members.values()].filter((b) => [...b.kids.keys()].some((k) => RING.test(k))).length;
+      ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids${dropsRing ? ', but for the ring Outline does not draw' : ''} (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+      // 24 = 3 sizes × 4 statuses × the 2 focus states, typed.
+      ok(dropsRing ? ringsBefore === 24 && ringsAfter === 0 : ringsBefore === 0 && ringsAfter === 24,
+        `field style/${tag} ring (#3399): the focus ring is on all 24 focus members under underline and on none under outline (before ${ringsBefore}, after ${ringsAfter})`);
       // THE WASH (#2774, then #2926): until #2926 an outline hover washed and had to draw translucent; since #2926 no
       // field washes under either style, so no plan asks for one in either direction.
       const washed = to.filter((p) => /\/overlay\//.test(String(findPart(p.root as unknown as Node, 'control')?.paints?.fills ?? ''))).map((p) => planComponentName(p));

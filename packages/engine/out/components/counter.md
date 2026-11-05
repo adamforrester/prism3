@@ -26,7 +26,7 @@ Shown on the default member: appearance `outline`, size `medium`.
 5. **Entry** — The value, centered between the buttons and at least 32px wide, so the buttons hold still as the count reaches two digits.
 6. **Value** — The number, in the field's body type.
 7. **Increment** — The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: unavailable at the maximum.
-8. **Focus ring**
+8. **Focus ring** — The shared focus ring on ghost, 2px outside the round buttons, while the value has keyboard focus. Outline draws no ring: its edge becomes the 2px focus edge.
 9. **Message** (optional) — An optional line below the row, such as the reason for a limit. Off by default.
 
 ## Styles
@@ -62,7 +62,7 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 ## Accessibility
 
 - **Keyboard:** The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex="-1").
-- **Focus:** One focus ring around the whole row while the value has keyboard focus: inside the edge for outline, where the edge takes the focus color and a 2px band sits inside it at the row's radius; 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.
+- **Focus:** While the value has keyboard focus, outline draws the 2px focus edge in place of its edge, in the focus color, from the outer edge at the row's radius, with no ring and no gap, and the row keeps its size; ghost draws the shared focus ring 2px outside the buttons. The buttons never take focus from the keyboard, so they draw no ring of their own.
 - **Screen readers:** spinbutton (the value), with two buttons outside the Tab order
 
   The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, aria-valuetext where the number is shown formatted ("3 items"), and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. The buttons are not aria-hidden: they keep their names for pointer and touch users of assistive technology, as the ARIA Authoring Practices spin button example does. Every name is translatable, and the row mirrors right to left.
@@ -73,7 +73,7 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 - 2.1.1 Keyboard (the arrow, Page Up, Page Down, Home and End keys change the value; the buttons are not needed)
 - 4.1.3 Status Messages (a button press announces the new value through the shared polite live region)
 - 1.4.11 Non-text Contrast (the outline edge is the field edge; the glyphs target 3:1 against the page)
-- 2.4.7 Focus Visible (the shared focus ring around the row)
+- 2.4.7 Focus Visible (the 2px focus edge on outline, the shared focus ring around the row on ghost)
 - 2.5.8 Target Size (Minimum) (24×24, as intent, through each button's code-side hit area)
 - 2.5.5 Target Size (Enhanced) (targets 44×44 for each button at every size, through its code-side hit area)
 
@@ -138,7 +138,7 @@ Generated from the plan that builds the design-file component: 18 members. Value
 | `container/control/entry/value` | text | every member |
 | `container/control/increment` | instance | every member |
 | `container/message` | instance | every member |
-| `container/control/focusRing` | instance | state=focus-visible |
+| `container/control/focusRing` | instance | 3 of 18 members |
 
 ### Spacing and size
 
@@ -219,7 +219,7 @@ Keyed by `appearance`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control` | `color.field.fill` | `color.border.focus` | — | — |
 | `container/control/entry/value` | — | — | `color.text.primary` | — |
 
 **appearance=outline, state=disabled**
