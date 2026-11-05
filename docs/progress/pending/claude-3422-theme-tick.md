@@ -25,8 +25,8 @@ always an item.
   count equals the ticked count (2 and 2 matching, 3 and 3 differing). Mutation: `defaultTicks` ticking Theme always
   fails `Q44 A ticks: a file that matches the brand opens with Theme unticked`, `Q44 A badge = ticks: … matches …` and
   two more, by name.
-- `test:chrome` section 10: on a set-up file with no recount, Theme is unticked and tagged "Up to date". After a recount
-  saying the file differs, it is ticked, with no tag. The same mutation, built, fails `Q44 A Update file …` by name at
+- `test:chrome` section 10: on a set-up file with no recount, Theme is unticked with no tag (Q44.2 A, below). After a
+  recount saying the file matches, it is unticked and tagged "Up to date"; after one saying it differs, ticked, with no tag. The same mutation, built, fails `Q44 A Update file …` by name at
   every width and theme. The IA2 case plants the recount its unapplied Pill implies. Section 3170 unticks Theme only
   when it opens ticked.
 - `test:verdict`: the arms that need a Theme run tick it by hand (`tickTheme`), as a designer forcing a re-apply would.
@@ -36,3 +36,26 @@ always an item.
 **Guides.** `apply-a-theme.md` and `update-a-file-safely.md` said Theme is ticked each time the dialog opens; they now
 say when it is, and that it reads "Up to date" otherwise. The other guides' citations into `update-file.ts` follow the
 lines this change moved (`lint-guide-claims`).
+
+**After review: two recommended options, built as their own commits, the owner's to confirm.**
+
+- **Q44.2 A: "Up to date" only when measured.** The tag rendered on `!themeDueOf(live)`, which is also true before the
+  recount answers, when it failed, and on the demo brand: nothing had been compared. It now renders on
+  `themeMatchesOf(live)`, a recount that read the file and found it matching. The tick is unchanged. Mutation: the tag
+  back on `!themeDueOf` fails section 10's `Q44 A Update file … no recount has measured …` by name at every width.
+- **Q44.1 A: the signal reads what was written, not only the input.** The recount's `theme` compared the saved brand
+  input alone (`holdsInput`), so an engine update that moves the variables under an unchanged brand read "matches", and
+  #3428's themeBlocked sets could not ride: merged with #3428, its gate failed 9 checks. Apply Theme now stamps the
+  print of the plans it wrote beside the input (`apps/plugin/src/theme-emission.ts`, FNV of the plans' JSON). The
+  recount (`themeDue`) reads Theme due when the input differs or the stamp is not the print of what this plugin would
+  write for the panel's brand. The print is planned once per brand asked about (about 0.2 s; memoized for the same brand).
+  - Gates: `test-build-completed.ts` `q44.1/engine moved`, `q44.1/no print`, `q44.1/control`, through the real
+    `main.ts`; `test-readback-parity.ts`, the real Apply Theme stamps; `test-update-kept-run.ts` opens with the recount
+    `main.ts` would send in its world, so #3421's ordering fix fires again. Mutations: the recount reading the input
+    alone fails `q44.1/engine moved`, `q44.1/no print`, `order/theme due` and #3428's arms; Apply Theme not stamping
+    fails each brand's `#3422 Q44.1 A` arm.
+  - **Trap:** a brand saved with no print reads as differing: a file themed by a plugin before this one, or by an
+    agent's paste (`mcp-steps.ts` `runPersist`, left alone to keep the paste scripts small, #3414). Theme counts once
+    there, until a Theme run stamps the print.
+
+**Version.** `engine: patch`, as #3428 now declares too: the repo's practice for a plugin behavior change.
