@@ -129,7 +129,7 @@ not "should Prism3 have skills" — that was decided (backlog #6, 2026-07-04: sk
 are the *instructions + discovery* layer, complementary to the MCP surface's callable
 *tools*) and the first two are built and verified:
 
-- **`prism3-build-ui`** (`skills/prism3-build-ui/SKILL.md`, 2026-07-05) — the
+- **`prism3-consume` (now `prism3-build-ui`)** (`skills/prism3-build-ui/SKILL.md`, 2026-07-05) — the
   downstream-consumer skill; eval-measured at 100%/100% compliance, 0% invented, 0%
   leak (docs/17 §5).
 - **`prism3-theme`** (`skills/prism3-theme/SKILL.md`, 2026-07-05) — the

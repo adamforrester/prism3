@@ -26,7 +26,7 @@
  *   6.   DISCOVERY check  — every skill under `skills/` has a `.claude/skills/<name>` symlink to it, so a
  *        Claude Code session in this repo loads it without being told to (#2677, Q320.2).
  *   9.   RETIRED NAME check — a renamed skill's old name appears nowhere in the repo outside the dated
- *        history, except on a line that also names the new one (a redirect) (#3412).
+ *        history, except on a line that also names the new one (a redirect), and no file is named after it (#3412).
  *
  * Check 4 is the one that fires on the real defect, and it is deliberately opt-in per skill
  * (`documents: brandInput` in the frontmatter) rather than inferred — the same "declare it, don't
@@ -886,20 +886,27 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
 // subject is the repo's text. The skill directories are checked against the register too: the old one must be
 // gone and the new one present, so a rename that was reverted, or never made, fails here by name.
 //
+// It reads paths too: a file named after the retired skill (`docs/<old>-eval.md`) fails by its path, whatever it
+// says. A path has no redirect form, so naming the new skill beside it doesn't help; and the boundary is looser
+// than the line scan's, because a file name runs the old name into a suffix with a hyphen.
+//
 // WHAT IT CANNOT SEE: a nickname. "The consume skill" in a comment is not the skill's name, and passes.
 type RetiredSkill = { old: string; now: string; issue: string };
 const RETIRED_SKILLS: RetiredSkill[] = [{ old: 'prism3-consume', now: 'prism3-build-ui', issue: '#3412' }];
 const HISTORY = [/^docs\/00-progress\.md$/, /^docs\/progress\//, /^packages\/engine\/CHANGELOG\.md$/, /^packages\/engine\/changes\//, /^docs\/superpowers\//];
 const nameRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9_-])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9_-])`);
+const pathRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9])`);
 export const retiredNameFindings = (files: [string, string][], retired: RetiredSkill[], skills: string[]): Finding[] => {
   ran.retiredName++;
   const out: Finding[] = [];
   for (const r of retired) {
     if (skills.includes(r.old)) out.push({ file: `skills/${r.old}/`, kind: 'retired skill name', detail: `${r.issue} renamed \`${r.old}\` to \`${r.now}\`, and skills/${r.old}/ is still here` });
     if (!skills.includes(r.now)) out.push({ file: `skills/${r.now}/`, kind: 'retired skill name', detail: `${r.issue} renamed \`${r.old}\` to \`${r.now}\`, and there is no skills/${r.now}/` });
-    const oldRe = nameRe(r.old), nowRe = nameRe(r.now);
+    const oldRe = nameRe(r.old), nowRe = nameRe(r.now), oldPathRe = pathRe(r.old);
     for (const [rel, text] of files) {
-      if (HISTORY.some((h) => h.test(rel)) || !oldRe.test(text)) continue;
+      if (HISTORY.some((h) => h.test(rel))) continue;
+      if (oldPathRe.test(rel)) out.push({ file: rel, kind: 'retired skill name', detail: `the path names \`${r.old}\`, which ${r.issue} renamed to \`${r.now}\`. Rename the file` });
+      if (!oldRe.test(text)) continue;
       text.split('\n').forEach((line, i) => {
         if (oldRe.test(line) && !nowRe.test(line)) out.push({ file: `${rel}:${i + 1}`, kind: 'retired skill name', detail: `names \`${r.old}\`, which ${r.issue} renamed to \`${r.now}\`. Rename it, or name \`${r.now}\` on the same line if this is a redirect` });
       });
@@ -921,6 +928,8 @@ let retiredSelfRuns = 0, retiredFilesRead = 0;
     ['two stale lines in one file', retiredNameFindings([['a.ts', `${R.old}\nok\nskills/${R.old}/SKILL.md`]], [R], live), 2],
     ['the old skill still present', retiredNameFindings([], [R], [R.old, R.now]), 1],
     ['the new skill missing', retiredNameFindings([], [R], []), 1],
+    ['a file named after it', retiredNameFindings([[`docs/${R.old}-eval.md`, 'ok']], [R], live), 1],
+    ['a history file named after it', retiredNameFindings([[`docs/progress/archive/${R.old}.md`, 'ok']], [R], live), 0],
   ];
   retiredSelfRuns = checks.length;
   const broken = checks.filter(([, f, n]) => f.length !== n);
@@ -941,7 +950,7 @@ let retiredSelfRuns = 0, retiredFilesRead = 0;
     let st; try { st = lstatSync(abs); } catch { continue; } // deleted in the working tree
     if (!st.isFile()) continue;
     const text = readFileSync(abs, 'utf8');
-    if (!text.includes('\0')) files.push([rel, text]);
+    files.push([rel, text.includes('\0') ? '' : text]); // a binary file is read by its path alone
   }
   retiredFilesRead = files.length;
   // Each surface the rename has to reach is read, by name: a scan that lost one would pass over it.

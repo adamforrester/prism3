@@ -9,7 +9,9 @@ the other two skills' cross-references, `docs/public/llms.txt`, the ecosystem da
 tests that read the skill (`test.ts`, `test-chrome.mjs`, `test-agent-bridge.ts`), the plugin's `context` read-first
 list and the figma bridge's served resource. No emitter names the skill, and nothing under `packages/engine/out/`
 carried it. The dated history keeps the old name, because it was the name on that date: the progress log and its
-pending entries, the changelog and its change notes, and `docs/superpowers/`.
+pending entries, the changelog and its change notes, and `docs/superpowers/`. A dated statement in a design doc
+(what the eval arm ran, what a gate's first run found) uses the redirect form, "`prism3-consume` (now
+`prism3-build-ui`)", rather than saying the skill had a name it didn't have yet.
 
 **Redirects, where an outside surface promised the old name.** The bridge's `prism3://skills/prism3-consume` is now
 `prism3://skills/prism3-build-ui`. A read of the old URI still fails with resource-not-found (-32002), and the error
@@ -20,10 +22,12 @@ now names the new URI (`RENAMED_RESOURCES` in `tools/figma-bridge/server.ts`, as
 README or a test would have passed. The new check reads every file `git ls-files` lists (tracked, plus untracked
 and not ignored), outside the dated history, and fails each line that names a retired skill without also naming its
 replacement. A line naming both is a redirect, and passes. It also fails while the old skill directory exists or
-the new one is missing. The old and new names are a literal register in the gate, never read from `skills/`
+the new one is missing, and on a file whose path names the retired skill (`docs/prism3-consume-eval.md`), which
+has no redirect form. The old and new names are a literal register in the gate, never read from `skills/`
 (docs/34). Mutations, each failing by name: the old name put back in `README.md` (`README.md:26 [retired skill
 name]`); `skills/prism3-consume/` restored (`skills/prism3-consume/ … is still here`); the repo scan's call deleted
-(the wiring floor: `the retired-name check ran 7× …`). Its ceiling: a nickname ("the consume skill") is not the
+(the wiring floor: `the retired-name check ran 9× …`); a file named `docs/prism3-consume-eval.md` (`[retired skill
+name] the path names …`). Its ceiling: a nickname ("the consume skill") is not the
 name, and passes.
 
 **The never-do list (#3410, owner Q33 A).** A section in the renamed skill: eight habits that make generated UI look
