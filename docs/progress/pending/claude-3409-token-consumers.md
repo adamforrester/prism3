@@ -59,3 +59,11 @@ unread**. The register's first contents, 28 entries:
 
 A def mention counts as a read, so a sentence that says "not X" reads X. The gate proves a name is mentioned, not that
 the binding is right. A reason is prose, and review is its only guard.
+
+An alias is a read whoever holds it, so a primitive aliased only by an unread contract token counts as read. Measured
+(review of #3434), **13 of the 381 reads** hang only on unread holders: `core.dimension.{5,28,72,80,88,96}` (the
+`control.size.lg.*`, `size.xs.height` and `space.900`–`1200` rungs), `core.font.weight.{300,900}`,
+`core.font.line-height.{165,175}` and `core.font.letter-spacing.{neg-15,neg-40}` (the font roles' unread ends), and
+`core.palette.info.550` (`color.inverse.{text,icon}.info-subtle`). `core.dimension.5` and `.28` hang on Q-TC5's held
+tokens. The gate reports this list on every run, measured as a fixed point over the alias graph, and asserts nothing
+on it; if a holder leaves the contract, the pinned `core.dimension.*` and `core.font.**` counts fail by name.

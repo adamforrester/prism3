@@ -44,6 +44,11 @@
  * It proves a name is mentioned, not that the mention is a correct binding: that is `lint-paint`'s and `test.ts`'s
  * business. A prose mention in a def counts as a read even where the sentence says "not X". `brandDependent` paths are
  * not guaranteed and not checked. A reason is prose, and review is its only guard.
+ * An alias is a read whoever holds it, even a guaranteed token that is itself unread: `core.dimension.72` counts as
+ * read because `space.900` aliases it, though nothing reads `space.900`. Such a primitive becomes unread only when its
+ * holder leaves the contract, and the pinned family counts then fail by name, so nothing is lost silently. The gate
+ * REPORTS these reads on every run (`read only through unread holders`), measured as a fixed point over the alias
+ * graph, and asserts nothing on them: the count is an input to the register's contents, not a verdict (#3434 review).
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -178,11 +183,30 @@ for (const d of componentDefs) walk(d);
 const OUT = resolve(HERE, 'out');
 const emissions = readdirSync(OUT).filter((f) => f.endsWith('.tokens.json'));
 const byAliases = new Set<string>();
+const guaranteedTails = (dotted: string): string[] => {
+  const segs = dotted.split('.');
+  const tails: string[] = [];
+  for (let i = 0; i < segs.length; i++) { const tail = segs.slice(i).join('.'); if (isGuaranteed.has(tail)) tails.push(tail); }
+  return tails;
+};
 for (const f of emissions)
-  for (const m of readFileSync(join(OUT, f), 'utf8').matchAll(/"\{([^}"]+)\}"/g)) {
-    const segs = m[1].split('.');
-    for (let i = 0; i < segs.length; i++) { const tail = segs.slice(i).join('.'); if (isGuaranteed.has(tail)) byAliases.add(tail); }
-  }
+  for (const m of readFileSync(join(OUT, f), 'utf8').matchAll(/"\{([^}"]+)\}"/g)) for (const t of guaranteedTails(m[1])) byAliases.add(t);
+
+// For the REPORT only (see LIMITS): who holds each alias. A holder that is not a guaranteed path is `null` — outside
+// the contract, so it is never judged unread and its alias always stands as a read.
+const holders = new Map<string, Set<string | null>>();
+const walkHolders = (v: unknown, path: string[]): void => {
+  if (typeof v === 'string') {
+    const own = guaranteedTails(path.filter((k) => !k.startsWith('$')).join('.'));
+    for (const m of v.matchAll(/\{([^}"]+)\}/g))
+      for (const t of guaranteedTails(m[1])) {
+        if (!holders.has(t)) holders.set(t, new Set());
+        holders.get(t)!.add(own.length ? own[0] : null);
+      }
+  } else if (Array.isArray(v)) v.forEach((x, i) => walkHolders(x, [...path, String(i)]));
+  else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walkHolders(x, [...path, k]);
+};
+for (const f of emissions) walkHolders(JSON.parse(readFileSync(join(OUT, f), 'utf8')), []);
 
 // Reader 3: the sample-component preview's bindings.
 const byPreview = new Set<string>();
@@ -194,6 +218,19 @@ function walkPreview(v: unknown): void {
 }
 
 const unread = guaranteed.filter((t) => !byDefs.has(t) && !byAliases.has(t) && !byPreview.has(t)).sort();
+
+// The fixed point the REPORT names: a token read only through aliases whose every holder is guaranteed and itself
+// unread (directly, or through this same chain). Reported, never asserted.
+const strict = new Set(unread);
+for (let grew = true; grew;) {
+  grew = false;
+  for (const t of guaranteed) {
+    if (strict.has(t) || byDefs.has(t) || byPreview.has(t)) continue;
+    const by = holders.get(t);
+    if (by && by.size && [...by].every((h) => h !== null && h !== t && strict.has(h))) { strict.add(t); grew = true; }
+  }
+}
+const viaUnread = [...strict].filter((t) => !unread.includes(t)).sort();
 
 // ---- the comparison ----------------------------------------------------------------------------------------------
 const fail: string[] = [...selfFails];
@@ -226,4 +263,5 @@ if (fail.length) {
   for (const f of fail) console.error(`  ✗ ${f}`);
   process.exit(1);
 }
+console.log(`· token consumers (reported, not asserted): ${viaUnread.length} token(s) read only through unread holders — ${viaUnread.map((t) => `${t} ← ${[...holders.get(t)!].join(', ')}`).join('; ') || 'none'}`);
 console.log(`✅ token consumers: ${guaranteed.length} guaranteed tokens — ${guaranteed.length - unread.length} read (${byDefs.size} by defs, ${byAliases.size} by aliases in ${emissions.length} emissions, ${byPreview.size} by the preview), ${unread.length} unread and each declared by one of ${UNREAD_BY_DESIGN.length} entries; ${held.reduce((n, e) => n + e.count, 0)} of them held for owner questions (${held.map((e) => e.held).filter((q, i, a) => a.indexOf(q) === i).join(', ') || 'none'})`);
