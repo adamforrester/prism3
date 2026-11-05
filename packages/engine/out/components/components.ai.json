@@ -5758,7 +5758,6 @@
         "commonPartners": [
           "field-label",
           "field-message",
-          "focus-ring",
           "icon"
         ],
         "triggerKeywords": [

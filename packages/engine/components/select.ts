@@ -634,7 +634,7 @@ export const select: ComponentDef = {
     primaryPurpose: 'Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.',
     whenToUse: 'One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.',
     avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
-    commonPartners: ['field-label', 'field-message', 'focus-ring', 'icon'],
+    commonPartners: ['field-label', 'field-message', 'icon'],
     // No `combobox` (brief §10: the mis-conflation, a different component) and no `menu` (a menu performs an
     // action, a select sets a value — brief §12; it is an alternative, not this) (#1699).
     triggerKeywords: ['select', 'dropdown', 'picker', 'choose', 'option list'],

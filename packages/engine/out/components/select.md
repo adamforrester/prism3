@@ -88,7 +88,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 
 - **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `text-field`, `radio-group`, `checkbox-group`, `segmented-control`
-- **Often used with:** `focus-ring`, `icon`
+- **Often used with:** `icon`
 - **Replaces:**
   - a bare \<select> with no label wiring
   - placeholder-as-label
