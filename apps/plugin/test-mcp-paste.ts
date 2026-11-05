@@ -500,7 +500,7 @@ for (const [id, input] of ALL_BRANDS) { await section(`size/${id}`, async () => 
 /* ── size/pages (#3414) ──────────────────────────────────────────────────────────────────────────────── */
 // A chunk script's headroom must not shrink as the file taxonomy gains pages. It did: every chunk's bundle carried the
 // whole taxonomy (`runComponentChunk` → `placeOnPage` → `resolveComponentPage`), so each new component page took its
-// entry's characters out of every chunk of every set, and Dialog's one-member chunks were left 48 characters under the
+// entry's characters out of every chunk of every set, and Dialog's one-member chunks were left 46 characters under the
 // ceiling. Placement is now one `component-place` script per set, and a chunk finds its page by name.
 //
 // THE EXPECTATION IS LITERAL: a taxonomy leaf ships, minified, as `page:"<name>"` (unquoted key, as esbuild prints an

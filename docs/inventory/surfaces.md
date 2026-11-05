@@ -208,7 +208,7 @@ Descriptions are quoted verbatim. No brand name appears in any served string (gr
 | runReadbackVars | readback | paged at `READBACK_PAGE = 150` | 317; mcp-paste.ts:69,309-315 |
 | runReadbackStyles | readback | text/effect/paint/grid styles | 355; mcp-paste.ts:316 |
 | runComponentPlace | components/component-place | a set-built def's page, found or created once before its first chunk (#3414) | mcp-steps.ts `runComponentPlace` |
-| runComponentChunk | components/component-chunk | one chunk of a set-built def (`planSetChunks`), on the page `runComponentPlace` made, by name | 529; mcp-paste.ts:411-419 |
+| runComponentChunk | components/component-chunk | one chunk of a set-built def (`planSetChunks`), on the page `runComponentPlace` made, by name | 529; mcp-paste.ts:430-440 |
 | runComponentReactions | components/component-reactions | one interactive set's prototype reactions, after its last chunk (`writeSetReactions`, #2564) | mcp-steps.ts `runComponentReactions` |
 | runComponentEmit | components/component-emit | defs with `emitAsComponents` (one component per member, `planToPluginJs`) | 556; mcp-paste.ts:397-405 |
 | runReadbackComponents | component-readback | one per component page | 593; mcp-paste.ts:425-428 |
