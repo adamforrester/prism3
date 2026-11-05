@@ -4412,13 +4412,13 @@
         "the body — `children` is plain text in the common case and renders in the body paragraph; rich content (a list, an inline image) renders in the same place. Figma shows the first as the body text property and the second in the rich body slot.",
         "forced colors — the edge is a border, so it stays in the system border color when the browser removes the fill.",
         "the minimum width — `min-inline-size: min(var(--container-min), 100%)`, one floor for both widths: 320px, the narrowest column, so a narrow host does not wrap the body to a sliver. Clamped to the host, so in a host narrower than 320 (a 320px phone's 288px column) the banner takes the host's width and the page never scrolls sideways (1.4.10 Reflow). Figma binds the same floor as `container/min`, unclamped, since Figma has no min().",
-        "the full width — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member.",
+        "full-bleed — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member.",
         "Banner style (the brand's bannerStyle setting) — the fill binds `color.foreground.{tone}-subtle` at Tinted, the default, and `color.background.primary` at Outlined. The edge (`color.border.{tone}`), the glyph (`color.icon.{tone}`) and the inks bind the same tokens in both. One value for every banner the brand ships: emit the one fill, never a prop."
       ],
       "notes": {
         "contested": [
           "HELD FOR THE OWNER (#2579): the glyph per tone follows FieldMessage (danger: the exclamation in a triangle; warning: in a circle), where the proposal listed the glyph names in tone order; the title text property reads \"title text\" beside the \"title\" toggle, as Dialog's description does; the action row offset (space.150); the page under Components rather than a new feedback section.",
-          "HELD FOR THE OWNER (Q533.4): the full width is built on the recommended answer, a 960 bar, square, edged top and bottom only (the proposal's own top and bottom edge, now that the stroke binds per side, #2695). The alternatives are on #2786.",
+          "HELD FOR THE OWNER (Q533.4): full-bleed is built on the recommended answer, a 960 bar, square, edged top and bottom only (the proposal's own top and bottom edge, now that the stroke binds per side, #2695). The alternatives are on #2786.",
           "The brief's bold (high-contrast) emphasis is not built (Q327.1 A); it can follow, held on #3038.",
           "HELD FOR THE OWNER (#3225, DRAFT): the slot part is renamed `richBody`, so its SLOT property reads richBody in the panel, because a set holds one property per name and the approved `body` boolean needs `body`; the link gap is space.050, about one word space; the link text is the nested Link's own label, set on the instance as the action's \"Action\" is, because a host property cannot reach a nested instance's layer."
         ],
@@ -4426,7 +4426,7 @@
           "That a live host keeps `layoutWrap: WRAP` together with BASELINE alignment on the body row, and wraps the link under the hugging body text at a narrow width (#3225). The shim reads both fields back; it does not model the second line.",
           "That a boolean can toggle a native slot's visibility on a live host (`rich body`), and that Update's property rename carries the SLOT property from body to richBody in place (#3225).",
           "That a placed banner with a host narrower than its built width keeps the body inside the banner: the body text hugs at a max width frozen at the built width, as every hugging text does (#1762).",
-          "That the native slot keeps a designer's body content across a tone or width switch, as it does across the accordion's expansion switch.",
+          "That the native slot keeps a designer's body content across a tone or edge switch, as it does across the accordion's expansion switch.",
           "Whether the nested buttons' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466)."
         ],
         "evolution": [
@@ -4435,7 +4435,7 @@
           "Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog's close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.",
           "#2971 (owner QA 2026-10-23; owner decision 2026-10-23, Q2971.1–3 A): one minimum width for both widths, `container.min` (320, the reflow width), bound as the root's `minWidth`; in code clamped to the host.",
           "Owner QA Q533 (2026-10-22): one text action only, with no second action, no outline action and no Button group (Q533.1), which supersedes Q327.6's two actions; the full width made visibly different (Q533.4).",
-          "Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full; title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role."
+          "Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full (renamed to the `edge` axis, contained or full-bleed, by #3392); title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role."
         ],
         "projection": []
       },

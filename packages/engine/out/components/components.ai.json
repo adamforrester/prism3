@@ -11088,15 +11088,15 @@
           "description": "How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for other status news, and neutral for a message with no status, such as an announcement or a membership offer. Neutral sits on the secondary background with a neutral edge and shows no glyph."
         },
         {
-          "name": "width",
-          "type": "enum: 'contained' | 'full'",
+          "name": "edge",
+          "type": "enum: 'contained' | 'full-bleed'",
           "default": "contained",
           "required": false,
           "values": [
             "contained",
-            "full"
+            "full-bleed"
           ],
-          "description": "contained is a rounded box with an edge on all four sides, inside a section or card. full is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge."
+          "description": "contained is a rounded box with an edge on all four sides, inside a section or card. full-bleed is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge."
         },
         {
           "name": "title",
@@ -11179,10 +11179,10 @@
           ],
           "kind": "runtime"
         },
-        "width": {
+        "edge": {
           "values": [
             "contained",
-            "full"
+            "full-bleed"
           ],
           "kind": "authoring"
         }

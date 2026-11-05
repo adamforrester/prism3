@@ -36,7 +36,8 @@ npx tsx tools/figma-mcp/plan.ts --brand aurora --apply --build all --cleanup --o
   `nb-redesign`, `wendys`.
 - `--apply` writes the theme scripts: pre-flight, writes, read-back.
 - `--build all` (or `--build button,text-field`) writes the component scripts in dependency order —
-  a def's nested and swapped-to defs come first — then one read-back per component page.
+  a def's nested and swapped-to defs come first — then one read-back per component page. A set's
+  first script places its page (`component-place`); its chunks then switch to that page by name.
 - `--cleanup` also writes the wipe scripts into `<out>/cleanup/`.
 
 The output is `001-….js`, `002-….js`, … and `manifest.json`. Each manifest entry has `order`,

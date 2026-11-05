@@ -32,7 +32,7 @@
         "banner": {
           "keys": [
             "border-width",
-            "width.contained.edge-side"
+            "edge.contained.edge-side"
           ],
           "parts": {
             "container": {
@@ -682,14 +682,14 @@
       "components": {
         "banner": {
           "keys": [
-            "width.full.edge-side"
+            "edge.full-bleed.edge-side"
           ],
           "parts": {
             "container": {
               "members": 5,
               "where": {
-                "width": [
-                  "full"
+                "edge": [
+                  "full-bleed"
                 ]
               }
             }
@@ -21095,13 +21095,13 @@
       "components": {
         "banner": {
           "keys": [
-            "width.contained.radius"
+            "edge.contained.radius"
           ],
           "parts": {
             "container": {
               "members": 5,
               "where": {
-                "width": [
+                "edge": [
                   "contained"
                 ]
               }
@@ -21264,14 +21264,14 @@
         },
         "banner": {
           "keys": [
-            "width.full.radius"
+            "edge.full-bleed.radius"
           ],
           "parts": {
             "container": {
               "members": 5,
               "where": {
-                "width": [
-                  "full"
+                "edge": [
+                  "full-bleed"
                 ]
               }
             }
@@ -30152,16 +30152,16 @@
     "banner": {
       "members": 10,
       "axes": {
+        "edge": [
+          "contained",
+          "full-bleed"
+        ],
         "tone": [
           "danger",
           "info",
           "neutral",
           "success",
           "warning"
-        ],
-        "width": [
-          "contained",
-          "full"
         ]
       },
       "tokens": [

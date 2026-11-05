@@ -21,7 +21,7 @@ Type: dimension. Bound by 26 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `border-width` | surface | every member (50 of 50) |
-| banner | `border-width`, `width.contained.edge-side` | container | every member (10 of 10) |
+| banner | `border-width`, `edge.contained.edge-side` | container | every member (10 of 10) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
@@ -81,7 +81,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `width.full.edge-side` | container | width: full (5 of 10) |
+| banner | `edge.full-bleed.edge-side` | container | edge: full-bleed (5 of 10) |
 
 ### `border-width.thick`
 
@@ -2728,7 +2728,7 @@ Type: dimension. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `width.contained.radius` | container | width: contained (5 of 10) |
+| banner | `edge.contained.radius` | container | edge: contained (5 of 10) |
 | button | `radius` | container | every member (576 of 576) |
 | button-destructive | `radius` | container | every member (576 of 576) |
 | button-neutral | `radius` | container | every member (576 of 576) |
@@ -2747,7 +2747,7 @@ Type: dimension. Bound by 6 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `inline.count.radius` (not drawn), `inline.dot.radius` (not drawn), `inline.status.radius` | surface | emphasis: subtle · style: inline · type: status (10 of 50) |
-| banner | `width.full.radius` | container | width: full (5 of 10) |
+| banner | `edge.full-bleed.radius` | container | edge: full-bleed (5 of 10) |
 | dialog | `placement.bottom.radius-bottom`, `placement.end.radius-bottom`, `placement.end.radius-top`, `placement.full.radius-bottom`, `placement.full.radius-top` | panel | placement: bottom, end, full · size: medium (12 of 24) |
 | flush-icon-button | `radius.flush` | container | shape: flush (30 of 60) |
 | flush-icon-button-destructive | `radius.flush` | container | shape: flush (30 of 60) |
