@@ -24,7 +24,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, fixHostMethods, type Node, type Page } from './component-shim';
-import { runComponentChunk, runComponentReactions, pack, unpack, packNames, unpackNames } from './src/mcp-steps';
+import { runComponentPlace, runComponentChunk, runComponentReactions, pack, unpack, packNames, unpackNames } from './src/mcp-steps';
 import { componentScripts } from './mcp-paste';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -69,7 +69,7 @@ const counts = (set: Node | undefined): [number, number, number] => {
 /** The paste path: the def's real chunk payloads, run through the runtime's own step, against `figma` = this host. */
 const AsyncFn = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<Record<string, unknown>>;
 const INPUT = Object.values(exampleBrands as Record<string, BrandInput>)[0];
-const paste = async (id: string, budget?: number, opts: { skipReactions?: boolean } = {}) => {
+const paste = async (id: string, budget?: number, opts: { skipReactions?: boolean; skipPlace?: boolean } = {}) => {
   const plans = plansOf(id);
   const h = host(plans);
   // The page port `placeOnPage` reaches through (`resolveComponentPage`): pages and dividers it creates are stubs in
@@ -106,22 +106,27 @@ const paste = async (id: string, budget?: number, opts: { skipReactions?: boolea
     return null;
   };
   (globalThis as { figma?: unknown }).figma = api;
-  // The chunk scripts' own step data is `{ def, chunk, chunks }`; the payloads are the engine's chunk bodies.
-  const chunks = planSetChunks(plans, budget);
+  // The generator's own step data (`const __D=…;`, packed), so the test runs what `mcp-paste.ts` actually ships.
+  const scripts = componentScripts(INPUT, [id]).filter((s) => s.def === id);
+  const dataOf = (kind: string) => { const s = scripts.find((x) => x.kind === kind); return s ? unpack(JSON.parse(/^const __D=(.*);$/m.exec(s.js)![1])) as Record<string, unknown> : null; };
+  // The set's page first, by its own step (#3414); each chunk then switches to it by the name the generator hands it.
   const reports = [];
+  const place = dataOf('component-place');
+  if (place && !opts.skipPlace) reports.push(await runComponentPlace(pack(place)));
+  const page = (dataOf('component-chunk')?.page ?? null) as string | null;
+  // The chunk scripts' own step data is `{ def, page, chunk, chunks }`; the payloads are the engine's chunk bodies.
+  const chunks = planSetChunks(plans, budget);
   for (const c of chunks) {
-    const d = { step: 0, of: 0, label: id, def: id, chunk: c.index, chunks: c.total };
+    const d = { step: 0, of: 0, label: id, def: id, page, chunk: c.index, chunks: c.total };
     reports.push(await runComponentChunk(pack(d), [(f: unknown) => new AsyncFn('figma', c.js)(f)]));
   }
-  // Then the reactions step, with the data the generator writes into its script (`const __D=…;`, packed), so the test
-  // runs the names `mcp-paste.ts` actually ships. Present only for a set in scope, and only after its last chunk.
-  const scripts = componentScripts(INPUT, [id]).filter((s) => s.def === id);
+  // Then the reactions step. Present only for a set in scope, and only after its last chunk.
   const at = scripts.findIndex((s) => s.kind === 'component-reactions');
   const lastChunk = scripts.map((s) => s.kind).lastIndexOf('component-chunk');
-  const data = at >= 0 ? unpack(JSON.parse(/^const __D=(.*);$/m.exec(scripts[at].js)![1])) as Record<string, unknown> : null;
+  const data = dataOf('component-reactions');
   const react = (over: Record<string, unknown> = {}) => runComponentReactions(pack({ ...data, ...over }));
   if (data && !opts.skipReactions) reports.push(await react());
-  return { reports, set: h.set, page: h.page, total: chunks.length, order: at > lastChunk && lastChunk >= 0, react };
+  return { reports, set: h.set, page: h.page, pages, total: chunks.length, order: at > lastChunk && lastChunk >= 0, react, placed: !!place };
 };
 
 const plugin = async (id: string) => {
@@ -176,6 +181,21 @@ const main = async () => {
     const wrong = lit.flatMap(([m, rs]) => [['plugin', named(p.set, m)], ['paste', named(q!.set(), m)]]
       .filter(([, got]) => JSON.stringify(got) !== JSON.stringify([...rs].sort())).map(([path, got]) => `${path} ${m}: ${(got as string[]).join(', ') || 'none'}, want ${rs.join(', ') || 'none'}`));
     ok(wrong.length === 0, `#2564 both paths: ${id}'s named members carry exactly the literal reactions (${wrong.length ? wrong.join('; ') : `${lit.length} members checked`})`);
+  }
+
+  console.log('\n#3414 — page placement, a step of its own');
+  {
+    // The place step makes the set's page once; the chunks switch to it by name and never create one.
+    const q = await paste('code-input-cell', undefined, { skipReactions: true });
+    const placed = q.reports.find((r) => r.kind === 'component-place');
+    const named3414 = q.pages.filter((p: any) => !p.isPageDivider && p.name === placed?.page).length;
+    ok(q.placed && !!placed?.ok && named3414 === 1 && q.reports.filter((r) => r.kind === 'component-chunk').every((r) => r.ok && r.page === placed.page),
+      `#3414 code-input-cell is placed on ${placed?.page ?? 'no page'} by its place step, once, and every chunk builds there (place ok ${placed?.ok}; pages named so: ${named3414})`);
+    // Without the place step, a chunk throws, naming the step it needs, rather than building on whatever page is current.
+    const bare = await paste('code-input-cell', undefined, { skipReactions: true, skipPlace: true });
+    const first = bare.reports.find((r) => r.kind === 'component-chunk');
+    ok(!first?.ok && /component-place/.test(first?.threw ?? '') && !bare.set(),
+      `#3414 a chunk whose page is not in the file throws, naming the place step, and builds nothing (${first?.threw ?? 'did not throw'})`);
   }
 
   console.log('\n#2564 — the reactions step on its own');

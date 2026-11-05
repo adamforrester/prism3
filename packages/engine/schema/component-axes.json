@@ -113,16 +113,16 @@
   },
   "banner": {
     "axes": {
+      "edge": [
+        "contained",
+        "full-bleed"
+      ],
       "tone": [
         "danger",
         "info",
         "neutral",
         "success",
         "warning"
-      ],
-      "width": [
-        "contained",
-        "full"
       ]
     },
     "members": 10,

@@ -3161,10 +3161,10 @@
             ]
           },
           {
-            "name": "width",
+            "name": "edge",
             "values": [
               "contained",
-              "full"
+              "full-bleed"
             ]
           }
         ],

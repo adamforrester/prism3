@@ -46952,11 +46952,11 @@
           "kind": "variant"
         },
         {
-          "name": "width",
-          "figmaName": "width",
+          "name": "edge",
+          "figmaName": "edge",
           "values": [
             "contained",
-            "full"
+            "full-bleed"
           ],
           "kind": "variant"
         }
@@ -47060,13 +47060,13 @@
         }
       ],
       "redlineKey": [
-        "width",
+        "edge",
         "tone"
       ],
       "redlines": [
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "info"
           },
           "parts": [
@@ -47153,7 +47153,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "info"
           },
           "parts": [
@@ -47240,7 +47240,7 @@
         },
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "success"
           },
           "parts": [
@@ -47327,7 +47327,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "success"
           },
           "parts": [
@@ -47414,7 +47414,7 @@
         },
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "warning"
           },
           "parts": [
@@ -47501,7 +47501,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "warning"
           },
           "parts": [
@@ -47588,7 +47588,7 @@
         },
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "danger"
           },
           "parts": [
@@ -47675,7 +47675,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "danger"
           },
           "parts": [
@@ -47762,7 +47762,7 @@
         },
         {
           "where": {
-            "width": "contained",
+            "edge": "contained",
             "tone": "neutral"
           },
           "parts": [
@@ -47838,7 +47838,7 @@
         },
         {
           "where": {
-            "width": "full",
+            "edge": "full-bleed",
             "tone": "neutral"
           },
           "parts": [
@@ -47931,13 +47931,13 @@
       ],
       "colorKey": [
         "tone",
-        "width"
+        "edge"
       ],
       "colors": [
         {
           "where": {
             "tone": "info",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -47962,7 +47962,7 @@
         {
           "where": {
             "tone": "info",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -47987,7 +47987,7 @@
         {
           "where": {
             "tone": "success",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -48012,7 +48012,7 @@
         {
           "where": {
             "tone": "success",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -48037,7 +48037,7 @@
         {
           "where": {
             "tone": "warning",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -48062,7 +48062,7 @@
         {
           "where": {
             "tone": "warning",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -48087,7 +48087,7 @@
         {
           "where": {
             "tone": "danger",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -48112,7 +48112,7 @@
         {
           "where": {
             "tone": "danger",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
@@ -48137,7 +48137,7 @@
         {
           "where": {
             "tone": "neutral",
-            "width": "contained"
+            "edge": "contained"
           },
           "parts": [
             {
@@ -48158,7 +48158,7 @@
         {
           "where": {
             "tone": "neutral",
-            "width": "full"
+            "edge": "full-bleed"
           },
           "parts": [
             {
