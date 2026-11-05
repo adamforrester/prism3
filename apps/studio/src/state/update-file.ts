@@ -150,6 +150,10 @@ export type BadgeParts = { readonly add: number; readonly due: number; readonly 
  *  before its first answer and when it could not read the file. The badge counts Theme on it, and Theme opens ticked on it,
  *  so the two agree. */
 export const themeDueOf = (live: LiveDue | null): boolean => !!live && !live.error && live.theme;
+/** #3422 Q44.2 A (the review's recommendation; the owner's to confirm): whether the live recount measured the file and
+ *  found it matching the brand. Only then does the Theme row read "Up to date". Before the first answer, when it could
+ *  not read the file, or on the demo brand (no recount is shown), nothing was compared, so the row has no tag. */
+export const themeMatchesOf = (live: LiveDue | null): boolean => !!live && !live.error && !live.theme;
 export const badgeParts = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null): BadgeParts => {
   if (live && !live.error) return { add: queuedOf(catalog, live, queue).length, due: dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }), theme: themeDueOf(live), panels: panelSetsOf(catalog, live, queue).length > 0 };
   return { add: f && !f.error ? queuedOf(catalog, f, queue).length : 0, due: dueCount(catalog, f), theme: false, panels: !!f && !f.error && panelSetsOf(catalog, f, queue).length > 0 };

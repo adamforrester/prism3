@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -88,6 +88,10 @@ ok(same(stepsOf(t1, SET_UP, []), ['theme']), 'steps: a set-up file with the defa
   ok(UPDATE_COPY.themeCurrent === 'Up to date' && UPDATE_COPY.themeCurrent === UPDATE_COPY.status.current,
     `Q44 A label: an unticked Theme reads "Up to date", the sets' own word (${UPDATE_COPY.themeCurrent})`);
   ok(themeDueOf(MATCH) === false && themeDueOf(DIFF) === true && themeDueOf(null) === false, 'Q44 A signal: Theme is due exactly when the recount says the file differs');
+  // Q44.2 A: "Up to date" only on a measured match. Before the recount answers, or when it could not read the file,
+  // nothing was compared, so the row has no tag. MUTATION: the tag on `!themeDueOf` again → this arm, by name.
+  ok(themeMatchesOf(MATCH) === true && themeMatchesOf(DIFF) === false && themeMatchesOf(null) === false && themeMatchesOf({ ...MATCH, error: 'x' }) === false,
+    `Q44.2 A tag: the Theme row reads "Up to date" only when the recount measured the file and found it matching (${JSON.stringify([themeMatchesOf(MATCH), themeMatchesOf(DIFF), themeMatchesOf(null), themeMatchesOf({ ...MATCH, error: 'x' })])})`);
   // The badge counts what the ticks will run: Theme, each ticked Due set, the Usage panels group, and the add queue.
   const DF = { present: ['button', 'tag'], setUp: true, error: null, due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'current' } } } as const;
   const liveM = { present: DF.present, theme: false, error: null, due: DF.due };

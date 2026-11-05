@@ -3501,12 +3501,19 @@ for (const host of ['web', 'figma']) {
           modal: document.querySelector('[data-p3="update-dialog"]')?.getAttribute('aria-modal') }));
         ok(u0.focusIn && u0.modal === 'true', `Update file ${where}: the overlay opens as a modal dialog, focus inside it (${JSON.stringify(u0)})`);
         // #3422 Q44 A: Theme opens ticked only when the badge's recount says the file differs from the brand. None has
-        // answered yet, so the file reads as matching: Theme unticked and "Up to date".
-        // MUTATION: `defaultTicks` ticking Theme always → this arm, by name.
+        // answered yet, so Theme opens unticked, as the badge counts no Theme. Q44.2 A: nothing was compared, so no tag.
+        // MUTATION: `defaultTicks` ticking Theme always → this arm, by name; the tag shown unmeasured → this arm, by name.
         const themeTag = () => page.evaluate(() => document.querySelector('[data-p3="update-check-theme"] [data-p3="update-theme-current"]')?.textContent ?? null);
         const u44 = { items: await items(), tag: await themeTag() };
-        ok(JSON.stringify(u44) === JSON.stringify({ items: [['update-check-theme', 'false'], ['update-check-guides', 'false']], tag: 'Up to date' }),
-          `Q44 A Update file ${where}: on a set-up file that matches the brand, Theme opens unticked and reads "Up to date", beside Style guides, unticked — read ${JSON.stringify(u44)}`);
+        ok(JSON.stringify(u44) === JSON.stringify({ items: [['update-check-theme', 'false'], ['update-check-guides', 'false']], tag: null }),
+          `Q44 A Update file ${where}: on a set-up file no recount has measured, Theme opens unticked with no tag, beside Style guides, unticked — read ${JSON.stringify(u44)}`);
+        await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+        // The recount says the file matches the brand: Theme opens unticked and reads "Up to date" (Q44.2 A).
+        await postMsg(page, { type: 'file-due', seq: 1e6 - 1, present: [], theme: false, due: {}, queued: [] });
+        await openUpdate({ present: [], setUp: true });
+        const u44m = { items: await items(), tag: await themeTag() };
+        ok(JSON.stringify(u44m) === JSON.stringify({ items: [['update-check-theme', 'false'], ['update-check-guides', 'false']], tag: 'Up to date' }),
+          `Q44 A Update file ${where}: on a set-up file the recount found matching the brand, Theme opens unticked and reads "Up to date" — read ${JSON.stringify(u44m)}`);
         await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
         // The recount says the file differs from the brand: Theme opens ticked, with no tag. A high seq, so no later answer
         // in this section replaces it.
