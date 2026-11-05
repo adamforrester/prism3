@@ -15709,7 +15709,7 @@ for (const host of ['web', 'figma']) {
 }
 // #2437: THE CONSUME SKILL'S FLUSH HIT AREA, MEASURED IN A BROWSER (WCAG 2.5.8; owner Q154 A, Q174 B; the spacing
 // sentence is DRAFT for the owner). The engine emits no code layout, so this is the one place the rule can be measured:
-// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-consume/SKILL.md`, applied to
+// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-build-ui/SKILL.md`, applied to
 // buttons on a blank page and hit-tested point by point. The floors (44 at medium and large, 24 at small) are typed here
 // from the owner's decision, never read from the skill. At each size and for labels from 1px to just under the floor:
 //   · two flush buttons at the skill's "always enough" gap (twice its per-side bound) and at the exact gap it states (the
@@ -15723,7 +15723,7 @@ for (const host of ['web', 'figma']) {
 // sketch's 44px raised to 48px → the same arm at the bound AND at the exact gap, the neighbor's own box included.
 {
   const where = '#2437 flush hit area';
-  const skill = readFileSync(join(REPO, 'skills/prism3-consume/SKILL.md'), 'utf8');
+  const skill = readFileSync(join(REPO, 'skills/prism3-build-ui/SKILL.md'), 'utf8');
   const css = /```css\n(\.flush-button[\s\S]*?)```/.exec(skill)?.[1];
   const para = (/\*\*Keep a flush button's hit area clear of its neighbors\.\*\*([\s\S]*?)\n\n/.exec(skill)?.[1] ?? '').replace(/\s+/g, ' ');
   const bound = /(\d+)px is always enough at medium and large, and (\d+)px at small/.exec(para);
