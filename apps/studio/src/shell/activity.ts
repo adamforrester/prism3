@@ -276,7 +276,7 @@ const markOf = (state: Kind | 'run'): HTMLElement => {
   return m;
 };
 /** A result's lines, in the writer's order (#2177): the summary as one line when the host sent none. #3326 (Q3326.1 A):
- *  no line is picked out as the reason by its place any more. The reason is a cause the writer names (`causesOf`). */
+ *  no line is picked out as the reason by its place any more. The reason is a cause the writer names (`causesEl`). */
 const allLines = (r: Pick<Result, 'summary' | 'lines'>): readonly string[] =>
   (r.lines?.length ? r.lines : r.summary ? [r.summary] : []).filter((l) => l.trim());
 /** #3326: the labels before a cause's what-stays and what-to-do (owner-approved wording, Q3326 copy). */

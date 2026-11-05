@@ -3158,14 +3158,20 @@ const drawerState = (page) => page.evaluate(() => {
     dot: btn?.querySelector('[data-state]')?.dataset.state ?? null,
     // S11: every operation that has run has its row: its state, its verdict pill, its phase while running,
     // and its summary when that is showing.
-    // #3113 (Q3113.2 A, Q3113.5 A): the verdict's words beside the row's mark, and a bad result's reason line before
-    // its mono lines; `summary` reads both, as drawn, in order.
+    // #3113 (Q3113.2 A): the verdict's words beside the row's mark. #3326 (Q3326.1 A) replaces Q3113.5 A's positional
+    // reason: `summary` reads the mono lines as drawn, `causes` the writer's causes drawn before them (subject, what, mark,
+    // step, whether open), and `positional` says whether any line is still set apart as the reason (`op-reason`).
     ops: Object.fromEntries([...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="activity-op"]')].map((n) => [n.dataset.op, {
       state: n.dataset.state, kind: n.dataset.kind, verdict: n.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
       mark: n.querySelector('[data-p3="op-head"] .p3-op-mark')?.dataset.state ?? null,
       phase: n.querySelector('[data-p3="op-progress"]')?.textContent ?? null,
-      summary: [n.querySelector('[data-p3="op-body"] > [data-p3="op-reason"]'), n.querySelector('[data-p3="op-body"] > [data-p3="op-summary"]')].filter(vis).map((x) => x.textContent).join('\n') || null,
-      reason: vis(n.querySelector('[data-p3="op-reason"]')) ? n.querySelector('[data-p3="op-reason"]').textContent : null,
+      summary: [n.querySelector('[data-p3="op-body"] > [data-p3="op-summary"]')].filter(vis).map((x) => x.textContent).join('\n') || null,
+      causes: [...n.querySelectorAll('[data-p3="op-body"] > [data-p3="op-causes"] [data-p3="op-cause"]')].filter(vis).map((c) => ({
+        subject: vis(c.querySelector('[data-p3="op-cause-subject"]')) ? c.querySelector('[data-p3="op-cause-subject"]').textContent : null,
+        what: c.querySelector('[data-p3="op-cause-what"]')?.textContent ?? null, kind: c.dataset.kind ?? null,
+        mark: c.querySelector('summary > .p3-op-mark')?.dataset.state ?? null, open: c.open,
+        step: [...c.querySelectorAll('.p3-op-cause-step, .p3-op-cause-steptext')].filter(vis).map((x) => x.textContent)[0] ?? null })),
+      positional: !!n.querySelector('.p3-op-reason'),
       next: [...n.querySelectorAll('[data-p3="op-next"] button')].filter(vis).map((b) => b.textContent),
     }])),
     order: [...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="activity-op"]')].map((n) => n.dataset.op),
@@ -3604,7 +3610,7 @@ for (const host of ['web', 'figma']) {
           : { type: 'file-setup-result', ok: false, headline: '⚠ 2 pages skipped', summary: '2 pages already present were skipped: Cover, Sandbox' };
         await postMsg(page, bad);
         const t1 = Date.now();
-        await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-body"] > [data-p3="op-summary"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
         const after = await takePosts(page);
         ok(after.length === 0, `Update file ${where}: a step that does not land well ends the run: nothing more is posted (posted ${JSON.stringify(after)})`);
         if (w === 1280 || narrow) await sinceMs(page, t1, COLLAPSE_MS + 1000);
@@ -3612,21 +3618,20 @@ for (const host of ['web', 'figma']) {
         const fs = f.ops['filesetup'];
         ok(f.open && f.body && fs?.summary === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its row's summary showing — open ${f.open}, summary "${fs?.summary}"`);
         if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
-        // #3113, read on the bad result: its mark and words (Q3113.2 A), the split count (Q3113.3 A), its reason in the UI
-        // face at the emphasis weight above no mono lines (Q3113.5 A: the summary is one line), and its next steps (Q3113.4 A).
-        // MUTATIONS: `kindOf` dropping the ⚠ test (every bad result a failure) → the dark (warning) arm, by name; the reason
-        // left in the mono list (`splitLines` returning no reason) → the reason arm, by name; `AGAIN.filesetup` removed →
-        // the next-steps arm, by name.
+        // #3113, read on the bad result: its mark and words (Q3113.2 A), the split count (Q3113.3 A) and its next steps
+        // (Q3113.4 A). #3326 (Q3326.1 A) replaces Q3113.5 A's reason line: Set up file's writer names no causes, so its one
+        // line stays in the mono list, in order, and nothing is set apart as the reason by its place.
+        // MUTATIONS: `kindOf` dropping the ⚠ test (every bad result a failure) → the dark (warning) arm, by name; the
+        // positional pick back (`splitLines`, the first line drawn as `op-reason`) → the #3326 arm, by name; `AGAIN.filesetup`
+        // removed → the next-steps arm, by name.
         {
           const wantKind = kind === 'failure' ? 'bad' : 'warn';
           const words = bad.headline.slice(2);
           const wantCount = kind === 'failure' ? [['bad', '1 failed']] : [['warn', '1 warning']];
           ok(fs?.mark === wantKind && fs?.verdict === words && JSON.stringify(f.counts) === JSON.stringify(wantCount) && (narrow || f.barMark === wantKind),
             `Q3113.2 A Q3113.3 A ${where}: a ${kind} draws the ${wantKind} mark and "${words}", and the bar counts ${JSON.stringify(wantCount)} (row ${JSON.stringify({ mark: fs?.mark, verdict: fs?.verdict })}, bar mark ${f.barMark}, counts ${JSON.stringify(f.counts)})`);
-          const face = await page.evaluate(() => { const r = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]'); const l = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-head"]');
-            return r ? { family: getComputedStyle(r).fontFamily, weight: getComputedStyle(r).fontWeight, rowFamily: getComputedStyle(l).fontFamily, mono: !!r.closest('ul') } : null; });
-          ok(fs?.reason === bad.summary && !!face && face.family === face.rowFamily && !/mono/i.test(face.family) && Number(face.weight) === 500 && !face.mono,
-            `Q3113.5 A ${where}: the ${kind} leads with its reason in the UI face at 500, not in the mono list (${JSON.stringify({ reason: fs?.reason, face })})`);
+          ok(fs?.summary === bad.summary && !fs?.positional && (fs?.causes ?? []).length === 0,
+            `#3326 ${where}: the ${kind}, which names no cause, keeps its line in the mono list and sets no line apart as the reason by its place (${JSON.stringify({ summary: fs?.summary, positional: fs?.positional, causes: fs?.causes })})`);
           ok(JSON.stringify(fs?.next) === JSON.stringify(['Set up again', 'Copy details']),
             `Q3113.4 A ${where}: the ${kind} offers "Set up again" and "Copy details" (${JSON.stringify(fs?.next)})`);
           // "Set up again" reruns the write the panel made: exactly the message Set up file posted, and nothing else.
@@ -3635,7 +3640,7 @@ for (const host of ['web', 'figma']) {
           const again = await takeWrites(page);
           ok(isWire(again, FIGMA_WIRE['file-setup']), `Q3113.4 A ${where}: "Set up again" posts ${JSON.stringify(FIGMA_WIRE['file-setup'])} and nothing more — ${wireDiff(again[0], FIGMA_WIRE['file-setup'])}`);
           await postMsg(page, bad);
-          await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
+          await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-body"] > [data-p3="op-summary"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
           const hist = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-head"]')].map((n) => n.textContent));
           // Q3113.6 A: the earlier result is one line, its time and its words.
           ok(hist.length === 1 && new RegExp(`^\\d\\d:\\d\\d${words}$`).test(hist[0]),
@@ -19491,10 +19496,11 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 // =============================================================================================
 // The drawer's mono text, a run's console lines (`.p3-op-summary`), an Update's publish description
 // (`.p3-op-publish-text`) and the status strip's counter (`.p3-status-n`), is drawn at 10px, its leading the drawer's
-// 1.5 (15px); its UI-face text, a bad result's reason (`.p3-op-reason`), the row's title and the strip's words, stays at
+// 1.5 (15px); its UI-face text, a bad result's cause (#3326: its set, `.p3-op-cause-subj`, and its reasons,
+// `.p3-op-cause-reasons`, which replaced the positional `.p3-op-reason`), the row's title and the strip's words, stays at
 // 12px. Read as computed, on both hosts, light and dark, at 1280 and 380:
 //   · the plugin, whose drawer draws: the strip planted by a `run-progress` reading, then an agent's Update result with
-//     a reason, two console lines and a publish description, each node read as drawn;
+//     a cause, two console lines and a publish description, each node read as drawn;
 //   · the studio, which runs no write and so draws no drawer (section 10): the same classes mounted in its frame, read
 //     through the studio bundle's own stylesheet. A probe of the stylesheet, not of a drawn drawer, and labeled so.
 // INDEPENDENCE (docs/34): the sizes are the issue's literals, typed here; nothing is read from `tokens.mjs`, `spec.mjs`,
@@ -19509,7 +19515,7 @@ const FACE_3305 = (page) => page.evaluate(() => {
   // By the classes the issue names, inside the drawer (`.p3-drawer`), so the studio's mounted probe needs no hook.
   return {
     summary: read('.p3-drawer .p3-op-body > .p3-op-summary'), publish: read('.p3-drawer .p3-op-publish-text'), n: read('.p3-drawer .p3-status-n'),
-    reason: read('.p3-drawer .p3-op-body > .p3-op-reason'), title: read('.p3-drawer .p3-op-head b'), what: read('.p3-drawer .p3-status-what'),
+    subject: read('.p3-drawer .p3-op-body .p3-op-cause-subj'), reason: read('.p3-drawer .p3-op-body .p3-op-cause-reasons > li'), title: read('.p3-drawer .p3-op-head b'), what: read('.p3-drawer .p3-status-what'),
   };
 });
 const holds3305 = (where, f, names) => {
@@ -19520,7 +19526,7 @@ const holds3305 = (where, f, names) => {
 };
 const N_3305 = [['n', "the status strip's counter (.p3-status-n)"]], WHAT_3305 = [['what', "the status strip's words (.p3-status-what)"]];
 const ROW_MONO_3305 = [['summary', "a run's console lines (.p3-op-summary)"], ['publish', "the publish description (.p3-op-publish-text)"]];
-const ROW_UI_3305 = [['reason', "a bad result's reason (.p3-op-reason)"], ['title', "the row's title (.p3-op-head b)"]];
+const ROW_UI_3305 = [['subject', "a bad result's cause, its set (.p3-op-cause-subj)"], ['reason', "a cause's reasons (.p3-op-cause-reasons)"], ['title', "the row's title (.p3-op-head b)"]];
 for (const host of ['figma', 'web']) {
   for (const theme of ['light', 'dark']) {
     for (const w of [1280, 380]) {
@@ -19536,10 +19542,12 @@ for (const host of ['figma', 'web']) {
           step = "an agent's Update result";
           await postMsg(page, { type: 'agent-started', id: 'm3305', cmd: 'update-components' });
           await postMsg(page, { type: 'component-update-result', ok: false, headline: '✗ 1 set not updated', summary: 'Button was hand-edited.',
-            lines: ['Button was hand-edited.', 'button: 24 variants checked', 'tag: up to date'], publish: 'Button: 24 variants updated.' });
+            lines: ['Button was hand-edited.', 'button: 24 variants checked', 'tag: up to date'], publish: 'Button: 24 variants updated.',
+            causes: [{ kind: 'bad', subject: 'button', what: 'not updated', reasons: ['Button was hand-edited.'] }] });
           await postMsg(page, { type: 'agent-finished', id: 'm3305', cmd: 'update-components' });
           await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-body"] > [data-p3="op-summary"]', WAIT);
           await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-publish-text"]', WAIT);
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-cause-reasons"]', WAIT);
           await settle(page);
           holds3305(where, await FACE_3305(page), { mono: ROW_MONO_3305, ui: ROW_UI_3305 });
         } else {
@@ -19554,7 +19562,13 @@ for (const host of ['figma', 'web']) {
             const op = el('div', 'p3-op'), head = el('button', 'p3-op-head'), body = el('div', 'p3-op-body');
             head.append(el('b', '', 'Build set'));
             const ul = el('ul', 'p3-op-summary'); ul.append(el('li', 'p3-op-line', 'button: 24 variants checked'));
-            body.append(el('p', 'p3-op-reason', 'Button was hand-edited.'), ul, el('pre', 'p3-op-publish-text', 'Button: 24 variants updated.'));
+            // #3326: a cause as the drawer draws it, open: its summary (the set in emphasis) and its reasons.
+            const causes = el('ul', 'p3-op-causes'), li = el('li'), cause = el('details', 'p3-op-cause'), sum = el('summary'), cb = el('div', 'p3-op-cause-body');
+            cause.open = true;
+            sum.append(el('span', 'p3-op-cause-subj', 'Button:'), el('span', 'p3-op-cause-what', 'not updated'));
+            const rs = el('ul', 'p3-op-cause-reasons'); rs.append(el('li', '', 'Button was hand-edited.'));
+            cb.append(rs); cause.append(sum, cb); li.append(cause); causes.append(li);
+            body.append(causes, ul, el('pre', 'p3-op-publish-text', 'Button: 24 variants updated.'));
             op.append(head, body);
             d.append(strip, op);
             document.querySelector('[data-p3="frame"]').append(d);
@@ -19571,6 +19585,75 @@ for (const host of ['figma', 'web']) {
   }
 }
 } // 3305
+// =============================================================================================
+// #3326 PR 2 — THE DRAWER DRAWS A RUN'S CAUSES (owner decisions Q3326.1 A, Q3326.5 A; #3308 Q3308.1 A)
+// =============================================================================================
+// The owner's first run (#3308), posted as the host sends it: nine sets built, five with problems. Its lines lead with a
+// success line ("Built Icon on ↳ Icons & assets."), which the positional pick (`splitLines`, Q3113.5 A) set apart as the
+// run's reason. The writer now names the causes as data, so the drawer must draw them first, one disclosure each, the
+// first open, and set no line apart by its place. Read on the plugin's drawer, light and dark, at 1280 (the step at the
+// end of the closed row) and 380 (the step inside, as "Step: …").
+// INDEPENDENCE (docs/34): the expected subjects, marks, step and words are typed here from the approved render; nothing
+// is read from `activity.ts`, `causes.ts` or the catalog. MUTATION: `splitLines` put back (a bad result's first line drawn
+// as `op-reason` before the mono list) → `#3326 … no line is set apart as the reason by its place`, by name.
+if (runs('3326')) {
+console.log(`\n#3326 — the Activity drawer draws a run's causes\n${'='.repeat(78)}`);
+const TEMPLATE_3326 = 'No usage panels drawn: this file has no _Doc-block component. Run Set up file, then build again.';
+const SETS_3326 = [['button', 'Button'], ['checkbox-row', 'Checkbox.Row'], ['checkbox-group', 'Checkbox.Group'], ['link', 'Link'], ['badge', 'Badge']];
+const RUN_3326 = {
+  type: 'component-result', ok: false, completed: true, headline: '⚠ Built 9 sets · 5 with problems',
+  lines: ['Built Icon on ↳ Icons & assets.', ...SETS_3326.map(([, n]) => `${n}: built with problems.`), TEMPLATE_3326],
+  causes: SETS_3326.map(([id]) => ({ kind: 'warn', subject: id, what: 'built with problems', reasons: [TEMPLATE_3326], step: 'To add' })),
+};
+RUN_3326.summary = RUN_3326.lines.join(' ');
+const READ_3326 = (page) => page.evaluate(() => {
+  const vis = (n) => !!n && n.checkVisibility();
+  const row = document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="components"]');
+  const causes = row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-causes"] [data-p3="op-cause"]')].filter(vis) : [];
+  return {
+    positional: !!row?.querySelector('.p3-op-reason'),
+    // Before the mono lines: the causes list is the body's first drawn child.
+    first: row ? ([...row.querySelectorAll('[data-p3="op-body"] > *')].find(vis)?.dataset.p3 ?? null) : null,
+    lines: row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-summary"] > li')].map((l) => l.textContent) : [],
+    causes: causes.map((c) => ({
+      subject: vis(c.querySelector('[data-p3="op-cause-subject"]')) ? c.querySelector('[data-p3="op-cause-subject"]').textContent : null,
+      what: c.querySelector('[data-p3="op-cause-what"]')?.textContent ?? null,
+      mark: c.querySelector('summary > .p3-op-mark')?.dataset.state ?? null, open: c.open,
+      step: [...c.querySelectorAll('.p3-op-cause-step, .p3-op-cause-steptext')].filter(vis).map((x) => x.textContent)[0] ?? null,
+      reasons: [...c.querySelectorAll('[data-p3="op-cause-reason"]')].filter(vis).map((x) => x.textContent),
+    })),
+  };
+});
+for (const theme of ['light', 'dark']) {
+  for (const w of [1280, 380]) {
+    const where = `figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: w === 380 ? 760 : 900 });
+    try {
+      await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: [], atOpen: true });
+      await postMsg(page, { type: 'agent-started', id: 'm3326', cmd: 'build-components' });
+      await postMsg(page, RUN_3326);
+      await postMsg(page, { type: 'agent-finished', id: 'm3326', cmd: 'build-components' });
+      await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="components"] [data-p3="op-causes"]', WAIT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-causes"]')?.checkVisibility() === true, null, { timeout: 5000 }).catch(() => {});
+      const r = await READ_3326(page);
+      const c0 = r.causes[0];
+      const wantStep = w === 380 ? 'Step: To add' : 'To add';
+      ok(!r.positional, `#3326 ${where}: no line is set apart as the reason by its place (op-reason drawn: ${r.positional})`);
+      ok(!!c0 && c0.subject === 'Button:' && c0.mark === 'warn' && c0.step === wantStep && c0.open,
+        `#3326 ${where}: the first cause is open and shows its set, its warning mark and its step "${wantStep}" (${JSON.stringify(c0)})`);
+      ok(r.first === 'op-causes', `#3326 ${where}: the causes come first, before the run's lines (first drawn: ${r.first})`);
+      ok(JSON.stringify(r.causes.map((c) => c.subject)) === JSON.stringify(SETS_3326.map(([, n]) => `${n}:`)) && r.causes.every((c) => c.what === 'built with problems' && c.mark === 'warn'),
+        `#3326 ${where}: one cause per set with problems, in the writer's order, each named from the catalog (${JSON.stringify(r.causes.map((c) => [c.subject, c.what, c.mark]))})`);
+      ok(r.causes.filter((c) => c.open).length === 1 && JSON.stringify(c0?.reasons) === JSON.stringify([TEMPLATE_3326]),
+        `#3326 ${where}: only the first cause is open, and it shows its reason (${JSON.stringify(r.causes.map((c) => c.open))}, ${JSON.stringify(c0?.reasons)})`);
+      ok(JSON.stringify(r.lines) === JSON.stringify(RUN_3326.lines), `#3326 ${where}: every line stays, in the writer's order, below the causes (${r.lines.length} of ${RUN_3326.lines.length})`);
+      ok(errors.length === 0, `#3326 ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#3326 ${where}: the case stopped — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+} // 3326
 // =============================================================================================
 // #3150 — THE CHROME'S MOTION (part 2; the owner's Q3150.1–11 A, 2026-10-31). Every other section runs with the motion
 // durations at 0s (SETTLED_MOTION, beside `browser`), so it measures end states; this one runs them live.
