@@ -23,7 +23,8 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
-import { windowPlacement } from './window-place';
+import { restorePlacement, stripPlacement } from './window-place';
+import type { Point, WindowAt } from './window-place';
 import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
@@ -180,24 +181,75 @@ let uiSize: { width: number; height: number } = { ...DEFAULT_SIZE };
  */
 const STRIP_SIZE = { width: 480, height: 40 };
 let beforeStrip: { width: number; height: number } | null = null;
-/** #3327: on the toggle only, place the window against the canvas as it is now (`window-place.ts`). A host with no
- *  viewport or no `reposition` (a test shim) is left where it is. */
-const placeWindow = (toggle: 'minimize' | 'restore', size: { width: number; height: number }): void => {
-  if (typeof figma.ui.reposition !== 'function' || !figma.viewport) return;
-  const { x, y } = windowPlacement(toggle, figma.viewport.bounds, figma.viewport.zoom, size);
-  figma.ui.reposition(x, y);
+/**
+ * WHERE THE STRIP GOES (#3416, the owner's decision 2026-11-04; the arithmetic is `window-place.ts`).
+ * The strip's last spot is kept per file and per person: `clientStorage` is per person and per machine but not per
+ * file, so the key carries an id for the file. `figma.root.id` cannot be that id, because the document node's id is
+ * `0:0` in every file, and `figma.fileKey` is for private plugins only. So the file's id is a random one, kept in the
+ * file's root plugin data under `FILE_ID_KEY` and made the first time a strip spot is kept in it.
+ * The spot is the strip's top-left in window space, read with `figma.ui.getPosition()` at Restore, so it is wherever
+ * the user last dragged the strip. It is read from storage once at start, so Minimize answers at once.
+ */
+const FILE_ID_KEY = 'prism3:file-id';
+const STRIP_AT_KEY = 'prism3:strip-at:';
+const fileId = (make: boolean): string | null => {
+  try {
+    const was = figma.root.getPluginData(FILE_ID_KEY);
+    if (was || !make) return was || null;
+    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    figma.root.setPluginData(FILE_ID_KEY, id);
+    return id;
+  } catch { return null; }
 };
+const isPoint = (v: unknown): v is Point =>
+  !!v && typeof v === 'object' && Number.isFinite((v as Point).x) && Number.isFinite((v as Point).y);
+let stripSpot: Point | null = null;
+void (async (): Promise<void> => {
+  try {
+    const id = fileId(false);
+    if (!id) return;
+    const v: unknown = await figma.clientStorage.getAsync(STRIP_AT_KEY + id);
+    // A spot kept while this read was out (a Restore before storage answered) is newer: keep it.
+    if (isPoint(v) && !stripSpot) stripSpot = { x: v.x, y: v.y };
+  } catch { /* storage unavailable: the first Minimize shrinks in place */ }
+})();
+/** The window's top-left now, in both spaces, or null on a host that cannot say (a test shim, no UI). */
+const windowAt = (): WindowAt | null => {
+  try {
+    if (typeof figma.ui.getPosition !== 'function') return null;
+    const { windowSpace, canvasSpace } = figma.ui.getPosition();
+    return isPoint(windowSpace) && isPoint(canvasSpace) ? { window: { x: windowSpace.x, y: windowSpace.y }, canvas: { x: canvasSpace.x, y: canvasSpace.y } } : null;
+  } catch { return null; }
+};
+/** Place the window at a canvas point. A host with no viewport or no `reposition` (a test shim) is left where it is. */
+const canPlace = (): boolean => typeof figma.ui.reposition === 'function' && !!figma.viewport;
 const setMinimized = (minimized: boolean): void => {
   if (minimized === (beforeStrip !== null)) return;
   if (minimized) {
+    // Read before the resize: the top-left is the window's, and Minimize keeps it unless a remembered spot is reachable.
+    const here = windowAt();
     beforeStrip = uiSize;
     figma.ui.resize(STRIP_SIZE.width, STRIP_SIZE.height);
-    placeWindow('minimize', STRIP_SIZE);
+    if (here && canPlace()) {
+      // Null is in place: `resize` has already kept the top-left, so nothing is repositioned (`window-place.ts`).
+      const to = stripPlacement(figma.viewport.bounds, figma.viewport.zoom, here, stripSpot);
+      if (to) figma.ui.reposition(to.x, to.y);
+    }
   } else {
+    // Where the strip is now is where the user last left it: kept for this file's next Minimize.
+    const was = windowAt();
+    if (was) {
+      stripSpot = was.window;
+      const id = fileId(true);
+      if (id) void figma.clientStorage.setAsync(STRIP_AT_KEY + id, stripSpot).catch(() => {/* best-effort */});
+    }
     const back = beforeStrip as { width: number; height: number };
     beforeStrip = null;
     figma.ui.resize(back.width, back.height);
-    placeWindow('restore', back);
+    if (canPlace()) {
+      const { x, y } = restorePlacement(figma.viewport.bounds, figma.viewport.zoom, back);
+      figma.ui.reposition(x, y);
+    }
   }
   postToUi({ type: 'ui-minimized', minimized });
 };
