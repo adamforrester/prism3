@@ -218,7 +218,7 @@ jobs:
 
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
-      # was not. Its first run found `prism3-consume` teaching the pre-rename `action.*` family,
+      # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,
       # which an agent would emit as references resolving to nothing.
       - name: Skills gate (shipped skills make true claims)
         run: npx --yes tsx@4 packages/engine/lint-skills.ts
@@ -233,8 +233,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "225 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 225. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "227 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 227. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor

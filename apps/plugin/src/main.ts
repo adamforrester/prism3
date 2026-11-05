@@ -35,14 +35,16 @@ import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
-import { APPLY_STAGES, runApplyTheme, type ApplyStage, type ThemePace } from './apply-theme';
+import { APPLY_STAGES, runApplyTheme, themePlans, type ApplyStage, type ThemePace } from './apply-theme';
+import { emissionOf, themeDue } from './theme-emission';
+import { serializeBrandInput } from '@prism3/engine/persist-input';
 import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { saveBeforeBuild, saveVersion } from './version-title';
-import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type ApplyProgress, type UpdateChoices } from './update-apply';
+import { applyUpdate, applyVerdict, ledgerAfter, previewHashOf, type ApplyHost, type ApplyProgress, type UpdateChoices } from './update-apply';
 import { scaffoldSkeleton, resolveComponentPage, fileComponentsPageOf } from './file-setup';
 import { emptiedLine, pageMovesDue, pageMovesLine, relocateSets, type RelocateOutcome } from './page-moves';
 import { ensureFileComponents } from './file-components';
@@ -72,7 +74,7 @@ import { listFamilyStyleNames } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
-import { holdsInput, restoreInput } from './persist-figma';
+import { restoreInput } from './persist-figma';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -1592,6 +1594,17 @@ const ledgerSets = async (): Promise<void> => {
  *  the stored brand, and materializes each present set once. It never runs the full check, and it reuses the sets the
  *  last read found (`presentCache`). The panel debounces its requests; `seq` lets it drop an answer a newer one has
  *  replaced. */
+/** #3422 Q44.1 A: the print of what Apply Theme would write for the panel's brand, for the last brand asked about. A
+ *  slider's recounts each ask once (about 0.2 s of planning); the same brand asked again is free. */
+let emissionMemo: { key: string; print: string } | null = null;
+const emissionNow = (input: BrandInput): string => {
+  const key = serializeBrandInput(input);
+  if (emissionMemo?.key !== key) emissionMemo = { key, print: emissionOf(themePlans(input)) };
+  return emissionMemo.print;
+};
+/** #3081 Q810 A, #3422 Q44.1 A: whether Theme would change the file: it does not hold the panel's brand, or the brand's
+ *  variables and styles were written by another emission than this plugin's (an engine update under the same brand). */
+const themeDiffers = (input: BrandInput | undefined): boolean => !!input && themeDue(figma.root, input, () => emissionNow(input));
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
     const cached = presentCache !== null && panelCache !== null ? { ids: presentCache, paneled: panelCache } : null;
@@ -1606,7 +1619,7 @@ const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void
     const print = printNow(input);
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
-    postToUi({ type: 'file-due', seq, present, theme: !!input && !holdsInput(figma.root, input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
+    postToUi({ type: 'file-due', seq, present, theme: themeDiffers(input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }
@@ -1729,6 +1742,13 @@ const updateTargets = (defId: string | readonly string[] | undefined, input?: Br
   return { targets, unknown: null, refused };
 };
 const breathe = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+/** #3421: the per-set hand-edit choices an `update-sets` carries, each a known choice, as `UpdateChoices.sets`; undefined
+ *  when there are none. */
+const keptChoices = (x: unknown): UpdateChoices['sets'] => {
+  if (!x || typeof x !== 'object') return undefined;
+  const e = Object.entries(x as Record<string, unknown>).filter(([, v]) => v === 'keep' || v === 'overwrite' || v === 'accept');
+  return e.length ? Object.fromEntries(e.map(([k, v]) => [k, { handEdits: v as 'keep' | 'overwrite' | 'accept' }])) : undefined;
+};
 const unknownDef = (defId: string, sink: ActionSink): void => {
   const why = `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`;
   postVerdict({ type: 'component-update-result', ok: false, headline: '✗ unknown def', summary: why, lines: [why], causes: [runCause('✗ unknown def', why)] }, sink);
@@ -1777,11 +1797,12 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
     // #3082 Q811 A: with the print of the plans the apply laid, the target's own.
     const now = ledgerNow(input);
-    const acted = Object.fromEntries(r.outcomes.filter((o) => !o.refused).flatMap((o) => {
-      const e = now(o.def);
-      const plans = targets.find((t) => t.def === o.def)?.plans;
-      return e && plans ? [[o.def, { ...e, print: printOf(plans) }] as const] : [];
-    }));
+    // #3421 (Q39 A): a set whose kept hand edits held changes back carries them (`held`), so it is listed under Kept edits.
+    const acted = ledgerAfter(r.outcomes, (def) => {
+      const e = now(def);
+      const plans = targets.find((t) => t.def === def)?.plans;
+      return e && plans ? { ...e, print: printOf(plans) } : null;
+    });
     try { recordSets(figma.root, acted); } catch { /* read as due again; the next update records it */ }
     // Q811 A: the apply is a write, so the sets that are current by their print are recorded now too. Not the check above.
     restampQuiet();
@@ -2396,7 +2417,8 @@ onUiMessage((msg: UiToMain) => {
     case 'update-sets':
       // #2909: Update file's in-place update of the sets its checklist ticked, under the check's hash. Guarded, as the
       // agent's confirmed `update-components` is: the same action.
-      void ACTIONS.updateComponents(msg.defs, msg.previewHash, { handEdits: msg.handEdits }, msg.input, uiSink);
+      // #3421 (Q39 A): a Kept edits set's own choice rides `sets` (`UpdateChoices.sets`), over the one for every set.
+      void ACTIONS.updateComponents(msg.defs, msg.previewHash, { handEdits: msg.handEdits, ...(keptChoices(msg.sets) ? { sets: keptChoices(msg.sets) } : {}) }, msg.input, uiSink);
       return;
     case 'update-stop':
       // #3170 Q3170.4 A: read by the panel's running update at its next set boundary; nothing running, nothing to stop.

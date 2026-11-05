@@ -333,17 +333,31 @@ const reopen = async (page) => {
 const setBox = async (page, locator, on) => {
   if ((await locator.getAttribute('aria-checked')) !== String(on)) await hooks.click(locator);
 };
+/** #3422 Q44 A: on the demo brand no recount says the file differs, so Theme opens unticked; tick it by hand, as a
+ *  designer forcing a re-apply does. The tick checks the file again (#3023 Q701 B), answered as the first read was. */
+const tickTheme = async (page, answer = { present: [], setUp: true }) => {
+  if ((await page.locator('[data-p3="update-check-theme"]').getAttribute('aria-checked').catch(() => null)) !== 'false') return;
+  const asked = await page.evaluate(() => window.__sets);
+  await setBox(page, page.locator('[data-p3="update-check-theme"]'), true);
+  await page.waitForFunction((n) => window.__sets > n, asked, { timeout: 3000 }).catch(() => {});
+  await post(page, { type: 'file-sets', ...answer });
+  await hooks.need(page, '[data-p3="update-go"]');
+};
 /** Build these sets through Update file (#2909, Q2909.5 A): the sets queued in the file (#3129, the host's answer carries
  *  the queue), the theme unticked, so the run is the sets step alone. Returns false if the checklist could not be driven. */
 const runSets = async (page, ids, label = 'build') => {
   try {
     await openUpdate(page, { present: [], setUp: true, queued: ids });
     // #3023 Q701 B: unticking Theme checks the file again, against the stored brand; it is answered as the first read was.
-    const asked = await page.evaluate(() => window.__sets);
-    await setBox(page, page.locator('[data-p3="update-check-theme"]'), false);
-    await page.waitForFunction((n) => window.__sets > n, asked, { timeout: 3000 }).catch(() => {});
-    await post(page, { type: 'file-sets', present: [], setUp: true, queued: ids });
-    await hooks.need(page, '[data-p3="update-go"]');
+    // Since #3422 (Q44 A) Theme opens unticked on a file that matches the brand, so there may be nothing to untick.
+    const theme = page.locator('[data-p3="update-check-theme"]');
+    if ((await theme.getAttribute('aria-checked')) === 'true') {
+      const asked = await page.evaluate(() => window.__sets);
+      await setBox(page, theme, false);
+      await page.waitForFunction((n) => window.__sets > n, asked, { timeout: 3000 }).catch(() => {});
+      await post(page, { type: 'file-sets', present: [], setUp: true, queued: ids });
+      await hooks.need(page, '[data-p3="update-go"]');
+    }
     await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
     return true;
   } catch (e) {
@@ -484,8 +498,9 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
     group: !!document.querySelector('[data-p3="update-group-add"], [data-p3="update-add-line"]'),
     theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
   }));
-  ok(list.theme === 'true', `Q2909.2 A: the checklist always shows the theme, ticked — read ${list.theme}`);
-  hooks.absent(ok, { seen: list.theme === 'true', state: 'the checklist drawn, its Theme item ticked' }, list.rows === 0 && !list.group,
+  // #3422 Q44 A: no recount has said the file differs from the brand, so Theme is shown, unticked.
+  ok(list.theme === 'false', `Q2909.2 A, #3422 Q44 A: the checklist always shows the theme, unticked while the file matches the brand — read ${list.theme}`);
+  hooks.absent(ok, { seen: list.theme !== null, state: 'the checklist drawn, its Theme item shown' }, list.rows === 0 && !list.group,
     `#3129 Q832 A, R7: on a set-up file with nothing queued there is no To add at all; no set is listed to tick — ${JSON.stringify(list)}`);
   await hooks.click(page.locator('[data-p3="update-cancel"]'));
   await startBuild(page, undefined, 'the fresh panel\'s proving build');
@@ -868,6 +883,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && ['apply-theme', 'build-components'].includes(m.type)) window.__posts.push(m.type); });
   });
   await openUpdate(page, { present: [], setUp: true, queued: ['tag'] });
+  // #3422 Q44 A: Theme ticked by hand, so it runs first.
+  await tickTheme(page, { present: [], setUp: true, queued: ['tag'] });
   await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
   await page.waitForFunction(() => window.__posts.length > 0, null, { timeout: 3000 }).catch(() => {});
   await post(page, { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'write failed' });
@@ -955,6 +972,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   // #2909: the panel's theme write is Update file's Theme step. Started while the agent's Apply runs, it posts nothing,
   // and the run ends rather than waiting on a verdict that is not coming.
   await openUpdate(page);
+  await tickTheme(page);
   await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
   await page.waitForTimeout(200);
   const firedBusy = await sentApply();
@@ -1014,6 +1032,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `S11 an agent's build shows its live progress on the Build set row — state ${build.state}, agent ${build.agent}, phase ${JSON.stringify(build.phase)}`);
   // Positive control for the no-post check: nothing runs Apply now, so the same run does post.
   await openUpdate(page);
+  await tickTheme(page);
   await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 }).catch(() => {});
   await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});
   const firedIdle = await sentApply();
@@ -1566,6 +1585,7 @@ for (const how of ['pointer', 'focus']) {
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy'] });
   }, [ctl, sel]);
   await openUpdate(page);
+  await tickTheme(page);
   await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 });
   await page.waitForFunction(() => !!window.__p3SpinAtStart, null, { timeout: 5000 }).catch(() => {});
   const early = await page.evaluate(() => window.__p3SpinAtStart ?? null);
@@ -1720,6 +1740,8 @@ for (const how of ['pointer', 'focus']) {
 /** Update file's action as a designer meets it: the checklist opened and answered, its action read, then closed. */
 const readGo = async (page) => {
   await openUpdate(page);
+  // #3422 Q44 A: Theme ticked, so the action has something to run and its state is the gate's, not an empty checklist's.
+  await tickTheme(page);
   const r = await page.evaluate(() => {
     const go = document.querySelector('[data-p3="update-go"]');
     return { disabled: go ? go.disabled : null, title: go?.title ?? null };
@@ -1773,6 +1795,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
   await hooks.click(page.locator('[data-p3="update-cancel"]'));
   // Update file's action, forced past its disabled state.
   await openUpdate(page);
+  await tickTheme(page);
   await hooks.click(page.locator('[data-p3="update-go"]'), { force: true, timeout: 4000 }).catch(() => {});
   await hooks.click(page.locator('[data-p3="update-cancel"]')).catch(() => {});
   await page.waitForTimeout(500);
@@ -1788,6 +1811,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     `#1989 control: a restore that resolves clears the bar and turns Update file back on — bar ${JSON.stringify(on.bar)}, disabled ${goOn.disabled}`);
   await page.evaluate(() => { window.__writes = []; });
   await openUpdate(page);
+  await tickTheme(page);
   await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 }).catch(() => {});
   await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
   const posted = await writes();
@@ -1964,6 +1988,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
   /** Run Update file with its defaults (the theme), and wait for the post. */
   const applyNow = async (page) => {
     await openUpdate(page);
+    await tickTheme(page);
     await hooks.click(page.locator('[data-p3="update-go"]'), { timeout: 4000 }).catch(() => {});
     await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
   };

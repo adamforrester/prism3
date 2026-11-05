@@ -3095,6 +3095,16 @@ const AGENT_WIRE = { type: 'agent-link', on: true };
 const WAIT = { timeout: 10000 };
 
 const postMsg = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
+/** #3422 Q44 A: Update file opens Theme ticked only when the badge's recount says the file differs from the brand. Where
+ *  none has said so, a case that needs the Theme step ticks it by hand, as a designer applying the brand again does. The
+ *  tick checks the file again (#3023 Q701 B), answered with `answer`, as the first read was. */
+const tickTheme = async (page, answer) => {
+  const box = page.locator('[data-p3="update-check-theme"]');
+  if ((await box.getAttribute('aria-checked', WAIT).catch(() => null)) !== 'false') return;
+  await hooks.click(box, WAIT);
+  await postMsg(page, { type: 'file-sets', ...answer });
+  await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, WAIT).catch(() => {});
+};
 /** Record every write the UI posts toward the main thread (in this harness `parent` is the page itself),
  *  the whole message, payload included. */
 const recordPosts = (page) => page.evaluate(() => {
@@ -3494,15 +3504,38 @@ for (const host of ['web', 'figma']) {
             await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
           }
         };
-        const idleU = await updBtn();
+        let idleU = await updBtn();
         ok(idleU.text === UPDATE_LABEL && !idleU.disabled && !idleU.busy, `${where}: the bar's Update file reads "${UPDATE_LABEL}", and can run (read ${JSON.stringify(idleU)})`);
         await takePosts(page);
         await openUpdate({ present: [], setUp: true });
         const u0 = await page.evaluate(() => ({ focusIn: !!document.activeElement?.closest('[data-p3="update-dialog"]'),
           modal: document.querySelector('[data-p3="update-dialog"]')?.getAttribute('aria-modal') }));
         ok(u0.focusIn && u0.modal === 'true', `Update file ${where}: the overlay opens as a modal dialog, focus inside it (${JSON.stringify(u0)})`);
-        ok(JSON.stringify(await items()) === JSON.stringify([['update-check-theme', 'true'], ['update-check-guides', 'false']]),
-          `Update file ${where}: on a set-up file the checklist shows Theme, ticked, and Style guides, unticked (Q2909.2 A) — read ${JSON.stringify(await items())}`);
+        // #3422 Q44 A: Theme opens ticked only when the badge's recount says the file differs from the brand. None has
+        // answered yet, so Theme opens unticked, as the badge counts no Theme. Q44.2 A: nothing was compared, so no tag.
+        // MUTATION: `defaultTicks` ticking Theme always → this arm, by name; the tag shown unmeasured → this arm, by name.
+        const themeTag = () => page.evaluate(() => document.querySelector('[data-p3="update-check-theme"] [data-p3="update-theme-current"]')?.textContent ?? null);
+        const u44 = { items: await items(), tag: await themeTag() };
+        ok(JSON.stringify(u44) === JSON.stringify({ items: [['update-check-theme', 'false'], ['update-check-guides', 'false']], tag: null }),
+          `Q44 A Update file ${where}: on a set-up file no recount has measured, Theme opens unticked with no tag, beside Style guides, unticked — read ${JSON.stringify(u44)}`);
+        await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+        // The recount says the file matches the brand: Theme opens unticked and reads "Up to date" (Q44.2 A).
+        await postMsg(page, { type: 'file-due', seq: 1e6 - 1, present: [], theme: false, due: {}, queued: [] });
+        await openUpdate({ present: [], setUp: true });
+        const u44m = { items: await items(), tag: await themeTag() };
+        ok(JSON.stringify(u44m) === JSON.stringify({ items: [['update-check-theme', 'false'], ['update-check-guides', 'false']], tag: 'Up to date' }),
+          `Q44 A Update file ${where}: on a set-up file the recount found matching the brand, Theme opens unticked and reads "Up to date" — read ${JSON.stringify(u44m)}`);
+        await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+        // The recount says the file differs from the brand: Theme opens ticked, with no tag. A high seq, so no later answer
+        // in this section replaces it.
+        await postMsg(page, { type: 'file-due', seq: 1e6, present: [], theme: true, due: {}, queued: [] });
+        // The badge now counts Theme, so the idle width the busy one is held to is read again, badge and all.
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '1', null, WAIT).catch(() => {});
+        idleU = await updBtn();
+        await openUpdate({ present: [], setUp: true });
+        const u44d = { items: await items(), tag: await themeTag() };
+        ok(JSON.stringify(u44d) === JSON.stringify({ items: [['update-check-theme', 'true'], ['update-check-guides', 'false']], tag: null }),
+          `Q44 A Update file ${where}: on a set-up file that differs from the brand, the checklist shows Theme, ticked, with no tag, and Style guides, unticked — read ${JSON.stringify(u44d)}`);
         const mu = await measure(page, `${where} / Update file open`, host, w);
         check(mu, `${where} / Update file open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="update-go"]', '[data-p3="update-tab-clean"]'] });
         await shot('update-open');
@@ -13914,6 +13947,7 @@ for (const theme of ['light', 'dark']) {
       await postMsg(page, { type: 'agent-link-state', state: LINK_STATES.listening });
       await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
       await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+      await tickTheme(page, { present: [], setUp: true });
       await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
       await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' });
       // The failure opens the drawer (at 380, the sheet): close it, to read the bar row.
@@ -14143,11 +14177,13 @@ for (const theme of ['light', 'dark']) {
 if (runs('30b')) {
 console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
 /** #2909: the plugin's theme write is Update file's theme step: open it, answer its read with a set-up file, and run the
- *  default checklist (the theme alone, Q2909.2 A). Each step bounded, as a click is. */
+ *  theme alone (Q2909.2 A; ticked by hand where no recount says the file differs, #3422 Q44 A). Each step bounded, as a
+ *  click is. */
 const applyViaUpdate = async (page) => {
   await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
   await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
   await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+  await tickTheme(page, { present: [], setUp: true });
   await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
 };
 /** #2486: Apply as it stood when a click on it did not land (#2909: Update file, the plugin's write now), read over 12 frames, bounded: its native and busy states, its
@@ -15708,7 +15744,7 @@ for (const host of ['web', 'figma']) {
 }
 // #2437: THE CONSUME SKILL'S FLUSH HIT AREA, MEASURED IN A BROWSER (WCAG 2.5.8; owner Q154 A, Q174 B; the spacing
 // sentence is DRAFT for the owner). The engine emits no code layout, so this is the one place the rule can be measured:
-// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-consume/SKILL.md`, applied to
+// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-build-ui/SKILL.md`, applied to
 // buttons on a blank page and hit-tested point by point. The floors (44 at medium and large, 24 at small) are typed here
 // from the owner's decision, never read from the skill. At each size and for labels from 1px to just under the floor:
 //   · two flush buttons at the skill's "always enough" gap (twice its per-side bound) and at the exact gap it states (the
@@ -15722,7 +15758,7 @@ for (const host of ['web', 'figma']) {
 // sketch's 44px raised to 48px → the same arm at the bound AND at the exact gap, the neighbor's own box included.
 {
   const where = '#2437 flush hit area';
-  const skill = readFileSync(join(REPO, 'skills/prism3-consume/SKILL.md'), 'utf8');
+  const skill = readFileSync(join(REPO, 'skills/prism3-build-ui/SKILL.md'), 'utf8');
   const css = /```css\n(\.flush-button[\s\S]*?)```/.exec(skill)?.[1];
   const para = (/\*\*Keep a flush button's hit area clear of its neighbors\.\*\*([\s\S]*?)\n\n/.exec(skill)?.[1] ?? '').replace(/\s+/g, ' ');
   const bound = /(\d+)px is always enough at medium and large, and (\d+)px at small/.exec(para);
@@ -18042,6 +18078,9 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const st = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-p3="cp-row"][data-set], [data-p3="cp-member"][data-set]')].map((r) => [r.dataset.set, [...r.querySelectorAll('[data-p3="cp-status-tag"]')].map((t) => t.dataset.status)])));
       ok(JSON.stringify(st.tag) === JSON.stringify(['hand']) && JSON.stringify(st.badge) === JSON.stringify(['unchecked']) && JSON.stringify(st.select) === JSON.stringify(['due']) && JSON.stringify(st.counter) === JSON.stringify(['new']),
         `${where}: Q2909.8 A: Components' rows show each set's status: Tag Hand-edited, Badge Not checked yet, Select Due, Counter Not in file (${JSON.stringify({ tag: st.tag, badge: st.badge, select: st.select, counter: st.counter })})`);
+      // #3422 Q44 A: Theme opens ticked only when the badge's recount says the file differs from the brand. The Pill this
+      // case chose is not applied, so the recount says it differs (seq 0: every later ask's answer replaces it).
+      await postMsg(page, { type: 'file-due', seq: 0, present: FILE.present, theme: true, due: DUE });
       // The checklist: it asks for the file's sets, then the full check for the due sets alone.
       step = 'the checklist';
       await page.evaluate(() => { window.__ia2.length = 0; });
@@ -18345,6 +18384,47 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const dropped = await badgeNow();
       ok(ran.length >= 1 && ran.every((m) => canon(m.input) === canon(HAIRLINE)) && dropped.text === null && dropped.name === null,
         `${where}: Q810 A: the badge drops after a run: the panel asks for the count after the run's verdicts, and the answer (the brand applied, the sets written) leaves no badge and the label alone as the name (${ran.length} asked; ${JSON.stringify(dropped)})`);
+      // #3421 (Q39 A): A SET ONLY THEME BLOCKS RIDES THE RUN. The check reads Select blocked only by variables Theme writes
+      // (`themeBlocked`), so with Theme ticked the update step takes it, checks it again after Theme, and posts under the
+      // new check's hash: the set's own hash moved, because Theme wrote what it binds (`recheckHolds`). What is read is
+      // what the panel posts. MUTATION: the Studio driver's re-check by strict hash equality (`apps/studio/src/main.ts`)
+      // → this arm, by name.
+      step = 'a set only Theme blocks';
+      const TB0 = [sets[0], { ...sets[1], hash: 'hs-0', update: 4, upToDate: false, blocked: true, themeBlocked: true }];
+      const TB1 = [sets[0], { ...sets[1], hash: 'hs-1', update: 4, upToDate: false, blocked: false }];
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-TB0', missing: [], refused: [], sets: TB0 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      // Theme ticked by hand when it opened unticked (#3422 Q44 A: the last recount here said the file matches); the
+      // toggle asks the file and the check again, answered as before. This arm is about the run with Theme ticked.
+      if ((await page.locator('[data-p3="update-check-theme"]').getAttribute('aria-checked')) === 'false') {
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, { type: 'update-check', previewHash: 'H-TB0', missing: [], refused: [], sets: TB0 });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      }
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      const reTB = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-check-request').map((m) => m.defs));
+      await postMsg(page, { type: 'update-check', previewHash: 'H-TB1', missing: [], refused: [], sets: TB1 });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
+      const sentTB = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets').map((m) => ({ defs: m.defs, previewHash: m.previewHash })));
+      ok(JSON.stringify(reTB) === '[["button","select"]]' && JSON.stringify(sentTB) === '[{"defs":["button","select"],"previewHash":"H-TB1"}]',
+        `${where}: #3421 Q39 A: a set only Theme blocks rides the run: after Theme it is checked again, and the update posts it under the new check's hash (${JSON.stringify({ rechecked: reTB, sent: sentTB })})`);
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await page.waitForFunction(() => window.__ia2.filter((m) => m.type === 'file-sets-request').length >= 1, null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { ...FILE, due: CURRENT });
+      const ranTB = await nextAsk();
+      await answer(ranTB.at(-1)?.seq ?? 0, false, CURRENT);
       // No brand chosen yet: a fresh plugin page, the load's read landing before the host's restore answers (its library
       // probe can be slow), then the start moment. The panel holds only the boot placeholder, so it asks nothing, and a
       // live answer planted anyway is not shown: the badge keeps the load's read (2). Choosing a brand starts the asks.
@@ -19373,9 +19453,12 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await postMsg(page, T_FILE);
     await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
     await postMsg(page, T_CHECK);
-    await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
-    await postMsg(page, T_FILE);
-    await postMsg(page, T_CHECK);
+    // Theme off, so the run is the update alone. Since #3422 (Q44 A) it opens unticked on a file that matches the brand.
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) === 'true') {
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+      await postMsg(page, T_FILE);
+      await postMsg(page, T_CHECK);
+    }
     // The premise's rows, waited for and never swallowed: a slow runner waits for them, and a real absence fails by name.
     await hooks.need(page, '[data-p3="update-dialog"] [role="checkbox"][data-key="due=tag"][aria-checked="true"]', WAIT);
     // The update alone: Style guides off too, so the run is one step.
@@ -20198,6 +20281,7 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await hooks.need(page, '[data-p3="update-dialog"]');
       await postMsg(page, { type: 'file-sets', present: [], setUp: true });
       await hooks.need(page, '[data-p3="update-go"]');
+      await tickTheme(page, { present: [], setUp: true });
       await settleAll(page, cdp);
       await slow();
       await hooks.click(page.locator('[data-p3="update-go"]'));

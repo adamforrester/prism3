@@ -108,6 +108,8 @@ export type HostMessage =
 
 /** A set as the as-built ledger reads it (#2909 Q2909.8 A, `apps/plugin/src/as-built-ledger.ts`). */
 export type SetDueView = { readonly state: 'current' | 'unrecorded' } | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
+  /** #3421 (Q39 A): its last update kept hand edits over changes the plan makes: how many members, and each change. */
+  | { readonly state: 'kept'; readonly held: { readonly members: number; readonly changes: readonly string[] } }
   | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: MovedView };
 /** What an engine update moved in a set's plans (#3082 Q811 A, `Moved` in `as-built-ledger.ts`), for its reason line. */
 export type MovedView = {
@@ -119,6 +121,8 @@ export type FacetView = 'size' | 'color' | 'type' | 'effect' | 'layout' | 'conte
 export type CheckedSetView = {
   readonly def: string; readonly hash: string; readonly members: number; readonly update: number; readonly add: number; readonly drop: number;
   readonly handEdited: number; readonly noBaseline: number; readonly blocked: boolean; readonly upToDate: boolean;
+  /** #3421 — blocked only by variables or styles the brand's Theme writes: a run with Theme updates it after Theme. */
+  readonly themeBlocked?: true;
   /** #2831 — on a published set, what the update breaks for library consumers, as one line. Absent otherwise. */
   readonly breaks?: string;
 };
@@ -215,7 +219,7 @@ export interface HostCommit {
    *  Figma only; inert on the web. */
   postPanelsClean(confirm: boolean): void;
   /** #2909: update `defs` in place under the check's hash (`update-sets`). Figma only; inert on the web. */
-  postUpdateSets(defs: readonly string[], previewHash: string, handEdits: 'keep' | 'overwrite' | 'accept', input: unknown): void;
+  postUpdateSets(defs: readonly string[], previewHash: string, handEdits: 'keep' | 'overwrite' | 'accept', input: unknown, sets?: Readonly<Record<string, 'keep' | 'overwrite' | 'accept'>>): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
    *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
@@ -329,6 +333,11 @@ const dueOf = (x: unknown): Record<string, SetDueView> => {
     const d = v as { state?: unknown; reason?: unknown } | null;
     if (!d || typeof d !== 'object') continue;
     if (d.state === 'current' || d.state === 'unrecorded') out[id] = { state: d.state };
+    else if (d.state === 'kept') {
+      const k = (d as { held?: { members?: unknown; changes?: unknown } }).held;
+      const members = count(k?.members);
+      if (members !== null && Array.isArray(k?.changes)) out[id] = { state: 'kept', held: { members, changes: (k!.changes as unknown[]).filter(str) } };
+    }
     else if (d.state === 'due' && (d.reason === 'definition' || d.reason === 'executor' || d.reason === 'panel')) out[id] = { state: 'due', reason: d.reason };
     // #3082 Q811 A: an engine update names what moved; a reading that names nothing usable still counts the set due. No
     // list at all is an entry from before Q811 A, with no print to compare (`as-built-ledger.ts`, finding 1).
@@ -359,7 +368,7 @@ const checkedSet = (x: unknown): CheckedSetView[] => {
   const n = (['members', 'update', 'add', 'drop', 'handEdited', 'noBaseline'] as const).map((k) => count(c[k]));
   if (n.some((v) => v === null)) return [];
   const [members, update, add, drop, handEdited, noBaseline] = n as number[];
-  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
+  return [{ def: c.def, hash: c.hash, members, update, add, drop, handEdited, noBaseline, blocked: c.blocked, upToDate: c.upToDate, ...(c.blocked && c.themeBlocked === true ? { themeBlocked: true as const } : {}), ...(str(c.breaks) ? { breaks: c.breaks } : {}) }];
 };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient', 'grid'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
@@ -657,8 +666,8 @@ const figmaCommit = (): HostCommit => ({
   requestUpdateCheck(defs, input) {
     post({ type: 'update-check-request', defs: [...defs], input: input as ApplyTheme['input'] });
   },
-  postUpdateSets(defs, previewHash, handEdits, input) {
-    post({ type: 'update-sets', defs: [...defs], previewHash, handEdits, input: input as ApplyTheme['input'] });
+  postUpdateSets(defs, previewHash, handEdits, input, sets) {
+    post({ type: 'update-sets', defs: [...defs], previewHash, handEdits, input: input as ApplyTheme['input'], ...(sets && Object.keys(sets).length ? { sets: { ...sets } } : {}) });
   },
   postUpdateStop() {
     post({ type: 'update-stop' });

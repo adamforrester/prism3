@@ -89,7 +89,8 @@ ok(allSegments.length > 100, `${allSegments.length} distinct path segments acros
 console.log('\n=== 1. declarations ===');
 none(declarationDefects(), 'every setting declares a usable source, artifact, default and options');
 none(jargonDefects(), 'no label or description reads as an engine identifier');
-ok(ARTIFACTS.length === 2, `two artifacts (${ARTIFACTS.map((a) => a.id).join(', ')}) — Style-Dictionary-native is not a third (#720)`);
+ok(ARTIFACTS.map((a) => a.id).join(',') === 'dtcg,design-md,component-specs', `three artifacts (${ARTIFACTS.map((a) => a.id).join(', ')}) — the third is the component specs (#3425); Style-Dictionary-native is not one (#720)`);
+ok(ALL_SETTINGS.every((s) => s.artifact !== 'component-specs'), 'component specs carry no shape settings — the brand\'s component settings shape them (#3425)');
 ok(DTCG_SETTINGS.length === 4, `DTCG carries four shape settings (${DTCG_SETTINGS.map((s) => s.key).join(', ')})`);
 ok(DESIGN_MD_SETTINGS.length === 0, 'design.md carries no shape settings — each candidate #720 named fails its own rules');
 ok(ALL_SETTINGS.every((s) => s.sources.length > 0), 'no setting has an empty source declaration');

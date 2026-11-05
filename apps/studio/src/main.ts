@@ -24,6 +24,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import { hex, oklchToRgb } from '@prism3/engine/color';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { toDesignMd } from '@prism3/engine/design-md';
+import { componentSpecsExporter } from './state/component-specs-export';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
@@ -37,7 +38,7 @@ import type { UpdateFileLend } from './shell/update-file';
 import type { StatusLend } from './shell/status-strip';
 import { agentHeard, heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
-import { brandFor, DUE_DEBOUNCE_MS, startUpdate, statusesOf, STEP_TITLE, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { brandFor, DUE_DEBOUNCE_MS, recheckHolds, startUpdate, statusesOf, STEP_TITLE, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
@@ -1338,6 +1339,16 @@ const exportTokens = (): void => {
   }
 };
 
+/** #3425 — Export component specs: the component-defs export for the brand on screen (its component settings resolved)
+ *  and the same as a Specs components set, from the engine function `regen` and the CLI write theirs with, through the
+ *  exporter the plugin provides (`state/component-specs-export.ts`; the web has none). Off the last-good input, like the
+ *  tokens, so a failing edit cannot reach it. Two files, two downloads, as the token set. */
+const exportComponentSpecs = (): void => {
+  const exporter = componentSpecsExporter();
+  if (!exporter) return;
+  for (const f of exporter.files(lastGoodInput, slug())) download(f.name, f.text, 'application/json');
+};
+
 // design.md import (#160): the check, the file reader and the picker's types live in `state/start-input.ts` (S12), so
 // the brand menu's paste and the start window's paste are held by one check.
 
@@ -1460,6 +1471,14 @@ const exportView = (): ExportView => {
     // One block PER FILE, with the name above it when there are several, never the texts concatenated.
     const prev = exportPreview(tree, slug(), exportSettings, exportMetadata);
     right.push({ kind: 'previews', files: prev.map((f) => ({ name: prev.length > 1 ? f.name : null, text: f.text })) });
+  } else if (exportArtifact === 'component-specs') {
+    const exporter = componentSpecsExporter();
+    if (exporter) {
+      const names = exporter.fileNames(slug());
+      right.push({ kind: 'cap', text: `You get ${names.length} files` });
+      right.push({ kind: 'files', text: names.join('\n') });
+    } else right.push({ kind: 'note', text: SPECS_WEB_OFF });
+    if (restoreFailure) right.push({ kind: 'note', text: SPECS_NONE, hook: 'export-restore-note' });
   } else {
     if (briefInput()) {
       right.push({ kind: 'cap', text: 'You get 1 file' });
@@ -1470,7 +1489,9 @@ const exportView = (): ExportView => {
     if (restoreFailure) right.push({ kind: 'note', text: restoreFailure.brand ? BRIEF_IS_FAILED : BRIEF_NONE, hook: 'export-restore-note' });
   }
   // Owner (#2007): after a failed restore the tokens on hand are the DEMO's, so that download is off too.
-  const off = exportArtifact === 'design-md' && !briefInput() ? BRIEF_NONE : exportArtifact === 'dtcg' && restoreFailure ? TOKENS_NONE : null;
+  const off = exportArtifact === 'design-md' && !briefInput() ? BRIEF_NONE : exportArtifact === 'dtcg' && restoreFailure ? TOKENS_NONE
+    : exportArtifact === 'component-specs' && !componentSpecsExporter() ? SPECS_WEB_OFF
+    : exportArtifact === 'component-specs' && restoreFailure ? SPECS_NONE : null;
   return {
     artifacts: ARTIFACTS.map((a) => ({ id: a.id, label: a.label, on: a.id === exportArtifact })),
     desc: artifact.desc,
@@ -1482,9 +1503,9 @@ const exportView = (): ExportView => {
         options: METADATA_OPTION.options.map((o) => ({ value: o.value, label: o.label, on: (o.value === 'on') === exportMetadata })) }] : []),
     ],
     // Said out loud rather than left as an empty area: silence reads as a loading state or a bug.
-    none: settings.length ? null : 'Nothing to set — the brief is written one way.',
+    none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
-    go: { text: exportArtifact === 'design-md' ? '↓ Download brief' : '↓ Download tokens', off },
+    go: { text: exportArtifact === 'design-md' ? '↓ Download brief' : exportArtifact === 'component-specs' ? '↓ Download component specs' : '↓ Download tokens', off },
     // The Figma-file path (#677) is absent rather than disabled: `availableImportSlots()` narrows to the copy-bearing
     // variant, so there is no string to render for a path whose behavior is undecided.
     imports: availableImportSlots().map((slot) => ({ label: slot.label, desc: slot.desc })),
@@ -1530,7 +1551,7 @@ const barActions: BarActions = {
   download: () => {
     // The Export area stays drawn (`exportOpen` in `barRead`, #2909).
     exportMenuOpen = false; barChanged();
-    if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
+    if (exportArtifact === 'design-md') exportDesignMd(); else if (exportArtifact === 'component-specs') exportComponentSpecs(); else exportTokens();
   },
 };
 
@@ -1782,6 +1803,10 @@ const failedBrandOf = (input: unknown): BrandInput | null => {
 const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
 const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
+/** #3425 (DRAFT wording for the owner, Q3425.1). */
+const SPECS_NONE = "Off after a failed restore: these specs would be the demo brand's, not this file's.";
+const SPECS_NO_SETTINGS = "Nothing to set — the specs follow this brand's component settings.";
+const SPECS_WEB_OFF = 'In the Figma plugin: the specs are built from the component definitions, which the web Studio leaves out.';
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
@@ -1987,7 +2012,7 @@ const panelBrand = (theme: boolean): BrandInput | undefined => brandFor(theme, l
 const runTheme = (steps: readonly StepKey[] | undefined): boolean => !!steps?.includes('theme');
 const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): void => {
   updatePhase = 'apply';
-  commit.postUpdateSets(u.defs, previewHash, u.handEdits, panelBrand(runTheme(updateRun?.steps)));
+  commit.postUpdateSets(u.defs, previewHash, u.handEdits, panelBrand(runTheme(updateRun?.steps)), u.sets);
 };
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
@@ -2061,7 +2086,8 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   if (step === 'theme' && m.kind === 'apply-result') { endStep(m.ok, m.headline, false, true); return; }
   if ((step === 'update' || step === 'cover') && updatePhase === 'recheck' && m.kind === 'update-check') {
     const u = inPlaceOf(step)!;
-    const same = !m.error && u.defs.every((id) => { const was = updateReviewed.find((c) => c.def === id); const now = m.sets.find((c) => c.def === id); return !!was && !!now && was.hash === now.hash; });
+    // #3421: a set reviewed as blocked only by Theme's variables and styles reads otherwise now that Theme wrote them.
+    const same = !m.error && recheckHolds(u.defs, updateReviewed, m.sets);
     if (!same) { updatePhase = null; endStep(false, m.error ?? UPDATE_MOVED); return; }
     postUpdate(u, m.previewHash);
     return;
@@ -2177,7 +2203,7 @@ const updateFileLend: UpdateFileLend = {
     if (updateRun || restoreFailure) return;
     updateStopped = null;
     updateReviewed = update?.checked ?? [];
-    updateRun = startUpdate(steps, sets, update ? { defs: update.defs, previewHash: update.previewHash, handEdits: update.handEdits } : null);
+    updateRun = startUpdate(steps, sets, update ? { defs: update.defs, previewHash: update.previewHash, handEdits: update.handEdits, ...(update.sets && Object.keys(update.sets).length ? { sets: update.sets } : {}) } : null);
     activityRun = { n: ++activityRuns, steps: [...steps], ended: [], done: false, kind: null, verdict: null };
     stripRun = startStripRun(Date.now());
     stripLine = null;

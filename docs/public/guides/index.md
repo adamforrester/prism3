@@ -3,11 +3,11 @@
 <!-- DRAFT for owner review (#2637, lane 4; rewritten around Update file for #3264). Every factual claim cites its source in an HTML comment of the form `src: path:line`, and `lint-guide-claims.ts` checks that each still resolves and still holds what the claim quotes. -->
 
 Prism3 generates a brand's design tokens from a small set of choices: a primary color, a neutral, type, shape, motion and a few more. <!-- src: packages/engine/levers.ts:290-298 -->
-You make those choices in the Prism3 studio, either on the web or inside the Figma plugin, and the preview updates as you go. <!-- src: apps/plugin/src/ui/entry.ts:10-36 -->
-The engine checks every text and fill pairing it generates against a contrast floor, such as 4.5:1 for body text, in every mode the brand ships. <!-- src: packages/engine/mcp.ts:302-307 -->
+You make those choices in the Prism3 studio, either on the web or inside the Figma plugin, and the preview updates as you go. <!-- src: apps/plugin/src/ui/entry.ts:10-38 -->
+The engine checks every text and fill pairing it generates against a contrast floor, such as 4.5:1 for body text, in every mode the brand ships. <!-- src: packages/engine/mcp.ts:305-310 -->
 Secondary text, status text and link colors are checked on the contrast floor surface, which is `background.secondary` unless the brand moves it, and on every surface nearer the page. Deeper surfaces, such as `background.tertiary`, carry no text promise; a brand that needs text there moves the floor, and each of those colors is picked again to clear it. <!-- src: packages/engine/modes.ts:390-438 --> <!-- src: packages/engine/test.ts:692-716 -->
-In Figma, **Update file** writes the result as variables, modes and styles, then builds component sets and style-guide tables that use them. <!-- src: apps/studio/src/state/update-file.ts:253-317 -->
-The same brand exports as DTCG token files or as a brand brief, so developers and agents read the same values you set. <!-- src: apps/studio/src/export-settings.ts:104-113 -->
+In Figma, **Update file** writes the result as variables, modes and styles, then builds component sets and style-guide tables that use them. <!-- src: apps/studio/src/state/update-file.ts:298-378 -->
+The same brand exports as DTCG token files or as a brand brief, so developers and agents read the same values you set. <!-- src: apps/studio/src/export-settings.ts:105-114 -->
 
 ## Guides
 

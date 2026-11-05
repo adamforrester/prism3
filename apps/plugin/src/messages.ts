@@ -180,7 +180,9 @@ export type UiToMain =
    *  choice for hand edits. The confirmed `update-components`, through the same action; answered with its
    *  `component-update-result`. `input`: the panel's brand, the one the check measured, so the plans the apply lays are
    *  the plans the check hashed. */
-  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput }
+  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput;
+      /** #3421 (Q39 A): a set listed under Kept edits, by def, with the choice made for it there, over `handEdits`. */
+      sets?: Record<string, 'keep' | 'overwrite' | 'accept'> }
   /** #3170 Q3170.4 A: "Stop after <set>". The panel's running `update-sets` finishes the set it is on and stops at the
    *  next set boundary; the sets already done keep their changes. Nothing running, nothing to stop. */
   | { type: 'update-stop' }
@@ -196,6 +198,8 @@ export type CheckedSet = {
    *  checked can tell the file moved under one of them since. */
   def: string; hash: string; members: number; update: number; add: number; drop: number; handEdited: number; noBaseline: number;
   blocked: boolean; upToDate: boolean;
+  /** #3421 — blocked only by variables or styles the brand's Theme writes (`SetPreview.themeBlocked`). */
+  themeBlocked?: true;
   /** #2831 — on a published set, what this update breaks for library consumers, as one line (`breakingSummary`).
    *  Absent for a set that is not published, or where nothing breaks. */
   breaks?: string;
