@@ -214,15 +214,60 @@ export const tab: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
-      'The tab in code — a <button role="tab"> with aria-selected (true or false, on every tab) and aria-controls naming its panel. The tab list owns roving tabindex: the selected tab is tabindex="0", the rest -1.',
-      'The label weight in code — the selected tab sets its label in the emphasis weight, the others in the default weight, and every tab reserves its bold width so selecting never shifts the list: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.',
-      'The hover bar — an unselected tab under the pointer or pressed shows a 2px bar in color.border.secondary where the selected bar sits; no background wash. A pointer-only cue: keyboard focus shows the focus ring instead.',
-      'The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab (about 150–200ms). Figma draws it per tab. Under prefers-reduced-motion it snaps.',
-      'The count — read as part of the tab name ("Reviews, 12 items") through visually hidden text, never as a lone number.',
-      'RTL — logical properties mirror the row: the leading icon moves to the right of the label and the count to its left.',
-      'text expansion — the label never wraps or truncates in a horizontal list; the list scrolls instead.',
-      'The hit-target expansion — a small tab is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The tab in code — a <button role="tab"> with aria-selected (true or false, on every tab) and aria-controls naming its panel. The tab list owns roving tabindex: the selected tab is tabindex="0", the rest -1.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The label weight in code — the selected tab sets its label in the emphasis weight, the others in the default weight, and every tab reserves its bold width so selecting never shifts the list: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The hover bar — an unselected tab under the pointer or pressed shows a 2px bar in color.border.secondary where the selected bar sits; no background wash. A pointer-only cue: keyboard focus shows the focus ring instead.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab (about 150–200ms). Figma draws it per tab. Under prefers-reduced-motion it snaps.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The count — read as part of the tab name ("Reviews, 12 items") through visually hidden text, never as a lone number.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — logical properties mirror the row: the leading icon moves to the right of the label and the count to its left.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — the label never wraps or truncates in a horizontal list; the list scrolls instead.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The hit-target expansion — a small tab is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box.',
+      },
     ],
   },
 

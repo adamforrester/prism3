@@ -460,16 +460,66 @@ export const textarea: ComponentDef = {
       },
     },
     codeOnly: [
-      'the SMALL textarea on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a field whose text is under 16px, and the small textarea\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small textarea\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-      'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
-      'pending — not projected: its delta is runtime behavior with no distinct static skin. In code content streams into the field, with aria-busy. It stays in `states` and is admitted out of the projected `stateAxis`.',
-      'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at size(3) × status(4) × state(7) = 84 members. In code the field holds no value, so it shows the placeholder (text-field\'s posture); the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.',
-      'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
-      'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
-      'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
-      'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently. In a right-to-left layout the counter anchors to the inline end, the LEFT, with the resize handle (brief §9); Figma members are drawn left to right.',
-      'the label / describedby WIRING and the counter\'s two-node live region — the host generates ids, ties the FieldLabel to the textarea, stitches the FieldMessage and the counter into aria-describedby, and sets aria-invalid. Figma has no accessibility tree, so the nested parts are associated by proximity alone.',
-      'the KEYBOARD MODEL — native multi-line editing, the Enter key (a newline unless submitOnEnter), IME composition guards and the resize drag. All of it is runtime interaction the closed static member cannot carry.',
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the SMALL textarea on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a field whose text is under 16px, and the small textarea\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small textarea\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'pending — not projected: its delta is runtime behavior with no distinct static skin. In code content streams into the field, with aria-busy. It stays in `states` and is admitted out of the projected `stateAxis`.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at size(3) × status(4) × state(7) = 84 members. In code the field holds no value, so it shows the placeholder (text-field\'s posture); the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'lowered',
+        description:
+          'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently. In a right-to-left layout the counter anchors to the inline end, the LEFT, with the resize handle (brief §9); Figma members are drawn left to right.',
+      },
+      {
+        class: 'announcement',
+        disposition: 'refused',
+        description:
+          'the label / describedby WIRING and the counter\'s two-node live region — the host generates ids, ties the FieldLabel to the textarea, stitches the FieldMessage and the counter into aria-describedby, and sets aria-invalid. Figma has no accessibility tree, so the nested parts are associated by proximity alone.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'the KEYBOARD MODEL — native multi-line editing, the Enter key (a newline unless submitOnEnter), IME composition guards and the resize drag. All of it is runtime interaction the closed static member cannot carry.',
+      },
     ],
   },
 

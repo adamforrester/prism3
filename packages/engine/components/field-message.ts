@@ -303,11 +303,36 @@ export const fieldMessage: ComponentDef = {
       },
     },
     codeOnly: [
-      'first-line inset, live — the glyph centers on the caption\'s first line (#3360). Code computes the two cells\' top padding live from the caption\'s own line: `padding-block-start: max(0px, (var(--icon-size-xs) - 1lh) / 2)` on the caption\'s cell, and `max(0px, (1lh - var(--icon-size-xs)) / 2)` on the glyph\'s, with the caption\'s type set on the row so `1lh` is one caption line. Figma\'s padding binds one variable and takes no max or half of two, and no token carries the result (owner Q-FM1.1 B), so the executor writes the number at paste from the caption node\'s line height and the glyph variable\'s value. A brand that changes its caption type or glyph size moves the Figma inset on the next Update, not live.',
-      'aria-describedby wiring — the message\'s entire relationship to its field is a DOM one the HOST owns (§6): the field references this node\'s id in its describedby chain and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the projection is a glyph and a caption that sit below a field and are associated with it by proximity alone. This is the same ceiling `field-label`\'s htmlFor hits, and it is the reason both defs are presentational in Figma and load-bearing in code.',
-      'the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `status=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.',
-      'the icon SLOT in code, where Figma now has none — the one asymmetry #1010 introduced, recorded because it is a real difference and not an oversight. The three validation members each carry a FIXED glyph chosen by status, so there is no INSTANCE_SWAP property on the Figma side at all: an error member cannot be made to show a check mark, which is the reachable-wrong-state the old entry here worried about. `props.icon` survives as a code-side override for a host with a domain-specific status glyph, and nothing in Figma corresponds to it. The previous entry claimed this def "cannot bind WHICH glyph each tone shows" because "`PartKind` has no vector kind" — true when written, falsified by #920 (39 glyphs) and #864 (`kind: \'vector\'` + `glyph`), and it is retired rather than edited because its premise, not its wording, was the thing that expired.',
-      'the default status\'s OPTIONAL icon, which is now the only half of this that Figma cannot express. Since #1010 the two sides agree on the common case — no glyph on the default status, three fixed glyphs on the validation statuses — so what is left is narrower than the entry it replaces: in code a host MAY pass `props.icon` on the default status and get a glyph painted `default.icon`, and there is no Figma member for that. A member either has the node or does not, so "optional in the same sense the prop is" has no projection, and adding a boolean property for it would offer a designer a toggle whose ON state has no glyph to show. **The reason the previous entry gave had expired and the entry had not**, which is why this one is worth reading carefully: it said the part is always-present because `present()` builds no optional part outside the two slot names it hardcodes — accurate for a `kind: \'slot\'` part, and false the moment these became `presentWhen`-gated `vector` parts, since `presentWhen` IS a mechanism for variant-scoped absence (#910). The gating is what let the default tone lose its glyph at all.',
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'first-line inset, live — the glyph centers on the caption\'s first line (#3360). Code computes the two cells\' top padding live from the caption\'s own line: `padding-block-start: max(0px, (var(--icon-size-xs) - 1lh) / 2)` on the caption\'s cell, and `max(0px, (1lh - var(--icon-size-xs)) / 2)` on the glyph\'s, with the caption\'s type set on the row so `1lh` is one caption line. Figma\'s padding binds one variable and takes no max or half of two, and no token carries the result (owner Q-FM1.1 B), so the executor writes the number at paste from the caption node\'s line height and the glyph variable\'s value. A brand that changes its caption type or glyph size moves the Figma inset on the next Update, not live.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'aria-describedby wiring — the message\'s entire relationship to its field is a DOM one the HOST owns (§6): the field references this node\'s id in its describedby chain and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the projection is a glyph and a caption that sit below a field and are associated with it by proximity alone. This is the same ceiling `field-label`\'s htmlFor hits, and it is the reason both defs are presentational in Figma and load-bearing in code.',
+      },
+      {
+        class: 'announcement',
+        disposition: 'refused',
+        description:
+          'the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `status=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'unsupported',
+        description:
+          'the icon SLOT in code, where Figma now has none — the one asymmetry #1010 introduced, recorded because it is a real difference and not an oversight. The three validation members each carry a FIXED glyph chosen by status, so there is no INSTANCE_SWAP property on the Figma side at all: an error member cannot be made to show a check mark, which is the reachable-wrong-state the old entry here worried about. `props.icon` survives as a code-side override for a host with a domain-specific status glyph, and nothing in Figma corresponds to it. The previous entry claimed this def "cannot bind WHICH glyph each tone shows" because "`PartKind` has no vector kind" — true when written, falsified by #920 (39 glyphs) and #864 (`kind: \'vector\'` + `glyph`), and it is retired rather than edited because its premise, not its wording, was the thing that expired.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'unsupported',
+        description:
+          'the default status\'s OPTIONAL icon, which is now the only half of this that Figma cannot express. Since #1010 the two sides agree on the common case — no glyph on the default status, three fixed glyphs on the validation statuses — so what is left is narrower than the entry it replaces: in code a host MAY pass `props.icon` on the default status and get a glyph painted `default.icon`, and there is no Figma member for that. A member either has the node or does not, so "optional in the same sense the prop is" has no projection, and adding a boolean property for it would offer a designer a toggle whose ON state has no glyph to show. **The reason the previous entry gave had expired and the entry had not**, which is why this one is worth reading carefully: it said the part is always-present because `present()` builds no optional part outside the two slot names it hardcodes — accurate for a `kind: \'slot\'` part, and false the moment these became `presentWhen`-gated `vector` parts, since `presentWhen` IS a mechanism for variant-scoped absence (#910). The gating is what let the default tone lose its glyph at all.',
+      },
     ],
   },
 

@@ -2660,7 +2660,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
           decrement: nestPart,
           increment: nestPart,
         },
-        codeOnly: ['fixture — not a component.'],
+        codeOnly: [{ class: 'implementation', disposition: 'refused', description: 'fixture — not a component.' }],
       },
       figmaProperties: { variantAxes: ['size'], booleans: {} },
       accessibility: { role: 'group' }, docs: { usage: 'Fixture.', do: [], dont: [] },

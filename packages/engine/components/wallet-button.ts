@@ -175,15 +175,60 @@ export const walletButton: ComponentDef = {
       focusRing: focusRingPart('The shared focus ring, around the provider\'s button while it has keyboard focus.'),
     },
     codeOnly: [
-      'the provider\'s element — the component is a container the provider\'s element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify\'s Shop Pay element. It never draws a button of its own. It passes size as the element\'s height, the brand radius as the element\'s radius option (clamped for Google Pay, below), and type and style through unchanged.',
-      'the style — passed to the provider under its own option name: Apple Pay\'s buttonstyle, Google Pay\'s buttonColor, PayPal\'s style.color and Shop Pay\'s one color. any passes nothing, so the provider draws its default. The design file\'s fill and edge for each style are the provider\'s own paint as its script draws it, so a style picked in the design file is the button the customer sees.',
-      'the height limits — Google Pay\'s and Shop Pay\'s 40px floor and PayPal\'s 55px ceiling: a small Google Pay or Shop Pay button is drawn at 40 and a large PayPal button at 55, and the design file has no member for any of them.',
-      'the corner — Google Pay allows a radius of at most half the button\'s height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand\'s radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is.',
-      'the width — the container fills its column, with a 120px floor. Apple Pay\'s titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay\'s "Buy with" button needs 193. PayPal\'s script holds its own frame at 150 or wider (the SDK\'s CSS, not a documented rule), so give a PayPal button a slot of 150 or more: under 150 its frame overflows the slot. The design file\'s floor stays 120 for every provider.',
-      'the provider\'s own states — the provider\'s element owns hover, pressed and disabled and draws them itself, and the design file does not show them. The component adds only the focus ring, outside the provider\'s element, at focus-visible.',
-      'the accessible name — the provider\'s element names itself ("Apple Pay", "Buy with Google Pay"). The component adds no label, so nothing is announced twice.',
-      'loading — the slot keeps its height before the provider\'s script has drawn the button, so the page does not move when it arrives.',
-      'RTL — the provider\'s element lays out its own wording. The container mirrors nothing.',
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the provider\'s element — the component is a container the provider\'s element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify\'s Shop Pay element. It never draws a button of its own. It passes size as the element\'s height, the brand radius as the element\'s radius option (clamped for Google Pay, below), and type and style through unchanged.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'the style — passed to the provider under its own option name: Apple Pay\'s buttonstyle, Google Pay\'s buttonColor, PayPal\'s style.color and Shop Pay\'s one color. any passes nothing, so the provider draws its default. The design file\'s fill and edge for each style are the provider\'s own paint as its script draws it, so a style picked in the design file is the button the customer sees.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'the height limits — Google Pay\'s and Shop Pay\'s 40px floor and PayPal\'s 55px ceiling: a small Google Pay or Shop Pay button is drawn at 40 and a large PayPal button at 55, and the design file has no member for any of them.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'the corner — Google Pay allows a radius of at most half the button\'s height, so the component passes min(radius, height / 2) as its buttonRadius. A soft brand\'s radius can pass half of a small or compact button. Apple Pay, PayPal and Shop Pay take the brand radius as it is.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the width — the container fills its column, with a 120px floor. Apple Pay\'s titled buttons need 140, so a titled Apple Pay button takes the larger floor; Shop Pay\'s "Buy with" button needs 193. PayPal\'s script holds its own frame at 150 or wider (the SDK\'s CSS, not a documented rule), so give a PayPal button a slot of 150 or more: under 150 its frame overflows the slot. The design file\'s floor stays 120 for every provider.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the provider\'s own states — the provider\'s element owns hover, pressed and disabled and draws them itself, and the design file does not show them. The component adds only the focus ring, outside the provider\'s element, at focus-visible.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the accessible name — the provider\'s element names itself ("Apple Pay", "Buy with Google Pay"). The component adds no label, so nothing is announced twice.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'loading — the slot keeps its height before the provider\'s script has drawn the button, so the page does not move when it arrives.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the provider\'s element lays out its own wording. The container mirrors nothing.',
+      },
     ],
   },
 

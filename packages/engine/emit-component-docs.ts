@@ -28,7 +28,8 @@
  *    carries the shipped fields only: identity (`id`, `name`, `aliases`, `category`, `status`, `inherits`),
  *    the code API (`props`, `states`, `variants`), and the prose `summary`, `description`, `docs`,
  *    `accessibility`, `content`, `motion`, `composition`, plus `ai` in the JSON. Neither form carries a
- *    `codeOnly` or a `notes` entry.
+ *    `codeOnly` or a `notes` entry. The payload's `syncBoundary` (#3441) carries each `codeOnly` entry's class
+ *    and disposition, never its prose.
  *  · THE PAGE IS FOR PEOPLE. It leaves out the agent-only half of `ai` — `triggerKeywords` and
  *    `generationPriority` are search and tiebreak metadata a person does not act on — and keeps the
  *    decision half (purpose, when to use, when to avoid in Overview; common partners in Related). The
@@ -69,9 +70,10 @@ import { docSections } from './component-doc-sections';
 import { componentDefs } from './components/index';
 import { componentSpec, projectComponentSpecs, renderSpecsMarkdown } from './component-specs';
 import { ENGINE_VERSION } from './version';
+import { DISPOSITION_NAMES } from './code-only-register';
 
 /** The sidecar's schema id. `schema/component-docs.schema.json` carries the same `$id`; both move together. */
-export const COMPONENT_DOCS_SCHEMA = 'prism3-component-docs/1.0';
+export const COMPONENT_DOCS_SCHEMA = 'prism3-component-docs/1.1';
 
 /** Drop `undefined` keys so an absent optional field is absent, not `null`. */
 const compact = <T extends Record<string, unknown>>(o: T): T =>
@@ -118,6 +120,9 @@ export const projectDef = (def: ComponentDef) =>
       planned: def.composition?.planned ?? [],
       replacesPatterns: def.composition?.replacesPatterns ?? [],
     }),
+    // #3441: what the design file does not fully carry, as data — each `anatomy.codeOnly` entry's class and
+    // disposition, in the def's order. The prose stays maintainer-only (#1623), so it is not here.
+    syncBoundary: (def.anatomy?.codeOnly ?? []).map((e) => ({ class: e.class, disposition: DISPOSITION_NAMES[e.disposition] })),
   });
 
 export const projectComponentDocs = (defs: readonly ComponentDef[]) => ({
@@ -129,13 +134,14 @@ export const projectComponentDocs = (defs: readonly ComponentDef[]) => ({
     'design-file component and a coded component are built from. Brand-independent: a definition binds token ' +
     'names, and each brand\'s `<brand>.ai.json` resolves them. Field names mirror the definition schema. ' +
     '`ai` is the decision surface for choosing a component; the other fields are usage guidance and the ' +
-    'code API.',
+    'code API. `syncBoundary` lists what the design file does not fully carry, each item a class and a ' +
+    'disposition.',
   components: Object.fromEntries(defs.map((d) => [d.id, projectDef(d)])),
 });
 
 /** One def's maintainer record: the two fields #1623 ruled maintainer-only, kept whole (see the header). */
 export const projectMaintainer = (def: ComponentDef) => ({
-  codeOnly: [...(def.anatomy?.codeOnly ?? [])],
+  codeOnly: (def.anatomy?.codeOnly ?? []).map((e) => ({ class: e.class, disposition: DISPOSITION_NAMES[e.disposition], description: e.description })),
   notes: {
     contested: [...(def.notes?.contested ?? [])],
     unverified: [...(def.notes?.unverified ?? [])],
@@ -155,6 +161,7 @@ export const projectComponentMaintainer = (defs: readonly ComponentDef[]) => ({
     'rather than SCHEMA_ARTIFACTS, and so outside the shipped-prose gates by construction. Complete: entries',
     'that cite an external reference system are kept here, because this file does not ship. `docGaps` (#846) lists',
     'what each usage doc could not draw: a section\'s empty source fields, and part notes still written for maintainers.',
+    'Each `codeOnly` entry is a class from `code-only-register.ts`, a disposition and its description (#3441).',
   ],
   generated: true,
   components: Object.fromEntries(defs.map((d) => [d.id, projectMaintainer(d)])),

@@ -412,13 +412,48 @@ export const radioRow: ComponentDef = {
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
       // passing mention inside an entry about something else does not count (#563).
-      'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1348 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `radio-control` and the consumer drives it from the Row, so no state is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code: a radio has no working native readonly, so there is no treatment to project, and six variants byte-identical to `rest` would read as coverage of a state nobody has designed.',
-      'states — the documented cost of collapsing 36 members to 3 (the #1348 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
-      'THE GROUP, which is the unit of use and is not this def — it is `radio-group` (#1469). The shared `name` that enforces exclusivity, the single scalar value selection is derived from, the single tab stop with roving tabindex and arrow navigation, `orientation`, `required` and all validation live there. A Figma set of options can show what an option looks like at every coordinate and cannot show a group at all — so the exclusivity that makes these radios rather than toggles is absent from the projection by construction, not by omission.',
-      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (28px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
-      'motion — the select micro-motion and the SIBLING\'s dot animating out, the only exit animation a radio has. The dot is `radio-control`\'s, so its `motion` states it; a Figma variant carries no motion, so the dot is static at every coordinate.',
-      'RTL — the row mirrors through logical properties: the control moves to the reading-start side and the label flows from it. The disc is symmetrical, so there is no glyph to hold unmirrored (brief §9). Figma members are drawn left to right.',
-      'text expansion — option labels wrap rather than truncate, and the control stays on the first line (#1201). Horizontal option rows are fragile under expansion (German up to about 300%), which is part of why the group is vertical (brief §9). The Figma members carry the English placeholder only.',
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1348 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `radio-control` and the consumer drives it from the Row, so no state is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code: a radio has no working native readonly, so there is no treatment to project, and six variants byte-identical to `rest` would read as coverage of a state nobody has designed.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'states — the documented cost of collapsing 36 members to 3 (the #1348 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'THE GROUP, which is the unit of use and is not this def — it is `radio-group` (#1469). The shared `name` that enforces exclusivity, the single scalar value selection is derived from, the single tab stop with roving tabindex and arrow navigation, `orientation`, `required` and all validation live there. A Figma set of options can show what an option looks like at every coordinate and cannot show a group at all — so the exclusivity that makes these radios rather than toggles is absent from the projection by construction, not by omission.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (28px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'motion — the select micro-motion and the SIBLING\'s dot animating out, the only exit animation a radio has. The dot is `radio-control`\'s, so its `motion` states it; a Figma variant carries no motion, so the dot is static at every coordinate.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors through logical properties: the control moves to the reading-start side and the label flows from it. The disc is symmetrical, so there is no glyph to hold unmirrored (brief §9). Figma members are drawn left to right.',
+      },
+      {
+        class: 'localization',
+        disposition: 'lowered',
+        description:
+          'text expansion — option labels wrap rather than truncate, and the control stays on the first line (#1201). Horizontal option rows are fragile under expansion (German up to about 300%), which is part of why the group is vertical (brief §9). The Figma members carry the English placeholder only.',
+      },
     ],
   },
 

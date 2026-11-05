@@ -346,17 +346,72 @@ export const paginationItem: ComponentDef = {
       },
     },
     codeOnly: [
-      'The element — an <a href> when Pagination has getHref, otherwise a <button type="button">. Never an <a href="#"> with a click handler. The current page carries aria-current="page" and stays in the Tab order.',
-      'The ellipsis in code — an <li aria-hidden="true"> holding the more-horizontal icon, with no control and no text in it. It is never focusable and never announced: the list already implies the gap.',
-      'previous and next in code — an <a href> or a <button type="button">, as a page is, named "Previous page" and "Next page" (aria-label; a labeled cell\'s visible word starts the name, 2.5.3). The chevron is aria-hidden="true". At an end the cell keeps its place and its Tab stop with aria-disabled="true" and does nothing when activated (isInactive; call 9 A). Native disabled is not used. Figma draws that as the disabled state.',
-      'The chevrons in RTL — previous and next swap ends with the row, and each chevron mirrors, so it points the way the row reads.',
-      'The accessible name — the number, with a visually hidden "Page " before it, so each cell reads "Page 4"; aria-current adds "current page".',
-      'tabular numerals — font-variant-numeric: tabular-nums on the label, so 9, 10 and 100 do not shift the row as the user pages. Figma uses the type style as it is.',
-      'The label weight in code — the current page sets its number in the emphasis weight and every cell reserves that width (a hidden bold copy of the label in a column with it, aria-hidden="true", as Tab does), so the row never moves. The underline is a 2px border or pseudo-element under the number, as wide as it; the Figma part\'s hidden copy of the number that sizes it has no code element.',
-      'The hit-target expansion — a small cell is 36px on comfortable density; code extends its hit area to 44×44 without changing the visible box.',
-      'forced-colors — the current page\'s border or underline takes a system color (CanvasText), so it still reads as current, beside aria-current and the weight.',
-      'RTL — the row mirrors through logical properties; a cell has nothing of its own to mirror.',
-      'Locale digits — the number is formatted with Intl.NumberFormat, so a locale sees its own numerals.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The element — an <a href> when Pagination has getHref, otherwise a <button type="button">. Never an <a href="#"> with a click handler. The current page carries aria-current="page" and stays in the Tab order.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The ellipsis in code — an <li aria-hidden="true"> holding the more-horizontal icon, with no control and no text in it. It is never focusable and never announced: the list already implies the gap.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'previous and next in code — an <a href> or a <button type="button">, as a page is, named "Previous page" and "Next page" (aria-label; a labeled cell\'s visible word starts the name, 2.5.3). The chevron is aria-hidden="true". At an end the cell keeps its place and its Tab stop with aria-disabled="true" and does nothing when activated (isInactive; call 9 A). Native disabled is not used. Figma draws that as the disabled state.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'The chevrons in RTL — previous and next swap ends with the row, and each chevron mirrors, so it points the way the row reads.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The accessible name — the number, with a visually hidden "Page " before it, so each cell reads "Page 4"; aria-current adds "current page".',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'tabular numerals — font-variant-numeric: tabular-nums on the label, so 9, 10 and 100 do not shift the row as the user pages. Figma uses the type style as it is.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The label weight in code — the current page sets its number in the emphasis weight and every cell reserves that width (a hidden bold copy of the label in a column with it, aria-hidden="true", as Tab does), so the row never moves. The underline is a 2px border or pseudo-element under the number, as wide as it; the Figma part\'s hidden copy of the number that sizes it has no code element.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The hit-target expansion — a small cell is 36px on comfortable density; code extends its hit area to 44×44 without changing the visible box.',
+      },
+      {
+        class: 'forced-colors',
+        disposition: 'unsupported',
+        description:
+          'forced-colors — the current page\'s border or underline takes a system color (CanvasText), so it still reads as current, beside aria-current and the weight.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors through logical properties; a cell has nothing of its own to mirror.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'Locale digits — the number is formatted with Intl.NumberFormat, so a locale sees its own numerals.',
+      },
     ],
   },
 
@@ -590,20 +645,90 @@ export const pagination: ComponentDef = {
       nextButton: step('next', 'true', 'Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).'),
     },
     codeOnly: [
-      'The landmark — <nav aria-label="Pagination"> around a <ul>, each control in its own <li>. The label is required: without it the landmark collides with the main navigation in a screen reader\'s landmark list. label sets it.',
-      'The window — with siblingCount 1 and boundaryCount 1, every page shows up to 7 pages. Above 7 the row always holds 7 slots: the first page, the last page, the current page and one page each side, with an ellipsis for each gap. An ellipsis stands for two or more pages, never one: a one-page gap shows the number. Near an end the window slides so the slot count stays 7. In general: show all pages when count <= boundaryCount * 2 + siblingCount * 2 + 3.',
-      'links or buttons — with getHref every page, previous and next is an <a href> (bookmarkable, crawlable, opens in a new tab); without it each is a <button type="button"> for content swapped in place. Never <a href="#"> with a click handler. renderItem lets a page be a router link and keeps its address and aria-current.',
-      'At an end — previous on the first page and next on the last page keep their place with aria-disabled="true", stay focusable and do nothing when activated (the item\'s isInactive; Figma\'s disabled state). Native disabled is not used: it drops focus to the page body when a keyboard user reaches the end.',
-      'focus after a page change — with links the browser loads the new page. With buttons, focus moves to the top of the results region, normally its heading, and a polite live region says the getStatusText string, "Page 5 of 10". Focus is never left on the pager under content that changed above it.',
-      'The narrow switch — numbered renders as compact when its container is narrower than the numbered row, measured on the container (a container query or a resize observer), not the viewport. Figma shows both; the designer places the one that fits the frame.',
-      'Not rendered — when count is 1. A row where every control does nothing helps no one.',
-      'Load more — a feed with no useful end uses a Button, not Pagination: focus moves to the first new item and a polite live region says how many loaded. Infinite scroll is not offered.',
-      'The accessible names — previous and next are "Previous page" and "Next page"; simple\'s buttons show "Previous" and "Next". Each page reads "Page 4", and aria-current adds "current page".',
-      'tabular numerals — font-variant-numeric: tabular-nums on the compact text and every page number, so the row does not shift as the digits change.',
-      'RTL — the row mirrors through logical properties (page 1 at the right) and the chevrons flip.',
-      'text expansion — "Page 5 of 10", "Previous" and "Next" grow in translation; nothing has a fixed text width. getStatusText takes a translated string with its own word order.',
-      'Locale digits — every number goes through Intl.NumberFormat.',
-      'A headless usePagination — returning the item list (page, ellipsis, previous, next, with selected and disabled) — is the brief\'s shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The landmark — <nav aria-label="Pagination"> around a <ul>, each control in its own <li>. The label is required: without it the landmark collides with the main navigation in a screen reader\'s landmark list. label sets it.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'The window — with siblingCount 1 and boundaryCount 1, every page shows up to 7 pages. Above 7 the row always holds 7 slots: the first page, the last page, the current page and one page each side, with an ellipsis for each gap. An ellipsis stands for two or more pages, never one: a one-page gap shows the number. Near an end the window slides so the slot count stays 7. In general: show all pages when count <= boundaryCount * 2 + siblingCount * 2 + 3.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'links or buttons — with getHref every page, previous and next is an <a href> (bookmarkable, crawlable, opens in a new tab); without it each is a <button type="button"> for content swapped in place. Never <a href="#"> with a click handler. renderItem lets a page be a router link and keeps its address and aria-current.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'At an end — previous on the first page and next on the last page keep their place with aria-disabled="true", stay focusable and do nothing when activated (the item\'s isInactive; Figma\'s disabled state). Native disabled is not used: it drops focus to the page body when a keyboard user reaches the end.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'focus after a page change — with links the browser loads the new page. With buttons, focus moves to the top of the results region, normally its heading, and a polite live region says the getStatusText string, "Page 5 of 10". Focus is never left on the pager under content that changed above it.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'lowered',
+        description:
+          'The narrow switch — numbered renders as compact when its container is narrower than the numbered row, measured on the container (a container query or a resize observer), not the viewport. Figma shows both; the designer places the one that fits the frame.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Not rendered — when count is 1. A row where every control does nothing helps no one.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Load more — a feed with no useful end uses a Button, not Pagination: focus moves to the first new item and a polite live region says how many loaded. Infinite scroll is not offered.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The accessible names — previous and next are "Previous page" and "Next page"; simple\'s buttons show "Previous" and "Next". Each page reads "Page 4", and aria-current adds "current page".',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'tabular numerals — font-variant-numeric: tabular-nums on the compact text and every page number, so the row does not shift as the digits change.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors through logical properties (page 1 at the right) and the chevrons flip.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — "Page 5 of 10", "Previous" and "Next" grow in translation; nothing has a fixed text width. getStatusText takes a translated string with its own word order.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'Locale digits — every number goes through Intl.NumberFormat.',
+      },
+      {
+        class: 'implementation',
+        disposition: 'refused',
+        description:
+          'A headless usePagination — returning the item list (page, ellipsis, previous, next, with selected and disabled) — is the brief\'s shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component.',
+      },
     ],
   },
 

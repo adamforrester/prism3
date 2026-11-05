@@ -226,16 +226,66 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
         focusRing: focusRingPart('The shared focus ring, outside the provider\'s button while it has keyboard focus.'),
       },
       codeOnly: [
-      'the native button — every provider renders a real <button type="button"> drawn by Prism3, never the provider\'s iframe. Enter and Space activate it, as on any button.',
-      'the provider\'s sign-in — on click the button calls the provider\'s own function: AppleID.auth.signIn() (Sign in with Apple JS), the OAuth code client from Google Identity Services (google.accounts.oauth2.initCodeClient(…).requestCode()), or FB.login() (the Facebook JS SDK). The popup or redirect that follows is the provider\'s; the component draws nothing past its own button. onClick runs first.',
-      'the provider scripts — each provider\'s script must be on the page before the button is used; until it loads, the button stays in place and its click waits for the script rather than failing.',
-      'the provider\'s own buttons — the providers\' rendered buttons (appleid-signin, google.accounts.id.renderButton, fb-login-button) are documented, not wrapped. A team that wants Google\'s personalized "Continue as …" button renders it directly, in its own frame, beside the stack (Q-S3 A).',
-      'the colors and the font — the code reads the same literal record as the design file: each provider × style\'s fill, 1px inside edge, label ink and hover and pressed wash, the white the glyph is painted on Apple black and Facebook blue, and Google\'s font, font-family "Google Sans", Roboto, Arial, sans-serif at 500, 14px / 20px at every size. None of them is a token, so no theme or mode moves them.',
-      'the wording — a fixed key per provider × wording (continue, sign-in, sign-up for Apple and Google; continue, login for Facebook), translated by the app; the provider\'s name is never translated. The wording prop is typed per provider, so a wording the provider does not offer is a type error, not a fallback.',
-      'the width — the button hugs its label with a 140px floor, Apple\'s minimum and the largest of the three, and fullWidth makes it fill its column.',
-      'RTL — the row mirrors, so the glyph stays at the leading edge, now the right. The glyph itself is never flipped.',
-      'forced colors — under forced-colors mode the button follows the system colors like any button (its fill, edge and label become ButtonFace, ButtonText and the system border), while the glyph keeps forced-color-adjust: none, the provider logo\'s own rule, so the provider\'s artwork is never repainted.',
-      'the accessible name — the visible wording is the name ("Continue with Google"), so the label and the name match. No aria-label is added, and the glyph is decorative (aria-hidden, the provider logo with no label).',
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the native button — every provider renders a real <button type="button"> drawn by Prism3, never the provider\'s iframe. Enter and Space activate it, as on any button.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the provider\'s sign-in — on click the button calls the provider\'s own function: AppleID.auth.signIn() (Sign in with Apple JS), the OAuth code client from Google Identity Services (google.accounts.oauth2.initCodeClient(…).requestCode()), or FB.login() (the Facebook JS SDK). The popup or redirect that follows is the provider\'s; the component draws nothing past its own button. onClick runs first.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the provider scripts — each provider\'s script must be on the page before the button is used; until it loads, the button stays in place and its click waits for the script rather than failing.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the provider\'s own buttons — the providers\' rendered buttons (appleid-signin, google.accounts.id.renderButton, fb-login-button) are documented, not wrapped. A team that wants Google\'s personalized "Continue as …" button renders it directly, in its own frame, beside the stack (Q-S3 A).',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'carried',
+        description:
+          'the colors and the font — the code reads the same literal record as the design file: each provider × style\'s fill, 1px inside edge, label ink and hover and pressed wash, the white the glyph is painted on Apple black and Facebook blue, and Google\'s font, font-family "Google Sans", Roboto, Arial, sans-serif at 500, 14px / 20px at every size. None of them is a token, so no theme or mode moves them.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'the wording — a fixed key per provider × wording (continue, sign-in, sign-up for Apple and Google; continue, login for Facebook), translated by the app; the provider\'s name is never translated. The wording prop is typed per provider, so a wording the provider does not offer is a type error, not a fallback.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the width — the button hugs its label with a 140px floor, Apple\'s minimum and the largest of the three, and fullWidth makes it fill its column.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors, so the glyph stays at the leading edge, now the right. The glyph itself is never flipped.',
+      },
+      {
+        class: 'forced-colors',
+        disposition: 'unsupported',
+        description:
+          'forced colors — under forced-colors mode the button follows the system colors like any button (its fill, edge and label become ButtonFace, ButtonText and the system border), while the glyph keeps forced-color-adjust: none, the provider logo\'s own rule, so the provider\'s artwork is never repainted.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the accessible name — the visible wording is the name ("Continue with Google"), so the label and the name match. No aria-label is added, and the glyph is decorative (aria-hidden, the provider logo with no label).',
+      },
     ],
     },
     figmaProperties: {

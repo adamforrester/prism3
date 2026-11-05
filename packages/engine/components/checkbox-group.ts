@@ -263,15 +263,60 @@ export const checkboxGroup: ComponentDef = {
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
-      'value / onChange — the GROUP owns the checked-value ARRAY and the change callback (`value: string[]`), and each row\'s checked appearance is DERIVED from it (`checked = value.includes(row.value)`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the array and its wiring are the code projection\'s. This is the contract the brief (§2) puts on the group and a single `checkbox-row` structurally cannot express.',
-      'validationMessage — the error text is the code projection\'s; the Figma member at `status=error` shows FieldMessage\'s own placeholder text, which a designer overrides on the instance. aria-invalid on the group and the message\'s place in aria-describedby are DOM wiring the host owns, as on the fields.',
-      'select-all — [HELD], and absent by design. A select-all is a parent checkbox in the `indeterminate` state broadcasting partial selection, and it is expressible from the existing parts (a `checkbox-row` at `indeterminate` above the set). Prism 2\'s group has none, so reproducing Prism 2 means not adding one; its absence is confirmed rather than an oversight.',
-      'variable row count — in code the rows are `items: CheckboxRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a checkbox-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).',
-      'orientation — [HELD]. The brief\'s §15 names a group `orientation` (vertical / horizontal); Prism 2 is vertical only. Vertical scans better and lets long labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at.',
-      'the disabled dim — a disabled GROUP dims every row and the label, driven by the group\'s context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.',
-      'the id / describedby WIRING and role="group" — the host generates ids, ties the FieldLabel to the group via aria-labelledby, and stitches any group message into aria-describedby. Figma has no accessibility tree and no node-to-node reference, so the nested label sits above the rows and is associated by proximity alone (the ceiling field-label already hits).',
-      'RTL — the group mirrors through logical properties: the label aligns to the reading start and each row mirrors its control to that side (brief §9). Figma members are drawn left to right.',
-      'text expansion — the group label and the row labels expand like any string (150-200% in German or Russian, brief §9); the rows wrap and keep their controls on the first line, and the vertical stack absorbs the extra lines. The Figma members carry the English placeholder only.',
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'value / onChange — the GROUP owns the checked-value ARRAY and the change callback (`value: string[]`), and each row\'s checked appearance is DERIVED from it (`checked = value.includes(row.value)`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the array and its wiring are the code projection\'s. This is the contract the brief (§2) puts on the group and a single `checkbox-row` structurally cannot express.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'validationMessage — the error text is the code projection\'s; the Figma member at `status=error` shows FieldMessage\'s own placeholder text, which a designer overrides on the instance. aria-invalid on the group and the message\'s place in aria-describedby are DOM wiring the host owns, as on the fields.',
+      },
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'select-all — [HELD], and absent by design. A select-all is a parent checkbox in the `indeterminate` state broadcasting partial selection, and it is expressible from the existing parts (a `checkbox-row` at `indeterminate` above the set). Prism 2\'s group has none, so reproducing Prism 2 means not adding one; its absence is confirmed rather than an oversight.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'variable row count — in code the rows are `items: CheckboxRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a checkbox-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).',
+      },
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'orientation — [HELD]. The brief\'s §15 names a group `orientation` (vertical / horizontal); Prism 2 is vertical only. Vertical scans better and lets long labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'the disabled dim — a disabled GROUP dims every row and the label, driven by the group\'s context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'the id / describedby WIRING and role="group" — the host generates ids, ties the FieldLabel to the group via aria-labelledby, and stitches any group message into aria-describedby. Figma has no accessibility tree and no node-to-node reference, so the nested label sits above the rows and is associated by proximity alone (the ceiling field-label already hits).',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the group mirrors through logical properties: the label aligns to the reading start and each row mirrors its control to that side (brief §9). Figma members are drawn left to right.',
+      },
+      {
+        class: 'localization',
+        disposition: 'lowered',
+        description:
+          'text expansion — the group label and the row labels expand like any string (150-200% in German or Russian, brief §9); the rows wrap and keep their controls on the first line, and the vertical stack absorbs the extra lines. The Figma members carry the English placeholder only.',
+      },
     ],
   },
 

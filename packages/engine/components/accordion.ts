@@ -256,16 +256,66 @@ export const accordion: ComponentDef = {
       },
     },
     codeOnly: [
-      'the heading wrapper — the header button sits inside an <hN> of the level `headingLevel` names (default 3). Figma has no heading level; the outline is a code contract.',
-      'the panel region — role="region" with aria-labelledby pointing at the header button, and the button carries aria-expanded and aria-controls. A closed panel is `hidden` (out of the page, the tab order and assistive technology). Leave the region role off when more than about six panels can be open at once, so the page does not fill with landmarks.',
-      'the panel content — `children` takes any node. Figma draws a placeholder paragraph in the slot, which a designer replaces.',
-      'native first — <details> and <summary> give the expand, collapse, keyboard and focus behavior with no script, and `name="…"` on a set of them makes a single-open group. Custom ARIA (a button with aria-expanded) is the path for controlled state.',
-      'a group of accordions — a stack of items, no Figma def (owner decision). In code, a group takes `type: "multiple" | "single"` (default multiple: comparing two sections needs both open), `value` / `defaultValue` / `onValueChange` as key arrays, and `headingLevel`, `indicator` and `size` for every item. All sections may be closed. Wrapped in a list (<ul>/<li>) only in a group, never on a single item.',
-      'the hover — no hover member and no hover wash (owner decision); the header shows the pointer cursor only.',
-      'the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion it opens and closes at the reduced duration. Figma variants carry no motion.',
-      'RTL — the header mirrors through logical properties: a leading indicator moves to the right edge and the title aligns right. No glyph mirrors.',
-      'text expansion — the title wraps; the header uses min-height, never a fixed height, and the indicator centers on the title.',
-      'scroll into view — after a section opens, scroll its header into view (`scrollIntoView({ block: "nearest" })` on the next frame) so a tall panel does not push it off screen.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the heading wrapper — the header button sits inside an <hN> of the level `headingLevel` names (default 3). Figma has no heading level; the outline is a code contract.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the panel region — role="region" with aria-labelledby pointing at the header button, and the button carries aria-expanded and aria-controls. A closed panel is `hidden` (out of the page, the tab order and assistive technology). Leave the region role off when more than about six panels can be open at once, so the page does not fill with landmarks.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'the panel content — `children` takes any node. Figma draws a placeholder paragraph in the slot, which a designer replaces.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'native first — <details> and <summary> give the expand, collapse, keyboard and focus behavior with no script, and `name="…"` on a set of them makes a single-open group. Custom ARIA (a button with aria-expanded) is the path for controlled state.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'a group of accordions — a stack of items, no Figma def (owner decision). In code, a group takes `type: "multiple" | "single"` (default multiple: comparing two sections needs both open), `value` / `defaultValue` / `onValueChange` as key arrays, and `headingLevel`, `indicator` and `size` for every item. All sections may be closed. Wrapped in a list (<ul>/<li>) only in a group, never on a single item.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'the hover — no hover member and no hover wash (owner decision); the header shows the pointer cursor only.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion it opens and closes at the reduced duration. Figma variants carry no motion.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the header mirrors through logical properties: a leading indicator moves to the right edge and the title aligns right. No glyph mirrors.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — the title wraps; the header uses min-height, never a fixed height, and the indicator centers on the title.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'scroll into view — after a section opens, scroll its header into view (`scrollIntoView({ block: "nearest" })` on the next frame) so a tall panel does not push it off screen.',
+      },
     ],
   },
 

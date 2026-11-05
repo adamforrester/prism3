@@ -1,8 +1,8 @@
 {
-  "$schema": "prism3-component-docs/1.0",
+  "$schema": "prism3-component-docs/1.1",
   "generated": true,
   "engineVersion": "0.237.0",
-  "note": "Documentation for every registered component, projected from its definition — the same source the design-file component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
+  "note": "Documentation for every registered component, projected from its definition — the same source the design-file component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API. `syncBoundary` lists what the design file does not fully carry, each item a class and a disposition.",
   "components": {
     "icon": {
       "id": "icon",
@@ -256,7 +256,41 @@
           "legacy icon fonts",
           "ad-hoc inline SVGs outside the set"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "provider-logo": {
       "id": "provider-logo",
@@ -550,7 +584,29 @@
           "provider logos pasted into a design as images",
           "a provider logo recolored to match the palette"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "focus-ring": {
       "id": "focus-ring",
@@ -671,7 +727,33 @@
           "a per-component focus border",
           "a box-shadow focus glow"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "button": {
       "id": "button",
@@ -951,7 +1033,53 @@
           "input[type=button|submit]",
           "div[role=button]"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "button-destructive": {
       "id": "button-destructive",
@@ -1233,7 +1361,53 @@
           "input[type=button|submit]",
           "div[role=button]"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "button-neutral": {
       "id": "button-neutral",
@@ -1511,7 +1685,53 @@
           "input[type=button|submit]",
           "div[role=button]"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "wallet-button": {
       "id": "wallet-button",
@@ -1681,7 +1901,45 @@
           "a hand-drawn wallet button",
           "a wallet logo pasted into a Button"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "sign-in-button": {
       "id": "sign-in-button",
@@ -1862,7 +2120,49 @@
           "a hand-drawn social sign-in button",
           "a provider logo pasted into a Button"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "CARRIED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "icon-button": {
       "id": "icon-button",
@@ -2090,7 +2390,37 @@
           "div[role=button] wrapping an icon",
           "a <button> holding only an <svg> and no accessible name"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "icon-button-destructive": {
       "id": "icon-button-destructive",
@@ -2319,7 +2649,37 @@
           "div[role=button] wrapping an icon",
           "a <button> holding only an <svg> and no accessible name"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "icon-button-neutral": {
       "id": "icon-button-neutral",
@@ -2547,7 +2907,37 @@
           "div[role=button] wrapping an icon",
           "a <button> holding only an <svg> and no accessible name"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "flush-icon-button": {
       "id": "flush-icon-button",
@@ -2734,7 +3124,33 @@
           "an <svg> with a click handler and no button",
           "an IconButton with its padding overridden to zero"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "flush-icon-button-destructive": {
       "id": "flush-icon-button-destructive",
@@ -2922,7 +3338,33 @@
           "an <svg> with a click handler and no button",
           "an IconButton with its padding overridden to zero"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "flush-icon-button-neutral": {
       "id": "flush-icon-button-neutral",
@@ -3111,7 +3553,33 @@
           "an <svg> with a click handler and no button",
           "an IconButton with its padding overridden to zero"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "field-label": {
       "id": "field-label",
@@ -3276,7 +3744,25 @@
         "replacesPatterns": [
           "an aria-label standing in for a visible label"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "content-rule",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "field-message": {
       "id": "field-message",
@@ -3408,7 +3894,29 @@
           "inline-message"
         ],
         "replacesPatterns": []
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "announcement",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "text-field": {
       "id": "text-field",
@@ -3733,7 +4241,45 @@
           "placeholder-as-label",
           "type=number for formatted numeric"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "textarea": {
       "id": "textarea",
@@ -4041,7 +4587,49 @@
           "a one-row textarea used as a tall input",
           "a contenteditable div used for plain multi-line text"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "announcement",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "checkbox-control": {
       "id": "checkbox-control",
@@ -4206,7 +4794,25 @@
         "replacesPatterns": [
           "the painted control inlined in a checkbox row"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "checkbox-row": {
       "id": "checkbox-row",
@@ -4417,7 +5023,37 @@
           "a bare <input type=\"checkbox\"> with no label wiring",
           "a role=\"checkbox\" div where a styled native input would do"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "checkbox-group": {
       "id": "checkbox-group",
@@ -4622,7 +5258,45 @@
           "a bare set of <input type=\"checkbox\"> with no shared label or group wiring",
           "per-row required / error scattered across the options instead of owned by the group"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "radio-control": {
       "id": "radio-control",
@@ -4780,7 +5454,25 @@
           "the painted circle and dot inlined in a radio row",
           "a filled-disc radio that signals selection by the ring filling in"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "radio-row": {
       "id": "radio-row",
@@ -4965,7 +5657,37 @@
           "a bare <input type=\"radio\"> set with no group label",
           "two radios standing in for a true/false toggle"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "radio-group": {
       "id": "radio-group",
@@ -5177,7 +5899,49 @@
           "a set of checkboxes misused for a mutually exclusive choice",
           "per-option required / error scattered across the options instead of owned by the group"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "switch-control": {
       "id": "switch-control",
@@ -5338,7 +6102,29 @@
         "replacesPatterns": [
           "the painted track and thumb inlined in a switch row"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "switch-row": {
       "id": "switch-row",
@@ -5549,7 +6335,37 @@
           "two radios standing in for an obvious binary on/off",
           "an aria-pressed toggle button misused to hold a state setting"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "select": {
       "id": "select",
@@ -5796,7 +6612,37 @@
           "a bare <select> with no label wiring",
           "placeholder-as-label"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "veil": {
       "id": "veil",
@@ -5946,7 +6792,21 @@
         "replacesPatterns": [
           "a hand-tuned semi-transparent rectangle over an image with an ad-hoc opacity"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "responsive-layout",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "image-placeholder": {
       "id": "image-placeholder",
@@ -6063,7 +6923,29 @@
         "replacesPatterns": [
           "a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "spinner": {
       "id": "spinner",
@@ -6190,7 +7072,41 @@
           "an animated loading GIF",
           "a static loading glyph in the icon set"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "announcement",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "badge": {
       "id": "badge",
@@ -6433,7 +7349,33 @@
           "a hand-drawn colored pill",
           "a red circle with a number drawn over an icon"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "CARRIED"
+        }
+      ]
     },
     "tag": {
       "id": "tag",
@@ -6662,7 +7604,77 @@
           "a clickable div styled as a pill",
           "a bare × glyph with no accessible name"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "brand-setting",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "tab-item": {
       "id": "tab-item",
@@ -6814,7 +7826,45 @@
         "replacesPatterns": [
           "a styled button that shows and hides a div with no tab semantics"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "tabs": {
       "id": "tabs",
@@ -6991,7 +8041,49 @@
           "show and hide divs with no tab semantics",
           "role=\"tab\" on links that change the route"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "divider": {
       "id": "divider",
@@ -7157,7 +8249,45 @@
         "replacesPatterns": [
           "a hand-drawn line or a border-bottom on one item standing in for a separator"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "_accordion-indicator": {
       "id": "_accordion-indicator",
@@ -7278,7 +8408,21 @@
         "replacesPatterns": [
           "a separate down and up chevron icon toggled by hand in each accordion header"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "accordion": {
       "id": "accordion",
@@ -7494,7 +8638,49 @@
           "a show/hide div with no aria-expanded or heading",
           "a tablist used for vertical sections that open together"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "list-item": {
       "id": "list-item",
@@ -7632,7 +8818,33 @@
           "a paragraph with a typed bullet character and spaces before it",
           "an icon and a text box laid side by side by hand"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "list": {
       "id": "list",
@@ -7790,7 +9002,33 @@
           "a <ul> with list-style: none and no role=\"list\"",
           "a column of text boxes with typed bullet characters"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "segmented-control-segment": {
       "id": "segmented-control-segment",
@@ -7934,7 +9172,41 @@
         "replacesPatterns": [
           "a styled button with a hand-rolled active state"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "segmented-control": {
       "id": "segmented-control",
@@ -8123,7 +9395,45 @@
           "a radio group restyled as a compact switcher for a view that changes at once",
           "a row of buttons with a hand-rolled active state and no group semantics"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "link": {
       "id": "link",
@@ -8355,7 +9665,57 @@
           "an <a> with no href, href=\"#\" or javascript:void(0)",
           "a[role=button] used for navigation"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "button-group": {
       "id": "button-group",
@@ -8480,7 +9840,33 @@
           "a footer of fixed nested buttons copied into each component",
           "a button-set component with a variant per count and layout"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "dialog": {
       "id": "dialog",
@@ -8716,7 +10102,81 @@
           "a div overlay with a z-index and a hand-written focus trap",
           "a backdrop built from a veil"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "brand-setting",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "password-field": {
       "id": "password-field",
@@ -8975,7 +10435,65 @@
           "password field with no way to show the characters",
           "autocomplete=\"off\" on a password"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "toast": {
       "id": "toast",
@@ -9126,7 +10644,69 @@
           "a status message that moves focus",
           "a timed message with no pause"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "announcement",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "_breadcrumb-separator": {
       "id": "_breadcrumb-separator",
@@ -9213,7 +10793,21 @@
         "replacesPatterns": [
           "a \"/\" or \">\" typed as text between breadcrumb links"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "breadcrumb-item": {
       "id": "breadcrumb-item",
@@ -9366,7 +10960,41 @@
           "a separator typed as text between links",
           "the current page rendered as a link to itself"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "breadcrumbs": {
       "id": "breadcrumbs",
@@ -9569,7 +11197,61 @@
           "a history trail of visited pages",
           "a breadcrumb whose last item links to the page itself"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "counter": {
       "id": "counter",
@@ -9803,7 +11485,49 @@
           "a select of 1 to 10 for a bag quantity",
           "two IconButtons around a <span> with no spinbutton semantics"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "announcement",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "pagination-item": {
       "id": "pagination-item",
@@ -10019,7 +11743,53 @@
           "a page number link with href=\"#\" and a click handler",
           "an ellipsis read aloud as \"dot dot dot\""
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "pagination": {
       "id": "pagination",
@@ -10243,7 +12013,65 @@
           "a disabled next button that drops focus at the last page",
           "infinite scroll on a page with a footer"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "progress": {
       "id": "progress",
@@ -10490,7 +12318,57 @@
           "a bar that creeps to 99% while the real amount is unknown",
           "a label printed inside the moving fill"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "live-geometry",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "announcement",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "search-field": {
       "id": "search-field",
@@ -10767,7 +12645,57 @@
           "two clear buttons in a search field",
           "clear button on an empty search field"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "card-number-field": {
       "id": "card-number-field",
@@ -11057,7 +12985,65 @@
           "number, expiration and security code packed into one box",
           "type=\"number\" on a card number"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        }
+      ]
     },
     "banner": {
       "id": "banner",
@@ -11275,7 +13261,73 @@
           "a colored div with an icon and role=\"alert\" on a message present at load",
           "an error shown as a toast that disappears"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "brand-setting",
+          "disposition": "LOWERED"
+        }
+      ]
     },
     "_slider-thumb": {
       "id": "_slider-thumb",
@@ -11389,7 +13441,33 @@
         "replacesPatterns": [
           "the browser's own range thumb, restyled per engine"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "slider": {
       "id": "slider",
@@ -11680,7 +13758,81 @@
           "a drag-only custom slider with no keyboard support",
           "two separate sliders for a minimum and a maximum"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "code-input-cell": {
       "id": "code-input-cell",
@@ -11806,7 +13958,41 @@
         "replacesPatterns": [
           "one input per character of a one-time code"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "brand-setting",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "forced-colors",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
     },
     "code-input": {
       "id": "code-input",
@@ -12065,7 +14251,61 @@
           "a code field with paste blocked",
           "auto-submit on the last digit"
         ]
-      }
+      },
+      "syncBoundary": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "platform-owned",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        }
+      ]
     }
   }
 }

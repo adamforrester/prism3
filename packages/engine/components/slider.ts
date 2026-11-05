@@ -164,12 +164,42 @@ export const sliderThumb: ComponentDef = {
       },
     },
     codeOnly: [
-      'The thumb in code — a visually hidden native <input type="range"> under the drawn disc supplies focus, the keyboard, form submission and role="slider". The disc is aria-hidden drawing.',
-      'touch-target-expansion — the visible disc is 18, 24 or 30px; its hit area is at least 44×44px at every size and density in code, never under 24×24px: a transparent ::before inset outward and centered on the thumb. The small 18px disc relies on it most.',
-      'The halo — a box-shadow on the disc, 0 0 0 4px at hover and 0 0 0 8px while pressed, in color.border.primary. It does not move the thumb or change its hit area. Under forced-colors the halo is dropped.',
-      'Pointer capture — on pointerdown call setPointerCapture(pointerId) on the thumb so a drag survives the pointer leaving the track; release on pointerup and pointercancel.',
-      'Motion — while dragging, the thumb follows the pointer 1:1 with transition: none (a data-dragging attribute), so it never lags the cursor. The halo grows on motion.duration.fast; under reduced motion it changes at once.',
-      'forced-colors — the disc keeps a system-color fill or border, so the thumb still shows; the focus ring is an outline.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The thumb in code — a visually hidden native <input type="range"> under the drawn disc supplies focus, the keyboard, form submission and role="slider". The disc is aria-hidden drawing.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'touch-target-expansion — the visible disc is 18, 24 or 30px; its hit area is at least 44×44px at every size and density in code, never under 24×24px: a transparent ::before inset outward and centered on the thumb. The small 18px disc relies on it most.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The halo — a box-shadow on the disc, 0 0 0 4px at hover and 0 0 0 8px while pressed, in color.border.primary. It does not move the thumb or change its hit area. Under forced-colors the halo is dropped.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'Pointer capture — on pointerdown call setPointerCapture(pointerId) on the thumb so a drag survives the pointer leaving the track; release on pointerup and pointercancel.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'Motion — while dragging, the thumb follows the pointer 1:1 with transition: none (a data-dragging attribute), so it never lags the cursor. The halo grows on motion.duration.fast; under reduced motion it changes at once.',
+      },
+      {
+        class: 'forced-colors',
+        disposition: 'unsupported',
+        description:
+          'forced-colors — the disc keeps a system-color fill or border, so the thumb still shows; the focus ring is an outline.',
+      },
     ],
   },
 
@@ -481,24 +511,114 @@ export const slider: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
-      'The track in code — one rail across the control, with the fill and the thumbs positioned by value over it; the fill runs under the thumb to its center, so the two meet with no gap. Figma draws the same picture as growing segments around the thumbs, because auto layout has no per-child offset.',
-      'Size — small, medium and large set the thumb (control.size.sm/md/lg.thumb: 18, 24, 30px) and the track (border-width.thick, heavy, x-heavy: 2, 4, 6px). The control row stays size.md.min-height and each thumb\'s hit area stays at least 44×44px at every size, so the small 18px thumb keeps a target well over 24×24px.',
-      'Milestones — with showMilestones on, the minimum and the maximum are labeled under the ends of the track and each value in milestones under its own position (left: the value\'s fraction of the range, centered on it; the end labels align to the track\'s edges). Figma draws three labels, the ends and one between, spaced evenly; code draws one label per value in milestones. The labels are text, not ticks, and are aria-hidden: each thumb\'s aria-valuetext already carries the value.',
-      'Each thumb is a visually hidden native <input type="range"> under the drawn disc: focus, the keyboard, form submission and role="slider" come from it. A range has two, each with its own name ("Minimum {label}", "Maximum {label}") and its own aria-valuemin and aria-valuemax: the other thumb\'s value, less minStepsBetweenThumbs.',
-      'aria-valuetext — set whenever the value is not a bare number ("$40", "120%"), from the same Intl.NumberFormat formatter as the visible value text.',
-      'Keyboard — Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move one largeStep (ten steps by default); Home and End go to the ends of the thumb\'s own range; Tab moves from the minimum thumb to the maximum thumb.',
-      'Thumb collision — a thumb stops at the other thumb (less minStepsBetweenThumbs), by pointer and by keyboard; it never pushes or crosses it.',
-      'Click to jump — a pointerdown on the rail moves the nearer thumb there and starts a drag, so a user does not have to grab the thumb.',
-      'Rounding — each value snaps to the nearest exact multiple of step before onChange (0.1 + 0.2 is not 0.3 in floating point).',
-      'Edge alignment — at the minimum and maximum the thumb\'s outer edge stays inside the control: its translate runs from 0% to -100% of its own width across the range, so it never causes a horizontal scroll.',
-      'Geometry — value to pixel from the control\'s measured getBoundingClientRect, recomputed on resize (ResizeObserver) and when the direction changes.',
-      'Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself.',
-      'Paired inputs — one shared value; typing in an input moves its thumb and dragging updates the input. An incoming value is applied only if it differs, which stops an update loop. With inputs on, the value text is off.',
-      'readOnly and disabled — readOnly keeps the hidden inputs focusable and submitted, with the value unchangeable; disabled drops them from the form payload.',
-      'The Figma value text, inputs and milestones are placeholders: "50" for a single value, "30 – 70" and 30 and 70 for a range, near where the growing segments put the thumbs, and 0, 50 and 100 under the track.',
-      'RTL — the minimum sits at the right and the fill grows leftward; Right Arrow lowers and Left Arrow raises, while Up and Down do not change. Logical properties and the measured dir handle it.',
-      'text expansion — the label and the value text share the header row; a long translated label wraps above the value rather than truncating it.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
+      },
+      {
+        class: 'implementation',
+        disposition: 'refused',
+        description:
+          'The track in code — one rail across the control, with the fill and the thumbs positioned by value over it; the fill runs under the thumb to its center, so the two meet with no gap. Figma draws the same picture as growing segments around the thumbs, because auto layout has no per-child offset.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'Size — small, medium and large set the thumb (control.size.sm/md/lg.thumb: 18, 24, 30px) and the track (border-width.thick, heavy, x-heavy: 2, 4, 6px). The control row stays size.md.min-height and each thumb\'s hit area stays at least 44×44px at every size, so the small 18px thumb keeps a target well over 24×24px.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'lowered',
+        description:
+          'Milestones — with showMilestones on, the minimum and the maximum are labeled under the ends of the track and each value in milestones under its own position (left: the value\'s fraction of the range, centered on it; the end labels align to the track\'s edges). Figma draws three labels, the ends and one between, spaced evenly; code draws one label per value in milestones. The labels are text, not ticks, and are aria-hidden: each thumb\'s aria-valuetext already carries the value.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'Each thumb is a visually hidden native <input type="range"> under the drawn disc: focus, the keyboard, form submission and role="slider" come from it. A range has two, each with its own name ("Minimum {label}", "Maximum {label}") and its own aria-valuemin and aria-valuemax: the other thumb\'s value, less minStepsBetweenThumbs.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'aria-valuetext — set whenever the value is not a bare number ("$40", "120%"), from the same Intl.NumberFormat formatter as the visible value text.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'Keyboard — Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move one largeStep (ten steps by default); Home and End go to the ends of the thumb\'s own range; Tab moves from the minimum thumb to the maximum thumb.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Thumb collision — a thumb stops at the other thumb (less minStepsBetweenThumbs), by pointer and by keyboard; it never pushes or crosses it.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'Click to jump — a pointerdown on the rail moves the nearer thumb there and starts a drag, so a user does not have to grab the thumb.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Rounding — each value snaps to the nearest exact multiple of step before onChange (0.1 + 0.2 is not 0.3 in floating point).',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'Edge alignment — at the minimum and maximum the thumb\'s outer edge stays inside the control: its translate runs from 0% to -100% of its own width across the range, so it never causes a horizontal scroll.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'Geometry — value to pixel from the control\'s measured getBoundingClientRect, recomputed on resize (ResizeObserver) and when the direction changes.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'Paired inputs — one shared value; typing in an input moves its thumb and dragging updates the input. An incoming value is applied only if it differs, which stops an update loop. With inputs on, the value text is off.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'readOnly and disabled — readOnly keeps the hidden inputs focusable and submitted, with the value unchangeable; disabled drops them from the form payload.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'The Figma value text, inputs and milestones are placeholders: "50" for a single value, "30 – 70" and 30 and 70 for a range, near where the growing segments put the thumbs, and 0, 50 and 100 under the track.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the minimum sits at the right and the fill grows leftward; Right Arrow lowers and Left Arrow raises, while Up and Down do not change. Logical properties and the measured dir handle it.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — the label and the value text share the header row; a long translated label wraps above the value rather than truncating it.',
+      },
     ],
   },
 

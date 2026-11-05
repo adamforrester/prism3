@@ -89,7 +89,7 @@ const maintainerStrings = (): { notes: Maint[]; codeOnly: Maint[] } => {
   const notes: Maint[] = []; const codeOnly: Maint[] = [];
   for (const d of componentDefs) {
     for (const [k, list] of Object.entries(d.notes ?? {})) (list ?? []).forEach((t, i) => notes.push({ where: `${d.id}.notes.${k}[${i}]`, text: t }));
-    (d.anatomy?.codeOnly ?? []).forEach((t, i) => codeOnly.push({ where: `${d.id}.anatomy.codeOnly[${i}]`, text: t }));
+    (d.anatomy?.codeOnly ?? []).forEach((e, i) => codeOnly.push({ where: `${d.id}.anatomy.codeOnly[${i}].description`, text: e.description }));
   }
   return { notes, codeOnly };
 };

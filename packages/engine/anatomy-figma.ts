@@ -46,6 +46,7 @@ import { componentDefs } from './components';
 // #1318 — the CSS angle → Figma matrix conversion the brand gradient Paint Styles already use (via
 // `write-plan.ts`), so a component gradient and a brand gradient read one angle the same way.
 import { gradientTransformFor, type GradientTransform } from './gradient-transform';
+import { codeOnlyText } from './code-only-register';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -2514,7 +2515,9 @@ export const figmaAnatomyPlan = (
     // Declaration order, `size` removed — it has its own fixed position in the name. See the field's note.
     gridAxisOrder: (def.figmaProperties?.variantAxes ?? []).filter((a) => a !== 'size'),
     root: node(a.root, a.parts[a.root]),
-    codeOnly: [...a.codeOnly],
+    // The plan carries the prose only (#3441): the class and disposition are the def's and the export's, and
+    // keeping the plan's shape keeps every plan digest and the executor's inputs where they were.
+    codeOnly: codeOnlyText(a.codeOnly),
     derived: { ...(a.derived ?? {}) },
     ...(def.figmaProperties?.gridAxis ? { gridAxis: def.figmaProperties.gridAxis } : {}),
     ...(def.figmaProperties?.pressState ? { pressState: def.figmaProperties.pressState } : {}),

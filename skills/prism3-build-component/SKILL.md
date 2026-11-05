@@ -259,6 +259,15 @@ def rather than discovered. It carries two kinds of entry: structure Figma canno
 brief's code-tier rules (§9 i18n, §11 implementation) that have no other field. Both are
 maintainer-only.
 
+**Each entry is data, not a bare string** (#3441): `{ class, disposition, description }`. `class` is
+an id from the declared register in `packages/engine/code-only-register.ts` (`semantics`,
+`right-to-left`, `not-projected`, …), `disposition` is one of the four (`carried`, `lowered`,
+`refused`, `unsupported`), and `description` is the prose, written as before. Pick the class from the
+register's meanings; add a class there, with its meaning, only when none fits. An admission is classed
+`not-projected`. `packages/engine/lint-code-only-classes.ts` fails an unregistered class, a missing disposition and a
+register class no entry uses, by name. The plugin build cuts `description` to its subject and keeps the
+class and disposition, and components.ai.json ships them as `syncBoundary`, never the prose.
+
 **The `admits()` trap.** `codeOnly` is also how a def admits an axis or state it does not project:
 an entry that leads with the name licenses dropping `pending` from the Figma state axis. Every
 admission uses one template, `pending — not projected: <why Figma cannot carry it>. <what the code
@@ -849,8 +858,9 @@ one until that arc builds it.
    and `summary` is one line under 100 characters. Provenance lives in `notes`, `codeOnly` and comments.
 4. `composesWith` equals what the anatomy nests; hosts and slot content are in `ai.commonPartners`;
    siblings differ in keywords, `ai.avoidWhen` and priority; `status` is `draft`.
-5. The root part is named for its role; `codeOnly` is non-empty, carries the brief's code-tier rules, and
-   no entry leads with the name of an axis or state the def projects.
+5. The root part is named for its role; `codeOnly` is non-empty, carries the brief's code-tier rules,
+   gives each entry a registered class and a disposition, and no entry leads with the name of an axis or
+   state the def projects.
 6. Every naming choice matches the settled canon in §6: the naming table, the `_` prefix, lowercase Figma
    property names, and a first member that carries the code default on every axis. Every variant axis
    passes the variant rule in §6; a show/hide, a text, a nested choice or a width is not an axis.

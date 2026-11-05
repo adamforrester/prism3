@@ -362,11 +362,36 @@ export const switchControl: ComponentDef = {
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
-      'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (a lock affordance, not an ink — and the one candidate token, `color.border.secondary`, resolves to the same step as the rest border in all four brands). The Row decides it.',
-      'pending — a THUMB SWAP (a spinner replaces the thumb) and an `aria-busy` lock, not a skin. `button` spells exactly this as an `overlay` part (#848), so the mechanism exists and the part is unauthored here — a second concern in a PR whose subject is the split and the affordance.',
-      'THE THUMB\'S TRAVEL AS MOTION. `positionWhen` states WHERE the thumb is at each coordinate; the slide between them is the animation the component is most recognized by, and a Figma member is static. The code contract is the `motion` block (KB switch brief §8).',
-      'THE GLYPH\'S OWN MICRO-MOTION — the check/X draw and the cross-fade onto the thumb on an async toggle. A Figma variant carries no motion, so the glyphs are static outlines at every coordinate; the `motion` block states the thumb\'s own slide, not the glyph draw.',
-      'THE WHOLE-ROW HIT TARGET. A bare track is 24px tall at `small` and 32px at `medium` in every corpus brand (the density-windowed `control.size.*.track` ladder runs 16–40px, so a compact `small` track is 16px, under SC 2.5.8\'s 24px minimum on its own). The accessible target is the labeled ROW, which is `switch-row` and not this atom, at every density. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (a lock affordance, not an ink — and the one candidate token, `color.border.secondary`, resolves to the same step as the rest border in all four brands). The Row decides it.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'pending — a THUMB SWAP (a spinner replaces the thumb) and an `aria-busy` lock, not a skin. `button` spells exactly this as an `overlay` part (#848), so the mechanism exists and the part is unauthored here — a second concern in a PR whose subject is the split and the affordance.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'THE THUMB\'S TRAVEL AS MOTION. `positionWhen` states WHERE the thumb is at each coordinate; the slide between them is the animation the component is most recognized by, and a Figma member is static. The code contract is the `motion` block (KB switch brief §8).',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'THE GLYPH\'S OWN MICRO-MOTION — the check/X draw and the cross-fade onto the thumb on an async toggle. A Figma variant carries no motion, so the glyphs are static outlines at every coordinate; the `motion` block states the thumb\'s own slide, not the glyph draw.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'THE WHOLE-ROW HIT TARGET. A bare track is 24px tall at `small` and 32px at `medium` in every corpus brand (the density-windowed `control.size.*.track` ladder runs 16–40px, so a compact `small` track is 16px, under SC 2.5.8\'s 24px minimum on its own). The accessible target is the labeled ROW, which is `switch-row` and not this atom, at every density. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      },
     ],
   },
 

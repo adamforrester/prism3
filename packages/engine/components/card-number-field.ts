@@ -95,20 +95,90 @@ export const cardNumberField: ComponentDef = makeTextField({
   // DRAFT: a format example, not a real card's number.
   valueDefault: '1234 5678 9012 3456',
   codeOnly: [
-    'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-    'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
-    'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, and the pending member would differ from `rest` only by a node Figma cannot animate. In code a spinner replaces an adornment while async validation or the value resolves, and the field sets aria-busy, so it stays in `states` and is admitted OUT of the projected `stateAxis`.',
-    'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the field holds no value, so it shows the placeholder; the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
-    'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
-    'the INPUT\'S ATTRIBUTES (#2429 §5) — `autocomplete="cc-number"` (SC 1.3.5, never `off`), `inputmode="numeric"` and never `type="number"` (a wheel or arrow key changes the value, and an invalid entry gives no feedback), `spellcheck="false"`, and `dir="ltr"` on the input in a right-to-left layout, because a card number reads left to right in every script. Paste is never blocked, and pasted spaces and hyphens are accepted.',
-    'GROUPING AS THE USER TYPES (#2429 §5) — the field shows the digits in the detected network\'s groups (4-4-4-4, or 4-6-5 for a 15-digit network), keeps the caret where the user is typing, and never announces the reformatting. The spaces are not part of the value: `value` and `onChange` carry digits only. The length is never capped below 19 digits. No auto-advance to the next field when the number is complete (SC 3.2.2). No masking while typing: people check what they typed.',
-    'CARD-TYPE DETECTION and the TILE (#2429 §5, Q10 A) — detection reads the leading digits and sets `brand`; there is never a manual card-type select. The tile swaps in place, generic until the network is known. The tile is decorative (`aria-hidden="true"` on the mark), and the network is stated in text: `brandName` goes in a visually hidden element linked by `aria-describedby`, NOT a live region, so typing never triggers speech. A network the merchant does not accept keeps its detected tile, and the field shows the error. In forced-colors mode the tile alone sets `forced-color-adjust: none`, so it keeps the provider\'s colors and the field around it follows the user\'s.',
-    'the HOSTED INPUT (#2429 §6, Q12 b, hosted the documented default) — most checkouts take the number in the payment provider\'s hosted input, an iframe the provider serves, which keeps the merchant in the lightest card-data compliance scope (PCI DSS SAQ A). With `renderInput`, the field is a shell: it draws the label, box, tile, focus edge and message outside the frame, driven by the provider\'s state events (focus, invalid, complete, empty) and brand event, and the provider owns the input, its value, its caret, its formatting and its detection. A host `<label for>` cannot reach inside an iframe, so the visible label wraps the mount point, clicking it calls the provider\'s `focus()`, and the label text is passed into the provider\'s own label or `title` option. `aria-describedby` cannot cross the frame either, so the validation text is mirrored into the provider\'s message API where it has one. The typed text\'s font, size and ink are passed through the provider\'s styling API from the same tokens the shell binds. Without `renderInput` the field renders a native input, for prototypes and providers that tokenize page inputs; the docs say plainly that such a page is outside SAQ A.',
-    'VALIDATION (#2429 §5, the pre-work §3.3) — empty ("Enter the card number."), a number that fails the Luhn checksum (a warning, not an error, because some UnionPay numbers fail it: "Check the card number. It doesn\'t match a valid card."), and a network the merchant does not accept (built from the accepted list). Validate on blur, then on input once the field shows an error, as TextField does; never mid-IME-composition. A decline from the processor belongs to the card group, not this field.',
-    'the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component\'s proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile\'s rounded corners and edge belong to the provider-logo component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the card network\'s tile.',
-    'RIGHT TO LEFT — the label, the box and the tile\'s position mirror, so the tile sits at the box\'s left end. The digits stay left to right (`dir="ltr"` on the input), and the tile\'s artwork is never flipped. One provider turns off number grouping in right-to-left layouts; the hosted adapter states that limit rather than hiding it.',
-    'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage and the hidden network name into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
-    'the KEYBOARD MODEL — native text editing and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
+    {
+      class: 'responsive-layout',
+      disposition: 'unsupported',
+      description:
+        'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, and the pending member would differ from `rest` only by a node Figma cannot animate. In code a spinner replaces an adornment while async validation or the value resolves, and the field sets aria-busy, so it stays in `states` and is admitted OUT of the projected `stateAxis`.',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the field holds no value, so it shows the placeholder; the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
+    },
+    {
+      class: 'platform-owned',
+      disposition: 'lowered',
+      description:
+        'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
+    },
+    {
+      class: 'semantics',
+      disposition: 'refused',
+      description:
+        'the INPUT\'S ATTRIBUTES (#2429 §5) — `autocomplete="cc-number"` (SC 1.3.5, never `off`), `inputmode="numeric"` and never `type="number"` (a wheel or arrow key changes the value, and an invalid entry gives no feedback), `spellcheck="false"`, and `dir="ltr"` on the input in a right-to-left layout, because a card number reads left to right in every script. Paste is never blocked, and pasted spaces and hyphens are accepted.',
+    },
+    {
+      class: 'runtime-behavior',
+      disposition: 'refused',
+      description:
+        'GROUPING AS THE USER TYPES (#2429 §5) — the field shows the digits in the detected network\'s groups (4-4-4-4, or 4-6-5 for a 15-digit network), keeps the caret where the user is typing, and never announces the reformatting. The spaces are not part of the value: `value` and `onChange` carry digits only. The length is never capped below 19 digits. No auto-advance to the next field when the number is complete (SC 3.2.2). No masking while typing: people check what they typed.',
+    },
+    {
+      class: 'runtime-behavior',
+      disposition: 'refused',
+      description:
+        'CARD-TYPE DETECTION and the TILE (#2429 §5, Q10 A) — detection reads the leading digits and sets `brand`; there is never a manual card-type select. The tile swaps in place, generic until the network is known. The tile is decorative (`aria-hidden="true"` on the mark), and the network is stated in text: `brandName` goes in a visually hidden element linked by `aria-describedby`, NOT a live region, so typing never triggers speech. A network the merchant does not accept keeps its detected tile, and the field shows the error. In forced-colors mode the tile alone sets `forced-color-adjust: none`, so it keeps the provider\'s colors and the field around it follows the user\'s.',
+    },
+    {
+      class: 'platform-owned',
+      disposition: 'refused',
+      description:
+        'the HOSTED INPUT (#2429 §6, Q12 b, hosted the documented default) — most checkouts take the number in the payment provider\'s hosted input, an iframe the provider serves, which keeps the merchant in the lightest card-data compliance scope (PCI DSS SAQ A). With `renderInput`, the field is a shell: it draws the label, box, tile, focus edge and message outside the frame, driven by the provider\'s state events (focus, invalid, complete, empty) and brand event, and the provider owns the input, its value, its caret, its formatting and its detection. A host `<label for>` cannot reach inside an iframe, so the visible label wraps the mount point, clicking it calls the provider\'s `focus()`, and the label text is passed into the provider\'s own label or `title` option. `aria-describedby` cannot cross the frame either, so the validation text is mirrored into the provider\'s message API where it has one. The typed text\'s font, size and ink are passed through the provider\'s styling API from the same tokens the shell binds. Without `renderInput` the field renders a native input, for prototypes and providers that tokenize page inputs; the docs say plainly that such a page is outside SAQ A.',
+    },
+    {
+      class: 'runtime-behavior',
+      disposition: 'refused',
+      description:
+        'VALIDATION (#2429 §5, the pre-work §3.3) — empty ("Enter the card number."), a number that fails the Luhn checksum (a warning, not an error, because some UnionPay numbers fail it: "Check the card number. It doesn\'t match a valid card."), and a network the merchant does not accept (built from the accepted list). Validate on blur, then on input once the field shows an error, as TextField does; never mid-IME-composition. A decline from the processor belongs to the card group, not this field.',
+    },
+    {
+      class: 'static-placeholder',
+      disposition: 'lowered',
+      description:
+        'the TILE in Figma — a swap slot that starts at the generic tile and binds only its height (`size.{size}.mark-height`, the icon rung); both executors lock the instance to its own component\'s proportion, so a 32×20 tile is about 38×24 at large. It takes no ink from the field at any state, disabled included (`fixedPaint`). The tile\'s rounded corners and edge belong to the provider-logo component. The `card mark` switch shows or hides it; `↳ swap card mark` picks the card network\'s tile.',
+    },
+    {
+      class: 'right-to-left',
+      disposition: 'unsupported',
+      description:
+        'RIGHT TO LEFT — the label, the box and the tile\'s position mirror, so the tile sits at the box\'s left end. The digits stay left to right (`dir="ltr"` on the input), and the tile\'s artwork is never flipped. One provider turns off number grouping in right-to-left layouts; the hosted adapter states that limit rather than hiding it.',
+    },
+    {
+      class: 'semantics',
+      disposition: 'refused',
+      description:
+        'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage and the hidden network name into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
+    },
+    {
+      class: 'keyboard-and-focus',
+      disposition: 'refused',
+      description:
+        'the KEYBOARD MODEL — native text editing and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
+    },
   ],
 
   accessibility: {

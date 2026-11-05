@@ -533,13 +533,48 @@ export const select: ComponentDef = {
       },
     },
     codeOnly: [
-      'the SMALL select on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a control whose text is under 16px, and the small select\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small control\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-      'the OPEN MENU / listbox — the whole option list is the platform\'s (a native `<select>`\'s popup is OS-drawn; a custom one is a separate listbox/popover surface). This def models the CLOSED control only, so there is no `expanded` state and no option-list anatomy. A designer building the open menu reaches for a menu/listbox component, not a variant of this one.',
-      'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the control, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the control and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit). aria-expanded / aria-haspopup describe the popup this def does not model.',
-      'empty — not projected: in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code nothing is chosen, so the control shows the placeholder (#1344); emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
-      'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, text-field\'s posture. In code async options are loading: a spinner replaces the chevron and the control sets aria-busy. It stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members.',
-      'the NATIVE <select> has no readonly attribute, only disabled (KB select brief §4, §11). The projected read-only member shows the value at full contrast behind the editable field\'s boundary (`field.border.rest`, #1710); in code that member is the custom control with aria-readonly, or a hidden input mirroring the value for form submission.',
-      'the KEYBOARD MODEL — typeahead to a matching option, arrow keys to move within the open list, Enter/Space to open and commit, Escape to close. All of it belongs to the interaction the closed control opens INTO, which is not modeled here.',
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the SMALL select on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a control whose text is under 16px, and the small select\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small control\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the OPEN MENU / listbox — the whole option list is the platform\'s (a native `<select>`\'s popup is OS-drawn; a custom one is a separate listbox/popover surface). This def models the CLOSED control only, so there is no `expanded` state and no option-list anatomy. A designer building the open menu reaches for a menu/listbox component, not a variant of this one.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the control, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the control and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit). aria-expanded / aria-haspopup describe the popup this def does not model.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'empty — not projected: in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code nothing is chosen, so the control shows the placeholder (#1344); emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, text-field\'s posture. In code async options are loading: a spinner replaces the chevron and the control sets aria-busy. It stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the NATIVE <select> has no readonly attribute, only disabled (KB select brief §4, §11). The projected read-only member shows the value at full contrast behind the editable field\'s boundary (`field.border.rest`, #1710); in code that member is the custom control with aria-readonly, or a hidden input mirroring the value for form submission.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'the KEYBOARD MODEL — typeahead to a matching option, arrow keys to move within the open list, Enter/Space to open and commit, Escape to close. All of it belongs to the interaction the closed control opens INTO, which is not modeled here.',
+      },
     ],
   },
 

@@ -48,7 +48,7 @@
  * the field renders the validation it is handed; a form library owns timing. No validation engine
  * is baked in.
  */
-import { ComponentDef, PartDef, PropDef } from '../component-schema';
+import { CodeOnlyEntry, ComponentDef, PartDef, PropDef } from '../component-schema';
 
 /**
  * THE FOCUS EDGE (#3399, owner decisions Q22 A and Q22.1 A; replaces #3328's ring inside the border). A focused field
@@ -111,7 +111,7 @@ export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'descript
   mark?: { start: string };
   /** The `value` text's Figma default, the copy the filled members show. */
   valueDefault: string;
-  codeOnly: string[];
+  codeOnly: CodeOnlyEntry[];
   /** The Search field's three (#2888): the glyph each icon slot's swap starts at (`PartDef.swapDefault`), whether the
    *  leading one is built shown, and a Figma-only `label` switch over the nested label. Absent, the field is TextField's. */
   leading?: { glyph: string; shown: boolean };
@@ -762,15 +762,60 @@ export const textField: ComponentDef = makeTextField({
   edge: 'trailing-glyph',
   valueDefault: 'Entered text',
   codeOnly: [
-    'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-    'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
-    'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, and the pending member would differ from `rest` only by a node Figma cannot animate. In code a spinner replaces an adornment while async validation or the value resolves, and the field sets aria-busy, so it stays in `states` and is admitted OUT of the projected `stateAxis`.',
-    'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the field holds no value, so it shows the placeholder; the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
-    'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
-    'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `trailingIcon` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s. Its HIT AREA (WCAG 2.5.8, #2930) is at least 24×24 CSS px, drawn around the 20px glyph (`icon.size.sm`) and centered on it, inside the field\'s height, so it adds no height to the field. The button must meet 24px on its own: the 2.5.8 spacing exception cannot apply, because the button sits inside the input\'s own target, so a button sized to its glyph fails. A decorative glyph is not a target and takes no hit area.',
-    'prefix / suffix — the TEXT affixes (a currency symbol, a unit) are code-API props with no Figma part. The field projects the two glyph slots (`leadingIcon` / `trailingIcon`); a text affix is a string beside the value in the same row, and adding it to the projection is a separate anatomy decision (#1699).',
-    'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
-    'the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
+    {
+      class: 'responsive-layout',
+      disposition: 'unsupported',
+      description:
+        'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, and the pending member would differ from `rest` only by a node Figma cannot animate. In code a spinner replaces an adornment while async validation or the value resolves, and the field sets aria-busy, so it stays in `states` and is admitted OUT of the projected `stateAxis`.',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the field holds no value, so it shows the placeholder; the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
+    },
+    {
+      class: 'platform-owned',
+      disposition: 'lowered',
+      description:
+        'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
+    },
+    {
+      class: 'semantics',
+      disposition: 'refused',
+      description:
+        'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `trailingIcon` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s. Its HIT AREA (WCAG 2.5.8, #2930) is at least 24×24 CSS px, drawn around the 20px glyph (`icon.size.sm`) and centered on it, inside the field\'s height, so it adds no height to the field. The button must meet 24px on its own: the 2.5.8 spacing exception cannot apply, because the button sits inside the input\'s own target, so a button sized to its glyph fails. A decorative glyph is not a target and takes no hit area.',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'refused',
+      description:
+        'prefix / suffix — the TEXT affixes (a currency symbol, a unit) are code-API props with no Figma part. The field projects the two glyph slots (`leadingIcon` / `trailingIcon`); a text affix is a string beside the value in the same row, and adding it to the projection is a separate anatomy decision (#1699).',
+    },
+    {
+      class: 'semantics',
+      disposition: 'refused',
+      description:
+        'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
+    },
+    {
+      class: 'keyboard-and-focus',
+      disposition: 'refused',
+      description:
+        'the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
+    },
   ],
 
   accessibility: {
