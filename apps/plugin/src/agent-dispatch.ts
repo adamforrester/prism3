@@ -45,10 +45,11 @@ export type ActionSink = {
 };
 
 /** A verdict as the agent link reads it: the message without `lines`, the Activity drawer's one-line-per-item copy of
- *  `summary` (#2177). Destructured, so every other key keeps its place and the envelope is the one agents always had. */
+ *  `summary` (#2177), and without `causes`, the drawer's marks (#3326; an agent reads the same facts as `activity`'s
+ *  `problems`, #3309). Destructured, so every other key keeps its place and the envelope is the one agents always had. */
 export const forAgent = (m: MainToUi): MainToUi => {
-  if (!('lines' in m)) return m;
-  const { lines: _drawerOnly, ...rest } = m;
+  if (!('lines' in m) && !('causes' in m)) return m;
+  const { lines: _drawerOnly, causes: _marks, ...rest } = m as MainToUi & { lines?: unknown; causes?: unknown };
   return rest as MainToUi;
 };
 
