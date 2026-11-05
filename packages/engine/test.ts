@@ -6992,11 +6992,11 @@ arm: {
 }
 
 // ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
-// Written from the decisions, not read back from the def: 8 members (tone info | success | warning | danger × width
-// contained | full), subtle only, a full 1px edge in the tone's BORDER role (Q346: never an icon or text role), the
+// Written from the decisions, not read back from the def: 8 members (tone info | success | warning | danger × edge
+// contained | full-bleed, renamed from width contained | full by #3392), subtle only, a full 1px edge in the tone's BORDER role (Q346: never an icon or text role), the
 // title and body in text.primary, FieldMessage's glyph per status, ONE text action (owner QA Q533.1: no second action, no
 // outline, no Button group) and a dismiss, both off by default, lowercase Figma property names (Q345), and the first member
-// the code default (Q347). The full member is a page-top bar (Q533.4, built on its recommended answer): built at 960 where
+// the code default (Q347). The full-bleed member is a page-top bar (Q533.4, built on its recommended answer): built at 960 where
 // contained is 480, square, and edged top and bottom only.
 // Every expectation is a literal; the projected members are read off `figmaAnatomySet`, never off the def's tokens.
 // Contrast: the text at 4.5:1 and the edge and glyph at 3:1, in 5 brands × 4 modes.
@@ -7010,14 +7010,14 @@ arm: {
     const GLYPH: Record<string, string | null> = { info: 'icon/info-circle', success: 'icon/check-circle', warning: 'icon/error-circle', danger: 'icon/warning-triangle', neutral: null };
     // #3225 (Q-BN3.1 A): the neutral edge is border.tertiary; every status tone's edge is its own border role.
     const EDGE = (t: string): string => (t === 'neutral' ? 'border.tertiary' : `border.${t}`);
-    const CORNER: Record<string, string> = { contained: 'radius/md', full: 'radius/none' };
+    const CORNER: Record<string, string> = { contained: 'radius/md', 'full-bleed': 'radius/none' };
     const set = figmaAnatomySet(bannerDef) as any[];
     // #2924: the Banner style's fill per tone, typed from the decision (Q693 A, Q707 A), never read off the materializer.
     const FILL: Record<string, (tone: string) => string> = { tinted: (t) => (t === 'neutral' ? 'background.secondary' : `foreground.${t}-subtle`), outlined: () => 'background.primary' };
     const names = set.map(planComponentName);
-    const EXPECT_NAMES = TONES.flatMap((t) => ['contained', 'full'].map((w) => `tone=${t}, width=${w}`));
+    const EXPECT_NAMES = TONES.flatMap((t) => ['contained', 'full-bleed'].map((w) => `tone=${t}, edge=${w}`));
     ok(JSON.stringify(names) === JSON.stringify(EXPECT_NAMES),
-      `banner set: exactly the 10 members tone × width, info and contained first and neutral last (Q327, Q347, Q-BN3.2 A) (got ${names.join(' | ')})`);
+      `banner set: exactly the 10 members tone × edge, info and contained first and neutral last (Q327, Q347, Q-BN3.2 A) (got ${names.join(' | ')})`);
     const find = (n: any, name: string): any => n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean);
     const glyphs = (n: any): any[] => [...(/^icon\//.test(n.nestTarget ?? '') ? [n] : []), ...(n.children ?? []).flatMap(glyphs)];
     const wrong: string[] = [];
@@ -7025,17 +7025,17 @@ arm: {
     for (const [style, m] of [...set.map((m) => ['tinted', m] as const), ...outlined.map((m) => ['outlined', m] as const)]) {
       const name = `${style} ${planComponentName(m)}`;
       const tone = /tone=(\w+)/.exec(name)?.[1] ?? '';
-      const width = /width=(\w+)/.exec(name)?.[1] ?? '';
+      const width = /edge=([\w-]+)/.exec(name)?.[1] ?? '';
       const r = m.root;
       if (r.paints?.fills !== `color/${FILL[style](tone).replace(/\./g, '/')}`) wrong.push(`${name} fill ${r.paints?.fills}`);
       if (r.paints?.strokes !== `color/${EDGE(tone).replace(/\./g, '/')}`) wrong.push(`${name} edge ${r.paints?.strokes}`);
-      // The edge per side (Q533.4): hairline top and bottom on both widths; the sides hairline contained, none full.
-      const SIDE: Record<string, string> = { contained: 'border-width/hairline', full: 'border-width/none' };
+      // The edge per side (Q533.4): hairline top and bottom on both widths; the sides hairline contained, none full-bleed.
+      const SIDE: Record<string, string> = { contained: 'border-width/hairline', 'full-bleed': 'border-width/none' };
       const edges = [r.bound?.strokeTopWeight, r.bound?.strokeRightWeight, r.bound?.strokeBottomWeight, r.bound?.strokeLeftWeight];
       if (r.bound?.strokeWeight !== undefined || JSON.stringify(edges) !== JSON.stringify(['border-width/hairline', SIDE[width], 'border-width/hairline', SIDE[width]]))
         wrong.push(`${name} edge weights ${r.bound?.strokeWeight ?? '-'} / ${edges.join(' ')}`);
-      // The built width (Q533.4): 480 contained, 960 full, so the two read apart on the canvas.
-      const BUILT: Record<string, number> = { contained: 480, full: 960 };
+      // The built width (Q533.4): 480 contained, 960 full-bleed, so the two read apart on the canvas.
+      const BUILT: Record<string, number> = { contained: 480, 'full-bleed': 960 };
       if (r.placementWidth !== BUILT[width]) wrong.push(`${name} built at ${r.placementWidth}`);
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'])
         if (r.bound?.[c] !== CORNER[width]) wrong.push(`${name} ${c} ${r.bound?.[c]}`);
@@ -7055,7 +7055,7 @@ arm: {
       if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
     }
     ok(wrong.length === 0 && outlined.length === 10,
-      `banner members, Tinted and Outlined (#2924, #3225): each paints foreground.<tone>-subtle (neutral: background.secondary) at Tinted and background.primary at Outlined, with a 1px border.<tone> edge (neutral: border.tertiary), its tone's glyph in icon.<tone> (neutral: none), text.primary ink on the title and the body text, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+      `banner members, Tinted and Outlined (#2924, #3225): each paints foreground.<tone>-subtle (neutral: background.secondary) at Tinted and background.primary at Outlined, with a 1px border.<tone> edge (neutral: border.tertiary), its tone's glyph in icon.<tone> (neutral: none), text.primary ink on the title and the body text, radius md contained and none full-bleed, built 480 contained and 960 full-bleed with no side edges at full-bleed, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
 
     // #3225 (Q-BN2.1 A, Q-BN4.1 A): the body row, the body text, the inline link and the rich body, typed from the decision.
     //   · the body row wraps (layoutWrap WRAP) and aligns on the text baseline, shown by default behind `body`;
@@ -7067,8 +7067,8 @@ arm: {
     for (const m of set) {
       const name = planComponentName(m);
       const tone = /tone=(\w+)/.exec(name)?.[1] ?? '';
-      const width = /width=(\w+)/.exec(name)?.[1] ?? '';
-      const MAX: Record<string, number> = tone === 'neutral' ? { contained: 448, full: 928 } : { contained: 412, full: 892 };
+      const width = /edge=([\w-]+)/.exec(name)?.[1] ?? '';
+      const MAX: Record<string, number> = tone === 'neutral' ? { contained: 448, 'full-bleed': 928 } : { contained: 412, 'full-bleed': 892 };
       const row = find(m.root, 'bodyRow'), text = find(m.root, 'bodyText'), link = find(m.root, 'link'), rich = find(m.root, 'richBody');
       if (row?.layoutWrap !== 'WRAP' || row?.counterAxisAlignItems !== 'BASELINE' || row?.layoutMode !== 'HORIZONTAL' || row?.visible === false || row?.visibleProp !== 'body')
         bodyWrong.push(`${name} body row ${row?.layoutMode}/${row?.layoutWrap}/${row?.counterAxisAlignItems}/${row?.visibleProp}/${row?.visible}`);
@@ -7082,7 +7082,7 @@ arm: {
       if (find(m.root, 'placeholder') || find(m.root, 'body')) bodyWrong.push(`${name} still holds the old slot or its placeholder`);
     }
     ok(set.length === 10 && bodyWrong.length === 0,
-      `banner #3225 body: on all 10 members the body row wraps and aligns on the baseline (shown, behind body), holding the body text then the link; the body text hugs at 412 contained and 892 full (448 and 928 with no glyph) and drives body text; the link is an inline, default-weight, medium Link, off; the rich body is an empty slot, off${bodyWrong.length ? ` — ${bodyWrong.join('; ')}` : ''}`);
+      `banner #3225 body: on all 10 members the body row wraps and aligns on the baseline (shown, behind body), holding the body text then the link; the body text hugs at 412 contained and 892 full-bleed (448 and 928 with no glyph) and drives body text; the link is an inline, default-weight, medium Link, off; the rich body is an empty slot, off${bodyWrong.length ? ` — ${bodyWrong.join('; ')}` : ''}`);
     // Q-BN4.3 A (#3307 review S1): the owner approved "Link text" as the inline link's default text. The banner states it
     // as an override on the nested Link's `label`, so it holds even if Link's own default moves. EXPECTED is the literal
     // the owner approved, not read from the def or from Link.
@@ -7103,7 +7103,7 @@ arm: {
     ok(both.length === 0 && /never with actions/.test(linkProp?.type ?? '') && /never with link/.test(actionsProp?.type ?? '') && dontBoth
       && bannerDef.figmaProperties?.booleans?.link !== undefined && (bannerDef.figmaProperties.booleans.link as any).default === false && (bannerDef.figmaProperties.booleans.actions as any).default === false,
       `banner #3225 Q-BN4.2 A: the inline link and the action are never both on (members with both: ${both.length}), link's type says never with actions (${linkProp?.type}), actions' says never with link (${actionsProp?.type}), both off by default, and the don't list says so (${dontBoth})`);
-    // #2971: one width floor on every member, contained and full alike, bound to `container/min` (never a literal).
+    // #2971: one width floor on every member, contained and full-bleed alike, bound to `container/min` (never a literal).
     const floors = set.map((m) => `${planComponentName(m)}: ${m.root.bound?.minWidth ?? '-'}/${m.root.minWidth ?? '-'}`);
     ok(set.length === 10 && set.every((m) => m.root.bound?.minWidth === 'container/min' && m.root.minWidth === undefined),
       `banner #2971: all 10 members bind the root's minWidth to container/min, with no literal floor (got ${floors.join(' | ')})`);

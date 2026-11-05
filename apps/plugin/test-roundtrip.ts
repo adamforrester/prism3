@@ -3014,7 +3014,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   for (const m of members) {
     const name = String(m.name);
     const row = find(m, 'bodyRow'), text = find(m, 'bodyText');
-    const want = /tone=neutral/.test(name) ? (/width=full/.test(name) ? 928 : 448) : (/width=full/.test(name) ? 892 : 412);
+    const want = /tone=neutral/.test(name) ? (/edge=full-bleed/.test(name) ? 928 : 448) : (/edge=full-bleed/.test(name) ? 892 : 412);
     if (row?.layoutWrap !== 'WRAP' || row?.counterAxisAlignItems !== 'BASELINE' || row?.layoutMode !== 'HORIZONTAL') off.push(`${name}: body row ${String(row?.layoutMode)}/${String(row?.layoutWrap)}/${String(row?.counterAxisAlignItems)}`);
     if (text?.maxWidth !== want) off.push(`${name}: body text maxWidth ${String(text?.maxWidth)}, want ${want}`);
   }

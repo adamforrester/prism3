@@ -2,7 +2,7 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Agent switch, Update file and the desktop bridge for #3264). -->
 
-The agent link lets an AI agent drive the Prism3 plugin you have open in Figma. The agent asks for an action, such as writing the theme or building a component set, and the plugin runs the same write Update file runs, then hands back the same result you would see in Activity. <!-- src: apps/plugin/src/agent-protocol.ts:41 --> <!-- src: tools/figma-mcp/README.md:124-128 -->
+The agent link lets an AI agent drive the Prism3 plugin you have open in Figma. The agent asks for an action, such as writing the theme or building a component set, and the plugin runs the same write Update file runs, then hands back the same result you would see in Activity. <!-- src: apps/plugin/src/agent-protocol.ts:41 --> <!-- src: tools/figma-mcp/README.md:125-129 -->
 Two things differ: an agent's theme write uses the brand settings the agent supplies, and an agent's clean-up preview appears in Activity only.
 
 It is off every time the plugin opens, and only you can turn it on. <!-- src: apps/plugin/src/agent-link.ts:5-8 -->
@@ -24,7 +24,7 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:230-233 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2282 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:230 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2334 -->
 
 The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
@@ -63,7 +63,7 @@ Every write an agent asks for passes the same checks as Update file, and is refu
 - **One request at a time.** The plugin runs requests in the order sent, never two at once, and never while the same write is running from Update file. <!-- src: apps/plugin/src/agent-link.ts:14-18 -->
 - **No code from the agent.** In the released plugin, a request names one of the actions above and nothing in it is run as code. A development build, used by maintainers, adds one more request, `run-code`; the release build leaves it out. <!-- src: apps/plugin/src/agent-protocol.ts:45-48 --> <!-- src: apps/plugin/src/agent-dispatch.ts:267 -->
 - **Deletes and updates need a confirm.** A clean-up or a component update runs as a preview first, and the agent has to send a separate confirm. Ask it to show you the preview before it confirms. <!-- src: apps/plugin/src/agent-protocol.ts:60-68 -->
-- **It writes to the open file.** Whatever the agent asks for lands in the file the plugin is open in. Try a new workflow on a copy first. <!-- src: tools/figma-mcp/README.md:131-133 -->
+- **It writes to the open file.** Whatever the agent asks for lands in the file the plugin is open in. Try a new workflow on a copy first. <!-- src: tools/figma-mcp/README.md:132-134 -->
 
 The panel shows each result an agent's request produced, in Activity, as if you had run it. <!-- src: apps/plugin/src/agent-dispatch.ts:14-22 -->
 

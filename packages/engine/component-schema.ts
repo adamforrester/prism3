@@ -3732,12 +3732,26 @@ export type State = (typeof STATES)[number];
  * is what the row's `nesting.variant` can set. `false | true` so Figma draws it as a switch. An AUTHORING axis: the
  * row type decides it and nothing switches it on screen. `lint-axis-values.ts` carries the two values as a `sole` set.
  */
+/*
+ * ── `edge`: THE THIRTY-FOURTH NAME, FOR BANNER (#3392, owner decision 2026-11-04) ──
+ *
+ * `edge` (`contained | full-bleed`) is HOW A SURFACE MEETS ITS CONTAINER'S SIDES: a rounded box edged on all four sides
+ * inside a section, or a square bar edged top and bottom only that runs to the sides of the page. Banner held it as
+ * `width` (`contained | full`, Q327.3 A), but what moves between the two members is the corners and which sides are
+ * drawn, so under #3383's rule (name an axis for what changes, never for a width) the owner renamed it; the old name
+ * reaches existing Figma instances through `COMPONENT_RENAMES`. It clears the bar with the nearest defeated: `width` is
+ * how much of its container a control takes (a button's `auto | full`), and both banner members fill their container;
+ * `shape` is a control's corner geometry alone (an icon button's `square | circular`), while this also decides which
+ * sides carry the stroke; `inset` is whether a control keeps its inline padding; `placement` is where a layer sits
+ * over the page it covers. None says "rounded and closed, or square and open at the sides". An AUTHORING axis.
+ * `lint-axis-values.ts` carries the two values as a `sole` set.
+ */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'layout', 'labeled', 'kind', 'path', 'separator', 'provider',
+  'placement', 'footer', 'layout', 'labeled', 'kind', 'path', 'separator', 'provider', 'edge',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
