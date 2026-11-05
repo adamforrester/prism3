@@ -41,9 +41,13 @@ import { applyComponentPlan } from './src/write-components';
 import { previewUpdate, checkedSetOf, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, applyVerdict, ledgerAfter, previewHashOf, type ApplyHost } from './src/update-apply';
 import { dueOf, entryFor, printOf, readLedger, recordSets } from './src/as-built-ledger';
-import { NS } from './src/persist-figma';
+import { NS, persistInput } from './src/persist-figma';
+import { emissionOf, stampEmission, themeDue } from './src/theme-emission';
+import { themePlans } from './src/apply-theme';
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine/theme';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
-import { checkScopeOf, defaultTicks, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
+import { checkScopeOf, defaultTicks, type LiveDue, dueSetsOf, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, stepsOf, updateDefsOf, UPDATE_COPY, type FileSets } from '../studio/src/state/update-file';
 import { leafForDef } from './src/file-taxonomy';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 
@@ -115,10 +119,21 @@ const now = (id: string) => (defNow.has(id as typeof IDS[number]) ? entryFor(def
 const read = (): FileSets => ({ present: [...IDS], setUp: true, error: null, due: dueOf(readLedger(root), [...IDS], now) as FileSets['due'] });
 const targetsOf = (defs: readonly string[]): UpdateTarget[] => defs.map((def) => ({ def, plans: plansNow.get(def as typeof IDS[number])! }));
 
+// #3422 (Q44 A, Q44.1 A — the latter the owner's to confirm): Theme opens ticked only when the live recount says the file
+// differs from the brand. Here the file holds the panel's brand, written by the emission before #3402 (no indicator
+// variables), so the recount `main.ts` sends (`themeDue`) says it differs: an engine update under the same brand.
+const brand = Object.values(exampleBrands as Record<string, unknown>)[0] as BrandInput;
+const shared = new Map<string, string>();
+const fileRoot = { getSharedPluginData: (ns: string, k: string) => shared.get(`${ns}:${k}`) ?? '', setSharedPluginData: (ns: string, k: string, v: string) => { shared.set(`${ns}:${k}`, v); } };
+const plansToday = themePlans(brand);
+persistInput(fileRoot, brand);
+stampEmission(fileRoot, emissionOf(JSON.parse(before(JSON.stringify(plansToday)))));
 const f0 = read();
+const live: LiveDue = { present: f0.present, theme: themeDue(fileRoot, brand, () => emissionOf(plansToday)), error: null, due: f0.due };
+ok(live.theme === true, `order/theme due: the recount reads Theme due, the brand unchanged and its variables written before #3402 (theme ${live.theme})`);
 ok(JSON.stringify(dueSetsOf(catalog, f0)) === JSON.stringify(['radio-control', 'tag']) && IDS.every((id) => f0.due[id]?.state === 'due'),
   `due: both sets read due before the run (${JSON.stringify(f0.due)})`);
-const ticks = defaultTicks(catalog, f0);
+const ticks = defaultTicks(catalog, f0, null, live);
 const scope = checkScopeOf(dueSetsOf(catalog, f0), ticks, [], keptSetsOf(catalog, f0));
 const check0 = await previewUpdate(host, targetsOf(scope));
 const seen = check0.sets.map((p, i) => checkedSetOf(p, scope[i]));

@@ -50,7 +50,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { alsoAddsOf, awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { alsoAddsOf, awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -140,6 +140,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   let panelsOpen = false;
   /** The sets this opening asked the scoped check for, or null before it has (Q2909.8 A). */
   let checkedFor: readonly string[] | null = null;
+  /** #3422 Q44 A: the live recount as this opening found it. Theme's default tick and its "Up to date" tag read it, and
+   *  the first read asks against the brand it picks, so the badge, the tick and the counts agree for the whole opening. */
+  let liveAtOpen: LiveDue | null = null;
   /** A Theme toggle asked the file again (#3023): its answer ticks the due sets afresh. */
   let rechecking = false;
   /** The not-yet-recorded sets a check has already ticked or left, so an untick by hand sticks. */
@@ -163,7 +166,14 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     checkedFor = null;
     rechecking = false;
     seen.clear();
-    if (!lend.read().run) { asked = lend.read().fileSets; ticks = null; lend.check(true); }
+    if (!lend.read().run) {
+      const r = lend.read();
+      asked = r.fileSets;
+      ticks = null;
+      liveAtOpen = r.liveDue;
+      // #3422 Q44 A: the brand Theme's default tick picks (#3023 Q701 B); a file not set up ticks Theme always.
+      lend.check(themeDueOf(liveAtOpen) || r.fileSets?.setUp === false);
+    }
     paint();
     const d = layer.querySelector<HTMLElement>('[data-p3="update-dialog"]');
     if (d) (focusables(d)[0] ?? d).focus();
@@ -200,9 +210,11 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   };
 
   /** An item: its box, title and count on one row, its line under them, and what it holds. */
-  const item = (key: Exclude<StepKey, 'sets' | 'update'>, on: boolean, title: string, sub: string, toggle: () => void): HTMLElement => {
+  const item = (key: Exclude<StepKey, 'sets' | 'update'>, on: boolean, title: string, sub: string, toggle: () => void, tag: HTMLElement | null = null): HTMLElement => {
     const row = hook(h('div', 'p3-upd-item'), `update-item-${key}`);
-    row.append(check(`update-check-${key}`, `item=${key}`, on, [h('b', undefined, title)], toggle), h('p', 'p3-sub p3-upd-sub', sub));
+    let label: Node = h('b', undefined, title);
+    if (tag) { const text = h('span', 'p3-check-text'); text.append(label, tag); label = text; }
+    row.append(check(`update-check-${key}`, `item=${key}`, on, [label], toggle), h('p', 'p3-sub p3-upd-sub', sub));
     return row;
   };
 
@@ -236,7 +248,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     asked = undefined;
     if (rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
-    ticks ??= defaultTicks(r.catalog, f, r.queue);
+    ticks ??= defaultTicks(r.catalog, f, r.queue, liveAtOpen);
     const t = ticks;
     const fresh = !f.setUp;
     const body: HTMLElement[] = [];
@@ -244,6 +256,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (r.stopped) body.push(hook(h('p', 'p3-sg-error', UPDATE_COPY.stopped(STEP_TITLE[r.stopped.step], r.stopped.headline)), 'update-stopped'));
     body.push(h('p', 'p3-sub p3-upd-lead', fresh ? UPDATE_COPY.leadFresh : UPDATE_COPY.lead));
     if (fresh) body.push(item('setup', t.setup, UPDATE_COPY.setup, UPDATE_COPY.setupSub, () => { ticks = { ...t, setup: !t.setup }; }));
+    // #3422 Q44 A: Theme opens ticked only when the file's variables differ from the brand; else unticked, and a tick
+    // applies it again. Q44.2 A: tagged Up to date only when the recount measured the file and found it matching.
     // #3023 Q701 B: Theme decides the brand the sets are measured against, so a toggle checks the file again, and the due
     // sets are ticked again from that answer; what the counts say stays what the run writes.
     body.push(item('theme', t.theme, UPDATE_COPY.theme, UPDATE_COPY.themeSub, () => {
@@ -253,7 +267,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       checkedFor = null;
       seen.clear();
       lend.check(!t.theme);
-    }));
+    }, !fresh && themeMatchesOf(liveAtOpen) ? hook(h('span', 'p3-sg-tag', UPDATE_COPY.themeCurrent), 'update-theme-current') : null));
     // #3129: the add queue, then the due sets (Q2909.8 A), each group under its own title.
     const queue = queuedOf(r.catalog, f, r.queue);
     const addable = newSetsOf(r.catalog, f);

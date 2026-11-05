@@ -22,6 +22,7 @@ import { applyTextStylePlan } from './write-text-styles';
 import { guardApply, preflightPlanOf } from './preflight';
 import { preloadFonts } from './preload-fonts';
 import { persistInput, restoreInput } from './persist-figma';
+import { emissionOf, stampEmission } from './theme-emission';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
 import type { ThemeHost } from './theme-ports';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
@@ -140,6 +141,8 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
       // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
       persistInput(host.root, input);
+      // #3422 Q44.1 A: and the print of what was written, so the recount can tell an engine update apart (`theme-emission.ts`).
+      stampEmission(host.root, emissionOf(plans));
       return { mig, r, f, s, gs, tv, ts, mv };
     },
   );

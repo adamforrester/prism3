@@ -605,7 +605,11 @@ ok(!!coverOn && coverOn.skipped !== COVER_OFF_WORDS, `docs/cover on (control): w
 //    `update-check-request`), Theme stores B (`persistInput`, as `apply-theme.ts` does), then `update-sets` echoes the
 //    check's hash. The expected states are literals; the brands are the example brand and a copy with one lever moved.
 const { persistInput } = await import('./src/persist-figma');
-persistInput(root as never, brandA);
+const { emissionOf, stampEmission, EMISSION_KEY } = await import('./src/theme-emission');
+const { themePlans } = await import('./src/apply-theme');
+// What Apply Theme stores after its writes (`apply-theme.ts`): the brand, and since #3422 Q44.1 A the print of what it wrote.
+const themeStores = (b: BrandInput): void => { persistInput(root as never, b); stampEmission(root as never, emissionOf(themePlans(b))); };
+themeStores(brandA);
 const leverBuilt = await build(LEVER_DEF);
 ok(leverBuilt?.completed === true && ledger()[LEVER_DEF]?.def === entryFor(materializerFor(brandA)(componentDefs.find((d) => d.id === LEVER_DEF)!)).def,
   `fixture: ${LEVER_DEF} is built under the stored brand A and recorded ("${leverBuilt?.headline}")`);
@@ -621,7 +625,7 @@ ok(!!setB && setB.update > 0 && typeof chkA?.previewHash === 'string' && chkA.pr
   `fixture: the check under the panel's brand B finds members to change, and hashes apart from the stored brand's (${JSON.stringify({ b: setB, hashA: chkA?.previewHash, hashB: chkB?.previewHash })})`);
 // Theme stores B. The stored brand's check is now stale: the agent's update with its hash is refused, so the arm below
 // can tell an update laid from B's plans from one laid from A's.
-persistInput(root as never, brandB);
+themeStores(brandB);
 const staleUpd = (await runAction((sink) => ACTIONS.updateComponents(LEVER_DEF, chkA?.previewHash ?? null, undefined, undefined, sink as never))).posts.find((m) => m?.type === 'component-update-result');
 ok(staleUpd?.headline === '✗ update refused', `q699/control: an update echoing a check of the old stored brand is refused once Theme stores B ("${staleUpd?.headline}")`);
 const askRun = async (msg: Record<string, unknown>, type: string): Promise<any> => {
@@ -659,7 +663,7 @@ pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { ...JSON.parse(pl
 //    own `brandFor` (`apps/studio/src/state/update-file.ts`) picks for that run, as `main.ts`'s `panelBrand` posts it. The
 //    update must write A's plan, and the next load (the read with no brand, as at load) must read the set current.
 const { brandFor } = await import('../studio/src/state/update-file');
-persistInput(root as never, brandA);
+themeStores(brandA);
 const atLoad = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(atLoad?.due?.[LEVER_DEF]?.state === 'due', `fixture: stored A, the set built under B reads due at load (${JSON.stringify(atLoad?.due?.[LEVER_DEF])})`);
 const unticked = brandFor(false, brandB);
@@ -693,8 +697,44 @@ ok(pageLoads === 0, `q810/cheap: the live recount loads no page and walks no fil
 const reversed = Object.fromEntries(Object.entries(brandA as Record<string, unknown>).reverse()) as BrandInput;
 const dR = (await ask({ type: 'due-request', input: reversed, seq: 3 }, 'file-due'))[0];
 ok(dR?.theme === false, `q810/theme: the stored brand with its keys in another order has nothing to apply (theme ${dR?.theme})`);
+// #3422 Q44.1 A (the review's recommendation; the owner's to confirm): the same brand, written by another emission (an
+// engine update that moved its variables, #3402), has something to apply; so does a brand saved with no print, since
+// nothing says what was written. MUTATION: the recount reading the saved input alone (`themeDue` without the print) →
+// `q44.1/engine moved`, `q44.1/no print`.
+const printA = sharedData.get(`prism3:${EMISSION_KEY}`);
+sharedData.set(`prism3:${EMISSION_KEY}`, '0000000000000000');
+const dEm = (await ask({ type: 'due-request', input: brandA, seq: 31 }, 'file-due'))[0];
+ok(dEm?.theme === true, `q44.1/engine moved: the stored brand A, written by another emission than this plugin's, has something to apply (theme ${dEm?.theme})`);
+sharedData.delete(`prism3:${EMISSION_KEY}`);
+const dP = (await ask({ type: 'due-request', input: brandA, seq: 32 }, 'file-due'))[0];
+ok(dP?.theme === true, `q44.1/no print: the stored brand A, saved with no print of what was written, has something to apply (theme ${dP?.theme})`);
+if (printA !== undefined) sharedData.set(`prism3:${EMISSION_KEY}`, printA);
+const dA2 = (await ask({ type: 'due-request', input: brandA, seq: 33 }, 'file-due'))[0];
+ok(!!printA && dA2?.theme === false, `q44.1/control: with the print put back, A has nothing to apply again (theme ${dA2?.theme})`);
+// #3432's delta review: WHAT THE PRINT COVERS. An engine update can move any one of the seven plans Apply Theme writes,
+// with the brand unchanged. Each plan is moved in turn (a key added, or an entry appended), and the print must move with
+// it, and the recount through `main.ts` must read Theme due against a stamp of the moved print. The names are literals,
+// not read off `emissionOf`. MUTATION: `emissionOf` hashing `colorPlan` alone → `q44.1/print covers floatPlan` and the
+// five plans after it.
+const PRINTED = ['colorPlan', 'floatPlan', 'fontPlan', 'motionPlan', 'stylesPlan', 'gridPlan', 'textPlan'] as const;
+const plansA = themePlans(brandA);
+const moved = (x: unknown): unknown => {
+  const c = JSON.parse(JSON.stringify(x)) as unknown;
+  if (Array.isArray(c)) return [...c, { moved: true }];
+  return { ...(c as Record<string, unknown>), moved: true };
+};
+let seqP = 40;
+for (const k of PRINTED) {
+  const there = plansA[k] !== undefined && JSON.stringify(plansA[k]).length > 2;
+  const other = emissionOf({ ...plansA, [k]: moved(plansA[k]) });
+  sharedData.set(`prism3:${EMISSION_KEY}`, other);
+  const d = (await ask({ type: 'due-request', input: brandA, seq: seqP++ }, 'file-due'))[0];
+  ok(there && other !== printA && d?.theme === true,
+    `q44.1/print covers ${k}: an engine move in ${k} alone moves the print, so the recount reads Theme due (plan present ${there}; print ${other === printA ? 'unchanged' : 'moved'}; theme ${d?.theme})`);
+}
+if (printA !== undefined) sharedData.set(`prism3:${EMISSION_KEY}`, printA);
 // Theme stores B, as the run's Theme step does: Theme's item drops, the set stays due until the update writes it.
-persistInput(root as never, brandB);
+themeStores(brandB);
 const dS = (await ask({ type: 'due-request', input: brandB, seq: 4 }, 'file-due'))[0];
 ok(dS?.theme === false && dS.due?.[LEVER_DEF]?.state === 'due', `q810/after apply: once Theme stores B, Theme has nothing to apply; the set B moves is still due (${JSON.stringify({ theme: dS?.theme, due: dS?.due?.[LEVER_DEF] })})`);
 // A fresh file holds no brand: Theme would write one, so it counts.

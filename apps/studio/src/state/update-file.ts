@@ -5,7 +5,9 @@
  * THE CHECKLIST (owner decisions Q2909.2 A, Q2909.5 A, Q668 A). Update file is the plugin's one global write. It always
  * opens the checklist, even when only the theme is to be written (Q2909.2 A). Its items, in the order they run:
  *   · Set up file, only on a file that is not set up: the first checklist on such a file is the setup (Q668 A);
- *   · Theme: the brand's variables and styles (today's Apply Theme), ticked;
+ *   · Theme: the brand's variables and styles (today's Apply Theme), ticked only when the file's variables differ from
+ *     the brand, the signal the badge counts (`themeDueOf`, #3422 Q44 A); else unticked and "Up to date", and still
+ *     tickable to apply it again. A file that is not set up holds no brand, so its Theme is always ticked;
  *   · To add (#3129, Q832 A, Q3129.7–10 A): the file's add queue, the sets chosen on Components, in Components' order
  *     and with its names (`queuedOf`). A queued set runs: its row has no tick, only Remove, and Remove all from two
  *     rows up. A file that is not set up starts with nothing queued and offers Add all, which writes every set it lacks
@@ -144,8 +146,16 @@ export type LiveDue = { readonly present: readonly string[]; readonly theme: boo
  *  compares the file's brand with the panel's. */
 /** #3137 Q3137.4 A: the Usage panels group counts as one item (`panels`), however many sets it lists. */
 export type BadgeParts = { readonly add: number; readonly due: number; readonly theme: boolean; readonly panels: boolean };
+/** #3422 Q44 A: whether the file's variables differ from the brand the panel holds, as the live recount last said. False
+ *  before its first answer and when it could not read the file. The badge counts Theme on it, and Theme opens ticked on it,
+ *  so the two agree. */
+export const themeDueOf = (live: LiveDue | null): boolean => !!live && !live.error && live.theme;
+/** #3422 Q44.2 A (the review's recommendation; the owner's to confirm): whether the live recount measured the file and
+ *  found it matching the brand. Only then does the Theme row read "Up to date". Before the first answer, when it could
+ *  not read the file, or on the demo brand (no recount is shown), nothing was compared, so the row has no tag. */
+export const themeMatchesOf = (live: LiveDue | null): boolean => !!live && !live.error && !live.theme;
 export const badgeParts = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null): BadgeParts => {
-  if (live && !live.error) return { add: queuedOf(catalog, live, queue).length, due: dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }), theme: live.theme, panels: panelSetsOf(catalog, live, queue).length > 0 };
+  if (live && !live.error) return { add: queuedOf(catalog, live, queue).length, due: dueCount(catalog, { present: live.present, setUp: true, error: null, due: live.due }), theme: themeDueOf(live), panels: panelSetsOf(catalog, live, queue).length > 0 };
   return { add: f && !f.error ? queuedOf(catalog, f, queue).length : 0, due: dueCount(catalog, f), theme: false, panels: !!f && !f.error && panelSetsOf(catalog, f, queue).length > 0 };
 };
 export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue | null, queue: readonly string[] | null = null): number => {
@@ -156,12 +166,13 @@ export const badgeCount = (catalog: Catalog, f: FileSets | null, live: LiveDue |
  *  edits, such as a slider drag or typing, never one a keystroke. */
 export const DUE_DEBOUNCE_MS = 250;
 
-/** The ticks the checklist opens with (Q2909.2 A, Q2909.8 A, Q3129.10 A): the theme always, and every due set, keeping
- *  hand edits; on a file that is not set up, the setup and the style guides too. No set is queued for it: the queue is
- *  the file's (#3129), so a fresh file starts with nothing to add until Add all or Components. */
-export const defaultTicks = (catalog: Catalog, f: FileSets, queue: readonly string[] | null = null): Ticks => {
+/** The ticks the checklist opens with (Q2909.2 A, Q2909.8 A, Q3129.10 A): every due set, keeping hand edits; the theme
+ *  only when the file's variables differ from the brand (#3422 Q44 A, `themeDueOf`, which supersedes Q2909.2 A's
+ *  always-ticked theme); on a file that is not set up, the setup, the theme and the style guides. No set is queued for it:
+ *  the queue is the file's (#3129), so a fresh file starts with nothing to add until Add all or Components. */
+export const defaultTicks = (catalog: Catalog, f: FileSets, queue: readonly string[] | null = null, live: LiveDue | null = null): Ticks => {
   const fresh = !f.setUp;
-  return { setup: fresh, theme: true, guides: fresh, panels: panelSetsOf(catalog, f, queue).length > 0, update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep', kept: new Map() };
+  return { setup: fresh, theme: fresh || themeDueOf(live), guides: fresh, panels: panelSetsOf(catalog, f, queue).length > 0, update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep', kept: new Map() };
 };
 
 /** The steps a set of ticks runs, in order. Set up file is a step only on a file that is not set up; `sets` only while
@@ -297,6 +308,8 @@ export const UPDATE_COPY = {
   setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Documentation has it on.',
   theme: 'Theme',
   themeSub: 'The brand’s variables and styles. Layers bound to them restyle at once.',
+  /** #3422 Q44 A: the Theme row's tag when the file's variables already match the brand. The sets' own status word. */
+  themeCurrent: 'Up to date',
   /** #3129 (Q832 A, Q3129.7–11 A): the add queue's group and the due sets' group. DRAFT, the wireframe's own words.
    *  R6 (the owner, 2026-10-28): both sit under one section, Components, at Theme's level, as its two subtitles. */
   components: 'Components',

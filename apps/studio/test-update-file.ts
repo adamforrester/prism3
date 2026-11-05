@@ -4,7 +4,8 @@
  *   npx tsx apps/studio/test-update-file.ts
  *
  * INDEPENDENCE (docs/34). The catalog and the file's sets are typed here as literals; every expected tick, step and run
- * state is a literal read off the owner's decisions (Q2909.2 A: the theme is always an item and ticked; Q668 A: the first
+ * state is a literal read off the owner's decisions (Q2909.2 A: the theme is always an item; #3422 Q44 A: it is ticked only
+ * when the file's variables differ from the brand, and on a file that is not set up; Q668 A: the first
  * checklist on a file that is not set up is the setup; Q3129.10 A: no set is ticked or queued for the checklist, a fresh
  * file's included), never computed by the module under test.
  *
@@ -40,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -59,14 +60,50 @@ const SET_UP = { present: ['button'], setUp: true, error: null, due: { button: {
 const FRESH = { present: [], setUp: false, error: null, due: {} };
 
 ok(same(newSetsOf(CAT, SET_UP), ['tag', 'badge']), 'new sets: buildable and not in the file, in catalog order; an unbuildable set is never offered');
-const t1 = defaultTicks(CAT, SET_UP);
+// #3422 Q44 A: on a set-up file, Theme is ticked when the live recount says the file differs from the brand.
+const t1 = defaultTicks(CAT, SET_UP, null, { present: ['button'], theme: true, error: null, due: SET_UP.due });
 ok(t1.theme === true && t1.setup === false && t1.guides === false && !('sets' in t1),
-  'ticks: on a set-up file the theme is ticked (Q2909.2 A), and no set is ticked to add (#3129: the queue is the file\'s)');
+  'ticks: on a set-up file whose variables differ from the brand the theme is ticked, and no set is ticked to add (#3129: the queue is the file\'s)');
 const t2 = defaultTicks(CAT, FRESH);
 ok(t2.setup && t2.theme && t2.guides && !('sets' in t2),
   'Q3129.10 A ticks: on a file that is not set up, the setup, the theme and the style guides are ticked, and no set is (Q668 A)');
 
 ok(same(stepsOf(t1, SET_UP, []), ['theme']), 'steps: a set-up file with the defaults and an empty queue writes the theme only');
+
+// ── #3422 Q44 A: Theme ticked only when the file differs from the brand ─────────────────────────────────────────────
+// Mutations that fail here by name: `defaultTicks` ticking Theme always → `Q44 A ticks: a file that matches the brand
+// opens with Theme unticked` and `Q44 A badge = ticks: …matches…`; ticking it never → `Q44 A ticks: a file that differs
+// from the brand opens with Theme ticked`; dropping `fresh` → `Q44 A ticks: a file that is not set up …`.
+{
+  const MATCH = { present: ['button'], theme: false, error: null, due: SET_UP.due };
+  const DIFF = { ...MATCH, theme: true };
+  const tm = defaultTicks(CAT, SET_UP, null, MATCH);
+  ok(tm.theme === false, `Q44 A ticks: a file that matches the brand opens with Theme unticked (${tm.theme})`);
+  ok(defaultTicks(CAT, SET_UP, null, DIFF).theme === true, 'Q44 A ticks: a file that differs from the brand opens with Theme ticked');
+  ok(defaultTicks(CAT, SET_UP, null, null).theme === false && defaultTicks(CAT, SET_UP, null, { ...DIFF, error: 'x' }).theme === false,
+    'Q44 A ticks: before the recount answers, or when it could not read the file, Theme opens unticked, as the badge counts no Theme');
+  ok(defaultTicks(CAT, FRESH, null, null).theme === true && defaultTicks(CAT, FRESH, null, MATCH).theme === true,
+    'Q44 A ticks: a file that is not set up holds no brand, so Theme opens ticked');
+  ok(same(stepsOf(tm, SET_UP, []), []), 'Q44 A steps: a matching file with nothing due runs no step by default');
+  ok(UPDATE_COPY.themeCurrent === 'Up to date' && UPDATE_COPY.themeCurrent === UPDATE_COPY.status.current,
+    `Q44 A label: an unticked Theme reads "Up to date", the sets' own word (${UPDATE_COPY.themeCurrent})`);
+  ok(themeDueOf(MATCH) === false && themeDueOf(DIFF) === true && themeDueOf(null) === false, 'Q44 A signal: Theme is due exactly when the recount says the file differs');
+  // Q44.2 A: "Up to date" only on a measured match. Before the recount answers, or when it could not read the file,
+  // nothing was compared, so the row has no tag. MUTATION: the tag on `!themeDueOf` again → this arm, by name.
+  ok(themeMatchesOf(MATCH) === true && themeMatchesOf(DIFF) === false && themeMatchesOf(null) === false && themeMatchesOf({ ...MATCH, error: 'x' }) === false,
+    `Q44.2 A tag: the Theme row reads "Up to date" only when the recount measured the file and found it matching (${JSON.stringify([themeMatchesOf(MATCH), themeMatchesOf(DIFF), themeMatchesOf(null), themeMatchesOf({ ...MATCH, error: 'x' })])})`);
+  // The badge counts what the ticks will run: Theme, each ticked Due set, the Usage panels group, and the add queue.
+  const DF = { present: ['button', 'tag'], setUp: true, error: null, due: { button: { state: 'due', reason: 'definition' }, tag: { state: 'current' } } } as const;
+  const liveM = { present: DF.present, theme: false, error: null, due: DF.due };
+  const liveD = { ...liveM, theme: true };
+  const ticked = (t: ReturnType<typeof defaultTicks>, queue: readonly string[]): number => (t.theme ? 1 : 0) + t.update.size + (t.panels ? 1 : 0) + queuedOf(CAT, DF, queue).length;
+  const tM = defaultTicks(CAT, DF, ['badge'], liveM);
+  const tD = defaultTicks(CAT, DF, ['badge'], liveD);
+  ok(badgeCount(CAT, DF, liveM, ['badge']) === 2 && ticked(tM, ['badge']) === 2,
+    `Q44 A badge = ticks: a file that matches the brand counts 2 (1 due, 1 to add) and opens 2 ticked (${badgeCount(CAT, DF, liveM, ['badge'])} / ${ticked(tM, ['badge'])})`);
+  ok(badgeCount(CAT, DF, liveD, ['badge']) === 3 && ticked(tD, ['badge']) === 3,
+    `Q44 A badge = ticks: a file that differs counts 3 (theme, 1 due, 1 to add) and opens 3 ticked (${badgeCount(CAT, DF, liveD, ['badge'])} / ${ticked(tD, ['badge'])})`);
+}
 ok(same(stepsOf({ ...t1, setup: true }, SET_UP, []), ['theme']), 'steps: Set up file is never a step on a set-up file');
 ok(same(stepsOf(t2, FRESH, ['tag']), ['setup', 'theme', 'sets', 'guides', 'cover']), 'steps: the first run sets up, then writes the theme, the queued sets and the style guides, in that order, and ends with the cover (#3308 Q3308.4 A)');
 ok(same(stepsOf(t2, FRESH, []), ['setup', 'theme', 'guides', 'cover']), 'Q3129.10 A steps: a fresh file with nothing queued adds no set; the sets step runs while the queue holds a set');
@@ -104,7 +141,8 @@ const DUE = {
 ok(same(dueSetsOf(CAT2, DUE), ['button', 'select']), 'Q2909.8 A due: the sets the ledger reads as due, in catalog order');
 ok(same(unrecordedOf(CAT2, DUE), ['badge']), 'Q2909.8 A unrecorded: the sets the file holds with no ledger entry');
 ok(same(unrecordedOf(CAT2, { ...DUE, due: {} }), ['button', 'tag', 'badge', 'select']), 'Q2909.8 A unrecorded: a set the ledger answered nothing for is not checked yet');
-const td = defaultTicks(CAT2, DUE);
+// A file whose variables differ from the brand, so Theme opens ticked (#3422 Q44 A).
+const td = defaultTicks(CAT2, DUE, null, { present: DUE.present, theme: true, error: null, due: DUE.due });
 ok(same([...td.update], ['button', 'select']) && td.handEdits === 'keep',
   'Q2909.8 A ticks: every due set is ticked, hand edits are kept, and a set never recorded is not ticked');
 ok(same(stepsOf(td, DUE, []), ['theme', 'update']), 'Q2909.8 A steps: a file with due sets writes the theme, then updates the sets in place');
@@ -244,7 +282,8 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     'Q39 A update: the update step takes a Kept edits set given Overwrite, and leaves one on Keep');
   ok(same(keptChoicesOf(tko, ['button', 'tag']), { tag: 'overwrite' }), 'Q39 A run: the set\'s own choice rides the update (`UpdateChoices.sets`)');
   const tb = { sets: [{ def: 'button', hash: 'a', blocked: true, themeBlocked: true }] as never };
-  ok(same(updateDefsOf(tk, tb, []), ['button']) && same(updateDefsOf({ ...tk, theme: false }, tb, []), []),
+  // Theme's tick set here, both ways: since #3422 (Q44 A) the default tick follows the live recount, which this arm is not about.
+  ok(same(updateDefsOf({ ...tk, theme: true }, tb, []), ['button']) && same(updateDefsOf({ ...tk, theme: false }, tb, []), []),
     '#3421 order: a set blocked only by Theme\'s variables rides a run with Theme, and not one without');
   ok(recheckFirst(['button'], ['button'], tb), '#3421 order: such a set is checked again after Theme, not applied under the check\'s hash');
   ok(recheckHolds(['button'], [{ def: 'button', hash: 'a', themeBlocked: true }] as never, [{ def: 'button', hash: 'b' }] as never)
