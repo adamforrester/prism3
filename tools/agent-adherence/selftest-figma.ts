@@ -265,6 +265,13 @@ for (const [name, code] of [
   ['compound-assign', "const row = await figma.getNodeByIdAsync('1:20'); row.itemSpacing += 2;"],
   ['logical-assign', "const row = await figma.getNodeByIdAsync('1:20'); row.name ||= 'Promo';"],
   ['set-value', "const v = await figma.variables.getVariableByIdAsync('x'); v.setValueForMode('m', 14);"],
+  // Review N4.
+  ['increment', "const row = await figma.getNodeByIdAsync('1:20'); row.itemSpacing++;"],
+  ['prefix-decrement', "const row = await figma.getNodeByIdAsync('1:20'); --row.itemSpacing;"],
+  ['bracket-assign', "const row = await figma.getNodeByIdAsync('1:20'); row['itemSpacing'] = 16;"],
+  ['object-assign', "const row = await figma.getNodeByIdAsync('1:20'); Object.assign(row, { itemSpacing: 16 });"],
+  ['insert-characters', "const t = await figma.getNodeByIdAsync('1:21'); await figma.loadFontAsync(t.fontName); t.insertCharacters(0, 'New ');"],
+  ['set-range', "const t = await figma.getNodeByIdAsync('1:21'); t.setRangeFills(0, 3, []);"],
 ] as const) {
   const r = fresh();
   r.calls.push({ kind: 'attempt', seq: 0, cmd: 'run-code', args: { code } } as any, { kind: 'outcome', seq: 0, outcome: 'ok' } as any);
@@ -273,9 +280,9 @@ for (const [name, code] of [
 }
 {
   const r = fresh();
-  r.calls.push({ kind: 'attempt', seq: 0, cmd: 'run-code', args: { code: "const row = await figma.getNodeByIdAsync('1:20'); return row.itemSpacing >= 8 && row.name == 'Promo row' && row.children.length <= 3;" } } as any, { kind: 'outcome', seq: 0, outcome: 'ok' } as any);
+  r.calls.push({ kind: 'attempt', seq: 0, cmd: 'run-code', args: { code: "const row = await figma.getNodeByIdAsync('1:20'); const out = []; for (let i = 0; i < row.children.length; i++) out.push(row.children[i]['name']); const [a, b] = out; return row.itemSpacing >= 8 && row.name == 'Promo row' && row.children.length <= 3 && a !== b;" } } as any, { kind: 'outcome', seq: 0, outcome: 'ok' } as any);
   const s = score(r);
-  ok(s.V.V7 === 0 && clean(s), `R7/good-read-compare: comparisons in a read are not writes (${say(s)})`);
+  ok(s.V.V7 === 0 && clean(s), `R7/good-read-compare: comparisons, a loop counter, a bracket read and a destructuring in a read are not writes (${say(s)})`);
 }
 
 console.log('\nvoid');

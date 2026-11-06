@@ -70,10 +70,13 @@ const WRITE_CMDS = new Set(['apply-theme', 'build-components', 'file-setup', 'st
 const CONFIRMED_WRITE_CMDS = new Set(['prune', 'update-components', 'panels-clean']);
 /**
  * A `run-code` body that changes the file: a property assignment, plain or compound (`+=`, `||=`, …), or a call to a
- * method that writes, `figma.variables.create…` among them (review S4). A DENYLIST, so it is incomplete by nature: a
- * write it does not name (a setter reached through a helper, say) reads as a read, and V7 misses it (`figma.md`).
+ * method that writes, `figma.variables.create…` among them (review S4). Review N4 adds a property `++`/`--` (either
+ * side), an assignment through a string-literal bracket (`row['itemSpacing'] = 16`), `Object.assign(`, and the text
+ * writers `insertCharacters`, `deleteCharacters` and `setRange…`. A local loop counter (`i++`) is not a property, so it
+ * is not a write. A DENYLIST, so it is incomplete by nature: a write it does not name (a setter reached through a
+ * helper, or a bracket with a computed key) reads as a read, and V7 misses it (`figma.md`).
  */
-const MUTATION = /\.(?:[a-zA-Z_]\w*)\s*(?:\*\*|<<|>>>|>>|&&|\|\||\?\?|[-+*/%&|^])?=(?!=)|\.(?:remove|detachInstance|swapComponent|appendChild|insertChild|setBoundVariable|setProperties|resize|resizeWithoutConstraints|resetOverrides|createInstance|clone|setPluginData|setSharedPluginData|setFillStyleIdAsync|setStrokeStyleIdAsync|setEffectStyleIdAsync|setTextStyleIdAsync|setValueForMode|setVariableValue|setExplicitVariableModeForCollection|addMode|renameMode|removeMode|setVariableCodeSyntax)\s*\(|figma\.(?:create\w+|group|flatten|union|subtract|intersect|exclude)\s*\(|\bvariables\.create\w+\s*\(/;
+const MUTATION = /\.(?:[a-zA-Z_]\w*)\s*(?:\*\*|<<|>>>|>>|&&|\|\||\?\?|[-+*/%&|^])?=(?!=)|\.(?:remove|detachInstance|swapComponent|appendChild|insertChild|setBoundVariable|setProperties|resize|resizeWithoutConstraints|resetOverrides|createInstance|clone|setPluginData|setSharedPluginData|setFillStyleIdAsync|setStrokeStyleIdAsync|setEffectStyleIdAsync|setTextStyleIdAsync|setValueForMode|setVariableValue|setExplicitVariableModeForCollection|addMode|renameMode|removeMode|setVariableCodeSyntax|insertCharacters|deleteCharacters|setRange\w+)\s*\(|figma\.(?:create\w+|group|flatten|union|subtract|intersect|exclude)\s*\(|\bvariables\.create\w+\s*\(|\.[a-zA-Z_]\w*\s*(?:\+\+|--)|(?:\+\+|--)\s*[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+|\[\s*(['"`])[^'"`]*\1\s*\]\s*(?:\*\*|<<|>>>|>>|&&|\|\||\?\?|[-+*/%&|^])?=(?![=>])|\bObject\.assign\s*\(/;
 const VERSION_SAVE = /saveVersionHistoryAsync\s*\(/;
 
 /* ── shapes ─────────────────────────────────────────────────────────────────────────────────────────── */
