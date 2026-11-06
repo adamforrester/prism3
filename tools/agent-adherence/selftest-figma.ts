@@ -507,6 +507,14 @@ console.log('\nthe contamination probe');
     ok(denied.clean, `probe/failed-read: a skills/ read and a GitHub fetch that both failed are clean (${denied.reasons.join('; ') || 'clean'})`);
     const got = probe([init, read, use('t1', 'Read', path), result('t1', false)], '/tmp/run');
     ok(!got.clean && got.reasons.some((x) => /skills\/ path \(Read\)/.test(x)), `probe/succeeded-read: the same read that succeeded is void (${got.reasons.join('; ')})`);
+    // A search that found nothing (review N1): success, not `is_error`, and still nothing reached.
+    const found = (id: string, text: string) => ({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content: text }] } });
+    const none = probe([init, read, use('g1', 'Glob', { pattern: '**/skills/**' }), found('g1', 'No files found'), use('g2', 'Grep', { pattern: 'detach', path: 'skills/' }), found('g2', 'No matches found')], '/tmp/run');
+    ok(none.clean, `probe/empty-search: a Glob and a Grep over skills/ that found nothing are clean (${none.reasons.join('; ') || 'clean'})`);
+    const hit = probe([init, read, use('g1', 'Glob', { pattern: '**/skills/**' }), found('g1', '/Users/x/skills/prism3-rebind/SKILL.md')], '/tmp/run');
+    ok(!hit.clean && hit.reasons.some((x) => /skills\/ path \(Glob\)/.test(x)), `probe/search-hit: the same Glob that listed a match is void (${hit.reasons.join('; ')})`);
+    const readNone = probe([init, read, use('t9', 'Read', path), found('t9', '')], '/tmp/run');
+    ok(!readNone.clean, `probe/empty-read: an empty Read result is not a search, and still counts (${readNone.reasons.join('; ')})`);
     const cut = probe([init, read, use('t1', 'Read', path)], '/tmp/run');
     ok(!cut.clean, `probe/no-result: a read with no result on record still counts (${cut.reasons.join('; ')})`);
   }

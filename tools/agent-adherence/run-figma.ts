@@ -146,10 +146,20 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
   // Each tool call's result, by its id (review S1): a read that was denied or found nothing reached nothing. Only arm 2's
   // resources name a `skills/` path, so voiding a failed read of one would void on that arm alone.
   const failed = new Set<string>();
+  const resultText = new Map<string, string>();
   for (const m of msgs) {
     const c = m.message?.content;
-    if (m.type === 'user' && Array.isArray(c)) for (const p of c) if (p?.type === 'tool_result' && p.is_error === true && typeof p.tool_use_id === 'string') failed.add(p.tool_use_id);
+    if (m.type === 'user' && Array.isArray(c)) for (const p of c) {
+      if (p?.type !== 'tool_result' || typeof p.tool_use_id !== 'string') continue;
+      if (p.is_error === true) failed.add(p.tool_use_id);
+      const t = p.content;
+      resultText.set(p.tool_use_id, typeof t === 'string' ? t : Array.isArray(t) ? t.map((x: any) => (typeof x?.text === 'string' ? x.text : '')).join('\n') : '');
+    }
   }
+  // A search that found nothing reached nothing either (review N1): `Glob` and `Grep` report "No files found" as a
+  // success, not an error. Only a result on record that names no match is skipped; a call with no result still counts.
+  const NO_MATCH = /^\s*(?:No (?:files|matches) found\.?\s*)?$/i;
+  const emptySearch = (p: any) => (p.name === 'Glob' || p.name === 'Grep') && resultText.has(p.id) && NO_MATCH.test(resultText.get(p.id)!);
   for (const m of msgs) {
     const content = m.message?.content;
     const parts: any[] = Array.isArray(content) ? content : typeof content === 'string' ? [{ type: 'text', text: content }] : [];
@@ -162,7 +172,7 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
         // A subagent runs outside what this transcript shows, so its reads can't be probed.
         if (p.name === 'Task' || p.name === 'Agent') reasons.push(`the agent started a subagent (${p.name})`);
         // A call with no result on record (a cut-off transcript) counts: it can't be shown to have failed.
-        if (failed.has(p.id)) continue;
+        if (failed.has(p.id) || emptySearch(p)) continue;
         if (/CLAUDE\.md/.test(input) && p.name !== `mcp__${BRIDGE_NAME}__figma_run`) reasons.push(`the agent reached for a CLAUDE.md (${p.name})`);
         if (/(^|[\\/"])skills[\\/]/.test(input) && !/prism3:\/\/skills\//.test(input)) reasons.push(`the agent read a skills/ path (${p.name})`);
         if (/github\.com|githubusercontent/.test(input)) reasons.push(`the agent fetched from GitHub (${p.name})`);
