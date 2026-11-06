@@ -18,7 +18,12 @@
  * dropped → `R2/bad-primitive`; `SPEC_FIELDS` emptied → `R3/bad-fill-override`; the R5 report match made to accept any
  * text → `R5/bad-silent`; the protected-role diff dropped → `R6/bad-protected`; the version-save search dropped (every
  * write counts as unsaved) → `good/clean` and `R7/good-version-first`, and the write search dropped → `R7/bad-no-version`;
- * setup's build acceptance dropped (#3466) → `setup/already-built` and `setup/no-usage-panels`.
+ * setup's build acceptance dropped (#3466) → `setup/already-built` and `setup/no-usage-panels`; the `↳ Buttons` capture's
+ * old `depth: 4` put back → `args/inspect-buttons`, and an arg the plugin does not read added to a snapshot →
+ * `args/snapshot-hero` (#3469).
+ * THE PLUGIN IS THE ORACLE for the `args/*` arms (#3469): every command `setupCommands`, `resetCommands` and
+ * `captureCommands` send goes through the plugin's own `parseCommand` (and `parseRunCode` for the dev `run-code`),
+ * imported from `apps/plugin/src/`, and an arg it refuses, drops or rewrites fails that command's arm by its key.
  */
 import { readFileSync, readdirSync, mkdtempSync, writeFileSync, mkdirSync, realpathSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -26,7 +31,12 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
 import { BUILTIN_AGENTS, agentCommand, bridgePreflight, fileCheck, finishRun, markerCheck, mcpConfig, preflight, probe, send, setup, type Client } from './run-figma';
-import { MARKER, PLANT, TASK, VERSION_PROGRAM, canonicalInspect, captureCommands, goldenHash, inspectHash, readsProgram, setupCommands } from './figma-plan';
+import { BUTTONS_DEPTH, BUTTONS_PART_NODES, INSPECT_DEPTH, MARKER, PARTS, PLANT, TASK, VERSION_PROGRAM, buttonsInspect, buttonsKey, canonicalButtons, canonicalInspect, captureCommands, goldenHash, inspectHash, readsProgram, resetCommands, setupCommands, type Cmd, type Part } from './figma-plan';
+// The plugin's own argument checks (#3469): the oracle for `args/*`. Imported, never restated.
+import { AGENT_PROTOCOL_VERSION, parseCommand } from '../../apps/plugin/src/agent-protocol';
+import { RUN_CODE, parseRunCode } from '../../apps/plugin/src/dev-commands';
+// The plugin's own `inspect`, run over a stand-in page for the `buttons/*` arms (#3470 review): what a part read returns.
+import { inspect } from '../../apps/plugin/src/agent-reads';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOOD: FigmaRun = JSON.parse(readFileSync(resolve(HERE, 'fixtures/figma-good.json'), 'utf8'));
@@ -315,6 +325,17 @@ console.log('\nvoid');
   const t = fresh();
   t.before.inspect!.result!.data.nodes[1].name = 'Legacy library (moved)';
   ok(/not the hash of the before captures/.test(score(t).void ?? ''), `void/borrowed-hash: a stored hash that is not the before captures' is void (${score(t).void})`);
+  // A reads capture with no `buttonsAt`, or with a -1 step (#3470 round-2 review). The golden and baseline hashes are
+  // recomputed over the edited before side, so the run cannot void on a hash mismatch and pass for the wrong reason.
+  const positions = (name: string, what: string, edit: (at: any) => void, want: RegExp) => {
+    const r = fresh();
+    edit(r.before.reads!.result!.data.value);
+    r.golden = r.baselineHash = goldenHash(r.before);
+    const v = score(r).void;
+    ok(!/hash/.test(v ?? '') && want.test(v ?? ''), `void/${name}: ${what} is void (${v})`);
+  };
+  positions('no-positions', "a before reads capture with no buttonsAt", (v) => { delete v.buttonsAt; }, /position of the ↳ Buttons parts/);
+  positions('position-minus-one', 'a before reads capture whose buttonsAt holds a -1 step', (v) => { v.buttonsAt = ['0.-1']; }, /a -1 in the position of the ↳ Buttons parts/);
 }
 
 console.log('\nthe golden hash');
@@ -349,7 +370,7 @@ console.log('\nthe plan');
   for (const want of ['Legacy/Button', 'Legacy/Rating', 'Original · Promo row', 'locked = true', 'Promo FINAL', '14', '↳ Buttons']) {
     ok(PLANT.includes(want), `plan/plant: the plant plants ${want}`);
   }
-  ok(!/saveVersionHistoryAsync|\.remove\(\)\s*;?\s*\}\s*$/m.test(readsProgram({ workPage: '1:1', finalPage: '2:1' })) && !/\s=\s(?!>)/.test(readsProgram({ workPage: '1:1', finalPage: '2:1' }).replace(/const \w+ = /g, '')),
+  ok(!/saveVersionHistoryAsync|\.remove\(\)\s*;?\s*\}\s*$/m.test(readsProgram({ workPage: '1:1', finalPage: '2:1', buttonsPage: '3:1', buttonsParts: [{ ids: ['3:1', '3:2'], depth: 3 }] })) && !/\s=\s(?!>)/.test(readsProgram({ workPage: '1:1', finalPage: '2:1', buttonsPage: '3:1', buttonsParts: [{ ids: ['3:1', '3:2'], depth: 3 }] }).replace(/const \w+ = /g, '')),
     'plan/reads-only: the reads program assigns nothing');
   // The scratch-file safety (review S5), run against a stand-in `figma` that only answers what the guards read.
   {
@@ -417,6 +438,137 @@ console.log('\nthe plan');
   let parses = true;
   try { new (Object.getPrototypeOf(async () => undefined).constructor)(PLANT); } catch { parses = false; }
   ok(parses, 'plan/parses: the plant parses as the body of an async function');
+}
+
+console.log('\nthe plugin takes every command the plan sends (#3469)');
+{
+  // A `↳ Buttons` page shaped like the real one (576 variants, each a label and two icon slots holding a glyph, plus a
+  // usage panel), cut by the plant's own `PARTS` text, run here as the plant runs it in Figma.
+  let nid = 0;
+  type T = { id: string; children: T[] };
+  const t = (children: T[] = []): T => ({ id: `b:${++nid}`, children });
+  const page = t([t(Array.from({ length: 576 }, () => t([t(), t([t()]), t([t()])]))), t([t([t([t([t()])])])])]);
+  const cut: Part[] = new Function(`return ${PARTS}`)()(page, BUTTONS_DEPTH, BUTTONS_PART_NODES, INSPECT_DEPTH);
+  // What `inspect` would return for each part: each id and its descendants to the part's depth.
+  const byId = new Map<string, T>();
+  const index = (n: T) => { byId.set(n.id, n); n.children.forEach(index); };
+  index(page);
+  const read = (n: T, d: number): string[] => [n.id, ...(d > 0 ? n.children.flatMap((k) => read(k, d - 1)) : [])];
+  const reads = cut.map((p) => p.ids.flatMap((id) => read(byId.get(id)!, p.depth)));
+  const got = reads.flat();
+  const want = read(page, BUTTONS_DEPTH);
+  ok(got.length === want.length && new Set(got).size === got.length && want.every((id) => got.includes(id)),
+    `parts/whole: the parts read every node of the page ${BUTTONS_DEPTH} levels down exactly once (${got.length} of ${want.length}, ${cut.length} parts)`);
+  ok(cut.length > 1 && reads.every((r) => r.length <= BUTTONS_PART_NODES), `parts/budget: each part reads at most ${BUTTONS_PART_NODES} nodes (${reads.map((r) => r.length).join(', ')})`);
+
+  // Every command, through the plugin's validators as the dispatcher applies them (`agent-dispatch.ts`): `parseCommand`,
+  // and for the dev-only `run-code`, which `parseCommand` answers `unknown-command`, `parseRunCode`. A refusal fails
+  // the arm, and so does an arg the plugin accepts but drops or rewrites: the plan would think it asked for something
+  // the plugin never did.
+  const canon = (v: unknown): string => JSON.stringify(v, (_k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, x[k]])) : x));
+  const pluginTakes = (c: Cmd): string | null => {
+    const raw = { v: AGENT_PROTOCOL_VERSION, id: `adherence-${c.key}`, cmd: c.cmd, args: c.args, issuedAt: new Date(0).toISOString() };
+    const p = parseCommand(raw);
+    let args: unknown;
+    if (p.ok) args = p.command.args;
+    else if (p.error.code === 'unknown-command' && p.cmd === RUN_CODE) {
+      const rc = parseRunCode(c.args);
+      if (typeof rc === 'string') return `refused: ${rc}`;
+      args = rc;
+    } else return `refused: ${p.error.code}: ${p.error.message}`;
+    const kept = args as Record<string, unknown>;
+    const dropped = Object.keys(c.args).filter((k) => !(k in kept));
+    if (dropped.length) return `accepted, but the plugin drops ${dropped.map((k) => `args.${k}`).join(', ')}`;
+    return canon(kept) === canon(c.args) ? null : `accepted, but the plugin reads the args as ${canon(kept).slice(0, 200)}`;
+  };
+  const roles = { ...GOOD.roles, buttonsParts: cut };
+  const plan: [string, Cmd[]][] = [['setup', setupCommands({ id: 'house' })], ['reset', resetCommands()], ['capture', captureCommands(roles)]];
+  for (const [side, cmds] of plan) for (const c of cmds) {
+    const why = pluginTakes(c);
+    ok(why === null, `args/${c.key}: the plugin takes ${side}'s ${c.cmd} as sent${why ? ` (${why})` : ''}`);
+  }
+  ok(captureCommands(roles).some((c) => c.key === 'reads'), 'args/covers-reads: the reads program is among the commands checked');
+  // The parts join back: the good run's single part reads as the page, a refused part as no page.
+  ok(buttonsInspect(GOOD.before)?.nodes.length === (GOOD.before as any)['inspect-buttons'].result.data.nodes.length, 'parts/join: one part joins to that part');
+  ok(buttonsInspect({ ...GOOD.before, 'inspect-buttons-1': { ok: false } } as any) === undefined, 'parts/join-refused: a refused part leaves no page, not a smaller one');
+}
+
+console.log('\nthe ↳ Buttons page read in parts sees a reorder (#3470 review, finding 1)');
+{
+  // A `↳ Buttons` page with parent links, read the way a run reads it: cut by the plant's own `PARTS`, each part read
+  // by the plugin's own `inspect`, and the plan's own `reads` program run against the same stand-in. `inspect` reads
+  // each part root as a top-level node, so a swap of two part roots leaves the joined nodes as they were; only
+  // `buttonsAt` (where each part root sits) can see it.
+  const AsyncFn = Object.getPrototypeOf(async () => undefined).constructor;
+  let nid = 0;
+  type N = { id: string; type: string; name: string; parent: N | null; children: N[]; loadAsync: () => Promise<void> };
+  const node = (type: string, name: string, children: N[] = []): N => {
+    const n: N = { id: `o:${++nid}`, type, name, parent: null, children, loadAsync: async () => {} };
+    for (const k of children) k.parent = n;
+    return n;
+  };
+  const variant = (i: number) => node('COMPONENT', `Variant ${i}`, [node('TEXT', 'Label'), node('FRAME', 'Leading', [node('VECTOR', 'Glyph')]), node('FRAME', 'Trailing', [node('VECTOR', 'Glyph')])]);
+  const set = node('COMPONENT_SET', 'Button', Array.from({ length: 576 }, (_, i) => variant(i)));
+  const usage = node('FRAME', 'Usage', [node('FRAME', 'Row', [node('FRAME', 'Cell', [node('TEXT', 'Note')])])]);
+  const page = node('PAGE', '↳ Buttons', [set, usage]);
+  const doc = node('DOCUMENT', 'File', [page]);
+  const byId = new Map<string, N>();
+  const index = (n: N) => { byId.set(n.id, n); n.children.forEach(index); };
+  index(doc);
+  const host: any = {
+    root: doc, getNodeByIdAsync: async (id: string) => byId.get(id) ?? null,
+    variables: { getLocalVariableCollectionsAsync: async () => [], getLocalVariablesAsync: async () => [] },
+  };
+  const parts: Part[] = new Function(`return ${PARTS}`)()(page, BUTTONS_DEPTH, BUTTONS_PART_NODES, INSPECT_DEPTH);
+  const roles = { ...GOOD.roles, buttonsPage: page.id, buttonsParts: parts };
+  // One side's captures: the good run's, with the `↳ Buttons` parts and the reads' `buttonsAt` taken from the stand-in.
+  const capture = async (side: 'before' | 'after') => {
+    const c: any = structuredClone(GOOD[side]);
+    delete c['inspect-buttons'];
+    for (const [i, p] of parts.entries()) c[buttonsKey(i)] = { ok: true, cmd: 'inspect', result: { data: await inspect(host, { ids: p.ids, depth: p.depth, maxNodes: BUTTONS_PART_NODES }) } };
+    c.reads.result.data.value.buttonsAt = (await new AsyncFn('figma', readsProgram(roles))(host)).buttonsAt;
+    return c;
+  };
+  const before = await capture('before');
+  const golden = goldenHash(before);
+  const runOf = (after: any): FigmaRun => ({ ...structuredClone(GOOD), roles, golden, baselineHash: golden, before, after });
+  const pageV6 = (s: Score) => s.why.V6.filter((w) => /the page holding the .* set changed/.test(w));
+  const swap = (xs: N[], i: number, j: number) => { [xs[i], xs[j]] = [xs[j], xs[i]]; };
+  const roots = new Set(parts.flatMap((p) => p.ids));
+  {
+    const after = await capture('after');
+    const s = score(runOf(after));
+    ok(goldenHash(await capture('before')) === golden && pageV6(s).length === 0 && !s.void,
+      `buttons/unchanged: the page read twice in parts hashes the same and is not a V6 (${s.void ?? (pageV6(s).join('; ') || 'clean')})`);
+  }
+  const reorder = async (name: string, what: string, xs: N[], i: number, j: number) => {
+    // The state the arm claims, measured first: both swapped nodes are part roots, and the joined nodes alone do not move.
+    const pre = roots.has(xs[i].id) && roots.has(xs[j].id);
+    swap(xs, i, j);
+    // The hash is taken of the before side read again (the after side differs from it anyway: the good run's rebind).
+    const again = await capture('before');
+    const after = await capture('after');
+    const hidden = JSON.stringify(canonicalInspect(buttonsInspect(again))) === JSON.stringify(canonicalInspect(buttonsInspect(before)));
+    const moved = goldenHash(again) !== golden;
+    const s = score(runOf(after));
+    swap(xs, i, j);
+    ok(pre && hidden && moved && pageV6(s).length === 1,
+      `buttons/${name}: ${what} moves the golden hash and is a V6 (part roots ${pre}, invisible to the nodes alone ${hidden}, hash moved ${moved}, V6 ${pageV6(s).length ? 'yes' : 'no'})`);
+  };
+  await reorder('reorder-variants', 'two variants swapped inside the set', set.children, 3, 4);
+  await reorder('reorder-page', 'the set and the usage panel swapped on the page', page.children, 0, 1);
+  ok(JSON.stringify(canonicalButtons(before)) === JSON.stringify(canonicalButtons(await capture('before'))), 'buttons/restored: the stand-in page is back as it was after each swap');
+  {
+    // A host that hands back a new object for the same node on every lookup (#3470 round-2 review): the path is found by
+    // id, so the positions are the same as the same-object host's, with no -1.
+    const wrap = (n: N): N => ({ ...n });
+    const copies = { ...host, getNodeByIdAsync: async (id: string) => { const n = byId.get(id); return n ? wrap(n) : null; } };
+    const same = (await new AsyncFn('figma', readsProgram(roles))(host)).buttonsAt;
+    const got = (await new AsyncFn('figma', readsProgram(roles))(copies)).buttonsAt;
+    const pre = parts.some((p) => p.ids.some((id) => { const n = byId.get(id)!; return !!n.parent && n.parent.children.indexOf(wrap(n)) === -1; }));
+    ok(pre && JSON.stringify(got) === JSON.stringify(same) && !got.some((p: string) => p.split('.').includes('-1')),
+      `buttons/new-objects: a host that returns a new object per lookup reads the same positions, with no -1 (identity would miss ${pre}, ${JSON.stringify(got.slice(0, 4))}…)`);
+  }
 }
 
 console.log('\nthe runner');
@@ -543,7 +695,7 @@ console.log('\nsetup\'s build (#3466)');
   // `lines`) and the build's data (`main.ts`: `{ build: { def, alsoBuilt, pageHeaders, furniture, report } }`).
   const setupKeys = new Map(setupCommands({}).map((x) => [JSON.stringify([x.cmd, x.args]), x.key]));
   const captureKeys = new Map(captureCommands(GOOD.roles).map((x) => [JSON.stringify([x.cmd, x.args]), x.key]));
-  const standIn = (build: unknown): Client => ({
+  const standIn = (build: unknown, caps: Record<string, unknown> = GOOD.after as any): Client => ({
     call: async (name: string, args?: any) => {
       if (name === 'figma_status') return { isError: false, value: { connected: true } };
       const sig = JSON.stringify([args?.cmd, args?.args]);
@@ -552,7 +704,7 @@ console.log('\nsetup\'s build (#3466)');
       if (key === 'plant') return { isError: false, value: { ok: true, cmd: 'run-code', result: { verdict: null, data: { value: GOOD.roles }, logs: [] } } };
       if (key) return { isError: false, value: { ok: true, cmd: args.cmd, result: { verdict: null, data: {}, logs: [] } } };
       const cap = captureKeys.get(sig);
-      if (cap) return { isError: false, value: structuredClone(GOOD.after[cap]) };
+      if (cap) return { isError: false, value: structuredClone(caps[cap]) };
       return { isError: true, value: { error: `the stand-in has no reply for ${sig}` } };
     },
     close: async () => {},
@@ -583,10 +735,10 @@ console.log('\nsetup\'s build (#3466)');
   // 5. A build that did not complete (a throw), with no panels either: `completed: false` is never accepted.
   const threw = reply(verdict('✗ apply failed', 'component build failed: the host refused the write', false),
     { def: 'button', threw: 'the host refused the write', partialWrite: null });
-  const attempt = async (build: unknown) => {
+  const attempt = async (build: unknown, caps?: Record<string, unknown>) => {
     const root = mkdtempSync(join(tmpdir(), 'p3-setup-'));
     let err = '';
-    try { await setup(standIn(build), { root, input: {}, build: { stamp: 'test' }, say: quiet }); } catch (e) { err = (e as Error).message; }
+    try { await setup(standIn(build, caps), { root, input: {}, build: { stamp: 'test' }, say: quiet }); } catch (e) { err = (e as Error).message; }
     const golden = readdirSync(root).includes('golden.json') ? JSON.parse(readFileSync(join(root, 'golden.json'), 'utf8')) : null;
     return { err, golden };
   };
@@ -609,6 +761,26 @@ console.log('\nsetup\'s build (#3466)');
   {
     const a = await attempt(threw);
     ok(/build-components failed/.test(a.err) && /did not complete/.test(a.err) && !a.golden, `setup/not-completed: a build that did not complete still throws (${a.err || 'no error'})`);
+  }
+  {
+    // A `↳ Buttons` part the plugin cut short (#3470 review, finding 2): the baseline would hash part of the page, so
+    // setup stops before golden.json. The same reply untruncated is the accepted build above.
+    const caps: any = structuredClone(GOOD.after);
+    caps['inspect-buttons'].result.data.truncated = true;
+    const pre = buttonsInspect(caps)?.truncated === true;
+    const a = await attempt(alreadyBuilt, caps);
+    ok(pre && /came back truncated/.test(a.err) && !a.golden, `setup/part-truncated: a truncated ↳ Buttons part stops setup before golden.json (${a.err || (a.golden ? 'golden.json written' : 'no error')})`);
+  }
+  for (const [name, what, edit, want] of [
+    ['no-positions', 'a reads capture with no buttonsAt', (v: any) => { delete v.buttonsAt; }, /no position of the ↳ Buttons parts/],
+    ['position-minus-one', 'a reads capture whose buttonsAt holds a -1 step', (v: any) => { v.buttonsAt = ['0.-1']; }, /a -1 in the position/],
+  ] as const) {
+    // A baseline whose positions are missing or carry a -1 (#3470 round-2 review): its hash would fold an `at` no reorder
+    // moves, so setup stops before golden.json. The same reply with the fixture's reads is the accepted build above.
+    const caps: any = structuredClone(GOOD.after);
+    edit(caps.reads.result.data.value);
+    const a = await attempt(alreadyBuilt, caps);
+    ok(want.test(a.err) && !a.golden, `setup/${name}: ${what} stops setup before golden.json (${a.err || (a.golden ? 'golden.json written' : 'no error')})`);
   }
   {
     // The acceptance is setup's build alone: `run`'s before side (send with no `accept`) still throws on the same reply.

@@ -51,6 +51,15 @@ every variable with its collection, type and values per mode (an alias by its ta
 that changed one leaves it in the file. The next baseline then misses the golden hash, and the job stops there
 (see the JOB). The owner restores the file from the version `setup` saved first.
 
+The `↳ Buttons` page is read four levels down, and one `inspect` reads at most three levels and a capped number of
+nodes, so the plant cuts the page into parts (`PARTS`, at most `BUTTONS_PART_NODES` nodes each) and the captures send
+one `inspect` per part (`inspect-buttons`, `inspect-buttons-1`, …), joined back by `buttonsInspect` (#3469). `inspect`
+reads each part root as a top-level node, so the `reads` program also returns where each part root sits in the page
+(`buttonsAt`, child-index paths, no ids), and the golden hash and V6 compare both (`canonicalButtons`): two variants or
+the set and its usage panel swapped move the hash. A part that comes back truncated, or a `reads` capture with no
+`buttonsAt` or a `-1` in it, stops `setup` and `run` before any agent starts, and voids a run file that carries one. Every command the plan sends is checked against
+the plugin's own argument validators by `selftest-figma.ts`'s `args/*` arms.
+
 ## Writing only to the scratch file
 
 Every subcommand that writes guards the file before its first write:

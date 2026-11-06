@@ -9,10 +9,11 @@
     "promoRow": "1:20", "promoText": "1:21", "legacyButton": "1:22", "rating": "1:24",
     "original": "1:30", "note": "1:50", "hero": "1:40", "heroButton": "1:42", "finalRow": "2:10",
     "buttonsPage": "3:1",
+    "buttonsParts": [{ "ids": ["3:1"], "depth": 3 }],
     "prism3Set": { "name": "Button", "key": "set-key-button" }
   },
-  "golden": "6381410a502f833f365b9b09538b3832ce061c10bcd81d396ebc7d97ea430030",
-  "baselineHash": "6381410a502f833f365b9b09538b3832ce061c10bcd81d396ebc7d97ea430030",
+  "golden": "7f21200641da07e97577e04b6de9ab01362cd83c7d4ed52d5cc8a1cae1864bd2",
+  "baselineHash": "7f21200641da07e97577e04b6de9ab01362cd83c7d4ed52d5cc8a1cae1864bd2",
   "before": {
     "inspect": { "ok": true, "cmd": "inspect", "result": { "data": { "truncated": false, "unreadable": [], "nodes": [
       { "id": "1:1", "parentId": null, "type": "PAGE", "name": "Work", "page": "Work", "size": null, "locked": false, "mainComponent": null, "childCount": 5, "componentProperties": null, "boundVariables": null, "layout": null },
@@ -65,7 +66,7 @@
       { "name": "Legacy/Button", "key": "k-legacy-button", "kind": "component", "published": false, "variantProperties": null },
       { "name": "Legacy/Rating", "key": "k-legacy-rating", "kind": "component", "published": false, "variantProperties": null }
     ] } } },
-    "reads": { "ok": true, "cmd": "run-code", "result": { "data": { "value": {
+    "reads": { "ok": true, "cmd": "run-code", "result": { "data": { "value": { "buttonsAt": [""],
       "variables": [
         { "name": "pds3/space/200", "collection": "space", "type": "FLOAT", "values": { "default": 16 } },
         { "name": "pds3/core/dimension/16", "collection": "core", "type": "FLOAT", "values": { "value": 16 } },
@@ -130,7 +131,7 @@
       { "name": "Legacy/Button", "key": "k-legacy-button", "kind": "component", "published": false, "variantProperties": null },
       { "name": "Legacy/Rating", "key": "k-legacy-rating", "kind": "component", "published": false, "variantProperties": null }
     ] } } },
-    "reads": { "ok": true, "cmd": "run-code", "result": { "data": { "value": {
+    "reads": { "ok": true, "cmd": "run-code", "result": { "data": { "value": { "buttonsAt": [""],
       "variables": [
         { "name": "pds3/space/200", "collection": "space", "type": "FLOAT", "values": { "default": 16 } },
         { "name": "pds3/core/dimension/16", "collection": "core", "type": "FLOAT", "values": { "value": 16 } },

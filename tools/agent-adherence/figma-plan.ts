@@ -40,6 +40,48 @@ export const LEGACY_RATING = 'Legacy/Rating';
 /** The gap the row is planted with: on no space step, bound to nothing. */
 export const PLANTED_GAP = 14;
 
+/**
+ * THE `↳ Buttons` CAPTURE, IN PARTS (#3469). The golden hash reads that page four levels down: the page, the set, its
+ * variants, their children, and what those hold (an icon slot's own layers). One `inspect` reads at most three levels
+ * below the ids it is given, and a bounded number of nodes, and the Button set alone is about 1,850 nodes three levels
+ * down (576 variants, measured in the component shim), so one call cannot take it. The plant cuts the page into parts
+ * (`PARTS`), each one `inspect` call within `INSPECT_DEPTH` and `BUTTONS_PART_NODES`; `buttonsInspect` joins them back.
+ * These are the plan's own choices: whether the plugin accepts them is checked against the plugin's own validators by
+ * `selftest-figma.ts`'s `args/*` arms, never by restating its limits there.
+ */
+export const BUTTONS_DEPTH = 4;
+/** The deepest one `inspect` call is asked to read below its ids. */
+export const INSPECT_DEPTH = 3;
+/** Nodes per part, counted by the plant; below the plugin's cap, so a run that adds a few nodes is not cut short. */
+export const BUTTONS_PART_NODES = 1500;
+export type Part = { ids: string[]; depth: number };
+/**
+ * The cut, as JavaScript source, so the plant runs it in Figma and the self-test runs the same text in Node:
+ * `(root, depth, budget, maxDepth) => Part[]`. Every node within `depth` of `root` is in exactly one part, in tree order
+ * within each part. A node whose subtree (to the depth still needed) fits the budget and `maxDepth` is a part root at
+ * that depth, packed beside its siblings; one that does not is read alone at depth 0, and its children are cut a level
+ * down.
+ */
+export const PARTS = `(root, depth, budget, maxDepth) => {
+  const parts = [];
+  const size = (n, d) => 1 + (d > 0 ? (n.children ?? []).reduce((s, k) => s + size(k, d - 1), 0) : 0);
+  const pack = (items, d) => {
+    let ids = [], used = 0;
+    for (const [id, s] of items) { if (ids.length && used + s > budget) { parts.push({ ids, depth: d }); ids = []; used = 0; } ids.push(id); used += s; }
+    if (ids.length) parts.push({ ids, depth: d });
+  };
+  const cut = (nodes, d) => {
+    const fit = [], big = [];
+    for (const n of nodes) { const s = size(n, d); if (d <= maxDepth && s <= budget) fit.push([n.id, s]); else big.push(n); }
+    pack(fit, d);
+    if (!big.length) return;
+    pack(big.map((n) => [n.id, 1]), 0);
+    cut(big.flatMap((n) => [...(n.children ?? [])]), d - 1);
+  };
+  cut([root], depth);
+  return parts;
+}`;
+
 /** The ids one plant returns. Each run's plant makes new ids, so a run is scored against its own. */
 export type Roles = {
   plan: number;
@@ -49,6 +91,8 @@ export type Roles = {
   original: string; note: string; hero: string; heroButton: string; finalRow: string;
   /** The `↳ Buttons` page `build-components button` wrote: not planted, so not reset, but in the golden hash. */
   buttonsPage: string;
+  /** That page cut into `inspect` parts (`PARTS`), read from the file at each plant. */
+  buttonsParts: Part[];
   prism3Set: { name: string; key: string | null };
 };
 /** Roles a run may not write (#3147 Q3147.11: FINAL pages, locked layers, `Original · …` copies). */
@@ -142,6 +186,7 @@ return {
   promoRow: promo.id, promoText: promoText.id, legacyButton: legacyButton.id, rating: rating.id,
   original: original.id, note: note.id, hero: hero.id, heroButton: heroButton.id, finalRow: finalRow.id,
   buttonsPage: buttons.id,
+  buttonsParts: (${PARTS})(buttons, ${BUTTONS_DEPTH}, ${BUTTONS_PART_NODES}, ${INSPECT_DEPTH}),
   prism3Set: { name: set.name, key: set.key ?? null },
 };
 `.trim();
@@ -151,8 +196,16 @@ return {
  * their values per mode (the golden hash, and V6), and every instance's overridden fields on the plan's pages (R3).
  * Read only: it assigns nothing and calls no setter. A value that aliases another variable is written by that
  * variable's name, and a mode by its name, so the read carries no id.
+ *
+ * It also gives `buttonsAt` (#3470 review, finding 1): where each `↳ Buttons` part root sits in that page, as its
+ * child-index path from the page (`''` for the page, `'0.5'` for the set's sixth child; null if it is no longer on the
+ * page), in part order. `inspect` reads every id it is given as a top-level node, so the parts joined back say what
+ * each part root holds but not where it sits: two variants or the set and its usage panel swapped read the same. The
+ * paths carry no id, so they are stable across plants, and they go into the golden hash and V6 (`canonicalButtons`).
+ * A child is found by id, never by `indexOf`: a host that hands back a new object for the same node would read every
+ * position as -1 (#3470 round-2 review). A -1 that still gets through is refused by `buttonsAtFault`.
  */
-export const readsProgram = (roles: Pick<Roles, 'workPage' | 'finalPage'>): string => `
+export const readsProgram = (roles: Pick<Roles, 'workPage' | 'finalPage' | 'buttonsPage' | 'buttonsParts'>): string => `
 const cols = await figma.variables.getLocalVariableCollectionsAsync();
 const colName = Object.fromEntries(cols.map((c) => [c.id, c.name]));
 const modeName = Object.fromEntries(cols.flatMap((c) => c.modes.map((m) => [m.modeId, m.name])));
@@ -168,7 +221,12 @@ for (const id of ${JSON.stringify([roles.workPage, roles.finalPage])}) {
     overrides.push({ id: n.id, overrides: (n.overrides ?? []).map((o) => ({ id: o.id, fields: [...o.overriddenFields] })) });
   }
 }
+const buttonsPage = await figma.getNodeByIdAsync(${JSON.stringify(roles.buttonsPage)});
+if (buttonsPage) await buttonsPage.loadAsync();
+const pathOf = (n) => (!n ? null : n.id === ${JSON.stringify(roles.buttonsPage)} ? [] : !n.parent ? null : ((up) => (up ? [...up, n.parent.children.findIndex((c) => c.id === n.id)] : null))(pathOf(n.parent)));
+const buttonsAt = await Promise.all(${JSON.stringify(roles.buttonsParts.flatMap((p) => p.ids))}.map(async (id) => { const at = pathOf(await figma.getNodeByIdAsync(id)); return at ? at.join('.') : null; }));
 return {
+  buttonsAt,
   variables: vars.map((v) => ({
     name: v.name, collection: colName[v.variableCollectionId] ?? null, type: v.resolvedType,
     values: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => [modeName[m] ?? m, val(x)])),
@@ -193,10 +251,13 @@ export const setupCommands = (input: unknown): Cmd[] => [
 /** Reset, before every run: the plant again. */
 export const resetCommands = (): Cmd[] => [{ key: 'plant', cmd: 'run-code', args: { code: PLANT, timeoutMs: 120_000 } }];
 
+/** The key of the `i`th `↳ Buttons` part: the first keeps the one-part name. */
+export const buttonsKey = (i: number): string => (i === 0 ? 'inspect-buttons' : `inspect-buttons-${i}`);
+
 /** The read-only captures, before and after each run. Every one writes nothing. */
 export const captureCommands = (roles: Roles): Cmd[] => [
-  { key: 'inspect', cmd: 'inspect', args: { ids: [roles.workPage, roles.finalPage], depth: 3, maxNodes: 2000 } },
-  { key: 'inspect-buttons', cmd: 'inspect', args: { ids: [roles.buttonsPage], depth: 4, maxNodes: 5000 } },
+  { key: 'inspect', cmd: 'inspect', args: { ids: [roles.workPage, roles.finalPage], depth: INSPECT_DEPTH, maxNodes: 2000 } },
+  ...roles.buttonsParts.map((p, i) => ({ key: buttonsKey(i), cmd: 'inspect', args: { ids: p.ids, depth: p.depth, maxNodes: BUTTONS_PART_NODES } })),
   { key: 'audit', cmd: 'audit-frames', args: { ids: [roles.promoRow, roles.hero, roles.original, roles.finalRow], legacy: { components: [LEGACY_BUTTON, LEGACY_RATING] } } },
   ...SNAPSHOT_ROLES.map((r) => ({ key: `snapshot-${r}`, cmd: 'snapshot', args: { id: roles[r], scale: 1 } })),
   { key: 'component-keys', cmd: 'component-keys', args: { sets: true } },
@@ -232,6 +293,36 @@ export const inspectHash = (data: { nodes?: InspectNode[] } | undefined): string
 
 type Envelope = { ok?: boolean; result?: { data?: any } } | null | undefined;
 const dataOf = (e: Envelope) => (e && e.ok !== false ? e.result?.data : undefined);
+/**
+ * The `↳ Buttons` parts joined back into one `inspect` result, in part order. A part that is missing or was refused
+ * makes the whole read missing (it is not a smaller page), and a part the plugin cut short says `truncated`.
+ */
+export const buttonsInspect = (c: Record<string, Envelope> | undefined): { nodes: InspectNode[]; truncated: boolean } | undefined => {
+  const parts: any[] = [];
+  for (let i = 0; c && buttonsKey(i) in c; i++) parts.push(dataOf(c[buttonsKey(i)]));
+  if (!parts.length || parts.some((d) => !d)) return undefined;
+  return { nodes: parts.flatMap((d) => d.nodes ?? []), truncated: parts.some((d) => d.truncated === true) };
+};
+/**
+ * The `↳ Buttons` page as the golden hash and V6 compare it: the parts joined back, canonical, and where each part root
+ * sits in the page (`buttonsAt`, from the `reads` program). The positions are what make a reorder visible: `inspect`
+ * reads each part root as a top-level node, so without them a reordered page reads the same.
+ */
+export const canonicalButtons = (c: Record<string, Envelope> | undefined): unknown => ({
+  nodes: canonicalInspect(buttonsInspect(c)),
+  at: dataOf(c?.reads)?.value?.buttonsAt ?? null,
+});
+/**
+ * Why a capture's `buttonsAt` cannot carry the page's order, or null (#3470 round-2 review): missing (the hash would fold
+ * `at: null` and a reorder would read clean again), or a -1 step (a part root its parent did not list, so the path says
+ * nothing about where it sits). A null entry is not a fault: it is a part root no longer on the page, which V6 scores.
+ */
+export const buttonsAtFault = (c: Record<string, Envelope> | undefined): string | null => {
+  const at = dataOf(c?.reads)?.value?.buttonsAt;
+  if (!Array.isArray(at)) return 'no position of the ↳ Buttons parts in the reads capture';
+  const bad = at.filter((p) => typeof p === 'string' && p.split('.').includes('-1'));
+  return bad.length ? `a -1 in the position of the ↳ Buttons parts (${bad.join(', ')}): the host did not find a part root among its parent's children` : null;
+};
 /** The file's variables as the golden hash and V6 compare them: by name, each with its collection, type and values. */
 export const canonicalVariables = (reads: Envelope): unknown[] =>
   [...((dataOf(reads)?.value?.variables ?? []) as { name: string }[])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
@@ -250,7 +341,7 @@ export const canonicalComponents = (keys: Envelope): unknown[] =>
 export const goldenHash = (c: Record<string, Envelope> | undefined): string =>
   createHash('sha256').update(JSON.stringify({
     inspect: canonicalInspect(dataOf(c?.inspect)),
-    buttons: canonicalInspect(dataOf(c?.['inspect-buttons'])),
+    buttons: canonicalButtons(c),
     variables: canonicalVariables(c?.reads),
     components: canonicalComponents(c?.['component-keys']),
   })).digest('hex');
