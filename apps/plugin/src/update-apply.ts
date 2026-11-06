@@ -66,7 +66,7 @@ import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf, slotTextMigrationOf } from '@prism3/engine/component-renames';
 import { fillSlotText, type SlotTextOutcome, type TextMigNode } from './slot-text-migration';
 import { saveVersion } from './version-title';
-import type { LedgerEntry } from './as-built-ledger';
+import type { Held, Ledger, LedgerEntry } from './as-built-ledger';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 import { ABOUT_NAME, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
 import { publishDescription } from './library-about';
@@ -352,15 +352,26 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
 };
 
 /** THE LEDGER AFTER AN APPLY (#2909 Q2909.8 A; #3421, owner decision Q39 A): each set the apply acted on, recorded as
- *  built from today's def (`entryOf`, `null` when it cannot be worked out). A refused set records nothing. A set whose
- *  kept hand edits held changes back is recorded with them (`held`), so the due read lists it under Kept edits and
- *  never as current. */
-export const ledgerAfter = (outcomes: readonly SetOutcome[], entryOf: (def: string) => LedgerEntry | null): Record<string, LedgerEntry> =>
-  Object.fromEntries(outcomes.filter((o) => !o.refused).flatMap((o) => {
+ *  built from today's def (`entryOf`, `null` when it cannot be worked out). A refused set records nothing. Nor does a
+ *  set the apply stopped inside (#3424): its finished members are current and the rest out of date, so its old entry
+ *  stands and the due read keeps it due until the update runs again and finishes it. A set whose kept hand edits held
+ *  changes back is recorded with them (`held`), so the due read lists it under Kept edits and never as current.
+ *  #3436: a later Keep run over a kept set does not see those edits as conflicts any more: the first run stamped the
+ *  members with today's plan, so the dry run reads nothing moved under them (`dryRunSet`), and `heldOf` finds nothing.
+ *  The edits still keep the plan's values out. So under `keep`, while the run still keeps hand edits on the set, the
+ *  `held` its entry carried before the run (`was`) stands, joined with any this run found: members the larger count,
+ *  changes each once. Overwrite or Accept as baseline records no `held`, and nor does a run that found no hand edits
+ *  left to keep. A run that keeps edits on other members than the held ones still lists the set: it can over-report a
+ *  kept set; it never reads one current while its edits keep the plan out. */
+export const ledgerAfter = (outcomes: readonly SetOutcome[], entryOf: (def: string) => LedgerEntry | null, was: Ledger = {}): Record<string, LedgerEntry> =>
+  Object.fromEntries(outcomes.filter((o) => !o.refused && !o.stopped).flatMap((o) => {
     const e = entryOf(o.def);
     if (!e) return [];
-    const { held: _was, ...rest } = e;
-    return [[o.def, o.held ? { ...rest, held: { members: o.held.members.length, changes: o.held.changes } } : rest] as const];
+    const { held: _now, ...rest } = e;
+    const now: Held | null = o.held ? { members: o.held.members.length, changes: o.held.changes } : null;
+    const before = o.handEdits === 'keep' && o.kept.length ? was[o.def]?.held ?? null : null;
+    const held: Held | null = now && before ? { members: Math.max(now.members, before.members), changes: [...new Set([...before.changes, ...now.changes])] } : now ?? before;
+    return [[o.def, held ? { ...rest, held } : rest] as const];
   }));
 
 /** #3421 (Q39 A): the changes kept hand edits hold back. Under `keep` only: `overwrite` writes them, and `accept` makes

@@ -25,7 +25,10 @@
  * Mutations this fails by name:
  *   · `main.ts`'s `acted` built without `held` (each acted set recorded as current) → `main/kept listed`,
  *     `main/held recorded`;
- *   · `main.ts`'s `update-sets` dropping the per-set choices (`sets`) → `main/overwrite chosen`.
+ *   · `main.ts`'s `update-sets` dropping the per-set choices (`sets`) → `main/overwrite chosen`;
+ *   · `ledgerAfter` keeping only this run's `held`, as before #3436 (a second Keep run records the set current) →
+ *     `main/held survives a second Keep`, `main/kept after a second Keep`;
+ *   · `ledgerAfter` recording a set the apply stopped inside (#3424) → `main/stopped stays due`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -185,8 +188,31 @@ const c1 = await send({ type: 'update-check-request', defs: [...IDS] }, ['update
 ok(!!c1?.previewHash && recheckHolds([...IDS], c0?.sets ?? [], c1?.sets ?? []) && (c1?.sets ?? []).every((c: any) => !c.blocked),
   `main/checked again: after Theme, main.ts reads both sets unblocked under a new hash (${JSON.stringify((c1?.sets ?? []).map((c: any) => [c.def, c.blocked]))})`);
 
-// 3. The update, as Update file posts it: Keep for every set.
-const u = await send({ type: 'update-sets', defs: [...IDS], previewHash: c1?.previewHash, handEdits: 'keep' }, ['component-update-result']);
+// 2b. #3424 — A RUN THAT STOPS INSIDE A SET: tag alone, and the host throws once on a member's content partway through
+// the build's pass (`unlockAspectRatio` stands for the class of stop, as in `test-update-apply.ts`'s stop section). The
+// set is left part updated, so main.ts must leave its ledger entry as it was: the set still reads due, and Update
+// file's checklist still offers the update that finishes it.
+const cTag = await send({ type: 'update-check-request', defs: ['tag'] }, ['update-check']);
+// Every node of tag's members counts its calls, and the 40th throws once: the run has finished some members by then.
+let calls = 0;
+const STOP_AT = 40;
+for (const n of below(setOf('tag'))) {
+  const real = (n as any).unlockAspectRatio as (() => void) | undefined;
+  if (!real) continue;
+  (n as any).unlockAspectRatio = () => { if (++calls === STOP_AT) throw new Error('in unlockAspectRatio: the host stopped'); real.call(n); };
+}
+const uStop = await send({ type: 'update-sets', defs: ['tag'], previewHash: cTag?.previewHash, handEdits: 'keep' }, ['component-update-result']);
+const stopLine = (uStop?.lines ?? []).find((l: string) => l.startsWith('tag: stopped ('));
+ok(calls >= STOP_AT && uStop?.ok === false && String(uStop.headline) === '✗ update stopped at tag' && !!stopLine,
+  `premise: the update stopped inside tag's build pass, at the host's 40th call (${JSON.stringify(uStop?.headline)}; ${JSON.stringify(stopLine)})`);
+const fStop = await send({ type: 'file-sets-request' }, ['file-sets']);
+ok(JSON.stringify(stateOf(fStop)) === '{"radio-control":"due","tag":"due"}',
+  `main/stopped stays due: after a run that stopped inside tag, main.ts still reads tag due, not current (${JSON.stringify(stateOf(fStop))})`);
+
+// 3. The update, as Update file posts it: Keep for every set. Checked again first: the stopped run moved tag. Running
+// the update again finishes tag (#3424: the verdict's "Run the update again to finish").
+const c1b = await send({ type: 'update-check-request', defs: [...IDS] }, ['update-check']);
+const u = await send({ type: 'update-sets', defs: [...IDS], previewHash: c1b?.previewHash, handEdits: 'keep' }, ['component-update-result']);
 ok(u?.type === 'component-update-result' && u.ok === true && String(u.headline).includes('1 set kept edits over changes'),
   `main/update: the update answers ok, and its headline names the set that kept edits (${JSON.stringify(u?.headline)})`);
 
@@ -198,6 +224,21 @@ ok(!!held && held.members === 12 && ['rest', 'hover', 'pressed'].every((st) => h
 const f1 = await send({ type: 'file-sets-request' }, ['file-sets']);
 ok(JSON.stringify(stateOf(f1)) === '{"radio-control":"kept","tag":"current"}',
   `main/kept listed: after the run main.ts reads tag current and radio-control kept, nothing due (${JSON.stringify(stateOf(f1))})`);
+
+// 4b. #3436 — A SECOND KEEP RUN: radio-control checked and updated again under the default Keep, no per-set choice, as an
+// agent's `update-components` or a later run's default sends it. The first run stamped its members with today's plan,
+// so this dry run reads no conflict, yet the designer's rings still keep the indicator binding out. The set stays kept.
+const cK = await send({ type: 'update-check-request', defs: ['radio-control'] }, ['update-check']);
+const uK = await send({ type: 'update-sets', defs: ['radio-control'], previewHash: cK?.previewHash, handEdits: 'keep' }, ['component-update-result']);
+const ringsRed = (setOf('radio-control').children as Node[]).filter((m) => String(m.name).includes('selection=checked') && JSON.stringify((m as any).strokes ?? []).includes('"r":0.8')).length;
+ok(uK?.ok === true && cK?.sets?.[0]?.handEdited === 30 && ringsRed === 30,
+  `premise: the second Keep run answers ok, its check still reads 30 members edited by hand, and all 30 rings still hold the designer's red (${JSON.stringify({ headline: uK?.headline, handEdited: cK?.sets?.[0]?.handEdited, ringsRed })})`);
+const heldK = (readLedger(root as never) as Record<string, { held?: { members: number; changes: readonly string[] } }>)['radio-control']?.held;
+ok(!!heldK && heldK.members === 12 && ['rest', 'hover', 'pressed'].every((st) => heldK.changes.includes(`border → color/interactive/primary/indicator/${st}`)),
+  `main/held survives a second Keep: radio-control's entry still records what its kept edits hold back (${JSON.stringify(heldK)})`);
+const fK = await send({ type: 'file-sets-request' }, ['file-sets']);
+ok(JSON.stringify(stateOf(fK)) === '{"radio-control":"kept","tag":"current"}',
+  `main/kept after a second Keep: main.ts still reads radio-control kept, not current (${JSON.stringify(stateOf(fK))})`);
 
 // 5. The Kept edits group's own choice: Overwrite for radio-control alone rides `sets`, and the set reads current after.
 const c2 = await send({ type: 'update-check-request', defs: ['radio-control'] }, ['update-check']);

@@ -43,7 +43,7 @@ import { isDerived, resolvedModes } from '../state/verdict';
 import { rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
   BUILT_IN_COLUMNS, LINK_ROWS, addAccent, isTextLinkRow, linkSurfacesOf, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
-  REST_LABEL, overrideHeldOf, overrideLabel, removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
+  REST_LABEL, overrideHeldOf, overrideLabel, pickerPalettesOf, removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
   type InteractiveRow, type LinkRungState,
 } from '../state/interactive-input';
 import { paletteRefOptions } from '../levers/controls';
@@ -389,9 +389,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     if (open) {
       const key = `row:${r.role}`;
       const palOf = (p: string): PickerPalette => ({ palette: p, steps: (theme.palettes.find((x) => x.palette === p)?.steps ?? []).map((s) => ({ key: s.key, hex: s.hex })) });
-      // The inverse fill offers its column's ramp and the neutral one (#1384); every other row its own ramp.
-      const nPal = theme.roleToPalette.neutral;
-      const palettes = r.write === 'inverse-fill' && nPal !== palette ? [palOf(palette), palOf(nPal)] : [palOf(palette)];
+      // The row's own ramp, the inverse fill's neutral one (#1384), and the palette a held override names (#3406).
+      const palettes = pickerPalettesOf(mode, r).map(palOf);
       const against = res.against && res.against !== 'self' && (res.min ?? 0) > 0
         ? textLink ? linkGround(res, roles) : { hex: againstHex(res, roles), name: res.against, floor: res.min! }
         : null;
@@ -404,7 +403,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         // A text link can't be pinned below its floor (#2990, Q2990.5 A): the engine would move the pick (#1510).
         blockBelow: textLink,
         overridden,
-        onPick: (p, step) => edit(key, () => writeInteractiveRow(mode, r, r.write === 'inverse-fill' ? `${p}::${step}` : step)),
+        onPick: (p, step) => edit(key, () => writeInteractiveRow(mode, r, r.write === 'inverse-fill' || p !== palette ? `${p}::${step}` : step)),
         onAuto: () => edit(key, () => writeInteractiveRow(mode, r, undefined)),
         onClose: () => { openRole = null; render(); root.querySelector<HTMLElement>(`#${btn.id}`)?.focus(); },
       });

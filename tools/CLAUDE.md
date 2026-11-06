@@ -327,3 +327,27 @@ each held by name. **No gate sibling, and the reason is the
 subject:** a live Figma host is not in CI. Its CI-side counterpart is the shim's strict host (`apps/plugin/test-loose-host.ts`,
 #3295), which catches the same class of bug without a host. The judge is the orchestrator's, never the Mac's: the Mac
 returns envelopes verbatim and does not say PASS.
+
+## `tools/agent-adherence/`
+
+The agent-adherence test's code surface (#3440, Q3440.1–.6 all A): does a fresh, context-free agent follow Prism3's
+rules better with the `prism3-build-ui` skill (arm C1) than with the token names and component APIs alone (C0)?
+`packets.ts` builds the two packets from a pinned commit, `orchestrate.ts` plans the runs and captures each one's
+output with its sha256, and `score-code.ts` renders each output in Chromium and counts R1 (invented name), R2 (raw
+value or primitive), R4 (below the contrast floor, from the computed colors and the engine's `contrast()`) and R5
+(a faked or silent can't-do). **No gate sibling, and the reason is the subject:** an agent's output is not in CI, and
+nobody has decided what count would be a failure. **The one rule to keep: the scorer never reads the skill.** Every
+oracle is under `packages/engine/out/`, read at the pin, and `selftest.ts`'s `independence/*` arms fail by name if
+that changes (`docs/34`).
+
+The Figma half of #3440's single agent-adherence test (owner decisions Q3440.1–.6 A, Q52 A): a fresh agent with no
+repo gets #3300 §5's rebind task through the desktop bridge on a scratch file, and the scorer counts the rules it
+broke from the file read back. `figma-plan.ts` is the plan (the `run-code` plant, which is also the reset, the
+read-only captures and the golden hash, which also covers what the reset doesn't replant), `run-figma.ts` the Mac's
+runner, `score-figma.ts` the scorer and
+`selftest-figma.ts` its planted-fixture self-test, one bad run per rule failing by name. Runbook and rubric:
+`figma.md`. **No gate sibling, and the reason is the subject:** a live Figma host and a fresh agent are not in CI. What
+is gated is the bridge's arm switch, `PRISM3_BRIDGE_ARM`, by the `arm/…` arms of `apps/plugin/test-agent-bridge.ts`.
+The scorer never reads the bridge's note, its resources or a skill (`docs/34` shape 1): its names are literals or come
+from the run's own captures, and the self-test's `independence/static-*` arms read its source to keep it so. The code
+half (`score-code.ts`) is a separate lane and shares no module with this one.
