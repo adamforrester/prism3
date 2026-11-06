@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in</title>
+<style>
+  body { margin: 0; background: var(--color-background-primary); color: var(--color-text-primary); font: var(--type-body-md-default); }
+  .card { max-width: var(--container-narrow); margin: var(--space-800) auto; padding: var(--space-500); background: var(--color-foreground-primary); border-radius: var(--radius-lg); display: grid; gap: var(--space-300); }
+  h1 { font: var(--type-title-md-strong); margin: 0; }
+  .banner { padding: var(--space-200); background: var(--color-foreground-danger-subtle); color: var(--color-text-danger); border: var(--border-width-hairline) solid var(--color-border-danger); border-radius: var(--radius-sm); }
+  label { font: var(--type-label-md-default); }
+  input { font: var(--type-body-md-default); padding: var(--space-150); color: var(--color-text-primary); background: var(--color-field-fill); border: var(--border-width-hairline) solid var(--color-field-border-rest); border-radius: var(--radius-md); }
+  input::placeholder { color: var(--color-field-placeholder); }
+  .field { display: grid; gap: var(--space-100); }
+  button { font: var(--type-label-md-default); padding: var(--space-150) var(--space-200); background: var(--color-interactive-primary-fill-rest); color: var(--color-interactive-primary-on-fill); border: 0; border-radius: var(--radius-md); }
+  @media (min-width: 600px) { .card { padding: var(--space-600); } }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Sign in</h1>
+  <div class="banner" role="alert" data-component="banner" data-prop-tone="danger">The email or password is wrong.</div>
+  <div class="field" data-component="text-field" data-prop-size="medium">
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+  </div>
+  <div class="field" data-component="password-field" data-prop-autoComplete="current-password">
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password">
+  </div>
+  <button type="submit" data-component="button" data-prop-appearance="filled" data-prop-type="submit">Sign in</button>
+</main>
+</body>
+</html>

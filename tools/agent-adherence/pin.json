@@ -1,0 +1,16 @@
+{
+  "commit": "2c6050fa9e56f5d1c3bee7f38607b59367e8dcac",
+  "oracle": {
+    "packages/engine/out/prism3.tokens.json": "1e9c598ba5c8ce61a3df106fb187bd7ac18ec8f8a93e7e7af39a4fae5f6ae028",
+    "packages/engine/out/prism3.base.tokens.json": "3909e7106710cd56d851e5b01cb20ab5db5e242e7306ce09e6de78896a475b3d",
+    "packages/engine/out/prism3.dark.overlay.tokens.json": "bda39e524155ee0891ec027354f9142522248e8c39e848ae20bf34f71f297bef",
+    "packages/engine/out/prism3.hc-light.overlay.tokens.json": "5c022a289fa381169a5556e339cec586ca80c1d6384c3404ea71b910ea032cb7",
+    "packages/engine/out/prism3.hc-dark.overlay.tokens.json": "e5c170ecd9240b73a930d8bbcc850108b183c686b715169371563031b0d47f1e",
+    "packages/engine/out/components/components.ai.json": "c59fb06cf777443b7988dcea9ad0c8913b16621a37927a6ada68f3d1fc763a3a"
+  },
+  "packet": {
+    "packages/engine/out/prism3.tokens.json": "1e9c598ba5c8ce61a3df106fb187bd7ac18ec8f8a93e7e7af39a4fae5f6ae028",
+    "packages/engine/out/components/components.ai.json": "c59fb06cf777443b7988dcea9ad0c8913b16621a37927a6ada68f3d1fc763a3a",
+    "skills/prism3-build-ui/SKILL.md": "19a568ba50511a67f52faf27e591831c7f126e7042af50b5bdf8257e7c31fdd3"
+  }
+}
