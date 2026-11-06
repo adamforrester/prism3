@@ -317,16 +317,61 @@ export const divider: ComponentDef = {
     },
     codeOnly: [
       // MUST NOT lead with `orientation` or `inset` (axes this def projects) — see the `admits()` trap.
-      'decorative — a code prop with no Figma property. A Figma boolean only shows or hides a node, and neither value hides the rule, so the Figma set draws the decorative default. true (the default) renders `aria-hidden="true"` (a `<div>`, or an `<hr>` with `role="none"` as well) in its emphasis color, `color.border.secondary` at bold or `color.border.primary` at subtle; false (at either emphasis) renders an `<hr>` for a horizontal rule, or `<div role="separator" aria-orientation="vertical">` for a vertical one, in `color.border.tertiary` (the `separator.rule.border` binding), which reaches 3:1 on every background.',
-      'filling the container — a divider spans its container: a horizontal rule `inline-size: 100%` (or the stretch a flex or grid column gives it), a vertical rule `align-self: stretch` in a row. Figma cannot hold that for a standalone component, which has no parent, so the standalone member binds a nominal length (`container.narrow` across, `size.md.height` tall) and a host that nests it stretches the instance with `crossAxisFill`.',
-      'the element — for a separator (decorative=false), use `<hr>` for a horizontal rule: it is a separator to assistive technology with no extra attributes. Reset its border and margin (`border: 0; margin: 0`) and paint it as a box: `block-size: var(--border-width-hairline); background: var(--color-border-tertiary)`. A vertical rule is a `<div role="separator" aria-orientation="vertical">` with `inline-size` set to the hairline instead, because `<hr>` is horizontal by default. Never give a divider focus: a separator that is not a splitter takes no place in the tab order.',
-      'the inset in code — a margin on logical edges, so it mirrors in right-to-left text: `margin-inline-start: var(--space-200)` at inset, both `margin-inline` sides at middle-inset, and `margin-block: var(--space-100)` for a vertical middle inset. Figma holds the same distances as the divider\'s padding.',
-      'forced colors — under `forced-colors: active` a background is replaced, and a 1px box painted only by `background` can disappear. Give it `background: CanvasText` (or a `border-block-start` in place of the background) inside a `@media (forced-colors: active)` block so the rule survives.',
+      {
+        class: 'not-projected',
+        disposition: 'unsupported',
+        description:
+          'decorative — a code prop with no Figma property. A Figma boolean only shows or hides a node, and neither value hides the rule, so the Figma set draws the decorative default. true (the default) renders `aria-hidden="true"` (a `<div>`, or an `<hr>` with `role="none"` as well) in its emphasis color, `color.border.secondary` at bold or `color.border.primary` at subtle; false (at either emphasis) renders an `<hr>` for a horizontal rule, or `<div role="separator" aria-orientation="vertical">` for a vertical one, in `color.border.tertiary` (the `separator.rule.border` binding), which reaches 3:1 on every background.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'filling the container — a divider spans its container: a horizontal rule `inline-size: 100%` (or the stretch a flex or grid column gives it), a vertical rule `align-self: stretch` in a row. Figma cannot hold that for a standalone component, which has no parent, so the standalone member binds a nominal length (`container.narrow` across, `size.md.height` tall) and a host that nests it stretches the instance with `crossAxisFill`.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the element — for a separator (decorative=false), use `<hr>` for a horizontal rule: it is a separator to assistive technology with no extra attributes. Reset its border and margin (`border: 0; margin: 0`) and paint it as a box: `block-size: var(--border-width-hairline); background: var(--color-border-tertiary)`. A vertical rule is a `<div role="separator" aria-orientation="vertical">` with `inline-size` set to the hairline instead, because `<hr>` is horizontal by default. Never give a divider focus: a separator that is not a splitter takes no place in the tab order.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'the inset in code — a margin on logical edges, so it mirrors in right-to-left text: `margin-inline-start: var(--space-200)` at inset, both `margin-inline` sides at middle-inset, and `margin-block: var(--space-100)` for a vertical middle inset. Figma holds the same distances as the divider\'s padding.',
+      },
+      {
+        class: 'forced-colors',
+        disposition: 'unsupported',
+        description:
+          'forced colors — under `forced-colors: active` a background is replaced, and a 1px box painted only by `background` can disappear. Give it `background: CanvasText` (or a `border-block-start` in place of the background) inside a `@media (forced-colors: active)` block so the rule survives.',
+      },
       // #3051 — MUST NOT lead with `labeled` (an axis this def projects): see the `admits()` trap.
-      'the labeled divider in code — a non-empty `label` makes it; there is no separate prop. Markup: `<div class="divider" data-labeled><span class="divider-line" aria-hidden="true"></span><span class="divider-label">Or</span><span class="divider-line" aria-hidden="true"></span></div>`, with `display: flex; align-items: center; gap: var(--space-300)` on the wrapper, `flex: 1 1 0; block-size: var(--border-width-hairline); background: var(--color-border-secondary)` on each line (`--color-border-primary` at subtle), and `font: var(--type-label-md-default); color: var(--color-text-secondary); white-space: nowrap` on the label. Vertical, the same three spans with `flex-direction: column; gap: var(--space-150); inline-size: max-content; min-block-size: 56px` on the wrapper and `flex: 1 1 0; inline-size: var(--border-width-hairline)` on each line, the label upright between them. `inset="none"` only: refuse (or ignore) a label on an inset divider.',
-      'the labeled divider\'s semantics — ARIA 1.2 makes a separator\'s children presentational, so a `role="separator"` wrapper would hide the label from assistive technology. The wrapper takes no role and no `aria-hidden`, both lines are `aria-hidden="true"`, and the label is plain text in the reading order, read as "Or" between the two groups. `decorative` has no effect on a labeled divider, and its lines keep their emphasis color. Not focusable. Under forced colors the lines take `background: CanvasText`, as the plain rule does; the label keeps the system text color.',
-      'RTL — the labeled divider is symmetric, so nothing moves; flex order and logical properties mirror it for free.',
-      'text expansion — the label hugs its word and the lines take what is left, so a longer translation shortens both lines equally. Keep it to one or two words; the label does not wrap.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the labeled divider in code — a non-empty `label` makes it; there is no separate prop. Markup: `<div class="divider" data-labeled><span class="divider-line" aria-hidden="true"></span><span class="divider-label">Or</span><span class="divider-line" aria-hidden="true"></span></div>`, with `display: flex; align-items: center; gap: var(--space-300)` on the wrapper, `flex: 1 1 0; block-size: var(--border-width-hairline); background: var(--color-border-secondary)` on each line (`--color-border-primary` at subtle), and `font: var(--type-label-md-default); color: var(--color-text-secondary); white-space: nowrap` on the label. Vertical, the same three spans with `flex-direction: column; gap: var(--space-150); inline-size: max-content; min-block-size: 56px` on the wrapper and `flex: 1 1 0; inline-size: var(--border-width-hairline)` on each line, the label upright between them. `inset="none"` only: refuse (or ignore) a label on an inset divider.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the labeled divider\'s semantics — ARIA 1.2 makes a separator\'s children presentational, so a `role="separator"` wrapper would hide the label from assistive technology. The wrapper takes no role and no `aria-hidden`, both lines are `aria-hidden="true"`, and the label is plain text in the reading order, read as "Or" between the two groups. `decorative` has no effect on a labeled divider, and its lines keep their emphasis color. Not focusable. Under forced colors the lines take `background: CanvasText`, as the plain rule does; the label keeps the system text color.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the labeled divider is symmetric, so nothing moves; flex order and logical properties mirror it for free.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — the label hugs its word and the lines take what is left, so a longer translation shortens both lines equally. Keep it to one or two words; the label does not wrap.',
+      },
     ],
   },
 

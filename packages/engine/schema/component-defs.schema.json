@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "prism3-component-defs/1.1",
+  "$id": "prism3-component-defs/1.2",
   "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the exporter would agree with whatever the exporter wrote (`docs/34`). Gated by `packages/engine/lint-component-docs.ts`, which validates `out/components/component-defs.json`, and a brand export for every example brand, against it with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the exporter adds, drops or renames fails until this schema and its `$id` move with it. The `def` and its `$defs` restate `component-docs.schema.json`'s `component`, so this file stands alone.",
   "title": "Prism3 component definitions export (component-defs.json)",
   "description": "Every component definition, exported from the TypeScript source, brand-neutral or for one brand. `def` is the definition's shipped fields and `spec` the model of the design-file component built from it. Mappable to the Specs format: `component-defs.specs.json` is the same export as a Specs components set.",
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "prism3-component-defs/1.1",
+      "const": "prism3-component-defs/1.2",
       "description": "The shape this file follows. Equal to this schema's `$id`; minor for a field added, major for one removed or renamed."
     },
     "generated": {
@@ -201,7 +201,8 @@
         "accessibility",
         "docs",
         "ai",
-        "composition"
+        "composition",
+        "syncBoundary"
       ],
       "properties": {
         "id": {
@@ -458,6 +459,31 @@
             "replacesPatterns": {
               "$ref": "#/$defs/texts",
               "description": "Hand-built or native patterns it replaces, as prose."
+            }
+          }
+        },
+        "syncBoundary": {
+          "type": "array",
+          "minItems": 1,
+          "description": "What the design file does not fully carry, one item per `anatomy.codeOnly` entry of the definition, in its order (#3441). Each item is a class from the declared register and a disposition. The prose behind each item is maintainer-only and is not here.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "class",
+              "disposition"
+            ],
+            "properties": {
+              "class": {
+                "type": "string",
+                "pattern": "^[a-z][a-z-]*$",
+                "description": "The kind of fact: a stable id from the register."
+              },
+              "disposition": {
+                "type": "string",
+                "minLength": 1,
+                "description": "How the design file treats the fact: carried in full, lowered to a named lossy form, refused on purpose, or unsupported by the tool."
+              }
             }
           }
         }

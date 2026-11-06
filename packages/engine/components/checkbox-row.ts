@@ -466,13 +466,48 @@ export const checkboxRow: ComponentDef = {
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
       // passing mention inside an entry about something else does not count (#563).
-      'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1330 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `checkbox-control` and the consumer drives it from the Row, so no state — read-only least of all — is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project at either level.',
-      'states — the Row\'s per-state LABEL treatment (`disabled.label` dimming the text when the field is disabled) is the CODE projection\'s, not Figma\'s. Since #1330 the Figma set is size-only and `state` is exposed from the nested control, so a disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label. `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code; it is the Figma SET that cannot show it, because the Row no longer multiplies state. The documented cost of collapsing 54 members to 3 (the #761 reversal).',
-      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (28px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
-      'The label\'s RICH CONTENT. `label` is typed `node` and its commonest real value is a consent line with a link in it; a Figma text node holds characters, so the projected placeholder is flat text and the link exists only in code.',
-      'motion — the nested control\'s glyph micro-motion (brief §8: a stroke-dasharray draw morphing dash to check). It is `checkbox-control`\'s, stated in that def\'s `motion`; the Row carries none of its geometry or motion, and a Figma variant carries no motion at either level.',
-      'RTL — the row mirrors through logical properties: the control moves to the right and the label flows leftward from it, with the padding flipped. The CHECK GLYPH does not mirror — the check shape is recognized as drawn in every script, so the SVG keeps its standard stroke direction (brief §9). Figma members are drawn left to right.',
-      'text expansion — labels run 150-200% longer in German or Russian (brief §9). The label wraps freely and the control stays on the first line (#1201), so a long label does not break the row. The Figma members carry the English placeholder only.',
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1330 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `checkbox-control` and the consumer drives it from the Row, so no state — read-only least of all — is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project at either level.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'states — the Row\'s per-state LABEL treatment (`disabled.label` dimming the text when the field is disabled) is the CODE projection\'s, not Figma\'s. Since #1330 the Figma set is size-only and `state` is exposed from the nested control, so a disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label. `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code; it is the Figma SET that cannot show it, because the Row no longer multiplies state. The documented cost of collapsing 54 members to 3 (the #761 reversal).',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (28px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'The label\'s RICH CONTENT. `label` is typed `node` and its commonest real value is a consent line with a link in it; a Figma text node holds characters, so the projected placeholder is flat text and the link exists only in code.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'motion — the nested control\'s glyph micro-motion (brief §8: a stroke-dasharray draw morphing dash to check). It is `checkbox-control`\'s, stated in that def\'s `motion`; the Row carries none of its geometry or motion, and a Figma variant carries no motion at either level.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors through logical properties: the control moves to the right and the label flows leftward from it, with the padding flipped. The CHECK GLYPH does not mirror — the check shape is recognized as drawn in every script, so the SVG keeps its standard stroke direction (brief §9). Figma members are drawn left to right.',
+      },
+      {
+        class: 'localization',
+        disposition: 'lowered',
+        description:
+          'text expansion — labels run 150-200% longer in German or Russian (brief §9). The label wraps freely and the control stays on the first line (#1201), so a long label does not break the row. The Figma members carry the English placeholder only.',
+      },
     ],
   },
 

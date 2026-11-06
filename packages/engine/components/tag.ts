@@ -406,23 +406,108 @@ export const tag: ComponentDef = {
       },
     },
     codeOnly: [
-      'read-only — not projected: a read-only tag keeps the rest paint at full weight and only refuses interaction, so a member would be byte-identical to rest. In code (readOnly) it is not dimmed and is not disabled; it keeps its place in the tab order so its label stays reachable.',
-      'The Tag prop named type — the component\'s own prop (select | dismissible), the same values as the Figma type axis. It is NOT the HTML type attribute and is never forwarded to the element: a select tag rendered as a <button> sets type="button" itself, so a tag inside a form never submits it. In React, destructure type out of the props before spreading the rest onto the element.',
-      'The select tag in code — a <button> with aria-pressed, or a role="checkbox" or listbox option when a group owns the selection (a radiogroup for single choice). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.',
-      'The dismissible tag\'s hit target is not decided yet, and both options build from the same Figma structure. (1) The whole tag is one <button> named "Remove" followed by the label, and pressing anywhere on it removes the tag. (2) Only the × slot is the button, named the same, and the body is not interactive; the tag is then a row in a role="grid" group, the label one gridcell and the × slot a second. Either way the × slot is a square as tall as the tag under Pill, 44px at medium on comfortable density (under Underline it is as wide as its glyph and hugs its height), and its click does not reach any handler on the tag body.',
-      'The selected tint — `interactive.primary.subtle-fill.selected`, the primary fill at an opacity step, over the page ground. A brand whose outline interaction is none has no tint, and a selected tag there shows the 2px outline and the check mark only. The outline is `interactive.primary.indicator` at 2px, drawn inside the box (an inset outline, outline-offset: -2px, or an inset box-shadow), never a border that would grow the tag. In forced-colors mode the tint drops out and the 2px outline and the check mark carry the state.',
-      'The group contract (the tag group is not built yet) — the group owns the selection model (multiple: a listbox with aria-multiselectable, or pressed buttons; single: a radiogroup), and it lays tags out as a wrapping flex row with the `group-gap` binding (space.100, 8px) between tags on both axes. A dismissible group is role="grid" when the × slot alone is the target: each tag is a row, its label a gridcell and its remove control a second gridcell; the row and gridcell wrappers take display: contents so the tags wrap in the flex layout. One tab stop enters the group, Left and Right arrows move between tags (Up and Down across wrapped lines), and Delete or Backspace removes the focused tag. Never a listbox for dismissible tags: ARIA does not allow an interactive child inside role="option".',
-      'Focus after removal — capture the removed tag\'s index before it goes; after the list updates, focus the next tag, else the previous one, else the group or the input that owns it. Never let focus fall to <body>.',
-      'Overflow — a group wraps by default. A group that must stay on one line measures the available width against the tags (a ResizeObserver) and ends in a computed "+N more" tag that opens a popover of the rest; the popover is keyboard and screen-reader reachable. The measurement moves when web fonts load.',
-      'Combobox composition — a multi-select combobox renders its values as a group of dismissible tags inside the field. At an empty caret, Backspace focuses the last tag and a second Backspace removes it.',
-      'RTL — logical properties (padding-inline, gap) mirror the row, so the leading icon moves to the right edge and the check mark and the × slot to the left. No physical directions, and no script.',
-      'text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Translations run 30–50% longer. Figma holds one line of placeholder text.',
-      'Minimum width — under Tag style Pill, min-inline-size is 1.5 times the tag\'s height, rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild. Under Underline there is no minimum width, so the line spans exactly the content.',
-      'Spacing, under Tag style Pill (Underline differs, below) — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Its label group takes padding-inline-start: 4px at every density, and the gap before it is 4px less than the icon-to-label distance (6px small, 8px medium, 8px large on comfortable density), never below 0; with no leading icon the label sits the padding plus 4px from the edge. Every value is a space token. A compact or spacious brand moves the padding, the label-to-check gap, a select tag\'s icon-to-label gap and a dismissible tag\'s icon-to-label distance one step along the space scale, and never takes a gap or that distance under 4px. The dismissible gap is not stepped: it is recomputed as that distance less 4px, so at spacious density it goes from 4px to 8px on a medium or large tag.',
-      'Tag style (the brand\'s tagStyle setting) — Pill, the default, is everything above: a rounded outline, 1px unselected and 2px selected, with the selected tint. Underline draws one line under the tag and no other edge: square corners, no fill in any state, and the line in interactive.primary.border, or interactive.primary.indicator when the tag is selected (the same color unless the brand quiets its outline edges), 1px at rest and 2px when selected or on hover and pressed, taking the hover and pressed colors there; focus adds the ring and keeps the line weight. In CSS draw the line as an inset bottom box-shadow (box-shadow: inset 0 -1px 0, or -2px), so the box does not grow; set no block size at all, so the tag hugs its content: align-items: end, padding-block-end to the underline inset (4px small, 6px medium, 8px large, at every density), and the label row a min-block-size of the icon size (16px, 20px, 24px), so the label does not move when the check mark appears. The tag is then 20px tall at small, 26px at medium and 32px at large. It has no padding-inline and no minimum width, so the line runs exactly from the first glyph to the last, the leading icon, the label and the ×, and the group gap separates the tags. On a dismissible tag the label group has no padding-inline-start, the × slot is as wide as its glyph and hugs its height on the same inset, and the label sits the icon-to-label distance from both the icon and the × (6px small, 8px medium, 8px large on comfortable density, following density as the pill\'s distance does). The setting is brand-wide, never a prop.',
-      'The check mark under Tag style Underline — keep showCheck on. The rest line and the selected line share one color, so with the check off the only cue for selection is the line going from 1px to 2px.',
-      'The hit-target expansion, Underline — the tag is one label row tall, so where it is under 24px (a small tag, 20px), a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px without moving the line or the tags around it. Medium (26px) and large (32px) clear 24px as drawn. The × slot is only as wide as its glyph (16px, 20px, 24px), so when only the slot is the button its hit area reaches 24px on both axes: 4px past the glyph at small and 2px at medium on each side, inside the gap to the label.',
-      'The hit-target expansion, Pill — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold.',
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'read-only — not projected: a read-only tag keeps the rest paint at full weight and only refuses interaction, so a member would be byte-identical to rest. In code (readOnly) it is not dimmed and is not disabled; it keeps its place in the tab order so its label stays reachable.',
+      },
+      {
+        class: 'implementation',
+        disposition: 'refused',
+        description:
+          'The Tag prop named type — the component\'s own prop (select | dismissible), the same values as the Figma type axis. It is NOT the HTML type attribute and is never forwarded to the element: a select tag rendered as a <button> sets type="button" itself, so a tag inside a form never submits it. In React, destructure type out of the props before spreading the rest onto the element.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The select tag in code — a <button> with aria-pressed, or a role="checkbox" or listbox option when a group owns the selection (a radiogroup for single choice). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.',
+      },
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'The dismissible tag\'s hit target is not decided yet, and both options build from the same Figma structure. (1) The whole tag is one <button> named "Remove" followed by the label, and pressing anywhere on it removes the tag. (2) Only the × slot is the button, named the same, and the body is not interactive; the tag is then a row in a role="grid" group, the label one gridcell and the × slot a second. Either way the × slot is a square as tall as the tag under Pill, 44px at medium on comfortable density (under Underline it is as wide as its glyph and hugs its height), and its click does not reach any handler on the tag body.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The selected tint — `interactive.primary.subtle-fill.selected`, the primary fill at an opacity step, over the page ground. A brand whose outline interaction is none has no tint, and a selected tag there shows the 2px outline and the check mark only. The outline is `interactive.primary.indicator` at 2px, drawn inside the box (an inset outline, outline-offset: -2px, or an inset box-shadow), never a border that would grow the tag. In forced-colors mode the tint drops out and the 2px outline and the check mark carry the state.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'The group contract (the tag group is not built yet) — the group owns the selection model (multiple: a listbox with aria-multiselectable, or pressed buttons; single: a radiogroup), and it lays tags out as a wrapping flex row with the `group-gap` binding (space.100, 8px) between tags on both axes. A dismissible group is role="grid" when the × slot alone is the target: each tag is a row, its label a gridcell and its remove control a second gridcell; the row and gridcell wrappers take display: contents so the tags wrap in the flex layout. One tab stop enters the group, Left and Right arrows move between tags (Up and Down across wrapped lines), and Delete or Backspace removes the focused tag. Never a listbox for dismissible tags: ARIA does not allow an interactive child inside role="option".',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'Focus after removal — capture the removed tag\'s index before it goes; after the list updates, focus the next tag, else the previous one, else the group or the input that owns it. Never let focus fall to <body>.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'Overflow — a group wraps by default. A group that must stay on one line measures the available width against the tags (a ResizeObserver) and ends in a computed "+N more" tag that opens a popover of the rest; the popover is keyboard and screen-reader reachable. The measurement moves when web fonts load.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'Combobox composition — a multi-select combobox renders its values as a group of dismissible tags inside the field. At an empty caret, Backspace focuses the last tag and a second Backspace removes it.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — logical properties (padding-inline, gap) mirror the row, so the leading icon moves to the right edge and the check mark and the × slot to the left. No physical directions, and no script.',
+      },
+      {
+        class: 'localization',
+        disposition: 'lowered',
+        description:
+          'text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Translations run 30–50% longer. Figma holds one line of placeholder text.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'Minimum width — under Tag style Pill, min-inline-size is 1.5 times the tag\'s height, rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild. Under Underline there is no minimum width, so the line spans exactly the content.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'Spacing, under Tag style Pill (Underline differs, below) — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Its label group takes padding-inline-start: 4px at every density, and the gap before it is 4px less than the icon-to-label distance (6px small, 8px medium, 8px large on comfortable density), never below 0; with no leading icon the label sits the padding plus 4px from the edge. Every value is a space token. A compact or spacious brand moves the padding, the label-to-check gap, a select tag\'s icon-to-label gap and a dismissible tag\'s icon-to-label distance one step along the space scale, and never takes a gap or that distance under 4px. The dismissible gap is not stepped: it is recomputed as that distance less 4px, so at spacious density it goes from 4px to 8px on a medium or large tag.',
+      },
+      {
+        class: 'brand-setting',
+        disposition: 'lowered',
+        description:
+          'Tag style (the brand\'s tagStyle setting) — Pill, the default, is everything above: a rounded outline, 1px unselected and 2px selected, with the selected tint. Underline draws one line under the tag and no other edge: square corners, no fill in any state, and the line in interactive.primary.border, or interactive.primary.indicator when the tag is selected (the same color unless the brand quiets its outline edges), 1px at rest and 2px when selected or on hover and pressed, taking the hover and pressed colors there; focus adds the ring and keeps the line weight. In CSS draw the line as an inset bottom box-shadow (box-shadow: inset 0 -1px 0, or -2px), so the box does not grow; set no block size at all, so the tag hugs its content: align-items: end, padding-block-end to the underline inset (4px small, 6px medium, 8px large, at every density), and the label row a min-block-size of the icon size (16px, 20px, 24px), so the label does not move when the check mark appears. The tag is then 20px tall at small, 26px at medium and 32px at large. It has no padding-inline and no minimum width, so the line runs exactly from the first glyph to the last, the leading icon, the label and the ×, and the group gap separates the tags. On a dismissible tag the label group has no padding-inline-start, the × slot is as wide as its glyph and hugs its height on the same inset, and the label sits the icon-to-label distance from both the icon and the × (6px small, 8px medium, 8px large on comfortable density, following density as the pill\'s distance does). The setting is brand-wide, never a prop.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The check mark under Tag style Underline — keep showCheck on. The rest line and the selected line share one color, so with the check off the only cue for selection is the line going from 1px to 2px.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The hit-target expansion, Underline — the tag is one label row tall, so where it is under 24px (a small tag, 20px), a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px without moving the line or the tags around it. Medium (26px) and large (32px) clear 24px as drawn. The × slot is only as wide as its glyph (16px, 20px, 24px), so when only the slot is the button its hit area reaches 24px on both axes: 4px past the glyph at small and 2px at medium on each side, inside the gap to the label.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The hit-target expansion, Pill — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold.',
+      },
     ],
   },
 

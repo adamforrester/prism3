@@ -7,7 +7,7 @@
  * they describe, and this esbuild plugin removes them on the way into `dist/`:
  *
  *   • `notes: { … }` — the property is dropped.
- *   • `codeOnly: [ … ]` — each entry is cut to its SUBJECT, the leading term before the first
+ *   • `codeOnly: [ … ]` — each entry's `description` is cut to its SUBJECT, the leading term before the first
  *     ` — ` / `: ` / ` (` / `, ` / `. `. The list is kept, not dropped: the projector copies it onto
  *     every plan (`plan.codeOnly`, whose length the paste script reports), and `figmaPropertyErrors`
  *     reads an entry's LEADING term as the admission for an axis or state Figma does not carry. A
@@ -60,11 +60,18 @@ export const stripMaintainerProse = (source, fileName) => {
           const n = ts.isPropertyAssignment(p) ? nameOf(p) : undefined;
           if (n === 'notes') { notes++; continue; }
           if (n === 'codeOnly' && ts.isArrayLiteralExpression(p.initializer)) {
+            // Each entry is `{ class, disposition, description }` (#3441): the description is cut to its
+            // subject, and the class and disposition ride along whole — they are ids, not prose.
             const subjects = p.initializer.elements.map((el) => {
-              const text = constString(el);
-              if (text === undefined) throw new Error(`${fileName}: a codeOnly entry is not a constant string, so it cannot be cut to its subject — write it as a string literal`);
+              const desc = ts.isObjectLiteralExpression(el)
+                ? el.properties.find((q) => ts.isPropertyAssignment(q) && nameOf(q) === 'description')
+                : undefined;
+              const text = desc ? constString(desc.initializer) : undefined;
+              if (text === undefined) throw new Error(`${fileName}: a codeOnly entry has no constant-string \`description\`, so it cannot be cut to its subject — write it as a string literal`);
               entries++;
-              return ts.factory.createStringLiteral(codeOnlySubject(text));
+              return ts.factory.updateObjectLiteralExpression(el, el.properties.map((q) => (q === desc
+                ? ts.factory.updatePropertyAssignment(q, q.name, ts.factory.createStringLiteral(codeOnlySubject(text)))
+                : q)));
             });
             props.push(ts.factory.updatePropertyAssignment(p, p.name, ts.factory.createArrayLiteralExpression(subjects, true)));
             continue;

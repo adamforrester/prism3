@@ -300,18 +300,78 @@ export const progress: ComponentDef = {
     },
     // No entry leads with an axis or state name: `admits()` reads a leading name as license to drop it (#867).
     codeOnly: [
-      'the fill\'s length — in code the fill is the track\'s inline size times (value − min) / (max − min), clamped, with a warning in development for a value out of range. Figma has no percentage width, so each still member splits the track by layout: half at active and error, the whole track at complete. A designer showing another amount sets the fill\'s width on the instance.',
-      'the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it.',
-      'the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`.',
-      'the ring in code — one `<svg viewBox="0 0 24 24">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o\'clock. The stroke width is the band in viewBox units (3 at small, 2.4 at medium: the band\'s px × 24 / the ring\'s px), the circle\'s radius 12 minus half of it, so the outer edge lies on the viewBox\'s edge and it matches the Figma outlines.',
-      'the indeterminate ring — the same `<svg>` with the arc\'s `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (1600ms per turn, Progress\'s own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o\'clock. In right-to-left the arc turns counterclockwise.',
-      'right-to-left — the linear fill grows from the inline-start edge (the right) through logical properties, and the label and value swap sides. The ring runs counterclockwise from twelve o\'clock. The sweep moves from right to left.',
-      'number formatting — the value text defaults to a percentage through Intl.NumberFormat ("45%", "%45", "45 %"), and a concrete amount ("45 MB of 100 MB", "Step 3 of 5") is localized with its word order. The value text is never truncated; the label wraps instead.',
-      'text expansion — the label wraps rather than truncating, and the value keeps its full text at the end of the header.',
-      'the value contract — `role="progressbar"` named by the label (`aria-labelledby`, or `aria-label` on a ring, whose label does not show). Determinate: `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `aria-valuetext` whenever the visible value is not a bare percentage. Indeterminate: none of the three, never a fixed `aria-valuenow="0"` (it reads as stuck at 0%), and `aria-busy="true"` on the region the work updates.',
-      'the milestone announcements — a visually hidden `aria-live="polite"` region, in the DOM and empty from mount. The last milestone spoken is kept in a ref; when the value passes 25, 50 or 75% for the first time, the region\'s text is set to the value text; at max it is set to the message ("Upload complete"). An error message is set when the error happens. `aria-valuenow` never triggers speech. `announce="end"` skips the milestones; `announce="none"` leaves the region empty.',
-      'the anti-flash timers — the component waits `delay` (400ms) before it shows, and shows nothing if the work finishes first; once shown it stays at least `minDisplay` (500ms). Both timers are cleared on unmount.',
-      'the end-state message — a nested FieldMessage, success at complete and error at error. Its glyph is aria-hidden; the caption carries the meaning. A "Try again" action after an error belongs to the host, placed beside the bar, not inside it.',
+      {
+        class: 'live-geometry',
+        disposition: 'unsupported',
+        description:
+          'the fill\'s length — in code the fill is the track\'s inline size times (value − min) / (max − min), clamped, with a warning in development for a value out of range. Figma has no percentage width, so each still member splits the track by layout: half at active and error, the whole track at complete. A designer showing another amount sets the fill\'s width on the instance.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`.',
+      },
+      {
+        class: 'implementation',
+        disposition: 'refused',
+        description:
+          'the ring in code — one `<svg viewBox="0 0 24 24">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o\'clock. The stroke width is the band in viewBox units (3 at small, 2.4 at medium: the band\'s px × 24 / the ring\'s px), the circle\'s radius 12 minus half of it, so the outer edge lies on the viewBox\'s edge and it matches the Figma outlines.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'lowered',
+        description:
+          'the indeterminate ring — the same `<svg>` with the arc\'s `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (1600ms per turn, Progress\'s own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o\'clock. In right-to-left the arc turns counterclockwise.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'right-to-left — the linear fill grows from the inline-start edge (the right) through logical properties, and the label and value swap sides. The ring runs counterclockwise from twelve o\'clock. The sweep moves from right to left.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'number formatting — the value text defaults to a percentage through Intl.NumberFormat ("45%", "%45", "45 %"), and a concrete amount ("45 MB of 100 MB", "Step 3 of 5") is localized with its word order. The value text is never truncated; the label wraps instead.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — the label wraps rather than truncating, and the value keeps its full text at the end of the header.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'the value contract — `role="progressbar"` named by the label (`aria-labelledby`, or `aria-label` on a ring, whose label does not show). Determinate: `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `aria-valuetext` whenever the visible value is not a bare percentage. Indeterminate: none of the three, never a fixed `aria-valuenow="0"` (it reads as stuck at 0%), and `aria-busy="true"` on the region the work updates.',
+      },
+      {
+        class: 'announcement',
+        disposition: 'refused',
+        description:
+          'the milestone announcements — a visually hidden `aria-live="polite"` region, in the DOM and empty from mount. The last milestone spoken is kept in a ref; when the value passes 25, 50 or 75% for the first time, the region\'s text is set to the value text; at max it is set to the message ("Upload complete"). An error message is set when the error happens. `aria-valuenow` never triggers speech. `announce="end"` skips the milestones; `announce="none"` leaves the region empty.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'the anti-flash timers — the component waits `delay` (400ms) before it shows, and shows nothing if the work finishes first; once shown it stays at least `minDisplay` (500ms). Both timers are cleared on unmount.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the end-state message — a nested FieldMessage, success at complete and error at error. Its glyph is aria-hidden; the caption carries the meaning. A "Try again" action after an error belongs to the host, placed beside the bar, not inside it.',
+      },
     ],
   },
 

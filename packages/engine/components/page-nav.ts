@@ -95,16 +95,66 @@ export const pageNav: ComponentDef = {
       item3: item('unselected', 'A sibling page: a link, plain until hover.'),
     },
     codeOnly: [
-      'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
-      'The landmark — <nav aria-label="…">, named by label (such as "Account"), translated and without the word "navigation", which assistive technology adds. The name tells this landmark apart from the main and footer navigations.',
-      'The list — a <ul> with each page in an <li> holding one <a href>, so "list, 3 items" is announced. The current page\'s <a href> carries aria-current="page" and keeps its href.',
-      'The links\' look — each is Link\'s standalone look: the other pages are plain at rest and show the underline at :hover, :active and :focus-visible; the current page is plain with Link\'s 2px bar, and the bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered.',
-      'Keyboard — every link is an ordinary tab stop: Tab moves link to link and Enter follows. No arrow keys, no roving tabindex, no activation modes and no panels: each item goes to its own page, which has its own URL, title and h1.',
-      'Router integration — renderLink renders each item through the router\'s own link (Link\'s asChild), so one <a href> renders per page.',
-      'Separate pages, separate forms — on account pages such as Log in and Create account, each page carries its own form with its own name and id, and the password field its own autocomplete: current-password on Log in, new-password on Create account.',
-      'The row in code — display: flex with column-gap from the size\'s gap token and flex-wrap: wrap, so a narrow screen wraps whole items onto a second line; items never truncate.',
-      'Figma item count — the native items slot holds three items by default, two at least and six at most; a designer adds, removes and reorders them, and sets which one is current. Items keep the size they were placed at when PageNav changes size.',
-      'RTL — the row mirrors with the document.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The landmark — <nav aria-label="…">, named by label (such as "Account"), translated and without the word "navigation", which assistive technology adds. The name tells this landmark apart from the main and footer navigations.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The list — a <ul> with each page in an <li> holding one <a href>, so "list, 3 items" is announced. The current page\'s <a href> carries aria-current="page" and keeps its href.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The links\' look — each is Link\'s standalone look: the other pages are plain at rest and show the underline at :hover, :active and :focus-visible; the current page is plain with Link\'s 2px bar, and the bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'Keyboard — every link is an ordinary tab stop: Tab moves link to link and Enter follows. No arrow keys, no roving tabindex, no activation modes and no panels: each item goes to its own page, which has its own URL, title and h1.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Router integration — renderLink renders each item through the router\'s own link (Link\'s asChild), so one <a href> renders per page.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Separate pages, separate forms — on account pages such as Log in and Create account, each page carries its own form with its own name and id, and the password field its own autocomplete: current-password on Log in, new-password on Create account.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'The row in code — display: flex with column-gap from the size\'s gap token and flex-wrap: wrap, so a narrow screen wraps whole items onto a second line; items never truncate.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'Figma item count — the native items slot holds three items by default, two at least and six at most; a designer adds, removes and reorders them, and sets which one is current. Items keep the size they were placed at when PageNav changes size.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors with the document.',
+      },
     ],
   },
 

@@ -76,9 +76,24 @@ export const accordionIndicator: ComponentDef = {
       minusGlyph: { kind: 'vector', glyph: 'minus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['expanded'] }, note: 'Open, when the pair is plus and minus: a minus.' },
     },
     codeOnly: [
-      'the glyph in code — an `aria-hidden="true"` icon inside the Accordion header button. In code it is part of the Accordion, not a component of its own: the button\'s `aria-expanded` carries the state, and the glyph only shows it.',
-      'the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion.',
-      'RTL — no glyph mirrors: a down or up chevron and a plus or minus are symmetric about the vertical axis.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the glyph in code — an `aria-hidden="true"` icon inside the Accordion header button. In code it is part of the Accordion, not a component of its own: the button\'s `aria-expanded` carries the state, and the glyph only shows it.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — no glyph mirrors: a down or up chevron and a plus or minus are symmetric about the vertical axis.',
+      },
     ],
   },
 

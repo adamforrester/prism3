@@ -16,6 +16,10 @@
  *   · `defs`    — any string anywhere in a component def (`componentDefs`): a `tokens` binding, and also a code-only
  *                 binding a def states in prose (Dialog's backdrop is `color.scrim.default` in its `codeOnly` notes,
  *                 with no Figma part to bind it). A mention is a read: the walk does not parse prose, it matches names.
+ *                 EXCEPT `notes.evolution` (#3444): that field is history, what a def USED to do and why it changed. A
+ *                 line saying the icon once took `color.icon.link.visited` would keep the token read after the binding
+ *                 is gone, so the walk skips it (`HISTORY` below). The other `notes` fields state live behavior and
+ *                 still read.
  *   · `aliases` — a DTCG alias (`"{<root>.path}"`) in any committed emission, `out/*.tokens.json`, every corpus brand
  *                 and every overlay: a primitive a semantic role aliases is read by that role.
  *   · `preview` — a binding in `schema/preview-spec.json`, the sample components the plugin and the web playground
@@ -42,7 +46,9 @@
  * ── LIMITS ──────────────────────────────────────────────────────────────────────────────────────────
  *
  * It proves a name is mentioned, not that the mention is a correct binding: that is `lint-paint`'s and `test.ts`'s
- * business. A prose mention in a def counts as a read even where the sentence says "not X". `brandDependent` paths are
+ * business. A prose mention in a def counts as a read even where the sentence says "not X". Only `notes.evolution` is
+ * skipped as history: a past-tense line in any other field (a `codeOnly` entry, a `docs` string) still counts, so write
+ * history in `notes.evolution`. `brandDependent` paths are
  * not guaranteed and not checked. A reason is prose, and review is its only guard.
  * An alias is a read whoever holds it, even a guaranteed token that is itself unread: `core.dimension.72` counts as
  * read because `space.900` aliases it, though nothing reads `space.900`. Such a primitive becomes unread only when its
@@ -166,15 +172,20 @@ const contract = JSON.parse(readFileSync(join(HERE, 'schema', 'token-contract.js
 const guaranteed = Object.keys(contract.guaranteed);
 const isGuaranteed = new Set(guaranteed);
 
-// Reader 1: every string in every def. A dotted name inside a sentence or a binding.
+// Reader 1: every string in every def. A dotted name inside a sentence or a binding. `HISTORY` is the one field the
+// walk skips, by its key path from the def's root (#3444): history is not a read. Written here by hand, not read off
+// the schema's `notes` type, so a field renamed there leaves this path matching nothing and the floor below fires.
+const HISTORY = ['notes', 'evolution'] as const;
 const NAME = /[a-z][a-z0-9-]*(?:\.[a-z0-9-]+)+/g;
 const byDefs = new Set<string>();
-const walk = (v: unknown): void => {
+let historySkipped = 0;
+const walk = (v: unknown, path: readonly string[]): void => {
+  if (path.length === HISTORY.length && path.every((k, i) => k === HISTORY[i])) { historySkipped++; return; }
   if (typeof v === 'string') { for (const m of v.matchAll(NAME)) if (isGuaranteed.has(m[0])) byDefs.add(m[0]); }
-  else if (Array.isArray(v)) v.forEach(walk);
-  else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+  else if (Array.isArray(v)) v.forEach((x, i) => walk(x, [...path, String(i)]));
+  else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, [...path, k]);
 };
-for (const d of componentDefs) walk(d);
+for (const d of componentDefs) walk(d, []);
 
 // Reader 2: every alias in every committed emission. An alias carries the brand's root (`nbds.pds.`, `pds3.`), so a
 // contract path is read when an alias ENDS in it at a segment boundary.
@@ -251,6 +262,7 @@ for (const e of UNREAD_BY_DESIGN) {
 // but a scan that found EVERYTHING would pass silently, so the unread count has a floor too.
 if (guaranteed.length === 0) fail.push('floor: the contract lists no guaranteed path');
 if (byDefs.size === 0) fail.push('floor: no def names a contract path — the def walk read nothing');
+if (historySkipped === 0) fail.push(`floor: no def has a '${HISTORY.join('.')}' field — the history skip matched nothing; was the field renamed?`);
 if (byAliases.size === 0) fail.push(`floor: no emission aliases a contract path — the alias scan read nothing (${emissions.length} emission files)`);
 if (byPreview.size === 0) fail.push('floor: the preview spec names no contract path');
 if (unread.length === 0) fail.push('floor: every guaranteed token is read — the register has nothing to claim; check the readers before believing it');
@@ -262,4 +274,4 @@ if (fail.length) {
   process.exit(1);
 }
 console.log(`· token consumers (reported, not asserted): ${viaUnread.length} token(s) read only through unread holders — ${viaUnread.map((t) => `${t} ← ${[...holders.get(t)!].join(', ')}`).join('; ') || 'none'}`);
-console.log(`✅ token consumers: ${guaranteed.length} guaranteed tokens — ${guaranteed.length - unread.length} read (${byDefs.size} by defs, ${byAliases.size} by aliases in ${emissions.length} emissions, ${byPreview.size} by the preview), ${unread.length} unread and each declared by one of ${UNREAD_BY_DESIGN.length} entries; ${held.reduce((n, e) => n + e.count, 0)} of them held for owner questions (${held.map((e) => e.held).filter((q, i, a) => a.indexOf(q) === i).join(', ') || 'none'})`);
+console.log(`✅ token consumers: ${guaranteed.length} guaranteed tokens — ${guaranteed.length - unread.length} read (${byDefs.size} by defs, ${byAliases.size} by aliases in ${emissions.length} emissions, ${byPreview.size} by the preview; ${historySkipped} defs' ${HISTORY.join('.')} skipped as history), ${unread.length} unread and each declared by one of ${UNREAD_BY_DESIGN.length} entries; ${held.reduce((n, e) => n + e.count, 0)} of them held for owner questions (${held.map((e) => e.held).filter((q, i, a) => a.indexOf(q) === i).join(', ') || 'none'})`);

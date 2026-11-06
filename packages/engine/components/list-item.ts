@@ -185,12 +185,42 @@ export const listItem: ComponentDef = {
       },
     },
     codeOnly: [
-      'The element — an <li> inside the List\'s <ul> or <ol>. The marker is drawn by CSS (::marker, or a ::before pseudo-element in a fixed-width box), so it is not text and is not read twice; an icon marker is an aria-hidden <svg>.',
-      'The hanging indent — the item is a two-column grid (or flex row) with the marker column at a fixed inline size; the text column wraps under itself. Never padding-left plus a negative text-indent on the text: that breaks when the marker is wider than the indent.',
-      'The marker on line one — the marker box is one line-height tall (block-size: 1lh, or the line box of the text style) and centers its content; the item aligns to the start. Centering the whole item floats the marker to the middle of a wrapped paragraph.',
-      'The number in code — counted, never typed: list-style-type: decimal (or a CSS counter, or @counter-style for a locale\'s own digits) on the <ol>. value on an <li> restarts the count from that item. Figma has no counter, so each item there holds its own typed number.',
-      'RTL — logical properties throughout: the marker column moves to the inline end, the text to its start. Numerals stay in the locale\'s digit form. A check icon does not mirror.',
-      'text expansion — the item grows down, never across: the text wraps, the marker column keeps its width, and nothing has a fixed block size (WCAG 1.4.12).',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The element — an <li> inside the List\'s <ul> or <ol>. The marker is drawn by CSS (::marker, or a ::before pseudo-element in a fixed-width box), so it is not text and is not read twice; an icon marker is an aria-hidden <svg>.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'The hanging indent — the item is a two-column grid (or flex row) with the marker column at a fixed inline size; the text column wraps under itself. Never padding-left plus a negative text-indent on the text: that breaks when the marker is wider than the indent.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'The marker on line one — the marker box is one line-height tall (block-size: 1lh, or the line box of the text style) and centers its content; the item aligns to the start. Centering the whole item floats the marker to the middle of a wrapped paragraph.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'unsupported',
+        description:
+          'The number in code — counted, never typed: list-style-type: decimal (or a CSS counter, or @counter-style for a locale\'s own digits) on the <ol>. value on an <li> restarts the count from that item. Figma has no counter, so each item there holds its own typed number.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — logical properties throughout: the marker column moves to the inline end, the text to its start. Numerals stay in the locale\'s digit form. A check icon does not mirror.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — the item grows down, never across: the text wraps, the marker column keeps its width, and nothing has a fixed block size (WCAG 1.4.12).',
+      },
     ],
   },
 

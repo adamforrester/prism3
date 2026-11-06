@@ -291,25 +291,115 @@ export const dialog: ComponentDef = {
       },
     },
     codeOnly: [
-      'role — `role="dialog"` with `aria-modal="true"` at every placement, an end panel included; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.',
-      'labeling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.',
-      'focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex="-1"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button.',
-      'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.',
-      'focus returned — on close, focus goes back to the control that opened the dialog. If that control is gone, to the nearest control that still makes sense, never to the page body.',
-      'Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).',
-      'backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.',
-      'scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.',
-      'the fill footer — the footer\'s Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button (`overflow-wrap: anywhere` on the label), so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: "stacked"`.',
-      'only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). The panel is a flex column and the body is `flex: 1 1 auto; min-height: 0; overflow-y: auto`; in Figma the body clips and scrolls vertically at every placement. Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.',
-      'per-breakpoint placement, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full, and an end panel stays at the end edge. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. An end panel is full height and 480px wide, at most `100vw − 48px`, so the page shows beside it on a phone; below 768px prefer full for a form and bottom for a short list. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.',
-      'the panel padding below 480px — `space.200` instead of `space.300` on a centered or end panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.',
-      'motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, every placement opens and closes at once, with no movement and no fade: `motion.duration-reduced.moderate` is 0ms. Figma shows the panel at rest.',
-      'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.',
-      'stacking — a modal `<dialog>` renders in the top layer, so it needs no z-index. Avoid opening a dialog from a dialog: replace the content or close the first.',
-      'right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors. An end panel sits at the left edge and slides in from it (`inset-inline-end: 0`).',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'role — `role="dialog"` with `aria-modal="true"` at every placement, an end panel included; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'labeling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex="-1"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'focus returned — on close, focus goes back to the control that opened the dialog. If that control is gone, to the nearest control that still makes sense, never to the page body.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the fill footer — the footer\'s Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button (`overflow-wrap: anywhere` on the label), so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: "stacked"`.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). The panel is a flex column and the body is `flex: 1 1 auto; min-height: 0; overflow-y: auto`; in Figma the body clips and scrolls vertically at every placement. Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'per-breakpoint placement, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full, and an end panel stays at the end edge. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. An end panel is full height and 480px wide, at most `100vw − 48px`, so the page shows beside it on a phone; below 768px prefer full for a form and bottom for a short list. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the panel padding below 480px — `space.200` instead of `space.300` on a centered or end panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, every placement opens and closes at once, with no movement and no fade: `motion.duration-reduced.moderate` is 0ms. Figma shows the panel at rest.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'stacking — a modal `<dialog>` renders in the top layer, so it needs no z-index. Avoid opening a dialog from a dialog: replace the content or close the first.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors. An end panel sits at the left edge and slides in from it (`inset-inline-end: 0`).',
+      },
       // #2958 (owner Q588, Q588b A): one title style per brand, from the brand's dialogTitleSize setting.
-      'Dialog title size (the brand\'s dialogTitleSize setting) — the title binds `type.label.lg.emphasis` at Large, the default; `type.label.md.emphasis` at Medium; `type.label.sm.emphasis` at Small. One value for every dialog the brand ships, at every placement: emit the one title style, never a prop. A single dialog that needs another size is a hand override.',
-      'code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it.',
+      {
+        class: 'brand-setting',
+        disposition: 'lowered',
+        description:
+          'Dialog title size (the brand\'s dialogTitleSize setting) — the title binds `type.label.lg.emphasis` at Large, the default; `type.label.md.emphasis` at Medium; `type.label.sm.emphasis` at Small. One value for every dialog the brand ships, at every placement: emit the one title style, never a prop. A single dialog that needs another size is a hand override.',
+      },
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it.',
+      },
     ],
   },
 

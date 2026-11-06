@@ -66,18 +66,78 @@ const built: ComponentDef = makeTextField({
   trailing: { glyph: 'close-filled' },
   labelSwitch: true,
   codeOnly: [
-    'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-    'style — not projected: the search field\'s edge is the brand\'s Search field style setting (#2888, owner decision Q514 taking Q?1 A), not a prop or a Figma variant. `follow`, the default, takes the brand\'s Field style (#2695); `outline` draws a box and `underline` one line under the value, whatever the other fields draw. In code the brand sets it once and every search field takes it; the search field set is built in that style.',
-    'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, and the pending member would differ from `rest` only by a node Figma cannot animate. In code a spinner replaces an adornment while async validation or the value resolves, and the field sets aria-busy, so it stays in `states` and is admitted OUT of the projected `stateAxis`.',
-    'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the field holds no value, so it shows the placeholder; the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
-    'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
-    'the CLEAR BUTTON in code (#2888, owner decision Q514 taking Q?3 A) — a `<button type="button" aria-label="Clear search" aria-controls="{input id}">` drawing the trailing glyph, rendered only while the input holds a value and the field is neither disabled nor read-only, so an empty field never offers it. Pressing it empties the input, fires onChange with the empty value and then onClear, RETURNS FOCUS TO THE INPUT, and the app\'s shared polite live region says "Search cleared" once. It is its own Tab stop after the input. Its HIT AREA (WCAG 2.5.8) is at least 24×24 CSS px, drawn around the 20px glyph (`icon.size.sm`) and centered on it, inside the field\'s height, so it adds no height to the field. The button must meet 24px on its own: the 2.5.8 spacing exception cannot apply, because the button sits inside the input\'s own target, so a button sized to its glyph fails. Figma builds the glyph hidden on every member (the `trailing icon` switch, off by default); a designer shows it on a filled instance.',
-    'ONE CLEAR BUTTON ONLY — the browser\'s own cancel glyph on `type="search"` is hidden (`input[type="search"]::-webkit-search-cancel-button { appearance: none; display: none }`, and the decoration likewise), so the field never shows two.',
-    'the HIDDEN LABEL (#2888, owner decision Q514 taking Q?4 A) — `hideLabel` keeps the <label> in the DOM and clips it from view (the visually-hidden technique: a 1px clipped box, never `display: none` or `visibility: hidden`), so the input keeps its accessible name. In Figma the `label` switch removes the nested label from the member, the closest a static member comes; the switch off stands for `hideLabel` in code, never for a field with no label.',
-    'the SEARCH LANDMARK and the INPUT\'S ATTRIBUTES — the host wraps a site or section search in `<form role="search">` (or `<search>`), so it is a landmark. The input is `type="search"` with `enterkeyhint="search"`, so a touch keyboard labels its Enter key for searching. There is no submit button (owner decision Q514 taking Q?5 A): Enter submits the host\'s form.',
-    'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
-    'the KEYBOARD MODEL — native text editing; Escape empties the field the way the clear button does, as a native search input does, and IME composition guards (do not search mid-composition). All of it is runtime interaction the closed static member cannot carry.',
-    'RIGHT TO LEFT — the glyphs mirror with the row: the search glyph sits at the input\'s start edge and the clear button at its end; the search glyph itself is not flipped.',
+    {
+      class: 'responsive-layout',
+      disposition: 'unsupported',
+      description:
+        'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'style — not projected: the search field\'s edge is the brand\'s Search field style setting (#2888, owner decision Q514 taking Q?1 A), not a prop or a Figma variant. `follow`, the default, takes the brand\'s Field style (#2695); `outline` draws a box and `underline` one line under the value, whatever the other fields draw. In code the brand sets it once and every search field takes it; the search field set is built in that style.',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, and the pending member would differ from `rest` only by a node Figma cannot animate. In code a spinner replaces an adornment while async validation or the value resolves, and the field sets aria-busy, so it stays in `states` and is admitted OUT of the projected `stateAxis`.',
+    },
+    {
+      class: 'not-projected',
+      disposition: 'lowered',
+      description:
+        'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the field holds no value, so it shows the placeholder; the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
+    },
+    {
+      class: 'platform-owned',
+      disposition: 'lowered',
+      description:
+        'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
+    },
+    {
+      class: 'implementation',
+      disposition: 'refused',
+      description:
+        'the CLEAR BUTTON in code (#2888, owner decision Q514 taking Q?3 A) — a `<button type="button" aria-label="Clear search" aria-controls="{input id}">` drawing the trailing glyph, rendered only while the input holds a value and the field is neither disabled nor read-only, so an empty field never offers it. Pressing it empties the input, fires onChange with the empty value and then onClear, RETURNS FOCUS TO THE INPUT, and the app\'s shared polite live region says "Search cleared" once. It is its own Tab stop after the input. Its HIT AREA (WCAG 2.5.8) is at least 24×24 CSS px, drawn around the 20px glyph (`icon.size.sm`) and centered on it, inside the field\'s height, so it adds no height to the field. The button must meet 24px on its own: the 2.5.8 spacing exception cannot apply, because the button sits inside the input\'s own target, so a button sized to its glyph fails. Figma builds the glyph hidden on every member (the `trailing icon` switch, off by default); a designer shows it on a filled instance.',
+    },
+    {
+      class: 'platform-owned',
+      disposition: 'refused',
+      description:
+        'ONE CLEAR BUTTON ONLY — the browser\'s own cancel glyph on `type="search"` is hidden (`input[type="search"]::-webkit-search-cancel-button { appearance: none; display: none }`, and the decoration likewise), so the field never shows two.',
+    },
+    {
+      class: 'semantics',
+      disposition: 'refused',
+      description:
+        'the HIDDEN LABEL (#2888, owner decision Q514 taking Q?4 A) — `hideLabel` keeps the <label> in the DOM and clips it from view (the visually-hidden technique: a 1px clipped box, never `display: none` or `visibility: hidden`), so the input keeps its accessible name. In Figma the `label` switch removes the nested label from the member, the closest a static member comes; the switch off stands for `hideLabel` in code, never for a field with no label.',
+    },
+    {
+      class: 'semantics',
+      disposition: 'refused',
+      description:
+        'the SEARCH LANDMARK and the INPUT\'S ATTRIBUTES — the host wraps a site or section search in `<form role="search">` (or `<search>`), so it is a landmark. The input is `type="search"` with `enterkeyhint="search"`, so a touch keyboard labels its Enter key for searching. There is no submit button (owner decision Q514 taking Q?5 A): Enter submits the host\'s form.',
+    },
+    {
+      class: 'semantics',
+      disposition: 'refused',
+      description:
+        'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
+    },
+    {
+      class: 'keyboard-and-focus',
+      disposition: 'refused',
+      description:
+        'the KEYBOARD MODEL — native text editing; Escape empties the field the way the clear button does, as a native search input does, and IME composition guards (do not search mid-composition). All of it is runtime interaction the closed static member cannot carry.',
+    },
+    {
+      class: 'right-to-left',
+      disposition: 'unsupported',
+      description:
+        'RIGHT TO LEFT — the glyphs mirror with the row: the search glyph sits at the input\'s start edge and the clear button at its end; the search glyph itself is not flipped.',
+    },
   ],
 
   accessibility: {

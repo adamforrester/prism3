@@ -352,9 +352,10 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
 };
 
 /** THE LEDGER AFTER AN APPLY (#2909 Q2909.8 A; #3421, owner decision Q39 A): each set the apply acted on, recorded as
- *  built from today's def (`entryOf`, `null` when it cannot be worked out). A refused set records nothing. A set whose
- *  kept hand edits held changes back is recorded with them (`held`), so the due read lists it under Kept edits and
- *  never as current.
+ *  built from today's def (`entryOf`, `null` when it cannot be worked out). A refused set records nothing. Nor does a
+ *  set the apply stopped inside (#3424): its finished members are current and the rest out of date, so its old entry
+ *  stands and the due read keeps it due until the update runs again and finishes it. A set whose kept hand edits held
+ *  changes back is recorded with them (`held`), so the due read lists it under Kept edits and never as current.
  *  #3436: a later Keep run over a kept set does not see those edits as conflicts any more: the first run stamped the
  *  members with today's plan, so the dry run reads nothing moved under them (`dryRunSet`), and `heldOf` finds nothing.
  *  The edits still keep the plan's values out. So under `keep`, while the run still keeps hand edits on the set, the
@@ -363,7 +364,7 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
  *  left to keep. A run that keeps edits on other members than the held ones still lists the set: it can over-report a
  *  kept set; it never reads one current while its edits keep the plan out. */
 export const ledgerAfter = (outcomes: readonly SetOutcome[], entryOf: (def: string) => LedgerEntry | null, was: Ledger = {}): Record<string, LedgerEntry> =>
-  Object.fromEntries(outcomes.filter((o) => !o.refused).flatMap((o) => {
+  Object.fromEntries(outcomes.filter((o) => !o.refused && !o.stopped).flatMap((o) => {
     const e = entryOf(o.def);
     if (!e) return [];
     const { held: _now, ...rest } = e;
