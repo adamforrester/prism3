@@ -103,12 +103,42 @@ export const list: ComponentDef = {
       item3: item(3, 'The third item.'),
     },
     codeOnly: [
-      'The element — <ul role="list"> for unordered and icon, <ol role="list"> for ordered, chosen from type. The explicit role is required: a list whose markers are styled off (list-style: none) loses its list role in WebKit, and VoiceOver stops announcing "list, 6 items". The component draws its own markers, so it always sets the role.',
-      'Numbering — the <ol> counts its items through CSS (list-style-type: decimal, or a counter); numbers are never typed into the item text. start and reversed pass through to the <ol>. A locale with its own digits takes them through @counter-style.',
-      'The item gap — row-gap on the list (or margin-block-start on every item after the first), from the size\'s gap token. Never a margin on the last item.',
-      'Nested lists — a <ul> or <ol> inside an <li> sits in that item\'s text column, so it indents by the item\'s marker column and starts at the item\'s text edge, and it uses the same size. Not drawn in Figma.',
-      'Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text: the built items read "1." to "3.". A designer who adds or reorders items retypes the numbers.',
-      'item count — Figma holds the items in the native `items` slot, three by default; code takes `items` of any length from one up.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The element — <ul role="list"> for unordered and icon, <ol role="list"> for ordered, chosen from type. The explicit role is required: a list whose markers are styled off (list-style: none) loses its list role in WebKit, and VoiceOver stops announcing "list, 6 items". The component draws its own markers, so it always sets the role.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'Numbering — the <ol> counts its items through CSS (list-style-type: decimal, or a counter); numbers are never typed into the item text. start and reversed pass through to the <ol>. A locale with its own digits takes them through @counter-style.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'The item gap — row-gap on the list (or margin-block-start on every item after the first), from the size\'s gap token. Never a margin on the last item.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'Nested lists — a <ul> or <ol> inside an <li> sits in that item\'s text column, so it indents by the item\'s marker column and starts at the item\'s text edge, and it uses the same size. Not drawn in Figma.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'unsupported',
+        description:
+          'Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text: the built items read "1." to "3.". A designer who adds or reorders items retypes the numbers.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'item count — Figma holds the items in the native `items` slot, three by default; code takes `items` of any length from one up.',
+      },
     ],
   },
 

@@ -1240,6 +1240,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-token-consumers.ts'),
   },
   {
+    // #3441 — reads the defs, the declared class register and the committed components.ai.json; needs no build.
+    id: 'lint-code-only-classes',
+    ciStep: 'Every codeOnly entry has a registered class and a disposition (#3441)',
+    cmd: engine('lint-code-only-classes.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject

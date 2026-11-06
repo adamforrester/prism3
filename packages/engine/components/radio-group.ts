@@ -271,16 +271,66 @@ export const radioGroup: ComponentDef = {
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
-      'value / onChange — the GROUP owns the SCALAR selected value and the change callback (`value: string`, exactly one — where CheckboxGroup owns an array), and each row\'s checked appearance is DERIVED from it (`checked = value === row.value`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the scalar and its wiring are the code projection\'s. This is the contract the group owns and a single `radio-row` structurally cannot express — and for radio it is what makes the options mutually exclusive at all.',
-      'name — the SHARED control name that enforces browser-level EXCLUSIVITY, owned by the group and load-bearing rather than a submission convenience. An individual option setting its own name breaks exclusivity outright. Figma has no DOM naming, so the shared name is the code projection\'s; the projected rows cannot show the exclusivity that makes them radios rather than toggles.',
-      'roving tabindex / single tab stop — THE OPPOSITE OF CHECKBOX-GROUP, and radio\'s headline keyboard difference. The whole group is ONE tab stop: Tab moves into it and the next Tab moves out, while arrow keys move between options (wrapping, Home/End to first/last) and Space/selection-follows-focus selects. Implement with roving tabindex (the checked option at tabindex="0", siblings at -1). Making each option its own tab stop is the most common radio a11y failure. Figma has no accessibility tree and no keyboard model, so none of this is projectable — it lives in `accessibility.keyboard` and here.',
-      'validationMessage — the error text is the code projection\'s; the Figma member at `status=error` shows FieldMessage\'s own placeholder text, which a designer overrides on the instance. aria-invalid on the group and the message\'s place in aria-describedby are DOM wiring the host owns, as on the fields.',
-      'variable row count — in code the rows are `items: RadioRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a radio-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).',
-      'orientation — [HELD]. The group `orientation` (vertical / horizontal) is `RadioGroup`\'s own axis (`radio-row` records it there); Prism 2 is vertical only. Vertical scans better and lets long option labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at, the same as `checkbox-group`.',
-      'the disabled dim — a disabled GROUP dims every row and the label, driven by the group\'s context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.',
-      'the id / describedby WIRING and role="radiogroup" — the host generates ids, ties the FieldLabel to the group via aria-labelledby, and stitches any group message into aria-describedby. Figma has no accessibility tree and no node-to-node reference, so the nested label sits above the rows and is associated by proximity alone (the ceiling field-label already hits).',
-      'RTL — the group mirrors through logical properties: the label aligns to the reading start and each option mirrors its control to that side. The disc is symmetrical, so nothing inside it needs holding unmirrored (brief §9). Figma members are drawn left to right.',
-      'text expansion — vertical is the default partly for this: horizontal option rows are fragile under expansion (German up to about 300%), prone to clipping and to a label sitting nearer the wrong control, while a vertical stack wraps safely (brief §9). The Figma members carry the English placeholder only.',
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'value / onChange — the GROUP owns the SCALAR selected value and the change callback (`value: string`, exactly one — where CheckboxGroup owns an array), and each row\'s checked appearance is DERIVED from it (`checked = value === row.value`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the scalar and its wiring are the code projection\'s. This is the contract the group owns and a single `radio-row` structurally cannot express — and for radio it is what makes the options mutually exclusive at all.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'name — the SHARED control name that enforces browser-level EXCLUSIVITY, owned by the group and load-bearing rather than a submission convenience. An individual option setting its own name breaks exclusivity outright. Figma has no DOM naming, so the shared name is the code projection\'s; the projected rows cannot show the exclusivity that makes them radios rather than toggles.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'roving tabindex / single tab stop — THE OPPOSITE OF CHECKBOX-GROUP, and radio\'s headline keyboard difference. The whole group is ONE tab stop: Tab moves into it and the next Tab moves out, while arrow keys move between options (wrapping, Home/End to first/last) and Space/selection-follows-focus selects. Implement with roving tabindex (the checked option at tabindex="0", siblings at -1). Making each option its own tab stop is the most common radio a11y failure. Figma has no accessibility tree and no keyboard model, so none of this is projectable — it lives in `accessibility.keyboard` and here.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'validationMessage — the error text is the code projection\'s; the Figma member at `status=error` shows FieldMessage\'s own placeholder text, which a designer overrides on the instance. aria-invalid on the group and the message\'s place in aria-describedby are DOM wiring the host owns, as on the fields.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'variable row count — in code the rows are `items: RadioRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a radio-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).',
+      },
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'orientation — [HELD]. The group `orientation` (vertical / horizontal) is `RadioGroup`\'s own axis (`radio-row` records it there); Prism 2 is vertical only. Vertical scans better and lets long option labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at, the same as `checkbox-group`.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'the disabled dim — a disabled GROUP dims every row and the label, driven by the group\'s context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'the id / describedby WIRING and role="radiogroup" — the host generates ids, ties the FieldLabel to the group via aria-labelledby, and stitches any group message into aria-describedby. Figma has no accessibility tree and no node-to-node reference, so the nested label sits above the rows and is associated by proximity alone (the ceiling field-label already hits).',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the group mirrors through logical properties: the label aligns to the reading start and each option mirrors its control to that side. The disc is symmetrical, so nothing inside it needs holding unmirrored (brief §9). Figma members are drawn left to right.',
+      },
+      {
+        class: 'localization',
+        disposition: 'lowered',
+        description:
+          'text expansion — vertical is the default partly for this: horizontal option rows are fragile under expansion (German up to about 300%), prone to clipping and to a label sitting nearer the wrong control, while a vertical stack wraps safely (brief §9). The Figma members carry the English placeholder only.',
+      },
     ],
   },
 

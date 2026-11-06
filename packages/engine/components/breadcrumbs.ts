@@ -135,19 +135,84 @@ export const breadcrumbs: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
-      'The landmark — <nav aria-label="Breadcrumb">: singular, without the word "navigation", which assistive technology adds, and translated. The label tells this landmark apart from the main, footer and in-page navigations.',
-      'The list — an <ol> with each step in an <li>, so "list, 4 items" and each position are announced. The last item renders as the current page.',
-      'Collapsing a long trail — above maxItems (5), keep itemsBeforeCollapse (1) and itemsAfterCollapse (2) and put the middle behind one overflow button. The root and the current page always stay visible. A width-measuring collapse (ResizeObserver) can follow as an enhancement.',
-      'Expanding in place — pressed, the overflow button is replaced by the hidden steps as ordinary links, and focus moves to the first revealed link. No popover, no menu keyboard model and no aria-haspopup. When Menu is built, the same button can open a Menu instead (aria-haspopup="menu", aria-expanded, Escape returning focus to it): a new collapse value, with no Figma change.',
-      'Long labels — ancestor labels never truncate. If the trail still does not fit once collapsed, only the current page\'s label stops at a max width (DRAFT 240px) with an ellipsis; the page\'s h1 carries the full name below it.',
-      'The small-screen switch — below breakpoint.sm (480px), a container query swaps the trail for one link up to the parent, still inside the <nav>, going up a level and never back in history. responsive={false} turns it off. In Figma, the parent path is a member the designer places for a small frame.',
-      'The back link in code — the chevron sits inside the anchor, aria-hidden, and takes the link\'s color at every state. Figma draws it beside the nested Link in the link\'s rest color.',
-      'Router integration — renderLink renders each ancestor through the router\'s own link (Link\'s asChild), so one <a href> renders per step.',
-      'Structured data — the component emits no JSON-LD BreadcrumbList; the page\'s search layer owns it. A script inside a component duplicates under server rendering and can be indexed from a hidden mobile subtree.',
-      'Figma item count — the native items slot holds three items by default and at least two; a designer adds, removes and reorders them, and sets a middle item\'s kind to overflow to show a collapsed trail. Items keep the size they were placed at when Breadcrumbs changes size.',
-      'RTL — the row mirrors: the root sits at the right edge, chevron separators point left (a slash does not mirror), and the back chevron points right.',
-      'The separator in code — the separator prop, chevron by default, sets the CSS ::after mark on every <li> but the last; it is never text and never in the accessibility tree.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The landmark — <nav aria-label="Breadcrumb">: singular, without the word "navigation", which assistive technology adds, and translated. The label tells this landmark apart from the main, footer and in-page navigations.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The list — an <ol> with each step in an <li>, so "list, 4 items" and each position are announced. The last item renders as the current page.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'Collapsing a long trail — above maxItems (5), keep itemsBeforeCollapse (1) and itemsAfterCollapse (2) and put the middle behind one overflow button. The root and the current page always stay visible. A width-measuring collapse (ResizeObserver) can follow as an enhancement.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'Expanding in place — pressed, the overflow button is replaced by the hidden steps as ordinary links, and focus moves to the first revealed link. No popover, no menu keyboard model and no aria-haspopup. When Menu is built, the same button can open a Menu instead (aria-haspopup="menu", aria-expanded, Escape returning focus to it): a new collapse value, with no Figma change.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'Long labels — ancestor labels never truncate. If the trail still does not fit once collapsed, only the current page\'s label stops at a max width (DRAFT 240px) with an ellipsis; the page\'s h1 carries the full name below it.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'The small-screen switch — below breakpoint.sm (480px), a container query swaps the trail for one link up to the parent, still inside the <nav>, going up a level and never back in history. responsive={false} turns it off. In Figma, the parent path is a member the designer places for a small frame.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The back link in code — the chevron sits inside the anchor, aria-hidden, and takes the link\'s color at every state. Figma draws it beside the nested Link in the link\'s rest color.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Router integration — renderLink renders each ancestor through the router\'s own link (Link\'s asChild), so one <a href> renders per step.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Structured data — the component emits no JSON-LD BreadcrumbList; the page\'s search layer owns it. A script inside a component duplicates under server rendering and can be indexed from a hidden mobile subtree.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'Figma item count — the native items slot holds three items by default and at least two; a designer adds, removes and reorders them, and sets a middle item\'s kind to overflow to show a collapsed trail. Items keep the size they were placed at when Breadcrumbs changes size.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors: the root sits at the right edge, chevron separators point left (a slash does not mirror), and the back chevron points right.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The separator in code — the separator prop, chevron by default, sets the CSS ::after mark on every <li> but the last; it is never text and never in the accessibility tree.',
+      },
     ],
   },
 

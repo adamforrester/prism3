@@ -388,8 +388,18 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       'pill-radius': 'height ÷ 2 — the pill lever repoints the square shape\'s rounded rung to radius.capsule, which on this width = height control is a CIRCLE; the circular shape is already full-round (radius.round)',
     },
     codeOnly: [
-      'touch-target-expansion — the same decoupling of the optical box from the hit box Button records, and the one component where it matters MOST: `size=small` is a 36px square in every example brand (28px at compact density), so the optical box is below the Apple HIG 44×44 floor in every brand. Figma has no concept of a hit area larger than the frame, so the expansion cannot project and the emitted small square is the optical size only. A designer measuring it in Figma is reading the wrong box.',
-      'focus-ring-offset — the ring GEOMETRY projects (an absolute sibling nesting the shared `focus-ring`), and its position is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` AND `focus.ring.width` to numbers and writes their sum (#801 — the ring\'s stroke draws INSIDE its own bounds and would otherwise consume the whole gap). A brand changing either value re-themes every bound paint and does not move an already-pasted ring; nor does a REBUILD, which finds the set by name and skips each member by name, so a corrected position needs the existing set deleted or a fresh page. See `button`\'s entry — the caveat is general to any geometry change, not to the ring. The `:focus-visible` CONDITION is likewise unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'touch-target-expansion — the same decoupling of the optical box from the hit box Button records, and the one component where it matters MOST: `size=small` is a 36px square in every example brand (28px at compact density), so the optical box is below the Apple HIG 44×44 floor in every brand. Figma has no concept of a hit area larger than the frame, so the expansion cannot project and the emitted small square is the optical size only. A designer measuring it in Figma is reading the wrong box.',
+      },
+      {
+        class: 'focus-ring',
+        disposition: 'lowered',
+        description:
+          'focus-ring-offset — the ring GEOMETRY projects (an absolute sibling nesting the shared `focus-ring`), and its position is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` AND `focus.ring.width` to numbers and writes their sum (#801 — the ring\'s stroke draws INSIDE its own bounds and would otherwise consume the whole gap). A brand changing either value re-themes every bound paint and does not move an already-pasted ring; nor does a REBUILD, which finds the set by name and skips each member by name, so a corrected position needs the existing set deleted or a fresh page. See `button`\'s entry — the caveat is general to any geometry change, not to the ring. The `:focus-visible` CONDITION is likewise unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
+      },
       // The phrase "a Figma node" ends this clause with a DASH rather than a colon, and that is not a
       // style preference (#804). This def's prose is bundled into `apps/plugin/dist/main.js` as string
       // content, and both CI and `build.mjs` assert that file contains no Node builtin import by grepping
@@ -402,8 +412,18 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       // #1697 — REWRITTEN. The old entry said `ring-width` "reaches no Figma node", while the entry above
       // it (and #801) sums the width into the ring's position, and #1266 binds it as the ring's own
       // `strokeWeight`. The entry contradicted its neighbor and had been stale since #1266.
-      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. Both numbers reach the build: since #801 the host positions the ring at -(offset + width), and since #1266 the width is the ring\'s own bound `strokeWeight`, so the compensation and the stroke are one figure. What stays unbound is the stroke style (`focus.ring.style`), which Figma holds as a dash pattern rather than a keyword — the same remaining gap `button` records.',
-      'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on every member would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
+      {
+        class: 'focus-ring',
+        disposition: 'lowered',
+        description:
+          'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. Both numbers reach the build: since #801 the host positions the ring at -(offset + width), and since #1266 the width is the ring\'s own bound `strokeWeight`, so the compensation and the stroke are one figure. What stays unbound is the stroke style (`focus.ring.style`), which Figma holds as a dash pattern rather than a keyword — the same remaining gap `button` records.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on every member would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
+      },
       // The `modifiers` admission is GONE, with the axis it admitted (#845). Keeping it would have left
       // an entry admitting an axis this def no longer declares — an exemption with nothing to exempt,
       // which `figmaPropertyErrors` cannot detect in either direction and which reads to the next author
@@ -432,13 +452,28 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       // carries ONE disabled skin per coordinate, and the three components' disabled skins are identical to
       // each other (the shared `disabled.*` block), which is the token tier being correct one level up.
       // There is no per-intent redundancy left to admit, so the entry retires — nothing declares `intent`.
-      'inactive — not projected: its whole delta from `disabled` is behavioral, so a variant has nothing to encode; and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would fall through to the `rest` paints and read as a normal enabled control. The two reasons fail it independently. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus.',
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'inactive — not projected: its whole delta from `disabled` is behavioral, so a variant has nothing to encode; and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would fall through to the `rest` paints and read as a normal enabled control. The two reasons fail it independently. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus.',
+      },
       // #1697 — the `pending — the SPINNER…` ceiling is GONE: the spinner projects (see `parts.spinner`).
       // Its removal also retires this def's instance of #867 — that entry LED with `pending`, so `admits()`
       // read it as licensing `pending`'s omission from the state axis. The entries below lead with other
       // words on purpose.
-      'Spinner delay — in code the spinner appears only after a short delay (brief §8), so a fast response does not flash one. Figma holds the swapped member alone.',
-      'RTL mirroring (button brief §9) — only a directional glyph flips under RTL (a back or forward chevron), set per icon (`autoMirror`); search, settings, close and media-transport glyphs stay as drawn. Figma draws the glyph once.',
+      {
+        class: 'runtime-behavior',
+        disposition: 'lowered',
+        description:
+          'Spinner delay — in code the spinner appears only after a short delay (brief §8), so a fast response does not flash one. Figma holds the swapped member alone.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'lowered',
+        description:
+          'RTL mirroring (button brief §9) — only a directional glyph flips under RTL (a back or forward chevron), set per icon (`autoMirror`); search, settings, close and media-transport glyphs stay as drawn. Figma draws the glyph once.',
+      },
     ],
   },
 

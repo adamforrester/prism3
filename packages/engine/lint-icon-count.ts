@@ -79,6 +79,7 @@ import { fileURLToPath } from 'node:url';
 import { providerLogo, icon } from './components';
 import { ICON_NAMES } from './icon-glyphs';
 import type { ComponentDef } from './component-schema';
+import { codeOnlyText } from './code-only-register';
 
 /** One extracted prose field: WHERE it lives on the def, and the text to scan. The `field` label is what
  *  a failure names, so it must point a reader at the exact string to edit. */
@@ -97,7 +98,7 @@ export const iconProse = (def: ComponentDef): ProseField[] => {
   for (const p of def.props ?? []) one(`props.${p.name}.description`, p.description);
   const parts = def.anatomy?.parts ?? {};
   for (const [name, part] of Object.entries(parts)) one(`anatomy.parts.${name}.note`, part.note);
-  each('anatomy.codeOnly', def.anatomy?.codeOnly);
+  each('anatomy.codeOnly', codeOnlyText(def.anatomy?.codeOnly));
   // #3062: the rest of what ships. Named by path, for the reason in the doc comment above.
   const a = def.accessibility;
   one('accessibility.role', a?.role); each('accessibility.wcag', a?.wcag); one('accessibility.keyboard', a?.keyboard);
@@ -184,7 +185,7 @@ if (!staleCounts('the set of 43 glyphs', 44).length) selfFails.push('staleCounts
     summary: 'one line',
     description: 'thirty-nine glyphs',
     props: [{ name: 'name', description: 'the vocabulary' } as never],
-    anatomy: { parts: { glyph: { note: 'the outline' } }, codeOnly: ['a — ceiling one', 'b — ceiling two'] },
+    anatomy: { parts: { glyph: { note: 'the outline' } }, codeOnly: [{ class: 'semantics', disposition: 'refused', description: 'a — ceiling one' }, { class: 'motion', disposition: 'refused', description: 'b — ceiling two' }] },
     accessibility: { role: 'img', wcag: ['1.1.1'], keyboard: 'none', focus: 'none', aria: 'hidden' },
     content: { labelPattern: 'a noun' },
     docs: { usage: 'use it', do: ['do one'], dont: ['dont one'], contentGuidelines: 'name it' },
@@ -292,6 +293,7 @@ const NOT_PROSE = new Set([
   'props[].name', 'props[].type', 'props[].default', 'props[].values[]', // the code API, typechecked
   'ai.commonPartners[]', 'composition.composesWith[]', 'composition.alternativeTo[]', // def ids, resolved
   'composition.supersedes[]', 'composition.supersededBy[]', 'composition.planned[]',  // against the registry
+  'syncBoundary[].class', 'syncBoundary[].disposition',             // register ids and disposition names (#3441)
 ]);
 const aiJson = JSON.parse(readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'out/components/components.ai.json'), 'utf8')) as { components: Record<string, unknown> };
 const coverageProblems: string[] = [];

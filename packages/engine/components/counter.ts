@@ -242,16 +242,66 @@ export const counter: ComponentDef = {
       },
     },
     codeOnly: [
-      'the spinbutton — the value is one focusable element with role="spinbutton" and tabindex="0", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear ("3 items"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.',
-      'the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. The counter is one Tab stop, at the value.',
-      'the stepper buttons — each is a <button type="button" tabindex="-1"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. They are not aria-hidden: the ARIA Authoring Practices spin button example keeps such buttons in the accessibility tree, so pointer and touch users of assistive technology can still find them by name. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled="true", not native disabled, so it stays in the accessibility tree, and a press does nothing.',
-      'the announcement — a button press writes the new value to the app\'s one shared polite live region, such as "Quantity 3", never a region of the counter\'s own. An arrow-key change is announced by the spinbutton itself and is not written there again.',
-      'touch-target-expansion — each nested button extends its hit area in code to at least 44×44px at every size (the flush icon button\'s own rule). On outline the medium inset is 12px, so a 20px glyph\'s 44px area reaches the edge exactly; the value between the two buttons keeps their areas apart, at least 44px center to center.',
-      'limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button\'s exposed state to disabled; in code the counter sets aria-disabled from min and max.',
-      'no wheel — the value never changes on a mouse wheel or a scroll gesture.',
-      'tabular figures — the value is set with font-variant-numeric: tabular-nums, so its width holds from one count to the next; the 32px minimum width holds two digits.',
-      'the glyphs — the minus and plus are the nested buttons\' icon swap, set to the icon set\'s minus and plus as a per-instance override on each nested button (#2645).',
-      'RTL — the row follows the reading direction, so the minus button sits at the right edge. The minus and plus glyphs are symmetric and are not mirrored.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the spinbutton — the value is one focusable element with role="spinbutton" and tabindex="0", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear ("3 items"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. The counter is one Tab stop, at the value.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the stepper buttons — each is a <button type="button" tabindex="-1"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. They are not aria-hidden: the ARIA Authoring Practices spin button example keeps such buttons in the accessibility tree, so pointer and touch users of assistive technology can still find them by name. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled="true", not native disabled, so it stays in the accessibility tree, and a press does nothing.',
+      },
+      {
+        class: 'announcement',
+        disposition: 'refused',
+        description:
+          'the announcement — a button press writes the new value to the app\'s one shared polite live region, such as "Quantity 3", never a region of the counter\'s own. An arrow-key change is announced by the spinbutton itself and is not written there again.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'touch-target-expansion — each nested button extends its hit area in code to at least 44×44px at every size (the flush icon button\'s own rule). On outline the medium inset is 12px, so a 20px glyph\'s 44px area reaches the edge exactly; the value between the two buttons keeps their areas apart, at least 44px center to center.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button\'s exposed state to disabled; in code the counter sets aria-disabled from min and max.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'no wheel — the value never changes on a mouse wheel or a scroll gesture.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'tabular figures — the value is set with font-variant-numeric: tabular-nums, so its width holds from one count to the next; the 32px minimum width holds two digits.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'the glyphs — the minus and plus are the nested buttons\' icon swap, set to the icon set\'s minus and plus as a per-instance override on each nested button (#2645).',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row follows the reading direction, so the minus button sits at the right edge. The minus and plus glyphs are symmetric and are not mirrored.',
+      },
     ],
   },
 

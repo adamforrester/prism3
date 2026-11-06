@@ -183,21 +183,96 @@ export const toast: ComponentDef = {
       },
     },
     codeOnly: [
-      'the Toaster — the toast is never rendered in place. One `<Toaster />` is mounted once at the app root and renders the fixed-position region, the live region and the landmark. Code fires a toast with `toast(message, options)`, which returns an id; `toast.dismiss(id)` closes it. Options: `intent`, `action: { label, onAction }`, `duration`, `dismissible`. Toaster props: `placement` (per breakpoint), `offset`, `label`. Figma shows the toast, not the region.',
-      'the live region — one shared region with `role="status"` and `aria-atomic="true"` (polite), present and empty from app start. The message is written into it a frame after the region exists, because some screen readers (NVDA) ignore a region inserted together with its text. Never one region per toast. The message is announced once; the success glyph is `aria-hidden`.',
-      'no focus steal — showing a toast never moves focus.',
-      'placement — below `breakpoint.md` (768px): bottom center, the viewport width less `grid.sm.margin` (16px) each side, above `env(safe-area-inset-bottom)`. From 768px: the bottom inline-end corner, inset by the grid margin, 320 to 480px wide. In right-to-left the corner is the left one, through logical properties (`inset-inline-end`). A sticky bottom bar on the page raises the region by the Toaster `offset`, so the toast never sits on it. Figma builds the toast at 360 wide.',
-      'one at a time — a new toast replaces the one showing: the old one plays its exit, then the new one its enter. Nothing queues, so a stale message never shows after the user has moved on.',
-      'timing, no action — the toast closes after `duration`, 6000ms by default and never less than 5000ms (a shorter value is clamped). The timer pauses while the pointer is over the toast, while focus is inside the region, and while the window is hidden or blurred, and resumes with the time left; it does not restart. Figma has no timer.',
-      'timing, with an action — no timer. The toast stays until the action, the close button, the next toast, or a page change. `duration` is ignored.',
-      'the keyboard route — the region is a landmark, `<section aria-label="Notifications">`. F6 moves focus into it, to the newest toast\'s first control; Escape or Shift+F6 returns focus to where it was. The action always also exists elsewhere on the page, so a keyboard user who never enters the region loses nothing.',
-      'the action — at most one. A text Button; when it navigates ("View bag") code renders it as a link element. Its label is set per toast in code; in Figma a designer edits the nested Button\'s label, since a nested instance\'s text cannot be a property of the toast.',
-      'the close button — `aria-label="Dismiss"`. A small FlushIconButton is the bare 20px glyph; its hit area is extended to 44×44px in code, as FlushIconButton records.',
-      'focus not obscured — while a toast shows, the page sets `scroll-padding-bottom` to the toast\'s height plus its offset, so a focused control near the bottom of the viewport scrolls clear of it.',
-      'motion — enter: an 8px slide up and a fade on `motion.transition.enter` (`motion.duration.normal`, `motion.easing-role.enter`). Exit: a fade on `motion.transition.exit` (`motion.duration.fast`, `motion.easing-role.exit`). Under `prefers-reduced-motion`, the fade only, on `motion.duration-reduced.normal`. Both placements are anchored to the bottom, so the slide is upward in either reading direction and does not mirror. Figma shows the toast at rest.',
-      'RTL — the row mirrors through logical properties: the glyph and message move to the right and the controls to the left.',
-      'text expansion — a translated message wraps onto a second line, never truncates, and takes a longer `duration`.',
-      'out of scope — a loading or promise toast, a timeout bar, swipe to dismiss and a notification history. If swipe is added, the close button is its non-gesture alternative.',
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'the Toaster — the toast is never rendered in place. One `<Toaster />` is mounted once at the app root and renders the fixed-position region, the live region and the landmark. Code fires a toast with `toast(message, options)`, which returns an id; `toast.dismiss(id)` closes it. Options: `intent`, `action: { label, onAction }`, `duration`, `dismissible`. Toaster props: `placement` (per breakpoint), `offset`, `label`. Figma shows the toast, not the region.',
+      },
+      {
+        class: 'announcement',
+        disposition: 'refused',
+        description:
+          'the live region — one shared region with `role="status"` and `aria-atomic="true"` (polite), present and empty from app start. The message is written into it a frame after the region exists, because some screen readers (NVDA) ignore a region inserted together with its text. Never one region per toast. The message is announced once; the success glyph is `aria-hidden`.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'no focus steal — showing a toast never moves focus.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'placement — below `breakpoint.md` (768px): bottom center, the viewport width less `grid.sm.margin` (16px) each side, above `env(safe-area-inset-bottom)`. From 768px: the bottom inline-end corner, inset by the grid margin, 320 to 480px wide. In right-to-left the corner is the left one, through logical properties (`inset-inline-end`). A sticky bottom bar on the page raises the region by the Toaster `offset`, so the toast never sits on it. Figma builds the toast at 360 wide.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'one at a time — a new toast replaces the one showing: the old one plays its exit, then the new one its enter. Nothing queues, so a stale message never shows after the user has moved on.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'timing, no action — the toast closes after `duration`, 6000ms by default and never less than 5000ms (a shorter value is clamped). The timer pauses while the pointer is over the toast, while focus is inside the region, and while the window is hidden or blurred, and resumes with the time left; it does not restart. Figma has no timer.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'timing, with an action — no timer. The toast stays until the action, the close button, the next toast, or a page change. `duration` is ignored.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'the keyboard route — the region is a landmark, `<section aria-label="Notifications">`. F6 moves focus into it, to the newest toast\'s first control; Escape or Shift+F6 returns focus to where it was. The action always also exists elsewhere on the page, so a keyboard user who never enters the region loses nothing.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'the action — at most one. A text Button; when it navigates ("View bag") code renders it as a link element. Its label is set per toast in code; in Figma a designer edits the nested Button\'s label, since a nested instance\'s text cannot be a property of the toast.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'the close button — `aria-label="Dismiss"`. A small FlushIconButton is the bare 20px glyph; its hit area is extended to 44×44px in code, as FlushIconButton records.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'focus not obscured — while a toast shows, the page sets `scroll-padding-bottom` to the toast\'s height plus its offset, so a focused control near the bottom of the viewport scrolls clear of it.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'motion — enter: an 8px slide up and a fade on `motion.transition.enter` (`motion.duration.normal`, `motion.easing-role.enter`). Exit: a fade on `motion.transition.exit` (`motion.duration.fast`, `motion.easing-role.exit`). Under `prefers-reduced-motion`, the fade only, on `motion.duration-reduced.normal`. Both placements are anchored to the bottom, so the slide is upward in either reading direction and does not mirror. Figma shows the toast at rest.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors through logical properties: the glyph and message move to the right and the controls to the left.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — a translated message wraps onto a second line, never truncates, and takes a longer `duration`.',
+      },
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'out of scope — a loading or promise toast, a timeout bar, swipe to dismiss and a notification history. If swipe is added, the close button is its non-gesture alternative.',
+      },
     ],
   },
 

@@ -200,18 +200,78 @@ export const link: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
-      'The anchor — always a real <a href> with the label text inside it; Enter activates and Space scrolls the page. With no href, render plain text: never an <a> without one, href="#", javascript:void(0) or a click handler on a div.',
-      'Router integration — asChild merges the link\'s classes, ref and handlers onto the router\'s own link child, so one <a href> renders and the design system depends on no router.',
-      'The external link — isExternal adds target="_blank", rel="noopener noreferrer", the trailing external icon and visually hidden "(opens in new tab)" text.',
-      'The visited color — :visited uses color.text.link.visited on the label and color.icon.link.visited on a standalone link\'s trailing icon, for content and docs links, usually omitted in app navigation. Browsers allow only color properties under :visited, fill among them, so the icon takes its color there too. Figma carries no visited member.',
-      'The current page — current renders aria-current="page" on the current item in a navigation and on a breadcrumb\'s last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar.',
-      'The underline — text-decoration-skip-ink: auto, text-decoration-thickness: calc(var(--<root>-core-font-underline-thickness) * 1em) and text-underline-offset: calc(var(--<root>-core-font-underline-offset) * 1em), so the line clears descenders. core.font.underline.thickness and .offset are shares of the font size, emitted only when the brand sets them; unset, the var() is invalid at computed-value time and both properties fall back to auto, the same as Figma\'s AUTO. Standalone shows it at :hover, :active and :focus-visible; inline at every state.',
-      'The hit-target expansion — the box is one text line tall; where the line is under 24px (x-small, 18px, and small, 21px, at the 1.5 line height), a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px on both axes without moving the text around it, so a standalone link meets the 24px target. An inline link in a sentence is exempt.',
-      'The skip link — "Skip to main content", the first focusable element, href="#main", visually hidden by clipping until it has focus. A pattern built from Link, not a separate component.',
-      'The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps.',
-      'RTL — logical properties move the trailing icon to the leading edge, and directional glyphs (the arrow, the external icon) mirror.',
-      'text expansion — links wrap across lines and keep the underline, and the trailing icon stays inline with the last word rather than centered on the wrapped block (Figma shows one line, so it centers there); never white-space: nowrap on a link.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The anchor — always a real <a href> with the label text inside it; Enter activates and Space scrolls the page. With no href, render plain text: never an <a> without one, href="#", javascript:void(0) or a click handler on a div.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Router integration — asChild merges the link\'s classes, ref and handlers onto the router\'s own link child, so one <a href> renders and the design system depends on no router.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'The external link — isExternal adds target="_blank", rel="noopener noreferrer", the trailing external icon and visually hidden "(opens in new tab)" text.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The visited color — :visited uses color.text.link.visited on the label and color.icon.link.visited on a standalone link\'s trailing icon, for content and docs links, usually omitted in app navigation. Browsers allow only color properties under :visited, fill among them, so the icon takes its color there too. Figma carries no visited member.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The current page — current renders aria-current="page" on the current item in a navigation and on a breadcrumb\'s last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The underline — text-decoration-skip-ink: auto, text-decoration-thickness: calc(var(--<root>-core-font-underline-thickness) * 1em) and text-underline-offset: calc(var(--<root>-core-font-underline-offset) * 1em), so the line clears descenders. core.font.underline.thickness and .offset are shares of the font size, emitted only when the brand sets them; unset, the var() is invalid at computed-value time and both properties fall back to auto, the same as Figma\'s AUTO. Standalone shows it at :hover, :active and :focus-visible; inline at every state.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The hit-target expansion — the box is one text line tall; where the line is under 24px (x-small, 18px, and small, 21px, at the 1.5 line height), a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px on both axes without moving the text around it, so a standalone link meets the 24px target. An inline link in a sentence is exempt.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'The skip link — "Skip to main content", the first focusable element, href="#main", visually hidden by clipping until it has focus. A pattern built from Link, not a separate component.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — logical properties move the trailing icon to the leading edge, and directional glyphs (the arrow, the external icon) mirror.',
+      },
+      {
+        class: 'localization',
+        disposition: 'lowered',
+        description:
+          'text expansion — links wrap across lines and keep the underline, and the trailing icon stays inline with the last word rather than centered on the wrapped block (Figma shows one line, so it centers there); never white-space: nowrap on a link.',
+      },
     ],
   },
 

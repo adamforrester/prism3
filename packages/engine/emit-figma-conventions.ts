@@ -161,7 +161,7 @@ const components = () => ({
   },
   codeOnly: {
     rule: 'An axis or state listed under a component\'s `codeOnly` exists in code and has no Figma variant; the component doc says why. Code-only props are named in the same doc, not here.',
-    source: src(SCHEMA_SRC, 'codeOnly: string[]'),
+    source: src(SCHEMA_SRC, 'codeOnly: CodeOnlyEntry[]'),
   },
   list: componentDefs.map(component),
 });

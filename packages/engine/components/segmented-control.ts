@@ -220,14 +220,54 @@ export const segmentedControlSegment: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
-      'The option in code — a <button> with aria-current in the view behavior, or a native <input type="radio"> with its <label> in the form behavior. The control decides which, never the option.',
-      'The label weight in code — the selected option sets its label in the emphasis weight and the others in the default weight, and every option reserves its bold width so selecting never shifts the row: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.',
-      'The indicator in code — it may be one sliding node shared by the options (aria-hidden) rather than a box per option; the 4px inset and the paint are the same either way.',
-      'forced-colors — the pill fill drops out, so give the selected option a system-color border or outline (for example 1px solid Highlight) and keep the bold label; the selection still shows.',
-      'The hit-target expansion — a small option is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box.',
-      'RTL — logical properties mirror the row: the leading icon moves to the right of the label.',
-      'text expansion — a label never wraps or truncates; the control renders a select instead when the longest translated label no longer fits.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The option in code — a <button> with aria-current in the view behavior, or a native <input type="radio"> with its <label> in the form behavior. The control decides which, never the option.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The label weight in code — the selected option sets its label in the emphasis weight and the others in the default weight, and every option reserves its bold width so selecting never shifts the row: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.',
+      },
+      {
+        class: 'implementation',
+        disposition: 'refused',
+        description:
+          'The indicator in code — it may be one sliding node shared by the options (aria-hidden) rather than a box per option; the 4px inset and the paint are the same either way.',
+      },
+      {
+        class: 'forced-colors',
+        disposition: 'unsupported',
+        description:
+          'forced-colors — the pill fill drops out, so give the selected option a system-color border or outline (for example 1px solid Highlight) and keep the bold label; the selection still shows.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The hit-target expansion — a small option is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — logical properties mirror the row: the leading icon moves to the right of the label.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — a label never wraps or truncates; the control renders a select instead when the longest translated label no longer fits.',
+      },
     ],
   },
 
@@ -406,15 +446,60 @@ export const segmentedControl: ComponentDef = {
       segment3: { ...segmentNest('unselected'), note: 'The third option.' },
     },
     codeOnly: [
-      'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
-      'The view behavior (the default) — role="group" named by the label, holding <button> elements; the selected one carries aria-current="true". Each button is its own Tab stop and Enter or Space selects it, so arrowing never changes the view by accident.',
-      'The form behavior — a <fieldset> with a <legend> (or role="radiogroup" with aria-labelledby) holding native <input type="radio"> elements that share one name. One Tab stop; arrow keys move and select, wrapping at the ends.',
-      'Never empty — a click on the selected option does nothing, so onChange never reports an empty value. In the form behavior a radio cannot be cleared, so this holds by default.',
-      'Equal widths — display: inline-grid with grid-auto-flow: column and grid-auto-columns: 1fr makes every option as wide as the widest (width auto); width full sets inline-size: 100%, capped by the parent with a max-width.',
-      'The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option\'s measured box (a ResizeObserver, re-measured when fonts load or the direction changes), about 150–200ms. Under prefers-reduced-motion it moves without animation.',
-      'Overflow — the control never wraps or scrolls; when the options do not fit, render a select instead.',
-      'RTL — logical properties mirror the row, so the first option sits at the right edge; a sliding indicator measures from the inline start edge.',
-      'text expansion — translations run 30 to 50 percent longer; measure the longest translated label and fall back to a select when the control would overflow its column.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'The view behavior (the default) — role="group" named by the label, holding <button> elements; the selected one carries aria-current="true". Each button is its own Tab stop and Enter or Space selects it, so arrowing never changes the view by accident.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'The form behavior — a <fieldset> with a <legend> (or role="radiogroup" with aria-labelledby) holding native <input type="radio"> elements that share one name. One Tab stop; arrow keys move and select, wrapping at the ends.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Never empty — a click on the selected option does nothing, so onChange never reports an empty value. In the form behavior a radio cannot be cleared, so this holds by default.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'Equal widths — display: inline-grid with grid-auto-flow: column and grid-auto-columns: 1fr makes every option as wide as the widest (width auto); width full sets inline-size: 100%, capped by the parent with a max-width.',
+      },
+      {
+        class: 'implementation',
+        disposition: 'refused',
+        description:
+          'The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option\'s measured box (a ResizeObserver, re-measured when fonts load or the direction changes), about 150–200ms. Under prefers-reduced-motion it moves without animation.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'Overflow — the control never wraps or scrolls; when the options do not fit, render a select instead.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — logical properties mirror the row, so the first option sits at the right edge; a sliding indicator measures from the inline start edge.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — translations run 30 to 50 percent longer; measure the longest translated label and fall back to a select when the control would overflow its column.',
+      },
     ],
   },
 

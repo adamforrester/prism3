@@ -1356,6 +1356,12 @@ npx tsx packages/engine/lint-token-consumers.ts     # every guaranteed contract 
                                                     # reason and the count it claims (#3409, Q33 A).
                                                     # The register is authored; a held entry is an
                                                     # owner question, never a deletion.
+npx tsx packages/engine/lint-code-only-classes.ts   # every def's codeOnly entry has a class from the
+                                                    # declared register in code-only-register.ts and
+                                                    # one of four dispositions (#3441, #3437 Q1 A); a
+                                                    # register class no entry uses fails; an admission
+                                                    # is classed not-projected; the payload's
+                                                    # syncBoundary matches the defs.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

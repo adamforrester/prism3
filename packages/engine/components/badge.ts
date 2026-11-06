@@ -406,12 +406,42 @@ export const badge: ComponentDef = {
       },
     },
     codeOnly: [
-      'the overlay rules for a count or dot — a count hides at zero unless showZero, caps as max followed by a plus sign, and sets min-inline-size equal to its block size so one digit is an exact circle (Figma has no width-equals-height floor, so the member approximates it with padding). Over a host, both carry a stroke in the canvas color that separates them from the host; the Figma count and dot members carry no stroke, since that one exists only against a host.',
-      'the overlay placement — a count or dot is positioned against its host from a wrapper that owns the stacking context, so a host with overflow hidden does not clip it. Inset uses inset-inline-end so it mirrors in right-to-left layouts. circular overlap pulls the badge in by about 14.6% of the host size, onto the curve.',
-      'the accessible-name wiring — for a count or dot the badge is aria-hidden and the host composes the meaning into its own name ("Inbox, 3 unread messages"). A count that changes after render is announced through one shared polite live region, debounced, never one region per badge. None of this has a Figma expression.',
-      'number formatting — the count and its cap render through Intl.NumberFormat, so a locale with different digits or grouping reads correctly.',
-      'the inline style in code — the root is display: inline-flex with align-items: flex-start, so it sits in a text line and a wrapping label keeps the dot on its first line; the dot cell is one line box tall and centers the dot. The dot is aria-hidden="true" with no role and no accessible name, and the label is not hidden and takes no role="status". The dot carries a transparent 1px inset outline, so it draws as a circle in the system color in forced-colors mode. emphasis is ignored when style is inline. The row mirrors in right-to-left layouts, the dot leading.',
-      'The edge sits inside the box — subtle and bold badges are one size. In Figma it is an inside stroke; in code an inset outline (outline: 1px solid; outline-offset: -1px), never a border, which would make a subtle badge 2px larger than its bold twin. An outline also survives forced-colors mode, where the browser removes background fills, so a subtle status label keeps its shape there in the system border color. A bold badge (status, count or dot) carries the same inset outline in transparent: invisible everywhere else, and drawn in the system color in forced-colors mode, so every badge keeps its shape there.',
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'the overlay rules for a count or dot — a count hides at zero unless showZero, caps as max followed by a plus sign, and sets min-inline-size equal to its block size so one digit is an exact circle (Figma has no width-equals-height floor, so the member approximates it with padding). Over a host, both carry a stroke in the canvas color that separates them from the host; the Figma count and dot members carry no stroke, since that one exists only against a host.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the overlay placement — a count or dot is positioned against its host from a wrapper that owns the stacking context, so a host with overflow hidden does not clip it. Inset uses inset-inline-end so it mirrors in right-to-left layouts. circular overlap pulls the badge in by about 14.6% of the host size, onto the curve.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the accessible-name wiring — for a count or dot the badge is aria-hidden and the host composes the meaning into its own name ("Inbox, 3 unread messages"). A count that changes after render is announced through one shared polite live region, debounced, never one region per badge. None of this has a Figma expression.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'number formatting — the count and its cap render through Intl.NumberFormat, so a locale with different digits or grouping reads correctly.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the inline style in code — the root is display: inline-flex with align-items: flex-start, so it sits in a text line and a wrapping label keeps the dot on its first line; the dot cell is one line box tall and centers the dot. The dot is aria-hidden="true" with no role and no accessible name, and the label is not hidden and takes no role="status". The dot carries a transparent 1px inset outline, so it draws as a circle in the system color in forced-colors mode. emphasis is ignored when style is inline. The row mirrors in right-to-left layouts, the dot leading.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'carried',
+        description:
+          'The edge sits inside the box — subtle and bold badges are one size. In Figma it is an inside stroke; in code an inset outline (outline: 1px solid; outline-offset: -1px), never a border, which would make a subtle badge 2px larger than its bold twin. An outline also survives forced-colors mode, where the browser removes background fills, so a subtle status label keeps its shape there in the system border color. A bold badge (status, count or dot) carries the same inset outline in transparent: invisible everywhere else, and drawn in the system color in forced-colors mode, so every badge keeps its shape there.',
+      },
     ],
   },
 

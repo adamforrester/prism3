@@ -283,10 +283,30 @@ export const checkboxControl: ComponentDef = {
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
-      'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (static text over a styled locked control), so there is no box treatment to project and the state is absent rather than admitted-and-unbound. The Row and the Group decide it.',
-      'motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate.',
-      'RTL — the check and dash glyphs do NOT mirror: the check shape is recognized as drawn in every script, so the SVG keeps its standard stroke direction (brief §9). The row around this atom mirrors; the atom does not. Figma members are drawn left to right; for this atom that is also the right-to-left rendering.',
-      'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `checkbox-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (static text over a styled locked control), so there is no box treatment to project and the state is absent rather than admitted-and-unbound. The Row and the Group decide it.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the check and dash glyphs do NOT mirror: the check shape is recognized as drawn in every script, so the SVG keeps its standard stroke direction (brief §9). The row around this atom mirrors; the atom does not. Figma members are drawn left to right; for this atom that is also the right-to-left rendering.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `checkbox-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      },
     ],
   },
 
