@@ -48,10 +48,10 @@ import { RUN_FORMAT } from './score-figma';
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SERVER = join(REPO, 'tools/figma-bridge/server.ts');
 /**
- * How the bridge is started, by the runner and in the agent's MCP config alike: `npx --yes tsx`, as the repo runs every
- * script (review B3). `tsx` is in no `package.json`, so `node_modules/.bin/tsx` does not exist after `npm ci`.
+ * How the bridge is started, by the runner and in the agent's MCP config alike: `npx --yes tsx@4`, as the repo runs every
+ * script (review B3), pinned to the major `verify.ts` runs (review N5) so a fresh npx cache on the Mac can't fetch another. `tsx` is in no `package.json`, so `node_modules/.bin/tsx` does not exist after `npm ci`.
  */
-export const bridgeCommand = (extra: string[] = []) => ({ command: 'npx', args: ['--yes', 'tsx', SERVER, ...extra] });
+export const bridgeCommand = (extra: string[] = []) => ({ command: 'npx', args: ['--yes', 'tsx@4', SERVER, ...extra] });
 /** The bridge's name in the agent's MCP config; its tools are `mcp__prism3-figma__…`. */
 export const BRIDGE_NAME = 'prism3-figma';
 const BRIDGE_TOOLS = ['figma_status', 'figma_run', 'figma_logs'].map((t) => `mcp__${BRIDGE_NAME}__${t}`);

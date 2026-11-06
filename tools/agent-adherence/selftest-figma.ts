@@ -416,7 +416,7 @@ console.log('\nthe runner');
 
   // The bridge command (review B3): `npx tsx`, never a `node_modules/.bin` path `npm ci` does not install.
   const sv = cfg.mcpServers['prism3-figma'];
-  ok(sv.command === 'npx' && sv.args.includes('tsx') && !/node_modules/.test(JSON.stringify(sv)), `runner/mcp-config: the bridge starts as npx tsx (${sv.command} ${sv.args.slice(0, 2).join(' ')})`);
+  ok(sv.command === 'npx' && sv.args.includes('tsx@4') && !/node_modules/.test(JSON.stringify(sv)), `runner/mcp-config: the bridge starts as npx tsx@4, pinned (${sv.command} ${sv.args.slice(0, 2).join(' ')})`);
   {
     // The preflight starts the config's own command, from an empty dir, on a free port and a throwaway pairing secret.
     const runDir = mkdtempSync(join(tmpdir(), 'p3-pre-'));
