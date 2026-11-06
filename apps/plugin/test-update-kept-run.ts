@@ -24,7 +24,8 @@
  * Mutations this fails by name:
  *   · the ordering fix dropped (`updatableOf` back to `!c.blocked`) → `order/in the run`, `after/0 due`;
  *   · a fully kept set recorded as current (`ledgerAfter` drops `held`) → `after/kept listed`;
- *   · a kept-edit read-back filed as a miss in the build record (`kept` not split out) → `record/kept apart`.
+ *   · a kept-edit read-back filed as a miss in the build record (`kept` not split out) → `record/kept apart`;
+ *   · `ledgerAfter` carrying `held` through a Keep run that kept no edits (` && o.kept.length` dropped) → `edits gone`;
  *   · `themeBlocked` when any blocker is Theme's (`lacks.theme > 0`) → `theme only/nest`;
  *   · `themeBlocked` ignoring the dry run's own blockers (`!had` dropped) → `theme only/dry run`.
  *
@@ -40,7 +41,7 @@ import { materializeForBrand } from './src/brand-def';
 import { applyComponentPlan } from './src/write-components';
 import { previewUpdate, checkedSetOf, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, applyVerdict, ledgerAfter, previewHashOf, type ApplyHost } from './src/update-apply';
-import { dueOf, entryFor, printOf, readLedger, recordSets } from './src/as-built-ledger';
+import { dueOf, entryFor, printOf, readLedger, recordSets, type LedgerEntry } from './src/as-built-ledger';
 import { NS, persistInput } from './src/persist-figma';
 import { emissionOf, stampEmission, themeDue } from './src/theme-emission';
 import { themePlans } from './src/apply-theme';
@@ -219,6 +220,20 @@ const rec = JSON.parse((radio as any).getSharedPluginData?.(NS, 'build') || '{}'
 const discarded = (rec.misses ?? []).filter((m) => / -> DISCARDED \(/.test(m));
 ok(discarded.length === 0 && (rec.keptCount ?? 0) > 0,
   `record/kept apart: the set's build record files ${rec.keptCount ?? 0} kept-edit read-backs apart, and ${discarded.length} as misses (${JSON.stringify(discarded.slice(0, 2))})`);
+
+// #3436's review: a Keep run that finds no hand edits left to keep (the designer reverted them) records no `held`, so the
+// set reads current again. Driven on `ledgerAfter` directly, with a ledger before the run that still carries `held`; the
+// same outcome with one kept edit is the control, so the arm cannot pass by `was` being ignored altogether.
+{
+  const wasHeld = { members: 3, changes: ['border → color/interactive/primary/indicator/rest'] };
+  const entry = (def: string): LedgerEntry => ({ def, rev: 1, engine: 'test' });
+  const was = { 'radio-control': { ...entry('radio-control'), held: wasHeld } };
+  const keepRun = (kept: { member: string; path: string }[]) => ({ def: 'radio-control', set: 'radio-control', updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept, unrecorded: [], handEdits: 'keep' as const, identity: [], content: [], misses: [] });
+  const gone = ledgerAfter([keepRun([])], entry, was)['radio-control'];
+  const still = ledgerAfter([keepRun([{ member: 'selection=checked', path: 'ring' }])], entry, was)['radio-control'];
+  ok(!!still?.held, `edits gone/control: a Keep run that still keeps an edit carries the held its entry had (${JSON.stringify(still?.held)})`);
+  ok(!!gone && !gone.held, `edits gone: a Keep run that keeps no hand edits records no held, so the set reads current (${JSON.stringify(gone?.held)})`);
+}
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
 process.exit(failed ? 1 : 0);

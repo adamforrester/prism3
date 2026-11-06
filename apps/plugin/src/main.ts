@@ -81,7 +81,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import { checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { PACE_MS, pacer } from './pace';
 import { materializeForBrand, materializerFor } from './brand-def';
-import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type LedgerEntry, type PlanPrint } from './as-built-ledger';
+import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type Ledger, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
@@ -1798,11 +1798,14 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // #3082 Q811 A: with the print of the plans the apply laid, the target's own.
     const now = ledgerNow(input);
     // #3421 (Q39 A): a set whose kept hand edits held changes back carries them (`held`), so it is listed under Kept edits.
+    // #3436: the ledger before the run, so a later Keep run over a kept set keeps the `held` its entry carried.
+    let was: Ledger = {};
+    try { was = readLedger(figma.root); } catch { /* no ledger read: this run's own `held` alone */ }
     const acted = ledgerAfter(r.outcomes, (def) => {
       const e = now(def);
       const plans = targets.find((t) => t.def === def)?.plans;
       return e && plans ? { ...e, print: printOf(plans) } : null;
-    });
+    }, was);
     try { recordSets(figma.root, acted); } catch { /* read as due again; the next update records it */ }
     // Q811 A: the apply is a write, so the sets that are current by their print are recorded now too. Not the check above.
     restampQuiet();

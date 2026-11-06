@@ -239,16 +239,32 @@ export const overrideHeldOf = (mode: string, row: InteractiveRow): { palette: st
   const ov = brandState.overrides?.[mode]?.[row.role];
   return typeof ov?.step === 'string' ? { palette: ov.palette || interactivePaletteOf(row), step: ov.step } : null;
 };
+/** The palettes an override row's step picker offers in `mode`, in order (#3406, owner option A): the row's own ramp,
+ *  then the neutral one for the inverse fill (#1384), then the palette the held override names when it is none of
+ *  those, so the picker opens on the held step and can move within that palette. A held palette the theme no longer
+ *  builds (removed, #3391) is not offered: it has no steps to show. Every other row offers its own ramp only. */
+export const pickerPalettesOf = (mode: string, row: InteractiveRow): string[] => {
+  const own = interactivePaletteOf(row);
+  const nPal = theme.roleToPalette.neutral;
+  const out = row.write === 'inverse-fill' && nPal !== own ? [own, nPal] : [own];
+  const held = overrideHeldOf(mode, row);
+  if (held && !out.includes(held.palette) && stepsOf(held.palette).length) out.push(held.palette);
+  return out;
+};
 /** An overridden row's picker label, by the palette it holds: `Override · brand-neutral 350`. */
 export const overrideLabel = (held: { palette: string; step: string } | null): string =>
   `Override · ${held ? `${held.palette} ${held.step}` : ''}`;
 /** Write a row in `mode`. `value` is a step key (an anchor as its number, an inverse fill as `''` or
- *  `‹palette›::‹step›`), or `undefined` for Auto. A read-out row writes nothing. */
+ *  `‹palette›::‹step›`, an override row as a step of its own ramp or `‹palette›::‹step›` for a step of the palette
+ *  its override names, #3406), or `undefined` for Auto. A read-out row writes nothing. */
 export const writeInteractiveRow = (mode: string, row: InteractiveRow, value: string | undefined): void => {
   const palette = interactivePaletteOf(row);
   switch (row.write) {
     case 'anchor': return setAnchor(mode, row.column!, value === undefined ? undefined : Number(value));
-    case 'override': return setRoleOverride(mode, row.role, palette, value);
+    case 'override': {
+      const [pal, step] = value?.includes('::') ? value.split('::') : [palette, value];
+      return setRoleOverride(mode, row.role, pal, step);
+    }
     case 'inverse-fill': return setInverseFillSource(mode, row.role, palette, value ?? '');
     case 'link-family': return setLinkFamilyOverride(mode, row.role.slice(0, -'.link.default'.length), value);
     case 'readout': return;

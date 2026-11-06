@@ -107,6 +107,38 @@ ok(same(store.brandState.overrides?.light?.['inverse.interactive.primary.fill.re
 I.writeInteractiveRow('light', row('inverse.interactive.primary.fill.rest'), undefined);
 ok(pristine(), 'its Auto (crisp white or black) clears it');
 
+console.log('\n3b. #3406: an override row\'s picker offers the palette its override names, and a pick there writes that palette');
+{
+  // THE FIXTURE is #3391's: a brand color `brand-neutral`, and the primary border overridden to `brand-neutral 350` in
+  // Light. Expected palette lists are literals. "A pick there lands" is the engine's own resolved path, never the module.
+  const BC = 'brand-neutral', ROLE = 'interactive.primary.border.rest', INV = 'inverse.interactive.primary.fill.rest';
+  const pathOf = (role: string, mode: string): string | undefined => {
+    try { return (resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === mode)?.roles as Record<string, { path?: string } | undefined>)?.[role]?.path; } catch { return undefined; }
+  };
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: BC, oklch: { l: 0.62, c: 0.012, h: 240 } });
+  store.rebuild();
+  ok(row(ROLE).write === 'override' && I.interactivePaletteOf(row(ROLE)) === 'primary', `premise: ${ROLE} is an override row on primary (${row(ROLE).write}, ${I.interactivePaletteOf(row(ROLE))})`);
+  ok(same(I.pickerPalettesOf('light', row(ROLE)), ['primary']), `with no override, the picker offers its own ramp only (${JSON.stringify(I.pickerPalettesOf('light', row(ROLE)))})`);
+  store.brandState.overrides = { light: { [ROLE]: { palette: BC, step: '350' } } };
+  ok(same(I.pickerPalettesOf('light', row(ROLE)), ['primary', 'brand-neutral']),
+    `#3406 offer: an override on brand-neutral adds it after the row's own ramp (${JSON.stringify(I.pickerPalettesOf('light', row(ROLE)))})`);
+  ok(same(I.pickerPalettesOf('dark', row(ROLE)), ['primary']), 'a mode with no override offers the own ramp only');
+  I.writeInteractiveRow('light', row(ROLE), 'brand-neutral::400');
+  ok(same(store.brandState.overrides, { light: { [ROLE]: { palette: 'brand-neutral', step: '400' } } }) && pathOf(ROLE, 'light') === 'pds3.core.palette.brand-neutral.400',
+    `#3406 move: a pick of brand-neutral 400 writes brand-neutral 400, and the engine resolves it there (${JSON.stringify(store.brandState.overrides)}, ${pathOf(ROLE, 'light')})`);
+  I.writeInteractiveRow('light', row(ROLE), '300');
+  ok(same(store.brandState.overrides, { light: { [ROLE]: { palette: 'primary', step: '300' } } }) && same(I.pickerPalettesOf('light', row(ROLE)), ['primary']),
+    `a bare step still writes the row's own family, and the picker goes back to one palette (${JSON.stringify(store.brandState.overrides)})`);
+  store.brandState.overrides = { light: { [ROLE]: { palette: 'gone', step: '350' } } };
+  ok(same(I.pickerPalettesOf('light', row(ROLE)), ['primary']), 'a held palette the theme does not build is not offered (it has no steps)');
+  store.brandState.overrides = { light: { [INV]: { palette: BC, step: '350' } } };
+  ok(same(I.pickerPalettesOf('light', row(INV)), ['primary', 'neutral', 'brand-neutral']),
+    `#3406 offer, inverse fill: its two ramps, then brand-neutral (${JSON.stringify(I.pickerPalettesOf('light', row(INV)))})`);
+  store.brandState.overrides = { light: { [INV]: { palette: 'neutral', step: '100' } } };
+  ok(same(I.pickerPalettesOf('light', row(INV)), ['primary', 'neutral']), 'an inverse fill held on neutral adds nothing: neutral is already offered');
+}
+
 console.log('\n4. Links: the rungs and the family pin');
 reset();
 // The derived walk, from the ENGINE: what the expected pins below are worked out from.
@@ -289,6 +321,45 @@ console.log('\n9. #3391: an override is labeled by the palette it names, and rem
     `premise: ${INV} is an inverse-fill row (${inv?.write}), and the engine resolves its override to ${resolvedPalette(INV)}`);
   const invLabel = I.overrideLabel(I.overrideHeldOf('light', inv));
   ok(invLabel === 'Override · brand-neutral 350', `#3391 label, inverse fill: the override reads by the palette it names, "Override · brand-neutral 350" (got "${invLabel}")`);
+}
+
+console.log('\n10. #3405: renaming a brand color carries every override that names it, and the brand still builds');
+{
+  // THE FIXTURE is the issue's repro: the prism3 brand, a brand color `accent-x`, and the primary border overridden to
+  // `accent-x 350` in Light. Dark holds a second override on it and a third that names primary, which must not move.
+  // A custom mode, `promo`, holds a fourth, so "custom modes included" is pinned rather than assumed (review of #3455).
+  // The ORACLE for "still builds" and "the palette it names" is the engine's own `resolveAllModes`, never the module.
+  const ROLE = 'interactive.primary.border.rest', TEXT = 'interactive.primary.text.rest';
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'accent-x', oklch: { l: 0.55, c: 0.15, h: 235 } });
+  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.rebuild();
+  store.brandState.overrides = {
+    light: { [ROLE]: { palette: 'accent-x', step: '350' } },
+    dark: { [ROLE]: { palette: 'accent-x', step: '700' }, [TEXT]: { palette: 'primary', step: '700' } },
+    promo: { [ROLE]: { palette: 'accent-x', step: '400' } },
+  };
+  const build = (): string => { try { resolveAllModes(brandTheme(structuredClone(store.brandState))); return 'builds'; } catch (e) { return `REFUSED: ${(e as Error).message}`; } };
+  const pathOf = (mode: string, role: string): string | undefined => {
+    try { return (resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === mode)?.roles as Record<string, { path?: string } | undefined>)?.[role]?.path; } catch { return undefined; }
+  };
+  ok(build() === 'builds', `premise: before the rename, the brand builds (${build()})`);
+  ok(pathOf('promo', ROLE)?.includes('.palette.accent-x.') === true, `premise: the custom mode promo resolves ${ROLE} to accent-x (${pathOf('promo', ROLE)})`);
+  const i = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-x');
+  ok(P.renameBrandColor(i, 'accent-y'), 'the rename is taken');
+  ok(same(store.brandState.overrides, {
+    light: { [ROLE]: { palette: 'accent-y', step: '350' } },
+    dark: { [ROLE]: { palette: 'accent-y', step: '700' }, [TEXT]: { palette: 'primary', step: '700' } },
+    promo: { [ROLE]: { palette: 'accent-y', step: '400' } },
+  }), `#3405 carry: every override on accent-x, the custom mode's included, now names accent-y at the same step, and the one on primary is untouched (${JSON.stringify(store.brandState.overrides)})`);
+  ok(build() === 'builds', `#3405 carry: after the rename, the brand still builds (${build()})`);
+  const lp = pathOf('light', ROLE) ?? '', dp = pathOf('dark', ROLE) ?? '';
+  ok(lp.includes('.palette.accent-y.') && dp.includes('.palette.accent-y.'),
+    `#3405 carry: the engine resolves ${ROLE} to accent-y in Light and Dark (${lp}, ${dp})`);
+  const pp = pathOf('promo', ROLE) ?? '';
+  ok(pp.includes('.palette.accent-y.'), `#3405 carry, custom mode: the engine resolves ${ROLE} to accent-y in promo (${pp})`);
+  ok(!P.renameBrandColor(i, 'primary') && same(store.brandState.overrides!.light, { [ROLE]: { palette: 'accent-y', step: '350' } }),
+    'a refused rename (a taken name) moves no override');
 }
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
