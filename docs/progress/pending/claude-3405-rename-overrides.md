@@ -9,7 +9,7 @@ When a designer renamed a brand color, an override written on that color kept th
 ### Fix
 
 - `cascadeRename` carries every override whose `palette` is the old name over to the new name, in every mode (custom modes included), and keeps its step: the ramp is the same one. It runs inside `renameBrandColor`, so the carry is part of the same state write as the rename. A refused rename (empty, unchanged, or taken) moves nothing.
-- Section 10 of `test-interactive-input.ts` is the issue's repro. It uses the prism3 brand, brand color `accent-x`, the primary border overridden to `accent-x 350` in Light and `accent-x 700` in Dark, and a third override on `primary` that must not move. It then renames to `accent-y`. The expected overrides are literals. "Still builds" and "resolves to accent-y" come from the engine's own `resolveAllModes`. Mutation: drop the carry, and `#3405 carry` fails by name, all three checks.
+- Section 10 of `test-interactive-input.ts` is the issue's repro. It uses the prism3 brand, brand color `accent-x`, the primary border overridden to `accent-x 350` in Light and `accent-x 700` in Dark, a third override on `primary` that must not move, and `accent-x 400` in a custom mode, `promo`, so the custom-mode carry is pinned (added after review). It then renames to `accent-y`. The expected overrides are literals. "Still builds" and "resolves to accent-y" come from the engine's own `resolveAllModes`. Mutation: drop the carry, and `#3405 carry` fails by name, all three checks. Restrict the carry to the built-in modes, and the custom-mode arms fail by name (72/76).
 - Removal still doesn't cascade overrides. That stays the owner's call (#3403's Q-block). A rename has an answer the removal lacks: the new name is the same ramp.
 
 ### Trap
