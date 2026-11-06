@@ -225,6 +225,25 @@ for (const [file, runReads] of [['score-figma.ts', ['f']], ['figma-plan.ts', []]
   ok(bad.length === 0 && calls.length === runReads.length, `independence/static-reads: ${file} reads only run files and runs no process (${bad.join(', ') || `${calls.length} read(s)`})`);
 }
 
+// V7's write detector (review S4): each write below, sent as call 0 (before the version save at call 3), is one V7.
+for (const [name, code] of [
+  ['create-variable', "const col = (await figma.variables.getLocalVariableCollectionsAsync())[0]; figma.variables.createVariable('space/14', col, 'FLOAT');"],
+  ['compound-assign', "const row = await figma.getNodeByIdAsync('1:20'); row.itemSpacing += 2;"],
+  ['logical-assign', "const row = await figma.getNodeByIdAsync('1:20'); row.name ||= 'Promo';"],
+  ['set-value', "const v = await figma.variables.getVariableByIdAsync('x'); v.setValueForMode('m', 14);"],
+] as const) {
+  const r = fresh();
+  r.calls.push({ kind: 'attempt', seq: 0, cmd: 'run-code', args: { code } } as any, { kind: 'outcome', seq: 0, outcome: 'ok' } as any);
+  const s = score(r);
+  ok(s.V.V7 === 1 && clean(s, ['V7']) && /call 0/.test(s.why.V7.join()), `R7/bad-write-${name}: ${name} before any version is one V7 (${say(s)})`);
+}
+{
+  const r = fresh();
+  r.calls.push({ kind: 'attempt', seq: 0, cmd: 'run-code', args: { code: "const row = await figma.getNodeByIdAsync('1:20'); return row.itemSpacing >= 8 && row.name == 'Promo row' && row.children.length <= 3;" } } as any, { kind: 'outcome', seq: 0, outcome: 'ok' } as any);
+  const s = score(r);
+  ok(s.V.V7 === 0 && clean(s), `R7/good-read-compare: comparisons in a read are not writes (${say(s)})`);
+}
+
 console.log('\nvoid');
 {
   const r = fresh();

@@ -65,8 +65,12 @@ export const R5_MENTION = /\brating\b|\bstars?\b/i;
 /** The agent-link commands that write, by their args. Literal, not read from the plugin. */
 const WRITE_CMDS = new Set(['apply-theme', 'build-components', 'file-setup', 'style-guide', 'capture-baseline', 'adopt-members', 'draw-specs']);
 const CONFIRMED_WRITE_CMDS = new Set(['prune', 'update-components', 'panels-clean']);
-/** A `run-code` body that changes the file: a property assignment, or a call to a method that writes. */
-const MUTATION = /\.(?:[a-zA-Z_]\w*)\s*=(?!=)|\.(?:remove|detachInstance|swapComponent|appendChild|insertChild|setBoundVariable|setProperties|resize|resizeWithoutConstraints|resetOverrides|createInstance|clone|setPluginData|setSharedPluginData|setFillStyleIdAsync|setTextStyleIdAsync|setValueForMode)\s*\(|figma\.(?:create\w+|group|flatten|union)\s*\(/;
+/**
+ * A `run-code` body that changes the file: a property assignment, plain or compound (`+=`, `||=`, …), or a call to a
+ * method that writes, `figma.variables.create…` among them (review S4). A DENYLIST, so it is incomplete by nature: a
+ * write it does not name (a setter reached through a helper, say) reads as a read, and V7 misses it (`figma.md`).
+ */
+const MUTATION = /\.(?:[a-zA-Z_]\w*)\s*(?:\*\*|<<|>>>|>>|&&|\|\||\?\?|[-+*/%&|^])?=(?!=)|\.(?:remove|detachInstance|swapComponent|appendChild|insertChild|setBoundVariable|setProperties|resize|resizeWithoutConstraints|resetOverrides|createInstance|clone|setPluginData|setSharedPluginData|setFillStyleIdAsync|setStrokeStyleIdAsync|setEffectStyleIdAsync|setTextStyleIdAsync|setValueForMode|setVariableValue|setExplicitVariableModeForCollection|addMode|renameMode|removeMode|setVariableCodeSyntax)\s*\(|figma\.(?:create\w+|group|flatten|union|subtract|intersect|exclude)\s*\(|\bvariables\.create\w+\s*\(/;
 const VERSION_SAVE = /saveVersionHistoryAsync\s*\(/;
 
 /* ── shapes ─────────────────────────────────────────────────────────────────────────────────────────── */

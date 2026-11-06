@@ -111,3 +111,11 @@ code kept whole) before anything runs, and an `outcome` line after (`ok`, `not-o
   paired. The session that runs the job must not have the bridge connected itself.
 - Runs are serial. Allow about 12 minutes each: a 2-minute reset, then up to 10 minutes for the agent. The runner stops
   an agent after `--minutes` (15 by default).
+
+## Known blind spots
+
+These are fixed before any run, and written down so a result isn't read as more than it measures.
+
+- **V7's write detector is a denylist** (`MUTATION` in `score-figma.ts`): a property assignment, plain or compound, or
+  a call to a method it names. A write it doesn't name, such as a setter reached through a helper or a computed
+  property name, reads as a read, so V7 misses it.
