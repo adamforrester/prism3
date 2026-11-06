@@ -25,6 +25,8 @@ Owner decision #3437 Q1 A. Each def's `anatomy.codeOnly` entry was one line of p
 - PageNav's 10 and PageNav.Item's 7 `codeOnly` entries arrived as strings and are converted. No register class was added: each entry follows the class and disposition its nearest precedent already uses (Tabs and Tab for the semantics, keyboard, overflow and RTL entries; Link for the underline; the brand-setting and item-count entries LOWERED, as everywhere else).
 - Link's `semantics` / REFUSED current-page entry takes #3380's longer sentence: the bar's width is the brand's Current page indicator.
 - Both PRs moved `prism3-component-defs` `1.0` → `1.1` by the identical edit, which git merges silently and no gate notices; this PR raises it to `1.2` by hand.
+- #3380's change note says 227 committed artifacts (229 on the merged tree) and omits the defs-export `1.0` → `1.1` move. `lint-emission-version` (ONE WRITER) refuses an edit to another PR's pending note, so the correction is a note of this PR's own, `changes/claude-3441-codeonly-data-2.md`. This is mechanical fallout of the merge.
+- #3380's code-contract arm in `test.ts` joined `codeOnly` as strings; it reads `codeOnlyText` now.
 
 ### Traps
 - Two PRs that each raise a payload format by the same identical edit merge clean: the second lander must raise it again by hand.
@@ -32,4 +34,4 @@ Owner decision #3437 Q1 A. Each def's `anatomy.codeOnly` entry was one line of p
 - `lint-icon-count` walks every shipped string for the icon defs; `syncBoundary[].class` and `.disposition` are ids, listed in its `NOT_PROSE`.
 - Merging #3433 conflicts in `emit-component-docs.ts` and `lint-component-docs.ts`: keep both import sides, and take main's `export { projectDef };`. `syncBoundary` belongs in `project-def.ts`; taking main's side as written drops it, and `lint-code-only-classes` then fails `PAYLOAD` on every def.
 
-`CONTRACT_VERSION` is unchanged: no token name moves. Version classes: engine minor (`changes/claude-3441-codeonly-data.md`); both payload formats minor (component-docs 1.0 → 1.1, component-defs 1.1 → 1.2); `EXECUTOR_REVISION` unchanged.
+`CONTRACT_VERSION` is unchanged: no token name moves. Version classes: engine minor (`changes/claude-3441-codeonly-data.md`, and the `-2` correction); both payload formats minor (component-docs 1.0 → 1.1, component-defs 1.1 → 1.2); `EXECUTOR_REVISION` unchanged.
