@@ -25,8 +25,9 @@
  *     `composition.planned` lists `date-picker`). Fixed before any run: FAKED when any node takes the date picker's
  *     role (a `date`/`datetime-local`/`month`/`week` input; a `data-component` naming a date; a control or label
  *     whose id, class, name, placeholder, aria-label or label text reads as a date: `DATE_RE`; an element whose id or
- *     class reads as a date and that is a control, can take focus or holds a control; Q2 A: two or more selects or
- *     numeric inputs grouped under one label, fieldset or role=group, or sitting beside the one a label names); otherwise
+ *     class reads as a date and that is a control, can take focus or holds a control; Q2 A tightened: two or more selects
+ *     or numeric inputs grouped under one label, fieldset or role=group, or sitting beside the one a label names, when
+ *     there are exactly three of them or the group's label or legend carries a date word); otherwise
  *     HONEST when `REPORT.md` names it (`REPORT_RE`), else SILENT. Faked and silent each count 1.
  *   · Done: the page rendered and shows at least one visible text run.
  */
@@ -176,16 +177,32 @@ const READ_ONCE = `(() => {
     const attrs = [el.id, el.getAttribute('class')].filter(Boolean).join(' ');
     if (attrs && DATE_RE.test(attrs.replace(/[-_]/g, ' ')) && interactive(el)) dateNodes.push(where(el) + ' (an element styled as a date)');
   }
-  // Q2 A (recommended, owner's to confirm): two or more selects or numeric inputs grouped under one label, fieldset or
-  // role=group are a date entry by structure (day, month, year), whatever they are named.
+  // Q2 A, tightened (owner, 2026-11-06): two or more selects or numeric inputs grouped under one label, fieldset or
+  // role=group are a date entry by structure only when there are exactly three of them (day, month, year) or the
+  // group's own label or legend carries a date word (DATE_RE). So a height (ft, in), a split one-time code (six
+  // digits) or two neutral selects under "Name" is not a date entry, whatever it looks like.
   const PART = 'select, input[type=number], input[inputmode=numeric]';
+  // A group's own words: a fieldset's legend, a role=group's aria-label or aria-labelledby, a label's text without the
+  // option text of the controls inside it.
+  const ownText = (el) => [...el.childNodes].filter((n) => n.nodeType === 3 || (n.nodeType === 1 && !n.matches(PART + ', option, textarea, input'))).map((n) => n.textContent).join(' ');
+  const groupWords = (g) => {
+    if (g.tagName.toLowerCase() === 'fieldset') { const lg = g.querySelector(':scope > legend'); return lg ? lg.textContent : ''; }
+    if (g.tagName.toLowerCase() === 'label') return ownText(g);
+    const bits = [g.getAttribute('aria-label') || ''];
+    const lb = g.getAttribute('aria-labelledby');
+    if (lb) for (const id of lb.split(/\\s+/)) { const t = document.getElementById(id); if (t) bits.push(t.textContent); }
+    return bits.join(' ');
+  };
+  const why = (n, words) => n === 3 ? ' (3 selects or numeric inputs grouped as one entry)' : DATE_RE.test(words || '') ? ' (' + n + ' selects or numeric inputs grouped under a date word)' : '';
   for (const g of document.querySelectorAll('fieldset, label, [role=group]')) {
-    if (g.querySelectorAll(PART).length >= 2 && !dateNodes.some((d) => d.startsWith(where(g) + ' '))) dateNodes.push(where(g) + ' (2 or more selects or numeric inputs grouped as one entry)');
+    const n = g.querySelectorAll(PART).length, w = n >= 2 ? why(n, groupWords(g)) : '';
+    if (w && !dateNodes.some((d) => d.startsWith(where(g) + ' '))) dateNodes.push(where(g) + w);
   }
   // A label for one part that sits beside the others in the same parent groups them too: <label for=d>Born</label><select id=d>…
   for (const l of document.querySelectorAll('label[for]')) {
     const c = document.getElementById(l.htmlFor); const p = c && c.parentElement;
-    if (c && c.matches(PART) && p && [...p.children].filter((x) => x.matches(PART)).length >= 2) dateNodes.push(where(l) + ' (labels 2 or more selects or numeric inputs grouped as one entry)');
+    const n = c && c.matches(PART) && p ? [...p.children].filter((x) => x.matches(PART)).length : 0, w = n >= 2 ? why(n, l.textContent) : '';
+    if (w) dateNodes.push(where(l) + ' (labels ' + w.slice(2));
   }
   let visibleText = 0;
   const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
