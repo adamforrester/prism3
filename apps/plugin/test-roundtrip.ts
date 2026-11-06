@@ -732,7 +732,7 @@ ok(inventory.length > 0 && inventory.some((i) => i.plans > 0), `the corpus produ
   // #3425 — THE COMPONENT-DEFS EXPORT'S BRAND MATERIALIZATION restates `materializerFor` too (`brandMaterializer`, the
   // engine must not import a surface). Held to it on every def for every example brand, for no brand, and for one brand
   // with every component setting off its default, so a lever added to one and not the other fails here by brand and def.
-  const offBrand = { ...(exampleBrands as Record<string, BrandInput>).prism3, id: 'off-defaults', controlShape: 'pill', fieldStyle: 'underline', searchFieldStyle: 'outline', tagStyle: 'underline', dialogTitleSize: 'small', bannerStyle: 'outlined', density: 'compact', buttonIcons: 'edges', buttonContentSize: 'smaller', buttonMinWidthMultiplier: 3, buttonLabelWeight: 'default', buttonTextHover: 'fill' } as BrandInput;
+  const offBrand = { ...(exampleBrands as Record<string, BrandInput>).prism3, id: 'off-defaults', controlShape: 'pill', fieldStyle: 'underline', searchFieldStyle: 'outline', tagStyle: 'underline', dialogTitleSize: 'small', bannerStyle: 'outlined', currentIndicator: 'full', density: 'compact', buttonIcons: 'edges', buttonContentSize: 'smaller', buttonMinWidthMultiplier: 3, buttonLabelWeight: 'default', buttonTextHover: 'fill' } as BrandInput;
   for (const [label, input] of [['no brand', null], ...Object.entries(exampleBrands as Record<string, BrandInput>), ['every setting off its default', offBrand]] as [string, BrandInput | null][]) {
     const engineSide = brandMaterializer(input);
     const pluginSide = materializerFor(input);

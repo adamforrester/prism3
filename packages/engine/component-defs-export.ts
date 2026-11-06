@@ -35,7 +35,7 @@
  */
 import type { ComponentDef } from './component-schema';
 import {
-  applyBannerStyle, applyButtonLayout, applyControlShape, applyDialogTitleSize, applyFieldStyle, applyMinWidthRatio, applyOutlineInteraction,
+  applyBannerStyle, applyButtonLayout, applyControlShape, applyCurrentIndicator, applyDialogTitleSize, applyFieldStyle, applyMinWidthRatio, applyOutlineInteraction,
   applySpacingDensity, applyTagStyle, applyWeightIntent, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY, fieldStyleFor,
 } from './anatomy-figma';
 import type { ButtonLayout, WeightAvailability } from './anatomy-figma';
@@ -63,6 +63,7 @@ export type ComponentSettings = {
   tagStyle: NonNullable<BrandInput['tagStyle']>;
   dialogTitleSize: NonNullable<BrandInput['dialogTitleSize']>;
   bannerStyle: NonNullable<BrandInput['bannerStyle']>;
+  currentIndicator: NonNullable<BrandInput['currentIndicator']>;
   density: Density;
   outlineInteraction: Theme['outlineInteraction'];
   weightAvailability: WeightAvailability;
@@ -93,6 +94,7 @@ const leversOf = (input: BrandInput | null): Levers => {
       tagStyle: input?.tagStyle ?? 'pill',
       dialogTitleSize: input?.dialogTitleSize ?? 'large',
       bannerStyle: input?.bannerStyle ?? 'tinted',
+      currentIndicator: input?.currentIndicator ?? 'partial',
       density: theme ? theme.dims.density : 'comfortable',
       outlineInteraction: theme ? theme.outlineInteraction : 'overlay-neutral',
       weightAvailability: theme ? weightAvailability(theme.typography) : DEFAULT_WEIGHT_AVAILABILITY,
@@ -114,7 +116,7 @@ export const brandMaterializer = (input: BrandInput | null): ((def: ComponentDef
   const { settings: s, sizes } = leversOf(input);
   const px = sizeRefPx(sizes);
   return (def) => applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def.id, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.weightAvailability), s.outlineInteraction), s.density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def.id, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.currentIndicator), s.weightAvailability), s.outlineInteraction), s.density),
     s.button, px), px);
 };
 
