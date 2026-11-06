@@ -15,4 +15,14 @@ holds the scorer, its self-test, the C0 and C1 packets and the orchestrator for 
 - **The trap the self-test caught.** A raw hex or `rgb()` value is also a contrast failure in the modes it doesn't
   follow, so the first R2 fixtures failed R4 too. Each bad fixture now plants its raw value where no contrast is
   measured, so every arm fails by one rule only.
+- **The arms differ in two things.** C0 is an exact prefix of C1, and C1 adds the skill and the line "Follow this
+  skill." that introduces it, so a difference measures the skill as framed by that line.
+- **Review fixes.** Contamination now reads tool calls only, never prose, so a C1 run is no longer voided for an
+  escaped packet or a mention of the `skills/prism3-rebind/…` path C0 never sees. Three static arms read the scorer's
+  source, because the read probe saw only `readPinned`. R5's report regex reads `dob`, `birthday` and `birth date`, and
+  only an interactive node can be called faked by its id or class.
+- **Owner's to confirm, built as their recommended A in revertible commits:** Q1, a substitute the report discloses
+  stays faked; Q2, two or more selects or numeric inputs grouped as one entry are faked.
+- **Known blind spots** are listed in the README: R2 skips negative lengths; R4 doesn't measure `div role=textbox`
+  fields or button boundaries, and doesn't composite partial opacity.
 - **Not in this PR:** the runs themselves, and the Figma surface.

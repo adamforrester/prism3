@@ -14,10 +14,16 @@
  * `independence/*` proves the scorer's oracle is `packages/engine/out/` and that scoring a run never opens `skills/`.
  * BY-NAME MUTATIONS (proven red in the PR): R1's token oracle pointed at `skills/prism3-build-ui/SKILL.md` →
  * `independence/oracle-paths`, `oracle/load` (16 assertions run: nothing can be scored without the oracle); `loadOracle`
- * made to read the skill as well → `independence/reads`; the `own` custom-property exemption dropped →
+ * made to read the skill with `readFileSync`, past `readPinned` (review M2b) → `independence/static-skills`,
+ * `independence/static-reads`; the probe made to match the whole transcript as free text →
+ * `contamination/json-u-escaped`, `contamination/prose-mention`; the element-styled-as-a-date branch made to skip its
+ * interactivity check, and a bare `data-component` counted as a control → `R5/note-with-date-class`,
+ * `R5/banner-with-date-id`; `REPORT_RE` set back to its first literal → `R5/report-dob`, `R5/report-birthday`,
+ * `R5/report-birth-date`, `R5/report-calendar-day`; the Q2 A grouping rule skipped → `R5/three-selects`,
+ * `R5/fieldset-numbers`; the `own` custom-property exemption dropped →
  * `R1/own-property`; the enum check dropped → `R1/bad-enum`; the `core` check dropped → `R2/bad-primitive`; the
  * large-text floor made 4.5 → `R4/large-text`; the date-input type check dropped → `R5/faked-input`; the record's
- * sha256 compare dropped → `record/stale-edit`. Every other arm stayed green, 42 assertions run.
+ * sha256 compare dropped → `record/stale-edit`. Every other arm stayed green, 60 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

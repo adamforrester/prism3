@@ -51,7 +51,8 @@ don't define them yourself. A typography token is a \`font\` shorthand, and a sh
 
 There is no component library to import. Build each component in plain HTML and CSS, and mark the element that
 renders it with \`data-component="<id>"\`, using the \`id\` from the component entries below. Write each prop you set
-as \`data-prop-<prop name>="<value>"\`.
+as \`data-prop-<prop name>="<value>"\`, with the prop name spelled as its entry spells it. For example, \`isPending\` is
+\`data-prop-isPending="true"\`, not \`data-prop-is-pending\`.
 
 ## What to send back
 
