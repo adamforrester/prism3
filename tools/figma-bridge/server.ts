@@ -6,7 +6,8 @@
  * adds nothing to it: it builds the command envelope, hands it to the plugin, and returns the plugin's
  * result envelope unchanged.
  *
- *   npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000] [--config <file>] [--rotate] [--pair]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS, PRISM3_BRIDGE_CONFIG)
+ *   npx tsx tools/figma-bridge/server.ts [--port 17331] [--grace-ms 120000] [--config <file>] [--rotate] [--pair] [--record <file>]   (or PRISM3_BRIDGE_PORT, PRISM3_BRIDGE_GRACE_MS, PRISM3_BRIDGE_CONFIG)
+ *   PRISM3_BRIDGE_ARM=0|1|2 picks what a fresh agent is shown, for the adherence test (#3440; unset is 2, today's bridge).
  *
  * TWO SIDES, ONE PROCESS:
  *   · stdio MCP (newline-delimited JSON-RPC, hand-rolled like `packages/engine/mcp.ts`, whose protocol
@@ -61,7 +62,7 @@ import { createServer } from 'node:http';
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
@@ -138,6 +139,50 @@ export const loadResources = (root = REPO_ROOT): Map<string, Loaded> => {
 
 /** Server capabilities, shared by `initialize` and `server/discover` so the two can never disagree. */
 export const CAPABILITIES = { tools: { listChanged: false }, resources: { listChanged: false } };
+
+/* ── the adherence test's arms (#3440, Q3440.3 A) ───────────────────────────────────────────────────── */
+
+/**
+ * WHAT A FRESH AGENT IS SHOWN, by arm, for the agent-adherence test (#3440 §2). `PRISM3_BRIDGE_ARM` picks one; unset is
+ * arm 2, today's bridge, so nothing changes for anyone who doesn't set it.
+ *   · 0 (F0) — the three tools and nothing else: no `instructions`, no `readFirst`, no resources capability, and
+ *     `figma_run context` refused here, before it reaches the plugin. `context` is also left out of the tools' command
+ *     list and `figma_status`'s `commands`, so the arm does not advertise what it refuses.
+ *   · 1 (F1) — arm 0 plus the note: `instructions` and `readFirst`. Still no resources and no `context`.
+ *   · 2 (F2) — the note, the five resources and `context`.
+ * `test-agent-bridge.ts` (`arm/…`) reads arm 0's and arm 1's bodies for sentinels it writes itself, never read from
+ * `BRIDGE_INSTRUCTIONS`.
+ */
+export type BridgeArm = 0 | 1 | 2;
+export const DEFAULT_ARM: BridgeArm = 2;
+/** `PRISM3_BRIDGE_ARM`'s value → an arm, or null for anything but `0`, `1` or `2` (the server then refuses to start). */
+export const parseArm = (v: string | undefined): BridgeArm | null => (v === undefined || v === '' ? DEFAULT_ARM : v === '0' ? 0 : v === '1' ? 1 : v === '2' ? 2 : null);
+/** The arm's view: whether it sends the note, serves the resources and answers `context`. */
+export const armView = (arm: BridgeArm) => ({ note: arm >= 1, resources: arm >= 2, context: arm >= 2 });
+/** The command the arms below 2 refuse at the bridge. */
+const CONTEXT_CMD = 'context';
+/** The refusal arms 0 and 1 answer `figma_run context` with: the protocol's own code for a command a build lacks. */
+export const ARM_REFUSAL = { code: 'unknown-command', message: 'context is not a command this bridge runs' } as const;
+
+/**
+ * ONE LINE PER `figma_run` CALL, for `--record <file>` (#3440 §3, V7 and refused attempts). Each call writes an
+ * `attempt` line before anything runs (so a call the bridge refuses, or one cut off by a crash, is still on record) and an
+ * `outcome` line when it ends, with the same `seq`. `args` are kept whole: `run-code`'s `code` is what V7 is scored from.
+ */
+export type RecordLine =
+  | { kind: 'attempt'; seq: number; at: string; arm: BridgeArm; cmd: unknown; args: unknown }
+  | { kind: 'outcome'; seq: number; at: string; outcome: 'refused-by-bridge' | 'tool-error' | 'ok' | 'not-ok'; error?: unknown };
+export const createRecorder = (write: (line: string) => void, now: () => Date = () => new Date()) => {
+  let seq = 0;
+  return {
+    attempt: (arm: BridgeArm, cmd: unknown, args: unknown): number => { seq += 1; write(JSON.stringify({ kind: 'attempt', seq, at: now().toISOString(), arm, cmd, args } satisfies RecordLine) + '\n'); return seq; },
+    outcome: (s: number, outcome: Extract<RecordLine, { kind: 'outcome' }>['outcome'], error?: unknown): void => {
+      write(JSON.stringify({ kind: 'outcome', seq: s, at: now().toISOString(), outcome, ...(error !== undefined ? { error } : {}) } satisfies RecordLine) + '\n');
+    },
+  };
+};
+export type Recorder = ReturnType<typeof createRecorder>;
+export type RpcOptions = { arm?: BridgeArm; record?: Recorder };
 
 /* ── RFC 6455 framing ───────────────────────────────────────────────────────────────────────────────── */
 
@@ -629,30 +674,53 @@ export const createProgressCounter = () => {
   };
 };
 
+/** The tools an arm lists: arm 2 is `TOOLS` itself; below it `context` is left out of `figma_run`'s command list. */
+export const toolsFor = (arm: BridgeArm) => {
+  if (armView(arm).context) return TOOLS;
+  const cmds = AGENT_COMMANDS.filter((c) => c !== CONTEXT_CMD);
+  return TOOLS.map((t) => t.name !== 'figma_run' ? t : {
+    ...t,
+    description: t.description.replace(`Commands: ${AGENT_COMMANDS.join(', ')}.`, `Commands: ${cmds.join(', ')}.`),
+    inputSchema: { ...t.inputSchema, properties: { ...t.inputSchema.properties, cmd: { type: 'string', enum: [...cmds] } } },
+  });
+};
+
 const text = (v: unknown, isError = false) => ({ content: [{ type: 'text', text: JSON.stringify(v, null, 2) }], structuredContent: v, ...(isError ? { isError: true } : {}) });
 
 /**
  * Handle one JSON-RPC message; `notify` sends a server notification (progress / log lines during a run).
  * Returns null for a notification, which gets no reply.
  */
-export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: string, params: unknown) => void): Promise<RpcOut | null> => {
+export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: string, params: unknown) => void, opts: RpcOptions = {}): Promise<RpcOut | null> => {
   const id = req.id ?? null;
+  const arm = opts.arm ?? DEFAULT_ARM;
+  const view = armView(arm);
+  const caps = view.resources ? CAPABILITIES : { tools: CAPABILITIES.tools };
+  const note = view.note ? { instructions: BRIDGE_INSTRUCTIONS } : {};
   const ok = (result: Record<string, unknown>): RpcOut => ({ jsonrpc: '2.0', id, result: { resultType: 'complete', ...result, _meta: { [META.serverInfo]: SERVER_INFO } } });
   const err = (code: number, message: string): RpcOut => ({ jsonrpc: '2.0', id, error: { code, message } });
   switch (req.method) {
     case 'server/discover':
-      return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: CAPABILITIES, serverInfo: SERVER_INFO, instructions: BRIDGE_INSTRUCTIONS });
+      return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: caps, serverInfo: SERVER_INFO, ...note });
     // The engine server's rule, imported rather than copied: a copy here kept the old fallback after
     // #1867 fixed it there, and Claude Code refused the bridge's `2026-07-28` answer (#3109).
     case 'initialize':
-      return ok({ protocolVersion: negotiateHandshakeVersion(req.params?.protocolVersion), capabilities: CAPABILITIES, serverInfo: SERVER_INFO, instructions: BRIDGE_INSTRUCTIONS });
+      return ok({ protocolVersion: negotiateHandshakeVersion(req.params?.protocolVersion), capabilities: caps, serverInfo: SERVER_INFO, ...note });
     case 'notifications/initialized':
     case 'initialized':
       return null;
     case 'ping':
       return ok({});
     case 'tools/list':
-      return ok({ tools: TOOLS, ttlMs: 3_600_000, cacheScope: 'public' });
+      return ok({ tools: toolsFor(arm), ttlMs: 3_600_000, cacheScope: 'public' });
+    // An arm below 2 has no resources capability, so these are methods it does not have (#3440).
+    case 'resources/list':
+    case 'resources/templates/list':
+    case 'resources/read':
+      if (!view.resources) return err(-32601, `method not found: ${req.method}`);
+      break;
+  }
+  switch (req.method) {
     case 'resources/list':
       return ok({ resources: RESOURCES.map(({ uri, name, description, mimeType }) => ({ uri, name, description, mimeType })) });
     case 'resources/templates/list':
@@ -672,12 +740,18 @@ export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: strin
     case 'tools/call': {
       const name = req.params?.name;
       const a = (req.params?.arguments ?? {}) as Record<string, unknown>;
-      if (name === 'figma_status') return ok(text({ ...bridge.status(), readFirst: BRIDGE_INSTRUCTIONS }));
+      if (name === 'figma_status') {
+        const st = bridge.status();
+        return ok(text({ ...st, commands: view.context ? st.commands : st.commands.filter((c) => c !== CONTEXT_CMD), ...(view.note ? { readFirst: BRIDGE_INSTRUCTIONS } : {}) }));
+      }
       if (name === 'figma_logs') {
         return ok(text(bridge.logs(typeof a.since === 'number' ? a.since : 0, typeof a.limit === 'number' ? a.limit : 200)));
       }
       if (name === 'figma_run') {
-        if (typeof a.cmd !== 'string') return ok(text({ error: 'figma_run needs cmd' }, true));
+        const seq = opts.record?.attempt(arm, a.cmd, a.args ?? {});
+        const done = (outcome: Extract<RecordLine, { kind: 'outcome' }>['outcome'], error?: unknown) => { if (seq !== undefined) opts.record!.outcome(seq, outcome, error); };
+        if (typeof a.cmd !== 'string') { done('refused-by-bridge', 'figma_run needs cmd'); return ok(text({ error: 'figma_run needs cmd' }, true)); }
+        if (a.cmd === CONTEXT_CMD && !view.context) { done('refused-by-bridge', ARM_REFUSAL); return ok(text({ error: ARM_REFUSAL }, true)); }
         const timeoutMs = typeof a.timeoutMs === 'number' && a.timeoutMs > 0 ? Math.min(a.timeoutMs, 3_600_000) : 600_000;
         const token = req.params?._meta?.progressToken;
         const progress = createProgressCounter();
@@ -687,8 +761,11 @@ export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: strin
             onLog: (line) => notify('notifications/message', { level: 'info', logger: 'figma', data: line }),
           });
           // A result that arrived is the tool working — `ok: false` inside it is the action's own verdict.
+          const env = r as { ok?: unknown; error?: unknown };
+          done(env.ok === false ? 'not-ok' : 'ok', env.ok === false ? env.error : undefined);
           return ok(text(r));
         } catch (e) {
+          done('tool-error', (e as Error).message);
           return ok(text({ error: (e as Error).message }, true));
         }
       }
@@ -719,6 +796,13 @@ if (isMain) {
     process.exit(1);
   }
   if (loaded.created) say(`a new pairing secret is in ${configPath}${argv.includes('--rotate') ? ': every paired plugin asks for a code again' : ''}`);
+  const arm = parseArm(process.env.PRISM3_BRIDGE_ARM);
+  if (arm === null) { say(`bad PRISM3_BRIDGE_ARM ${process.env.PRISM3_BRIDGE_ARM}: 0, 1 or 2`); process.exit(2); }
+  // --record <file>: one JSON line per figma_run attempt and outcome (#3440). Appended, so a restart keeps the earlier lines.
+  const rec = argv.indexOf('--record');
+  const recordPath = rec >= 0 ? argv[rec + 1] : undefined;
+  if (rec >= 0 && (!recordPath || recordPath.startsWith('--'))) { say('--record needs a file'); process.exit(2); }
+  const record = recordPath ? createRecorder((line) => appendFileSync(resolve(recordPath), line)) : undefined;
   const pairing = createPairing(loaded.secret, say);
   if (argv.includes('--pair')) pairing.request();
   const bridge = createBridge({ graceMs, pairing });
@@ -742,11 +826,11 @@ if (isMain) {
       let req: Rpc;
       try { req = JSON.parse(line); } catch { send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'parse error' } }); continue; }
       // Each request is answered when it finishes; a long figma_run does not block figma_status.
-      void handleRpc(req, bridge, notify)
+      void handleRpc(req, bridge, notify, { arm, record })
         .then((res) => { if (res) send(res); })
         .catch((e) => send({ jsonrpc: '2.0', id: req.id ?? null, error: { code: -32603, message: `internal error: ${(e as Error).message}` } }));
     }
   });
   process.stdin.on('end', () => { void bound.close().then(() => process.exit(0)); });
-  process.stderr.write(`[figma-bridge] listening on localhost:${bound.port} — MCP on stdio — tools: ${TOOLS.map((t) => t.name).join(', ')}\n`);
+  process.stderr.write(`[figma-bridge] listening on localhost:${bound.port} — MCP on stdio — tools: ${TOOLS.map((t) => t.name).join(', ')}${arm === DEFAULT_ARM ? '' : ` — arm ${arm}`}${recordPath ? ` — recording to ${recordPath}` : ''}\n`);
 }
