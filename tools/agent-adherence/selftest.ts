@@ -149,11 +149,25 @@ console.log('\ncapture, record and contamination — orchestrate.ts');
   ok(!c('dirty').ok && (c('dirty') as any).status === 'void', 'record/void: a contaminated run is void');
   ok(!c('absent').ok && (c('absent') as any).status === 'missing', 'record/missing: a run with no output is missing');
 
-  const packet = 'PACKET TEXT naming skills/prism3-build-ui and CLAUDE.md';
-  ok(probeContamination(`${packet}\nassistant: here is the card`, packet).length === 0, 'contamination/clean: the packet\'s own words do not void a run');
-  ok(probeContamination(`${packet}\n{"type":"tool_use","name":"Skill","input":{"skill":"prism3-build-ui"}}`, packet).some((x) => x.includes('prism3-')), 'contamination/skill: a prism3 skill call voids the run');
-  ok(probeContamination(`${packet}\nRead /home/user/repo/CLAUDE.md`, packet).some((x) => x.includes('CLAUDE.md')), 'contamination/claude-md: a CLAUDE.md read voids the run');
-  ok(probeContamination(`${packet}\nfetch https://github.com/adamforrester/prism3/blob/main/x`, packet).some((x) => x.includes('repository')), 'contamination/fetch: a fetch of the repository voids the run');
+  // Contamination reads TOOL CALLS only (review S1). The real C1 packet names skills/prism3-rebind/… and holds non-ASCII.
+  const packet = readFileSync(resolve(HERE, 'packets/C1.md'), 'utf8');
+  ok(/skills\/prism3-rebind\//.test(packet) && /[^\x00-\x7f]/.test(packet), 'contamination/fixture: the C1 packet names a skills/prism3- path and holds non-ASCII text');
+  /** Python's `json.dumps` default: every non-ASCII character as `\uXXXX`. */
+  const pyJson = (v: unknown) => JSON.stringify(v).replace(/[\u007f-\uffff]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`);
+  const ev = (role: string, content: unknown) => ({ type: role, message: { role, content } });
+  const prose = 'The skill lists skills/prism3-rebind/consistency-audit.js and /prism3-rebind; I did not open either, and read no CLAUDE.md.';
+  const cleanJsonl = [ev('user', packet), ev('assistant', [{ type: 'text', text: prose }])].map(pyJson).join('\n');
+  ok(cleanJsonl.includes('\\u2014') && probeContamination(cleanJsonl, packet).length === 0,
+    `contamination/json-u-escaped: a \\uXXXX-escaped JSON transcript of a clean C1 run is not void (${probeContamination(cleanJsonl, packet).join('; ') || 'clean'})`);
+  const proseText = `${packet}\nassistant: ${prose}\nassistant: here is the card`;
+  ok(probeContamination(proseText, packet).length === 0,
+    `contamination/prose-mention: a path named in prose, not a tool call, does not void a run (${probeContamination(proseText, packet).join('; ') || 'clean'})`);
+  const call = (name: string, input: unknown) => pyJson(ev('assistant', [{ type: 'tool_use', id: 't1', name, input }]));
+  ok(probeContamination(`${cleanJsonl}\n${call('Skill', { skill: 'prism3-build-ui' })}`, packet).includes('a prism3- skill was loaded'), 'contamination/skill: a prism3 Skill call voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('Read', { file_path: '/home/user/repo/skills/prism3-build-ui/SKILL.md' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/read-skill: a Read of skills/prism3-* voids the run, \\uXXXX-escaped JSON too');
+  ok(probeContamination(`${proseText}\n⏺ Read(/home/user/repo/CLAUDE.md)`, packet).includes('a CLAUDE.md appears'), 'contamination/claude-md: a CLAUDE.md Read, as a text transcript prints it, voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('WebFetch', { url: 'https://github.com/adamforrester/prism3/blob/main/x', prompt: 'read' })}`, packet).includes('a fetch of the repository'), 'contamination/fetch: a WebFetch of the repository voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/bash: a Bash input naming CLAUDE.md voids the run');
   ok(median([3, 1, 2]) === 2 && median([4, 1, 2, 3]) === 2.5 && median([]) === null, 'median: odd, even and empty');
 }
 

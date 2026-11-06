@@ -17,9 +17,11 @@
  * and `=== END FILE ===` on lines of their own. The last block for each name wins. A code fence just inside the markers
  * is dropped. A run whose final message lacks either file is recorded as captured with that file missing.
  *
- * CONTAMINATION (proposal §2, "checked on every run rather than assumed"): `capture` voids a run whose transcript, with
- * the packet's own text removed, shows a prism3 skill call, a CLAUDE.md, a read of `skills/prism3-*` or a fetch of the
- * repository. A void run is recorded, reported, and never scored.
+ * CONTAMINATION (proposal §2, "checked on every run rather than assumed"): `capture` voids a run whose transcript shows
+ * a TOOL CALL that loads a prism3 skill (`Skill`), or a `Read` / `WebFetch` / `Bash` whose input names a CLAUDE.md,
+ * `skills/prism3-*` or the repository. Prose is never matched: the C1 packet itself names `skills/prism3-rebind/…`, so
+ * a free-text match voided C1 runs that C0 runs could not reach (review S1, selection bias). A void run is recorded,
+ * reported, and never scored.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -41,18 +43,58 @@ export const extractFiles = (message: string): Record<string, string> => {
   return out;
 };
 
-/** Literals, fixed before any run. Each names what it found, so a void says why. */
+/** Literals, fixed before any run. Each names what it found, so a void says why. Matched against TOOL-CALL INPUTS only. */
 const CONTAMINATION: [RegExp, string][] = [
-  [/"skill"\s*:\s*"prism3-|Skill\(\s*prism3-|\/prism3-(?:build-ui|theme|rebind|build-component)\b/i, 'a prism3- skill was loaded'],
   [/CLAUDE\.md/, 'a CLAUDE.md appears'],
   [/skills\/prism3-/, 'a read of skills/prism3-*'],
   [/github\.com\/adamforrester\/prism3|raw\.githubusercontent\.com\/adamforrester\/prism3|api\.github\.com\/repos\/adamforrester\/prism3/i, 'a fetch of the repository'],
 ];
+/** The tools whose input can reach the repo, a CLAUDE.md or a skill file. A `Skill` call is judged by its skill name. */
+const READ_TOOLS = ['Read', 'WebFetch', 'Bash'];
+const SKILL_RE = /prism3-/i;
+
+/** One tool call, however the transcript spells it: its tool name and its input as text. */
+type ToolCall = { name: string; input: string };
+/**
+ * The tool calls in a transcript, and nothing else: prose (the packet, the agent's reasoning, its final message) is never
+ * read, so an agent that only MENTIONS `skills/prism3-rebind/…` (as the C1 packet does) is not void (review S1).
+ *   · JSON: the whole file, or one event per line (JSONL). Every object with `type: "tool_use"`, a `name` and an `input`,
+ *     at any depth. Parsing undoes every escape spelling (`\uXXXX` included), so no spelling of the packet matters.
+ *   · Text: a line that starts (after bullets or symbols) with `Skill(`, `Read(`, `WebFetch(` or `Bash(` and ends at
+ *     its closing `)`, as a terminal transcript prints a call. A sentence that names a tool mid-line is prose.
+ */
+export const toolCalls = (transcript: string): ToolCall[] => {
+  const calls: ToolCall[] = [];
+  const walk = (n: unknown): void => {
+    if (Array.isArray(n)) { for (const x of n) walk(x); return; }
+    if (!n || typeof n !== 'object') return;
+    const o = n as Record<string, unknown>;
+    if (o.type === 'tool_use' && typeof o.name === 'string' && o.input !== undefined)
+      calls.push({ name: o.name, input: typeof o.input === 'string' ? o.input : JSON.stringify(o.input) });
+    for (const v of Object.values(o)) walk(v);
+  };
+  const json = (s: string): unknown => { try { return JSON.parse(s); } catch { return undefined; } };
+  const whole = json(transcript);
+  if (whole !== undefined && typeof whole === 'object') { walk(whole); return calls; }
+  for (const line of transcript.split('\n')) {
+    const ev = line.trim().startsWith('{') ? json(line) : undefined;
+    if (ev !== undefined) { walk(ev); continue; }
+    const m = /^[^\p{L}\p{N}]*(Skill|Read|WebFetch|Bash)\((.*)\)\s*$/u.exec(line);
+    if (m) calls.push({ name: m[1], input: m[2] });
+  }
+  return calls;
+};
+
 export const probeContamination = (transcript: string, packet: string): string[] => {
-  const rest = transcript.split(packet).join(' ');
-  // A JSON transcript escapes the packet's newlines and quotes, so remove that spelling of it too.
-  const restJson = rest.split(JSON.stringify(packet).slice(1, -1)).join(' ');
-  return CONTAMINATION.filter(([re]) => re.test(restJson)).map(([, why]) => why);
+  const found = new Set<string>();
+  for (const c of toolCalls(transcript)) {
+    // A tool input that quotes the packet (a heredoc of it, say) is not a read of what the packet names.
+    const input = c.input.split(packet).join(' ').split(JSON.stringify(packet).slice(1, -1)).join(' ');
+    if (c.name === 'Skill') { if (SKILL_RE.test(input)) found.add('a prism3- skill was loaded'); continue; }
+    if (!READ_TOOLS.includes(c.name)) continue;
+    for (const [re, why] of CONTAMINATION) if (re.test(input)) found.add(why);
+  }
+  return [...found];
 };
 
 const plan = (dir: string, n: number) => {
