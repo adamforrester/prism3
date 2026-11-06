@@ -74,25 +74,79 @@ console.log('\nindependence — the scorer never reads the skill (docs/34)');
 ok(ORACLE_PATHS.length > 0 && ORACLE_PATHS.every((p) => p.startsWith('packages/engine/out/')) && !ORACLE_PATHS.some((p) => p.includes('skills/')),
   `independence/oracle-paths: every oracle file is under packages/engine/out/ (${TOKEN_TREE})`);
 
-// Static (review S2, docs/34 corollary 2): `independence/reads` sees only reads that go through `readPinned`. These read
-// score-code.ts's own SOURCE, so a read that bypasses the instrumented path is caught too.
+// Static (review S2 and S2′, docs/34 corollary 2): `independence/reads` sees only reads that go through `readPinned`.
+// These read the SOURCE of score-code.ts and of every local module it imports, at any depth, so a read that bypasses the
+// instrumented path is caught one module over too (S2′: M2c, a skill read in oracle.ts that `loadOracle` uses). Each
+// module scanned has its own policy; a local module with none fails `independence/static-modules`, so a new helper file
+// can't reopen the gap. The score-code.ts arms keep their names; each other module's arms carry its name.
 {
-  const SRC = readFileSync(resolve(HERE, 'score-code.ts'), 'utf8');
-  const skillHits = [...SRC.matchAll(/skills[/\\]|SKILL\.md|\bSKILL\b|PACKET_PATHS|'packet'/g)].map((m) => m[0]);
-  ok(skillHits.length === 0, `independence/static-skills: score-code.ts names no skills path, SKILL, PACKET_PATHS or packet read (${skillHits.join(', ') || 'none'})`);
-  const ALLOWED_MODULES = ['./oracle', '@prism3/engine/color', 'playwright'];
-  const specs = [...SRC.matchAll(/\bfrom\s+['"]([^'"]+)['"]|\bimport\s*\(\s*['"`]?([^'"`)]*)|\brequire\s*\(\s*['"`]?([^'"`)]*)['"`]?\s*\)|^\s*import\s+['"]([^'"]+)['"]|createRequire\([^)]*\)\s*\(\s*['"`]?([^'"`)]*)/gm)]
-    .map((m) => m[1] ?? m[2] ?? m[3] ?? m[4] ?? m[5]);
-  const badSpecs = specs.filter((x) => !(ALLOWED_MODULES.includes(x) || x.startsWith('node:')));
-  ok(specs.length > 0 && badSpecs.length === 0, `independence/static-imports: score-code.ts imports only ./oracle, @prism3/engine/color, node:* and playwright (${badSpecs.join(', ') || `${specs.length} imports`})`);
-  // Every file read is a run's output, by the expression that reads it; anything else (and any exec) fails by name.
-  const RUN_READS = ['recPath', 'p', "resolve(dir, 'plan.json')", "resolve(out, 'index.html')", "resolve(out, 'REPORT.md')"];
-  const arg = (at: number): string => { let d = 0, i = at; for (; i < SRC.length; i++) { if (SRC[i] === '(') d++; else if (SRC[i] === ')') { if (d === 0) break; d--; } else if (SRC[i] === ',' && d === 0) break; } return SRC.slice(at, i).trim(); };
-  // `.exec(` alone is RegExp#exec; every other spelling counts, called bare or as a method (`cp.execFileSync(`).
-  const calls = [...SRC.matchAll(/\b(readFileSync|readFile|createReadStream|openSync|execFileSync|execSync|execFile|exec|spawnSync|spawn|fork)\s*\(/g)]
-    .filter((m) => !(m[1] === 'exec' && SRC[m.index! - 1] === '.'));
-  const badCalls = calls.map((m) => ({ fn: m[1], a: arg(m.index! + m[0].length) })).filter((c) => c.fn !== 'readFileSync' || !RUN_READS.includes(c.a)).map((c) => `${c.fn}(${c.a})`);
-  ok(calls.length > 0 && badCalls.length === 0, `independence/static-reads: score-code.ts reads only run outputs and runs no process (${badCalls.join(', ') || `${calls.length} reads`})`);
+  type Policy = {
+    /** Module specifiers it may import, besides `node:*`. */
+    modules: string[];
+    /** Whole trimmed lines on which a skills or packet name is the module's own business: oracle.ts declares the
+     *  packet's inputs for `packets.ts` (`SKILL`, `PACKET_PATHS`), pins them, and takes `readPinned`'s `'packet'` kind. */
+    skillLines: string[];
+    /** Comment-only lines may name a skills path (oracle.ts's header says why it never reads one). */
+    commentsExempt: boolean;
+    /** Each allowed read or exec: the call's whole argument text must start with one of these. */
+    calls: Record<string, string[]>;
+  };
+  const POLICY: Record<string, Policy> = {
+    'score-code.ts': {
+      modules: ['./oracle', '@prism3/engine/color', 'playwright'],
+      skillLines: [],
+      commentsExempt: false,
+      calls: { readFileSync: ['recPath)', 'recPath,', 'p)', 'p,', "resolve(dir, 'plan.json'),", "resolve(out, 'index.html'),", "resolve(out, 'REPORT.md'),"] },
+    },
+    'oracle.ts': {
+      modules: [],
+      skillLines: [
+        "export const SKILL = 'skills/prism3-build-ui/SKILL.md';",
+        'export const PACKET_PATHS = [TOKEN_TREE, COMPONENTS, SKILL];',
+        "export const readPinned = (path: string, kind: 'oracle' | 'packet' = 'oracle', pin: Pin = loadPin()): string => {",
+        'const pin: Pin = { commit: full, oracle: rec(ORACLE_PATHS), packet: rec(PACKET_PATHS) };',
+      ],
+      commentsExempt: true,
+      calls: { readFileSync: ['PIN_FILE,'], execFileSync: ["'git', ['show',", "'git', ['rev-parse',"] },
+    },
+  };
+  const SPEC_RE = /\bfrom\s+['"]([^'"]+)['"]|\bimport\s*\(\s*['"`]?([^'"`)]*)|\brequire\s*\(\s*['"`]?([^'"`)]*)['"`]?\s*\)|^\s*import\s+['"]([^'"]+)['"]|createRequire\([^)]*\)\s*\(\s*['"`]?([^'"`)]*)/gm;
+  const specsOf = (src: string): string[] => [...src.matchAll(SPEC_RE)].map((m) => m[1] ?? m[2] ?? m[3] ?? m[4] ?? m[5]);
+  // Every local module the scorer reaches, from score-code.ts, by its import specifiers.
+  const scanned: string[] = [];
+  const queue = ['score-code.ts'];
+  while (queue.length) {
+    const f = queue.shift()!;
+    if (scanned.includes(f)) continue;
+    scanned.push(f);
+    for (const x of specsOf(readFileSync(resolve(HERE, f), 'utf8'))) if (x.startsWith('.')) queue.push(`${x.replace(/^\.\//, '').replace(/\.(ts|js|mjs)$/, '')}.ts`);
+  }
+  const unlisted = scanned.filter((f) => !POLICY[f]);
+  ok(scanned.includes('oracle.ts') && unlisted.length === 0,
+    `independence/static-modules: every local module the scorer imports has a static policy (${unlisted.join(', ') || scanned.join(', ')})`);
+
+  for (const f of scanned.filter((x) => POLICY[x])) {
+    const pol = POLICY[f];
+    const SRC = readFileSync(resolve(HERE, f), 'utf8');
+    const tag = f === 'score-code.ts' ? '' : `-${f.replace(/\.ts$/, '')}`;
+    const lineAt = (i: number): string => SRC.slice(SRC.lastIndexOf('\n', i) + 1, (SRC.indexOf('\n', i) + 1 || SRC.length + 1) - 1).trim();
+    const isComment = (l: string): boolean => l.startsWith('*') || l.startsWith('//') || (l.startsWith('/**') && (!l.includes('*/') || l.endsWith('*/')));
+    const skillHits = [...SRC.matchAll(/skills[/\\]|SKILL\.md|\bSKILL\b|PACKET_PATHS|'packet'/g)]
+      .filter((m) => { const l = lineAt(m.index!); return !pol.skillLines.includes(l) && !(pol.commentsExempt && isComment(l)); })
+      .map((m) => m[0]);
+    ok(skillHits.length === 0, `independence/static-skills${tag}: ${f} names no skills path, SKILL, PACKET_PATHS or packet read outside its own declarations (${skillHits.join(', ') || 'none'})`);
+    const specs = specsOf(SRC);
+    const badSpecs = specs.filter((x) => !(pol.modules.includes(x) || x.startsWith('node:')));
+    ok(specs.length > 0 && badSpecs.length === 0, `independence/static-imports${tag}: ${f} imports only ${[...pol.modules, 'node:*'].join(', ')} (${badSpecs.join(', ') || `${specs.length} imports`})`);
+    // Every file read and every process run, by its whole argument text; anything else fails by name.
+    const args = (at: number): string => { let d = 0, i = at; for (; i < SRC.length; i++) { if ('([{'.includes(SRC[i])) d++; else if (')]}'.includes(SRC[i])) { if (d === 0) break; d--; } } return SRC.slice(at, i + 1).replace(/\s+/g, ' ').trim(); };
+    // `.exec(` alone is RegExp#exec; every other spelling counts, called bare or as a method (`cp.execFileSync(`).
+    const calls = [...SRC.matchAll(/\b(readFileSync|readFile|createReadStream|openSync|execFileSync|execSync|execFile|exec|spawnSync|spawn|fork)\s*\(/g)]
+      .filter((m) => !(m[1] === 'exec' && SRC[m.index! - 1] === '.'));
+    const badCalls = calls.map((m) => ({ fn: m[1], a: args(m.index! + m[0].length) }))
+      .filter((c) => !(pol.calls[c.fn] ?? []).some((pre) => c.a.startsWith(pre))).map((c) => `${c.fn}(${c.a}`);
+    ok(calls.length > 0 && badCalls.length === 0, `independence/static-reads${tag}: ${f} reads ${f === 'score-code.ts' ? 'only run outputs and runs no process' : 'only its pin and runs only git show / git rev-parse'} (${badCalls.join(', ') || `${calls.length} calls`})`);
+  }
 }
 
 if (o) {
