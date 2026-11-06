@@ -291,5 +291,37 @@ console.log('\n9. #3391: an override is labeled by the palette it names, and rem
   ok(invLabel === 'Override · brand-neutral 350', `#3391 label, inverse fill: the override reads by the palette it names, "Override · brand-neutral 350" (got "${invLabel}")`);
 }
 
+console.log('\n10. #3405: renaming a brand color carries every override that names it, and the brand still builds');
+{
+  // THE FIXTURE is the issue's repro: the prism3 brand, a brand color `accent-x`, and the primary border overridden to
+  // `accent-x 350` in Light. Dark holds a second override on it and a third that names primary, which must not move.
+  // The ORACLE for "still builds" and "the palette it names" is the engine's own `resolveAllModes`, never the module.
+  const ROLE = 'interactive.primary.border.rest', TEXT = 'interactive.primary.text.rest';
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'accent-x', oklch: { l: 0.55, c: 0.15, h: 235 } });
+  store.rebuild();
+  store.brandState.overrides = {
+    light: { [ROLE]: { palette: 'accent-x', step: '350' } },
+    dark: { [ROLE]: { palette: 'accent-x', step: '700' }, [TEXT]: { palette: 'primary', step: '700' } },
+  };
+  const build = (): string => { try { resolveAllModes(brandTheme(structuredClone(store.brandState))); return 'builds'; } catch (e) { return `REFUSED: ${(e as Error).message}`; } };
+  const pathOf = (mode: string, role: string): string | undefined => {
+    try { return (resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === mode)?.roles as Record<string, { path?: string } | undefined>)?.[role]?.path; } catch { return undefined; }
+  };
+  ok(build() === 'builds', `premise: before the rename, the brand builds (${build()})`);
+  const i = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-x');
+  ok(P.renameBrandColor(i, 'accent-y'), 'the rename is taken');
+  ok(same(store.brandState.overrides, {
+    light: { [ROLE]: { palette: 'accent-y', step: '350' } },
+    dark: { [ROLE]: { palette: 'accent-y', step: '700' }, [TEXT]: { palette: 'primary', step: '700' } },
+  }), `#3405 carry: both overrides on accent-x now name accent-y at the same step, and the one on primary is untouched (${JSON.stringify(store.brandState.overrides)})`);
+  ok(build() === 'builds', `#3405 carry: after the rename, the brand still builds (${build()})`);
+  const lp = pathOf('light', ROLE) ?? '', dp = pathOf('dark', ROLE) ?? '';
+  ok(lp.includes('.palette.accent-y.') && dp.includes('.palette.accent-y.'),
+    `#3405 carry: the engine resolves ${ROLE} to accent-y in Light and Dark (${lp}, ${dp})`);
+  ok(!P.renameBrandColor(i, 'primary') && same(store.brandState.overrides!.light, { [ROLE]: { palette: 'accent-y', step: '350' } }),
+    'a refused rename (a taken name) moves no override');
+}
+
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
 if (failed) process.exit(1);

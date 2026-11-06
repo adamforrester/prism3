@@ -66,6 +66,11 @@ export const cascadeRename = (prev: string, next: string): void => {
   if (rc) for (const r of Object.keys(rc)) if (rc[r] === prev) rc[r] = next;
   brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
   if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === prev) s.palette = next; }));
+  // An override that names the palette follows too (#3405), in every mode, custom modes included: left on the old
+  // name it dangles, and the engine refuses the brand ("unknown palette"). Its step is kept: the ramp is the same one.
+  for (const m of Object.values(brandState.overrides ?? {})) {
+    for (const ref of Object.values(m ?? {})) if ((ref as { palette?: string } | undefined)?.palette === prev) (ref as { palette: string }).palette = next;
+  }
 };
 /** …and when one is removed, every field that named it falls back (actions to primary, links to their
  *  default, a borrow to Auto, a column away, a gradient stop to primary, since a gradient needs its stops). */
