@@ -26,6 +26,8 @@
  *   · `main.ts`'s `acted` built without `held` (each acted set recorded as current) → `main/kept listed`,
  *     `main/held recorded`;
  *   · `main.ts`'s `update-sets` dropping the per-set choices (`sets`) → `main/overwrite chosen`;
+ *   · `ledgerAfter` keeping only this run's `held`, as before #3436 (a second Keep run records the set current) →
+ *     `main/held survives a second Keep`, `main/kept after a second Keep`;
  *   · `ledgerAfter` recording a set the apply stopped inside (#3424) → `main/stopped stays due`.
  */
 import { makeShim } from './component-shim';
@@ -222,6 +224,21 @@ ok(!!held && held.members === 12 && ['rest', 'hover', 'pressed'].every((st) => h
 const f1 = await send({ type: 'file-sets-request' }, ['file-sets']);
 ok(JSON.stringify(stateOf(f1)) === '{"radio-control":"kept","tag":"current"}',
   `main/kept listed: after the run main.ts reads tag current and radio-control kept, nothing due (${JSON.stringify(stateOf(f1))})`);
+
+// 4b. #3436 — A SECOND KEEP RUN: radio-control checked and updated again under the default Keep, no per-set choice, as an
+// agent's `update-components` or a later run's default sends it. The first run stamped its members with today's plan,
+// so this dry run reads no conflict, yet the designer's rings still keep the indicator binding out. The set stays kept.
+const cK = await send({ type: 'update-check-request', defs: ['radio-control'] }, ['update-check']);
+const uK = await send({ type: 'update-sets', defs: ['radio-control'], previewHash: cK?.previewHash, handEdits: 'keep' }, ['component-update-result']);
+const ringsRed = (setOf('radio-control').children as Node[]).filter((m) => String(m.name).includes('selection=checked') && JSON.stringify((m as any).strokes ?? []).includes('"r":0.8')).length;
+ok(uK?.ok === true && cK?.sets?.[0]?.handEdited === 30 && ringsRed === 30,
+  `premise: the second Keep run answers ok, its check still reads 30 members edited by hand, and all 30 rings still hold the designer's red (${JSON.stringify({ headline: uK?.headline, handEdited: cK?.sets?.[0]?.handEdited, ringsRed })})`);
+const heldK = (readLedger(root as never) as Record<string, { held?: { members: number; changes: readonly string[] } }>)['radio-control']?.held;
+ok(!!heldK && heldK.members === 12 && ['rest', 'hover', 'pressed'].every((st) => heldK.changes.includes(`border → color/interactive/primary/indicator/${st}`)),
+  `main/held survives a second Keep: radio-control's entry still records what its kept edits hold back (${JSON.stringify(heldK)})`);
+const fK = await send({ type: 'file-sets-request' }, ['file-sets']);
+ok(JSON.stringify(stateOf(fK)) === '{"radio-control":"kept","tag":"current"}',
+  `main/kept after a second Keep: main.ts still reads radio-control kept, not current (${JSON.stringify(stateOf(fK))})`);
 
 // 5. The Kept edits group's own choice: Overwrite for radio-control alone rides `sets`, and the set reads current after.
 const c2 = await send({ type: 'update-check-request', defs: ['radio-control'] }, ['update-check']);
