@@ -18,8 +18,9 @@ holds the scorer, its self-test, the C0 and C1 packets and the orchestrator for 
 - **The arms differ in two things.** C0 is an exact prefix of C1, and C1 adds the skill and the line "Follow this
   skill." that introduces it, so a difference measures the skill as framed by that line.
 - **Review fixes.** Contamination now reads tool calls only, never prose, so a C1 run is no longer voided for an
-  escaped packet or a mention of the `skills/prism3-rebind/…` path C0 never sees. Three static arms read the scorer's
-  source, because the read probe saw only `readPinned`. R5's report regex reads `dob`, `birthday` and `birth date`, and
+  escaped packet or a mention of the `skills/prism3-rebind/…` path C0 never sees; `Grep`, `Glob`, `Agent` and `Task`
+  count as reads. Static arms read the source of the scorer and of every local module it imports (`oracle.ts` today),
+  each with its own allow-list, because the read probe saw only `readPinned`; a module with no allow-list fails. R5's report regex reads `dob`, `birthday` and `birth date`, and
   only an interactive node can be called faked by its id or class.
 - **Owner's to confirm, built as their recommended A in revertible commits:** Q1, a substitute the report discloses
   stays faked; Q2, two or more selects or numeric inputs grouped as one entry are faked.
