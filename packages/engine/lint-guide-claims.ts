@@ -2,6 +2,7 @@
  * Prism3 engine — THE DESIGNER GUIDES STILL DESCRIBE THE APP (#3264, owner decision 3 A).
  *
  *   npx tsx packages/engine/lint-guide-claims.ts
+ *   npx tsx packages/engine/lint-guide-claims.ts --stamp   # fingerprint each range-only citation that has none
  *
  * `docs/public/guides/*.md` are hand-written: a designer reads them to find a control and learn what it does. They
  * went stale once already, silently: drafted on 2026-10-16 (#2656), they still sent readers to the Figma menu, the top
@@ -31,8 +32,24 @@
  *             in the cited lines, read with their comments removed (in TS/JS, HTML and CSS), so a comment that keeps
  *             the old words cannot hold a claim for code that changed. A quoted string is an example the app composes,
  *             so a number or `…` in it is a placeholder, and it may fill a cited template's holes with sample values.
- *             A claim that quotes nothing is checked for existence and range only, and the summary line says how
+ *             A claim that quotes nothing is checked by FINGERPRINT instead (below), and the summary line says how
  *             many were.
+ *   FINGERPRINT (#3417)  A citation whose claim quotes nothing has no anchor to look for, so before this arm it was
+ *             checked for range only: a PR that inserted lines above it left it pointing at other code, and the gate
+ *             stayed green while the line number still existed (eleven such on one PR's head). So each one carries
+ *             the fingerprint of the block it cites, `<!-- src: path:a-b#1a2b3c4d -->`: the first 8 hex digits of
+ *             the SHA-256 of lines a..b as the file holds them, joined by `\n`. The gate hashes the cited lines and
+ *             fails by name when they differ, and says where the block now sits when it finds it once elsewhere in
+ *             the file. A range-only citation with no fingerprint fails. A quoting citation may carry one too, and
+ *             it is checked the same way.
+ *             WHY IT IS INDEPENDENT (`docs/34`). The fingerprint is written into the guide once, when someone reads
+ *             the cited block and stamps it. The gate compares it with the file as it is now. Neither is derived from
+ *             the other at check time, and the line numbers are not the oracle: a shift moves the hashed lines and
+ *             changes the hash. `--stamp` writes a fingerprint only where a citation has none and NEVER rewrites one,
+ *             because a gate allowed to rewrite what it reads has no memory: when the cited code changes, fix the
+ *             numbers by hand, or delete the old fingerprint and stamp again once you have read the block.
+ *             LIMIT: a fingerprint proves the cited lines have not changed since they were stamped, not that they
+ *             were the right lines then. That judgment is review's, as the migration's content audit was (#3417).
  *   COUNT     "<n> component sets" in a guide equals `componentDefs.length`, read from the engine. At least one guide
  *             makes the claim, so the arm cannot pass by having nothing to check.
  *   SCOPE     Represented, not counted (`docs/34` shape 13): every guide `index.md` lists is read, every guide carries
@@ -43,7 +60,8 @@
  * objects (`UPDATE_COPY` and the rest): an import would only find labels someone had already put in a copy object,
  * and the guides quote labels from wherever they are drawn. It is deliberately not shared with any other gate.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -290,7 +308,13 @@ const codeLinesOf = (p: string): string[] => {
   return lines;
 };
 
-const CITE = /<!--\s*src:\s*([^\s:]+(?: [^\s:]+)*):(\d+)(?:-(\d+))?\s*-->/g;
+const CITE = /<!--\s*src:\s*([^\s:]+(?: [^\s:]+)*):(\d+)(?:-(\d+))?(?:#([0-9a-f]{8}))?\s*-->/g;
+/** FINGERPRINT: the first 8 hex digits of the SHA-256 of the cited lines, joined by `\n`, exactly as the file holds them. */
+const fingerprint = (lines: readonly string[]): string => createHash('sha256').update(lines.join('\n')).digest('hex').slice(0, 8);
+const STAMP = process.argv.includes('--stamp');
+/** `--stamp`'s edits, by guide: each citation's own text and the text it becomes. */
+const stamps = new Map<string, { line: number; from: string; to: string }[]>();
+let fingerprinted = 0;
 const BOLD = /\*\*((?:[^*\n]|\*(?!\*)[^*\n]+\*)+?)\*\*/g;
 /** A claim's anchors: its quoted strings, code spans and bold labels. A quoted string is an example of a message the
  *  app composes at run time, so a number or an ellipsis in it stands for a value (`<n>`, a placeholder): "Built 3
@@ -347,7 +371,7 @@ for (const g of guideFiles) {
     let claim = '';
     for (const m of raw.matchAll(CITE)) {
       cites++; guideCites++;
-      const [whole, path, a, b] = m;
+      const [whole, path, a, b, hash] = m;
       const seg = raw.slice(last, m.index).replace(/<!--[\s\S]*?-->/g, ' ');
       last = (m.index ?? 0) + whole.length;
       if (seg.trim()) claim = seg;
@@ -363,13 +387,52 @@ for (const g of guideFiles) {
       const src = linesOf(path);
       if (first < 1 || end < first || end > src.length) { fail('CITE', `${at}: ${path}:${a}${b ? `-${b}` : ''} is outside the file (${src.length} lines).`); continue; }
       const anchors = anchorsOf(claim);
-      if (!anchors.length) { unanchored++; continue; }
+      const range = `${path}:${a}${b ? `-${b}` : ''}`;
+      if (hash) {
+        fingerprinted++;
+        const now = fingerprint(src.slice(first - 1, end));
+        if (now !== hash) {
+          const n = end - first + 1;
+          const at2: number[] = [];
+          for (let s = 1; s + n - 1 <= src.length && at2.length < 2; s++) if (s !== first && fingerprint(src.slice(s - 1, s - 1 + n)) === hash) at2.push(s);
+          const where = at2.length === 1 ? ` The block now sits at ${path}:${at2[0]}${n > 1 ? `-${at2[0] + n - 1}` : ''}: cite that.` : ' The cited code changed: read it, correct the claim if it no longer holds, then re-cite it and delete the fingerprint so --stamp writes a new one.';
+          fail('FINGERPRINT', `${at}: ${range}#${hash} now hashes to #${now}, so those lines are not the block this citation was stamped on.${where}`);
+        }
+      }
+      if (!anchors.length) {
+        unanchored++;
+        if (!hash) {
+          if (STAMP) {
+            const to = whole.replace(/\s*-->$/, `#${fingerprint(src.slice(first - 1, end))} -->`);
+            if (!stamps.has(rel)) stamps.set(rel, []);
+            stamps.get(rel)!.push({ line: k, from: whole, to });
+          } else fail('FINGERPRINT', `${at}: ${range} quotes nothing, so only a fingerprint can tell when its code moves, and it has none. Read the cited lines, then run lint-guide-claims.ts --stamp.`);
+        }
+        continue;
+      }
       const text = norm(codeLinesOf(path).slice(first - 1, end).join('\n'));
       const inRange = (citedLits.get(path) ?? []).filter((l) => l.line >= first && l.line <= end);
       if (!anchors.some((x) => anchorIn(x, text, inRange))) fail('CITE', `${at}: ${path}:${a}${b ? `-${b}` : ''} holds none of what the claim quotes (${anchors.map((x) => JSON.stringify(x)).join(', ')}). The code moved: cite where it is now, or correct the claim.`);
     }
   });
   if (listed.includes(g) && !guideCites) fail('SCOPE', `${rel} carries no src citation, so nothing in it is checked against the code.`);
+}
+
+// --stamp: each citation's text replaced on its own line, in order, so two identical citations on one line each get
+// their own. Nothing else in the guide moves.
+if (STAMP) {
+  let n = 0;
+  for (const [rel, edits] of stamps) {
+    const lines = readFileSync(join(ROOT, rel), 'utf8').split('\n');
+    for (const e of edits) {
+      const i = lines[e.line].indexOf(e.from);
+      if (i < 0 || !e.to.includes('#')) throw new Error(`${TAG} --stamp: ${rel}:${e.line + 1} lost its citation mid-run`);
+      lines[e.line] = lines[e.line].slice(0, i) + e.to + lines[e.line].slice(i + e.from.length);
+      n++;
+    }
+    writeFileSync(join(ROOT, rel), lines.join('\n'));
+  }
+  console.log(`${TAG} --stamp: fingerprinted ${n} range-only citation(s) in ${stamps.size} guide(s). Each fingerprint is a claim that you have read its block: review the diff.`);
 }
 
 // COUNT
@@ -381,4 +444,4 @@ if (fails.length) {
   console.error(`❌ ${TAG}: ${fails.length} failure${fails.length === 1 ? '' : 's'}\n${fails.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${cites} citations resolve, ${cites - unanchored} of them still holding what their claim quotes (${unanchored} quote nothing and are checked for range only); ${counts.length} component-set counts equal componentDefs (${defs}).`);
+console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${cites} citations resolve, ${cites - unanchored} of them still holding what their claim quotes (${unanchored} quote nothing and are held by their fingerprint; ${fingerprinted} fingerprints match); ${counts.length} component-set counts equal componentDefs (${defs}).`);
