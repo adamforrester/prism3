@@ -12,7 +12,7 @@
     "used": 281,
     "unusedSemantic": 259,
     "unusedPrimitive": 280,
-    "components": 60
+    "components": 62
   },
   "tokens": {
     "border-width.hairline": {
@@ -23336,6 +23336,17 @@
             }
           }
         },
+        "page-nav-item": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {}
+            }
+          }
+        },
         "pagination-item": {
           "keys": [
             "balance-width",
@@ -25528,6 +25539,21 @@
             }
           }
         },
+        "page-nav": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "size.medium.pad-x",
@@ -25970,6 +25996,21 @@
                 "size": [
                   "medium",
                   "x-small"
+                ]
+              }
+            }
+          }
+        },
+        "page-nav": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -31840,6 +31881,39 @@
         "type.body.sm.default",
         "type.body.xs.default",
         "type.body.xs.line-box"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "page-nav": {
+      "members": 2,
+      "axes": {
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "space.200",
+        "space.300"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "page-nav-item": {
+      "members": 4,
+      "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "space.0"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []

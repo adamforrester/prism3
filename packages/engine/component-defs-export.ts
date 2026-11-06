@@ -35,7 +35,7 @@
  */
 import type { ComponentDef } from './component-schema';
 import {
-  applyBannerStyle, applyButtonLayout, applyControlShape, applyDialogTitleSize, applyFieldStyle, applyMinWidthRatio, applyOutlineInteraction,
+  applyBannerStyle, applyButtonLayout, applyControlShape, applyCurrentIndicator, applyDialogTitleSize, applyFieldStyle, applyMinWidthRatio, applyOutlineInteraction,
   applySpacingDensity, applyTagStyle, applyWeightIntent, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY, fieldStyleFor,
 } from './anatomy-figma';
 import type { ButtonLayout, WeightAvailability } from './anatomy-figma';
@@ -49,7 +49,7 @@ import type { BrandInput, Theme } from './theme';
 import { at, buildTree, pxOf } from './tree';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.0';
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.1';
 /** The Specs schema version the projection is written against, and checked against (`packages/tokens/check-specs.mjs`). */
 export const SPECS_SCHEMA_VERSION = '0.39.0';
 
@@ -63,6 +63,7 @@ export type ComponentSettings = {
   tagStyle: NonNullable<BrandInput['tagStyle']>;
   dialogTitleSize: NonNullable<BrandInput['dialogTitleSize']>;
   bannerStyle: NonNullable<BrandInput['bannerStyle']>;
+  currentIndicator: NonNullable<BrandInput['currentIndicator']>;
   density: Density;
   outlineInteraction: Theme['outlineInteraction'];
   weightAvailability: WeightAvailability;
@@ -93,6 +94,7 @@ const leversOf = (input: BrandInput | null): Levers => {
       tagStyle: input?.tagStyle ?? 'pill',
       dialogTitleSize: input?.dialogTitleSize ?? 'large',
       bannerStyle: input?.bannerStyle ?? 'tinted',
+      currentIndicator: input?.currentIndicator ?? 'partial',
       density: theme ? theme.dims.density : 'comfortable',
       outlineInteraction: theme ? theme.outlineInteraction : 'overlay-neutral',
       weightAvailability: theme ? weightAvailability(theme.typography) : DEFAULT_WEIGHT_AVAILABILITY,
@@ -114,7 +116,7 @@ export const brandMaterializer = (input: BrandInput | null): ((def: ComponentDef
   const { settings: s, sizes } = leversOf(input);
   const px = sizeRefPx(sizes);
   return (def) => applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def.id, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.weightAvailability), s.outlineInteraction), s.density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def.id, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.currentIndicator), s.weightAvailability), s.outlineInteraction), s.density),
     s.button, px), px);
 };
 

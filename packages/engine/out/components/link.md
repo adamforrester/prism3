@@ -22,7 +22,7 @@ Shown on the default member: style `standalone`, weight `emphasis`, size `medium
 1. **Container** — The link: a row that hugs its label and any icon, with no padding and no fill.
 2. **Label** — The link text in the link color. Standalone: plain at rest, underlined at hover, pressed and focus. Inline: underlined at every state. The current page stays plain at every state: the bar is its line.
 3. **Trailing visual** (optional) — An optional icon after the label, in the link color, such as an arrow or the external icon for a link that opens a new tab. Standalone links only; an inline link carries none.
-4. **Bar** — The current page's 2px bar in the link color, across the foot of the line box. Out of the flow, so the link keeps its size. Current links only.
+4. **Bar** — The current page's 2px bar in the link color, at the foot of the line box. The bar's width is the brand's Current page indicator: the title's width, or half of it centered. Out of the flow, so the link keeps its size. Current links only.
 5. **Focus ring** — The shared focus ring, around the whole link while it has keyboard focus. It follows the surface, so an inverse link keeps a ring that reads on the dark band.
 
 ## Styles
@@ -97,7 +97,7 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `button`
-- **Often used with:** `icon`, `button`, `text-field`, `breadcrumbs`
+- **Often used with:** `icon`, `button`, `text-field`, `breadcrumbs`, `page-nav`
 - **Replaces:**
   - a click handler on a div or span styled as a link
   - an \<a> with no href, href="#" or javascript:void(0)

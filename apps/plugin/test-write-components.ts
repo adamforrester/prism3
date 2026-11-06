@@ -5245,6 +5245,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['dialogTitleSize', 'medium'], ['dialogTitleSize', 'small'],
     // #2924 (Q707 A): "Banner style: Outlined" adds no token; it moves only the materialized Banner def.
     ['bannerStyle', 'outlined'],
+    // #3345 (Q10 B: Partial is the default): "Current page indicator: Full width" adds no token; it moves only the materialized Link def's bar.
+    ['currentIndicator', 'full'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -5763,8 +5765,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
 // ── #2872: LINK'S CURRENT-PAGE BAR, PINNED ACROSS THE FOOT (owner decisions Q507) ──────────────────────────────────
 // Driven through the REAL executor with the shim's `layoutModel`. On every current member the `bar` is a frame lifted
-// out of the flow (ABSOLUTE), constrained STRETCH/MAX, as wide as the link box, flush with its bottom, at the 2px of its
-// bound height, which the resize must not unbind. And it moves no box: each current member measures what its
+// out of the flow (ABSOLUTE), flush with its bottom, at the 2px of its bound height, which the resize must not unbind.
+// Its width is the null brand's: Partial since #3345 Q10 B, so round(0.5 × the link box), centered, SCALE/MAX (Full,
+// STRETCH across the box, is held on both executors by `packages/engine/test.ts`'s `#3345 page-nav indicator` arms). And it moves no box: each current member measures what its
 // unselected twin measures. The 2 is pinned here as the shim's variable value (`varPx`), never read off the def.
 // Mutations, each failing the arm named: the foot pass dropped from the executor (the bar stays in the flow) →
 // `link bar foot` and `link bar footprint`; the bar placed before the ring's lift → `link bar foot` (a focus-visible
@@ -5798,14 +5801,15 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     current++;
     const c = bar?.constraints as { horizontal?: string; vertical?: string } | null | undefined;
     const bv = (bar?.boundVariables ?? {}) as Record<string, unknown>;
-    if (!bar || bar.layoutPositioning !== 'ABSOLUTE' || c?.horizontal !== 'STRETCH' || c?.vertical !== 'MAX' || !bv.height
-      || bar.height !== BAR || Math.abs((bar.width as number) - (m.width as number)) > 1e-6 || bar.x !== 0 || Math.abs((bar.y as number) - ((m.height as number) - BAR)) > 1e-6)
+    const wantW = Math.round(0.5 * (m.width as number));
+    if (!bar || bar.layoutPositioning !== 'ABSOLUTE' || c?.horizontal !== 'SCALE' || c?.vertical !== 'MAX' || !bv.height
+      || bar.height !== BAR || Math.abs((bar.width as number) - wantW) > 1e-6 || Math.abs((bar.x as number) - ((m.width as number) - wantW) / 2) > 1e-6 || Math.abs((bar.y as number) - ((m.height as number) - BAR)) > 1e-6)
       off.push(`${String(m.name)}: ${bar ? `${String(bar.layoutPositioning)} ${JSON.stringify(c)} ${bar.width}x${bar.height} at (${bar.x}, ${bar.y}) height ${bv.height ? 'bound' : 'UNBOUND'}; box ${m.width}x${m.height}` : 'no bar'}`);
     const twin = members.find((x) => String(x.name) === String(m.name).replace('selection=selected', 'selection=unselected'));
     if (!twin || twin.width !== m.width || twin.height !== m.height) moved.push(`${String(m.name)}: ${m.width}x${m.height} vs ${twin ? `${twin.width}x${twin.height}` : 'no twin'}`);
   }
   ok(current === 64 && off.length === 0,
-    `link bar foot: on all 64 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
+    `link bar foot: on all 64 current members the bar is ABSOLUTE, SCALE/MAX, half the link's width and centered (Partial, the default), flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
   ok(current === 64 && moved.length === 0,
     `link bar footprint: every current member measures what its unselected twin measures, so the bar moves no box (${moved.length} moved — ${moved[0] ?? 'none'})`);
 }

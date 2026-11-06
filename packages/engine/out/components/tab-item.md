@@ -13,7 +13,7 @@ One trigger in a tab list. Selecting a tab shows its panel in place and hides th
 
 - **Purpose:** One trigger inside Tabs that shows its panel in place when selected.
 - **Use when:** Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.
-- **Avoid when:** Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).
+- **Avoid when:** Changing the page or the address (a PageNav.Item inside PageNav), or switching a value within the current view (SegmentedControl).
 
 ## Anatomy
 
@@ -53,7 +53,7 @@ Use inside Tabs only. A tab names one panel of related content; selecting it sho
 
 ### Don't
 
-- Use a tab to go to another page; that is a link in a navigation
+- Use a tab to go to another page; that is a link in PageNav
 - Set selected on a tab inside a list by hand
 - Wrap a label onto a second line; shorten it, or reconsider how many tabs the list needs
 

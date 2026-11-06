@@ -1353,6 +1353,15 @@ export type PartDef = {
    *  Refused on a non-`box`, on the root, without a `height`, beside `width`, `size`, `layout` or `children` (a bar
    *  draws nothing but its fill), and under a parent that is not an auto-layout box. */
   foot?: true;
+  /** For a `foot` bar: draw it at this SHARE of the parent's width, centered, rather than across it (#3345, owner
+   *  decision 2026-11-03: the brand's current-page indicator at Partial is round(0.5 × the title's width), centered
+   *  under the title). Absent is the full width. No def authors it: `applyCurrentIndicator` writes it onto Link's
+   *  bar for a brand set to Partial, the engine default (#3345 Q10 B); a brand set to Full width draws it across.
+   *
+   *  PROJECTED as `FigmaNodePlan.footShare`. Both executors size the bar to round(share × the parent's width), place
+   *  it at `x = (parent − bar) / 2`, and constrain it `SCALE`/`MAX`, so a designer's longer label keeps it at the same
+   *  share and centered. Refused without `foot`, and outside (0, 1). */
+  footShare?: number;
   /** For a `vector` sized by `glyphPx`: take the glyph OUT of the auto-layout flow, CENTER it in its parent,
    *  and constrain it `SCALE`/`SCALE`, so it keeps its fraction of the parent when a designer resizes an
    *  instance (#2345). image-placeholder's marker is the case: a fixed 180px marker inside a 64px thumbnail
@@ -5064,6 +5073,12 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // The corner pin's four ways to project nothing or into the flow, for a box: the wrong kind, no height to draw,
     // the root, a parent Figma will not lift a child out of; and a fifth, a box that lays out content of its own,
     // which a pinned bar has none of.
+    if (p.footShare !== undefined) {
+      if (p.foot !== true)
+        e.push(`anatomy part '${n}' declares footShare ${String(p.footShare)} without 'foot' — the share is of a foot bar's width, and only a foot bar has one`);
+      if (typeof p.footShare !== 'number' || !(p.footShare > 0 && p.footShare < 1))
+        e.push(`anatomy part '${n}' declares footShare ${String(p.footShare)} — a share of the parent's width lies between 0 and 1, exclusive (a full-width bar leaves the field absent)`);
+    }
     if (p.foot !== undefined) {
       if (p.foot !== true)
         e.push(`anatomy part '${n}' declares foot ${String(p.foot)} — the field is a switch that is on or absent`);

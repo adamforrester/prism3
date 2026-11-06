@@ -937,6 +937,32 @@
       "text": "TEXT"
     }
   },
+  "page-nav": {
+    "axes": {
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 2,
+    "properties": {
+      "items": "SLOT"
+    }
+  },
+  "page-nav-item": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 4,
+    "properties": {}
+  },
   "pagination": {
     "axes": {
       "size": [

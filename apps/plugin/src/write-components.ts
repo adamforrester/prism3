@@ -2938,16 +2938,20 @@ const writeComponentSet = async (
     // THE FOOT PIN's second half: sized to the parent's width at the bar's height, flush with its bottom. `resize`
     // writes both dimensions, so the bound height is bound again after it. `x`/`y`/width take no binding (the ring's
     // reason), and `STRETCH`/`MAX` keeps it across the bottom when a designer's longer label resizes the instance.
+    // A PARTIAL bar (`footShare`, #3345, the brand's current-page indicator at Partial): round(share × the parent's
+    // width), centered, and `SCALE` across, so it keeps its share of a longer label rather than its pixel width.
     for (const [c, kid] of feet) {
-      kid.resize?.(node.width ?? 0, kid.height ?? 0);
+      const fw = node.width ?? 0;
+      const bw = c.footShare !== undefined ? Math.round(fw * c.footShare) : fw;
+      kid.resize?.(bw, kid.height ?? 0);
       const hv = c.bound.height ? byName.get(c.bound.height) : undefined;
       if (hv) {
         try { kid.setBoundVariable?.('height', hv); }
         catch (err) { misses.push(`${c.name}.height -> ${c.bound.height} REFUSED after the foot pin's resize (${(err as Error).message})`); }
       }
-      kid.x = 0;
+      kid.x = (fw - bw) / 2;
       kid.y = (node.height ?? 0) - (kid.height ?? 0);
-      kid.constraints = { horizontal: 'STRETCH', vertical: 'MAX' };
+      kid.constraints = { horizontal: c.footShare !== undefined ? 'SCALE' : 'STRETCH', vertical: 'MAX' };
     }
     // A PINNED child (#1667, "Locked to edges"): out of flow, `inset` from its edge, vertically centered, and
     // constrained to that edge, so a hugging parent that grows with its label — or an instance a designer

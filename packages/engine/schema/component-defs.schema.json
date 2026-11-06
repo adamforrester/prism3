@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "prism3-component-defs/1.0",
+  "$id": "prism3-component-defs/1.1",
   "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the exporter would agree with whatever the exporter wrote (`docs/34`). Gated by `packages/engine/lint-component-docs.ts`, which validates `out/components/component-defs.json`, and a brand export for every example brand, against it with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the exporter adds, drops or renames fails until this schema and its `$id` move with it. The `def` and its `$defs` restate `component-docs.schema.json`'s `component`, so this file stands alone.",
   "title": "Prism3 component definitions export (component-defs.json)",
   "description": "Every component definition, exported from the TypeScript source, brand-neutral or for one brand. `def` is the definition's shipped fields and `spec` the model of the design-file component built from it. Mappable to the Specs format: `component-defs.specs.json` is the same export as a Specs components set.",
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "prism3-component-defs/1.0",
+      "const": "prism3-component-defs/1.1",
       "description": "The shape this file follows. Equal to this schema's `$id`; minor for a field added, major for one removed or renamed."
     },
     "generated": {
@@ -1084,6 +1084,7 @@
         "tagStyle",
         "dialogTitleSize",
         "bannerStyle",
+        "currentIndicator",
         "density",
         "outlineInteraction",
         "weightAvailability",
@@ -1137,6 +1138,13 @@
             "outlined"
           ],
           "description": "The surface every banner draws."
+        },
+        "currentIndicator": {
+          "enum": [
+            "partial",
+            "full"
+          ],
+          "description": "How wide the current page's bar draws under a link: half the label, centered, or the label's full width."
         },
         "density": {
           "enum": [
