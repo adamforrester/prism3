@@ -109,6 +109,7 @@ import { figmaAnatomySet, figmaAnatomyPlan, planComponentName, applyTagStyle, ap
 import { buildTree } from './tree';
 import { brandTheme } from './theme';
 import { parseDesignMd } from './design-md';
+import { codeOnlyText } from './code-only-register';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -557,7 +558,7 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
     if (codeSide) {
       // Below the floor by decision: the floor moves to code, so the host must be a stated flush host, stating the
       // 44×44 rule (checked with FLUSH_BUTTON_HOSTS below) and its anchor in the SAME codeOnly entry.
-      const codeOnly = def.anatomy?.codeOnly ?? [];
+      const codeOnly = codeOnlyText(def.anatomy?.codeOnly);
       const flush = nesting?.variant?.inset === 'flush' && FLUSH_BUTTON_HOSTS.has(defId);
       const anchored = codeOnly.some((e) => !flushRuleGap([e]).length && codeSide.anchor.test(e));
       rows.push(`${id}/${size} → ${part.nests} ${key} → ${path} = ${px}px in Figma; the floor is the code-side 44×44, anchored (${codeSide.why}) [nested target, code-side]${!bad || !flush || !anchored ? '  ✗' : ''}`);
@@ -632,7 +633,7 @@ for (const def of componentDefs) {
   if (!nestsFlush && FLUSH_BUTTON_HOSTS.has(def.id))
     failures.push(`FLUSH_BUTTON_HOSTS names '${def.id}', which nests no flush Button — a stale entry.`);
   if (nestsFlush) {
-    const gap = flushRuleGap(def.anatomy?.codeOnly ?? []);
+    const gap = flushRuleGap(codeOnlyText(def.anatomy?.codeOnly));
     rows.push(`${def.id} → a nested flush Button; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2317]${gap.length ? '  ✗' : ''}`);
     if (gap.length) failures.push(`${def.id}: nests a flush Button, and no codeOnly entry states its code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}).`);
   }
@@ -644,7 +645,7 @@ for (const id of FLUSH_MEMBERS) {
   const scoped = [...FLUSH_SIZES, ...FLUSH_SMALL_SIZES].sort();
   if (sizes.join() !== scoped.join())
     failures.push(`${id}: size axis is [${sizes.join(', ')}], but the flush rule scopes 44×44 to [${FLUSH_SIZES.join(', ')}] and 24×24 to [${FLUSH_SMALL_SIZES.join(', ')}] — decide the new size's hit area with the owner (Q170, Q174), then list it here.`);
-  const gap = flushRuleGap(def.anatomy?.codeOnly ?? []);
+  const gap = flushRuleGap(codeOnlyText(def.anatomy?.codeOnly));
   rows.push(`${id}/inset=flush → width floor dropped; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2408, Q170 B, Q174 B]${gap.length ? '  ✗' : ''}`);
   if (gap.length) failures.push(`${id}/inset=flush: no codeOnly entry states the code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}) — a flush member has no width floor, so the height measured above does not cover it. State that its hit area is at least 44×44 at medium and large sizes and at least 24×24 at small in code through a ::before extension (owner Q154 A, Q170 B, Q174 B, #2408).`);
 }
@@ -691,7 +692,7 @@ for (const [id, target] of Object.entries(CODE_SIDE_TARGETS)) {
       if (bad) failures.push(`${id}/${size} (${at.why}, ${path}) ${bad} on a ${measured.find((m) => m.px === minPx)!.density} brand — the round circle at this size is its own target and must meet the floor.`);
     }
   }
-  const ruleMiss = ruleGap(def.anatomy?.codeOnly ?? [], CODE_SIDE_RULE);
+  const ruleMiss = ruleGap(codeOnlyText(def.anatomy?.codeOnly), CODE_SIDE_RULE);
   if (ruleMiss.length) failures.push(`${id}: no codeOnly entry states the code-side hit area (missing: ${ruleMiss.join(', ')}) — its box is below the floor by design, so the rule is the only target it has. State that the hit area is at least 44×44px at every size in code, through a ::before inset outward and centered on the glyph (owner Q283.3 A, #2457).`);
   const docMiss = ruleGap(def.docs?.do ?? [], CODE_SIDE_DOC);
   if (docMiss.length) failures.push(`${id}: the shipped docs.do does not tell the implementer to extend the hit area (missing: ${docMiss.join(', ')}) — codeOnly never ships, so without this the code docs lose the only 44×44 target the control has. Keep a docs.do entry: "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward…" (owner Q283.3 A, #2457).`);
@@ -854,7 +855,7 @@ const drawnHeight = (n: PlanBox, px: (name: string) => number): number => {
         if (slot) keep('slot', Math.min(slot.bound?.width ? px(slot.bound.width) : NaN, drawnHeight(slot, px)));
       }
     }
-    const codeOnly = tag.anatomy?.codeOnly ?? [];
+    const codeOnly = codeOnlyText(tag.anatomy?.codeOnly);
     for (const what of ['tag', 'slot'] as const) {
       const cs = UNDERLINE_CODE_SIDE[what];
       for (const size of UNDERLINE_SIZES) {
@@ -910,7 +911,7 @@ const LINK_CODE_SIDE = { sizes: ['x-small', 'small'], rule: [/^The hit-target ex
       if (!named && m.px < MIN_TARGET_PX) failures.push(`${label} is ${m.px}px at ${m.at}, below the ${MIN_TARGET_PX}px minimum (WCAG 2.5.8), and LINK_CODE_SIDE does not name ${size} — a standalone link below 24px with no code-side target is a target nobody owns. Name it and state it in codeOnly, or grow the line.`);
       if (named && m.px >= MIN_TARGET_PX) failures.push(`${label} is ${m.px}px at ${m.at}, which clears ${MIN_TARGET_PX}px as drawn, and LINK_CODE_SIDE still names ${size} — a stale code-side entry. Drop it.`);
     }
-    const gap = ruleGap(link.anatomy?.codeOnly ?? [], LINK_CODE_SIDE.rule);
+    const gap = ruleGap(codeOnlyText(link.anatomy?.codeOnly), LINK_CODE_SIDE.rule);
     if (gap.length) failures.push(`link: no codeOnly entry states the standalone link's code-side 24px hit area at ${LINK_CODE_SIDE.sizes.join(' and ')} (missing: ${gap.join(', ')}) — one text line tall, that is the only 24px target a standalone x-small or small link has (#3179, Q289.4 A).`);
   }
 }

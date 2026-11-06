@@ -340,10 +340,30 @@ export const fieldLabel: ComponentDef = {
       // into the `required` boolean (a node-visibility toggle, #1412), which projects its presence
       // directly, so there is no unprojected axis left to admit here. The disabled dim below is the one
       // remaining code-tier concern.
-      'the DISABLED dim (#1339) — the label dims when its FIELD is disabled, and the field\'s native disabled is the source of truth. This is ONE mechanism, the `disabled` STATE: it projects as a Figma variant carrying the dimmed ink (`disabled.label` / `disabled.indicator` → `color.disabled.text`, kept above the 3:1 contrast floor), and in code it is driven by the disabled field\'s context (the CSS cascade / a data-attribute), NOT by a `disabled` prop on the label — the old prop that duplicated the state axis was removed. So a designer sees the dimmed variant in Figma, and a code consumer gets the dim from the field it names, with no second knob to keep in sync. When field-label is NESTED (select, checkbox, text-field), the host fixes it to `state=rest` and the code drives the dim, exactly as those defs\' own `codeOnly` entries record.',
-      'htmlFor / label association — the entire reason this component exists (§6) and it has no Figma expression at all. A native `<label for=id>` is what makes the name programmatic; Figma has no accessibility tree and no node-to-node reference a materializer could write, so the projection is two text nodes that LOOK like a label and carry none of the relationship. A designer reviewing the Figma member cannot see whether the field is actually named, which is the one property this def is for.',
-      'the visually-hidden case — §6\'s only label-less shape is a label that exists in the DOM and is clipped from view (a search field). That is a CSS technique with two hard requirements Figma cannot hold: the node must stay in the accessibility tree, so `display: none` and `visibility: hidden` are both wrong, and it must still be present. A Figma variant with the text node deleted expresses the opposite of what the technique does — an absent label rather than a hidden-but-announced one — so it is deliberately not projected as a coordinate.',
-      'sentence-case and ≤3-word content rules — `content.labelPattern` states them and no projection enforces them. Figma carries a placeholder string, and a placeholder is a suggestion: a designer typing "Please enter your email address here:" produces a member that is structurally perfect and violates three of the four rules at once. The enforcement surface is review and lint in the code tier, which is worth admitting rather than implying the def governs copy.',
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'the DISABLED dim (#1339) — the label dims when its FIELD is disabled, and the field\'s native disabled is the source of truth. This is ONE mechanism, the `disabled` STATE: it projects as a Figma variant carrying the dimmed ink (`disabled.label` / `disabled.indicator` → `color.disabled.text`, kept above the 3:1 contrast floor), and in code it is driven by the disabled field\'s context (the CSS cascade / a data-attribute), NOT by a `disabled` prop on the label — the old prop that duplicated the state axis was removed. So a designer sees the dimmed variant in Figma, and a code consumer gets the dim from the field it names, with no second knob to keep in sync. When field-label is NESTED (select, checkbox, text-field), the host fixes it to `state=rest` and the code drives the dim, exactly as those defs\' own `codeOnly` entries record.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'htmlFor / label association — the entire reason this component exists (§6) and it has no Figma expression at all. A native `<label for=id>` is what makes the name programmatic; Figma has no accessibility tree and no node-to-node reference a materializer could write, so the projection is two text nodes that LOOK like a label and carry none of the relationship. A designer reviewing the Figma member cannot see whether the field is actually named, which is the one property this def is for.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the visually-hidden case — §6\'s only label-less shape is a label that exists in the DOM and is clipped from view (a search field). That is a CSS technique with two hard requirements Figma cannot hold: the node must stay in the accessibility tree, so `display: none` and `visibility: hidden` are both wrong, and it must still be present. A Figma variant with the text node deleted expresses the opposite of what the technique does — an absent label rather than a hidden-but-announced one — so it is deliberately not projected as a coordinate.',
+      },
+      {
+        class: 'content-rule',
+        disposition: 'lowered',
+        description:
+          'sentence-case and ≤3-word content rules — `content.labelPattern` states them and no projection enforces them. Figma carries a placeholder string, and a placeholder is a suggestion: a designer typing "Please enter your email address here:" produces a member that is structurally perfect and violates three of the four rules at once. The enforcement surface is review and lint in the code tier, which is worth admitting rather than implying the def governs copy.',
+      },
     ],
   },
 

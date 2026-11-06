@@ -140,14 +140,54 @@ export const breadcrumbItem: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
-      'The element — each item is an <li> in the trail\'s <ol>. Breadcrumbs renders it from its items: the last one as the current page, the others as ancestors.',
-      'The separator in code — CSS ::after on every <li> but the last, with pointer-events: none: never text content, never a list item, never in the accessibility tree. Figma draws it as a glyph inside each ancestor and overflow item.',
-      'The current page in code — a <span aria-current="page">, never an <a>, and out of the Tab order. Its label stops at a max width with an ellipsis when the trail cannot fit (DRAFT 240px); ancestor labels never truncate.',
-      'The overflow button — a <button type="button"> named "Show full path" (DRAFT), its glyph aria-hidden. Pressed, the hidden steps appear in its place as ancestor links, the button is removed, and focus moves to the first revealed link. Its 44×44px hit area is extended in code.',
-      'The ancestor\'s hit area — the nested link\'s code-side expansion to 24px applies: a breadcrumb is not a link inside a sentence, so the inline exemption does not.',
-      'RTL — the row mirrors and the chevron separator flips to point left, toward the current page. The slash does not mirror.',
-      'text expansion — ancestor labels never wrap or truncate; a long trail collapses whole steps instead.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The element — each item is an <li> in the trail\'s <ol>. Breadcrumbs renders it from its items: the last one as the current page, the others as ancestors.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The separator in code — CSS ::after on every <li> but the last, with pointer-events: none: never text content, never a list item, never in the accessibility tree. Figma draws it as a glyph inside each ancestor and overflow item.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The current page in code — a <span aria-current="page">, never an <a>, and out of the Tab order. Its label stops at a max width with an ellipsis when the trail cannot fit (DRAFT 240px); ancestor labels never truncate.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The overflow button — a <button type="button"> named "Show full path" (DRAFT), its glyph aria-hidden. Pressed, the hidden steps appear in its place as ancestor links, the button is removed, and focus moves to the first revealed link. Its 44×44px hit area is extended in code.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'The ancestor\'s hit area — the nested link\'s code-side expansion to 24px applies: a breadcrumb is not a link inside a sentence, so the inline exemption does not.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors and the chevron separator flips to point left, toward the current page. The slash does not mirror.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — ancestor labels never wrap or truncate; a long trail collapses whole steps instead.',
+      },
     ],
   },
 

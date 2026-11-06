@@ -110,11 +110,36 @@ export const providerLogo: ComponentDef = {
       },
     },
     codeOnly: [
-      'label routing — the accessibility contract is a DOM shape: with a label, role="img" and aria-label; without one, aria-hidden="true". Figma has no accessibility tree, and the two are pixel-identical, so the Figma leg cannot carry it.',
-      'forced colors — under forced-colors mode the browser would repaint the mark in system colors, which is the retint the provider forbids. The mark sets forced-color-adjust: none on itself only, so the text and focus ring around it still follow the user\'s colors.',
-      'swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a ProviderLogoProvider, so a brand\'s licensed artwork replaces these without forking a component (proposal §1.3, owner decision Q-B3 A).',
-      'gradient ids — a mark with a gradient names it by id inside its own SVG. Two copies inline on one page share the id, and the second resolves to the first, so the code projection makes each instance\'s ids unique. Figma imports each mark once, where the collision cannot happen.',
-      'width from the proportion — the host binds the height; the width is the height times the mark\'s artboard ratio. In code the SVG keeps its viewBox and width: auto. In Figma the host\'s slot is locked to the ratio (#2343 PR 2).',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'label routing — the accessibility contract is a DOM shape: with a label, role="img" and aria-label; without one, aria-hidden="true". Figma has no accessibility tree, and the two are pixel-identical, so the Figma leg cannot carry it.',
+      },
+      {
+        class: 'forced-colors',
+        disposition: 'unsupported',
+        description:
+          'forced colors — under forced-colors mode the browser would repaint the mark in system colors, which is the retint the provider forbids. The mark sets forced-color-adjust: none on itself only, so the text and focus ring around it still follow the user\'s colors.',
+      },
+      {
+        class: 'implementation',
+        disposition: 'refused',
+        description:
+          'swapping the artwork in code — the package exports the marks as a name-to-SVG map, and an app may pass its own map with the same names to a ProviderLogoProvider, so a brand\'s licensed artwork replaces these without forking a component (proposal §1.3, owner decision Q-B3 A).',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'gradient ids — a mark with a gradient names it by id inside its own SVG. Two copies inline on one page share the id, and the second resolves to the first, so the code projection makes each instance\'s ids unique. Figma imports each mark once, where the collision cannot happen.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'width from the proportion — the host binds the height; the width is the height times the mark\'s artboard ratio. In code the SVG keeps its viewBox and width: auto. In Figma the host\'s slot is locked to the ratio (#2343 PR 2).',
+      },
     ],
   },
 

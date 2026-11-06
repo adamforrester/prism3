@@ -5,6 +5,7 @@
  */
 import type { ComponentDef } from './component-schema';
 import { axisKindOf } from './component-schema';
+import { DISPOSITION_NAMES } from './code-only-register';
 
 /** Drop `undefined` keys so an absent optional field is absent, not `null`. */
 const compact = <T extends Record<string, unknown>>(o: T): T =>
@@ -51,4 +52,7 @@ export const projectDef = (def: ComponentDef) =>
       planned: def.composition?.planned ?? [],
       replacesPatterns: def.composition?.replacesPatterns ?? [],
     }),
+    // #3441: what the design file does not fully carry, as data — each `anatomy.codeOnly` entry's class and
+    // disposition, in the def's order. The prose stays maintainer-only (#1623), so it is not here.
+    syncBoundary: (def.anatomy?.codeOnly ?? []).map((e) => ({ class: e.class, disposition: DISPOSITION_NAMES[e.disposition] })),
   });

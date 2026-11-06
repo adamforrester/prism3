@@ -119,12 +119,42 @@ export const buttonGroup: ComponentDef = {
       saveFill: action('save', 'fill', 'Save, fill: a filled Button sharing the width, last.'),
     },
     codeOnly: [
-      'the element — a `<div>` holding the buttons in order, with no role: each button is its own control, and a group of separate actions is not a radio group or a toolbar. Give it `role="group"` and an `aria-label` only when the buttons need a shared name the page does not already give them.',
-      'order — the DOM order is the order the buttons are given, which is also the focus order. Inline and fill take the main action last (Cancel, then Save); stacked takes it first (Save, then Cancel), so the visual order and the focus order match in every layout. Never reverse the order with CSS alone: focus would then move against what the eye reads.',
-      'the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0; min-width: 0` so the buttons share the width equally at every width, and a label too long for its share wraps inside its button, with `overflow-wrap: anywhere` on the label so even one long word breaks, the row\'s buttons stretching to one height; stacked is a column with each button at full width. For long labels, pick stacked.',
-      'button count — Figma holds the buttons in the native `items` slot, two by default and three at most; code takes `items` of one to three Button elements.',
-      'Cancel — in Figma the group\'s own default Cancel is an outline Button; a host that nests the group (Dialog) may prefer another, such as Button.Neutral when the file has that set. In code, pass whichever the product uses.',
-      'right-to-left — the row mirrors through logical properties: the end edge is the left, and the main action sits leftmost.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the element — a `<div>` holding the buttons in order, with no role: each button is its own control, and a group of separate actions is not a radio group or a toolbar. Give it `role="group"` and an `aria-label` only when the buttons need a shared name the page does not already give them.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'order — the DOM order is the order the buttons are given, which is also the focus order. Inline and fill take the main action last (Cancel, then Save); stacked takes it first (Save, then Cancel), so the visual order and the focus order match in every layout. Never reverse the order with CSS alone: focus would then move against what the eye reads.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0; min-width: 0` so the buttons share the width equally at every width, and a label too long for its share wraps inside its button, with `overflow-wrap: anywhere` on the label so even one long word breaks, the row\'s buttons stretching to one height; stacked is a column with each button at full width. For long labels, pick stacked.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'button count — Figma holds the buttons in the native `items` slot, two by default and three at most; code takes `items` of one to three Button elements.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'Cancel — in Figma the group\'s own default Cancel is an outline Button; a host that nests the group (Dialog) may prefer another, such as Button.Neutral when the file has that set. In code, pass whichever the product uses.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'right-to-left — the row mirrors through logical properties: the end edge is the left, and the main action sits leftmost.',
+      },
     ],
   },
 

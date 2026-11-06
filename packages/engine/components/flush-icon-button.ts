@@ -206,12 +206,42 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
       },
     },
     codeOnly: [
-      'touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.',
-      'focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma\'s x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.',
-      'aria-label — the required accessible name, held at the type level in code. Figma cannot hold "required", and a text property named for it would read as a name already given.',
-      'Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled="true"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.',
-      'RTL mirroring — only a directional glyph flips under RTL (a back or forward chevron); close, minus and plus stay as drawn.',
-      'the round focus ring — on the circle, the ring is round too: its radius is the host radius plus the ring offset, derived in code as on IconButton\'s circular shape, since the shared ring binds no radius of its own.',
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.',
+      },
+      {
+        class: 'focus-ring',
+        disposition: 'lowered',
+        description:
+          'focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma\'s x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'aria-label — the required accessible name, held at the type level in code. Figma cannot hold "required", and a text property named for it would read as a name already given.',
+      },
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled="true"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL mirroring — only a directional glyph flips under RTL (a back or forward chevron); close, minus and plus stay as drawn.',
+      },
+      {
+        class: 'focus-ring',
+        disposition: 'unsupported',
+        description:
+          'the round focus ring — on the circle, the ring is round too: its radius is the host radius plus the ring offset, derived in code as on IconButton\'s circular shape, since the shared ring binds no radius of its own.',
+      },
     ],
   },
 

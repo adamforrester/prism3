@@ -276,26 +276,106 @@ export const banner: ComponentDef = {
       },
     },
     codeOnly: [
-      'static or inserted — a banner present when the page loads is a `<section aria-labelledby>` pointing at the title, read in document order, with no live region: `role="alert"` on it would announce it twice or at the wrong time. A banner inserted after an action is announced through the page\'s shared live region, which exists before the text is inserted: assertive (`role="alert"`) for danger, polite (`role="status"`) for the other tones. `announce="none"` turns that off.',
-      'the heading level — the title renders as the `<h*>` that `headingLevel` names (default 2), never a hard-coded level. Figma has no heading level.',
-      'dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses ("Dismiss error message"), not a bare "Close". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds.',
-      'focus after a dismiss — focus moves to a surviving element that makes sense (the control that caused the banner, or the page heading), never to the page body.',
-      'the dismiss target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton\'s does. The banner\'s padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss\'s 24px target circle touches no other target (2.5.8).',
-      'one banner at a time — show only the most serious banner in a region; route lower-priority messages to a notification list rather than stacking banners.',
-      'motion — appears with an opacity fade; a dismiss collapses the height (about 150 to 200ms) and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest.',
-      'RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).',
-      'text expansion — never a fixed height. The text wraps, and so does the action\'s label.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'static or inserted — a banner present when the page loads is a `<section aria-labelledby>` pointing at the title, read in document order, with no live region: `role="alert"` on it would announce it twice or at the wrong time. A banner inserted after an action is announced through the page\'s shared live region, which exists before the text is inserted: assertive (`role="alert"`) for danger, polite (`role="status"`) for the other tones. `announce="none"` turns that off.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the heading level — the title renders as the `<h*>` that `headingLevel` names (default 2), never a hard-coded level. Figma has no heading level.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses ("Dismiss error message"), not a bare "Close". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'focus after a dismiss — focus moves to a surviving element that makes sense (the control that caused the banner, or the page heading), never to the page body.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'the dismiss target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton\'s does. The banner\'s padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss\'s 24px target circle touches no other target (2.5.8).',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'one banner at a time — show only the most serious banner in a region; route lower-priority messages to a notification list rather than stacking banners.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'motion — appears with an opacity fade; a dismiss collapses the height (about 150 to 200ms) and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — never a fixed height. The text wraps, and so does the action\'s label.',
+      },
       // #3225 (Q-BN4 all A).
-      'the inline link — `link` renders an inline Link (default weight, medium) inside the body paragraph, after a space: `<p>{children} <a href>{label}</a></p>`, so it is read as part of the sentence and wraps with it. The prop is typed exclusive with `actions` (a union in which setting one makes the other `never`), so the one-action rule holds at the type level. Tab order: the link, then the dismiss; the banner takes no focus. Its 24px hit area extends in code as Link\'s does, and the content column ends one gap before the dismiss, so the link\'s line never touches the dismiss target.',
+      {
+        class: 'composition',
+        disposition: 'refused',
+        description:
+          'the inline link — `link` renders an inline Link (default weight, medium) inside the body paragraph, after a space: `<p>{children} <a href>{label}</a></p>`, so it is read as part of the sentence and wraps with it. The prop is typed exclusive with `actions` (a union in which setting one makes the other `never`), so the one-action rule holds at the type level. Tab order: the link, then the dismiss; the banner takes no focus. Its 24px hit area extends in code as Link\'s does, and the content column ends one gap before the dismiss, so the link\'s line never touches the dismiss target.',
+      },
       // #3225 (Q-BN3 all A).
-      'the neutral tone — polite (`role="status"`) when inserted, as info, success and warning are; a region read in order when present at load. No glyph: `icon` has nothing to show, and `false` is the same.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the neutral tone — polite (`role="status"`) when inserted, as info, success and warning are; a region read in order when present at load. No glyph: `icon` has nothing to show, and `false` is the same.',
+      },
       // #3225 (Q-BN2.1 A).
-      'the body — `children` is plain text in the common case and renders in the body paragraph; rich content (a list, an inline image) renders in the same place. Figma shows the first as the body text property and the second in the rich body slot.',
-      'forced colors — the edge is a border, so it stays in the system border color when the browser removes the fill.',
-      'the minimum width — `min-inline-size: min(var(--container-min), 100%)`, one floor for both widths: 320px, the narrowest column, so a narrow host does not wrap the body to a sliver. Clamped to the host, so in a host narrower than 320 (a 320px phone\'s 288px column) the banner takes the host\'s width and the page never scrolls sideways (1.4.10 Reflow). Figma binds the same floor as `container/min`, unclamped, since Figma has no min().',
-      'full-bleed — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member.',
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'the body — `children` is plain text in the common case and renders in the body paragraph; rich content (a list, an inline image) renders in the same place. Figma shows the first as the body text property and the second in the rich body slot.',
+      },
+      {
+        class: 'forced-colors',
+        disposition: 'unsupported',
+        description:
+          'forced colors — the edge is a border, so it stays in the system border color when the browser removes the fill.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'unsupported',
+        description:
+          'the minimum width — `min-inline-size: min(var(--container-min), 100%)`, one floor for both widths: 320px, the narrowest column, so a narrow host does not wrap the body to a sliver. Clamped to the host, so in a host narrower than 320 (a 320px phone\'s 288px column) the banner takes the host\'s width and the page never scrolls sideways (1.4.10 Reflow). Figma binds the same floor as `container/min`, unclamped, since Figma has no min().',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'full-bleed — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member.',
+      },
       // #2924 (owner Q693 A, Q707 A): one banner style per brand, from the brand's bannerStyle setting.
-      'Banner style (the brand\'s bannerStyle setting) — the fill binds `color.foreground.{tone}-subtle` at Tinted, the default, and `color.background.primary` at Outlined. The edge (`color.border.{tone}`), the glyph (`color.icon.{tone}`) and the inks bind the same tokens in both. One value for every banner the brand ships: emit the one fill, never a prop.',
+      {
+        class: 'brand-setting',
+        disposition: 'lowered',
+        description:
+          'Banner style (the brand\'s bannerStyle setting) — the fill binds `color.foreground.{tone}-subtle` at Tinted, the default, and `color.background.primary` at Outlined. The edge (`color.border.{tone}`), the glyph (`color.icon.{tone}`) and the inks bind the same tokens in both. One value for every banner the brand ships: emit the one fill, never a prop.',
+      },
     ],
   },
 

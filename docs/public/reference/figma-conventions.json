@@ -336,7 +336,7 @@
     },
     "codeOnly": {
       "rule": "An axis or state listed under a component's `codeOnly` exists in code and has no Figma variant; the component doc says why. Code-only props are named in the same doc, not here.",
-      "source": "packages/engine/component-schema.ts#codeOnly: string[]"
+      "source": "packages/engine/component-schema.ts#codeOnly: CodeOnlyEntry[]"
     },
     "list": [
       {

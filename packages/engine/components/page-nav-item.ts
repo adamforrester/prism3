@@ -85,13 +85,48 @@ export const pageNavItem: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
-      'The element — each item is an <li> in the row\'s <ul>, holding one <a href>. PageNav renders it from its items.',
-      'The current page in code — current renders aria-current="page" on the <a>. It stays a real link with its href, in the Tab order, with hover, focus and the focus ring: a person can follow it to reload the page. The bar is Link\'s current-page bar, drawn inside the line box (a positioned pseudo-element or an inset shadow), never a border that adds height.',
-      'The bar\'s width — 2px tall, and the bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered. Partial, the default, is half the title\'s width, centered (inset-inline: 25%); Full width spans the title (inset-inline: 0). 2px either way.',
-      'The underline on the other pages — Link\'s standalone underline: none at rest, shown at :hover, :active and :focus-visible. The current page is told apart by its bar and aria-current, never by color alone.',
-      'RTL — the row mirrors with the document; a centered partial bar stays centered.',
-      'text expansion — labels never truncate and never wrap inside an item; the row wraps whole items instead (see PageNav).',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The element — each item is an <li> in the row\'s <ul>, holding one <a href>. PageNav renders it from its items.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The current page in code — current renders aria-current="page" on the <a>. It stays a real link with its href, in the Tab order, with hover, focus and the focus ring: a person can follow it to reload the page. The bar is Link\'s current-page bar, drawn inside the line box (a positioned pseudo-element or an inset shadow), never a border that adds height.',
+      },
+      {
+        class: 'brand-setting',
+        disposition: 'lowered',
+        description:
+          'The bar\'s width — 2px tall, and the bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered. Partial, the default, is half the title\'s width, centered (inset-inline: 25%); Full width spans the title (inset-inline: 0). 2px either way.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The underline on the other pages — Link\'s standalone underline: none at rest, shown at :hover, :active and :focus-visible. The current page is told apart by its bar and aria-current, never by color alone.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors with the document; a centered partial bar stays centered.',
+      },
+      {
+        class: 'localization',
+        disposition: 'unsupported',
+        description:
+          'text expansion — labels never truncate and never wrap inside an item; the row wraps whole items instead (see PageNav).',
+      },
     ],
   },
 
