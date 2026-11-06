@@ -47,6 +47,15 @@
  * decision Q1, keep and report), exactly as it keeps a recolor. Beside the node hashes rather than in them, for
  * `reactions`' reason: a record written before it existed makes no claim about artwork, and reads unchanged.
  *
+ * AND WHAT THE HOST SET ON EACH INSTANCE (#3474), as one hash per instance beside the nodes' (`Baseline.own`): the
+ * instance's signature cut to the fields its own entry in `InstanceNode.overrides` lists, plus which component it
+ * instantiates. An instance reads every field it does not override through from its main, so the whole hash moved
+ * whenever the nested component did: a property added to Focus Ring's set, or its stroke rebound, read as a hand edit
+ * on every member that nests it. Where both records hold it, `baselineDiff` compares this hash in place of the node's.
+ * Beside the node hashes for `reactions`' reason: the node hashes are unchanged, so `v` holds, and a record written
+ * before it existed holds no `own` and is compared whole, as it always was. One limit stays: the main is named by name
+ * (v3), so a RENAME of the nested component still moves the host's hash.
+ *
  * `v` is the format's version. A change to what is hashed changes every hash, so it raises `v`, and a
  * dry run that reads an older `v` reports the member as having no baseline rather than as hand-edited.
  *
@@ -82,7 +91,7 @@ export type SnapNode = Record<string, unknown> & { name: string; type: string; c
  *  beside the node hashes rather than in the root's, so a record written before reactions existed hashes every node
  *  as it did and reads unchanged: a record without the field makes no claim about reactions either way, and the
  *  same `v` reads both. Absent too where the host has no reactions to read. */
-export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string; art?: Record<string, string> };
+export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string; art?: Record<string, string>; own?: Record<string, string> };
 
 /** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
  *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
@@ -131,7 +140,7 @@ const plain = (v: unknown): unknown => {
 
 type LiveNode = Record<string, unknown> & {
   name?: unknown; type?: unknown; children?: unknown; parent?: unknown;
-  getMainComponentAsync?: () => Promise<unknown>;
+  getMainComponentAsync?: () => Promise<unknown>; overrides?: unknown; id?: unknown;
 };
 
 /** The main component an instance points at, as plain data. `getMainComponentAsync` first: the plugin
@@ -177,6 +186,19 @@ const styleNameOf = async (id: string): Promise<string> => {
 /** Drops the style-name cache: a test that renames or re-ids styles between reads. */
 export const resetStyleNames = (): void => styleNames.clear();
 
+/** THE FIELDS SET ON THIS INSTANCE ITSELF (#3474): its own entry in `InstanceNode.overrides`, sorted, or `[]` when it has
+ *  none. `null` where the host does not list overrides (a shim, an older host): the record then makes no claim about
+ *  them, and the instance is compared whole, as before. */
+const ownOverrides = (n: LiveNode): string[] | null => {
+  let list: unknown;
+  try { list = n.overrides; } catch { return null; }
+  if (!Array.isArray(list)) return null;
+  let id: unknown;
+  try { id = n.id; } catch { return null; }
+  const mine = (list as { id?: unknown; overriddenFields?: unknown }[]).find((o) => o && o.id === id);
+  return Array.isArray(mine?.overriddenFields) ? [...new Set(mine!.overriddenFields.map(String))].sort() : [];
+};
+
 export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
   const walk = async (raw: unknown, parentWidth: unknown, parentHeight: unknown, isRoot = false): Promise<SnapNode> => {
     const n = raw as LiveNode;
@@ -195,6 +217,8 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
     if (out.type === 'INSTANCE') {
       const main = await mainOf(n);
       if (main) out.mainComponent = main;
+      const own = ownOverrides(n);
+      if (own) out.overridden = own;
       return out;
     }
     let kids: unknown[] = [];
@@ -257,7 +281,9 @@ const paintSig = (p: unknown): unknown => {
 
 /** The signature of one node: the string its hash is taken over. Exported for the tests, which assert
  *  what moves it and what does not. */
-export const nodeSignature = (n: SnapNode): string => {
+export const nodeSignature = (n: SnapNode): string => JSON.stringify(signatureOf(n));
+
+const signatureOf = (n: SnapNode): Record<string, unknown> => {
   const bv = (n.boundVariables ?? {}) as Record<string, unknown>;
   const sig: Record<string, unknown> = { type: n.type, kids: (n.children ?? []).map((c) => c.name) };
   for (const k of AS_IS) if (n[k] !== undefined) sig[k] = round(n[k]);
@@ -286,7 +312,39 @@ export const nodeSignature = (n: SnapNode): string => {
     const props = n.componentProperties as Record<string, { type?: unknown; value?: unknown }> | undefined;
     if (props) sig.props = Object.entries(props).map(([k, p]) => [k, p?.type, p?.value]).sort(([a], [b]) => (String(a) < String(b) ? -1 : 1));
   }
-  return JSON.stringify(sig);
+  return sig;
+};
+
+/** The signature keys an instance's MAIN can hand it, each with the override fields (`InstanceNode.overrides`) that
+ *  mean the host set it instead. A key in a group (the corners, the stroke weights, the paints and their styles, the
+ *  type) is the host's when any field of its group is overridden: the host writes the group as one. `stokeTopWeight`
+ *  is the host's own spelling of that field. */
+const GROUPS: readonly (readonly string[])[] = [
+  ['cornerRadius', 'topLeftRadius', 'topRightRadius', 'bottomRightRadius', 'bottomLeftRadius'],
+  ['strokeWeight', 'strokeTopWeight', 'stokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'],
+  ['fills', 'fillStyleId'], ['strokes', 'strokeStyleId'],
+  ['textStyle', 'textStyleId', 'fontSize', 'lineHeight', 'fontName', 'letterSpacing'],
+  ['effects', 'effectStyle', 'effectStyleId'],
+  ['props', 'componentProperties'],
+];
+/** Keys the host owns whatever the overrides say: what it is, which component it instantiates (a swap is the host's,
+ *  and lists no override), and the references and exposure only a host layer carries. */
+const HOST_KEYS = new Set(['type', 'kids', 'main', 'refs', 'isExposedInstance']);
+
+/**
+ * WHAT THE HOST ITSELF SET ON AN INSTANCE (#3474): its signature cut to the keys the host overrode, or `null` for a
+ * node that is not an instance, or whose host lists no overrides. Everything else on an instance reads through from its
+ * main: a field the host did not set moves when the MAIN moves (a property added to the nested component's set, its
+ * stroke rebound, its paint changed), and that is an edit of the other set, never of this member. Compared in place
+ * of the whole hash where both records hold it (`baselineDiff`), so a host edit (a value set, a binding swapped, an
+ * override reset) still reads as one, and a change that reaches the member only through the main does not.
+ */
+export const ownSignature = (n: SnapNode): string | null => {
+  if (n.type !== 'INSTANCE' || !Array.isArray(n.overridden)) return null;
+  const over = new Set(n.overridden as string[]);
+  const mine = (k: string): boolean => HOST_KEYS.has(k) || over.has(k) || GROUPS.some((g) => g.includes(k) && g.some((f) => over.has(f)));
+  const sig = signatureOf(n);
+  return JSON.stringify(Object.fromEntries(Object.entries(sig).filter(([k]) => mine(k))));
 };
 
 /** Every node of a snapshot under its path: `.` for the member root, then child names joined by `/`, and
@@ -313,12 +371,15 @@ export const nodesByPath = (root: SnapNode): Map<string, SnapNode> => {
 export const baselineOf = (snap: SnapNode): Baseline => {
   const nodes: Record<string, string> = {};
   const art: Record<string, string> = {};
+  const own: Record<string, string> = {};
   for (const [path, n] of nodesByPath(snap)) {
     nodes[path] = fnv(nodeSignature(n));
+    const o = ownSignature(n);
+    if (o !== null) own[path] = fnv(o);
     const sig = artworkSignature(n);
     if (sig !== null) art[path] = fnv(sig);
   }
-  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}), ...(Object.keys(art).length ? { art } : {}) };
+  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}), ...(Object.keys(art).length ? { art } : {}), ...(Object.keys(own).length ? { own } : {}) };
 };
 
 /** The ARTWORK a node holds (#2343 PR 2): the geometry of its VECTOR children, in order, or `null` for a node that
@@ -367,6 +428,8 @@ export const baselineDiff = (stored: Baseline, now: Baseline): { changed: string
   const changed: string[] = [], added: string[] = [], removed: string[] = [];
   for (const [p, h] of Object.entries(stored.nodes)) {
     if (!(p in now.nodes)) removed.push(p);
+    // An instance both records hold its own part of (#3474): what the host set on it, and nothing its main hands it.
+    else if (stored.own?.[p] !== undefined && now.own?.[p] !== undefined) { if (now.own[p] !== stored.own[p]) changed.push(p); }
     else if (now.nodes[p] !== h) changed.push(p);
   }
   for (const p of Object.keys(now.nodes)) if (!(p in stored.nodes)) added.push(p);

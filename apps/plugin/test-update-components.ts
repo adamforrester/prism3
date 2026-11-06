@@ -90,6 +90,12 @@
  *                  `dropped/capture`.
  *   file/…         a def with no set is missing, and the verdict's `lines` (#2177) are one per item, the list the
  *                  summary is joined from. Mutation: `lines` sent as the joined summary → `file/lines`.
+ *   #3474/…        a change that reaches a member only through its nested instance's MAIN (Focus Ring's stroke
+ *                  rebound and repainted, a property added to its set) is not a hand edit; a field set on the instance
+ *                  itself, or one the main handed it overridden on the host, still is; a record from before #3474 is
+ *                  compared whole, as before. The host's instances are modelled by `figmaInstances` (`component-shim.ts`).
+ *                  Mutations: `baselineDiff`'s own-part branch dropped → `#3474/main`; `ownSignature` keeping only the
+ *                  host keys → `#3474/host`, `#3474/host override`; the snapshot not reading `overrides` → `#3474/main`.
  *
  * Run: `npx tsx apps/plugin/test-update-components.ts`
  */
@@ -107,8 +113,8 @@ import type { ComponentRename } from '@prism3/engine/component-renames';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
-import { BASELINE_KEY, BASELINE_V, baselineOf, writeBaseline, type SnapNode } from './src/member-baseline';
-import { makeShim, type Node, type Page } from './component-shim';
+import { BASELINE_KEY, BASELINE_V, baselineOf, snapshotMember, writeBaseline, type SnapNode } from './src/member-baseline';
+import { figmaInstances, makeShim, type Node, type Page } from './component-shim';
 import {
   readSetView, dryRunSet, hostPorts, previewUpdate, captureBaselines, previewVerdict, captureVerdictText,
   adoptMembers, adoptVerdictText, ADOPTED,
@@ -1070,6 +1076,72 @@ section('file — a def with no set is missing; the verdict says nothing changed
   const c = captureVerdictText({ sets: [{ def: TAG, set: 'Tag', recorded: 2, skipped: [] }], missing: ['badge'], refused: [{ def: 'x', reason: 'two sets' }] });
   ok(JSON.stringify(c.lines) === JSON.stringify(['Tag: 2 members recorded.', 'x: not recorded. two sets.', 'Not in this file: badge.']),
     `file/capture lines: one line per set, refusal and missing list (${JSON.stringify(c.lines)})`);
+}
+
+/* ── #3474 nested main ───────────────────────────────────────────────────────────────────────────────────── */
+section('#3474 nested main — a change that reaches a member only through its nested instance\'s main is not a hand edit');
+{
+  // Focus Ring, then Icon button nesting it, into one file: the host's 36 focus-visible members each hold an instance of
+  // a LIVE ring member, with the host's own overrides on it (absolute, inset, its corners, its size).
+  const ring = plansOf('focus-ring'), host = plansOf('icon-button');
+  const page: Page = { children: [] };
+  const comps = [...new Set([SWAP_TARGET, ...host.flatMap((p) => planComps(p.root))])].filter((c) => c !== 'focus-ring');
+  const shim = makeShim({
+    vars: [...new Set([...ring, ...host].flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]).concat('space/0'))],
+    styles: [...new Set(host.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(host.flatMap((p) => planEffectStyles(p.root)))],
+    comps, page, liveRoot: true, identities: true, scaleConstrained: true, wrapNode: figmaInstances(page),
+  }) as any;
+  const r1 = await applyComponentPlan(ring, shim);
+  const r2 = await applyComponentPlan(host, shim);
+  ok(!r1.misses.length && !r2.misses.length, `#3474 premise: Focus Ring and Icon button build clean (${r1.misses.length}, ${r2.misses.length}: ${[...r1.misses, ...r2.misses][0] ?? ''})`);
+  const ringSet = page.children.find((n) => n.type === 'COMPONENT_SET' && n.name === 'focus-ring') as Node;
+  const hostSet = page.children.find((n) => n.type === 'COMPONENT_SET' && n.name === 'icon-button') as Node;
+  const file = { ...shim, root: { findAllWithCriteria: (c: { types: string[] }) => [
+    ...page.children.filter((n) => c.types.includes(String(n.type))),
+    ...(c.types.includes('COMPONENT') ? comps.map((name) => ({ name, type: 'COMPONENT' })) : []),
+  ] } };
+  const check = async () => (await previewUpdate(file as any, [{ def: 'icon-button', plans: host }])).sets[0];
+  const focused = membersOf(hostSet).filter((m) => /state=focus-visible/.test(String(m.name)));
+  const ringOf = (m: Node): Node => childNamed(m, 'focusRing');
+  const fresh = await check();
+  ok(focused.length === 36 && fresh.counts.handEdited === 0 && fresh.counts.current === 216,
+    `#3474 premise: 36 focus-visible members, every member current on a fresh build (${focused.length}, ${JSON.stringify(fresh.counts)})`);
+  const rec = (m: Node) => JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)) as { nodes: Record<string, string>; own?: Record<string, string> };
+  ok(focused.every((m) => !!rec(m).own?.focusRing), `#3474 premise: each focus-visible member's record holds its ring's own part (${focused.filter((m) => rec(m).own?.focusRing).length} of 36)`);
+  // THE MAIN MOVES, as an update or rebuild of Focus Ring moves it: its stroke rebound and repainted, and a property
+  // added to its set. The host is not touched.
+  const before = focused.map((m) => rec(m).nodes.focusRing);
+  for (const m of membersOf(ringSet)) {
+    m.strokeWeight = 3;
+    m.strokes = [{ type: 'SOLID', color: { r: 1, g: 0, b: 0 }, visible: true, opacity: 1, blendMode: 'NORMAL' }];
+  }
+  (ringSet.addComponentProperty as (n: string, t: string, d: string) => string)('note', 'TEXT', 'x');
+  const moved = (await Promise.all(focused.map(async (m) => baselineOf(await snapshotMember(m)).nodes.focusRing))).filter((h, i) => h !== before[i]).length;
+  ok(moved === 36, `#3474 premise: the main's change reaches every focus-visible ring, its whole hash moved (${moved} of 36)`);
+  const after = await check();
+  ok(after.counts.handEdited === 0 && after.handEdits.length === 0,
+    `#3474/main: a change that reaches a member only through its nested instance's main is not a hand edit (${after.counts.handEdited} flagged: ${JSON.stringify(after.handEdits.slice(0, 2))})`);
+  // A HOST EDIT on one member's ring: a corner set on the instance itself. Still a hand edit, at its path.
+  const edited = focused[5];
+  ringOf(edited).topLeftRadius = 1;
+  const corner = await check();
+  ok(corner.counts.handEdited === 1 && corner.handEdits.length === 1 && corner.handEdits[0].member === edited.name && corner.handEdits[0].path === 'focusRing',
+    `#3474/host: a field set on the nested instance itself is still a hand edit, at the ring (${JSON.stringify(corner.handEdits)})`);
+  // And one the main used to hand it, overridden on the host: the ring's paint set on this member's instance.
+  const painted = focused[9];
+  ringOf(painted).strokes = [{ type: 'SOLID', color: { r: 0, g: 0, b: 1 }, visible: true, opacity: 1, blendMode: 'NORMAL' }];
+  const paint = await check();
+  ok(paint.counts.handEdited === 2 && paint.handEdits.some((h) => h.member === painted.name && h.path === 'focusRing'),
+    `#3474/host override: a field the main handed the instance, overridden on the host, is a hand edit (${JSON.stringify(paint.handEdits.map((h) => `${h.member} ${h.path}`))})`);
+  // A RECORD FROM BEFORE #3474 holds no own part: it is compared whole, as it always was, so the main's change still
+  // reads on it. Existing records read exactly as they did.
+  const old = focused[0];
+  const { own: _own, ...earlier } = rec(old);
+  (old.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify(earlier));
+  const legacy = await check();
+  ok(legacy.handEdits.some((h) => h.member === old.name && h.path === 'focusRing'),
+    `#3474/earlier record: a record with no own part is compared whole, as before (${legacy.handEdits.some((h) => h.member === old.name) ? 'flagged' : 'not flagged'})`);
 }
 
 // ── #2650: "What changed in <version>" — the version's breaking and new Figma items, for the sets the check would change ──
