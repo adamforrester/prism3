@@ -52,7 +52,7 @@ The scorer never reads the skill. `oracle.ts` lists every file it may open (`ORA
 self-test's `independence/oracle-paths` and `independence/reads` fail by name if an oracle points at, or a scoring
 pass opens, anything under `skills/`. `independence/reads` sees only reads through `readPinned`, so three static arms
 read `score-code.ts`'s own source and fail by name on any `skills` path or packet read, on any import other than
-`./oracle`, `@prism3/engine/color`, `node:*` and `playwright`, and on any file read other than a run's output or any
+`oracle.ts`, `@prism3/engine/color`, `node:*` and `playwright`, and on any file read other than a run's output or any
 process spawn (`independence/static-*`). `packets.ts` reads the skill; the scorer never calls it.
 
 ## Running it
