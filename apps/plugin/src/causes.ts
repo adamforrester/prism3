@@ -30,16 +30,17 @@ export const runCause = (headline: string, why: string): Cause =>
   cause(headline.startsWith('⚠') ? 'warn' : 'bad', null, headline.replace(/^[✓⚠✗]\s*/u, ''), why ? [why] : []);
 
 /** One cause per subject: two writers' causes for the same set become one, its reasons in order, each once. The worse
- *  kind wins, and the first `what` is kept unless the merged cause turned `bad`. Order: each subject where it first
- *  appears. */
+ *  kind wins (`note`, then `warn`, then `bad`: a note never hides a problem, #3326 PR 2), and the first `what` is kept
+ *  unless the merged cause turned worse. Order: each subject where it first appears. */
+const RANK: Readonly<Record<Cause['kind'], number>> = { note: 0, warn: 1, bad: 2 };
 export const mergeCauses = (...lists: readonly (readonly Cause[] | undefined)[]): Cause[] => {
   const out: Cause[] = [];
   for (const c of lists.flatMap((l) => l ?? [])) {
     const at = out.findIndex((x) => x.subject === c.subject);
     if (at < 0) { out.push({ ...c, reasons: [...c.reasons] }); continue; }
     const x = out[at];
-    const worse = x.kind === 'warn' && c.kind === 'bad';
-    out[at] = { ...x, kind: worse ? 'bad' : x.kind, what: worse ? c.what : x.what, reasons: [...new Set([...x.reasons, ...c.reasons])] };
+    const worse = RANK[c.kind] > RANK[x.kind];
+    out[at] = { ...x, kind: worse ? c.kind : x.kind, what: worse ? c.what : x.what, reasons: [...new Set([...x.reasons, ...c.reasons])] };
   }
   return out;
 };

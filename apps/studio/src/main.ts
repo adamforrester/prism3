@@ -33,12 +33,12 @@ import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
 import type { StyleGuidesLend } from './shell/style-guides';
-import type { ActivityLend, ActivityReading, OpReading } from './shell/activity';
+import { kindOf, type ActivityLend, type ActivityReading, type OpReading, type UpdateReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { StatusLend } from './shell/status-strip';
 import { agentHeard, heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
-import { brandFor, DUE_DEBOUNCE_MS, recheckHolds, startUpdate, statusesOf, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
+import { brandFor, DUE_DEBOUNCE_MS, recheckHolds, startUpdate, statusesOf, STEP_TITLE, stepDone, stepOf, stopUpdate, type StepKey, type UpdateRun } from './state/update-file';
 import { readSaved, savedDrawOptions } from './state/style-guides';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
@@ -1126,7 +1126,9 @@ const mountView = (view: RootView): void => {
       frame = mountFrame(app, {
         host: commit.isFigma ? 'figma' : 'web',
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
-        activity: { read: activityReading, closeDetail: closeOpenDetail, again: commit.isFigma ? activityAgain : undefined },
+        activity: { read: activityReading, closeDetail: closeOpenDetail, again: commit.isFigma ? activityAgain : undefined,
+          // #3326: a cause names its set by def id; the drawer shows the set's name.
+          nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id },
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
         documentation: commit.isFigma ? documentationLend : null,
@@ -1637,7 +1639,7 @@ const opReading = (k: OpKey, busy: boolean, settled: Omit<OpReading, 'phase' | '
 };
 /** A write slot's verdict, as a settled reading. */
 const verdictOf = (st: HostSession['applyState']): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
-  st === null || st === 'pending' ? null : { state: st.ok ? 'ok' : 'bad', ref: st, verdict: st.headline, summary: st.summary, lines: st.lines ?? null, publish: st.publish ?? null };
+  st === null || st === 'pending' ? null : { state: st.ok ? 'ok' : 'bad', ref: st, verdict: st.headline, summary: st.summary, lines: st.lines ?? null, publish: st.publish ?? null, causes: st.causes ?? null };
 /** The short verdicts Read-back and Prune stale show on their rows (owner decision #3 on #1956): a word or
  *  a count, with the host's full sentence in the row's details. The other rows' verdicts are already short
  *  headlines. */
@@ -1669,6 +1671,39 @@ const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
 /** Prune stale's short verdict: what the preview found, or what the delete removed. */
 const pruneShort = (v: { ok: boolean; applied: boolean; count: number }): string =>
   !v.ok ? SHORT.failed : v.applied ? `Removed ${v.count}` : v.count === 0 ? SHORT.clean : `${v.count} stale`;
+/**
+ * #3326 PR 2 (Q3326.4 A, Q3390.1 A): THE RUN AS ACTIVITY DRAWS IT, one row with its steps inside. Set when a run starts and
+ * kept after it ends, until the next one starts: each step that ended, with its verdict and, when the step ended on a
+ * verdict of its own operation, that operation's reading as it stood then (its lines, causes and publish description).
+ */
+let activityRun: { readonly n: number; readonly steps: readonly StepKey[]; readonly ended: readonly { readonly ok: boolean; readonly warn: boolean; readonly headline: string; readonly reading: OpReading | null }[];
+  readonly done: boolean; readonly kind: 'ok' | 'warn' | 'bad' | null; readonly verdict: string | null } | null = null;
+let activityRuns = 0;
+/** The operation each step runs, whose verdict ends it. */
+const OP_OF_STEP: Readonly<Record<StepKey, OpKey>> = { setup: 'filesetup', theme: 'apply', update: 'components', sets: 'components', guides: 'styleguide', cover: 'components' };
+const runReading = (): UpdateReading | null => {
+  const r = activityRun;
+  if (!r) return null;
+  return {
+    n: r.n, done: r.done, kind: r.kind, verdict: r.verdict,
+    steps: r.steps.map((step, i) => {
+      const title = STEP_TITLE[step];
+      const op = OP_OF_STEP[step];
+      const x = r.ended[i];
+      if (!x) return { title, op, state: r.done ? 'skip' : i === r.ended.length ? 'running' : 'wait', words: '', lines: [], causes: [], publish: null, ref: null };
+      const g = x.reading;
+      return {
+        title, op,
+        state: g ? kindOf(g.state === 'ok', g.verdict, g.failed) : x.ok ? 'ok' : x.warn ? 'warn' : 'bad',
+        words: g?.verdict ?? x.headline,
+        lines: g ? (g.lines?.length ? g.lines : g.summary ? [g.summary] : []) : [x.headline],
+        // The step's name is the panel's, so the panel fills a cause's step (`Cause.step`).
+        causes: (g?.causes ?? []).map((c) => ({ ...c, step: c.step ?? title })),
+        publish: g?.publish ?? null, ref: g?.ref ?? null,
+      };
+    }),
+  };
+};
 /** The host session's operations, lent to the Activity drawer (`shell/activity.ts`). Pure. A prune
  *  preview with something to remove is a settled run (its confirm dialog takes over); its verdict, when
  *  there is one, is the prune's result. Agent progress is the agent's own reading (`agentRun.progress`). */
@@ -1708,6 +1743,7 @@ const activityReading = (): ActivityReading => {
     },
     detail: host.openDetail,
     refused: host.refused,
+    update: runReading(),
   };
 };
 
@@ -1980,10 +2016,13 @@ const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): v
 };
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
-const endStep = (ok: boolean, headline: string, warn = false): void => {
+const endStep = (ok: boolean, headline: string, warn = false, own = false): void => {
   if (!updateRun) return;
   const step = stepOf(updateRun);
   const steps = updateRun.steps;
+  // #3326 PR 2: the step as Activity draws it. `own`: it ended on its operation's own verdict, so that reading is the step's.
+  const reading = own && step ? activityReading().ops[OP_OF_STEP[step]] : null;
+  if (activityRun) activityRun = { ...activityRun, ended: [...activityRun.ended, { ok, warn: !ok && warn, headline, reading: reading && reading.state !== 'running' && reading.state !== 'idle' ? reading : null }] };
   updateRun = stepDone(updateRun, ok, headline, warn);
   if (!ok && !warn && step) updateStopped = { step, headline };
   if (stripRun) stripRun = stepEnded(stripRun, Date.now());
@@ -1992,6 +2031,11 @@ const endStep = (ok: boolean, headline: string, warn = false): void => {
     if (stripRun) stripLine = stripVerdict({ results: updateRun.results, steps, stopped: updateRun.stopping, run: stripRun, now: Date.now(), nameOf: setName });
     // #3309: Update file's run as the strip words it, and each step's verdict, for the agent link's `activity`.
     if (stripRun && stripLine) commit.noteActivity('update', stripLine.tone === 'ok', stripLine.what, [stripLine.n, stripLine.sub, ...updateRun.results.map((r) => `${r.step}: ${r.ok ? 'ok' : 'not ok'}, ${r.headline}`)]);
+    // #3326 PR 2: the run's row reads the strip's verdict, its tone and its words (#3170), or, with no strip, its steps'.
+    if (activityRun) {
+      const worst = updateRun.results.some((x) => !x.ok && !x.warn) ? 'bad' : updateRun.results.some((x) => x.warn) || activityRun.ended.some((x) => x.reading && kindOf(x.reading.state === 'ok', x.reading.verdict, x.reading.failed) !== 'ok') ? 'warn' : 'ok';
+      activityRun = { ...activityRun, done: true, kind: stripLine?.tone ?? worst, verdict: stripLine?.what ?? null };
+    }
     stripRun = null;
     updateRun = null;
     updatePhase = null;
@@ -2038,8 +2082,8 @@ const STEP_OF_OP: Partial<Record<OpKey, StepKey>> = { filesetup: 'setup', apply:
 const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void => {
   const step = updateRun ? stepOf(updateRun) : null;
   if (!step) return;
-  if (step === 'setup' && m.kind === 'file-setup-result') { endStep(m.ok, m.headline); return; }
-  if (step === 'theme' && m.kind === 'apply-result') { endStep(m.ok, m.headline); return; }
+  if (step === 'setup' && m.kind === 'file-setup-result') { endStep(m.ok, m.headline, false, true); return; }
+  if (step === 'theme' && m.kind === 'apply-result') { endStep(m.ok, m.headline, false, true); return; }
   if ((step === 'update' || step === 'cover') && updatePhase === 'recheck' && m.kind === 'update-check') {
     const u = inPlaceOf(step)!;
     // #3421: a set reviewed as blocked only by Theme's variables and styles reads otherwise now that Theme wrote them.
@@ -2048,13 +2092,13 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
     postUpdate(u, m.previewHash);
     return;
   }
-  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline); return; }
+  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, false, true); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
   // #3308: a queue that built every set, some with problems, did all it was asked: the run goes on (`warn`). A set that
   // failed, or a stop that left sets unbuilt, still ends it.
   if (step === 'sets' && m.kind === 'component-result' && prev.componentState === 'pending' && !run) {
     const all = lastRun ? lastRun.run.results.length === lastRun.run.ids.length && lastRun.run.results.every((x) => x.result !== 'failed') : m.completed;
-    endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline, all);
+    endStep(lastRun?.verdict.ok ?? m.ok, lastRun?.verdict.headline ?? m.headline, all, true);
     return;
   }
   if (step === 'guides' && guidesWait && m.kind === 'style-guide-catalog') {
@@ -2063,10 +2107,12 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
     styleGuidesLend.draw(savedDrawOptions(m.catalog, readSaved(host.docSettings?.styleGuide)));
     return;
   }
-  if (step === 'guides' && !guidesWait && m.kind === 'style-guide-result') { endStep(m.ok, m.headline); return; }
+  if (step === 'guides' && !guidesWait && m.kind === 'style-guide-result') { endStep(m.ok, m.headline, false, true); return; }
   // A panel request the host declined behind an agent's run gets no verdict: the step ends with the host's words.
   const refusedStep = STEP_OF_OP[host.refused?.op ?? 'readback'];
-  if (m.kind === 'refused' && !m.agent && (refusedStep === step || ((step === 'update' || step === 'cover') && refusedStep === 'sets'))) { updatePhase = null; endStep(false, m.message); }
+  // #3326 PR 2: a set the To add step posted that the host refused carries the queue's own verdict (`runRefused`), so that
+  // verdict is the step's.
+  if (m.kind === 'refused' && !m.agent && (refusedStep === step || ((step === 'update' || step === 'cover') && refusedStep === 'sets'))) { updatePhase = null; endStep(false, m.message, false, step === 'sets' && !!lastRun); }
 };
 /** #3081 Q810 A: THE BADGE, LIVE. Update file's badge counts everything Update file would change: the sets due against
  *  the brand the panel holds, and one item for Theme changes the file does not hold yet. The panel asks for the count
@@ -2158,6 +2204,7 @@ const updateFileLend: UpdateFileLend = {
     updateStopped = null;
     updateReviewed = update?.checked ?? [];
     updateRun = startUpdate(steps, sets, update ? { defs: update.defs, previewHash: update.previewHash, handEdits: update.handEdits, ...(update.sets && Object.keys(update.sets).length ? { sets: update.sets } : {}) } : null);
+    activityRun = { n: ++activityRuns, steps: [...steps], ended: [], done: false, kind: null, verdict: null };
     stripRun = startStripRun(Date.now());
     stripLine = null;
     writesMoved();
@@ -2185,11 +2232,15 @@ const activityAgain: NonNullable<ActivityLend['again']> = {
   can: (k) => {
     if (restoreFailure || updateRun || Object.values(activityReading().ops).some((o) => o.state === 'running')) return false;
     if (k === 'components') return !!lastRun;
-    return k === 'apply' || k === 'filesetup' || k === 'styleguide' || k === 'prune' || k === 'specs';
+    return k === 'apply' || k === 'filesetup' || k === 'styleguide' || k === 'prune' || k === 'specs' || k === 'update';
   },
   run: (k) => {
     if (!activityAgain.can(k)) return;
-    if (k === 'apply') updateFileLend.run(['theme'], [], null);
+    // #3326 PR 2 (Q3390.2 A): "Update again" runs the whole Update file again, through its one door: the checklist, which
+    // reads the file afresh and checks what is due before it writes. Rerunning the last run's steps as they were would
+    // echo a check the run itself made stale (its own writes move the hashes the update step compares).
+    if (k === 'update') document.querySelector<HTMLButtonElement>('[data-p3="update-file"]')?.click();
+    else if (k === 'apply') updateFileLend.run(['theme'], [], null);
     else if (k === 'filesetup') updateFileLend.run(['setup'], [], null);
     else if (k === 'styleguide') updateFileLend.run(['guides'], [], null);
     else if (k === 'components' && lastRun) runSets(lastRun.run.kind, lastRun.run.ids);
