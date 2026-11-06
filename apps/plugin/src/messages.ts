@@ -324,7 +324,9 @@ export type RunProgressKind = 'read' | 'update' | 'apply-theme' | 'capture' | 'a
  * was the last line. A cause is what the writer already knows when it turns a run `⚠` or `✗`, sent beside `lines`, so the
  * drawer draws it and never reads the text to find it.
  *
- * - `kind`: `warn`, the step did what it was asked, not cleanly; `bad`, it stopped or wrote nothing.
+ * - `kind`: `warn`, the step did what it was asked, not cleanly; `bad`, it stopped or wrote nothing; `note` (#3326 PR 2,
+ *   Q3390.3 A, Q3326.7 A), worth saying but not why the run is not clean: drawn under Notes with the info mark, and never
+ *   counted. No writer sends a note yet (PR 4's split, Q3326.3 A, is the first).
  * - `subject`: the def id of the set the cause is about, or `null` when the cause is the run's own (a refusal, a throw).
  *   An id, never words: the drawer names it from its catalog, so no writer words a set's name.
  * - `what`: what happened to it, a short phrase the drawer prints after the subject ("built with problems").
@@ -333,10 +335,11 @@ export type RunProgressKind = 'read' | 'update' | 'apply-theme' | 'capture' | 'a
  *   panel fills it there (#3326 PR 2).
  * - `why`, `stays`, `todo`: the cause's explanation, what the run left in place, and what to do (#3326 PR 4's words).
  *
- * A cause is present only on a verdict that is not `ok`. An empty list means the writer found none to name.
+ * A `warn` or `bad` cause is present only on a verdict that is not `ok`; a `note` may ride any verdict. An empty list means
+ * the writer found none to name.
  */
 export type Cause = {
-  readonly kind: 'warn' | 'bad';
+  readonly kind: 'warn' | 'bad' | 'note';
   readonly subject: string | null;
   readonly what: string;
   readonly reasons: readonly string[];

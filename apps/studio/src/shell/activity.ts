@@ -42,6 +42,7 @@
  */
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
+import type { Cause } from '../../../plugin/src/messages';
 import type { Host } from './pages';
 import { armEnter, enterMark, glyph, h, hook, leave, tile } from './dom';
 
@@ -85,6 +86,8 @@ export const OP_TITLE: Readonly<Record<OpKey, string>> = {
   // #2830 Q713 A: Documentation › Specs' Draw specs, a row of its own. DRAFT wording (Q685 A).
   specs: 'Specs',
 };
+/** #3326 PR 2 (Q3326.4 A): each row's title, Update file's run among them (the approved renders' words). */
+export const ROW_TITLE: Readonly<Record<RowKey, string>> = { ...OP_TITLE, update: 'Update file' };
 
 // ── the open drawer's height (#2176, the owner's AD1–AD3, 2026-10-05) ───────────────────────────────
 // At the wide tier, while the drawer is open, a handle on its top edge drags it taller: from today's open height (the
@@ -178,6 +181,9 @@ export type OpReading = {
   readonly lines?: readonly string[] | null;
   /** #2858: an Update's library publish description, offered with a Copy button under the result's lines. */
   readonly publish?: string | null;
+  /** #3326 (Q3326.1 A): why the result is not clean, as the writer sent it. Drawn first, one disclosure per cause; the
+   *  drawer never finds a cause in `lines`. */
+  readonly causes?: readonly Cause[] | null;
   readonly phase: string | null;
   readonly progress: { readonly done: number; readonly total: number } | null;
   readonly agent: boolean;
@@ -187,24 +193,50 @@ export type OpReading = {
    *  tables, S11.2). Above 0, a result is a failure whatever its headline's mark (D-RED A, decision (a)). */
   readonly failed?: number;
 };
+/**
+ * #3326 PR 2 (Q3326.4 A, Q3390.1 A): UPDATE FILE'S RUN IS ONE ROW, ITS STEPS INSIDE IT. `main.ts` lends the latest run it
+ * started: each step's name, the operation that runs it, and, once the step ended, its verdict, lines and causes. The
+ * drawer files a step's operation under the run, never on that operation's own row; every other writer (an agent's
+ * command, Check, the boot Read-back, Clean up, Draw specs, a build from Components) keeps its own row as before.
+ * - `state`: `wait` before the step's turn, `running` while it is out, then its kind; `skip` for a step the run never
+ *   reached (Q3326.8 A: listed, with a dash and "Not run").
+ * - `words`: the step's verdict, as its writer headlined it (the drawer drops the mark).
+ * - `ref`: the operation's verdict the step ended on, so the drawer knows that verdict is the run's; `null` when the
+ *   step ended with no verdict of the operation's own (a refusal, a check that moved).
+ * - `causes`: the step's causes, each with its `step` filled with the step's name (the panel's words, `Cause.step`).
+ */
+export type UpdateStepState = 'wait' | 'running' | Kind | 'skip';
+export type UpdateStepReading = { readonly title: string; readonly op: OpKey; readonly state: UpdateStepState; readonly words: string;
+  readonly lines: readonly string[]; readonly causes: readonly Cause[]; readonly publish: string | null; readonly ref: unknown };
+/** `n` counts the runs this session, so a new run is a change. `kind` and `verdict` are the run's once `done`: the status
+ *  strip's tone and words for it (#3170), the same verdict the strip shows. */
+export type UpdateReading = { readonly n: number; readonly steps: readonly UpdateStepReading[]; readonly done: boolean; readonly kind: Kind | null; readonly verdict: string | null };
 /** A write the main thread declined while a run of the same operation was going (#1957). `n` counts
  *  them, so each is a change. */
 export type Refusal = { readonly op: OpKey; readonly message: string; readonly agent: boolean; readonly n: number };
 /** What `main.ts` lends: every operation by key, the result a page asked to show (a page's verdict
  *  pill clicked, or a bad verdict landing), `null` when none is, and the last refusal. Pure; no DOM. */
-export type ActivityReading = { readonly ops: Readonly<Record<OpKey, OpReading>>; readonly detail: OpKey | null; readonly refused: Refusal | null };
+export type ActivityReading = { readonly ops: Readonly<Record<OpKey, OpReading>>; readonly detail: OpKey | null; readonly refused: Refusal | null;
+  /** #3326 PR 2: Update file's latest run, or none yet (the web, or a session that has not run one). */
+  readonly update?: UpdateReading | null };
+/** A drawer row: an operation's own, or Update file's run (`update`). */
+export type RowKey = OpKey | 'update';
 export type ActivitySource = () => ActivityReading;
 /** What `main.ts` lends the drawer: the reading, and how to say a requested result has been shown. `again` (#3113,
  *  Q3113.4 A) runs an operation again through the write call Update file, Components or Documentation already makes, with
  *  no new message: `can` says whether it may start now (nothing else in its way), `run` starts it. Absent, no
  *  operation offers to run again. */
 export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void;
-  readonly again?: { readonly can: (k: OpKey) => boolean; readonly run: (k: OpKey) => void } };
+  /** #3326: a cause's subject (a def id) in the panel's words, the set's name. Absent, the id is shown. */
+  readonly nameOf?: (id: string) => string;
+  readonly again?: { readonly can: (k: RowKey) => boolean; readonly run: (k: RowKey) => void } };
 
 /** Q3113.4 A: a bad result's next step that runs it again, by operation (DRAFT wording). The boot read-back has none:
  *  nothing in the panel asks for it. */
-export const AGAIN: Readonly<Partial<Record<OpKey, string>>> = {
+export const AGAIN: Readonly<Partial<Record<RowKey, string>>> = {
   'apply': 'Apply again', components: 'Build again', filesetup: 'Set up again', styleguide: 'Run again', prune: 'Run again', specs: 'Run again',
+  // #3326 PR 2 (Q3390.2 A): the run's one next step, which runs Update file again; its steps offer none.
+  update: 'Update again',
 };
 /** Q3113.4 A: every bad result's last next step (DRAFT wording). */
 export const COPY_DETAILS = 'Copy details';
@@ -241,12 +273,15 @@ const statusWords = (running: number, failures: number, warnings: number, unread
  *  its reason, the first line of the host's detail (or its headline, without the leading mark, when it sent none). A
  *  warning reads "finished with a warning", since the run did finish; a failure reads "failed", told apart as the Activity
  *  button counts them (a "⚠" verdict is a warning unless the run reports something it was asked to make failed). */
-export const finishLine = (k: OpKey, o: Pick<OpReading, 'state' | 'verdict' | 'summary' | 'lines' | 'failed'>): string => {
-  if (o.state !== 'bad') return `${OP_TITLE[k]} finished.`;
+export const finishLine = (k: RowKey, o: Pick<OpReading, 'state' | 'verdict' | 'summary' | 'lines' | 'failed' | 'causes'>, kind?: Kind): string => {
+  if (o.state !== 'bad') return `${ROW_TITLE[k]} finished.`;
   const bare = (o.verdict ?? '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
-  const reason = (o.lines?.find((l) => l.trim()) ?? o.summary?.split('\n').find((l) => l.trim()) ?? bare).trim().replace(/[.\s]+$/, '');
-  const warning = kindOf(false, o.verdict, o.failed) === 'warn';
-  return `${OP_TITLE[k]} ${warning ? 'finished with a warning' : 'failed'}${reason ? `: ${reason}` : ''}.`;
+  // #3326: the first cause's first reason, when the writer named one; else, as before, the first line. A note is never
+  // the reason (Q3326.7 A).
+  const reason = (o.causes?.find((c) => c.kind !== 'note' && c.reasons.length)?.reasons[0] ?? o.lines?.find((l) => l.trim()) ?? o.summary?.split('\n').find((l) => l.trim()) ?? bare).trim().replace(/[.\s]+$/, '');
+  // #3326 PR 2: Update file's run says its kind itself (`UpdateReading.kind`); its verdict carries no mark to read.
+  const warning = (kind ?? kindOf(false, o.verdict, o.failed)) === 'warn';
+  return `${ROW_TITLE[k]} ${warning ? 'finished with a warning' : 'failed'}${reason ? `: ${reason}` : ''}.`;
 };
 
 /** A clock time, HH:MM, as concept v6 stamps an operation. */
@@ -254,26 +289,42 @@ const clock = (d: Date): string => d.toTimeString().slice(0, 5);
 
 /** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
  *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
-type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly publish?: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true;
+type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly publish?: string | null;
+  readonly causes?: readonly Cause[] | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true;
+  /** #3326 PR 2: Update file's run says its own kind, and holds its steps (`UpdateReading`). */
+  readonly kind?: Kind; readonly steps?: readonly UpdateStepReading[];
   /** What the run reported as failed, as data (`OpReading.failed`), so a "⚠" result with a failed item is a failure. */
   readonly failed?: number };
 /** A recorded result's kind. A declined request (#1957) is not a failure: the running write goes on. */
-const kindOfResult = (r: Result): Kind => (r.refused ? 'ok' : kindOf(r.ok, r.verdict, r.failed));
+const kindOfResult = (r: Result): Kind => (r.refused ? 'ok' : r.kind ?? kindOf(r.ok, r.verdict, r.failed));
 /** The state's mark (Q3113.2 A): a glyph in its status ink, or the running ring, which says what the bar's dot said. */
-const markOf = (state: Kind | 'run'): HTMLElement => {
+const markOf = (state: Kind | 'run' | 'note' | 'skip'): HTMLElement => {
   const m = h('span', state === 'run' ? 'p3-dot p3-status-dot p3-op-mark' : 'p3-op-mark');
   m.dataset.state = state;
   m.setAttribute('aria-hidden', 'true');
-  if (state !== 'run') m.append(glyph(KIND_GLYPH[state]));
+  // #3326 PR 2: a note draws the info mark (Q3326.7 A), a step that never ran a dash (Q3326.8 A).
+  if (state !== 'run') m.append(glyph(state === 'note' ? 'info' : state === 'skip' ? 'dash' : KIND_GLYPH[state]));
   return m;
 };
-/** Where a bad result's details split (Q3113.5 A): its reason, the first line, set in the UI face; the rest, mono. */
-const splitLines = (r: Pick<Result, 'summary' | 'lines'>): { reason: string | null; rest: readonly string[] } => {
-  const all = (r.lines?.length ? r.lines : r.summary ? [r.summary] : []).filter((l) => l.trim());
-  return { reason: all[0] ?? null, rest: all.slice(1) };
+/** A result's lines, in the writer's order (#2177): the summary as one line when the host sent none. #3326 (Q3326.1 A):
+ *  no line is picked out as the reason by its place any more. The reason is a cause the writer names (`causesEl`). */
+const allLines = (r: Pick<Result, 'summary' | 'lines'>): readonly string[] =>
+  (r.lines?.length ? r.lines : r.summary ? [r.summary] : []).filter((l) => l.trim());
+/** A result's causes: its own, or, for Update file's run, every step's in run order (#3326 PR 2). */
+const causesOf = (r: Pick<Result, 'causes' | 'steps'>): readonly Cause[] => (r.steps ? r.steps.flatMap((s) => s.causes) : r.causes ?? []);
+/** #3326: the labels before a cause's what-stays and what-to-do (owner-approved wording, Q3326 copy). */
+export const CAUSE_COPY = { stays: 'What stays:', todo: 'What to do:', step: (s: string): string => `Step: ${s}` } as const;
+/** #3326 PR 2: the section labels and a step's words the approved renders draw (Q3326.4 A, Q3326.8 A, the copy as drafted). */
+export const RUN_COPY = { notes: (n: number): string => (n === 1 ? 'Note' : 'Notes'), steps: 'Steps', notRun: 'Not run' } as const;
+/** A step's words in sentence case, as the renders draw them ("Applied", "File set up"): the writer's headline, its mark
+ *  dropped, its first letter raised. */
+const stepWords = (s: UpdateStepReading): string => {
+  const w = s.state === 'skip' ? RUN_COPY.notRun : verdictWords(s.words);
+  return w ? w[0].toUpperCase() + w.slice(1) : w;
 };
-/** One operation's record: what the drawer has seen of it this session. */
-type Rec = { t: string; result: Result | null; history: Result[] };
+/** One operation's record: what the drawer has seen of it this session. `at` orders the records by what happened last,
+ *  finer than `t`'s minute (#3326 PR 2: a run row and an operation's row can share one). */
+type Rec = { t: string; at: number; result: Result | null; history: Result[] };
 
 const EMPTY: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };
 
@@ -290,6 +341,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const { narrow } = opts;
   const now = opts.now ?? (() => new Date());
   const { read, closeDetail } = opts.lend;
+  const nameOf = opts.lend.nameOf ?? ((id: string) => id);
 
   // ── the button, in the top bar ─────────────────────────────────────────────────────────────────
   // A bar tile (the owner's top-bar decision, 2026-10-05): the glyph and its status dot over "Activity", the glyph
@@ -377,21 +429,48 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   let last = read();
   /** Whether the status line holds a run's words (its start, or a declined request) rather than a finish (Q194). */
   let liveRunning = false;
-  /** Every operation seen this session, in the order it first ran (v6). */
-  const recs = new Map<OpKey, Rec>();
-  /** The operations whose bodies are expanded. */
-  const expanded = new Set<OpKey>();
+  /** Every operation seen this session, and Update file's run (#3326 PR 2), in the order it first ran (v6). */
+  const recs = new Map<RowKey, Rec>();
+  /** The rows whose bodies are expanded. */
+  const expanded = new Set<RowKey>();
+  /** #3326 PR 2: every verdict an Update file step ended on this session. An operation that holds one shows it under the
+   *  run, so it draws no row of its own and is not counted twice. */
+  const runRefs = new Set<unknown>();
+  /** Whether operation `k`'s state in `r` is Update file's: its running step's (the panel's own write, never an agent's),
+   *  or a verdict a step ended on. */
+  const owned = (r: ActivityReading, k: OpKey): boolean => {
+    const o = r.ops[k];
+    if (o.state === 'running') return !o.agent && !!r.update && !r.update.done && r.update.steps.some((s) => s.state === 'running' && s.op === k);
+    return o.state !== 'idle' && (runRefs.has(o.ref) || !!r.update?.steps.some((s) => s.ref !== null && s.ref === o.ref));
+  };
+  /** The run's step that is out now, if any. */
+  const runningStep = (r: ActivityReading): UpdateStepReading | null => (r.update && !r.update.done ? r.update.steps.find((s) => s.state === 'running') ?? null : null);
+  /** A row as the bar row and the ranking read it: running, or its phase while it runs. */
+  const runningOf = (k: RowKey): boolean => (k === 'update' ? !!last.update && !last.update.done : last.ops[k].state === 'running');
+  const phaseOf = (k: RowKey): string | null => {
+    if (k !== 'update') return last.ops[k].phase;
+    const st = runningStep(last);
+    return st ? (last.ops[st.op].state === 'running' ? last.ops[st.op].phase ?? st.title : st.title) : null;
+  };
   /** The rendered rows, keyed, so a repaint keeps the header that holds focus. */
-  const rowEls = new Map<OpKey, { root: HTMLElement; head: HTMLButtonElement; mark: HTMLElement; tag: HTMLElement; words: HTMLElement; when: HTMLElement; body: HTMLElement; progress: HTMLElement | null }>();
+  const rowEls = new Map<RowKey, { root: HTMLElement; head: HTMLButtonElement; mark: HTMLElement; tag: HTMLElement; words: HTMLElement; when: HTMLElement; body: HTMLElement; progress: HTMLElement | null }>();
   /** The earlier result each drawn history entry shows, so an open one is found again by its result (#3113 review). */
   const entryOf = new WeakMap<HTMLDetailsElement, Result>();
 
   /** How many run, and how many results are bad (`failed`), split into failures and warnings (Q3113.3 A). */
+  /** #3326 PR 2: an operation's state that is Update file's run counts once, as the run's (Q3326.4 A). A note counts
+   *  nothing (Q3326.7 A): only the run's kind does. */
   const counts = (r: ActivityReading): { running: number; failed: number; failures: number; warnings: number } => {
-    const ops = Object.values(r.ops);
+    const ops = (Object.keys(r.ops) as OpKey[]).filter((k) => !owned(r, k)).map((k) => r.ops[k]);
     const bad = ops.filter((o) => o.state === 'bad');
-    const failures = bad.filter((o) => kindOf(false, o.verdict, o.failed) === 'bad').length;
-    return { running: ops.filter((o) => o.state === 'running').length, failed: bad.length, failures, warnings: bad.length - failures };
+    let failures = bad.filter((o) => kindOf(false, o.verdict, o.failed) === 'bad').length;
+    let warnings = bad.length - failures;
+    let running = ops.filter((o) => o.state === 'running').length;
+    const u = r.update;
+    if (u && !u.done) running += 1;
+    else if (u?.kind === 'bad') failures += 1;
+    else if (u?.kind === 'warn') warnings += 1;
+    return { running, failed: failures + warnings, failures, warnings };
   };
   /** The split counts as drawn (Q3113.3 A): "1 failed" in the error ink after the error glyph, "1 warning" in the text ink
    *  after the warning glyph, and "n running" only while more than one runs (the lead row says a lone run). */
@@ -469,7 +548,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
 
   /** Q3113.4 A: a bad result's next steps: run it again (a panel result only: an agent's ran with the agent's input, not
    *  the panel's), then Copy details. Available only while nothing is in the run's way (`again.can`). */
-  const nextSteps = (k: OpKey, res: Result): HTMLElement => {
+  const nextSteps = (k: RowKey, res: Result): HTMLElement => {
     const box = hook(h('div', 'p3-op-next'), 'op-next');
     const label = AGAIN[k];
     const again = opts.lend.again;
@@ -485,20 +564,121 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     copy.type = 'button';
     const said = hook(h('span', 'p3-note p3-op-copied'), 'op-copied');
     said.setAttribute('aria-live', 'polite');
-    const text = [`${OP_TITLE[k]}: ${res.verdict}`, ...(res.lines?.length ? res.lines : res.summary ? [res.summary] : [])].join('\n');
+    // #3326 PR 2: Update file's run copies each step's words and its lines, in run order.
+    const text = [`${ROW_TITLE[k]}: ${res.verdict}`, ...(res.steps ? res.steps.flatMap((st) => [`${st.title}: ${stepWords(st)}`, ...st.lines]) : res.lines?.length ? res.lines : res.summary ? [res.summary] : [])].join('\n');
     copy.onclick = async () => { said.textContent = (await copyText(text)) ? 'Copied.' : 'Not copied. Select the lines and copy them with your keyboard.'; };
     box.append(copy, said);
     return box;
   };
 
+  /**
+   * #3326 (Q3326.1 A, Q3326.5 A; #3308 Q3308.1 A): a result's causes, first, one disclosure each, the first open. Closed,
+   * a cause reads its mark, the set in emphasis, what happened, then `· <first reason>` clipped to one line; open, every
+   * reason one per line, wrapping, then its why, what stays and what to do. Drawn from the writer's `causes` only.
+   */
+  const causesEl = (res: Result, hookOf: string): HTMLElement | null => {
+    // #3326 PR 2: a note is not a cause (Q3326.7 A; `notesEl`), and Update file's run draws every step's causes, in run
+    // order (Q3326.4 A).
+    const causes = kindOfResult(res) === 'ok' ? [] : causesOf(res).filter((c) => c.kind !== 'note');
+    if (!causes.length) return null;
+    const ul = hook(h('ul', 'p3-op-causes'), hookOf);
+    causes.forEach((c, i) => {
+      const d = hook(h('details', 'p3-op-cause'), 'op-cause') as HTMLDetailsElement;
+      d.dataset.kind = c.kind;
+      if (i === 0) d.open = true;
+      const sum = h('summary');
+      const subj = hook(h('span', 'p3-op-cause-subj', c.subject === null ? '' : `${nameOf(c.subject)}:`), 'op-cause-subject');
+      subj.hidden = c.subject === null;
+      sum.append(glyph('chevr'), markOf(c.kind === 'bad' ? 'bad' : 'warn'), subj, hook(h('span', 'p3-op-cause-what', c.what), 'op-cause-what'));
+      if (c.reasons.length) sum.append(h('span', 'p3-op-cause-first', `· ${c.reasons[0]}`));
+      if (c.step) sum.append(h('span', 'p3-op-cause-step', c.step));
+      const body = h('div', 'p3-op-cause-body');
+      if (c.step) body.append(h('p', 'p3-op-cause-say p3-op-cause-steptext', CAUSE_COPY.step(c.step)));
+      if (c.reasons.length) {
+        const rs = hook(h('ul', 'p3-op-cause-reasons'), 'op-cause-reasons');
+        for (const r of c.reasons) rs.append(hook(h('li', undefined, r), 'op-cause-reason'));
+        body.append(rs);
+      }
+      if (c.why) body.append(h('p', 'p3-op-cause-say p3-op-cause-why', c.why));
+      for (const [label, text] of [[CAUSE_COPY.stays, c.stays], [CAUSE_COPY.todo, c.todo]] as const) {
+        if (!text) continue;
+        const p = h('p', 'p3-op-cause-say');
+        p.append(h('b', undefined, `${label} `), text);
+        body.append(p);
+      }
+      d.append(sum, body);
+      const li = h('li');
+      li.append(d);
+      ul.append(li);
+    });
+    return ul;
+  };
+
+  /**
+   * #3326 PR 2 (Q3390.3 A, Q3326.7 A): a result's notes, after its causes, whenever a writer sends one: a section labeled
+   * "Note" or "Notes", each note one line, the info mark, its step in emphasis, then what it says. A note counts nothing and
+   * keeps the run clean.
+   */
+  const notesEl = (res: Result, hookOf: string): HTMLElement[] => {
+    const notes = causesOf(res).filter((c) => c.kind === 'note');
+    if (!notes.length) return [];
+    const ul = hook(h('ul', 'p3-op-notes'), hookOf);
+    for (const c of notes) {
+      const li = hook(h('li', 'p3-op-note'), 'op-note');
+      const say = h('span', 'p3-op-note-say');
+      const lead = c.step ?? (c.subject === null ? null : nameOf(c.subject));
+      if (lead) say.append(hook(h('span', 'p3-op-note-step', `${lead}: `), 'op-note-step'));
+      say.append([c.what, ...c.reasons].join(' '));
+      li.append(markOf('note'), say);
+      ul.append(li);
+    }
+    return [hook(h('p', 'p3-op-sec', RUN_COPY.notes(notes.length)), 'op-notes-label'), ul];
+  };
+
+  /**
+   * #3326 PR 2 (Q3326.4 A, Q3326.6 A, Q3326.8 A): Update file's steps, after its causes and notes, in run order. Each step
+   * reads its mark, its name in emphasis and its verdict's words; its lines (the writer's mono list) sit behind its own
+   * disclosure, closed. A step the run never reached is listed with a dash and "Not run", and a step with no lines draws no
+   * disclosure. No step offers a button (Q3390.2 A): the run's "Update again" is the one next step.
+   */
+  const stepsEl = (res: Result, hookOf: string): HTMLElement[] => {
+    if (!res.steps?.length) return [];
+    const ul = hook(h('ul', 'p3-op-steps'), hookOf);
+    for (const st of res.steps) {
+      const li = h('li');
+      const words = hook(h('span', 'p3-op-step-words', stepWords(st)), 'op-step-words');
+      const name = hook(h('b', 'p3-op-step-name', st.title), 'op-step-name');
+      const mark = markOf(st.state === 'wait' || st.state === 'running' ? 'skip' : st.state);
+      if (st.lines.length) {
+        const d = hook(h('details', 'p3-op-step'), 'op-step') as HTMLDetailsElement;
+        d.dataset.state = st.state;
+        const sum = h('summary');
+        sum.append(glyph('chevr'), mark, name, words);
+        const list = hook(h('ul', 'p3-op-summary'), 'op-step-lines');
+        for (const line of st.lines) list.append(hook(h('li', 'p3-op-line', line), 'op-step-line'));
+        d.append(sum, list);
+        li.append(d);
+      } else {
+        const row = hook(h('div', 'p3-op-step p3-op-step-flat'), 'op-step');
+        row.dataset.state = st.state;
+        row.append(h('span', 'p3-op-step-gap'), mark, name, words);
+        li.append(row);
+      }
+      ul.append(li);
+    }
+    return [hook(h('p', 'p3-op-sec', RUN_COPY.steps), 'op-steps-label'), ul];
+  };
+
   /** A result's lines (#2177): one per item, each in the chrome's mono font, a long one wrapping inside the drawer. A
-   *  list, so a screen reader reads them in order and says how many. A bad result's first line is its reason, set apart
-   *  in the UI face (Q3113.5 A). */
-  const linesOf = (res: Result, hookOf: { list: string; line: string; reason: string }): HTMLElement[] => {
-    const bad = kindOfResult(res) !== 'ok';
-    const { reason, rest } = bad ? splitLines(res) : { reason: null, rest: (res.lines?.length ? res.lines : res.summary ? [res.summary] : []) };
+   *  list, so a screen reader reads them in order and says how many. #3326: a bad result's causes come first
+   *  (`causesEl`); no line is set apart as the reason by its place. #3326 PR 2: then its notes, then, for Update file's
+   *  run, its steps, which hold the lines (Q3326.6 A). */
+  const linesOf = (res: Result, hookOf: { list: string; line: string; causes: string; notes: string; steps: string }): HTMLElement[] => {
+    const rest = res.steps ? [] : allLines(res);
     const out: HTMLElement[] = [];
-    if (reason) out.push(hook(h('p', 'p3-op-reason', reason), hookOf.reason));
+    const causes = causesEl(res, hookOf.causes);
+    if (causes) out.push(causes);
+    out.push(...notesEl(res, hookOf.notes), ...stepsEl(res, hookOf.steps));
     if (rest.length) {
       const list = hook(h('ul', 'p3-op-summary'), hookOf.list);
       for (const line of rest) list.append(hook(h('li', 'p3-op-line', line), hookOf.line));
@@ -507,7 +687,17 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     return out;
   };
 
-  const paintRow = (k: OpKey, rec: Rec, o: OpReading): void => {
+  /** #3326 PR 2: what a row reads as while it runs. Update file's run reads its running step: that step's operation, its
+   *  phase and progress while the operation is out, else the step's name (the step is checking or waiting on a read). */
+  const liveOf = (k: RowKey): OpReading => {
+    if (k !== 'update') return last.ops[k];
+    const st = runningStep(last);
+    const u = last.update;
+    if (!st || !u) return { ...EMPTY, state: u && !u.done ? 'running' : 'idle' };
+    const o = last.ops[st.op];
+    return o.state === 'running' ? { ...o, agent: false } : { ...EMPTY, state: 'running', phase: st.title };
+  };
+  const paintRow = (k: RowKey, rec: Rec, o: OpReading): void => {
     let el = rowEls.get(k);
     if (!el) {
       const root = hook(h('div', 'p3-op'), 'activity-op');
@@ -522,7 +712,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const words = hook(h('span', 'p3-op-verdict'), 'op-verdict');
       const mark = h('span', 'p3-op-markslot');
       const when = h('span', 'p3-op-when');
-      head.append(glyph('chevr'), mark, h('b', undefined, OP_TITLE[k]), words, tag, when);
+      head.append(glyph('chevr'), mark, h('b', undefined, ROW_TITLE[k]), words, tag, when);
       const b = hook(h('div', 'p3-op-body'), 'op-body');
       b.id = `p3-op-${k}-b`;
       head.onclick = () => { if (expanded.has(k)) expanded.delete(k); else { expanded.add(k); armEnter(b.id); } paint(); };
@@ -549,13 +739,15 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const parts: Node[] = [];
     el.progress = null;
     if (running) {
-      el.progress = progressEl(OP_TITLE[k], o);
+      el.progress = progressEl(ROW_TITLE[k], o);
       parts.push(el.progress);
       // True of this plugin: the build lands each set on its own page and shows it (v6's line).
       if (k === 'components') parts.push(h('p', 'p3-note', "Build set switches Figma to the set's page."));
     } else if (res) {
-      parts.push(...linesOf(res, { list: 'op-summary', line: 'op-line', reason: 'op-reason' }));
+      parts.push(...linesOf(res, { list: 'op-summary', line: 'op-line', causes: 'op-causes', notes: 'op-notes', steps: 'op-steps' }));
       if (res.publish) parts.push(publishBlock(res.publish));
+      // #2858 inside Update file's run: the update step's publish description, under the steps.
+      for (const st of res.steps ?? []) if (st.publish) parts.push(publishBlock(st.publish));
       if (!res.ok) parts.push(nextSteps(k, res));
     }
     if (rec.history.length) {
@@ -574,7 +766,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         const head = hook(h('span', 'p3-op-entry-head'), 'op-history-head');
         head.append(markOf(kindOfResult(x)), h('span', 'p3-op-when', x.t), h('span', undefined, x.refused ? x.verdict : verdictWords(x.verdict)));
         if (x.agent) { const tag = h('span', 'p3-op-agent'); tag.append(glyph('agent'), 'Agent'); head.append(tag); }
-        const lines = x.summary ? linesOf(x, { list: 'op-history-lines', line: 'op-history-line', reason: 'op-history-reason' }) : [];
+        const lines = x.summary || x.steps?.length ? linesOf(x, { list: 'op-history-lines', line: 'op-history-line', causes: 'op-history-causes', notes: 'op-history-notes', steps: 'op-history-steps' }) : [];
         if (lines.length) {
           head.prepend(glyph('chevr'));
           const one = h('details', 'p3-op-entry') as HTMLDetailsElement;
@@ -598,11 +790,11 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   };
 
   /** The operation the bar row leads with: one running, else the newest result (v6). */
-  const leadOf = (): OpKey | null => {
+  const leadOf = (): RowKey | null => {
     const keys = [...recs.keys()];
-    const run = keys.find((k) => last.ops[k].state === 'running');
+    const run = keys.find((k) => runningOf(k));
     if (run) return run;
-    return keys.reduce<OpKey | null>((a, k) => (a === null || recs.get(k)!.t >= recs.get(a)!.t ? k : a), null);
+    return keys.reduce<RowKey | null>((a, k) => (a === null || recs.get(k)!.at >= recs.get(a)!.at ? k : a), null);
   };
 
   /** The agent link's status as drawn (Q3113.7 A): the link's glyph, a dot and its one word, the word hidden at 380 by the
@@ -626,15 +818,15 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const lead0: Node[] = [];
     const parts: Node[] = [];
     if (lead) {
-      const o = last.ops[lead];
+      const o = liveOf(lead);
       const rec = recs.get(lead)!;
-      const run = o.state === 'running';
+      const run = runningOf(lead);
       const kind: Kind | 'run' = run ? 'run' : rec.result ? kindOfResult(rec.result) : 'ok';
       lead0.push(markOf(kind));
       const text = h('span', 'p3-drawer-last');
-      const words = hook(h('span', 'p3-drawer-verdict', run ? o.phase ?? 'Running' : verdictWords(rec.result?.verdict ?? null)), 'activity-verdict');
+      const words = hook(h('span', 'p3-drawer-verdict', run ? phaseOf(lead) ?? 'Running' : verdictWords(rec.result?.verdict ?? null)), 'activity-verdict');
       words.dataset.state = kind;
-      text.append(h('b', undefined, OP_TITLE[lead]), ' ', words);
+      text.append(h('b', undefined, ROW_TITLE[lead]), ' ', words);
       parts.push(text, h('span', 'p3-op-when', rec.t));
       // At 380, the closed strip carries the running style guide's progress (the S11.2 mockup, variant 1).
       if (run && lead === 'styleguide' && o.strip && narrow() && !open) {
@@ -688,9 +880,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   };
 
   /** Q3113.2 A: attention first (failures, then warnings), then what runs, then the rest, each in the order it first ran. */
-  const rank = (k: OpKey): number => {
-    const o = last.ops[k];
-    if (o.state === 'running') return 2;
+  const rank = (k: RowKey): number => {
+    if (runningOf(k)) return 2;
     const r = recs.get(k)?.result;
     const kind = r ? kindOfResult(r) : 'ok';
     return kind === 'bad' ? 0 : kind === 'warn' ? 1 : 3;
@@ -727,7 +918,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
      *  focus back on the row's header rather than on BODY. */
     const focusRow = [...rowEls.values()].find((r) => had instanceof Node && r.root.contains(had)) ?? null;
     paintBar();
-    for (const [k, rec] of recs) paintRow(k, rec, last.ops[k]);
+    for (const [k, rec] of recs) paintRow(k, rec, liveOf(k));
     const keys = [...recs.keys()];
     const order = keys.map((k, i) => [k, i] as const).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([k]) => rowEls.get(k)!.root);
     if (order.length !== rows.children.length || order.some((n, i) => rows.children[i] !== n)) {
@@ -761,12 +952,14 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     paint();
   };
 
-  const recOf = (k: OpKey): Rec => {
+  /** What happened last, in order (`Rec.at`). */
+  let stamp = 0;
+  const recOf = (k: RowKey): Rec => {
     let r = recs.get(k);
-    if (!r) { r = { t: '', result: null, history: [] }; recs.set(k, r); }
+    if (!r) { r = { t: '', at: 0, result: null, history: [] }; recs.set(k, r); }
     return r;
   };
-  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, agent: o.agent, t, ref: o.ref, failed: o.failed ?? 0 });
+  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, causes: o.causes ?? null, agent: o.agent, t, ref: o.ref, failed: o.failed ?? 0 });
   /** The previous result moves to the history, newest first, at most `HISTORY_MAX`. */
   const retire = (rec: Rec): void => {
     if (rec.result) rec.history = [rec.result, ...rec.history].slice(0, HISTORY_MAX);
@@ -783,15 +976,21 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const loud = (k: OpKey): boolean => !opts.quiet?.(k);
     /** Quiet operations whose result landed in this reading: the verdict's own request to show it is not by hand. */
     const quietlySettled = new Set<OpKey>();
+    // #3326 PR 2: the verdicts Update file's steps ended on are the run's, from now on.
+    for (const st of cur.update?.steps ?? []) if (st.ref !== null && st.ref !== undefined) runRefs.add(st.ref);
     for (const k of Object.keys(cur.ops) as OpKey[]) {
       const n = cur.ops[k];
       const p = last.ops[k] ?? EMPTY;
+      // #3326 PR 2 (Q3326.4 A, Q3390.1 A): a step of Update file's run is drawn under the run (below), not on its
+      // operation's own row.
+      if (owned(cur, k)) continue;
       if (n.state === 'running') {
         if (p.state !== 'running') {
           // v6 `startOp`: the last result becomes history, and the row opens on the run.
           const rec = recOf(k);
           retire(rec);
           rec.t = clock(now());
+      rec.at = ++stamp;
           expanded.add(k);
           if (loud(k)) started = true;
           live.textContent = `${OP_TITLE[k]}, ${n.phase ?? 'Running'}`;
@@ -824,17 +1023,47 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const rec = recOf(k);
       retire(rec);
       rec.t = clock(now());
+      rec.at = ++stamp;
       rec.result = resultOf(n, rec.t);
       if (n.state === 'bad') { settledBad = true; expanded.add(k); } else { landedOk = true; expanded.delete(k); }
+    }
+    // #3326 PR 2 (Q3326.4 A): Update file's run, one row. It starts when a new run is lent (the last result becomes history,
+    // the row opens on the run) and settles when the run is done, as an operation's run does: a clean run collapses its row,
+    // a warning or a failure opens it and the drawer.
+    const u = cur.update ?? null;
+    const pu = last.update ?? null;
+    if (u && (u.n !== pu?.n || (u.done && !pu?.done))) {
+      const rec = recOf('update');
+      if (u.n !== pu?.n) {
+        retire(rec);
+        rec.t = clock(now());
+      rec.at = ++stamp;
+        expanded.add('update');
+        if (!u.done) {
+          started = true;
+          live.textContent = `${ROW_TITLE.update}, ${runningStep(cur)?.title ?? 'Running'}`;
+          liveRunning = true;
+        }
+      }
+      if (u.done) {
+        const kind = u.kind ?? 'ok';
+        const causes = u.steps.flatMap((st) => st.causes);
+        rec.result = { ok: kind === 'ok', kind, verdict: u.verdict ?? ROW_TITLE.update, summary: null, lines: null, causes: null, steps: u.steps, agent: false, t: rec.t, ref: u };
+        if (kind !== 'ok') { expanded.add('update'); settledBad = true; } else { settledOk = true; expanded.delete('update'); }
+        const firstBad = u.steps.find((st) => st.state === 'bad' || st.state === 'warn');
+        said.push(finishLine('update', { state: kind === 'ok' ? 'ok' : 'bad', verdict: u.verdict, summary: null, lines: firstBad ? [firstBad.words, ...firstBad.lines] : null, causes }, kind));
+      }
     }
     // A request the main thread declined (#1957, the owner's call): straight into the row's earlier results,
     // "Refused", with the reason as its details. The file is fine and the running write goes on, so it is
     // not a failure: the row keeps showing the run, nothing counts it, and the drawer does not open for it.
     const r = cur.refused;
-    if (r && r.n !== last.refused?.n) {
+    // #3326 PR 2: a refusal that ended a step of Update file's run is the run's: that step already carries the host's words.
+    const runs = !!r && !r.agent && !!cur.update?.steps.some((st) => st.op === r.op && st.lines.includes(r.message));
+    if (r && r.n !== last.refused?.n && !runs) {
       const rec = recOf(r.op);
       const t = clock(now());
-      if (!rec.t) rec.t = t;
+      if (!rec.t) { rec.t = t; rec.at = ++stamp; }
       rec.history = [{ ok: true, verdict: 'Refused', summary: r.message, agent: r.agent, t, ref: r, refused: true } as Result, ...rec.history].slice(0, HISTORY_MAX);
       live.textContent = `${OP_TITLE[r.op]} already running; the second request was declined.`;
       liveRunning = true;
@@ -883,14 +1112,15 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   /** A chunk boundary of the running build: rewrite its progress in place, not the row (focus, open details). */
   const onProgress = (): void => {
     const cur = read();
+    last = { ...last, ops: { ...last.ops, ...Object.fromEntries((Object.keys(cur.ops) as OpKey[]).filter((k) => cur.ops[k].state === 'running' && last.ops[k]?.state === 'running').map((k) => [k, cur.ops[k]])) } };
     for (const [k, el] of rowEls) {
-      const o = cur.ops[k];
+      // #3326 PR 2: Update file's row carries its running step's progress.
+      const o = liveOf(k);
       if (o.state !== 'running' || !el.progress || !el.progress.isConnected) continue;
-      const next = progressEl(OP_TITLE[k], o);
+      const next = progressEl(ROW_TITLE[k], o);
       el.progress.replaceWith(next);
       el.progress = next;
     }
-    last = { ...last, ops: { ...last.ops, ...Object.fromEntries((Object.keys(cur.ops) as OpKey[]).filter((k) => cur.ops[k].state === 'running' && last.ops[k]?.state === 'running').map((k) => [k, cur.ops[k]])) } };
     paintBar();
   };
 
