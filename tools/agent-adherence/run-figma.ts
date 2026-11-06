@@ -175,7 +175,7 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
 /* ── this runner's own bridge ───────────────────────────────────────────────────────────────────────── */
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-type Client = { call(name: string, args?: unknown): Promise<{ isError: boolean; value: any }>; close(): Promise<void> };
+export type Client = { call(name: string, args?: unknown): Promise<{ isError: boolean; value: any }>; close(): Promise<void> };
 
 const LISTENING = /listening on localhost/;
 /** Start a bridge process and wait until it says `listening`, exits, fails to spawn, or a minute passes. */
@@ -245,8 +245,13 @@ const openBridge = async (): Promise<Client> => {
   }
 };
 
-/** Wait for the plugin to connect to this bridge, then send each command, keeping every envelope verbatim. */
-const send = async (c: Client, cmds: Cmd[], say: (s: string) => void): Promise<Record<string, any>> => {
+/**
+ * Wait for the plugin to connect to this bridge, then send each command, keeping every envelope verbatim. Strict by
+ * default: a transport error or an `ok:false` envelope throws. `keepFailed` (the after side only, review B4) keeps an
+ * `ok:false` envelope instead, since a node the agent deleted is a refused read there, not a broken run; a transport
+ * error (`isError`) still throws.
+ */
+export const send = async (c: Client, cmds: Cmd[], say: (s: string) => void, o: { keepFailed?: boolean } = {}): Promise<Record<string, any>> => {
   const t0 = Date.now();
   while (!(await c.call('figma_status')).value?.connected) {
     if (Date.now() - t0 > 120_000) throw new Error('the plugin did not connect within 2 minutes: is Agent link on in the scratch file?');
@@ -258,9 +263,30 @@ const send = async (c: Client, cmds: Cmd[], say: (s: string) => void): Promise<R
     const r = await c.call('figma_run', { cmd: x.cmd, args: x.args, timeoutMs: 900_000 });
     if (r.isError) throw new Error(`${x.key}: ${JSON.stringify(r.value)}`);
     out[x.key] = r.value;
-    if (r.value?.ok === false) throw new Error(`${x.key} failed: ${JSON.stringify(r.value?.error ?? r.value?.result?.verdict)}`);
+    if (r.value?.ok === false && !o.keepFailed) throw new Error(`${x.key} failed: ${JSON.stringify(r.value?.error ?? r.value?.result?.verdict)}`);
   }
   return out;
+};
+/**
+ * THE AFTER SIDE (review B4): the captures again, then the run file, written whatever the captures found. A run whose
+ * agent deleted a snapshotted layer or a whole plan page gets an `ok:false` envelope for that read (`snapshot` refuses a
+ * missing node), and that run is exactly what V2, V6 and V8 exist to score, so the envelope is kept and the scorer
+ * reads it as a changed role. Throwing here would drop the worst-behaved runs from the counts and stop the job at the
+ * first one. The before side stays strict: a baseline that cannot be read is not a baseline.
+ */
+export const finishRun = async (c: Client, o: {
+  root: string; name: string; roles: Roles; base: Record<string, unknown>; transcript: unknown[]; calls: unknown[];
+  report: string; cwd: string; agentExit: number | null; say: (s: string) => void;
+}): Promise<string> => {
+  let after: Record<string, any>;
+  try { o.say(`${o.name}: after`); after = await send(c, captureCommands(o.roles), o.say, { keepFailed: true }); } finally { await c.close(); }
+  const failed = Object.entries(after).filter(([, v]) => v?.ok === false).map(([k]) => k);
+  if (failed.length) o.say(`${o.name}: after, ${failed.length} read(s) refused, kept for the scorer: ${failed.join(', ')}`);
+  const run = { ...o.base, after, calls: o.calls, report: o.report, probe: probe(o.transcript, o.cwd), agentExit: o.agentExit, cwd: o.cwd.split(sep).slice(-1)[0] };
+  const path = join(o.root, `${o.name}.json`);
+  writeFileSync(path, JSON.stringify(run, null, 2));
+  o.say(`${o.name}: written${run.probe.clean ? '' : `, void by the probe: ${run.probe.reasons.join('; ')}`}`);
+  return path;
 };
 const rolesOf = (plant: any): Roles => {
   const v = plant?.result?.data?.value;
@@ -355,7 +381,7 @@ if (isMain) {
   const bridgeWhy = await bridgePreflight(config, arm, cwd);
   if (bridgeWhy) { say(`refusing to start: ${bridgeWhy}`); process.exit(1); }
 
-  let c = await openBridge();
+  const c = await openBridge();
   let roles: Roles;
   let before: Record<string, any>;
   let status: Record<string, any>;
@@ -392,11 +418,6 @@ if (isMain) {
   const final = [...transcript].reverse().find((m: any) => m?.type === 'result');
   const report = typeof final?.result === 'string' ? final.result : '';
 
-  c = await openBridge();
-  let after: Record<string, any>;
-  try { say(`${name}: after`); after = await send(c, captureCommands(roles), say); } finally { await c.close(); }
   const callLines = existsSync(calls) ? readFileSync(calls, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l)) : [];
-  const run = { ...base, after, calls: callLines, report, probe: probe(transcript, cwd), agentExit: agent.exitCode, cwd: cwd.split(sep).slice(-1)[0] };
-  writeFileSync(join(root, `${name}.json`), JSON.stringify(run, null, 2));
-  say(`${name}: written${run.probe.clean ? '' : `, void by the probe: ${run.probe.reasons.join('; ')}`}`);
+  await finishRun(await openBridge(), { root, name, roles: roles!, base, transcript, calls: callLines, report, cwd, agentExit: agent.exitCode, say });
 }

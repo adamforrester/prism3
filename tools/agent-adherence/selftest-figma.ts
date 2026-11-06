@@ -23,8 +23,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
-import { BUILTIN_AGENTS, agentCommand, bridgePreflight, fileCheck, markerCheck, mcpConfig, preflight, probe } from './run-figma';
-import { MARKER, PLANT, TASK, VERSION_PROGRAM, canonicalInspect, goldenHash, inspectHash, readsProgram, setupCommands } from './figma-plan';
+import { BUILTIN_AGENTS, agentCommand, bridgePreflight, fileCheck, finishRun, markerCheck, mcpConfig, preflight, probe, send, type Client } from './run-figma';
+import { MARKER, PLANT, TASK, VERSION_PROGRAM, canonicalInspect, captureCommands, goldenHash, inspectHash, readsProgram, setupCommands } from './figma-plan';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOOD: FigmaRun = JSON.parse(readFileSync(resolve(HERE, 'fixtures/figma-good.json'), 'utf8'));
@@ -398,6 +398,69 @@ console.log('\nthe runner');
   const withMd = mkdtempSync(join(tmpdir(), 'p3-profile-'));
   writeFileSync(join(withMd, 'CLAUDE.md'), '# rules');
   ok(/profile holds a CLAUDE\.md/.test(preflight({ CLAUDE_CONFIG_DIR: withMd }, empty, home) ?? ''), 'runner/preflight: a test profile with a CLAUDE.md is refused');
+}
+
+console.log('\nthe after side (review B4)');
+{
+  // A stand-in for the runner's bridge client: each capture answers with the good run's own envelope, except the ones
+  // `refuse` names, which answer as the plugin answers a read of a node that is gone (`ok:false`, not a transport error).
+  const keyOf = new Map(captureCommands(GOOD.roles).map((x) => [JSON.stringify([x.cmd, x.args]), x.key]));
+  const standIn = (refuse: Record<string, unknown>, transportError = ''): Client & { closed: boolean } => {
+    const c = {
+      closed: false,
+      call: async (name: string, args?: any) => {
+        if (name === 'figma_status') return { isError: false, value: { connected: true } };
+        const key = keyOf.get(JSON.stringify([args?.cmd, args?.args]))!;
+        if (key === transportError) return { isError: true, value: { error: 'the bridge lost the plugin' } };
+        if (key in refuse) return { isError: false, value: refuse[key] };
+        return { isError: false, value: structuredClone(GOOD.after[key]) };
+      },
+      close: async () => { c.closed = true; },
+    };
+    return c;
+  };
+  const gone = { ok: false, cmd: 'snapshot', error: { code: 'not-found', message: 'no node with id 1:30' } };
+  const quiet = () => {};
+  const { after: _a, calls: _c, report: _r, probe: _p, ...base } = structuredClone(GOOD) as any;
+  const finish = (c: Client, root: string) =>
+    finishRun(c, { root, name: 'F2-1', roles: GOOD.roles, base, transcript: [], calls: structuredClone(GOOD.calls), report: GOOD.report, cwd: '/tmp/run', agentExit: 0, say: quiet });
+  {
+    const root = mkdtempSync(join(tmpdir(), 'p3-after-'));
+    const c = standIn({ 'snapshot-original': gone });
+    let err = '';
+    try { await finish(c, root); } catch (e) { err = (e as Error).message; }
+    const written = readdirSync(root).includes('F2-1.json');
+    const run: FigmaRun = written ? JSON.parse(readFileSync(join(root, 'F2-1.json'), 'utf8')) : ({} as FigmaRun);
+    // The probe's transcript is empty here (no init line), so the run is scored with the good run's clean probe: this arm
+    // tests the after side and the scorer, not the probe.
+    const s = written ? score({ ...run, probe: GOOD.probe }) : null;
+    ok(!err && written && (run.after as any)['snapshot-original']?.ok === false && c.closed,
+      `after/deleted-snapshot-written: an after snapshot refused as gone still writes F2-1.json, the envelope kept (${err || (written ? 'written' : 'no file')})`);
+    ok(!!s && s.V.V2 === 1 && clean(s, ['V2']) && /original: .*snapshot differs/.test(s.why.V2.join()),
+      `after/deleted-snapshot-scored: that run scores one V2 on the original (${s ? say(s) : 'not scored'})`);
+  }
+  {
+    // The whole Work page gone: every Work snapshot refused. Still written, and its deletions scored.
+    const root = mkdtempSync(join(tmpdir(), 'p3-after-'));
+    const refuse = Object.fromEntries(['original', 'note', 'hero', 'legacyLibrary', 'promoRow'].map((r) => [`snapshot-${r}`, { ...gone, error: { code: 'not-found', message: `no node ${r}` } }]));
+    let err = '';
+    try { await finish(standIn(refuse), root); } catch (e) { err = (e as Error).message; }
+    const written = readdirSync(root).includes('F2-1.json');
+    const run: FigmaRun | null = written ? JSON.parse(readFileSync(join(root, 'F2-1.json'), 'utf8')) : null;
+    if (run) run.after.inspect!.result!.data.nodes = after(run).filter((n) => n.page !== 'Work');
+    const s = run ? score({ ...run, probe: GOOD.probe }) : null;
+    ok(!err && !!s && s.V.V2 >= 1 && s.V.V8 >= 1, `after/page-deleted-written: a run that deleted the Work page is written and scored (${err || (s ? say(s) : 'no file')})`);
+  }
+  {
+    // A transport error is still a broken run, on the after side too, and the before side stays strict.
+    const root = mkdtempSync(join(tmpdir(), 'p3-after-'));
+    let err = '';
+    try { await finish(standIn({}, 'snapshot-original'), root); } catch (e) { err = (e as Error).message; }
+    ok(/snapshot-original/.test(err) && !readdirSync(root).length, `after/transport-error: a transport error on the after side still throws and writes nothing (${err || 'no error'})`);
+    let strict = '';
+    try { await send(standIn({ 'snapshot-original': gone }), captureCommands(GOOD.roles), quiet); } catch (e) { strict = (e as Error).message; }
+    ok(/snapshot-original failed/.test(strict), `after/before-strict: send without keepFailed (the before side) still throws on ok:false (${strict || 'no error'})`);
+  }
 }
 
 console.log('\nthe contamination probe');
