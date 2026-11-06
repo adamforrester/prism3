@@ -330,6 +330,16 @@ returns envelopes verbatim and does not say PASS.
 
 ## `tools/agent-adherence/`
 
+The agent-adherence test's code surface (#3440, Q3440.1–.6 all A): does a fresh, context-free agent follow Prism3's
+rules better with the `prism3-build-ui` skill (arm C1) than with the token names and component APIs alone (C0)?
+`packets.ts` builds the two packets from a pinned commit, `orchestrate.ts` plans the runs and captures each one's
+output with its sha256, and `score-code.ts` renders each output in Chromium and counts R1 (invented name), R2 (raw
+value or primitive), R4 (below the contrast floor, from the computed colors and the engine's `contrast()`) and R5
+(a faked or silent can't-do). **No gate sibling, and the reason is the subject:** an agent's output is not in CI, and
+nobody has decided what count would be a failure. **The one rule to keep: the scorer never reads the skill.** Every
+oracle is under `packages/engine/out/`, read at the pin, and `selftest.ts`'s `independence/*` arms fail by name if
+that changes (`docs/34`).
+
 The Figma half of #3440's single agent-adherence test (owner decisions Q3440.1–.6 A, Q52 A): a fresh agent with no
 repo gets #3300 §5's rebind task through the desktop bridge on a scratch file, and the scorer counts the rules it
 broke from the file read back. `figma-plan.ts` is the plan (the `run-code` plant, which is also the reset, the

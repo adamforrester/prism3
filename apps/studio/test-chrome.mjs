@@ -21015,8 +21015,10 @@ if (runs('3335')) {
 // color `brand-neutral` and an override on the primary border that points at it, under the primary family and then
 // with the action palette on neutral (the case as found). The ORACLE is the override the page persisted, read back
 // out of its storage, never the helper the button calls; so the row's family put back at the button's own site
-// (`color-interactive.ts`) fails here by name, which `test-interactive-input.ts` §9 cannot see. The picker offers
-// the row's own ramp only, so it must mark none of it current.
+// (`color-interactive.ts`) fails here by name, which `test-interactive-input.ts` §9 cannot see. Since #3406 (owner
+// option A) the picker also offers the palette the override names: it opens on that palette with the held step current,
+// its palette select lists the row's own ramp then the held one, and a pick of another step of the held palette persists
+// on that palette. The oracle is the stored input again, and the expected lists are literals.
 if (runs('3391')) {
   console.log(`\nColor › Interactive: an override reads by the palette it names (#3391)\n${'='.repeat(78)}`);
   const ROLE = 'interactive.primary.border.rest', BC = 'brand-neutral', STEP = '350';
@@ -21050,11 +21052,22 @@ if (runs('3391')) {
       await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
       const pk = await page.evaluate(() => {
         const el = document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]');
-        return { palette: el?.querySelector('[data-p3="step-picker-palette"]')?.value ?? null, pressed: el?.querySelector('[aria-pressed="true"]')?.dataset.step ?? null };
+        const pressed = el?.querySelector('[aria-pressed="true"]');
+        return {
+          palette: el?.querySelector('[data-p3="step-picker-palette"]')?.value ?? null,
+          options: [...(el?.querySelectorAll('[data-p3="step-picker-palette"] option') ?? [])].map((o) => o.value),
+          pressed: pressed ? `${pressed.dataset.palette} ${pressed.dataset.step}` : null,
+        };
       });
-      // The picker offers the row's own ramp only, so the palette the override names is not on it: no step of the
-      // offered ramp is the current one (the bug marked "<row family> 350" as current).
-      ok(pk.palette !== BC && pk.pressed === null, `#3391 ${where}: the picker marks no step of ${pk.palette} as current, since the override names ${BC} (${JSON.stringify(pk)})`);
+      // The row's own family: primary, or neutral once the action palette moves there.
+      const own = action ?? 'primary';
+      ok(pk.palette === BC && pk.pressed === `${BC} ${STEP}` && JSON.stringify(pk.options) === JSON.stringify([own, BC]),
+        `#3406 ${where}: the picker opens on ${BC} with ${BC} ${STEP} current, and offers ${own} then ${BC} (${JSON.stringify(pk)})`);
+      step = 'pick';
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-palette="${BC}"][data-step="400"]`));
+      await settle(page);
+      const moved = (await persisted(page))?.overrides?.light?.[ROLE];
+      ok(moved?.palette === BC && moved?.step === '400', `#3406 ${where}: a pick of ${BC} 400 persists the override on ${BC} 400 (${JSON.stringify(moved ?? null)})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
