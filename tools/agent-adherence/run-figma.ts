@@ -18,8 +18,9 @@
  *   · `--mcp-config` names only the bridge (`prism3-figma`, on `PRISM3_BRIDGE_ARM=<arm>` with `--record`), with
  *     `--strict-mcp-config` and `--disable-slash-commands`;
  *   · a new empty working directory per run, under the OS temp dir, with no `CLAUDE.md` in it or above it;
- *   · the probe (`probe`) voids a run whose transcript lists a registered skill, a slash command, a plugin, an MCP server
- *     other than the bridge, carries a `CLAUDE.md`, calls the Skill tool, reads a `skills/` path or fetches GitHub.
+ *   · the probe (`probe`) voids a run whose transcript lists a registered skill, a slash command, a plugin or agent the
+ *     host did not ship, an MCP server other than the bridge, carries a `CLAUDE.md`, calls the Skill tool or starts a
+ *     subagent, reads a `skills/` path or fetches GitHub.
  * The first run is F0 against F2, 5 runs each (Q3440.3 A); F1 comes later.
  *
  * ONE BRIDGE AT A TIME. The plugin holds one bridge connection (#3297) on one port, so this runner's own bridge and the
@@ -46,6 +47,12 @@ const TSX = join(REPO, 'node_modules/.bin/tsx');
 /** The bridge's name in the agent's MCP config; its tools are `mcp__prism3-figma__…`. */
 export const BRIDGE_NAME = 'prism3-figma';
 const BRIDGE_TOOLS = ['figma_status', 'figma_run', 'figma_logs'].map((t) => `mcp__${BRIDGE_NAME}__${t}`);
+/**
+ * The agents a host lists in its `init` line with no profile at all (an empty `CLAUDE_CONFIG_DIR`, Claude Code 2.1.318,
+ * `fixtures/claude-init.json`). Written here, not read from the host: one the host adds later reads as the owner's and
+ * voids the run, which is the safe direction, and the Mac's first void names it.
+ */
+export const BUILTIN_AGENTS = ['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup'];
 /** The two built-in tools that read MCP resources, which arm 2 serves. No other tool is allowed. */
 const RESOURCE_TOOLS = ['ListMcpResourcesTool', 'ReadMcpResourceTool'];
 
@@ -93,9 +100,20 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
   const init = msgs.find((m) => m.type === 'system' && m.subtype === 'init');
   if (!init) reasons.push('no init line in the transcript');
   else {
+    const label = (x: any) => (typeof x === 'string' ? x : x?.name ?? JSON.stringify(x));
+    // Skills and slash commands: any at all. Plugins and agents: only ones the host did not ship (review B1, a real init
+    // line in `fixtures/claude-init.json`): a host always lists its built-in agents and its `builtin` plugins, and those
+    // are not the owner's profile.
+    const extra: Record<'skills' | 'slash_commands' | 'plugins' | 'agents', (x: any) => boolean> = {
+      skills: () => true,
+      slash_commands: () => true,
+      plugins: (x) => !(x && typeof x === 'object' && x.path === 'builtin'),
+      agents: (x) => !BUILTIN_AGENTS.includes(label(x)),
+    };
     for (const k of ['skills', 'slash_commands', 'plugins', 'agents'] as const) {
       const v = init[k];
-      if (Array.isArray(v) && v.length) reasons.push(`the host registered ${k}: ${v.map((x: any) => (typeof x === 'string' ? x : x?.name ?? JSON.stringify(x))).join(', ')}`);
+      const own = Array.isArray(v) ? v.filter(extra[k]) : [];
+      if (own.length) reasons.push(`the host registered ${k}: ${own.map(label).join(', ')}`);
     }
     const servers = (init.mcp_servers ?? []).map((s: any) => s?.name ?? s);
     if (JSON.stringify(servers) !== JSON.stringify([BRIDGE_NAME])) reasons.push(`the MCP servers are ${JSON.stringify(servers)}, not only ${BRIDGE_NAME}`);
@@ -110,6 +128,8 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
       if (m.type === 'assistant' && p?.type === 'tool_use') {
         const input = JSON.stringify(p.input ?? {});
         if (p.name === 'Skill') reasons.push(`the agent called the Skill tool (${input})`);
+        // A subagent runs outside what this transcript shows, so its reads can't be probed.
+        if (p.name === 'Task' || p.name === 'Agent') reasons.push(`the agent started a subagent (${p.name})`);
         if (/CLAUDE\.md/.test(input) && p.name !== `mcp__${BRIDGE_NAME}__figma_run`) reasons.push(`the agent reached for a CLAUDE.md (${p.name})`);
         if (/(^|[\\/"])skills[\\/]/.test(input) && !/prism3:\/\/skills\//.test(input)) reasons.push(`the agent read a skills/ path (${p.name})`);
         if (/github\.com|githubusercontent/.test(input)) reasons.push(`the agent fetched from GitHub (${p.name})`);

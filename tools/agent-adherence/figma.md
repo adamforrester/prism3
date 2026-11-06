@@ -16,6 +16,7 @@ gated is the bridge's arm switch: `apps/plugin/test-agent-bridge.ts` (`arm/…`,
 | `score-figma.ts` | The scorer: a run file, or a folder of them, in; counts per rule per run and the per-arm medians out. |
 | `selftest-figma.ts` | The scorer over one hand-written good run and one bad run per rule, each failing by name. Also checks the runner's argv, preflight and contamination probe, and the golden hash. |
 | `fixtures/figma-good.json` | The good run, written by hand to the read commands' shapes. |
+| `fixtures/claude-init.json` | A real host's `init` line from an empty profile, trimmed to the fields the probe reads. Its built-in agents and `builtin` plugins must read clean. |
 
 ## The task and the traps
 
@@ -84,10 +85,11 @@ code kept whole) before anything runs, and an `outcome` line after (`ok`, `not-o
   readers are allowed.
 - Each run gets a new, empty working directory under the OS temp dir, with no `CLAUDE.md` in it or above it.
 - **The contamination probe** (`probe`) voids a run whose transcript shows any of these:
-  - a registered skill, slash command, plugin or agent;
+  - a registered skill or slash command, or a plugin or agent the host didn't ship (built-in agents are a literal list
+    in `run-figma.ts`, and a plugin is built in when its `path` is `builtin`);
   - an MCP server other than the bridge;
   - a `CLAUDE.md` in a turn the host wrote;
-  - a call to the Skill tool, a read of a `skills/` path, or a fetch from GitHub.
+  - a call to the Skill tool or a subagent (`Task`, `Agent`), a read of a `skills/` path, or a fetch from GitHub.
 
   Arm 2 reading `prism3://skills/…` through the bridge is the arm itself, not contamination.
 - **One bridge at a time.** The plugin holds one bridge connection on one port (#3297). So the runner closes its own

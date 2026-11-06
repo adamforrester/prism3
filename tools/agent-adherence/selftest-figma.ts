@@ -22,7 +22,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
-import { agentCommand, mcpConfig, preflight, probe } from './run-figma';
+import { BUILTIN_AGENTS, agentCommand, mcpConfig, preflight, probe } from './run-figma';
 import { PLANT, TASK, canonicalInspect, inspectHash, readsProgram } from './figma-plan';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -256,6 +256,10 @@ console.log('\nthe contamination probe');
   const init = { type: 'system', subtype: 'init', cwd: '/tmp/run', mcp_servers: [{ name: 'prism3-figma', status: 'connected' }], skills: [], slash_commands: [], plugins: [] };
   const read = { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'ReadMcpResourceTool', input: { server: 'prism3-figma', uri: 'prism3://skills/prism3-rebind' } }] } };
   ok(probe([init, read], '/tmp/run').clean, "probe/clean: a run with only the bridge, reading the bridge's own resources, is clean");
+  // A real host's init line, from an empty profile (review B1): its built-in agents and `builtin` plugins are not a void.
+  const real = { ...JSON.parse(readFileSync(resolve(HERE, 'fixtures/claude-init.json'), 'utf8')), mcp_servers: [{ name: 'prism3-figma', status: 'connected' }] };
+  const rp = probe([real, read], '/tmp/run');
+  ok(rp.clean && real.agents.length > 0 && real.plugins.length > 0, `probe/real-init: a real host's built-in agents and plugins are clean (${rp.reasons.join('; ') || `${real.agents.length} agents, ${real.plugins.length} plugins`})`);
   const cases: [string, unknown[], RegExp][] = [
     ['skills', [{ ...init, skills: ['frontend-design'] }], /registered skills: frontend-design/],
     ['slash-commands', [{ ...init, slash_commands: ['review'] }], /slash_commands/],
@@ -265,6 +269,10 @@ console.log('\nthe contamination probe');
     ['skills-path', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/repo/skills/prism3-rebind/SKILL.md' } }] } }], /skills\/ path/],
     ['github', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'WebFetch', input: { url: 'https://github.com/x/y' } }] } }], /GitHub/],
     ['no-init', [read], /no init/],
+    ['own-agent', [{ ...init, agents: [...BUILTIN_AGENTS, 'reviewer'] }], /registered agents: reviewer$/],
+    ['own-plugin', [{ ...init, plugins: [{ name: 'house-rules', path: '/Users/x/.claude/plugins/house-rules' }] }], /registered plugins: house-rules/],
+    ['task-tool', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Task', input: { prompt: 'look around' } }] } }], /subagent \(Task\)/],
+    ['agent-tool', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Agent', input: { prompt: 'look around' } }] } }], /subagent \(Agent\)/],
     ['cwd', [init], /not the run's empty directory/],
   ];
   for (const [name, lines, want] of cases) {
