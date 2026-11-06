@@ -84,6 +84,9 @@ code kept whole) before anything runs, and an `outcome` line after (`ok`, `not-o
   names only the bridge (`prism3-figma`), on the arm, with `--record`. Only the bridge's tools and the two MCP resource
   readers are allowed.
 - Each run gets a new, empty working directory under the OS temp dir, with no `CLAUDE.md` in it or above it.
+- The bridge starts as `npx --yes tsx tools/figma-bridge/server.ts`, for the runner and in the agent's MCP config alike.
+  Before anything is sent to Figma, `run` starts the agent's bridge exactly as its config names it, from the run's
+  directory, and refuses unless it says `listening` (and, off arm 2, its arm).
 - **The contamination probe** (`probe`) voids a run whose transcript shows any of these:
   - a registered skill or slash command, or a plugin or agent the host didn't ship (built-in agents are a literal list
     in `run-figma.ts`, and a plugin is built in when its `path` is `builtin`);

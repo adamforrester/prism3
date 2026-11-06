@@ -17,12 +17,12 @@
  * text → `R5/bad-silent`; the protected-role diff dropped → `R6/bad-protected`; the version-save search dropped (every
  * write counts as unsaved) → `good/clean` and `R7/good-version-first`, and the write search dropped → `R7/bad-no-version`.
  */
-import { readFileSync, mkdtempSync, writeFileSync, mkdirSync, realpathSync, symlinkSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, writeFileSync, mkdirSync, realpathSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
-import { BUILTIN_AGENTS, agentCommand, mcpConfig, preflight, probe } from './run-figma';
+import { BUILTIN_AGENTS, agentCommand, bridgePreflight, mcpConfig, preflight, probe } from './run-figma';
 import { PLANT, TASK, canonicalInspect, inspectHash, readsProgram } from './figma-plan';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -232,6 +232,22 @@ console.log('\nthe runner');
   const cfg = mcpConfig(0, '/x/calls.jsonl') as any;
   ok(Object.keys(cfg.mcpServers).join() === 'prism3-figma' && cfg.mcpServers['prism3-figma'].env.PRISM3_BRIDGE_ARM === '0' && cfg.mcpServers['prism3-figma'].args.includes('--record'),
     'runner/mcp-config: the config names only the bridge, on the arm, recording');
+
+  // The bridge command (review B3): `npx tsx`, never a `node_modules/.bin` path `npm ci` does not install.
+  const sv = cfg.mcpServers['prism3-figma'];
+  ok(sv.command === 'npx' && sv.args.includes('tsx') && !/node_modules/.test(JSON.stringify(sv)), `runner/mcp-config: the bridge starts as npx tsx (${sv.command} ${sv.args.slice(0, 2).join(' ')})`);
+  {
+    // The preflight starts the config's own command, from an empty dir, on a free port and a throwaway pairing secret.
+    const runDir = mkdtempSync(join(tmpdir(), 'p3-pre-'));
+    const secret = join(mkdtempSync(join(tmpdir(), 'p3-cfg-')), 'bridge.json');
+    const at = (arm: string, command?: string) => ({ mcpServers: { 'prism3-figma': { ...sv, ...(command ? { command } : {}), args: [...sv.args, '--port', '0', '--config', secret], env: { PRISM3_BRIDGE_ARM: arm } } } }) as ReturnType<typeof mcpConfig>;
+    const good = await bridgePreflight(at('0'), 0, runDir);
+    ok(good === null && readdirSync(runDir).length === 0, `runner/bridge-preflight: the arm-0 bridge, as configured, says listening on arm 0, and leaves the run dir empty (${good ?? (readdirSync(runDir).join(', ') || 'listening')})`);
+    const missing = await bridgePreflight(at('0', join(runDir, 'node_modules/.bin/tsx')), 0, runDir);
+    ok(/did not start .*ENOENT/.test(missing ?? ''), `runner/bridge-preflight-missing: a command that does not exist is refused, not a crash (${missing})`);
+    const wrongArm = await bridgePreflight(at('2'), 0, runDir);
+    ok(/not on arm 0/.test(wrongArm ?? ''), `runner/bridge-preflight-arm: a bridge on another arm is refused (${wrongArm})`);
+  }
 
   const home = mkdtempSync(join(tmpdir(), 'p3-home-'));
   const profile = mkdtempSync(join(tmpdir(), 'p3-profile-'));

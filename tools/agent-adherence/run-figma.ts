@@ -43,7 +43,11 @@ import { RUN_FORMAT } from './score-figma';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SERVER = join(REPO, 'tools/figma-bridge/server.ts');
-const TSX = join(REPO, 'node_modules/.bin/tsx');
+/**
+ * How the bridge is started, by the runner and in the agent's MCP config alike: `npx --yes tsx`, as the repo runs every
+ * script (review B3). `tsx` is in no `package.json`, so `node_modules/.bin/tsx` does not exist after `npm ci`.
+ */
+export const bridgeCommand = (extra: string[] = []) => ({ command: 'npx', args: ['--yes', 'tsx', SERVER, ...extra] });
 /** The bridge's name in the agent's MCP config; its tools are `mcp__prism3-figma__…`. */
 export const BRIDGE_NAME = 'prism3-figma';
 const BRIDGE_TOOLS = ['figma_status', 'figma_run', 'figma_logs'].map((t) => `mcp__${BRIDGE_NAME}__${t}`);
@@ -60,7 +64,7 @@ const RESOURCE_TOOLS = ['ListMcpResourcesTool', 'ReadMcpResourceTool'];
 
 /** The MCP config naming only the bridge, on the arm, recording its calls. Pure. */
 export const mcpConfig = (arm: number, record: string) => ({
-  mcpServers: { [BRIDGE_NAME]: { command: TSX, args: [SERVER, '--record', record], env: { PRISM3_BRIDGE_ARM: String(arm) } } },
+  mcpServers: { [BRIDGE_NAME]: { ...bridgeCommand(['--record', record]), env: { PRISM3_BRIDGE_ARM: String(arm) } } },
 });
 
 /** The headless `claude` invocation for one run. Pure: every invariant above is in the argv it returns. */
@@ -149,26 +153,54 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 type Client = { call(name: string, args?: unknown): Promise<{ isError: boolean; value: any }>; close(): Promise<void> };
 
+const LISTENING = /listening on localhost/;
+/** Start a bridge process and wait until it says `listening`, exits, fails to spawn, or a minute passes. */
+const startBridge = async (command: string, args: string[], env: NodeJS.ProcessEnv, cwd?: string) => {
+  const p: ChildProcessWithoutNullStreams = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'], env, cwd });
+  let err = '';
+  let spawnError: Error | null = null;
+  p.on('error', (e) => { spawnError = e; });
+  p.stderr.setEncoding('utf8');
+  p.stderr.on('data', (d) => { err += d; });
+  const t0 = Date.now();
+  while (!LISTENING.test(err) && p.exitCode === null && !spawnError && Date.now() - t0 < 60_000) await sleep(50);
+  const listening = LISTENING.test(err) && p.exitCode === null && !spawnError;
+  const stop = async () => { p.stdin.end(); const t = Date.now(); while (p.exitCode === null && Date.now() - t < 5000) await sleep(50); if (p.exitCode === null) p.kill(); };
+  return { p, listening, stop, why: () => (spawnError ? `${command}: ${(spawnError as Error).message}` : err.trim() || `no output (exit ${p.exitCode})`) };
+};
+
+/**
+ * THE BRIDGE PREFLIGHT (review B3): start the agent's bridge exactly as its MCP config names it, from the run's own
+ * working directory, and wait for it to say `listening` (and, off arm 2, its arm) before anything is sent to Figma. A
+ * config whose command does not exist, or a server that will not start, stops the run here rather than in the agent.
+ */
+export const bridgePreflight = async (config: ReturnType<typeof mcpConfig>, arm: number, cwd: string): Promise<string | null> => {
+  const s = config.mcpServers[BRIDGE_NAME];
+  const b = await startBridge(s.command, s.args, { ...process.env, ...s.env }, cwd);
+  const text = b.why();
+  await b.stop();
+  if (!b.listening) return `the agent's bridge did not start (${text})`;
+  if (arm !== 2 && !new RegExp(`arm ${arm}\\b`).test(text)) return `the agent's bridge started, but not on arm ${arm} (${text})`;
+  return null;
+};
+
 const openBridge = async (): Promise<Client> => {
   for (let attempt = 0; ; attempt++) {
-    const p: ChildProcessWithoutNullStreams = spawn(TSX, [SERVER], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, PRISM3_BRIDGE_ARM: '2' } });
-    let err = '';
+    const b = await startBridge(bridgeCommand().command, bridgeCommand().args, { ...process.env, PRISM3_BRIDGE_ARM: '2' });
+    const p = b.p;
+    if (!b.listening) {
+      // The agent's bridge may still be letting go of the port.
+      if (attempt < 10) { p.kill(); await sleep(2000); continue; }
+      throw new Error(`the runner's bridge did not start: ${b.why()}`);
+    }
     let buf = '';
     const got = new Map<number, any>();
-    p.stderr.setEncoding('utf8'); p.stdout.setEncoding('utf8');
-    p.stderr.on('data', (d) => { err += d; });
+    p.stdout.setEncoding('utf8');
     p.stdout.on('data', (d) => {
       buf += d;
       let nl: number;
       while ((nl = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, nl); buf = buf.slice(nl + 1); if (line.trim()) { const m = JSON.parse(line); if (m.id != null) got.set(m.id, m); } }
     });
-    const t0 = Date.now();
-    while (!/listening on localhost/.test(err) && p.exitCode === null && Date.now() - t0 < 60_000) await sleep(50);
-    if (p.exitCode !== null || !/listening on localhost/.test(err)) {
-      // The agent's bridge may still be letting go of the port.
-      if (attempt < 10) { p.kill(); await sleep(2000); continue; }
-      throw new Error(`the runner's bridge did not start: ${err.trim()}`);
-    }
     let n = 0;
     const rpc = async (method: string, params: unknown, ms = 900_000) => {
       const id = ++n;
@@ -184,7 +216,7 @@ const openBridge = async (): Promise<Client> => {
     };
     return {
       call,
-      close: async () => { p.stdin.end(); const t = Date.now(); while (p.exitCode === null && Date.now() - t < 5000) await sleep(50); if (p.exitCode === null) p.kill(); },
+      close: b.stop,
     };
   }
 };
@@ -265,6 +297,12 @@ if (isMain) {
   const cwd = mkdtempSync(join(tmpdir(), `p3-adherence-${name}-`));
   const why = preflight(process.env, cwd);
   if (why) { say(`refusing to start: ${why}`); process.exit(1); }
+  const calls = join(dir, 'calls.jsonl');
+  const mcpPath = join(dir, 'mcp.json');
+  const config = mcpConfig(arm, calls);
+  writeFileSync(mcpPath, JSON.stringify(config, null, 2));
+  const bridgeWhy = await bridgePreflight(config, arm, cwd);
+  if (bridgeWhy) { say(`refusing to start: ${bridgeWhy}`); process.exit(1); }
 
   let c = await openBridge();
   let roles: Roles;
@@ -284,9 +322,6 @@ if (isMain) {
     process.exit(1);
   }
 
-  const calls = join(dir, 'calls.jsonl');
-  const mcpPath = join(dir, 'mcp.json');
-  writeFileSync(mcpPath, JSON.stringify(mcpConfig(arm, calls), null, 2));
   const a = agentCommand({ mcpConfigPath: mcpPath, model: opt('model') });
   const minutes = Number(opt('minutes') ?? 15);
   say(`${name}: the agent, in ${cwd}, up to ${minutes} min`);
