@@ -16,6 +16,8 @@ The verdict of the second run is unchanged. It names the kept edits ("60 hand ed
 
 Mutations, each failing both arms by name: `ledgerAfter` ignoring the earlier `held` (the bug put back), and `main.ts` not passing the earlier ledger in.
 
+`apps/plugin/test-update-kept-run.ts` gains `edits gone`, on `ledgerAfter` directly: a Keep run that keeps no hand edits (`kept: []`), over an entry that carries `held`, records no `held`, so a designer who reverts their edits sees the set read current. A control arm with one kept edit carries the `held`. Mutation: dropping ` && o.kept.length` fails `edits gone` by name.
+
 ### Escape review
 
 #3428's gates ran one Keep run. The issue was found by mutation-testing that gate, not by a check: nothing ran Keep twice. The new arm is that second run.
