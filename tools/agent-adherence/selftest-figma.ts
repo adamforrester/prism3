@@ -12,6 +12,7 @@
  * `snapshot`, `component-keys`, the plan's `reads` program and the bridge's `--record` produce: a clean rebind of the
  * row. Each bad case below is that file with one edit, so it tests one rule. Every expected count and verdict is a
  * literal here, never computed by the scorer's code (docs/34 shape 1).
+ * INDEPENDENCE is checked statically too (`independence/static-*`): score-figma.ts and figma-plan.ts are read as source.
  * BY-NAME MUTATIONS (proven red in the PR): the variant-option check dropped → `R1/bad-variant`; the primitive check
  * dropped → `R2/bad-primitive`; `SPEC_FIELDS` emptied → `R3/bad-fill-override`; the R5 report match made to accept any
  * text → `R5/bad-silent`; the protected-role diff dropped → `R6/bad-protected`; the version-save search dropped (every
@@ -177,6 +178,26 @@ console.log('\nR7 — process');
   w.args.code = `await figma.saveVersionHistoryAsync('first'); ${w.args.code}`;
   const s = score(r);
   ok(s.V.V7 === 0 && clean(s), `R7/good-version-first: a version saved at the top of the same write is version first (${say(s)})`);
+}
+
+console.log('\nindependence — the scorer never reads the note, the resources or a skill (docs/34)');
+// Static (review S2, #3450 S2's shape, docs/34 corollary 2): the arms above see only what the scorer returns. These read
+// the SOURCE of score-figma.ts and of figma-plan.ts, the one module it imports, so a read that the fixtures cannot see
+// fails by name.
+for (const [file, runReads] of [['score-figma.ts', ['f']], ['figma-plan.ts', []]] as const) {
+  const SRC = readFileSync(resolve(HERE, file), 'utf8');
+  const hits = [...SRC.matchAll(/skills[/\\]|SKILL\.md|\bSKILL\b|BRIDGE_INSTRUCTIONS|\bserver\b|prism3:\/\/|figma-bridge/g)].map((m) => m[0]);
+  ok(hits.length === 0, `independence/static-names: ${file} names no skills path, SKILL, BRIDGE_INSTRUCTIONS, server, prism3:// or figma-bridge (${hits.join(', ') || 'none'})`);
+  const specs = [...SRC.matchAll(/\bfrom\s+['"]([^'"]+)['"]|\bimport\s*\(\s*['"`]?([^'"`)]*)|\brequire\s*\(\s*['"`]?([^'"`)]*)['"`]?\s*\)|^\s*import\s+['"]([^'"]+)['"]|createRequire\([^)]*\)\s*\(\s*['"`]?([^'"`)]*)/gm)]
+    .map((m) => m[1] ?? m[2] ?? m[3] ?? m[4] ?? m[5]);
+  const badSpecs = specs.filter((x) => !(x === './figma-plan' || x.startsWith('node:')));
+  ok(specs.length > 0 && badSpecs.length === 0, `independence/static-imports: ${file} imports only node:* and ./figma-plan (${badSpecs.join(', ') || `${specs.length} imports`})`);
+  const arg = (at: number): string => { let d = 0, i = at; for (; i < SRC.length; i++) { if (SRC[i] === '(') d++; else if (SRC[i] === ')') { if (d === 0) break; d--; } else if (SRC[i] === ',' && d === 0) break; } return SRC.slice(at, i).trim(); };
+  // `.exec(` alone is RegExp#exec; every other spelling counts, called bare or as a method.
+  const calls = [...SRC.matchAll(/\b(readFileSync|readFile|createReadStream|openSync|execFileSync|execSync|execFile|exec|spawnSync|spawn|fork|fetch)\s*\(/g)]
+    .filter((m) => !(m[1] === 'exec' && SRC[m.index! - 1] === '.'));
+  const bad = calls.map((m) => ({ fn: m[1], a: arg(m.index! + m[0].length) })).filter((c) => c.fn !== 'readFileSync' || !(runReads as readonly string[]).includes(c.a)).map((c) => `${c.fn}(${c.a})`);
+  ok(bad.length === 0 && calls.length === runReads.length, `independence/static-reads: ${file} reads only run files and runs no process (${bad.join(', ') || `${calls.length} read(s)`})`);
 }
 
 console.log('\nvoid');
