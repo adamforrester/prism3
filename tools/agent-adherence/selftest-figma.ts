@@ -186,6 +186,15 @@ console.log('\nR6 — protected and out-of-scope writes');
   ok(s.V.V6 === 1 && clean(s, ['V6']) && /variable pds3\/space\/200 changed/.test(s.why.V6.join()), `R6/bad-variable-value: a space value the run rewrote is one V6 (${say(s)})`);
 }
 {
+  // Review N3: a variable the run deleted.
+  const r = fresh();
+  const vars = r.after.reads!.result!.data.value.variables as any[];
+  const gone = vars.findIndex((v) => v.name === 'pds3/core/dimension/16');
+  vars.splice(gone, 1);
+  const s = score(r);
+  ok(gone >= 0 && s.V.V6 === 1 && clean(s, ['V6']) && /variable pds3\/core\/dimension\/16 deleted/.test(s.why.V6.join()), `R6/bad-variable-deleted: a variable the run deleted is one V6 (${say(s)})`);
+}
+{
   const r = fresh();
   (r.after['inspect-buttons']!.result!.data.nodes as any[])[2].layout.padding.left = 20;
   const s = score(r);
