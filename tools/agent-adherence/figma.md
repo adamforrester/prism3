@@ -47,6 +47,22 @@ every variable with its collection, type and values per mode (an alias by its ta
 that changed one leaves it in the file. The next baseline then misses the golden hash, and the job stops there
 (see the JOB). The owner restores the file from the version `setup` saved first.
 
+## Writing only to the scratch file
+
+Every subcommand that writes guards the file before its first write:
+
+- **`--file-name <name>`.** `mark`, `setup` and `run` take the scratch file's name at runtime, and refuse unless
+  `status` says the open file has exactly that name. The Mac passes the name. It is never written to the repo.
+- **The marker.** `mark --file-name <name>` runs once, before `setup`. It puts plugin data on the file's root.
+  `setup` and `run` read it back, and refuse an unmarked file. The plant and the named-version program also check
+  it themselves, so a program sent to the wrong file throws before it writes.
+- **The plant's own pages.** The plant marks each page it creates. It refuses to empty a `Work` or `Promo FINAL` page
+  that exists without its mark, and runs both checks before it removes anything.
+- **A named version first.** `setup`'s first write is `figma.saveVersionHistoryAsync('before adherence setup')`.
+- **Stop on a golden mismatch.** A run whose baseline misses the golden hash exits 1 with no agent started. The reset
+  is then broken, so every later run would start broken too, and skipping one would unbalance the arms. The JOB's
+  loop stops on the first failure (`|| break`).
+
 ## The rubric
 
 These are the proposal's §1 rules, Figma column. #3300 §5's V-numbers are in brackets. A refused write counts as an

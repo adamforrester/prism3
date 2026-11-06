@@ -23,8 +23,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
-import { BUILTIN_AGENTS, agentCommand, bridgePreflight, mcpConfig, preflight, probe } from './run-figma';
-import { PLANT, TASK, canonicalInspect, goldenHash, inspectHash, readsProgram } from './figma-plan';
+import { BUILTIN_AGENTS, agentCommand, bridgePreflight, fileCheck, markerCheck, mcpConfig, preflight, probe } from './run-figma';
+import { MARKER, PLANT, TASK, VERSION_PROGRAM, canonicalInspect, goldenHash, inspectHash, readsProgram, setupCommands } from './figma-plan';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOOD: FigmaRun = JSON.parse(readFileSync(resolve(HERE, 'fixtures/figma-good.json'), 'utf8'));
@@ -291,6 +291,28 @@ console.log('\nthe plan');
   }
   ok(!/saveVersionHistoryAsync|\.remove\(\)\s*;?\s*\}\s*$/m.test(readsProgram({ workPage: '1:1', finalPage: '2:1' })) && !/\s=\s(?!>)/.test(readsProgram({ workPage: '1:1', finalPage: '2:1' }).replace(/const \w+ = /g, '')),
     'plan/reads-only: the reads program assigns nothing');
+  // The scratch-file safety (review S5), run against a stand-in `figma` that only answers what the guards read.
+  {
+    const AsyncFn = Object.getPrototypeOf(async () => undefined).constructor;
+    const fakePage = (name: string, marked: boolean) => {
+      const kid = { removed: false, locked: false, remove() { this.removed = true; } };
+      return { type: 'PAGE', name, kid, children: [kid], getPluginData: (k: string) => (marked && k === MARKER.key ? MARKER.value : ''), setPluginData() {}, loadAsync: async () => {} };
+    };
+    const fake = (rootMarked: boolean, pages: ReturnType<typeof fakePage>[]) => ({ root: { children: pages, getPluginData: (k: string) => (rootMarked && k === MARKER.key ? MARKER.value : '') }, createPage: () => { throw new Error('createPage reached'); } });
+    const plant = async (f: unknown) => { try { await new AsyncFn('figma', PLANT)(f); return 'no error'; } catch (e) { return (e as Error).message; } };
+    const w0 = fakePage('Work', true);
+    ok(/not marked as the adherence scratch file/.test(await plant(fake(false, [w0]))) && !w0.kid.removed, 'plan/plant-unmarked-file: the plant on a file without the marker throws before removing anything');
+    const w1 = fakePage('Work', false);
+    ok(/a page named Work exists that this plan did not create/.test(await plant(fake(true, [w1]))) && !w1.kid.removed, 'plan/plant-unmarked-page: an existing Work page the plan did not create is left whole');
+    const f2 = fakePage('Promo FINAL', false);
+    const w2 = fakePage('Work', true);
+    ok(/a page named Promo FINAL exists/.test(await plant(fake(true, [w2, f2]))) && !w2.kid.removed && !f2.kid.removed, 'plan/plant-unmarked-final: an unmarked Promo FINAL stops the plant before Work is emptied');
+    // Past the guards, the stand-in has no ↳ Buttons page: the plant got as far as looking for it.
+    ok(/no ↳ Buttons page/.test(await plant(fake(true, [fakePage('Work', true)]))), 'plan/plant-marked: a marked file with marked pages passes the guards');
+    ok(/not marked/.test(await (async () => { try { await new AsyncFn('figma', VERSION_PROGRAM)(fake(false, [])); return ''; } catch (e) { return (e as Error).message; } })()), 'plan/version-unmarked: the named-version program refuses an unmarked file');
+    const sc = setupCommands({});
+    ok(sc[0].cmd === 'run-code' && sc[0].args.code === VERSION_PROGRAM && /saveVersionHistoryAsync\('before adherence setup'\)/.test(VERSION_PROGRAM), `plan/version-first: setup's first command saves a named version (${sc.map((x) => x.key).join(', ')})`);
+  }
   // The plant must parse as an async function body (run-code's form).
   let parses = true;
   try { new (Object.getPrototypeOf(async () => undefined).constructor)(PLANT); } catch { parses = false; }
@@ -323,6 +345,14 @@ console.log('\nthe runner');
     const wrongArm = await bridgePreflight(at('2'), 0, runDir);
     ok(/not on arm 0/.test(wrongArm ?? ''), `runner/bridge-preflight-arm: a bridge on another arm is refused (${wrongArm})`);
   }
+
+  // The file-name and marker checks (review S5): pure, over the envelopes the runner reads.
+  const st = (name: unknown) => ({ ok: true, cmd: 'status', result: { data: { status: { file: { name } } } } });
+  ok(fileCheck(st('Scratch adherence'), 'Scratch adherence') === null, 'runner/file-name: the open file named on the command line passes');
+  ok(/not the one named by --file-name/.test(fileCheck(st('Real product file'), 'Scratch adherence') ?? ''), 'runner/file-name-other: another open file is refused');
+  ok(/--file-name is required/.test(fileCheck(st('Scratch adherence'), undefined) ?? ''), 'runner/file-name-missing: no --file-name is refused');
+  ok(/did not say which file/.test(fileCheck({ ok: false, error: { code: 'not-connected' } }, 'x') ?? ''), 'runner/file-name-unknown: a status with no file name is refused');
+  ok(markerCheck({ ok: true, result: { data: { value: true } } }) === null && /not marked/.test(markerCheck({ ok: true, result: { data: { value: false } } }) ?? ''), 'runner/marker: the marked file passes, an unmarked one is refused');
 
   const home = mkdtempSync(join(tmpdir(), 'p3-home-'));
   const profile = mkdtempSync(join(tmpdir(), 'p3-profile-'));

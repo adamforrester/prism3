@@ -3,8 +3,9 @@
  * It sends the plan's programs through its own bridge, starts one fresh agent on the arm's bridge, and writes one run
  * file for `score-figma.ts`. It never scores.
  *
- *   npx tsx tools/agent-adherence/run-figma.ts setup --out <runs dir>
- *   npx tsx tools/agent-adherence/run-figma.ts run   --out <runs dir> --arm 0|1|2 --index <n> [--model <id>] [--minutes 15]
+ *   npx tsx tools/agent-adherence/run-figma.ts mark  --file-name <name>
+ *   npx tsx tools/agent-adherence/run-figma.ts setup --out <runs dir> --file-name <name>
+ *   npx tsx tools/agent-adherence/run-figma.ts run   --out <runs dir> --file-name <name> --arm 0|1|2 --index <n> [--model <id>] [--minutes 15]
  *   npx tsx tools/agent-adherence/run-figma.ts plan  setup|reset            (print the commands, send nothing)
  *
  * `setup` (once): `file-setup`, `apply-theme` with the house brand, `build-components button`, the plant, then the
@@ -29,7 +30,10 @@
  * the same pairing secret. The session that runs this job must not have the bridge connected itself.
  *
  * WRITES ONLY TO THE SCRATCH FILE the owner has open, and only through `run-code` (a dev build, #2530). Names no brand,
- * writes no file key. A TOOL (`tools/CLAUDE.md`): not in `ci.yml`. `selftest-figma.ts` checks its pure parts
+ * writes no file key. THE SAFETY (review S5): every subcommand that writes takes `--file-name` at runtime (the Mac
+ * passes it; it is never in the repo) and refuses unless `status`'s open file has exactly that name. `mark` then puts the
+ * plan's marker on that file's root, and `setup` and `run` refuse a file without it before their first write. `setup`'s
+ * first write is a named version. The plant refuses to empty a plan page it did not create. A TOOL (`tools/CLAUDE.md`): not in `ci.yml`. `selftest-figma.ts` checks its pure parts
  * (`agentCommand`, `probe`).
  */
 import { spawn } from 'node:child_process';
@@ -38,7 +42,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpath
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TASK, captureCommands, goldenHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
+import { MARKER_CHECK, MARK_PROGRAM, TASK, captureCommands, goldenHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
 import { RUN_FORMAT } from './score-figma';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -78,6 +82,17 @@ export const agentCommand = (o: { mcpConfigPath: string; model?: string }) => ({
     ...(o.model ? ['--model', o.model] : []),
   ],
 });
+
+/** Why the open file is not the one named on the command line, or null. Pure: `status`'s envelope in. */
+export const fileCheck = (status: any, name: string | undefined): string | null => {
+  if (!name) return '--file-name is required: name the scratch file the owner has open';
+  const open = status?.result?.data?.status?.file?.name;
+  if (typeof open !== 'string') return `status did not say which file is open (${JSON.stringify(status?.error ?? status?.result?.data ?? null)})`;
+  return open === name ? null : `the open file is not the one named by --file-name (open: ${JSON.stringify(open)})`;
+};
+/** Why the open file does not carry the scratch-file marker, or null. Pure: the marker check's `run-code` envelope in. */
+export const markerCheck = (env: any): string | null =>
+  env?.result?.data?.value === true ? null : `the open file is not marked as the adherence scratch file: run \`mark --file-name <name>\` on it first (${JSON.stringify(env?.error ?? env?.result?.data ?? null)})`;
 
 /** Why a run may not start here, or null. */
 export const preflight = (env: NodeJS.ProcessEnv, cwd: string, home = homedir()): string | null => {
@@ -260,7 +275,20 @@ if (isMain) {
   const [sub, ...argv] = process.argv.slice(2);
   const opt = (k: string) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : undefined; };
   const say = (s: string) => process.stderr.write(`[run-figma] ${s}\n`);
-  const usage = () => { console.error('usage: run-figma.ts setup --out <dir> · run --out <dir> --arm 0|1|2 --index <n> [--model <id>] [--minutes 15] · plan setup|reset'); process.exit(2); };
+  const usage = () => { console.error('usage: run-figma.ts mark --file-name <name> · setup --out <dir> --file-name <name> · run --out <dir> --file-name <name> --arm 0|1|2 --index <n> [--model <id>] [--minutes 15] · plan setup|reset'); process.exit(2); };
+  const fileName = opt('file-name');
+  /** `status`, then the file-name check, then (unless marking) the marker check. Throws before any write. */
+  const guard = async (c: Client, marking = false) => {
+    const status = await send(c, [{ key: 'status', cmd: 'status', args: {} }], say);
+    const bad = fileCheck(status.status, fileName);
+    if (bad) throw new Error(`refusing to write: ${bad}`);
+    if (!marking) {
+      const m = await send(c, [{ key: 'marker', cmd: 'run-code', args: { code: MARKER_CHECK, timeoutMs: 30_000 } }], say);
+      const unmarked = markerCheck(m.marker);
+      if (unmarked) throw new Error(`refusing to write: ${unmarked}`);
+    }
+    return status;
+  };
   const houseBrand = async () => {
     const { brandFromDesignMd } = await import('../../apps/plugin/mcp-paste');
     return brandFromDesignMd(readFileSync(join(REPO, 'packages/engine/examples/prism3.design.md'), 'utf8'));
@@ -274,16 +302,28 @@ if (isMain) {
     process.exit(0);
   }
 
+  if (sub === 'mark') {
+    if (!fileName) usage();
+    const c = await openBridge();
+    try {
+      await guard(c, true);
+      const m = await send(c, [{ key: 'mark', cmd: 'run-code', args: { code: MARK_PROGRAM, timeoutMs: 30_000 } }], say);
+      if (markerCheck(m.mark)) throw new Error(`the marker did not stick: ${JSON.stringify(m.mark)}`);
+      say(`marked the open file as the adherence scratch file`);
+    } finally { await c.close(); }
+    process.exit(0);
+  }
+
   const out = opt('out');
-  if (!out || (sub !== 'setup' && sub !== 'run')) usage();
+  if (!out || !fileName || (sub !== 'setup' && sub !== 'run')) usage();
   const root = resolve(out!);
   mkdirSync(root, { recursive: true });
 
   if (sub === 'setup') {
     const c = await openBridge();
     try {
-      say('setup: file-setup, apply-theme, build-components button, the plant');
-      const status = await send(c, [{ key: 'status', cmd: 'status', args: {} }], say);
+      const status = await guard(c);
+      say('setup: a named version, file-setup, apply-theme, build-components button, the plant');
       const s = await send(c, setupCommands(await houseBrand()), say);
       const roles = rolesOf(s.plant);
       const cap = await send(c, captureCommands(roles), say);
@@ -319,7 +359,7 @@ if (isMain) {
   let status: Record<string, any>;
   try {
     say(`${name}: reset and baseline`);
-    status = await send(c, [{ key: 'status', cmd: 'status', args: {} }], say);
+    status = await guard(c);
     roles = rolesOf((await send(c, resetCommands(), say)).plant);
     before = await send(c, captureCommands(roles), say);
   } finally { await c.close(); }

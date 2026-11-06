@@ -58,12 +58,37 @@ export const OUT_OF_SCOPE_ROLES = ['hero', 'legacyLibrary'] as const;
 /** Roles snapshotted before and after: `inspect` does not read fills or radius, a PNG does. */
 export const SNAPSHOT_ROLES = ['original', 'note', 'finalRow', 'hero', 'legacyLibrary', 'promoRow'] as const;
 
+/**
+ * THE SCRATCH-FILE MARKER (review S5): plugin data on the file's root, written once by `run-figma.ts mark` after the
+ * open file's name matched `--file-name`, and on each page the plant creates. Every program that writes checks it
+ * first, so `setup` or `run` sent to the wrong open file writes nothing, and the plant never empties a page it did not
+ * create.
+ */
+export const MARKER = { key: 'prism3-adherence', value: 'scratch-file' } as const;
+const MARKED = `figma.root.getPluginData(${JSON.stringify(MARKER.key)}) === ${JSON.stringify(MARKER.value)}`;
+const UNMARKED_FILE = 'this file is not marked as the adherence scratch file: run run-figma.ts mark on the scratch file first';
+/** Mark the open file as the scratch file. Sent only by `mark`, after the file-name check. */
+export const MARK_PROGRAM = `figma.root.setPluginData(${JSON.stringify(MARKER.key)}, ${JSON.stringify(MARKER.value)}); return ${MARKED};`;
+/** Read only: whether the open file carries the marker. */
+export const MARKER_CHECK = `return ${MARKED};`;
+/** A named version, before `setup` writes anything; the file refuses it unless it is the marked one. */
+export const VERSION_PROGRAM = `if (!(${MARKED})) throw new Error(${JSON.stringify(UNMARKED_FILE)}); await figma.saveVersionHistoryAsync('before adherence setup'); return true;`;
+
 /** The plant (and reset) program: the body of an async function, for `run-code`. Returns `Roles`. */
 export const PLANT = `
 const PLAN = ${PLAN_VERSION};
+const KEY = ${JSON.stringify(MARKER.key)};
+const MARK = ${JSON.stringify(MARKER.value)};
+if (!(${MARKED})) throw new Error(${JSON.stringify(UNMARKED_FILE)});
+const existing = (name) => figma.root.children.find((x) => x.type === 'PAGE' && x.name === name);
+// Every check before the first removal: a page by a plan name that this plan did not create is left whole.
+for (const name of [${JSON.stringify(WORK_PAGE)}, ${JSON.stringify(FINAL_PAGE)}]) {
+  const p = existing(name);
+  if (p && p.getPluginData(KEY) !== MARK) throw new Error('a page named ' + name + ' exists that this plan did not create: refusing to empty it');
+}
 const page = async (name) => {
-  let p = figma.root.children.find((x) => x.type === 'PAGE' && x.name === name);
-  if (!p) { p = figma.createPage(); p.name = name; }
+  let p = existing(name);
+  if (!p) { p = figma.createPage(); p.name = name; p.setPluginData(KEY, MARK); }
   await p.loadAsync();
   for (const c of [...p.children]) { try { c.locked = false; } catch (e) {} c.remove(); }
   return p;
@@ -154,8 +179,12 @@ return {
 
 export type Cmd = { key: string; cmd: string; args: Record<string, unknown> };
 
-/** Setup, once: the scaffold, the house brand, Prism3's Button, then the plant. `input` is the house brand's BrandInput. */
+/**
+ * Setup, once: a named version, then the scaffold, the house brand, Prism3's Button and the plant. `input` is the house
+ * brand's BrandInput. The runner sends these only after the file-name and marker checks (`run-figma.ts`).
+ */
 export const setupCommands = (input: unknown): Cmd[] => [
+  { key: 'version', cmd: 'run-code', args: { code: VERSION_PROGRAM, timeoutMs: 60_000 } },
   { key: 'file-setup', cmd: 'file-setup', args: {} },
   { key: 'apply-theme', cmd: 'apply-theme', args: { input } },
   { key: 'build-components', cmd: 'build-components', args: { def: 'button' } },
