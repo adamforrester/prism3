@@ -325,6 +325,17 @@ console.log('\nvoid');
   const t = fresh();
   t.before.inspect!.result!.data.nodes[1].name = 'Legacy library (moved)';
   ok(/not the hash of the before captures/.test(score(t).void ?? ''), `void/borrowed-hash: a stored hash that is not the before captures' is void (${score(t).void})`);
+  // A reads capture with no `buttonsAt`, or with a -1 step (#3470 round-2 review). The golden and baseline hashes are
+  // recomputed over the edited before side, so the run cannot void on a hash mismatch and pass for the wrong reason.
+  const positions = (name: string, what: string, edit: (at: any) => void, want: RegExp) => {
+    const r = fresh();
+    edit(r.before.reads!.result!.data.value);
+    r.golden = r.baselineHash = goldenHash(r.before);
+    const v = score(r).void;
+    ok(!/hash/.test(v ?? '') && want.test(v ?? ''), `void/${name}: ${what} is void (${v})`);
+  };
+  positions('no-positions', "a before reads capture with no buttonsAt", (v) => { delete v.buttonsAt; }, /position of the ↳ Buttons parts/);
+  positions('position-minus-one', 'a before reads capture whose buttonsAt holds a -1 step', (v) => { v.buttonsAt = ['0.-1']; }, /a -1 in the position of the ↳ Buttons parts/);
 }
 
 console.log('\nthe golden hash');
@@ -547,6 +558,17 @@ console.log('\nthe ↳ Buttons page read in parts sees a reorder (#3470 review, 
   await reorder('reorder-variants', 'two variants swapped inside the set', set.children, 3, 4);
   await reorder('reorder-page', 'the set and the usage panel swapped on the page', page.children, 0, 1);
   ok(JSON.stringify(canonicalButtons(before)) === JSON.stringify(canonicalButtons(await capture('before'))), 'buttons/restored: the stand-in page is back as it was after each swap');
+  {
+    // A host that hands back a new object for the same node on every lookup (#3470 round-2 review): the path is found by
+    // id, so the positions are the same as the same-object host's, with no -1.
+    const wrap = (n: N): N => ({ ...n });
+    const copies = { ...host, getNodeByIdAsync: async (id: string) => { const n = byId.get(id); return n ? wrap(n) : null; } };
+    const same = (await new AsyncFn('figma', readsProgram(roles))(host)).buttonsAt;
+    const got = (await new AsyncFn('figma', readsProgram(roles))(copies)).buttonsAt;
+    const pre = parts.some((p) => p.ids.some((id) => { const n = byId.get(id)!; return !!n.parent && n.parent.children.indexOf(wrap(n)) === -1; }));
+    ok(pre && JSON.stringify(got) === JSON.stringify(same) && !got.some((p: string) => p.split('.').includes('-1')),
+      `buttons/new-objects: a host that returns a new object per lookup reads the same positions, with no -1 (identity would miss ${pre}, ${JSON.stringify(got.slice(0, 4))}…)`);
+  }
 }
 
 console.log('\nthe runner');
@@ -748,6 +770,17 @@ console.log('\nsetup\'s build (#3466)');
     const pre = buttonsInspect(caps)?.truncated === true;
     const a = await attempt(alreadyBuilt, caps);
     ok(pre && /came back truncated/.test(a.err) && !a.golden, `setup/part-truncated: a truncated ↳ Buttons part stops setup before golden.json (${a.err || (a.golden ? 'golden.json written' : 'no error')})`);
+  }
+  for (const [name, what, edit, want] of [
+    ['no-positions', 'a reads capture with no buttonsAt', (v: any) => { delete v.buttonsAt; }, /no position of the ↳ Buttons parts/],
+    ['position-minus-one', 'a reads capture whose buttonsAt holds a -1 step', (v: any) => { v.buttonsAt = ['0.-1']; }, /a -1 in the position/],
+  ] as const) {
+    // A baseline whose positions are missing or carry a -1 (#3470 round-2 review): its hash would fold an `at` no reorder
+    // moves, so setup stops before golden.json. The same reply with the fixture's reads is the accepted build above.
+    const caps: any = structuredClone(GOOD.after);
+    edit(caps.reads.result.data.value);
+    const a = await attempt(alreadyBuilt, caps);
+    ok(want.test(a.err) && !a.golden, `setup/${name}: ${what} stops setup before golden.json (${a.err || (a.golden ? 'golden.json written' : 'no error')})`);
   }
   {
     // The acceptance is setup's build alone: `run`'s before side (send with no `accept`) still throws on the same reply.

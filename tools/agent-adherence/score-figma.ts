@@ -45,7 +45,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEGACY_BUTTON, LEGACY_RATING, PROTECTED_ROLES, OUT_OF_SCOPE_ROLES, canonicalComponents, canonicalVariables, buttonsInspect, canonicalButtons, goldenHash, type Roles } from './figma-plan';
+import { LEGACY_BUTTON, LEGACY_RATING, PROTECTED_ROLES, OUT_OF_SCOPE_ROLES, canonicalComponents, canonicalVariables, buttonsAtFault, buttonsInspect, canonicalButtons, goldenHash, type Roles } from './figma-plan';
 
 export const RUN_FORMAT = 'prism3-adherence-figma-run/1';
 
@@ -144,7 +144,7 @@ export const voidReason = (run: FigmaRun): string | null => {
     for (const k of ['inspect', 'audit', 'reads', 'component-keys']) if (!data(run[side]?.[k])) return `no ${side} ${k} capture`;
     // The `↳ Buttons` page is read in parts (#3469): every part, or no capture.
     if (!buttonsInspect(run[side])) return `no ${side} inspect-buttons capture`;
-    if (!Array.isArray(data(run[side]?.reads)?.value?.buttonsAt)) return `no ${side} position of the ↳ Buttons parts in the reads capture`;
+    { const f = buttonsAtFault(run[side]); if (f) return `${side}: ${f}`; }
   }
   return null;
 };

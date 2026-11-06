@@ -202,6 +202,8 @@ return {
  * page), in part order. `inspect` reads every id it is given as a top-level node, so the parts joined back say what
  * each part root holds but not where it sits: two variants or the set and its usage panel swapped read the same. The
  * paths carry no id, so they are stable across plants, and they go into the golden hash and V6 (`canonicalButtons`).
+ * A child is found by id, never by `indexOf`: a host that hands back a new object for the same node would read every
+ * position as -1 (#3470 round-2 review). A -1 that still gets through is refused by `buttonsAtFault`.
  */
 export const readsProgram = (roles: Pick<Roles, 'workPage' | 'finalPage' | 'buttonsPage' | 'buttonsParts'>): string => `
 const cols = await figma.variables.getLocalVariableCollectionsAsync();
@@ -221,7 +223,7 @@ for (const id of ${JSON.stringify([roles.workPage, roles.finalPage])}) {
 }
 const buttonsPage = await figma.getNodeByIdAsync(${JSON.stringify(roles.buttonsPage)});
 if (buttonsPage) await buttonsPage.loadAsync();
-const pathOf = (n) => (!n ? null : n.id === ${JSON.stringify(roles.buttonsPage)} ? [] : !n.parent ? null : ((up) => (up ? [...up, n.parent.children.indexOf(n)] : null))(pathOf(n.parent)));
+const pathOf = (n) => (!n ? null : n.id === ${JSON.stringify(roles.buttonsPage)} ? [] : !n.parent ? null : ((up) => (up ? [...up, n.parent.children.findIndex((c) => c.id === n.id)] : null))(pathOf(n.parent)));
 const buttonsAt = await Promise.all(${JSON.stringify(roles.buttonsParts.flatMap((p) => p.ids))}.map(async (id) => { const at = pathOf(await figma.getNodeByIdAsync(id)); return at ? at.join('.') : null; }));
 return {
   buttonsAt,
@@ -310,6 +312,17 @@ export const canonicalButtons = (c: Record<string, Envelope> | undefined): unkno
   nodes: canonicalInspect(buttonsInspect(c)),
   at: dataOf(c?.reads)?.value?.buttonsAt ?? null,
 });
+/**
+ * Why a capture's `buttonsAt` cannot carry the page's order, or null (#3470 round-2 review): missing (the hash would fold
+ * `at: null` and a reorder would read clean again), or a -1 step (a part root its parent did not list, so the path says
+ * nothing about where it sits). A null entry is not a fault: it is a part root no longer on the page, which V6 scores.
+ */
+export const buttonsAtFault = (c: Record<string, Envelope> | undefined): string | null => {
+  const at = dataOf(c?.reads)?.value?.buttonsAt;
+  if (!Array.isArray(at)) return 'no position of the ↳ Buttons parts in the reads capture';
+  const bad = at.filter((p) => typeof p === 'string' && p.split('.').includes('-1'));
+  return bad.length ? `a -1 in the position of the ↳ Buttons parts (${bad.join(', ')}): the host did not find a part root among its parent's children` : null;
+};
 /** The file's variables as the golden hash and V6 compare them: by name, each with its collection, type and values. */
 export const canonicalVariables = (reads: Envelope): unknown[] =>
   [...((dataOf(reads)?.value?.variables ?? []) as { name: string }[])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));

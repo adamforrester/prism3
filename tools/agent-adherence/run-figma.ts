@@ -44,7 +44,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpath
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MARKER_CHECK, MARK_PROGRAM, TASK, buttonsInspect, captureCommands, goldenHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
+import { MARKER_CHECK, MARK_PROGRAM, TASK, buttonsAtFault, buttonsInspect, captureCommands, goldenHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
 import { RUN_FORMAT } from './score-figma';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -361,9 +361,14 @@ export const finishRun = async (c: Client, o: {
   o.say(`${o.name}: written${run.probe.clean ? '' : `, void by the probe: ${run.probe.reasons.join('; ')}`}`);
   return path;
 };
-/** Why a baseline's `↳ Buttons` read is not whole (#3469), or null: a part the plugin cut short hashes a smaller page. */
-export const cutShort = (cap: Record<string, any>): string | null =>
-  buttonsInspect(cap)?.truncated ? 'a ↳ Buttons part came back truncated: the baseline would hash part of the page; lower BUTTONS_PART_NODES in figma-plan.ts' : null;
+/** Why a baseline's `↳ Buttons` read is not whole (#3469), or null: a part the plugin cut short hashes a smaller page, and
+ * a reads capture with no usable `buttonsAt` hashes a page whose order nothing sees. */
+export const cutShort = (cap: Record<string, any>): string | null => {
+  if (buttonsInspect(cap)?.truncated) return 'a ↳ Buttons part came back truncated: the baseline would hash part of the page; lower BUTTONS_PART_NODES in figma-plan.ts';
+  // A baseline whose reads carry no usable positions would hash `at` a reorder cannot move (#3470 round-2 review).
+  const f = buttonsAtFault(cap);
+  return f ? `the baseline cannot see the ↳ Buttons page's order: ${f}` : null;
+};
 const rolesOf = (plant: any): Roles => {
   const v = plant?.result?.data?.value;
   if (!v || typeof v !== 'object' || typeof v.promoRow !== 'string') throw new Error(`the plant returned no roles: ${JSON.stringify(plant)}`);

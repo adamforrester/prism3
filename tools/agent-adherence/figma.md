@@ -56,8 +56,8 @@ nodes, so the plant cuts the page into parts (`PARTS`, at most `BUTTONS_PART_NOD
 one `inspect` per part (`inspect-buttons`, `inspect-buttons-1`, …), joined back by `buttonsInspect` (#3469). `inspect`
 reads each part root as a top-level node, so the `reads` program also returns where each part root sits in the page
 (`buttonsAt`, child-index paths, no ids), and the golden hash and V6 compare both (`canonicalButtons`): two variants or
-the set and its usage panel swapped move the hash. A part that comes back truncated stops `setup` and `run` before any
-agent starts. Every command the plan sends is checked against
+the set and its usage panel swapped move the hash. A part that comes back truncated, or a `reads` capture with no
+`buttonsAt` or a `-1` in it, stops `setup` and `run` before any agent starts, and voids a run file that carries one. Every command the plan sends is checked against
 the plugin's own argument validators by `selftest-figma.ts`'s `args/*` arms.
 
 ## Writing only to the scratch file

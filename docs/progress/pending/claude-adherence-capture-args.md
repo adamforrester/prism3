@@ -19,6 +19,15 @@ its limits, not only the depth the error named.
   plugin's own `inspect` and the real `reads` program over a stand-in page; `setup/part-truncated` covers the guard
   that stops `setup` on a truncated part. Mutations: positions dropped from `canonicalButtons` → both reorder arms;
   `cutShort` made `false` → `setup/part-truncated`.
+- **The positions are guarded (second review of #3470).** A `reads` capture with no `buttonsAt`, or with a `-1` step,
+  now voids a run (`voidReason`) and stops `setup` and `run` before any agent starts (`cutShort`), through one
+  `buttonsAtFault`. Without that, a capture missing the positions on both sides hashed `at: null` and a reorder scored
+  V6-clean again. The `reads` program finds a child by id (`findIndex`), not by `indexOf`, so a host that returns a new
+  object per lookup still gives real positions. Arms: `void/no-positions` and `void/position-minus-one` (golden and
+  baseline hashes recomputed over the edited before side), `setup/no-positions`, `setup/position-minus-one`, and
+  `buttons/new-objects`. Mutations: the `voidReason` line deleted → both `void/*` arms; the setup refusal dropped →
+  both `setup/*` arms; a `-1` let through → `void/position-minus-one` and `setup/position-minus-one`; `indexOf` back →
+  `buttons/new-objects`.
 - **The plugin is the oracle.** `selftest-figma.ts`'s new `args/*` arms send every command from `setupCommands`,
   `resetCommands` and `captureCommands` (the `reads` program among them) through the plugin's own `parseCommand`, and
   `parseRunCode` for the dev `run-code`, imported from `apps/plugin/src/`, never restated. `parseCommand` drops an arg
