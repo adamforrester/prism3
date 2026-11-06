@@ -92,7 +92,12 @@ code kept whole) before anything runs, and an `outcome` line after (`ok`, `not-o
     in `run-figma.ts`, and a plugin is built in when its `path` is `builtin`);
   - an MCP server other than the bridge;
   - a `CLAUDE.md` in a turn the host wrote;
-  - a call to the Skill tool or a subagent (`Task`, `Agent`), a read of a `skills/` path, or a fetch from GitHub.
+  - a call to the Skill tool or a subagent (`Task`, `Agent`);
+  - a read of a `skills/` path, a `CLAUDE.md` or a fetch from GitHub whose result succeeded. A failed one reached
+    nothing, and only arm 2's resources name a `skills/` path, so voiding it would void on that arm alone. A call with
+    no result on record still counts.
+
+  The probe matches tool calls only, never prose.
 
   Arm 2 reading `prism3://skills/…` through the bridge is the arm itself, not contamination.
 - **One bridge at a time.** The plugin holds one bridge connection on one port (#3297). So the runner closes its own

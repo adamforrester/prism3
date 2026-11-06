@@ -301,6 +301,19 @@ console.log('\nthe contamination probe');
     const q = probe([{ ...init, cwd: realpathSync(mkdtempSync(join(tmpdir(), 'p3-other-'))) }, read], link);
     ok(!q.clean && q.reasons.some((x) => /not the run's empty directory/.test(x)), `probe/symlinked-cwd-other: another dir is still void (${q.reasons.join('; ')})`);
   }
+  // A read that failed reached nothing (review S1): arm 2's resources name `skills/prism3-rebind/consistency-audit.js`,
+  // so an arm-2 agent that tries it and is denied must not be void when an arm-0 agent never could be.
+  {
+    const use = (id: string, name: string, input: unknown) => ({ type: 'assistant', message: { content: [{ type: 'tool_use', id, name, input }] } });
+    const result = (id: string, is_error: boolean) => ({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, is_error, content: is_error ? 'File does not exist.' : 'export const audit = …' }] } });
+    const path = { file_path: 'skills/prism3-rebind/consistency-audit.js' };
+    const denied = probe([init, read, use('t1', 'Read', path), result('t1', true), use('t2', 'WebFetch', { url: 'https://github.com/x/y' }), result('t2', true)], '/tmp/run');
+    ok(denied.clean, `probe/failed-read: a skills/ read and a GitHub fetch that both failed are clean (${denied.reasons.join('; ') || 'clean'})`);
+    const got = probe([init, read, use('t1', 'Read', path), result('t1', false)], '/tmp/run');
+    ok(!got.clean && got.reasons.some((x) => /skills\/ path \(Read\)/.test(x)), `probe/succeeded-read: the same read that succeeded is void (${got.reasons.join('; ')})`);
+    const cut = probe([init, read, use('t1', 'Read', path)], '/tmp/run');
+    ok(!cut.clean, `probe/no-result: a read with no result on record still counts (${cut.reasons.join('; ')})`);
+  }
   for (const [name, lines, want] of cases) {
     const p = probe(lines, name === 'cwd' ? '/tmp/other' : '/tmp/run');
     ok(!p.clean && p.reasons.some((x) => want.test(x)), `probe/${name}: void (${p.reasons.join('; ')})`);

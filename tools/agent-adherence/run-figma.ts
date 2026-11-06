@@ -128,6 +128,13 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
     // reports the target.
     if (cwd && init.cwd && real(init.cwd) !== real(cwd)) reasons.push(`the agent ran in ${init.cwd}, not the run's empty directory`);
   }
+  // Each tool call's result, by its id (review S1): a read that was denied or found nothing reached nothing. Only arm 2's
+  // resources name a `skills/` path, so voiding a failed read of one would void on that arm alone.
+  const failed = new Set<string>();
+  for (const m of msgs) {
+    const c = m.message?.content;
+    if (m.type === 'user' && Array.isArray(c)) for (const p of c) if (p?.type === 'tool_result' && p.is_error === true && typeof p.tool_use_id === 'string') failed.add(p.tool_use_id);
+  }
   for (const m of msgs) {
     const content = m.message?.content;
     const parts: any[] = Array.isArray(content) ? content : typeof content === 'string' ? [{ type: 'text', text: content }] : [];
@@ -139,6 +146,8 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
         if (p.name === 'Skill') reasons.push(`the agent called the Skill tool (${input})`);
         // A subagent runs outside what this transcript shows, so its reads can't be probed.
         if (p.name === 'Task' || p.name === 'Agent') reasons.push(`the agent started a subagent (${p.name})`);
+        // A call with no result on record (a cut-off transcript) counts: it can't be shown to have failed.
+        if (failed.has(p.id)) continue;
         if (/CLAUDE\.md/.test(input) && p.name !== `mcp__${BRIDGE_NAME}__figma_run`) reasons.push(`the agent reached for a CLAUDE.md (${p.name})`);
         if (/(^|[\\/"])skills[\\/]/.test(input) && !/prism3:\/\/skills\//.test(input)) reasons.push(`the agent read a skills/ path (${p.name})`);
         if (/github\.com|githubusercontent/.test(input)) reasons.push(`the agent fetched from GitHub (${p.name})`);
