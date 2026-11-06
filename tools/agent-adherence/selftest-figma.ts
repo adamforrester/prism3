@@ -337,6 +337,46 @@ console.log('\nthe plan');
     ok(/a page named Promo FINAL exists/.test(await plant(fake(true, [w2, f2]))) && !w2.kid.removed && !f2.kid.removed, 'plan/plant-unmarked-final: an unmarked Promo FINAL stops the plant before Work is emptied');
     // Past the guards, the stand-in has no ↳ Buttons page: the plant got as far as looking for it.
     ok(/no ↳ Buttons page/.test(await plant(fake(true, [fakePage('Work', true)]))), 'plan/plant-marked: a marked file with marked pages passes the guards');
+    // The plant marks the pages it creates (review N2), so the next reset may empty them: run it twice on a stand-in
+    // file that has only the marker and a ↳ Buttons page, and the second run must pass the guard and replant.
+    {
+      let nid = 0;
+      const mk = (type: string, name = ''): any => {
+        const n: any = {
+          id: `s:${++nid}`, type, name, children: [] as any[], parent: null, plugin: {} as Record<string, string>,
+          appendChild(c: any) { if (c.parent) c.parent.children.splice(c.parent.children.indexOf(c), 1); c.parent = n; n.children.push(c); },
+          remove() { if (n.parent) n.parent.children.splice(n.parent.children.indexOf(n), 1); n.parent = null; },
+          clone() { return mk(type, n.name); },
+          createInstance() { return mk('INSTANCE', n.name); },
+          getPluginData: (k: string) => n.plugin[k] ?? '', setPluginData: (k: string, v: string) => { n.plugin[k] = v; },
+          loadAsync: async () => {}, findAllWithCriteria: () => [] as any[],
+        };
+        return n;
+      };
+      const set = mk('COMPONENT_SET', 'Button');
+      set.defaultVariant = mk('COMPONENT', 'Variant=Primary');
+      const buttons = mk('PAGE', '↳ Buttons');
+      buttons.findAllWithCriteria = () => [set];
+      const root = mk('DOCUMENT');
+      root.plugin[MARKER.key] = MARKER.value;
+      root.appendChild(buttons);
+      const file = {
+        root,
+        createPage: () => { const p = mk('PAGE'); root.appendChild(p); return p; },
+        createFrame: () => mk('FRAME'), createComponent: () => mk('COMPONENT'), createText: () => mk('TEXT'),
+        loadFontAsync: async () => {},
+      };
+      const run = async () => { try { return { roles: await new AsyncFn('figma', PLANT)(file), err: '' }; } catch (e) { return { roles: null, err: (e as Error).message }; } };
+      const first = await run();
+      const pages = root.children.filter((x: any) => x.name === 'Work' || x.name === 'Promo FINAL');
+      ok(!first.err && pages.length === 2 && pages.every((x: any) => x.getPluginData(MARKER.key) === MARKER.value),
+        `plan/plant-marks-pages: the plant's first run creates Work and Promo FINAL, each marked (${first.err || pages.map((x: any) => `${x.name}=${x.getPluginData(MARKER.key) || 'unmarked'}`).join(', ')})`);
+      const firstRow = root.children.find((x: any) => x.name === 'Work')?.children.find((x: any) => x.name === 'Promo row');
+      const second = await run();
+      const work = root.children.filter((x: any) => x.name === 'Work');
+      ok(!second.err && work.length === 1 && second.roles?.workPage === first.roles?.workPage && !!firstRow && firstRow.parent === null && work[0].children.some((x: any) => x.id === second.roles?.promoRow),
+        `plan/plant-replants: a second run of the plant passes its own guard, empties the page it made and replants it (${second.err || `${work.length} Work page(s)`})`);
+    }
     ok(/not marked/.test(await (async () => { try { await new AsyncFn('figma', VERSION_PROGRAM)(fake(false, [])); return ''; } catch (e) { return (e as Error).message; } })()), 'plan/version-unmarked: the named-version program refuses an unmarked file');
     const sc = setupCommands({});
     ok(sc[0].cmd === 'run-code' && sc[0].args.code === VERSION_PROGRAM && /saveVersionHistoryAsync\('before adherence setup'\)/.test(VERSION_PROGRAM), `plan/version-first: setup's first command saves a named version (${sc.map((x) => x.key).join(', ')})`);
