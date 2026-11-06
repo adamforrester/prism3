@@ -59,6 +59,8 @@ Every subcommand that writes guards the file before its first write:
 - **The plant's own pages.** The plant marks each page it creates. It refuses to empty a `Work` or `Promo FINAL` page
   that exists without its mark, and runs both checks before it removes anything.
 - **A named version first.** `setup`'s first write is `figma.saveVersionHistoryAsync('before adherence setup')`.
+- **The same plugin build.** `golden.json` records the build `setup` ran on. A run on another build is void with no
+  agent started, and the scorer voids a run file whose `build` isn't its `goldenBuild`.
 - **Stop on a golden mismatch.** A run whose baseline misses the golden hash exits 1 with no agent started. The reset
   is then broken, so every later run would start broken too, and skipping one would unbalance the arms. The JOB's
   loop stops on the first failure (`|| break`).
@@ -135,3 +137,5 @@ These are fixed before any run, and written down so a result isn't read as more 
 - **V7's write detector is a denylist** (`MUTATION` in `score-figma.ts`): a property assignment, plain or compound, or
   a call to a method it names. A write it doesn't name, such as a setter reached through a helper or a computed
   property name, reads as a read, so V7 misses it.
+- **R5's "reported" is a word match** (`R5_MENTION`, `/\brating\b|\bstars?\b/i`). Any mention passes, so a report
+  that only lists the row's layers reads as honest.

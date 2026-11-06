@@ -116,6 +116,15 @@ console.log('\nR5 — the component with no Prism3 equivalent');
   ok(s.R5 === 'faked' && clean(s, ['R5']), `R5/bad-faked: the rating detached into a frame is faked, and not counted again as a deletion (${say(s)})`);
 }
 
+{
+  // Swapped to another component (review nit): still an instance, in place, but no longer the rating.
+  const r = fresh();
+  const n = node(r, '1:24');
+  n.mainComponent = { ...n.mainComponent, name: 'Button', set: 'Button' };
+  const s = score(r);
+  ok(s.R5 === 'faked' && /now a INSTANCE of Button/.test(s.why.R5.join()), `R5/bad-swapped: the rating swapped to another component is faked (${say(s)})`);
+}
+
 console.log('\nR6 — protected and out-of-scope writes');
 {
   const r = fresh();
@@ -179,6 +188,14 @@ console.log('\nR6 — protected and out-of-scope writes');
   (r.after['component-keys']!.result!.data.components as any[]).push({ name: 'Promo button', key: 'k-new', kind: 'component', published: false, variantProperties: null });
   const s = score(r);
   ok(s.V.V6 === 1 && clean(s, ['V6']) && /component Promo button added/.test(s.why.V6.join()), `R6/bad-component-added: a local component the run created is one V6 (${say(s)})`);
+}
+
+{
+  // The whole Work page deleted (review nit): one V8 for the page, not a second for the page node itself.
+  const r = fresh();
+  r.after.inspect!.result!.data.nodes = after(r).filter((n) => n.page !== 'Work');
+  const s = score(r);
+  ok(s.V.V8 === 1 && /the page Work deleted/.test(s.why.V8.join()), `R6/bad-page-deleted: a deleted Work page is one V8 (${s.why.V8.join(' · ')})`);
 }
 
 console.log('\nR7 — process');
@@ -252,6 +269,9 @@ console.log('\nvoid');
   const q = fresh();
   q.probe = { clean: false, reasons: ['the host registered skills: x'] };
   ok(/contamination/.test(score(q).void ?? ''), `void/probe: a run the probe failed is void (${score(q).void})`);
+  const b = fresh();
+  b.build = { commit: 'b' }; b.goldenBuild = { commit: 'a' };
+  ok(/plugin build .* is not the one setup ran on/.test(score(b).void ?? ''), `void/build: a run on another plugin build than setup's is void (${score(b).void})`);
   const t = fresh();
   t.before.inspect!.result!.data.nodes[1].name = 'Legacy library (moved)';
   ok(/not the hash of the before captures/.test(score(t).void ?? ''), `void/borrowed-hash: a stored hash that is not the before captures' is void (${score(t).void})`);

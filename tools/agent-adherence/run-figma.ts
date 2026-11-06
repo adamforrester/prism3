@@ -338,7 +338,9 @@ if (isMain) {
   const arm = Number(opt('arm'));
   const index = Number(opt('index'));
   if (![0, 1, 2].includes(arm) || !Number.isInteger(index) || index < 1) usage();
-  const golden = (() => { try { return JSON.parse(readFileSync(join(root, 'golden.json'), 'utf8')).hash as string; } catch { return ''; } })();
+  const goldenFile = (() => { try { return JSON.parse(readFileSync(join(root, 'golden.json'), 'utf8')) as { hash?: string; build?: unknown }; } catch { return {}; } })();
+  const golden = goldenFile.hash ?? '';
+  const goldenBuild = goldenFile.build ?? null;
   if (!golden) { say(`no ${join(root, 'golden.json')}: run setup first`); process.exit(1); }
   const name = `F${arm}-${index}`;
   const dir = join(root, name);
@@ -364,10 +366,13 @@ if (isMain) {
     before = await send(c, captureCommands(roles), say);
   } finally { await c.close(); }
   const baselineHash = goldenHash(before);
-  const base = { format: RUN_FORMAT, arm, index, build: status.status?.result?.data?.status?.build ?? null, roles, golden, baselineHash, before };
-  if (baselineHash !== golden) {
+  const build = status.status?.result?.data?.status?.build ?? null;
+  const base = { format: RUN_FORMAT, arm, index, build, goldenBuild, roles, golden, baselineHash, before };
+  // A plugin rebuilt since setup (review nit) is a different host: void, like a reset that missed the golden hash.
+  const sameBuild = JSON.stringify(build) === JSON.stringify(goldenBuild);
+  if (baselineHash !== golden || !sameBuild) {
     writeFileSync(join(root, `${name}.json`), JSON.stringify({ ...base, after: {}, calls: [], report: '', probe: { clean: true, reasons: [] } }, null, 2));
-    say(`${name} is void: the baseline hash ${baselineHash} is not the golden ${golden}. No agent was started.`);
+    say(`${name} is void: ${!sameBuild ? `the plugin build ${JSON.stringify(build)} is not setup's ${JSON.stringify(goldenBuild)}` : `the baseline hash ${baselineHash} is not the golden ${golden}`}. No agent was started.`);
     process.exit(1);
   }
 

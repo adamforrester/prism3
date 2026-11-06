@@ -21,7 +21,8 @@
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
  * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B) ·
  * arm/0-starts · arm/1-starts · arm/<n>-context · arm/<n>-resources · arm/no-leak · arm/1-note · record/calls · record/args · arm/bad-value (#3440;
- * mutation: one sentence of the note leaked into arm 0's figma_status description → `arm/no-leak: arm 0's tools/list …`)
+ * mutation: one sentence of the note leaked into arm 0's figma_status description → `arm/no-leak: arm 0's tools/list …`;
+ * one appended to the context refusal's message → `arm/no-leak: arm 0's context refusal …`)
  *
  * #3147 Phase 2a: each read-only node command (inspect, component-keys, audit-frames, snapshot) through figma_run, against
  * the same `NodeShim` fixture and literal expectations as `test-agent-link.ts`; its shim write log must stay empty
@@ -1231,6 +1232,7 @@ section('arms — what arm 0 and arm 1 show a fresh agent (#3440)');
     const rr = await s.ask('resources/read', { uri: 'prism3://skills/prism3-rebind' });
     const cx = await s.ask('tools/call', { name: 'figma_run', arguments: { cmd: 'context' } });
     const cxv = cx.result?.structuredContent;
+    const lg = await s.ask('tools/call', { name: 'figma_logs', arguments: { since: 0 } });
     const enumCmds: string[] = (tools.result?.tools ?? []).find((t: { name: string }) => t.name === 'figma_run')?.inputSchema?.properties?.cmd?.enum ?? [];
     const statusCmds: string[] = st.result?.structuredContent?.commands ?? [];
     // `context` is refused at the bridge, as the build's own code for a command it lacks, written here by hand.
@@ -1241,7 +1243,8 @@ section('arms — what arm 0 and arm 1 show a fresh agent (#3440)');
     ok(rl.error?.code === -32601 && rr.error?.code === -32601 && init.result?.capabilities?.resources === undefined && disc.result?.capabilities?.resources === undefined,
       `arm/${arm}-resources: no resources capability, and resources/list and resources/read are methods it does not have (${JSON.stringify(rl.error ?? rl.result)})`);
     if (arm === '0') {
-      const bodies: [string, unknown][] = [['initialize', init.result], ['server/discover', disc.result], ['tools/list', tools.result], ['figma_status', st.result], ['resources/list', rl]];
+      // The context refusal and a figma_logs reply reach arm 0's agent too (review nit): their bodies are scanned as well.
+      const bodies: [string, unknown][] = [['initialize', init.result], ['server/discover', disc.result], ['tools/list', tools.result], ['figma_status', st.result], ['resources/list', rl], ['context refusal', cx.result], ['figma_logs', lg.result]];
       for (const [what, body] of bodies) {
         const found = leaks(JSON.stringify(body));
         ok(found.length === 0, `arm/no-leak: arm 0's ${what} carries no sentence of the note${found.length ? ` (found: ${found.join(' · ')})` : ''}`);

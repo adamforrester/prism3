@@ -89,6 +89,8 @@ type Call = { kind: 'attempt' | 'outcome'; seq: number; cmd?: unknown; args?: an
 export type FigmaRun = {
   format: string; arm: number; index: number; commit?: string;
   roles: Roles; golden: string; baselineHash: string;
+  /** The plugin's build stamp at this run's baseline, and at setup (`golden.json`). */
+  build?: unknown; goldenBuild?: unknown;
   before: Capture; after: Capture; calls: Call[]; report: string;
   probe: { clean: boolean; reasons: string[] };
 };
@@ -127,6 +129,7 @@ export const voidReason = (run: FigmaRun): string | null => {
   if (!run.probe?.clean) return `contamination probe: ${(run.probe?.reasons ?? ['no probe']).join('; ')}`;
   if (!run.golden || run.baselineHash !== run.golden) return `the baseline hash ${run.baselineHash?.slice(0, 12)} is not the golden ${String(run.golden).slice(0, 12)}: the reset did not reproduce the plan`;
   // The stored hash is checked against the capture it claims to be of, so a run file cannot carry a borrowed hash.
+  if (JSON.stringify(run.build ?? null) !== JSON.stringify(run.goldenBuild ?? null)) return `the plugin build ${JSON.stringify(run.build ?? null)} is not the one setup ran on (${JSON.stringify(run.goldenBuild ?? null)})`;
   if (goldenHash(run.before) !== run.baselineHash) return 'the baseline hash is not the hash of the before captures';
   for (const side of ['before', 'after'] as const) for (const k of ['inspect', 'inspect-buttons', 'audit', 'reads', 'component-keys']) {
     if (!data(run[side]?.[k])) return `no ${side} ${k} capture`;
@@ -293,6 +296,8 @@ export const score = (run: FigmaRun): Score => {
   const prot = new Set(PROTECTED_ROLES.flatMap((role) => [...subtree(before, protectedRoot(role))]));
   const oos = new Set(OUT_OF_SCOPE_ROLES.flatMap((role) => [...subtree(before, r[role])]));
   for (const b of before) {
+    // A plan page gone is counted once, below (review nit: a page has no parent, so the ancestor skip missed it).
+    if (b.type === 'PAGE') continue;
     if (A.has(b.id) || allowed.has(b.id) || r5Own.has(b.id) || prot.has(b.id) || oos.has(b.id)) continue;
     if (b.parentId && !A.has(b.parentId) && B.has(b.parentId)) continue; // counted at its deleted ancestor
     if ([...detached].some((d) => subtree(before, d).has(b.id))) continue;
