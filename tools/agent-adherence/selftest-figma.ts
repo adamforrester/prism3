@@ -17,14 +17,15 @@
  * BY-NAME MUTATIONS (proven red in the PR): the variant-option check dropped → `R1/bad-variant`; the primitive check
  * dropped → `R2/bad-primitive`; `SPEC_FIELDS` emptied → `R3/bad-fill-override`; the R5 report match made to accept any
  * text → `R5/bad-silent`; the protected-role diff dropped → `R6/bad-protected`; the version-save search dropped (every
- * write counts as unsaved) → `good/clean` and `R7/good-version-first`, and the write search dropped → `R7/bad-no-version`.
+ * write counts as unsaved) → `good/clean` and `R7/good-version-first`, and the write search dropped → `R7/bad-no-version`;
+ * setup's build acceptance dropped (#3466) → `setup/already-built` and `setup/no-usage-panels`.
  */
 import { readFileSync, readdirSync, mkdtempSync, writeFileSync, mkdirSync, realpathSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
-import { BUILTIN_AGENTS, agentCommand, bridgePreflight, fileCheck, finishRun, markerCheck, mcpConfig, preflight, probe, send, type Client } from './run-figma';
+import { BUILTIN_AGENTS, agentCommand, bridgePreflight, fileCheck, finishRun, markerCheck, mcpConfig, preflight, probe, send, setup, type Client } from './run-figma';
 import { MARKER, PLANT, TASK, VERSION_PROGRAM, canonicalInspect, captureCommands, goldenHash, inspectHash, readsProgram, setupCommands } from './figma-plan';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -531,6 +532,89 @@ console.log('\nthe after side (review B4)');
     let strict = '';
     try { await send(standIn({ 'snapshot-original': gone }), captureCommands(GOOD.roles), quiet); } catch (e) { strict = (e as Error).message; }
     ok(/snapshot-original failed/.test(strict), `after/before-strict: send without keepFailed (the before side) still throws on ok:false (${strict || 'no error'})`);
+  }
+}
+
+console.log('\nsetup\'s build (#3466)');
+{
+  // A stand-in for the runner's bridge: the setup commands, then the captures. The build answers with the literal reply
+  // each arm gives; every other command answers ok. Replies are written by hand to the agent link's envelope
+  // (`agent-dispatch.ts`: `{ v, id, cmd, ok, result: { verdict, data, logs } }`, the verdict without `causes` or
+  // `lines`) and the build's data (`main.ts`: `{ build: { def, alsoBuilt, pageHeaders, furniture, report } }`).
+  const setupKeys = new Map(setupCommands({}).map((x) => [JSON.stringify([x.cmd, x.args]), x.key]));
+  const captureKeys = new Map(captureCommands(GOOD.roles).map((x) => [JSON.stringify([x.cmd, x.args]), x.key]));
+  const standIn = (build: unknown): Client => ({
+    call: async (name: string, args?: any) => {
+      if (name === 'figma_status') return { isError: false, value: { connected: true } };
+      const sig = JSON.stringify([args?.cmd, args?.args]);
+      const key = setupKeys.get(sig);
+      if (key === 'build-components') return { isError: false, value: structuredClone(build) };
+      if (key === 'plant') return { isError: false, value: { ok: true, cmd: 'run-code', result: { verdict: null, data: { value: GOOD.roles }, logs: [] } } };
+      if (key) return { isError: false, value: { ok: true, cmd: args.cmd, result: { verdict: null, data: {}, logs: [] } } };
+      const cap = captureKeys.get(sig);
+      if (cap) return { isError: false, value: structuredClone(GOOD.after[cap]) };
+      return { isError: true, value: { error: `the stand-in has no reply for ${sig}` } };
+    },
+    close: async () => {},
+  });
+  const quiet = () => {};
+  const furniture = (def: string, missing: string[]) => ({ def, parent: 'section', columns: 4, rows: 4, backdrops: 0, scrims: 0, cleared: 0, skipped: [], missing, fontMisses: [] });
+  const verdict = (headline: string, summary: string, completed = true) => ({ type: 'component-result', ok: false, completed, headline, summary });
+  const reply = (v: unknown, build: unknown) => ({ v: 1, id: 'c4', cmd: 'build-components', ok: false, engineVersion: '0.0.0', transport: 'bridge', result: { verdict: v, data: { build }, logs: [] } });
+  const NO_PANELS = "No usage panels drawn: this file has no _Doc-block component. Run Set up file, then build again.";
+  const present = Array.from({ length: 576 }, (_, i) => `member Button ${i} -> ALREADY PRESENT (skipped; this set has been written before)`);
+  // 1. A used file: every member already present, and no `_Doc-block` (the warning is what turned it `ok:false`).
+  const alreadyBuilt = reply(verdict('⚠ already built', `set 'button': 576 variants (+0 built, 576 already present), grid 24×24, 2400×1800px. ${NO_PANELS}`),
+    { def: 'button', alsoBuilt: [], pageHeaders: [], furniture: [furniture('button', ['_Doc-block'])],
+      report: { set: 'button', variants: 576, added: 0, skipped: 576, stale: 0, misses: present } });
+  // 2. A fresh file: all 576 built, its three nested sets first, and no `_Doc-block` for any of them.
+  const noPanels = reply(verdict('⚠ built 576 variants', `set 'button': 576 variants (+576 built, 0 already present), grid 24×24, 2400×1800px. Also built first: icon, spinner, focus-ring. ${NO_PANELS}`),
+    { def: 'button', alsoBuilt: [{ id: 'icon', misses: 0 }, { id: 'spinner', misses: 0 }, { id: 'focus-ring', misses: 0 }], pageHeaders: [],
+      furniture: ['icon', 'spinner', 'focus-ring', 'button'].map((d) => furniture(d, ['_Doc-block'])),
+      report: { set: 'button', variants: 576, added: 576, skipped: 0, stale: 0, misses: [] } });
+  // 3. A real build failure: a member whose binding found no variable. Every template present.
+  const realMiss = reply(verdict('⚠ 1 miss', "set 'button': 576 variants (+576 built, 0 already present), ⚠ 1 misses (member Button 3 -> fill: no variable 'color/action/fill')"),
+    { def: 'button', alsoBuilt: [], pageHeaders: [], furniture: [furniture('button', [])],
+      report: { set: 'button', variants: 576, added: 576, skipped: 0, stale: 0, misses: ["member Button 3 -> fill: no variable 'color/action/fill'"] } });
+  // 4. Mixed: no usage panels AND a real miss.
+  const mixed = reply(verdict('⚠ 1 miss', `set 'button': 576 variants (+576 built, 0 already present), ⚠ 1 misses (member Button 3 -> fill: no variable 'color/action/fill'). ${NO_PANELS}`),
+    { def: 'button', alsoBuilt: [], pageHeaders: [], furniture: [furniture('button', ['_Doc-block'])],
+      report: { set: 'button', variants: 576, added: 576, skipped: 0, stale: 0, misses: ["member Button 3 -> fill: no variable 'color/action/fill'"] } });
+  // 5. A build that did not complete (a throw), with no panels either: `completed: false` is never accepted.
+  const threw = reply(verdict('✗ apply failed', 'component build failed: the host refused the write', false),
+    { def: 'button', threw: 'the host refused the write', partialWrite: null });
+  const attempt = async (build: unknown) => {
+    const root = mkdtempSync(join(tmpdir(), 'p3-setup-'));
+    let err = '';
+    try { await setup(standIn(build), { root, input: {}, build: { stamp: 'test' }, say: quiet }); } catch (e) { err = (e as Error).message; }
+    const golden = readdirSync(root).includes('golden.json') ? JSON.parse(readFileSync(join(root, 'golden.json'), 'utf8')) : null;
+    return { err, golden };
+  };
+  {
+    const a = await attempt(alreadyBuilt);
+    ok(!a.err && typeof a.golden?.hash === 'string' && a.golden.hash.length > 0, `setup/already-built: an "already built" reply with no _Doc-block carries on and writes golden.json (${a.err || (a.golden ? `hash ${a.golden.hash}` : 'no golden.json')})`);
+  }
+  {
+    const a = await attempt(noPanels);
+    ok(!a.err && typeof a.golden?.hash === 'string', `setup/no-usage-panels: a full build whose only miss is the usage panels carries on (${a.err || (a.golden ? 'golden.json written' : 'no golden.json')})`);
+  }
+  {
+    const a = await attempt(realMiss);
+    ok(/build-components failed/.test(a.err) && /1 real miss/.test(a.err) && !a.golden, `setup/real-miss: a real build failure (a missing variable) still throws (${a.err || 'no error'})`);
+  }
+  {
+    const a = await attempt(mixed);
+    ok(/build-components failed/.test(a.err) && /1 real miss/.test(a.err) && !a.golden, `setup/mixed: usage panels plus a real miss still throws (${a.err || 'no error'})`);
+  }
+  {
+    const a = await attempt(threw);
+    ok(/build-components failed/.test(a.err) && /did not complete/.test(a.err) && !a.golden, `setup/not-completed: a build that did not complete still throws (${a.err || 'no error'})`);
+  }
+  {
+    // The acceptance is setup's build alone: `run`'s before side (send with no `accept`) still throws on the same reply.
+    let err = '';
+    try { await send(standIn(alreadyBuilt), setupCommands({}), quiet); } catch (e) { err = (e as Error).message; }
+    ok(/build-components failed/.test(err), `setup/strict-elsewhere: send without the acceptance still throws on the "already built" reply (${err || 'no error'})`);
   }
 }
 
