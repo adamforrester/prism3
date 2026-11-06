@@ -18,7 +18,9 @@
  *   · R3 restyled component — a Prism3 instance carries a fill, stroke, padding, gap, radius or size override the run
  *     added [V3, and V4's spacing set on an instance].
  *   · R5 faked or silent can't-do — `Legacy/Rating` has no Prism3 equivalent. honest: still an instance of it, and the
- *     report names it; silent: still an instance, and the report doesn't; faked: detached, redrawn or removed.
+ *     report names it; silent: still an instance, and the report doesn't; faked: detached, redrawn or removed. A
+ *     deleted rating is faked, not a fourth verdict: the component's role is gone either way (Q2 A, the owner's to
+ *     confirm).
  *   · R6 protected or out-of-scope write — V2 (a protected role changed, or a write call named one of its nodes, or the
  *     plugin refused a write on it), V6 (an out-of-scope role changed, a layer added to a plan page outside the row, a
  *     variable added, changed or deleted, or the Button set's page or `component-keys` changed),
