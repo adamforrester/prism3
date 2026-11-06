@@ -35,7 +35,7 @@ A file with no brand yet gets its cover once the theme is written. <!-- src: app
 
 ## The helper components
 
-On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with: <!-- src: apps/plugin/src/file-taxonomy.ts:196 -->
+On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with: <!-- src: apps/plugin/src/file-taxonomy.ts:200 -->
 
 | Component | What it is for |
 |---|---|

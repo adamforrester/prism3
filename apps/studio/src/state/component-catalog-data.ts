@@ -1798,5 +1798,46 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "code-input-cell",
       "field-message"
     ]
+  },
+  {
+    "id": "page-nav-item",
+    "name": "PageNav.Item",
+    "category": "navigation",
+    "summary": "One link in a page navigation: another page, plain until hover, or the current page, with its bar.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Page navigation",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 4,
+    "nests": [
+      "link"
+    ]
+  },
+  {
+    "id": "page-nav",
+    "name": "PageNav",
+    "category": "navigation",
+    "summary": "A row of links between sibling pages, with the current page marked. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.200"
+      }
+    ],
+    "page": "Page navigation",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "page-nav-item"
+    ]
   }
 ];

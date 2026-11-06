@@ -187,7 +187,7 @@ export const link: ComponentDef = {
         height: 'bar-height',
         foot: true,
         presentWhen: { selection: ['selected'] },
-        note: 'The current page\'s 2px bar in the link color, across the foot of the line box. Out of the flow, so the link keeps its size. Current links only.',
+        note: 'The current page\'s 2px bar in the link color, at the foot of the line box. The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered. Out of the flow, so the link keeps its size. Current links only.',
       },
       focusRing: {
         kind: 'absolute',
@@ -234,7 +234,7 @@ export const link: ComponentDef = {
         class: 'semantics',
         disposition: 'refused',
         description:
-          'The current page — current renders aria-current="page" on the current item in a navigation and on a breadcrumb\'s last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height), and hover changes the color only: no underline joins the bar.',
+          'The current page — current renders aria-current="page" on the current item in a navigation and on a breadcrumb\'s last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar.',
       },
       {
         class: 'visual-treatment',
@@ -337,7 +337,7 @@ export const link: ComponentDef = {
     primaryPurpose: 'Text that navigates to a URL, a fragment or a file, rendered as a real <a href>.',
     whenToUse: 'The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.',
     avoidWhen: 'The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button\'s weight, such as "Continue to checkout", is a Button given an href, which renders an <a>. Switching panels in place is Tabs.',
-    commonPartners: ['icon', 'button', 'text-field', 'breadcrumbs'],
+    commonPartners: ['icon', 'button', 'text-field', 'breadcrumbs', 'page-nav'],
     triggerKeywords: ['link', 'text link', 'hyperlink', 'anchor', 'inline link', 'standalone link', 'skip link', 'external link', 'current page link', 'navigation link'],
     generationPriority: 2,
   },

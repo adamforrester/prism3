@@ -194,7 +194,7 @@ export const tabs: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use tabs to switch between peer sections of related content in one place, one at a time, such as a product\'s description, specifications and reviews. Don\'t use tabs to go to another page (use links in a navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.',
+    usage: 'Use tabs to switch between peer sections of related content in one place, one at a time, such as a product\'s description, specifications and reviews. Don\'t use tabs to go to another page (use page navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.',
     do: [
       'Keep labels short, parallel nouns',
       'Keep one tab selected at all times',
@@ -213,7 +213,7 @@ export const tabs: ComponentDef = {
   ai: {
     primaryPurpose: 'Switch between peer panels of related content in place, one at a time.',
     whenToUse: 'Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.',
-    avoidWhen: 'The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).',
+    avoidWhen: 'The selection changes the page or the address (PageNav, a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).',
     commonPartners: ['tab-item', 'badge', 'icon'],
     triggerKeywords: ['tabs', 'tab list', 'tab bar', 'tabbed panels', 'tabbed content', 'switch panels'],
     generationPriority: 2,
@@ -221,7 +221,7 @@ export const tabs: ComponentDef = {
 
   composition: {
     composesWith: ['tab-item'],
-    alternativeTo: ['select', 'accordion', 'segmented-control'],
+    alternativeTo: ['select', 'accordion', 'segmented-control', 'page-nav'],
     replacesPatterns: ['show and hide divs with no tab semantics', 'role="tab" on links that change the route'],
     supersededBy: [],
     planned: [],

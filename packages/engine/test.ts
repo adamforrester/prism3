@@ -55,7 +55,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, DIALOG_TITLE_TYPE_KEYS, applyBannerStyle, BANNER_STYLE_FILL_KEYS, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, DIALOG_TITLE_TYPE_KEYS, applyBannerStyle, BANNER_STYLE_FILL_KEYS, applyCurrentIndicator, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, slotTextUnclaimed, slotTextMigrationOf, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -4056,6 +4056,8 @@ for (const b of brands) {
       divider: { keys: [], sizes: [], bare: ['horizontal.gap', 'vertical.gap'] },
       'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
       breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
+      // Page navigation (#3345): the gap between items, Breadcrumbs' two sizes.
+      'page-nav': { keys: ['gap'], sizes: ['small', 'medium'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     // Rows: block padding (the per-size minimum, #2894) / control-to-label gap (8/12/12 since #3173, owner Q3173 A).
@@ -4106,6 +4108,7 @@ for (const b of brands) {
       // the small gap at space.050, as Link's does.
       'breadcrumb-item': { compact: 'small 4 · medium 6', comfortable: 'small 4 · medium 8', spacious: 'small 6 · medium 12' },
       breadcrumbs: { compact: 'bare 4 · small 4 · medium 6', comfortable: 'bare 4 · small 4 · medium 8', spacious: 'bare 6 · small 6 · medium 12' },
+      'page-nav': { compact: 'small 12 · medium 20', comfortable: 'small 16 · medium 24', spacious: 'small 20 · medium 32' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -4163,6 +4166,7 @@ for (const b of brands) {
       // #2666: the label-to-separator gap inside an item, and the same gap between items.
       'breadcrumb-item': ['size.small.gap', 'size.medium.gap'],
       breadcrumbs: ['size.small.gap', 'size.medium.gap'],
+      'page-nav': ['size.small.gap', 'size.medium.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
@@ -10866,6 +10870,8 @@ arm: {
       ['dialogTitleSize', 'medium'], ['dialogTitleSize', 'small'],
       // #2924 (Q707 A): "Banner style: Outlined" adds no token; it moves only the materialized Banner def.
       ['bannerStyle', 'outlined'],
+      // #3345 (Q10 B: Partial is the default): "Current page indicator: Full width" adds no token; it moves only the materialized Link def's bar.
+      ['currentIndicator', 'full'],
     ];
     const pairName = ([k, v]: [string, unknown]): string => `${k}=${JSON.stringify(v)}`;
     const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
@@ -19863,6 +19869,7 @@ arm: {
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'pagination-item': 9, '_slider-thumb': 9,
       // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
       breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
+      'page-nav': 2, 'page-nav-item': 9,
       // Provider logo (#2343): a glyph other components carry, placed alone only in a row of accepted cards.
       'provider-logo': 3,
     };
@@ -24421,6 +24428,141 @@ arm: {
       const plugged = await applyComponentPlan([cur], makeFigmaStub({ ...lOpts, page: plugPage }) as any);
       ok(barFacts(plugPage) === WANT_BAR && plugged.misses.length === 0,
         `#2872 plugin leg: Link's current-page bar is ${WANT_BAR} (got '${barFacts(plugPage)}'; misses ${JSON.stringify(plugged.misses)})`);
+    }
+
+    // ---- #3345: PAGE NAVIGATION — a <nav> of links, never a tablist; the current page's 2px bar, Full or Partial ----
+    // Owner decisions on #3345 (2026-11-03). Every literal below is typed from the decision comment, never read off a def
+    // or off `CURRENT_INDICATOR_PARTIAL_SHARE` (docs/34: the oracle is not derived from the subject).
+    {
+      const pageNav = componentDefs.find((d) => d.id === 'page-nav')!;
+      const pageNavItem = componentDefs.find((d) => d.id === 'page-nav-item')!;
+      const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+      // ARM 1 — THE CODE CONTRACT (Q1 A). The code contract names a <nav>, a real <a href> and aria-current="page", and
+      // carries no tab role, tablist or aria-selected anywhere a developer reads it (codeOnly and accessibility, the row's
+      // and its item's). Mutation: add role="tablist" to PageNav's codeOnly → `#3345 page-nav code contract`.
+      {
+        const read = (d: ComponentDef) => [...(d.anatomy?.codeOnly ?? []), d.accessibility?.role ?? '', d.accessibility?.aria ?? '', d.accessibility?.keyboard ?? ''].join('\n');
+        const contract = read(pageNav);
+        const want = ['<nav', '<a href', 'aria-current="page"'].filter((s) => !contract.includes(s));
+        const banned = ['role="tab"', "role='tab'", 'tablist', 'aria-selected'].flatMap((s) => [pageNav, pageNavItem].filter((d) => read(d).includes(s)).map((d) => `${d.id}: ${s}`));
+        ok(want.length === 0 && banned.length === 0,
+          `#3345 page-nav code contract: names <nav, <a href and aria-current="page", and no tab role, tablist or aria-selected (missing: ${want.join(', ') || 'none'}; banned: ${banned.join(', ') || 'none'})`);
+      }
+      // ARM 2 — THE CROSS-REFERENCE (Q1 A). Tabs points page changes at PageNav, and PageNav points in-place panels at
+      // Tabs: each names the other by id in composition.alternativeTo and by name in ai.avoidWhen. Mutation: drop
+      // 'page-nav' from Tabs' alternativeTo → `#3345 tabs ↔ page-nav cross-reference`.
+      {
+        const refs = [
+          tabsDef.composition?.alternativeTo?.includes('page-nav') ? '' : 'tabs.alternativeTo lacks page-nav',
+          /\bPageNav\b/.test(tabsDef.ai?.avoidWhen ?? '') ? '' : 'tabs.ai.avoidWhen does not name PageNav',
+          pageNav.composition?.alternativeTo?.includes('tabs') ? '' : 'page-nav.alternativeTo lacks tabs',
+          /\bTabs\b/.test(pageNav.ai?.avoidWhen ?? '') ? '' : 'page-nav.ai.avoidWhen does not name Tabs',
+        ].filter(Boolean);
+        ok(refs.length === 0, `#3345 tabs ↔ page-nav cross-reference: each names the other by id and in avoidWhen (${refs.join('; ') || 'both ways'})`);
+      }
+      // ARM 3a — EVERY ITEM IS A LINK, the current one Link's current page (Q2). Each PageNav.Item member nests Link at
+      // style=standalone (Q7 B: plain at rest, underlined at hover): the other pages at selection=unselected, the current
+      // page at selection=selected (the member that draws the bar). PageNav's default items: the first current, the rest
+      // not.
+      {
+        const off: string[] = [];
+        for (const m of figmaAnatomySet(pageNavItem, { swapTarget: 'FPO-default-icon' })) {
+          const n = m.root.children.find((c) => c.name === 'link') as { nestTarget?: string; nestVariant?: Record<string, string> } | undefined;
+          const cur = m.coord.selection === 'selected';
+          const v = n?.nestVariant ?? {};
+          if (n?.nestTarget !== 'link' || v.style !== 'standalone' || v.selection !== (cur ? 'selected' : 'unselected'))
+            off.push(`${planComponentName(m)}: ${JSON.stringify({ target: n?.nestTarget, style: v.style, selection: v.selection })}`);
+        }
+        const navItems = figmaAnatomySet(pageNav, { swapTarget: 'FPO-default-icon' }).map((m) => (m.root.children.find((c) => c.name === 'items')?.children ?? []).map((c) => `${(c as { nestTarget?: string }).nestTarget}:${(c as { nestVariant?: Record<string, string> }).nestVariant?.selection}`).join(','));
+        ok(off.length === 0 && navItems.length === 2 && navItems.every((s) => s === 'page-nav-item:selected,page-nav-item:unselected,page-nav-item:unselected'),
+          `#3345 page-nav items: every item nests Link, the current page at standalone/selected and the others standalone/unselected; PageNav's defaults are one current and two others (${off.length} off — ${off.slice(0, 2).join('; ') || 'none'}; rows ${JSON.stringify(navItems)})`);
+      }
+      // ARM 3a′ — THE OTHER PAGES ARE PLAIN AT REST, UNDERLINED AT HOVER (owner decision Q7 B, 2026-11-03: "plain at rest,
+      // underlined on hover", not "underlined always"). Each unselected item's nested Link is resolved to the Link member
+      // it lands on — at rest, and at hover with the same coordinate — and that member's label text style is read: a
+      // `-link` style is the underlined twin. The oracle is the decision's two literals (rest: no `-link`; hover: `-link`),
+      // never the item def's own claim. Mutation: the item's nested variant back to style=inline → this arm, by name.
+      {
+        const linkMembers = figmaAnatomySet(componentDefs.find((d) => d.id === 'link')!, { swapTarget: 'FPO-default-icon' });
+        const off: string[] = [];
+        let seen = 0;
+        for (const m of figmaAnatomySet(pageNavItem, { swapTarget: 'FPO-default-icon' }).filter((q) => q.coord.selection === 'unselected')) {
+          const v = ((m.root.children.find((c) => c.name === 'link') as { nestVariant?: Record<string, string> } | undefined)?.nestVariant) ?? {};
+          for (const [state, underlined] of [['rest', false], ['hover', true]] as const) {
+            const want = { ...v, state };
+            const lm = linkMembers.find((q) => q.size === want.size && Object.entries(want).every(([k, x]) => k === 'size' || q.coord[k] === x));
+            const label = lm?.root.children.find((c) => c.name === 'label');
+            const styles = label ? planTextStyles(label) : [];
+            seen++;
+            if (!lm || styles.length !== 1 || styles[0].endsWith('-link') !== underlined)
+              off.push(`${planComponentName(m)} at ${state}: ${lm ? styles.join('|') || 'no style' : `no Link member for ${JSON.stringify(want)}`}`);
+          }
+        }
+        ok(seen >= 4 && off.length === 0,
+          `#3345 page-nav items: the other pages are plain at rest and underlined at hover (Q7 B) (${seen} checked, ${off.length} off — ${off.slice(0, 2).join('; ') || 'none'})`);
+      }
+      // ARM 3a″ — PARTIAL IS THE ENGINE DEFAULT (owner decision Q10 B, 2026-11-03). Two legs, each against the literal
+      // 'partial' / 0.5 typed from the decision: the lever's declared default, and the def the null brand materializes
+      // (`specMaterialize`, which `apps/plugin/test-roundtrip.ts` holds equal to the plugin's `materializeForBrand(def,
+      // null)`) drawing Link's bar at half the title. Mutation: the lever's default, or the null chain's value, set to
+      // `full` → `#3345 page-nav indicator: Partial is the engine default`.
+      {
+        const lever = leverManifest.find((l) => l.key === 'currentIndicator');
+        const bar = (specMaterialize(componentDefs.find((d) => d.id === 'link')!).anatomy?.parts.bar ?? {}) as { footShare?: number };
+        ok(lever?.default === 'partial' && bar.footShare === 0.5,
+          `#3345 page-nav indicator: Partial is the engine default (Q10 B) — the lever's default and the null brand's Link bar (lever default ${JSON.stringify(lever?.default)}; bar share ${JSON.stringify(bar.footShare)})`);
+      }
+      // ARM 3b — THE INDICATOR IS 2px (Q2). The current Link's bar binds border-width/thick under both settings, and that
+      // variable is 2px in every committed brand's emission. Mutation: bind Link's bar-height to border-width.hairline →
+      // `#3345 page-nav indicator: 2px`.
+      {
+        const linkDef = componentDefs.find((d) => d.id === 'link')!;
+        const brands = readdirSync(resolve(HERE, 'out/figma'));
+        const px = brands.map((b) => {
+          const v = (JSON.parse(readFileSync(resolve(HERE, 'out/figma', b, 'border-width.json'), 'utf8')).variables as { name: string; value: unknown }[]).find((x) => x.name.endsWith('/border-width/thick'));
+          return `${b}=${String(v?.value)}`;
+        });
+        const bound = (['full', 'partial'] as const).flatMap((ind) => figmaAnatomySet(applyCurrentIndicator(linkDef, ind), { swapTarget: 'FPO-default-icon' })
+          .filter((q) => q.coord.selection === 'selected')
+          .map((q) => (q.root.children.find((c) => c.name === 'bar')?.bound as Record<string, string> | undefined)?.height ?? 'none'));
+        ok(brands.length >= 4 && px.every((s) => s.endsWith('=2')) && bound.length > 0 && bound.every((h) => h === 'border-width/thick'),
+          `#3345 page-nav indicator: 2px — every current Link member's bar binds border-width/thick under Full and Partial, and it is 2px in every brand (${[...new Set(bound)].join(', ')}; ${px.join(', ')})`);
+      }
+      // ARM 3c — THE WIDTH, ON BOTH EXECUTORS (Q2 A). Full: as wide as the title, at x 0, STRETCH. Partial: round(0.5 ×
+      // the title's width), centered — x = (title − bar) / 2 — and SCALE, so it keeps its share of a longer label. Read
+      // off the stub's live boxes after each leg built Link's current member. Mutations: the paste leg placing the partial
+      // bar at x 0 → `#3345 page-nav indicator: Partial … paste leg`; the share at 100% → both Partial arms.
+      {
+        const linkDef = componentDefs.find((d) => d.id === 'link')!;
+        const facts = (page: StubPage, name: string): { W: number; w: number; x: number; h?: string } | undefined => {
+          const all = page.children.flatMap((c) => [c, ...(((c as Record<string, unknown>).children as Record<string, unknown>[] | undefined) ?? [])]);
+          const root = all.find((c) => c.name === name) as Record<string, unknown> | undefined;
+          const kid = ((root?.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'bar');
+          if (!root || !kid) return undefined;
+          return { W: root.width as number, w: kid.width as number, x: kid.x as number, h: (kid.constraints as { horizontal?: string } | null)?.horizontal };
+        };
+        for (const ind of ['full', 'partial'] as const) {
+          const cur = figmaAnatomySet(applyCurrentIndicator(linkDef, ind), { swapTarget: 'FPO-default-icon' }).find((q) => q.coord.selection === 'selected' && q.coord.state === 'rest' && q.size === 'medium' && q.coord.weight === 'default')!;
+          const o: StubOpts = { vars: [...planBoundVars(cur.root), ...planPaintVars(cur.root)], styles: planTextStyles(cur.root), comps: ['FPO-default-icon', 'focus-ring'] };
+          const judge = (f: ReturnType<typeof facts>): string => {
+            if (!f) return 'no bar';
+            const wantW = ind === 'full' ? f.W : Math.round(0.5 * f.W);
+            const wantX = (f.W - wantW) / 2;
+            const wantH = ind === 'full' ? 'STRETCH' : 'SCALE';
+            const good = f.W > 0 && Math.abs(f.w - wantW) < 0.01 && Math.abs(f.x - wantX) < 0.01 && f.h === wantH && (ind === 'full' || f.w < f.W);
+            return good ? 'ok' : `bar ${f.w} at x ${f.x} (${f.h}) under a ${f.W} title, want ${wantW} at ${wantX} (${wantH})`;
+          };
+          const pastePage: StubPage = { children: [] };
+          const pasted = await runPayload(planToPluginJs(cur), { ...o, page: pastePage });
+          const pv = judge(facts(pastePage, planComponentName(cur)));
+          ok(pv === 'ok' && pasted.misses.length === 0, `#3345 page-nav indicator: ${ind === 'full' ? 'Full is the title\'s width' : 'Partial is round(0.5 × the title) centered'}, paste leg (${pv}; misses ${JSON.stringify(pasted.misses)})`);
+          const plugPage: StubPage = { children: [] };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+          const plugged = await applyComponentPlan([cur], makeFigmaStub({ ...o, page: plugPage }) as any);
+          const gv = judge(facts(plugPage, planComponentName(cur)));
+          ok(gv === 'ok' && plugged.misses.length === 0, `#3345 page-nav indicator: ${ind === 'full' ? 'Full is the title\'s width' : 'Partial is round(0.5 × the title) centered'}, plugin leg (${gv}; misses ${JSON.stringify(plugged.misses)})`);
+        }
+      }
     }
 
     // ---- #3163: Dialog's scrolling body, on the PASTE leg ------------------------------------------------
@@ -30587,7 +30729,7 @@ arm: {
   ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
     `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.1' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.2' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -37877,6 +38019,7 @@ arm: {
     'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
     'pagination-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'the current page is marked by `selected` (aria-current="page", #2665)' },
+    'page-nav-item.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a page navigation item marks the current page by `current`, as Link does (#3345)' },
     'link.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a link marks the current page by `current`, rendering aria-current="page" (#2872, Q507.3 A)' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
     // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link

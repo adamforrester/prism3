@@ -52,7 +52,7 @@ import { materializeForBrand } from './src/brand-def';
 /** Every structural lever away from its default (`levers.ts`), on the engine's sparsest brand's colors. */
 export const LEVERS = {
   id: 'reach-levers', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
-  fieldStyle: 'underline', tagStyle: 'underline', controlShape: 'pill', density: 'compact', bannerStyle: 'outlined',
+  fieldStyle: 'underline', tagStyle: 'underline', controlShape: 'pill', density: 'compact', bannerStyle: 'outlined', currentIndicator: 'full',
   outlineInteraction: 'solid-tint', buttonIcons: 'edges', dialogTitleSize: 'small', buttonTextHover: 'fill', buttonContentSize: 'smaller',
 } as unknown as BrandInput;
 export const BRANDS: readonly (readonly [string, BrandInput | null])[] = [['default', null], ['levers', LEVERS]];

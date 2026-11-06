@@ -234,6 +234,7 @@ const MUST_PROJECT = [
   'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'counter', 'progress', 'search-field', 'card-number-field', 'banner', 'toast',
   'pagination-item', 'pagination',
   '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
+  'page-nav-item', 'page-nav',
   '_slider-thumb', 'slider',
   'code-input', 'code-input-cell',
 ];

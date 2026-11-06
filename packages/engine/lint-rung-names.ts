@@ -405,6 +405,9 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
   // #2666: as List — the trail's gap between items is its own size binding; the text, links and separators are sized by
   // the nested BreadcrumbItem and Link, each checked under its own name.
   breadcrumbs: 'its only size-keyed binding is the gap between items (`space.050` / `100`); the steps are sized by the nested BreadcrumbItem and Link, checked under their own names',
+  // #3345: as Breadcrumbs — the row's gap between items is its own size binding; the links are sized by the nested
+  // PageNav.Item and Link, each checked under its own name.
+  'page-nav': 'its only size-keyed binding is the gap between items (`space.200` / `300`); the links are sized by the nested PageNav.Item and Link, checked under their own names',
   // #2669 (owner Q550 e): the Slider's own size binding is its track, a border-width step per size.
   slider: 'its only size-keyed binding is the track (`border-width.thick` / `heavy` / `x-heavy`, 2 / 4 / 6px), a stroke step with no `md`; the thumb is sized by the nested Slider.Thumb (`control.size.*.thumb`), checked under its own name',
 };
@@ -468,6 +471,9 @@ const DEFAULT_FIRST: Record<string, string> = {
   progress: 'the Figma default is the 40px medium ring, the proposal\'s axis table approved with every call at A, and the code default `type` is determinate to match (#2791)',
   breadcrumbs: Q1B,
   'breadcrumb-item': Q1B,
+  // #3345: Breadcrumbs' pair, medium first (Q1 B), DRAFT for the owner.
+  'page-nav': Q1B,
+  'page-nav-item': Q1B,
   // #2669: owner Q550 e ("medium first") agrees with Q1 B.
   slider: Q1B,
   '_slider-thumb': Q1B,
@@ -481,6 +487,7 @@ const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
   'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
   'code-input': 'the field binds no size.* key of its own — its gaps are fixed `space.100` steps — so the size axis reaches the six nested cells by `follow` only; the label keeps one size (#2428)',
+  'page-nav-item': 'the item binds no size.* key of its own — it is one row around one Link, gap `space.0` — so the size axis reaches the nested Link by `follow` only (#3345)',
   'segmented-control': 'the control binds no size.* key of its own — its label gap is a fixed `space.100`, the track a 1px hairline with no padding, and each option carries its own height and padding — so the size axis reaches the nested label and the five options by `follow` only (#2418)',
 };
 
@@ -524,6 +531,7 @@ const MUST_COVER = [
   'pagination-item', 'pagination',
   'breadcrumb-item', 'breadcrumbs',
   'code-input-cell', 'code-input',
+  'page-nav-item', 'page-nav',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

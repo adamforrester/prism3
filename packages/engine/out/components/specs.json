@@ -50562,6 +50562,299 @@
           "type": "SLOT"
         }
       ]
+    },
+    "page-nav-item": {
+      "id": "page-nav-item",
+      "name": "PageNav.Item",
+      "members": 4,
+      "axes": [
+        {
+          "name": "selection",
+          "figmaName": "selection",
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 4
+        },
+        {
+          "part": "container/link",
+          "kind": "instance",
+          "members": 4
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "selection"
+      ],
+      "colors": [
+        {
+          "where": {
+            "selection": "unselected"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "selection": "selected"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/link",
+          "kind": "instance",
+          "component": "link",
+          "variant": {
+            "style": "standalone",
+            "weight": "default",
+            "size": "medium",
+            "surface": "default",
+            "selection": "unselected",
+            "state": "rest"
+          },
+          "when": {
+            "selection": {
+              "selected": {
+                "selection": "selected"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": []
+    },
+    "page-nav": {
+      "id": "page-nav",
+      "name": "PageNav",
+      "members": 2,
+      "axes": [
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "members": 2
+        },
+        {
+          "part": "container/items/item1",
+          "kind": "instance",
+          "members": 2
+        },
+        {
+          "part": "container/items/item2",
+          "kind": "instance",
+          "members": 2
+        },
+        {
+          "part": "container/items/item3",
+          "kind": "instance",
+          "members": 2
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.300"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.200"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [],
+      "colors": [
+        {
+          "where": {},
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "preferred": [
+            "page-nav-item"
+          ]
+        },
+        {
+          "part": "container/items/item1",
+          "kind": "instance",
+          "component": "page-nav-item",
+          "variant": {
+            "selection": "selected",
+            "size": "medium"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/item2",
+          "kind": "instance",
+          "component": "page-nav-item",
+          "variant": {
+            "selection": "unselected",
+            "size": "medium"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/item3",
+          "kind": "instance",
+          "component": "page-nav-item",
+          "variant": {
+            "selection": "unselected",
+            "size": "medium"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "items",
+          "type": "SLOT"
+        }
+      ]
     }
   }
 }

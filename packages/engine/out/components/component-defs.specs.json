@@ -61251,6 +61251,244 @@
           }
         }
       ]
+    },
+    "page-nav-item": {
+      "title": "PageNav.Item",
+      "anatomy": {
+        "container": {
+          "type": "container"
+        },
+        "link": {
+          "type": "instance",
+          "instanceOf": "link"
+        }
+      },
+      "props": {
+        "label": {
+          "type": "string",
+          "default": null,
+          "$extensions": {
+            "com.prism3": {
+              "type": "string",
+              "required": true,
+              "description": "The page's name, as the page titles itself. It is the link text."
+            }
+          }
+        },
+        "href": {
+          "type": "string",
+          "default": null,
+          "$extensions": {
+            "com.prism3": {
+              "type": "string",
+              "required": true,
+              "description": "The page's address. The current page keeps its href, so it stays a link."
+            }
+          }
+        },
+        "current": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Marks the page the user is on: the 2px bar in place of the underline, and aria-current=\"page\". One item in a row is current."
+            }
+          }
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "small",
+            "medium"
+          ],
+          "default": "medium",
+          "$extensions": {
+            "com.prism3": {
+              "type": "enum: 'small' | 'medium'",
+              "required": false,
+              "description": "The body type size, 14 or 16px. Set by the PageNav it sits in."
+            }
+          }
+        },
+        "selection": {
+          "type": "string",
+          "enum": [
+            "unselected",
+            "selected"
+          ],
+          "default": "unselected",
+          "$extensions": {
+            "com.prism3": {
+              "axis": "variant",
+              "figmaName": "selection"
+            }
+          }
+        }
+      },
+      "default": {
+        "configuration": {
+          "selection": "unselected",
+          "size": "medium"
+        },
+        "layout": [
+          {
+            "container": [
+              "link"
+            ]
+          }
+        ],
+        "elements": {
+          "container": {
+            "styles": {
+              "itemSpacing": {
+                "$token": "space.0",
+                "$type": "dimension"
+              }
+            }
+          }
+        }
+      },
+      "variants": [
+        {
+          "configuration": {
+            "size": "small"
+          },
+          "elements": {
+            "container": {
+              "styles": {
+                "itemSpacing": {
+                  "$token": "space.0",
+                  "$type": "dimension"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "page-nav": {
+      "title": "PageNav",
+      "anatomy": {
+        "container": {
+          "type": "container"
+        },
+        "items": {
+          "type": "slot"
+        },
+        "item1": {
+          "type": "instance",
+          "instanceOf": "page-nav-item"
+        },
+        "item2": {
+          "type": "instance",
+          "instanceOf": "page-nav-item"
+        },
+        "item3": {
+          "type": "instance",
+          "instanceOf": "page-nav-item"
+        }
+      },
+      "props": {
+        "items": {
+          "type": "slot",
+          "anyOf": [
+            "page-nav-item"
+          ],
+          "minChildren": 2,
+          "maxChildren": 6,
+          "$extensions": {
+            "com.prism3": {
+              "type": "slot",
+              "required": true,
+              "description": "The pages, each a PageNav.Item with a label and an href, in order. One is current. At least two, six at most."
+            }
+          }
+        },
+        "label": {
+          "type": "string",
+          "default": null,
+          "$extensions": {
+            "com.prism3": {
+              "type": "string",
+              "required": true,
+              "description": "The accessible name of the navigation landmark, such as \"Account\", translated. Assistive technology adds \"navigation\" itself."
+            }
+          }
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "small",
+            "medium"
+          ],
+          "default": "medium",
+          "$extensions": {
+            "com.prism3": {
+              "type": "enum: 'small' | 'medium'",
+              "required": false,
+              "description": "The body type size, 14 or 16px, passed to every item, with the gap between items sized to it."
+            }
+          }
+        },
+        "renderLink": {
+          "type": "string",
+          "default": null,
+          "$extensions": {
+            "com.prism3": {
+              "type": "function",
+              "required": false,
+              "description": "Renders each item through a router's link, so one anchor renders and the component depends on no router. The plain anchor by default."
+            }
+          }
+        }
+      },
+      "default": {
+        "configuration": {
+          "size": "medium"
+        },
+        "layout": [
+          {
+            "container": [
+              {
+                "items": [
+                  "item1",
+                  "item2",
+                  "item3"
+                ]
+              }
+            ]
+          }
+        ],
+        "elements": {
+          "items": {
+            "styles": {
+              "itemSpacing": {
+                "$token": "space.300",
+                "$type": "dimension"
+              }
+            }
+          }
+        }
+      },
+      "variants": [
+        {
+          "configuration": {
+            "size": "small"
+          },
+          "elements": {
+            "items": {
+              "styles": {
+                "itemSpacing": {
+                  "$token": "space.200",
+                  "$type": "dimension"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

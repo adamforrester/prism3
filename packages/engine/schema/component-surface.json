@@ -624,7 +624,7 @@
     },
     "link": {
       "members": 192,
-      "sha256": "2fe7b5511d8121d31fbb830f54fd58e034ec2d041400464d7c8d7024dc86eba0",
+      "sha256": "bf9d96887836ea1cf3de6eab1e7035c3c1fb2fc326344c261efcc131f378c624",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -632,7 +632,7 @@
     },
     "link@body-emphasis": {
       "members": 192,
-      "sha256": "f5701603fcc481ec1dc353cfa0212e188d6fb274be18a1f2308b3f972315e746",
+      "sha256": "13cfcc193d92843d1568f73c1a5e7055d67e267cb81890ab396f0a4507de4619",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -640,7 +640,7 @@
     },
     "link@body-single": {
       "members": 96,
-      "sha256": "92806b8488ce4bee12190d7e4ca3d63d7b40d3a97a8d2884aa8599d734e5e1ac",
+      "sha256": "532aacd144e3691a471f53bacc0bc0207bf1e596a489e866d41521f25fc9f901",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -835,6 +835,18 @@
       "properties": [
         "items:SLOT",
         "message:BOOLEAN"
+      ]
+    },
+    "page-nav-item": {
+      "members": 4,
+      "sha256": "f8a4a46b369e05e769ba0780fe72571565ac529888852729652e391ca4a9683f",
+      "properties": []
+    },
+    "page-nav": {
+      "members": 2,
+      "sha256": "ea176c9df67998801a2098da45006d93fa5dffec96302160ec0bb42986a1d19b",
+      "properties": [
+        "items:SLOT"
       ]
     }
   }
