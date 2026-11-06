@@ -20,8 +20,10 @@
  *
  * RESET = the same program. It empties both pages (creating either if it is missing) and plants them again, so a run
  * that deleted, detached or rewrote anything there starts the next run from the same state. The plugin API cannot
- * restore a version, so the hash check is what proves a reset worked: the baseline `inspect` of every run, made
- * id-free by `canonicalInspect`, must hash to the golden hash recorded right after setup, or the run is void.
+ * restore a version, so the hash check is what proves a reset worked: every run's baseline must hash, by `goldenHash`,
+ * to the golden hash recorded right after setup, or the run is void. That hash also covers what the reset does NOT
+ * replant — the variables, `component-keys` and the `↳ Buttons` page — so a run that changed one of those is caught at
+ * the next run's baseline, not carried into it.
  *
  * NAMES NO BRAND, carries no file key. The Prism3 Button is found on the `↳ Buttons` page that `build-components button`
  * writes, never by a brand's name.
@@ -45,6 +47,8 @@ export type Roles = {
   legacyLibrary: string; legacyButtonMain: string; ratingMain: string;
   promoRow: string; promoText: string; legacyButton: string; rating: string;
   original: string; note: string; hero: string; heroButton: string; finalRow: string;
+  /** The `↳ Buttons` page `build-components button` wrote: not planted, so not reset, but in the golden hash. */
+  buttonsPage: string;
   prism3Set: { name: string; key: string | null };
 };
 /** Roles a run may not write (#3147 Q3147.11: FINAL pages, locked layers, `Original · …` copies). */
@@ -112,18 +116,24 @@ return {
   legacyLibrary: library.id, legacyButtonMain: lb.id, ratingMain: lr.id,
   promoRow: promo.id, promoText: promoText.id, legacyButton: legacyButton.id, rating: rating.id,
   original: original.id, note: note.id, hero: hero.id, heroButton: heroButton.id, finalRow: finalRow.id,
+  buttonsPage: buttons.id,
   prism3Set: { name: set.name, key: set.key ?? null },
 };
 `.trim();
 
 /**
- * The read the scorer needs that `inspect` does not give: the file's variables with their collections (R1, R2), and
- * every instance's overridden fields on the plan's pages (R3). Read only: it assigns nothing and calls no setter.
+ * The read the scorer needs that `inspect` does not give: the file's variables with their collections (R1, R2) and
+ * their values per mode (the golden hash, and V6), and every instance's overridden fields on the plan's pages (R3).
+ * Read only: it assigns nothing and calls no setter. A value that aliases another variable is written by that
+ * variable's name, and a mode by its name, so the read carries no id.
  */
 export const readsProgram = (roles: Pick<Roles, 'workPage' | 'finalPage'>): string => `
 const cols = await figma.variables.getLocalVariableCollectionsAsync();
 const colName = Object.fromEntries(cols.map((c) => [c.id, c.name]));
+const modeName = Object.fromEntries(cols.flatMap((c) => c.modes.map((m) => [m.modeId, m.name])));
 const vars = await figma.variables.getLocalVariablesAsync();
+const varName = Object.fromEntries(vars.map((v) => [v.id, v.name]));
+const val = (x) => (x && typeof x === 'object' && x.type === 'VARIABLE_ALIAS' ? { alias: varName[x.id] ?? null } : x);
 const overrides = [];
 for (const id of ${JSON.stringify([roles.workPage, roles.finalPage])}) {
   const p = await figma.getNodeByIdAsync(id);
@@ -133,7 +143,13 @@ for (const id of ${JSON.stringify([roles.workPage, roles.finalPage])}) {
     overrides.push({ id: n.id, overrides: (n.overrides ?? []).map((o) => ({ id: o.id, fields: [...o.overriddenFields] })) });
   }
 }
-return { variables: vars.map((v) => ({ name: v.name, collection: colName[v.variableCollectionId] ?? null })), overrides };
+return {
+  variables: vars.map((v) => ({
+    name: v.name, collection: colName[v.variableCollectionId] ?? null, type: v.resolvedType,
+    values: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => [modeName[m] ?? m, val(x)])),
+  })),
+  overrides,
+};
 `.trim();
 
 export type Cmd = { key: string; cmd: string; args: Record<string, unknown> };
@@ -151,6 +167,7 @@ export const resetCommands = (): Cmd[] => [{ key: 'plant', cmd: 'run-code', args
 /** The read-only captures, before and after each run. Every one writes nothing. */
 export const captureCommands = (roles: Roles): Cmd[] => [
   { key: 'inspect', cmd: 'inspect', args: { ids: [roles.workPage, roles.finalPage], depth: 3, maxNodes: 2000 } },
+  { key: 'inspect-buttons', cmd: 'inspect', args: { ids: [roles.buttonsPage], depth: 4, maxNodes: 5000 } },
   { key: 'audit', cmd: 'audit-frames', args: { ids: [roles.promoRow, roles.hero, roles.original, roles.finalRow], legacy: { components: [LEGACY_BUTTON, LEGACY_RATING] } } },
   ...SNAPSHOT_ROLES.map((r) => ({ key: `snapshot-${r}`, cmd: 'snapshot', args: { id: roles[r], scale: 1 } })),
   { key: 'component-keys', cmd: 'component-keys', args: { sets: true } },
@@ -183,3 +200,28 @@ export const canonicalInspect = (data: { nodes?: InspectNode[] } | undefined): u
 };
 export const inspectHash = (data: { nodes?: InspectNode[] } | undefined): string =>
   createHash('sha256').update(JSON.stringify(canonicalInspect(data))).digest('hex');
+
+type Envelope = { ok?: boolean; result?: { data?: any } } | null | undefined;
+const dataOf = (e: Envelope) => (e && e.ok !== false ? e.result?.data : undefined);
+/** The file's variables as the golden hash and V6 compare them: by name, each with its collection, type and values. */
+export const canonicalVariables = (reads: Envelope): unknown[] =>
+  [...((dataOf(reads)?.value?.variables ?? []) as { name: string }[])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+/** `component-keys` as compared: by name, with the plant's own `Legacy/…` keys dropped (a reset makes new ones). */
+export const canonicalComponents = (keys: Envelope): unknown[] =>
+  [...((dataOf(keys)?.components ?? []) as { name: string; key?: unknown }[])]
+    .map((c) => (c.name.startsWith('Legacy/') ? (({ key: _k, ...rest }) => rest)(c) : c))
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+
+/**
+ * THE GOLDEN HASH (review S3): what a run must start from, not only the two plan pages. It covers the plan pages'
+ * `inspect`, the `↳ Buttons` page's `inspect`, every variable with its values per mode, and `component-keys`. The reset
+ * replants only the plan pages, so a run that adds or edits a variable or edits the Button set leaves that in the file,
+ * and the next run's baseline no longer hashes to the golden one: that run is void, and the job stops (`figma.md`).
+ */
+export const goldenHash = (c: Record<string, Envelope> | undefined): string =>
+  createHash('sha256').update(JSON.stringify({
+    inspect: canonicalInspect(dataOf(c?.inspect)),
+    buttons: canonicalInspect(dataOf(c?.['inspect-buttons'])),
+    variables: canonicalVariables(c?.reads),
+    components: canonicalComponents(c?.['component-keys']),
+  })).digest('hex');

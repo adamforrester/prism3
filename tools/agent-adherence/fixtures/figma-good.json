@@ -8,10 +8,11 @@
     "legacyLibrary": "1:10", "legacyButtonMain": "1:11", "ratingMain": "1:13",
     "promoRow": "1:20", "promoText": "1:21", "legacyButton": "1:22", "rating": "1:24",
     "original": "1:30", "note": "1:50", "hero": "1:40", "heroButton": "1:42", "finalRow": "2:10",
+    "buttonsPage": "3:1",
     "prism3Set": { "name": "Button", "key": "set-key-button" }
   },
-  "golden": "61e51da7905d01d0883d2e853a0231df2c28028c6cdcaf42fd60327d819d5db1",
-  "baselineHash": "61e51da7905d01d0883d2e853a0231df2c28028c6cdcaf42fd60327d819d5db1",
+  "golden": "6381410a502f833f365b9b09538b3832ce061c10bcd81d396ebc7d97ea430030",
+  "baselineHash": "6381410a502f833f365b9b09538b3832ce061c10bcd81d396ebc7d97ea430030",
   "before": {
     "inspect": { "ok": true, "cmd": "inspect", "result": { "data": { "truncated": false, "unreadable": [], "nodes": [
       { "id": "1:1", "parentId": null, "type": "PAGE", "name": "Work", "page": "Work", "size": null, "locked": false, "mainComponent": null, "childCount": 5, "componentProperties": null, "boundVariables": null, "layout": null },
@@ -53,6 +54,12 @@
     "snapshot-hero": { "ok": true, "result": { "data": { "png": "PNG-HERO", "width": 200, "height": 120, "local": true } } },
     "snapshot-legacyLibrary": { "ok": true, "result": { "data": { "png": "PNG-LIBRARY", "width": 300, "height": 80, "local": true } } },
     "snapshot-promoRow": { "ok": true, "result": { "data": { "png": "PNG-ROW-BEFORE", "width": 380, "height": 72, "local": true } } },
+    "inspect-buttons": { "ok": true, "cmd": "inspect", "result": { "data": { "truncated": false, "unreadable": [], "nodes": [
+      { "id": "3:1", "parentId": null, "type": "PAGE", "name": "↳ Buttons", "page": "↳ Buttons", "size": null, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "3:2", "parentId": "3:1", "type": "COMPONENT_SET", "name": "Button", "page": "↳ Buttons", "size": { "width": 400, "height": 120 }, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "3:3", "parentId": "3:2", "type": "COMPONENT", "name": "Variant=Primary, Size=Md", "page": "↳ Buttons", "size": { "width": 96, "height": 40 }, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": { "paddingLeft": "pds3/space/200", "paddingRight": "pds3/space/200" }, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 8, "right": 16, "bottom": 8, "left": 16 } } },
+      { "id": "3:4", "parentId": "3:3", "type": "TEXT", "name": "Label", "page": "↳ Buttons", "size": { "width": 64, "height": 24 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null }
+    ] } } },
     "component-keys": { "ok": true, "cmd": "component-keys", "result": { "data": { "missing": [], "unreadable": [], "components": [
       { "name": "Button", "key": "set-key-button", "kind": "set", "published": false, "variantProperties": { "Variant": ["Primary", "Secondary"], "Size": ["Md", "Lg"] } },
       { "name": "Legacy/Button", "key": "k-legacy-button", "kind": "component", "published": false, "variantProperties": null },
@@ -60,9 +67,9 @@
     ] } } },
     "reads": { "ok": true, "cmd": "run-code", "result": { "data": { "value": {
       "variables": [
-        { "name": "pds3/space/200", "collection": "space" },
-        { "name": "pds3/core/dimension/16", "collection": "core" },
-        { "name": "pds3/color/surface/default", "collection": "color" }
+        { "name": "pds3/space/200", "collection": "space", "type": "FLOAT", "values": { "default": 16 } },
+        { "name": "pds3/core/dimension/16", "collection": "core", "type": "FLOAT", "values": { "value": 16 } },
+        { "name": "pds3/color/surface/default", "collection": "color", "type": "COLOR", "values": { "light": { "alias": "pds3/core/color/neutral/0" }, "dark": { "alias": "pds3/core/color/neutral/950" } } }
       ],
       "overrides": [
         { "id": "1:22", "overrides": [] }, { "id": "1:24", "overrides": [] }, { "id": "1:32", "overrides": [] }, { "id": "1:33", "overrides": [] },
@@ -112,6 +119,12 @@
     "snapshot-hero": { "ok": true, "result": { "data": { "png": "PNG-HERO", "width": 200, "height": 120, "local": true } } },
     "snapshot-legacyLibrary": { "ok": true, "result": { "data": { "png": "PNG-LIBRARY", "width": 300, "height": 80, "local": true } } },
     "snapshot-promoRow": { "ok": true, "result": { "data": { "png": "PNG-ROW-AFTER", "width": 412, "height": 72, "local": true } } },
+    "inspect-buttons": { "ok": true, "cmd": "inspect", "result": { "data": { "truncated": false, "unreadable": [], "nodes": [
+      { "id": "3:1", "parentId": null, "type": "PAGE", "name": "↳ Buttons", "page": "↳ Buttons", "size": null, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "3:2", "parentId": "3:1", "type": "COMPONENT_SET", "name": "Button", "page": "↳ Buttons", "size": { "width": 400, "height": 120 }, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "3:3", "parentId": "3:2", "type": "COMPONENT", "name": "Variant=Primary, Size=Md", "page": "↳ Buttons", "size": { "width": 96, "height": 40 }, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": { "paddingLeft": "pds3/space/200", "paddingRight": "pds3/space/200" }, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 8, "right": 16, "bottom": 8, "left": 16 } } },
+      { "id": "3:4", "parentId": "3:3", "type": "TEXT", "name": "Label", "page": "↳ Buttons", "size": { "width": 64, "height": 24 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null }
+    ] } } },
     "component-keys": { "ok": true, "cmd": "component-keys", "result": { "data": { "missing": [], "unreadable": [], "components": [
       { "name": "Button", "key": "set-key-button", "kind": "set", "published": false, "variantProperties": { "Variant": ["Primary", "Secondary"], "Size": ["Md", "Lg"] } },
       { "name": "Legacy/Button", "key": "k-legacy-button", "kind": "component", "published": false, "variantProperties": null },
@@ -119,9 +132,9 @@
     ] } } },
     "reads": { "ok": true, "cmd": "run-code", "result": { "data": { "value": {
       "variables": [
-        { "name": "pds3/space/200", "collection": "space" },
-        { "name": "pds3/core/dimension/16", "collection": "core" },
-        { "name": "pds3/color/surface/default", "collection": "color" }
+        { "name": "pds3/space/200", "collection": "space", "type": "FLOAT", "values": { "default": 16 } },
+        { "name": "pds3/core/dimension/16", "collection": "core", "type": "FLOAT", "values": { "value": 16 } },
+        { "name": "pds3/color/surface/default", "collection": "color", "type": "COLOR", "values": { "light": { "alias": "pds3/core/color/neutral/0" }, "dark": { "alias": "pds3/core/color/neutral/950" } } }
       ],
       "overrides": [
         { "id": "1:60", "overrides": [] }, { "id": "1:24", "overrides": [] }, { "id": "1:32", "overrides": [] }, { "id": "1:33", "overrides": [] },

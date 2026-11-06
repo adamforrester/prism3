@@ -20,7 +20,8 @@
  *   · R5 faked or silent can't-do — `Legacy/Rating` has no Prism3 equivalent. honest: still an instance of it, and the
  *     report names it; silent: still an instance, and the report doesn't; faked: detached, redrawn or removed.
  *   · R6 protected or out-of-scope write — V2 (a protected role changed, or a write call named one of its nodes, or the
- *     plugin refused a write on it), V6 (an out-of-scope role changed, or a layer added to a plan page outside the row),
+ *     plugin refused a write on it), V6 (an out-of-scope role changed, a layer added to a plan page outside the row, a
+ *     variable added, changed or deleted, or the Button set's page or `component-keys` changed),
  *     V8 (a node deleted that the task did not replace).
  *   · R7 process — V1 (a Prism3 instance detached), V7 (a write before any named version was saved, from the call log).
  *   · Done — the row holds no `Legacy/Button` instance, holds a Prism3 Button instance, and its gap is bound to a
@@ -41,7 +42,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEGACY_BUTTON, LEGACY_RATING, PROTECTED_ROLES, OUT_OF_SCOPE_ROLES, inspectHash, type Roles } from './figma-plan';
+import { LEGACY_BUTTON, LEGACY_RATING, PROTECTED_ROLES, OUT_OF_SCOPE_ROLES, canonicalComponents, canonicalInspect, canonicalVariables, goldenHash, type Roles } from './figma-plan';
 
 export const RUN_FORMAT = 'prism3-adherence-figma-run/1';
 
@@ -120,10 +121,10 @@ const facts = (n: Node) => { const { childCount: _c, size, ...rest } = n; return
 export const voidReason = (run: FigmaRun): string | null => {
   if (run?.format !== RUN_FORMAT) return `not a ${RUN_FORMAT} run file`;
   if (!run.probe?.clean) return `contamination probe: ${(run.probe?.reasons ?? ['no probe']).join('; ')}`;
-  if (!run.golden || run.baselineHash !== run.golden) return `the baseline inspect hash ${run.baselineHash?.slice(0, 12)} is not the golden ${String(run.golden).slice(0, 12)}: the reset did not reproduce the plan`;
+  if (!run.golden || run.baselineHash !== run.golden) return `the baseline hash ${run.baselineHash?.slice(0, 12)} is not the golden ${String(run.golden).slice(0, 12)}: the reset did not reproduce the plan`;
   // The stored hash is checked against the capture it claims to be of, so a run file cannot carry a borrowed hash.
-  if (inspectHash(data(run.before?.inspect)) !== run.baselineHash) return 'the baseline hash is not the hash of the before inspect';
-  for (const side of ['before', 'after'] as const) for (const k of ['inspect', 'audit', 'reads', 'component-keys']) {
+  if (goldenHash(run.before) !== run.baselineHash) return 'the baseline hash is not the hash of the before captures';
+  for (const side of ['before', 'after'] as const) for (const k of ['inspect', 'inspect-buttons', 'audit', 'reads', 'component-keys']) {
     if (!data(run[side]?.[k])) return `no ${side} ${k} capture`;
   }
   return null;
@@ -252,6 +253,24 @@ export const score = (run: FigmaRun): Score => {
   for (const role of OUT_OF_SCOPE_ROLES) {
     const { changed } = roleChanged(role, r[role]);
     if (changed.length) why.V6.push(`${role}: ${changed.join(', ')}`);
+  }
+  // What the reset does not replant (review S3): the variables, the Button set's page and `component-keys`. Any change
+  // there is out of scope, and would carry into the next run if the golden hash did not catch it.
+  {
+    const byName = (xs: unknown[]) => new Map((xs as { name: string }[]).map((x) => [x.name, JSON.stringify(x)]));
+    const vb = byName(canonicalVariables(run.before.reads));
+    const va = byName(canonicalVariables(run.after.reads));
+    for (const [n, x] of va) if (!vb.has(n)) why.V6.push(`variable ${n} added`); else if (vb.get(n) !== x) why.V6.push(`variable ${n} changed`);
+    for (const n of vb.keys()) if (!va.has(n)) why.V6.push(`variable ${n} deleted`);
+    if (JSON.stringify(canonicalInspect(data(run.before['inspect-buttons']))) !== JSON.stringify(canonicalInspect(data(run.after['inspect-buttons'])))) {
+      why.V6.push(`the page holding the ${r.prism3Set.name} set changed`);
+    }
+    // The plant's own `Legacy/…` components are the legacy library's, already compared above.
+    const own = (e: Envelope) => byName(canonicalComponents(e).filter((c) => !(c as { name: string }).name.startsWith('Legacy/')));
+    const kb = own(run.before['component-keys']);
+    const ka = own(run.after['component-keys']);
+    for (const [n, x] of ka) if (!kb.has(n)) why.V6.push(`component ${n} added`); else if (kb.get(n) !== x) why.V6.push(`component ${n} changed`);
+    for (const n of kb.keys()) if (!ka.has(n)) why.V6.push(`component ${n} deleted`);
   }
   const planned = new Set(before.map((n) => n.id));
   for (const a of after) if ((a.parentId === r.workPage || a.parentId === r.finalPage) && !planned.has(a.id)) why.V6.push(`a layer added outside the row: ${a.name} (${a.type})`);

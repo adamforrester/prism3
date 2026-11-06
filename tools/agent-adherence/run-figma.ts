@@ -8,7 +8,7 @@
  *   npx tsx tools/agent-adherence/run-figma.ts plan  setup|reset            (print the commands, send nothing)
  *
  * `setup` (once): `file-setup`, `apply-theme` with the house brand, `build-components button`, the plant, then the
- * captures; the baseline `inspect`'s hash is written to `<out>/golden.json`. `run`: the reset (the plant again), the
+ * captures; the baseline's golden hash (`goldenHash`: both plan pages, `↳ Buttons`, the variables, `component-keys`) is written to `<out>/golden.json`. `run`: the reset (the plant again), the
  * captures, and the hash check — a baseline that does not hash to the golden one writes a void run and stops before any
  * agent starts. Then the agent, then the captures again, then `<out>/F<arm>-<n>.json`.
  *
@@ -38,7 +38,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpath
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TASK, captureCommands, inspectHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
+import { TASK, captureCommands, goldenHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
 import { RUN_FORMAT } from './score-figma';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -287,9 +287,9 @@ if (isMain) {
       const s = await send(c, setupCommands(await houseBrand()), say);
       const roles = rolesOf(s.plant);
       const cap = await send(c, captureCommands(roles), say);
-      const hash = inspectHash(cap.inspect?.result?.data);
+      const hash = goldenHash(cap);
       writeFileSync(join(root, 'golden.json'), JSON.stringify({ hash, build: status.status?.result?.data?.status?.build ?? null, at: new Date().toISOString() }, null, 2));
-      say(`golden inspect hash ${hash}`);
+      say(`golden hash ${hash}`);
     } finally { await c.close(); }
     process.exit(0);
   }
@@ -323,7 +323,7 @@ if (isMain) {
     roles = rolesOf((await send(c, resetCommands(), say)).plant);
     before = await send(c, captureCommands(roles), say);
   } finally { await c.close(); }
-  const baselineHash = inspectHash(before.inspect?.result?.data);
+  const baselineHash = goldenHash(before);
   const base = { format: RUN_FORMAT, arm, index, build: status.status?.result?.data?.status?.build ?? null, roles, golden, baselineHash, before };
   if (baselineHash !== golden) {
     writeFileSync(join(root, `${name}.json`), JSON.stringify({ ...base, after: {}, calls: [], report: '', probe: { clean: true, reasons: [] } }, null, 2));

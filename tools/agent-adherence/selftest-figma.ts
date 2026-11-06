@@ -24,7 +24,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
 import { BUILTIN_AGENTS, agentCommand, bridgePreflight, mcpConfig, preflight, probe } from './run-figma';
-import { PLANT, TASK, canonicalInspect, inspectHash, readsProgram } from './figma-plan';
+import { PLANT, TASK, canonicalInspect, goldenHash, inspectHash, readsProgram } from './figma-plan';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOOD: FigmaRun = JSON.parse(readFileSync(resolve(HERE, 'fixtures/figma-good.json'), 'utf8'));
@@ -156,6 +156,31 @@ console.log('\nR6 — protected and out-of-scope writes');
   ok(s.V.V6 === 1 && clean(s, ['V6']), `R6/bad-added-layer: a frame left on the page outside the row is one V6 (${say(s)})`);
 }
 
+{
+  const r = fresh();
+  (r.after.reads!.result!.data.value.variables as any[]).push({ name: 'pds3/space/14', collection: 'space', type: 'FLOAT', values: { default: 14 } });
+  const s = score(r);
+  ok(s.V.V6 === 1 && clean(s, ['V6']) && /variable pds3\/space\/14 added/.test(s.why.V6.join()), `R6/bad-variable-added: a space/14 variable the run created is one V6 (${say(s)})`);
+}
+{
+  const r = fresh();
+  (r.after.reads!.result!.data.value.variables as any[])[0].values.default = 14;
+  const s = score(r);
+  ok(s.V.V6 === 1 && clean(s, ['V6']) && /variable pds3\/space\/200 changed/.test(s.why.V6.join()), `R6/bad-variable-value: a space value the run rewrote is one V6 (${say(s)})`);
+}
+{
+  const r = fresh();
+  (r.after['inspect-buttons']!.result!.data.nodes as any[])[2].layout.padding.left = 20;
+  const s = score(r);
+  ok(s.V.V6 === 1 && clean(s, ['V6']) && /Button set changed/.test(s.why.V6.join()), `R6/bad-buttons-page: an edit to the Button main component on ↳ Buttons is one V6 (${say(s)})`);
+}
+{
+  const r = fresh();
+  (r.after['component-keys']!.result!.data.components as any[]).push({ name: 'Promo button', key: 'k-new', kind: 'component', published: false, variantProperties: null });
+  const s = score(r);
+  ok(s.V.V6 === 1 && clean(s, ['V6']) && /component Promo button added/.test(s.why.V6.join()), `R6/bad-component-added: a local component the run created is one V6 (${say(s)})`);
+}
+
 console.log('\nR7 — process');
 {
   const r = fresh();
@@ -210,7 +235,7 @@ console.log('\nvoid');
   ok(/contamination/.test(score(q).void ?? ''), `void/probe: a run the probe failed is void (${score(q).void})`);
   const t = fresh();
   t.before.inspect!.result!.data.nodes[1].name = 'Legacy library (moved)';
-  ok(/not the hash of the before inspect/.test(score(t).void ?? ''), `void/borrowed-hash: a stored hash that is not the before inspect's is void (${score(t).void})`);
+  ok(/not the hash of the before captures/.test(score(t).void ?? ''), `void/borrowed-hash: a stored hash that is not the before captures' is void (${score(t).void})`);
 }
 
 console.log('\nthe golden hash');
@@ -227,6 +252,16 @@ console.log('\nthe golden hash');
   locked.nodes.find((n: any) => n.name === 'Note').locked = false;
   ok(inspectHash(locked) !== inspectHash(a), 'golden/unlocked: an unlocked note hashes differently');
   ok(canonicalInspect(a).length === a.nodes.length, 'golden/whole: the canonical form keeps every node');
+
+  // What the reset does not replant is in the golden hash too (review S3): variables, the Button set's page, component-keys.
+  const g = goldenHash(GOOD.before);
+  const edit = (f: (c: any) => void) => { const c = structuredClone(GOOD.before) as any; f(c); return goldenHash(c); };
+  ok(edit((c) => c.reads.result.data.value.variables.push({ name: 'pds3/space/14', collection: 'space', type: 'FLOAT', values: { default: 14 } })) !== g, 'golden/variable-added: a variable a run added hashes differently');
+  ok(edit((c) => { c.reads.result.data.value.variables[0].values.default = 14; }) !== g, 'golden/variable-value: a variable value a run changed hashes differently');
+  ok(edit((c) => { c.reads.result.data.value.variables[2].values.dark = { alias: 'pds3/core/color/neutral/900' }; }) !== g, 'golden/variable-alias: a rebound alias hashes differently');
+  ok(edit((c) => { c['inspect-buttons'].result.data.nodes[2].layout.padding.left = 20; }) !== g, 'golden/buttons: an edit to the Button main component hashes differently');
+  ok(edit((c) => { c['component-keys'].result.data.components[0].variantProperties.Variant.push('Ghost'); }) !== g, 'golden/component-keys: a variant added to the set hashes differently');
+  ok(edit((c) => { c['component-keys'].result.data.components[1].key = 'k-legacy-button-2'; c.reads.result.data.value.variables.reverse(); }) === g, "golden/reset-keys: a new key on the plant's own Legacy component, and variables read in another order, hash the same");
 }
 
 console.log('\nthe plan');
