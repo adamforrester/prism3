@@ -18087,6 +18087,16 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       // #3439 Q-IF.2 A: a set the file holds carries In file first.
       ok(JSON.stringify(st.tag) === JSON.stringify(['infile', 'hand']) && JSON.stringify(st.badge) === JSON.stringify(['infile', 'unchecked']) && JSON.stringify(st.select) === JSON.stringify(['infile', 'due']) && JSON.stringify(st.counter) === JSON.stringify(['new']),
         `${where}: Q2909.8 A, #3439 Q-IF.2 A: Components' rows show each set's status: Tag In file · Hand-edited, Badge In file · Not checked yet, Select In file · Due, Counter Not in file (${JSON.stringify({ tag: st.tag, badge: st.badge, select: st.select, counter: st.counter })})`);
+      // #3446: a set the file-sets read lists as kept (#3421 Q39 A) carries the Kept edits tag on Components, after Due
+      // and before Hand-edited, as `statusesOf` orders them. Planted for tag, then the world above restored. Mutation:
+      // `kept` dropped from `STATUS_ORDER` (`domains/components.ts`) fails this arm by name.
+      await postMsg(page, { ...FILE, due: { ...DUE, tag: { state: 'kept', held: { members: 12, changes: ['border → color/interactive/primary/indicator/rest'] } } } });
+      await page.waitForFunction(() => [...(document.querySelector('[data-p3="cp-row"][data-set="tag"], [data-p3="cp-member"][data-set="tag"]')?.querySelectorAll('[data-p3="cp-status-tag"]') ?? [])].some((t) => t.dataset.status === 'kept'), null, { timeout: 5000 }).catch(() => {});
+      const keptTags = await page.evaluate(() => [...(document.querySelector('[data-p3="cp-row"][data-set="tag"], [data-p3="cp-member"][data-set="tag"]')?.querySelectorAll('[data-p3="cp-status-tag"]') ?? [])].map((t) => [t.dataset.status, t.textContent]));
+      ok(JSON.stringify(keptTags) === JSON.stringify([['infile', 'In file'], ['kept', 'Kept edits'], ['hand', 'Hand-edited']]),
+        `${where}: #3446: a set with kept edits shows Kept edits among its tags on Components: Tag In file · Kept edits · Hand-edited (${JSON.stringify(keptTags)})`);
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => ![...(document.querySelector('[data-p3="cp-row"][data-set="tag"], [data-p3="cp-member"][data-set="tag"]')?.querySelectorAll('[data-p3="cp-status-tag"]') ?? [])].some((t) => t.dataset.status === 'kept'), null, { timeout: 5000 }).catch(() => {});
       // #3422 Q44 A: Theme opens ticked only when the badge's recount says the file differs from the brand. The Pill this
       // case chose is not applied, so the recount says it differs (seq 0: every later ask's answer replaces it).
       await postMsg(page, { type: 'file-due', seq: 0, present: FILE.present, theme: true, due: DUE });
