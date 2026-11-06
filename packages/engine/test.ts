@@ -37482,6 +37482,31 @@ arm: {
     `#2408 prism3-build-ui: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
+// ---- #3472: prism3-build-ui says what it can't build, early, with a worked negative that isn't the adherence test's ----
+// The agent-adherence run (#3440) scored R5 faked in 10 of 10: every agent built a stand-in for a component Prism3 doesn't
+// have. The rule now sits before the first layer, as an imperative, with a worked negative. That example must not be a
+// date control, or the skill teaches to the R5 detector (docs/34). The date words are typed here, not imported from
+// tools/agent-adherence/score-code.ts, so a change to the detector can't quietly widen or narrow this check.
+{
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
+  const head = skill.indexOf("## Say what you can't build"), next = skill.indexOf('\n## ', head + 1);
+  const firstLayer = skill.indexOf('## The four layers');
+  ok(head >= 0 && firstLayer > head,
+    `#3472 prism3-build-ui: "Say what you can't build" is a section, and it comes before "The four layers" (at ${head}, layers at ${firstLayer})`);
+  const sec = head >= 0 ? skill.slice(head, next) : '';
+  ok(sec.includes('**If no component or token covers the need, do not build a substitute. Leave it out and name it in\nyour report.**'),
+    '#3472 prism3-build-ui: the section opens with the imperative "do not build a substitute. Leave it out and name it in your report."');
+  const worked = sec.match(/\*\*A worked negative: an? ([a-z-]+)\.\*\*/)?.[1];
+  const ai = JSON.parse(readFileSync(resolve(HERE, 'out/components/components.ai.json'), 'utf8'));
+  const entries: any[] = Array.isArray(ai.components) ? ai.components : Object.values(ai.components ?? ai);
+  const planned = new Set(entries.flatMap((c) => c.composition?.planned ?? []));
+  ok(!!worked && planned.has(worked) && !entries.some((c) => c.id === worked),
+    `#3472 prism3-build-ui: the worked negative names a component that is planned and has no entry (got: ${worked ?? 'none'})`);
+  const DATE_WORDS = /\b(date|dates|dated|calendar|birth|birthday|dob|day|month|year|yyyy|mm\/dd|dd\/mm)\b|date[-_ ]?picker/i;
+  ok(sec !== '' && !DATE_WORDS.test(sec),
+    `#3472 prism3-build-ui: the can't-build section names no date, calendar or birth-date control, so it can't teach to the adherence R5 detector (found: ${sec.match(DATE_WORDS)?.[0] ?? 'none'})`);
+}
+
 // ---- Progress (#2670): the approved calls as literals, and its contrast on every committed brand × mode ----
 // The owner approved the proposal on #2670 with every numbered call at A (2026-10-16). Each arm below holds one call
 // against a value TYPED HERE from the proposal, never read from the def, so a def that drifts from what was approved
