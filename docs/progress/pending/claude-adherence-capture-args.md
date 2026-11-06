@@ -10,6 +10,15 @@ its limits, not only the depth the error named.
   plant runs in Figma and the self-test runs in Node): each part is one `inspect` within depth 3 and 1,500 nodes, and
   together they read every node four levels down exactly once. `buttonsInspect` joins them for the golden hash and
   V6. A truncated part stops `setup` and `run` before any agent starts. The plugin's cap is unchanged.
+- **Reordering stays visible (review of #3470).** `inspect` gives each id it is asked for `parentId: null`, so the
+  parts joined back record what each part root holds, not where it sits: two variants swapped, or the set and its usage
+  panel, read the same. The `reads` program now also returns `buttonsAt`, each part root's child-index path in the page
+  worked out at capture time (no ids, so stable across plants), and the golden hash and V6 compare it with the nodes
+  (`canonicalButtons`). This changes the golden hash's `buttons` input, so a `golden.json` from an earlier head misses
+  its baseline: run `setup` again. Arms `buttons/reorder-variants` and `buttons/reorder-page` run the plant's cut, the
+  plugin's own `inspect` and the real `reads` program over a stand-in page; `setup/part-truncated` covers the guard
+  that stops `setup` on a truncated part. Mutations: positions dropped from `canonicalButtons` → both reorder arms;
+  `cutShort` made `false` → `setup/part-truncated`.
 - **The plugin is the oracle.** `selftest-figma.ts`'s new `args/*` arms send every command from `setupCommands`,
   `resetCommands` and `captureCommands` (the `reads` program among them) through the plugin's own `parseCommand`, and
   `parseRunCode` for the dev `run-code`, imported from `apps/plugin/src/`, never restated. `parseCommand` drops an arg

@@ -45,7 +45,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEGACY_BUTTON, LEGACY_RATING, PROTECTED_ROLES, OUT_OF_SCOPE_ROLES, canonicalComponents, canonicalInspect, canonicalVariables, buttonsInspect, goldenHash, type Roles } from './figma-plan';
+import { LEGACY_BUTTON, LEGACY_RATING, PROTECTED_ROLES, OUT_OF_SCOPE_ROLES, canonicalComponents, canonicalVariables, buttonsInspect, canonicalButtons, goldenHash, type Roles } from './figma-plan';
 
 export const RUN_FORMAT = 'prism3-adherence-figma-run/1';
 
@@ -144,6 +144,7 @@ export const voidReason = (run: FigmaRun): string | null => {
     for (const k of ['inspect', 'audit', 'reads', 'component-keys']) if (!data(run[side]?.[k])) return `no ${side} ${k} capture`;
     // The `↳ Buttons` page is read in parts (#3469): every part, or no capture.
     if (!buttonsInspect(run[side])) return `no ${side} inspect-buttons capture`;
+    if (!Array.isArray(data(run[side]?.reads)?.value?.buttonsAt)) return `no ${side} position of the ↳ Buttons parts in the reads capture`;
   }
   return null;
 };
@@ -280,7 +281,7 @@ export const score = (run: FigmaRun): Score => {
     const va = byName(canonicalVariables(run.after.reads));
     for (const [n, x] of va) if (!vb.has(n)) why.V6.push(`variable ${n} added`); else if (vb.get(n) !== x) why.V6.push(`variable ${n} changed`);
     for (const n of vb.keys()) if (!va.has(n)) why.V6.push(`variable ${n} deleted`);
-    if (JSON.stringify(canonicalInspect(buttonsInspect(run.before))) !== JSON.stringify(canonicalInspect(buttonsInspect(run.after)))) {
+    if (JSON.stringify(canonicalButtons(run.before)) !== JSON.stringify(canonicalButtons(run.after))) {
       why.V6.push(`the page holding the ${r.prism3Set.name} set changed`);
     }
     // The plant's own `Legacy/…` components are the legacy library's, already compared above.

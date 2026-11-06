@@ -53,8 +53,11 @@ that changed one leaves it in the file. The next baseline then misses the golden
 
 The `↳ Buttons` page is read four levels down, and one `inspect` reads at most three levels and a capped number of
 nodes, so the plant cuts the page into parts (`PARTS`, at most `BUTTONS_PART_NODES` nodes each) and the captures send
-one `inspect` per part (`inspect-buttons`, `inspect-buttons-1`, …), joined back by `buttonsInspect` (#3469). A part that
-comes back truncated stops `setup` and `run` before any agent starts. Every command the plan sends is checked against
+one `inspect` per part (`inspect-buttons`, `inspect-buttons-1`, …), joined back by `buttonsInspect` (#3469). `inspect`
+reads each part root as a top-level node, so the `reads` program also returns where each part root sits in the page
+(`buttonsAt`, child-index paths, no ids), and the golden hash and V6 compare both (`canonicalButtons`): two variants or
+the set and its usage panel swapped move the hash. A part that comes back truncated stops `setup` and `run` before any
+agent starts. Every command the plan sends is checked against
 the plugin's own argument validators by `selftest-figma.ts`'s `args/*` arms.
 
 ## Writing only to the scratch file

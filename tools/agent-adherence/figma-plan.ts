@@ -196,8 +196,14 @@ return {
  * their values per mode (the golden hash, and V6), and every instance's overridden fields on the plan's pages (R3).
  * Read only: it assigns nothing and calls no setter. A value that aliases another variable is written by that
  * variable's name, and a mode by its name, so the read carries no id.
+ *
+ * It also gives `buttonsAt` (#3470 review, finding 1): where each `↳ Buttons` part root sits in that page, as its
+ * child-index path from the page (`''` for the page, `'0.5'` for the set's sixth child; null if it is no longer on the
+ * page), in part order. `inspect` reads every id it is given as a top-level node, so the parts joined back say what
+ * each part root holds but not where it sits: two variants or the set and its usage panel swapped read the same. The
+ * paths carry no id, so they are stable across plants, and they go into the golden hash and V6 (`canonicalButtons`).
  */
-export const readsProgram = (roles: Pick<Roles, 'workPage' | 'finalPage'>): string => `
+export const readsProgram = (roles: Pick<Roles, 'workPage' | 'finalPage' | 'buttonsPage' | 'buttonsParts'>): string => `
 const cols = await figma.variables.getLocalVariableCollectionsAsync();
 const colName = Object.fromEntries(cols.map((c) => [c.id, c.name]));
 const modeName = Object.fromEntries(cols.flatMap((c) => c.modes.map((m) => [m.modeId, m.name])));
@@ -213,7 +219,12 @@ for (const id of ${JSON.stringify([roles.workPage, roles.finalPage])}) {
     overrides.push({ id: n.id, overrides: (n.overrides ?? []).map((o) => ({ id: o.id, fields: [...o.overriddenFields] })) });
   }
 }
+const buttonsPage = await figma.getNodeByIdAsync(${JSON.stringify(roles.buttonsPage)});
+if (buttonsPage) await buttonsPage.loadAsync();
+const pathOf = (n) => (!n ? null : n.id === ${JSON.stringify(roles.buttonsPage)} ? [] : !n.parent ? null : ((up) => (up ? [...up, n.parent.children.indexOf(n)] : null))(pathOf(n.parent)));
+const buttonsAt = await Promise.all(${JSON.stringify(roles.buttonsParts.flatMap((p) => p.ids))}.map(async (id) => { const at = pathOf(await figma.getNodeByIdAsync(id)); return at ? at.join('.') : null; }));
 return {
+  buttonsAt,
   variables: vars.map((v) => ({
     name: v.name, collection: colName[v.variableCollectionId] ?? null, type: v.resolvedType,
     values: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => [modeName[m] ?? m, val(x)])),
@@ -290,6 +301,15 @@ export const buttonsInspect = (c: Record<string, Envelope> | undefined): { nodes
   if (!parts.length || parts.some((d) => !d)) return undefined;
   return { nodes: parts.flatMap((d) => d.nodes ?? []), truncated: parts.some((d) => d.truncated === true) };
 };
+/**
+ * The `↳ Buttons` page as the golden hash and V6 compare it: the parts joined back, canonical, and where each part root
+ * sits in the page (`buttonsAt`, from the `reads` program). The positions are what make a reorder visible: `inspect`
+ * reads each part root as a top-level node, so without them a reordered page reads the same.
+ */
+export const canonicalButtons = (c: Record<string, Envelope> | undefined): unknown => ({
+  nodes: canonicalInspect(buttonsInspect(c)),
+  at: dataOf(c?.reads)?.value?.buttonsAt ?? null,
+});
 /** The file's variables as the golden hash and V6 compare them: by name, each with its collection, type and values. */
 export const canonicalVariables = (reads: Envelope): unknown[] =>
   [...((dataOf(reads)?.value?.variables ?? []) as { name: string }[])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
@@ -308,7 +328,7 @@ export const canonicalComponents = (keys: Envelope): unknown[] =>
 export const goldenHash = (c: Record<string, Envelope> | undefined): string =>
   createHash('sha256').update(JSON.stringify({
     inspect: canonicalInspect(dataOf(c?.inspect)),
-    buttons: canonicalInspect(buttonsInspect(c)),
+    buttons: canonicalButtons(c),
     variables: canonicalVariables(c?.reads),
     components: canonicalComponents(c?.['component-keys']),
   })).digest('hex');
