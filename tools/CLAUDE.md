@@ -333,9 +333,11 @@ returns envelopes verbatim and does not say PASS.
 The Figma half of #3440's single agent-adherence test (owner decisions Q3440.1–.6 A, Q52 A): a fresh agent with no
 repo gets #3300 §5's rebind task through the desktop bridge on a scratch file, and the scorer counts the rules it
 broke from the file read back. `figma-plan.ts` is the plan (the `run-code` plant, which is also the reset, the
-read-only captures and the golden `inspect` hash), `run-figma.ts` the Mac's runner, `score-figma.ts` the scorer and
+read-only captures and the golden hash, which also covers what the reset doesn't replant), `run-figma.ts` the Mac's
+runner, `score-figma.ts` the scorer and
 `selftest-figma.ts` its planted-fixture self-test, one bad run per rule failing by name. Runbook and rubric:
 `figma.md`. **No gate sibling, and the reason is the subject:** a live Figma host and a fresh agent are not in CI. What
 is gated is the bridge's arm switch, `PRISM3_BRIDGE_ARM`, by the `arm/…` arms of `apps/plugin/test-agent-bridge.ts`.
 The scorer never reads the bridge's note, its resources or a skill (`docs/34` shape 1): its names are literals or come
-from the run's own captures. The code half (`score-code.ts`) is a separate lane and shares no module with this one.
+from the run's own captures, and the self-test's `independence/static-*` arms read its source to keep it so. The code
+half (`score-code.ts`) is a separate lane and shares no module with this one.
