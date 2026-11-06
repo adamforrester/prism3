@@ -68,6 +68,27 @@ console.log('\nindependence — the scorer never reads the skill (docs/34)');
 ok(ORACLE_PATHS.length > 0 && ORACLE_PATHS.every((p) => p.startsWith('packages/engine/out/')) && !ORACLE_PATHS.some((p) => p.includes('skills/')),
   `independence/oracle-paths: every oracle file is under packages/engine/out/ (${TOKEN_TREE})`);
 
+// Static (review S2, docs/34 corollary 2): `independence/reads` sees only reads that go through `readPinned`. These read
+// score-code.ts's own SOURCE, so a read that bypasses the instrumented path is caught too.
+{
+  const SRC = readFileSync(resolve(HERE, 'score-code.ts'), 'utf8');
+  const skillHits = [...SRC.matchAll(/skills[/\\]|SKILL\.md|\bSKILL\b|PACKET_PATHS|'packet'/g)].map((m) => m[0]);
+  ok(skillHits.length === 0, `independence/static-skills: score-code.ts names no skills path, SKILL, PACKET_PATHS or packet read (${skillHits.join(', ') || 'none'})`);
+  const ALLOWED_MODULES = ['./oracle', '@prism3/engine/color', 'playwright'];
+  const specs = [...SRC.matchAll(/\bfrom\s+['"]([^'"]+)['"]|\bimport\s*\(\s*['"`]?([^'"`)]*)|\brequire\s*\(\s*['"`]?([^'"`)]*)['"`]?\s*\)|^\s*import\s+['"]([^'"]+)['"]|createRequire\([^)]*\)\s*\(\s*['"`]?([^'"`)]*)/gm)]
+    .map((m) => m[1] ?? m[2] ?? m[3] ?? m[4] ?? m[5]);
+  const badSpecs = specs.filter((x) => !(ALLOWED_MODULES.includes(x) || x.startsWith('node:')));
+  ok(specs.length > 0 && badSpecs.length === 0, `independence/static-imports: score-code.ts imports only ./oracle, @prism3/engine/color, node:* and playwright (${badSpecs.join(', ') || `${specs.length} imports`})`);
+  // Every file read is a run's output, by the expression that reads it; anything else (and any exec) fails by name.
+  const RUN_READS = ['recPath', 'p', "resolve(dir, 'plan.json')", "resolve(out, 'index.html')", "resolve(out, 'REPORT.md')"];
+  const arg = (at: number): string => { let d = 0, i = at; for (; i < SRC.length; i++) { if (SRC[i] === '(') d++; else if (SRC[i] === ')') { if (d === 0) break; d--; } else if (SRC[i] === ',' && d === 0) break; } return SRC.slice(at, i).trim(); };
+  // `.exec(` alone is RegExp#exec; every other spelling counts, called bare or as a method (`cp.execFileSync(`).
+  const calls = [...SRC.matchAll(/\b(readFileSync|readFile|createReadStream|openSync|execFileSync|execSync|execFile|exec|spawnSync|spawn|fork)\s*\(/g)]
+    .filter((m) => !(m[1] === 'exec' && SRC[m.index! - 1] === '.'));
+  const badCalls = calls.map((m) => ({ fn: m[1], a: arg(m.index! + m[0].length) })).filter((c) => c.fn !== 'readFileSync' || !RUN_READS.includes(c.a)).map((c) => `${c.fn}(${c.a})`);
+  ok(calls.length > 0 && badCalls.length === 0, `independence/static-reads: score-code.ts reads only run outputs and runs no process (${badCalls.join(', ') || `${calls.length} reads`})`);
+}
+
 if (o) {
   const run = (html: string, report = GOOD_REPORT) => scoreRun(html, report, o!);
 
