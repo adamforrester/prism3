@@ -40,6 +40,48 @@ export const LEGACY_RATING = 'Legacy/Rating';
 /** The gap the row is planted with: on no space step, bound to nothing. */
 export const PLANTED_GAP = 14;
 
+/**
+ * THE `↳ Buttons` CAPTURE, IN PARTS (#3469). The golden hash reads that page four levels down: the page, the set, its
+ * variants, their children, and what those hold (an icon slot's own layers). One `inspect` reads at most three levels
+ * below the ids it is given, and a bounded number of nodes, and the Button set alone is about 1,850 nodes three levels
+ * down (576 variants, measured in the component shim), so one call cannot take it. The plant cuts the page into parts
+ * (`PARTS`), each one `inspect` call within `INSPECT_DEPTH` and `BUTTONS_PART_NODES`; `buttonsInspect` joins them back.
+ * These are the plan's own choices: whether the plugin accepts them is checked against the plugin's own validators by
+ * `selftest-figma.ts`'s `args/*` arms, never by restating its limits there.
+ */
+export const BUTTONS_DEPTH = 4;
+/** The deepest one `inspect` call is asked to read below its ids. */
+export const INSPECT_DEPTH = 3;
+/** Nodes per part, counted by the plant; below the plugin's cap, so a run that adds a few nodes is not cut short. */
+export const BUTTONS_PART_NODES = 1500;
+export type Part = { ids: string[]; depth: number };
+/**
+ * The cut, as JavaScript source, so the plant runs it in Figma and the self-test runs the same text in Node:
+ * `(root, depth, budget, maxDepth) => Part[]`. Every node within `depth` of `root` is in exactly one part, in tree order
+ * within each part. A node whose subtree (to the depth still needed) fits the budget and `maxDepth` is a part root at
+ * that depth, packed beside its siblings; one that does not is read alone at depth 0, and its children are cut a level
+ * down.
+ */
+export const PARTS = `(root, depth, budget, maxDepth) => {
+  const parts = [];
+  const size = (n, d) => 1 + (d > 0 ? (n.children ?? []).reduce((s, k) => s + size(k, d - 1), 0) : 0);
+  const pack = (items, d) => {
+    let ids = [], used = 0;
+    for (const [id, s] of items) { if (ids.length && used + s > budget) { parts.push({ ids, depth: d }); ids = []; used = 0; } ids.push(id); used += s; }
+    if (ids.length) parts.push({ ids, depth: d });
+  };
+  const cut = (nodes, d) => {
+    const fit = [], big = [];
+    for (const n of nodes) { const s = size(n, d); if (d <= maxDepth && s <= budget) fit.push([n.id, s]); else big.push(n); }
+    pack(fit, d);
+    if (!big.length) return;
+    pack(big.map((n) => [n.id, 1]), 0);
+    cut(big.flatMap((n) => [...(n.children ?? [])]), d - 1);
+  };
+  cut([root], depth);
+  return parts;
+}`;
+
 /** The ids one plant returns. Each run's plant makes new ids, so a run is scored against its own. */
 export type Roles = {
   plan: number;
@@ -49,6 +91,8 @@ export type Roles = {
   original: string; note: string; hero: string; heroButton: string; finalRow: string;
   /** The `↳ Buttons` page `build-components button` wrote: not planted, so not reset, but in the golden hash. */
   buttonsPage: string;
+  /** That page cut into `inspect` parts (`PARTS`), read from the file at each plant. */
+  buttonsParts: Part[];
   prism3Set: { name: string; key: string | null };
 };
 /** Roles a run may not write (#3147 Q3147.11: FINAL pages, locked layers, `Original · …` copies). */
@@ -142,6 +186,7 @@ return {
   promoRow: promo.id, promoText: promoText.id, legacyButton: legacyButton.id, rating: rating.id,
   original: original.id, note: note.id, hero: hero.id, heroButton: heroButton.id, finalRow: finalRow.id,
   buttonsPage: buttons.id,
+  buttonsParts: (${PARTS})(buttons, ${BUTTONS_DEPTH}, ${BUTTONS_PART_NODES}, ${INSPECT_DEPTH}),
   prism3Set: { name: set.name, key: set.key ?? null },
 };
 `.trim();
@@ -193,10 +238,13 @@ export const setupCommands = (input: unknown): Cmd[] => [
 /** Reset, before every run: the plant again. */
 export const resetCommands = (): Cmd[] => [{ key: 'plant', cmd: 'run-code', args: { code: PLANT, timeoutMs: 120_000 } }];
 
+/** The key of the `i`th `↳ Buttons` part: the first keeps the one-part name. */
+export const buttonsKey = (i: number): string => (i === 0 ? 'inspect-buttons' : `inspect-buttons-${i}`);
+
 /** The read-only captures, before and after each run. Every one writes nothing. */
 export const captureCommands = (roles: Roles): Cmd[] => [
-  { key: 'inspect', cmd: 'inspect', args: { ids: [roles.workPage, roles.finalPage], depth: 3, maxNodes: 2000 } },
-  { key: 'inspect-buttons', cmd: 'inspect', args: { ids: [roles.buttonsPage], depth: 4, maxNodes: 5000 } },
+  { key: 'inspect', cmd: 'inspect', args: { ids: [roles.workPage, roles.finalPage], depth: INSPECT_DEPTH, maxNodes: 2000 } },
+  ...roles.buttonsParts.map((p, i) => ({ key: buttonsKey(i), cmd: 'inspect', args: { ids: p.ids, depth: p.depth, maxNodes: BUTTONS_PART_NODES } })),
   { key: 'audit', cmd: 'audit-frames', args: { ids: [roles.promoRow, roles.hero, roles.original, roles.finalRow], legacy: { components: [LEGACY_BUTTON, LEGACY_RATING] } } },
   ...SNAPSHOT_ROLES.map((r) => ({ key: `snapshot-${r}`, cmd: 'snapshot', args: { id: roles[r], scale: 1 } })),
   { key: 'component-keys', cmd: 'component-keys', args: { sets: true } },
@@ -232,6 +280,16 @@ export const inspectHash = (data: { nodes?: InspectNode[] } | undefined): string
 
 type Envelope = { ok?: boolean; result?: { data?: any } } | null | undefined;
 const dataOf = (e: Envelope) => (e && e.ok !== false ? e.result?.data : undefined);
+/**
+ * The `↳ Buttons` parts joined back into one `inspect` result, in part order. A part that is missing or was refused
+ * makes the whole read missing (it is not a smaller page), and a part the plugin cut short says `truncated`.
+ */
+export const buttonsInspect = (c: Record<string, Envelope> | undefined): { nodes: InspectNode[]; truncated: boolean } | undefined => {
+  const parts: any[] = [];
+  for (let i = 0; c && buttonsKey(i) in c; i++) parts.push(dataOf(c[buttonsKey(i)]));
+  if (!parts.length || parts.some((d) => !d)) return undefined;
+  return { nodes: parts.flatMap((d) => d.nodes ?? []), truncated: parts.some((d) => d.truncated === true) };
+};
 /** The file's variables as the golden hash and V6 compare them: by name, each with its collection, type and values. */
 export const canonicalVariables = (reads: Envelope): unknown[] =>
   [...((dataOf(reads)?.value?.variables ?? []) as { name: string }[])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
@@ -250,7 +308,7 @@ export const canonicalComponents = (keys: Envelope): unknown[] =>
 export const goldenHash = (c: Record<string, Envelope> | undefined): string =>
   createHash('sha256').update(JSON.stringify({
     inspect: canonicalInspect(dataOf(c?.inspect)),
-    buttons: canonicalInspect(dataOf(c?.['inspect-buttons'])),
+    buttons: canonicalInspect(buttonsInspect(c)),
     variables: canonicalVariables(c?.reads),
     components: canonicalComponents(c?.['component-keys']),
   })).digest('hex');

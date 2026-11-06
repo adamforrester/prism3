@@ -44,7 +44,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpath
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MARKER_CHECK, MARK_PROGRAM, TASK, captureCommands, goldenHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
+import { MARKER_CHECK, MARK_PROGRAM, TASK, buttonsInspect, captureCommands, goldenHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
 import { RUN_FORMAT } from './score-figma';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -333,6 +333,8 @@ export const setup = async (c: Client, o: { root: string; input: unknown; build:
   const s = await send(c, setupCommands(o.input), o.say, { accept: { 'build-components': setupBuildAccepts } });
   const roles = rolesOf(s.plant);
   const cap = await send(c, captureCommands(roles), o.say);
+  const short = cutShort(cap);
+  if (short) throw new Error(short);
   const hash = goldenHash(cap);
   writeFileSync(join(o.root, 'golden.json'), JSON.stringify({ hash, build: o.build, at: new Date().toISOString() }, null, 2));
   o.say(`golden hash ${hash}`);
@@ -359,9 +361,13 @@ export const finishRun = async (c: Client, o: {
   o.say(`${o.name}: written${run.probe.clean ? '' : `, void by the probe: ${run.probe.reasons.join('; ')}`}`);
   return path;
 };
+/** Why a baseline's `↳ Buttons` read is not whole (#3469), or null: a part the plugin cut short hashes a smaller page. */
+export const cutShort = (cap: Record<string, any>): string | null =>
+  buttonsInspect(cap)?.truncated ? 'a ↳ Buttons part came back truncated: the baseline would hash part of the page; lower BUTTONS_PART_NODES in figma-plan.ts' : null;
 const rolesOf = (plant: any): Roles => {
   const v = plant?.result?.data?.value;
   if (!v || typeof v !== 'object' || typeof v.promoRow !== 'string') throw new Error(`the plant returned no roles: ${JSON.stringify(plant)}`);
+  if (!Array.isArray(v.buttonsParts) || !v.buttonsParts.length) throw new Error(`the plant returned no ↳ Buttons parts: ${JSON.stringify(v.buttonsParts ?? null)}`);
   return v as Roles;
 };
 
@@ -456,6 +462,8 @@ if (isMain) {
     status = await guard(c);
     roles = rolesOf((await send(c, resetCommands(), say)).plant);
     before = await send(c, captureCommands(roles), say);
+    const short = cutShort(before);
+    if (short) throw new Error(short);
   } finally { await c.close(); }
   const baselineHash = goldenHash(before);
   const build = status.status?.result?.data?.status?.build ?? null;

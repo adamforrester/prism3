@@ -45,7 +45,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEGACY_BUTTON, LEGACY_RATING, PROTECTED_ROLES, OUT_OF_SCOPE_ROLES, canonicalComponents, canonicalInspect, canonicalVariables, goldenHash, type Roles } from './figma-plan';
+import { LEGACY_BUTTON, LEGACY_RATING, PROTECTED_ROLES, OUT_OF_SCOPE_ROLES, canonicalComponents, canonicalInspect, canonicalVariables, buttonsInspect, goldenHash, type Roles } from './figma-plan';
 
 export const RUN_FORMAT = 'prism3-adherence-figma-run/1';
 
@@ -140,8 +140,10 @@ export const voidReason = (run: FigmaRun): string | null => {
   // The stored hash is checked against the capture it claims to be of, so a run file cannot carry a borrowed hash.
   if (JSON.stringify(run.build ?? null) !== JSON.stringify(run.goldenBuild ?? null)) return `the plugin build ${JSON.stringify(run.build ?? null)} is not the one setup ran on (${JSON.stringify(run.goldenBuild ?? null)})`;
   if (goldenHash(run.before) !== run.baselineHash) return 'the baseline hash is not the hash of the before captures';
-  for (const side of ['before', 'after'] as const) for (const k of ['inspect', 'inspect-buttons', 'audit', 'reads', 'component-keys']) {
-    if (!data(run[side]?.[k])) return `no ${side} ${k} capture`;
+  for (const side of ['before', 'after'] as const) {
+    for (const k of ['inspect', 'audit', 'reads', 'component-keys']) if (!data(run[side]?.[k])) return `no ${side} ${k} capture`;
+    // The `↳ Buttons` page is read in parts (#3469): every part, or no capture.
+    if (!buttonsInspect(run[side])) return `no ${side} inspect-buttons capture`;
   }
   return null;
 };
@@ -278,7 +280,7 @@ export const score = (run: FigmaRun): Score => {
     const va = byName(canonicalVariables(run.after.reads));
     for (const [n, x] of va) if (!vb.has(n)) why.V6.push(`variable ${n} added`); else if (vb.get(n) !== x) why.V6.push(`variable ${n} changed`);
     for (const n of vb.keys()) if (!va.has(n)) why.V6.push(`variable ${n} deleted`);
-    if (JSON.stringify(canonicalInspect(data(run.before['inspect-buttons']))) !== JSON.stringify(canonicalInspect(data(run.after['inspect-buttons'])))) {
+    if (JSON.stringify(canonicalInspect(buttonsInspect(run.before))) !== JSON.stringify(canonicalInspect(buttonsInspect(run.after)))) {
       why.V6.push(`the page holding the ${r.prism3Set.name} set changed`);
     }
     // The plant's own `Legacy/…` components are the legacy library's, already compared above.

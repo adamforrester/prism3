@@ -9,6 +9,7 @@
     "promoRow": "1:20", "promoText": "1:21", "legacyButton": "1:22", "rating": "1:24",
     "original": "1:30", "note": "1:50", "hero": "1:40", "heroButton": "1:42", "finalRow": "2:10",
     "buttonsPage": "3:1",
+    "buttonsParts": [{ "ids": ["3:1"], "depth": 3 }],
     "prism3Set": { "name": "Button", "key": "set-key-button" }
   },
   "golden": "6381410a502f833f365b9b09538b3832ce061c10bcd81d396ebc7d97ea430030",

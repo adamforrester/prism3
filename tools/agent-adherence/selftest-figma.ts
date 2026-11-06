@@ -18,7 +18,12 @@
  * dropped → `R2/bad-primitive`; `SPEC_FIELDS` emptied → `R3/bad-fill-override`; the R5 report match made to accept any
  * text → `R5/bad-silent`; the protected-role diff dropped → `R6/bad-protected`; the version-save search dropped (every
  * write counts as unsaved) → `good/clean` and `R7/good-version-first`, and the write search dropped → `R7/bad-no-version`;
- * setup's build acceptance dropped (#3466) → `setup/already-built` and `setup/no-usage-panels`.
+ * setup's build acceptance dropped (#3466) → `setup/already-built` and `setup/no-usage-panels`; the `↳ Buttons` capture's
+ * old `depth: 4` put back → `args/inspect-buttons`, and an arg the plugin does not read added to a snapshot →
+ * `args/snapshot-hero` (#3469).
+ * THE PLUGIN IS THE ORACLE for the `args/*` arms (#3469): every command `setupCommands`, `resetCommands` and
+ * `captureCommands` send goes through the plugin's own `parseCommand` (and `parseRunCode` for the dev `run-code`),
+ * imported from `apps/plugin/src/`, and an arg it refuses, drops or rewrites fails that command's arm by its key.
  */
 import { readFileSync, readdirSync, mkdtempSync, writeFileSync, mkdirSync, realpathSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -26,7 +31,10 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
 import { BUILTIN_AGENTS, agentCommand, bridgePreflight, fileCheck, finishRun, markerCheck, mcpConfig, preflight, probe, send, setup, type Client } from './run-figma';
-import { MARKER, PLANT, TASK, VERSION_PROGRAM, canonicalInspect, captureCommands, goldenHash, inspectHash, readsProgram, setupCommands } from './figma-plan';
+import { BUTTONS_DEPTH, BUTTONS_PART_NODES, INSPECT_DEPTH, MARKER, PARTS, PLANT, TASK, VERSION_PROGRAM, buttonsInspect, canonicalInspect, captureCommands, goldenHash, inspectHash, readsProgram, resetCommands, setupCommands, type Cmd, type Part } from './figma-plan';
+// The plugin's own argument checks (#3469): the oracle for `args/*`. Imported, never restated.
+import { AGENT_PROTOCOL_VERSION, parseCommand } from '../../apps/plugin/src/agent-protocol';
+import { RUN_CODE, parseRunCode } from '../../apps/plugin/src/dev-commands';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOOD: FigmaRun = JSON.parse(readFileSync(resolve(HERE, 'fixtures/figma-good.json'), 'utf8'));
@@ -417,6 +425,59 @@ console.log('\nthe plan');
   let parses = true;
   try { new (Object.getPrototypeOf(async () => undefined).constructor)(PLANT); } catch { parses = false; }
   ok(parses, 'plan/parses: the plant parses as the body of an async function');
+}
+
+console.log('\nthe plugin takes every command the plan sends (#3469)');
+{
+  // A `↳ Buttons` page shaped like the real one (576 variants, each a label and two icon slots holding a glyph, plus a
+  // usage panel), cut by the plant's own `PARTS` text, run here as the plant runs it in Figma.
+  let nid = 0;
+  type T = { id: string; children: T[] };
+  const t = (children: T[] = []): T => ({ id: `b:${++nid}`, children });
+  const page = t([t(Array.from({ length: 576 }, () => t([t(), t([t()]), t([t()])]))), t([t([t([t([t()])])])])]);
+  const cut: Part[] = new Function(`return ${PARTS}`)()(page, BUTTONS_DEPTH, BUTTONS_PART_NODES, INSPECT_DEPTH);
+  // What `inspect` would return for each part: each id and its descendants to the part's depth.
+  const byId = new Map<string, T>();
+  const index = (n: T) => { byId.set(n.id, n); n.children.forEach(index); };
+  index(page);
+  const read = (n: T, d: number): string[] => [n.id, ...(d > 0 ? n.children.flatMap((k) => read(k, d - 1)) : [])];
+  const reads = cut.map((p) => p.ids.flatMap((id) => read(byId.get(id)!, p.depth)));
+  const got = reads.flat();
+  const want = read(page, BUTTONS_DEPTH);
+  ok(got.length === want.length && new Set(got).size === got.length && want.every((id) => got.includes(id)),
+    `parts/whole: the parts read every node of the page ${BUTTONS_DEPTH} levels down exactly once (${got.length} of ${want.length}, ${cut.length} parts)`);
+  ok(cut.length > 1 && reads.every((r) => r.length <= BUTTONS_PART_NODES), `parts/budget: each part reads at most ${BUTTONS_PART_NODES} nodes (${reads.map((r) => r.length).join(', ')})`);
+
+  // Every command, through the plugin's validators as the dispatcher applies them (`agent-dispatch.ts`): `parseCommand`,
+  // and for the dev-only `run-code`, which `parseCommand` answers `unknown-command`, `parseRunCode`. A refusal fails
+  // the arm, and so does an arg the plugin accepts but drops or rewrites: the plan would think it asked for something
+  // the plugin never did.
+  const canon = (v: unknown): string => JSON.stringify(v, (_k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, x[k]])) : x));
+  const pluginTakes = (c: Cmd): string | null => {
+    const raw = { v: AGENT_PROTOCOL_VERSION, id: `adherence-${c.key}`, cmd: c.cmd, args: c.args, issuedAt: new Date(0).toISOString() };
+    const p = parseCommand(raw);
+    let args: unknown;
+    if (p.ok) args = p.command.args;
+    else if (p.error.code === 'unknown-command' && p.cmd === RUN_CODE) {
+      const rc = parseRunCode(c.args);
+      if (typeof rc === 'string') return `refused: ${rc}`;
+      args = rc;
+    } else return `refused: ${p.error.code}: ${p.error.message}`;
+    const kept = args as Record<string, unknown>;
+    const dropped = Object.keys(c.args).filter((k) => !(k in kept));
+    if (dropped.length) return `accepted, but the plugin drops ${dropped.map((k) => `args.${k}`).join(', ')}`;
+    return canon(kept) === canon(c.args) ? null : `accepted, but the plugin reads the args as ${canon(kept).slice(0, 200)}`;
+  };
+  const roles = { ...GOOD.roles, buttonsParts: cut };
+  const plan: [string, Cmd[]][] = [['setup', setupCommands({ id: 'house' })], ['reset', resetCommands()], ['capture', captureCommands(roles)]];
+  for (const [side, cmds] of plan) for (const c of cmds) {
+    const why = pluginTakes(c);
+    ok(why === null, `args/${c.key}: the plugin takes ${side}'s ${c.cmd} as sent${why ? ` (${why})` : ''}`);
+  }
+  ok(captureCommands(roles).some((c) => c.key === 'reads'), 'args/covers-reads: the reads program is among the commands checked');
+  // The parts join back: the good run's single part reads as the page, a refused part as no page.
+  ok(buttonsInspect(GOOD.before)?.nodes.length === (GOOD.before as any)['inspect-buttons'].result.data.nodes.length, 'parts/join: one part joins to that part');
+  ok(buttonsInspect({ ...GOOD.before, 'inspect-buttons-1': { ok: false } } as any) === undefined, 'parts/join-refused: a refused part leaves no page, not a smaller one');
 }
 
 console.log('\nthe runner');
