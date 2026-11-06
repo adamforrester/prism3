@@ -104,6 +104,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import { FileShim } from './file-shim';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { holdsInput } from './src/persist-figma';
+import { themeDue, emissionOf } from './src/theme-emission';
 import { brandFromDesignMd } from './mcp-paste';
 import { adaptBrand } from '../../tools/exporter-comparison/adapt-figma-emission.ts';
 import type { Adapted } from '../../tools/exporter-comparison/adapt-figma-emission.ts';
@@ -331,6 +332,12 @@ for (const brand of GATED) {
     const other: BrandInput = { ...input, controlShape: input.controlShape === 'pill' ? 'rounded' : 'pill' };
     ok(!heldBefore && holdsInput(file.root as any, input) && !holdsInput(file.root as any, other),
       `${brand} #3081: before Apply Theme the fresh file holds no brand; after it, the file holds the brand applied, and not one a lever apart (before ${heldBefore})`);
+    // #3422 Q44.1 A (the owner's to confirm): Apply Theme also stamps the print of what it wrote, so the recount reads the
+    // file as holding the brand only while this plugin's emission for it is the one written. The print the recount
+    // compares is worked out here from the brand alone. MUTATION: `apply-theme.ts` not stamping → this arm, by name.
+    const printHere = (b: BrandInput): string => emissionOf(themePlans(b));
+    ok(!themeDue(file.root as any, input, () => printHere(input)) && themeDue(file.root as any, other, () => printHere(other)),
+      `${brand} #3422 Q44.1 A: after Apply Theme the recount finds nothing to apply for the brand written, and something for one a lever apart`);
     // Motion in the file (#2412): every variable in `motion` is TIMING or EASING, left at ALL_SCOPES (no scopes write
     // reached the host, which would have thrown), and the count is the plan's.
     const motionCol = file.collections.find((c: any) => c.name === 'motion');

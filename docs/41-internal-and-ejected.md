@@ -256,7 +256,7 @@ only becomes a manifest question if the answer is an artifact.
   membership list is the only per-brand part of the selection registry, and a client's own additions
   sit outside our emission entirely. The brand-neutral-plus-membership proposal survives.
 - **`33` §6's placement question gains its second entry.** `skills/` holds skills addressed to agents
-  building *with* Prism3 — today `prism3-theme` and `prism3-consume`. An extend-the-kit skill is a
+  building *with* Prism3 — today `prism3-theme` and `prism3-build-ui`. An extend-the-kit skill is a
   third of that kind, not a new category, and it inherits `lint-skills.ts` on arrival.
 - **#252 stays parked.** It governs ranks 5–6 of `19` §3 and nothing here reaches it.
 

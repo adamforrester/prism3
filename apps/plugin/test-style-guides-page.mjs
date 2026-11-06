@@ -332,11 +332,14 @@ const runGuides = async (page) => {
   await post(page, { type: 'file-sets', present: [], setUp: true });
   await until(page, 'the checklist drawn', () => !!document.querySelector('[data-p3="update-check-guides"]'));
   const ticks = await page.evaluate(() => ({ theme: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'), guides: document.querySelector('[data-p3="update-check-guides"]')?.getAttribute('aria-checked') }));
-  await hooks.click(page.locator('[data-p3="update-check-theme"]'));
-  // #3023 Q701 B: unticking Theme checks the file again; it is answered as the first read was.
-  await posted(page, 'file-sets-request', 2);
-  await post(page, { type: 'file-sets', present: [], setUp: true });
-  await until(page, 'the checklist drawn again', () => !!document.querySelector('[data-p3="update-check-guides"]'));
+  // #3023 Q701 B: unticking Theme checks the file again; it is answered as the first read was. Since #3422 (Q44 A) Theme
+  // opens unticked on a file that matches the brand, so there may be nothing to untick.
+  if (ticks.theme === 'true') {
+    await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+    await posted(page, 'file-sets-request', 2);
+    await post(page, { type: 'file-sets', present: [], setUp: true });
+    await until(page, 'the checklist drawn again', () => !!document.querySelector('[data-p3="update-check-guides"]'));
+  }
   await hooks.click(page.locator('[data-p3="update-check-guides"]'));
   await hooks.click(page.locator('[data-p3="update-go"]'));
   await posted(page, 'style-guide-catalog-request', 2);
@@ -353,7 +356,7 @@ const runGuides = async (page) => {
     `Q2909.23 A: on open the page restores the file's record: Primary and Text, color mixed, Token names Short (${JSON.stringify({ summary: st.summary, kinds: st.kinds, tokenNames: st.tokenNames })})`);
   ok(sentOf(st, 'doc-settings-save').length === 0, `Q2909.23 A: restoring saves nothing (${sentOf(st, 'doc-settings-save').length})`);
   const ticks = await runGuides(page);
-  ok(ticks.theme === 'true' && ticks.guides === 'false', `Q2909.2 A, Q2909.5 A: on a set-up file the checklist opens with the theme ticked and the style guides not (${JSON.stringify(ticks)})`);
+  ok(ticks.theme === 'false' && ticks.guides === 'false', `Q2909.5 A, #3422 Q44 A: on a set-up file that matches the brand the checklist opens with neither the theme nor the style guides ticked (${JSON.stringify(ticks)})`);
   st = await read(page);
   const drawn = sentOf(st, 'style-guide')[0]?.options;
   const WANT = { header: 'dark', aliases: true, description: true, titleCell: false, rem: true, valueFormat: 'hex', display: 'auto', dimensionDisplay: 'filled',

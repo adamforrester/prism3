@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:consumability": "node check-consumability.mjs && node check-platforms.mjs",
+    "check:consumability": "node check-consumability.mjs && node check-platforms.mjs && node check-specs.mjs",
     "build:consumer": "node sd.consumer.mjs"
   },
   "devDependencies": {
+    "@directededges/specs-schema": "0.39.0",
+    "ajv": "8.20.0",
     "style-dictionary": "^5.5.0"
   }
 }

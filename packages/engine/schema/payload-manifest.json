@@ -64,6 +64,16 @@
       "why": "Every design-file component's spec (#2830): its parts, the spacing, size and type tokens per size, the color tokens per state, and what nests where, from the plan that builds it. PAYLOAD because a client's coded component and its docs site read the same values the design file binds, and an ejected repo has no plan to project. Token names only, so one file serves every brand."
     },
     {
+      "kind": "component-defs-export",
+      "pattern": "out/components/component-defs.json",
+      "why": "Every component definition as one versioned JSON export (#3425): each definition's shipped fields beside the spec of the component built from it. PAYLOAD because it is the published form of the definitions for a tool that does not run the engine. Generated from the TypeScript source, never edited; token names only, so one file serves every brand, and a brand's own export is written on demand."
+    },
+    {
+      "kind": "component-defs-specs",
+      "pattern": "out/components/component-defs.specs.json",
+      "why": "The same export as a Specs components set (#3425), valid against the published Specs schema, for a tool that reads that format. PAYLOAD for the same reason as the export it projects. What the Specs format has no place for stays in the export."
+    },
+    {
       "kind": "component-docs-page",
       "pattern": "out/components/{file}.md",
       "why": "The same documentation as one human-readable page per component (#1701), for the people building the component and as the seed for the per-brand payload skills (#668). Payload for the same reason as the data file it mirrors. Written for people, so it leaves out the agent-only search and priority metadata the data file keeps."

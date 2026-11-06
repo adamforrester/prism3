@@ -156,7 +156,7 @@ Owner decision Q-TXT1 A, with its refinements on #3212.
 - **The test** (Q3212.2 A) pins "the lightest neutral step clearing the mode's body bar on the page". The
   4.5–4.8:1 band applies in light only.
 - **Around it.** Divider's label stays `text.secondary`, its 1.4.3 line qualified to the surfaces its color's
-  metadata lists (Q3212.6 A). `secondaryTextGround` is not a lever (Q3212.7 A). The `prism3-consume` skill states
+  metadata lists (Q3212.6 A). `secondaryTextGround` is not a lever (Q3212.7 A). The `prism3-build-ui` skill states
   the exception generally: read `sits_on` (Q3212.8 A).
 
 ### `interactive.<color>.*` — interactive

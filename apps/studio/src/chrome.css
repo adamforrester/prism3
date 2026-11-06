@@ -690,8 +690,52 @@
    publish description, the status counter) is set at 10px; its UI-face text stays at the drawer's 12. */
 .p3-op-summary { margin: 0; padding: 0; list-style: none; font-family: var(--p3-font-mono); font-size: var(--p3-fs-10); overflow-wrap: anywhere; }
 .p3-op-line { margin: 0; }
-/* Q3113.5 A: a bad result's first line, its reason, in the UI face at the emphasis weight; the rest stays mono. */
-.p3-op-reason { margin: 0; font-weight: var(--p3-fw-emphasis); overflow-wrap: anywhere; }
+/* #3326 (Q3326.1 A, Q3326.5 A; #3308 Q3308.1 A): a bad result's causes, first, in the UI face. One disclosure per cause:
+   closed, its mark, the set in emphasis, what happened and `· <first reason>` clipped to one line, the step at the end;
+   open, every reason one per line, wrapping, then its why, what stays and what to do. At 380 the step moves inside. */
+.p3-op-causes { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-050); min-width: 0; }
+.p3-op-cause { min-width: 0; }
+.p3-op-cause > summary { list-style: none; display: flex; align-items: baseline; gap: var(--p3-space-075); cursor: pointer; min-width: 0; }
+.p3-op-cause > summary::-webkit-details-marker { display: none; }
+.p3-op-cause > summary > .p3-ico:first-child { flex: none; align-self: center; color: var(--p3-icon-2); width: var(--p3-icon-xs); height: var(--p3-icon-xs); }
+.p3-op-cause[open] > summary > .p3-ico:first-child { transform: rotate(90deg); }
+.p3-op-cause > summary > .p3-op-mark { align-self: center; }
+.p3-op-cause-subj { font-weight: var(--p3-fw-emphasis); white-space: nowrap; }
+.p3-op-cause-subj[hidden] { display: none; }
+.p3-op-cause-what { white-space: nowrap; flex: none; }
+.p3-op-cause-first { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p3-op-cause[open] .p3-op-cause-first { display: none; }
+.p3-op-cause-step { flex: none; margin-left: auto; color: var(--p3-text-2); white-space: nowrap; }
+.p3-op-cause-body { display: grid; gap: var(--p3-space-050); padding: var(--p3-space-050) 0 var(--p3-space-075) var(--p3-space-500); }
+.p3-op-cause-reasons { margin: 0; padding: 0 0 0 var(--p3-space-200); display: grid; gap: var(--p3-space-025); overflow-wrap: anywhere; }
+.p3-op-cause-say { margin: 0; overflow-wrap: anywhere; }
+.p3-op-cause-say > b { font-weight: var(--p3-fw-emphasis); }
+.p3-op-cause-why, .p3-op-cause-steptext { color: var(--p3-text-2); }
+.p3-op-cause-steptext { display: none; }
+.p3-frame[data-w="narrow"] .p3-op-cause-step { display: none; }
+.p3-frame[data-w="narrow"] .p3-op-cause-steptext { display: block; }
+/* #3326 PR 2 (Q3326.4 A, Q3326.6–.8 A, Q3390.3 A): after the causes, the notes, then Update file's steps, each under a
+   small label ("Note", "Steps"). A note is one line: the info mark, its step in emphasis, what it says. A step is its
+   mark, its name in emphasis and its verdict's words, its mono lines behind its own disclosure; a step with no lines (one
+   that never ran) keeps the chevron's room, so every mark sits in one column. Ported from the approved renders' prototype. */
+.p3-op-sec { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-10); text-transform: uppercase; letter-spacing: var(--p3-ls-wide); }
+.p3-op-notes, .p3-op-steps { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-050); min-width: 0; }
+.p3-op-note { display: flex; align-items: baseline; gap: var(--p3-space-075); min-width: 0; }
+.p3-op-note > .p3-op-mark { align-self: center; }
+.p3-op-mark[data-state="note"], .p3-op-mark[data-state="skip"] { color: var(--p3-icon-2); }
+.p3-op-note-say { min-width: 0; overflow-wrap: anywhere; }
+.p3-op-note-step { font-weight: var(--p3-fw-emphasis); }
+.p3-op-step { min-width: 0; }
+.p3-op-step > summary, .p3-op-step-flat { list-style: none; display: flex; align-items: baseline; gap: var(--p3-space-075); min-width: 0; }
+.p3-op-step > summary { cursor: pointer; }
+.p3-op-step > summary::-webkit-details-marker { display: none; }
+.p3-op-step > summary > .p3-ico:first-child { flex: none; align-self: center; color: var(--p3-icon-2); width: var(--p3-icon-xs); height: var(--p3-icon-xs); }
+.p3-op-step[open] > summary > .p3-ico:first-child { transform: rotate(90deg); }
+.p3-op-step-gap { flex: none; width: var(--p3-icon-xs); }
+.p3-op-step :is(summary, .p3-op-step-flat) > .p3-op-mark, .p3-op-step-flat > .p3-op-mark { align-self: center; }
+.p3-op-step-name { flex: none; font-weight: var(--p3-fw-emphasis); white-space: nowrap; }
+.p3-op-step-words { min-width: 0; color: var(--p3-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p3-op-step > .p3-op-summary { margin-top: var(--p3-space-050); padding-left: var(--p3-space-500); }
 /* Q3113.4 A: a bad result's next steps. */
 .p3-op-next { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
 .p3-op-copied:empty { display: none; }
@@ -731,7 +775,7 @@
 .p3-op-entry-row > .p3-op-entry-head { padding-inline-start: var(--p3-icon-xs); margin-inline-start: var(--p3-space-075); }
 .p3-op-entry-head { display: inline-flex; align-items: center; gap: var(--p3-space-075); }
 .p3-op-entry-head > .p3-op-when { margin-left: 0; }
-.p3-op-entry > :is(.p3-op-summary, .p3-op-reason) { margin-top: var(--p3-space-050); padding-left: var(--p3-space-300); }
+.p3-op-entry > :is(.p3-op-summary, .p3-op-causes, .p3-op-sec, .p3-op-notes, .p3-op-steps) { margin-top: var(--p3-space-050); padding-left: var(--p3-space-300); }
 /* Under the two panes, the drawer is the preview pane's bottom row (plan §3.9). */
 .p3-frame[data-layout="panes"] .p3-drawer { grid-area: drawer; position: static; border-left: 0; }
 /* At 380: the closed drawer is the strip, pinned to the bottom edge; the open drawer is a full-pane sheet

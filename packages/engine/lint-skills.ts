@@ -25,6 +25,8 @@
  *        in the source file the skill places it in, or in some source file when it names none (#1725).
  *   6.   DISCOVERY check  — every skill under `skills/` has a `.claude/skills/<name>` symlink to it, so a
  *        Claude Code session in this repo loads it without being told to (#2677, Q320.2).
+ *   9.   RETIRED NAME check — a renamed skill's old name appears nowhere in the repo outside the dated
+ *        history, except on a line that also names the new one (a redirect), and no file is named after it (#3412).
  *
  * Check 4 is the one that fires on the real defect, and it is deliberately opt-in per skill
  * (`documents: brandInput` in the frontmatter) rather than inferred — the same "declare it, don't
@@ -35,6 +37,7 @@
  * mechanical check reads advice for correctness. This gate keeps the *names* honest; a human or a
  * review keeps the *judgment* honest.
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -268,7 +271,7 @@ type Finding = { file: string; kind: string; detail: string };
 
 /** How many times each scan actually RAN. See the wiring floor at the bottom of this file — the
  *  self-check can prove a scan works without proving anything still calls it. */
-const ran = { text: 0, coverage: 0, placed: 0, discovery: 0, leverKind: 0, ownerRule: 0 };
+const ran = { text: 0, coverage: 0, placed: 0, discovery: 0, leverKind: 0, ownerRule: 0, retiredName: 0 };
 
 /**
  * Scan one skill's TEXT. Split out from `scanSkill` so the self-check can drive **this** function
@@ -301,7 +304,7 @@ export const scanText = (text: string, rel: string, findings: Finding[], ctx: Id
     const raw = m[1].trim();
     if (!raw || FILE_EXT.test(raw) || raw.startsWith('.') || /[\s/:<>{}|[\]()]/.test(raw)) continue;
     // A COUNTER-EXAMPLE is exempt, and this class was not anticipated: a skill teaching "do not guess
-    // this name" has to QUOTE a name that by definition does not resolve. `prism3-consume` says
+    // this name" has to QUOTE a name that by definition does not resolve. `prism3-build-ui` says
     // "it's `color.foreground.success-subtle` …, not `color.feedback.success.surface`" — flagging
     // that would punish the file for doing the most useful thing in it. Found on the first run
     // against real skills, which is the argument for running a new gate before trusting its design.
@@ -814,7 +817,7 @@ const OWNER_RULES: OwnerRule[] = [
     // Q690 A: no on-media link role. Over a photograph a link is `inverse.text.primary`, underlined, on
     // the media veil when the photo is busy.
     id: '#2986 link over photography',
-    skills: ['prism3-consume', 'prism3-rebind'],
+    skills: ['prism3-build-ui', 'prism3-rebind'],
     // Both grounds, each matched on its own, so the inverse twins cannot drop out of scope unnoticed.
     roles: [/^text\.link\./, /^inverse\.text\.link\./],
     // The ink and the underline in one sentence: an inverse twin already names `inverse.text.primary` in
@@ -871,6 +874,92 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
   for (const rule of OWNER_RULES) findings.push(...ownerRuleFindings(rule, read, color, TOKEN_PATHS));
 }
 
+// ---- 9. RETIRED SKILL NAMES (#3412) --------------------------------------------------------------
+// A renamed skill leaves its old name in every README, doc, test and served URI that pointed at it, and none
+// of checks 1-8 reads those: they read the skills. So this one reads every file git knows about (tracked, plus
+// untracked files that are not ignored) and fails on each line that names a retired skill, unless the line also
+// names the skill that replaced it. That line is a redirect ("`new` was named `old` until #N"), which is the one
+// place the old name belongs. The dated history (the progress log, the changelog and their pending entries, the
+// superpowers working notes) keeps the name the skill had on that date, and is not read.
+//
+// Independence (docs/34): the old and new names are literals in this register, never read from `skills/`; the
+// subject is the repo's text. The skill directories are checked against the register too: the old one must be
+// gone and the new one present, so a rename that was reverted, or never made, fails here by name.
+//
+// It reads paths too: a file named after the retired skill (`docs/<old>-eval.md`) fails by its path, whatever it
+// says. A path has no redirect form, so naming the new skill beside it doesn't help; and the boundary is looser
+// than the line scan's, because a file name runs the old name into a suffix with a hyphen.
+//
+// WHAT IT CANNOT SEE: a nickname. "The consume skill" in a comment is not the skill's name, and passes.
+type RetiredSkill = { old: string; now: string; issue: string };
+const RETIRED_SKILLS: RetiredSkill[] = [{ old: 'prism3-consume', now: 'prism3-build-ui', issue: '#3412' }];
+const HISTORY = [/^docs\/00-progress\.md$/, /^docs\/progress\//, /^packages\/engine\/CHANGELOG\.md$/, /^packages\/engine\/changes\//, /^docs\/superpowers\//];
+const nameRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9_-])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9_-])`);
+const pathRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9])`);
+export const retiredNameFindings = (files: [string, string][], retired: RetiredSkill[], skills: string[]): Finding[] => {
+  ran.retiredName++;
+  const out: Finding[] = [];
+  for (const r of retired) {
+    if (skills.includes(r.old)) out.push({ file: `skills/${r.old}/`, kind: 'retired skill name', detail: `${r.issue} renamed \`${r.old}\` to \`${r.now}\`, and skills/${r.old}/ is still here` });
+    if (!skills.includes(r.now)) out.push({ file: `skills/${r.now}/`, kind: 'retired skill name', detail: `${r.issue} renamed \`${r.old}\` to \`${r.now}\`, and there is no skills/${r.now}/` });
+    const oldRe = nameRe(r.old), nowRe = nameRe(r.now), oldPathRe = pathRe(r.old);
+    for (const [rel, text] of files) {
+      if (HISTORY.some((h) => h.test(rel))) continue;
+      if (oldPathRe.test(rel)) out.push({ file: rel, kind: 'retired skill name', detail: `the path names \`${r.old}\`, which ${r.issue} renamed to \`${r.now}\`. Rename the file` });
+      if (!oldRe.test(text)) continue;
+      text.split('\n').forEach((line, i) => {
+        if (oldRe.test(line) && !nowRe.test(line)) out.push({ file: `${rel}:${i + 1}`, kind: 'retired skill name', detail: `names \`${r.old}\`, which ${r.issue} renamed to \`${r.now}\`. Rename it, or name \`${r.now}\` on the same line if this is a redirect` });
+      });
+    }
+  }
+  return out;
+};
+let retiredSelfRuns = 0, retiredFilesRead = 0;
+{
+  // Self-check through the shipping function, both directions. The sample names are built from the register,
+  // so no literal old name sits in this file outside the register line.
+  const R = RETIRED_SKILLS[0];
+  const live = [R.now];
+  const checks: [string, Finding[], number][] = [
+    ['a stale line', retiredNameFindings([['README.md', `Read the ${R.old} skill.`]], [R], live), 1],
+    ['a redirect line', retiredNameFindings([['README.md', `\`${R.now}\` was \`${R.old}\` until ${R.issue}.`]], [R], live), 0],
+    ['a history file', retiredNameFindings([['docs/progress/archive/x.md', `Read the ${R.old} skill.`]], [R], live), 0],
+    ['a longer name', retiredNameFindings([['README.md', `Read ${R.old}-eval.`]], [R], live), 0],
+    ['two stale lines in one file', retiredNameFindings([['a.ts', `${R.old}\nok\nskills/${R.old}/SKILL.md`]], [R], live), 2],
+    ['the old skill still present', retiredNameFindings([], [R], [R.old, R.now]), 1],
+    ['the new skill missing', retiredNameFindings([], [R], []), 1],
+    ['a file named after it', retiredNameFindings([[`docs/${R.old}-eval.md`, 'ok']], [R], live), 1],
+    ['a history file named after it', retiredNameFindings([[`docs/progress/archive/${R.old}.md`, 'ok']], [R], live), 0],
+  ];
+  retiredSelfRuns = checks.length;
+  const broken = checks.filter(([, f, n]) => f.length !== n);
+  if (broken.length) {
+    console.error(`\n❌ the retired-name check is broken: ${broken.map(([w, f, n]) => `${w} gave ${f.length} finding(s), expected ${n}`).join('; ')}`);
+    process.exit(1);
+  }
+  let listed: string[];
+  try {
+    listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\0').filter(Boolean);
+  } catch (e) {
+    console.error(`\n❌ the retired-name check cannot list the repo's files (git ls-files failed: ${(e as Error).message}); it would read nothing.`);
+    process.exit(1);
+  }
+  const files: [string, string][] = [];
+  for (const rel of [...new Set(listed)]) {
+    const abs = join(repo, rel);
+    let st; try { st = lstatSync(abs); } catch { continue; } // deleted in the working tree
+    if (!st.isFile()) continue;
+    const text = readFileSync(abs, 'utf8');
+    files.push([rel, text.includes('\0') ? '' : text]); // a binary file is read by its path alone
+  }
+  retiredFilesRead = files.length;
+  // Each surface the rename has to reach is read, by name: a scan that lost one would pass over it.
+  const MUST_READ = ['README.md', 'CLAUDE.md', 'CONTRIBUTING.md', 'docs/public/llms.txt', 'docs/public/ecosystem/ecosystem.json', 'tools/figma-bridge/server.ts', 'apps/plugin/src/agent-reads.ts', 'packages/engine/test.ts', 'skills/prism3-theme/SKILL.md'];
+  const read = new Set(files.map(([f]) => f));
+  for (const m of MUST_READ) if (!read.has(m)) findings.push({ file: m, kind: 'retired skill name', detail: 'a surface the rename must reach was not read; the scan lost it' });
+  findings.push(...retiredNameFindings(files, RETIRED_SKILLS, dirs));
+}
+
 console.log(`Skills gate — ${dirs.length} skill(s) scanned (${dirs.join(', ')}).`);
 // A scan that goes dark reports success forever. Zero skills means the layout moved, not that the
 // skills are clean.
@@ -923,6 +1012,10 @@ if (ran.coverage - before.coverage !== optedIn.length) {
 // rules stopped being checked while the samples still pass.
 if (ran.ownerRule - before.ownerRule !== ownerSelfRuns + OWNER_RULES.length) {
   wiring.push(`the owner-rule check ran ${ran.ownerRule - before.ownerRule}× for ${ownerSelfRuns} self-check sample(s) and ${OWNER_RULES.length} rule(s) — the real rules are no longer checked`);
+}
+// Check 9 runs its self-check samples and then the real repo once; a short count means the real repo was not read.
+if (ran.retiredName - before.retiredName !== retiredSelfRuns + 1 || retiredFilesRead < 500) {
+  wiring.push(`the retired-name check ran ${ran.retiredName - before.retiredName}× for ${retiredSelfRuns} self-check sample(s) and the repo, over ${retiredFilesRead} file(s) (floor 500) — the repo is no longer read`);
 }
 if (wiring.length) {
   console.error('\n❌ the skills gate is no longer wired to the skills it scanned:\n');

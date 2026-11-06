@@ -50,7 +50,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { alsoAddsOf, awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, newSetsOf, panelSetsOf, queuedOf, runOrderOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { alsoAddsOf, awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -106,7 +106,9 @@ export type UpdateFileLend = {
   readonly checkSets: (defs: readonly string[], theme: boolean) => void;
   /** `update`: the due sets to update in place, the check's hash for exactly those sets (empty when they are fewer than
    *  the check read, and the run checks them again first), and the hand-edit choice. */
-  readonly run: (steps: readonly StepKey[], sets: readonly string[], update: { readonly defs: readonly string[]; readonly previewHash: string; readonly checked: readonly CheckedSetView[]; readonly handEdits: HandEditChoice } | null) => void;
+  readonly run: (steps: readonly StepKey[], sets: readonly string[], update: { readonly defs: readonly string[]; readonly previewHash: string; readonly checked: readonly CheckedSetView[]; readonly handEdits: HandEditChoice;
+    /** #3421 (Q39 A): each Kept edits set's own choice, when any is run. */
+    readonly sets?: Readonly<Record<string, HandEditChoice>> } | null) => void;
   readonly stop: () => void;
   readonly pruneCheck: () => void;
   readonly pruneDelete: () => void;
@@ -138,6 +140,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   let panelsOpen = false;
   /** The sets this opening asked the scoped check for, or null before it has (Q2909.8 A). */
   let checkedFor: readonly string[] | null = null;
+  /** #3422 Q44 A: the live recount as this opening found it. Theme's default tick and its "Up to date" tag read it, and
+   *  the first read asks against the brand it picks, so the badge, the tick and the counts agree for the whole opening. */
+  let liveAtOpen: LiveDue | null = null;
   /** A Theme toggle asked the file again (#3023): its answer ticks the due sets afresh. */
   let rechecking = false;
   /** The not-yet-recorded sets a check has already ticked or left, so an untick by hand sticks. */
@@ -161,7 +166,14 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     checkedFor = null;
     rechecking = false;
     seen.clear();
-    if (!lend.read().run) { asked = lend.read().fileSets; ticks = null; lend.check(true); }
+    if (!lend.read().run) {
+      const r = lend.read();
+      asked = r.fileSets;
+      ticks = null;
+      liveAtOpen = r.liveDue;
+      // #3422 Q44 A: the brand Theme's default tick picks (#3023 Q701 B); a file not set up ticks Theme always.
+      lend.check(themeDueOf(liveAtOpen) || r.fileSets?.setUp === false);
+    }
     paint();
     const d = layer.querySelector<HTMLElement>('[data-p3="update-dialog"]');
     if (d) (focusables(d)[0] ?? d).focus();
@@ -198,9 +210,11 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   };
 
   /** An item: its box, title and count on one row, its line under them, and what it holds. */
-  const item = (key: Exclude<StepKey, 'sets' | 'update'>, on: boolean, title: string, sub: string, toggle: () => void): HTMLElement => {
+  const item = (key: Exclude<StepKey, 'sets' | 'update'>, on: boolean, title: string, sub: string, toggle: () => void, tag: HTMLElement | null = null): HTMLElement => {
     const row = hook(h('div', 'p3-upd-item'), `update-item-${key}`);
-    row.append(check(`update-check-${key}`, `item=${key}`, on, [h('b', undefined, title)], toggle), h('p', 'p3-sub p3-upd-sub', sub));
+    let label: Node = h('b', undefined, title);
+    if (tag) { const text = h('span', 'p3-check-text'); text.append(label, tag); label = text; }
+    row.append(check(`update-check-${key}`, `item=${key}`, on, [label], toggle), h('p', 'p3-sub p3-upd-sub', sub));
     return row;
   };
 
@@ -234,7 +248,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     asked = undefined;
     if (rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
-    ticks ??= defaultTicks(r.catalog, f, r.queue);
+    ticks ??= defaultTicks(r.catalog, f, r.queue, liveAtOpen);
     const t = ticks;
     const fresh = !f.setUp;
     const body: HTMLElement[] = [];
@@ -242,6 +256,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (r.stopped) body.push(hook(h('p', 'p3-sg-error', UPDATE_COPY.stopped(STEP_TITLE[r.stopped.step], r.stopped.headline)), 'update-stopped'));
     body.push(h('p', 'p3-sub p3-upd-lead', fresh ? UPDATE_COPY.leadFresh : UPDATE_COPY.lead));
     if (fresh) body.push(item('setup', t.setup, UPDATE_COPY.setup, UPDATE_COPY.setupSub, () => { ticks = { ...t, setup: !t.setup }; }));
+    // #3422 Q44 A: Theme opens ticked only when the file's variables differ from the brand; else unticked, and a tick
+    // applies it again. Q44.2 A: tagged Up to date only when the recount measured the file and found it matching.
     // #3023 Q701 B: Theme decides the brand the sets are measured against, so a toggle checks the file again, and the due
     // sets are ticked again from that answer; what the counts say stays what the run writes.
     body.push(item('theme', t.theme, UPDATE_COPY.theme, UPDATE_COPY.themeSub, () => {
@@ -251,7 +267,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       checkedFor = null;
       seen.clear();
       lend.check(!t.theme);
-    }));
+    }, !fresh && themeMatchesOf(liveAtOpen) ? hook(h('span', 'p3-sg-tag', UPDATE_COPY.themeCurrent), 'update-theme-current') : null));
     // #3129: the add queue, then the due sets (Q2909.8 A), each group under its own title.
     const queue = queuedOf(r.catalog, f, r.queue);
     const addable = newSetsOf(r.catalog, f);
@@ -259,9 +275,11 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const unrec = unrecordedOf(r.catalog, f);
     // #3137: the sets with no usage panel, less Due and the queue.
     const panelSets = panelSetsOf(r.catalog, f, r.queue);
+    // #3421 (Q39 A): the sets whose last update kept hand edits over changes the plan makes.
+    const keptSets = keptSetsOf(r.catalog, f);
     // The full check, over the due sets (and, #3137 Q3137.2 A, the panel sets while ticked), once per opening, as soon as
     // the ledger's answer is in.
-    const scope = checkScopeOf(due, t, panelSets);
+    const scope = checkScopeOf(due, t, panelSets, keptSets);
     if (scope.length && checkedFor === null) { checkedFor = scope; lend.checkSets(scope, t.theme); }
     const chk = r.updateCheck;
     const answered = chk && chk !== 'pending' && checkedFor !== null ? chk : null;
@@ -351,7 +369,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
         box.dataset.id = id;
         const row = h('div', 'p3-upd-setrow');
         const shown = lineOf(id);
-        const line = hook(h('p', 'p3-sub p3-upd-setline', shown ? UPDATE_COPY.checked(shown) : prog?.next === id ? UPDATE_COPY.checkingSet : ''), 'update-set-check');
+        const line = hook(h('p', 'p3-sub p3-upd-setline', shown ? UPDATE_COPY.checked(shown, t.theme) : prog?.next === id ? UPDATE_COPY.checkingSet : ''), 'update-set-check');
         line.dataset.state = shown ? 'checked' : prog?.next === id ? 'checking' : chk === 'pending' ? 'waiting' : 'none';
         if (shown && pendingLines.has(id)) armEnter(`update-line=${id}`);
         if (entering(`update-line=${id}`)) line.dataset.land = 'true';
@@ -415,15 +433,57 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       grp.append(list);
       comps.append(grp);
     }
+    // #3421 (Q39 A): Kept edits, the fourth subtitle: each set whose last update kept hand edits over changes the plan
+    // makes, what they hold back, and its own choice: Keep (it stays listed), Overwrite, or Accept as baseline.
+    if (keptSets.length) {
+      const grp = hook(h('div', 'p3-upd-group'), 'update-group-kept');
+      grp.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.kept));
+      grp.append(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.keptSub(keptSets.length)), 'update-kept-line'));
+      const list = hook(h('div', 'p3-upd-sets'), 'update-kept-sets');
+      for (const id of keptSets) {
+        const d = f.due[id];
+        const row = hook(h('div', 'p3-upd-setrow'), 'update-kept-row');
+        row.dataset.id = id;
+        const head = h('div', 'p3-upd-handsel');
+        const sel = hook(h('select', 'p3-select'), 'update-kept-choice');
+        sel.id = `p3-upd-kept-${id}`;
+        sel.dataset.key = `kept=${id}`;
+        sel.setAttribute('aria-label', UPDATE_COPY.keptChoice(nameOf(id)));
+        for (const k of ['keep', 'overwrite', 'accept'] as const) {
+          const o = h('option', undefined, UPDATE_COPY.handChoice[k]);
+          o.value = k;
+          sel.append(o);
+        }
+        sel.value = t.kept.get(id) ?? 'keep';
+        sel.onchange = () => {
+          const next = new Map(t.kept);
+          next.set(id, sel.value as HandEditChoice);
+          ticks = { ...t, kept: next };
+          // The scoped check reads a Kept edits set only once it is to run, so a choice asks it again over the new scope.
+          checkedFor = null;
+          paint();
+        };
+        const sw = h('div', 'p3-selwrap');
+        sw.append(sel, glyph('chev'));
+        head.append(h('span', 'p3-upd-setname', nameOf(id)), sw);
+        row.append(head);
+        if (d?.state === 'kept') row.append(hook(h('p', 'p3-sub p3-upd-setline', UPDATE_COPY.keptLine(d.held)), 'update-kept-held'));
+        const shownK = (t.kept.get(id) ?? 'keep') !== 'keep' ? lineOf(id) : undefined;
+        if (shownK) row.append(hook(h('p', 'p3-sub p3-upd-setline', UPDATE_COPY.checked(shownK, t.theme)), 'update-set-check'));
+        list.append(row);
+      }
+      grp.append(list);
+      comps.append(grp);
+    }
     // The section's last line (#3137): a version is saved before the update, Due and the panels alike.
-    if (t.update.size || (t.panels && panelSets.length)) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
+    if (t.update.size || (t.panels && panelSets.length) || keptSets.some((id) => (t.kept.get(id) ?? 'keep') !== 'keep')) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
     if (comps.children.length > 1) body.push(comps);
     body.push(item('guides', t.guides, UPDATE_COPY.guides, UPDATE_COPY.guidesSub, () => { ticks = { ...t, guides: !t.guides }; }));
     const t2 = ticks ?? t;
     // The update waits on the check's answer: its counts are what the person reviews, and its hash what the update echoes.
-    const updatable = answered ? updateDefsOf(t2, answered, panelSets) : [];
+    const updatable = answered ? updateDefsOf(t2, answered, panelSets, keptSets) : [];
     const steps = stepsOf({ ...t2, update: new Set(updatable) }, f, queue);
-    const asks = t2.update.size > 0 || (t2.panels && panelSets.length > 0);
+    const asks = t2.update.size > 0 || (t2.panels && panelSets.length > 0) || keptSets.some((id) => (t2.kept.get(id) ?? 'keep') !== 'keep');
     const waiting = asks && !answered;
     const go = hook(h('button', 'p3-btn p3-btn-primary'), 'update-go');
     go.type = 'button';
@@ -433,9 +493,10 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (r.off) go.title = r.off;
     go.onclick = () => {
       if (go.disabled || !answered && asks) return;
-      const exact = !!answered && checkedFor !== null && updatable.length === checkedFor.length && updatable.every((id) => checkedFor!.includes(id));
+      // #3421: a set only Theme's variables and styles block is checked again after Theme, so its hash is not echoed.
+      const exact = !!answered && !recheckFirst(updatable, checkedFor, answered);
       lend.run(steps, steps.includes('sets') ? runOrderOf(f, queue, r.panels) : [],
-        updatable.length && answered ? { defs: updatable, previewHash: exact ? answered.previewHash : '', checked: answered.sets, handEdits: t2.handEdits } : null);
+        updatable.length && answered ? { defs: updatable, previewHash: exact ? answered.previewHash : '', checked: answered.sets, handEdits: t2.handEdits, sets: keptChoicesOf(t2, updatable) } : null);
       close();
     };
     const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go];
@@ -471,6 +532,8 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       sw.append(sel, glyph('chev'));
       wrap.append(lab, sw);
       foot.unshift(wrap);
+      // #3421 (Q39 A): what the choice does, in the body's last line, so Keep never reads as resolving anything.
+      body.push(hook(h('p', 'p3-sub p3-upd-sub', UPDATE_COPY.handHint[t2.handEdits]), 'update-hand-hint'));
     }
     return { body, foot };
   };

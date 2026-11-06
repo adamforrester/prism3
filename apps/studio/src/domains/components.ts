@@ -21,8 +21,9 @@
  *     the fold cell of its first set. A tier's caption
  *     line carries Select all and Deselect all, right-aligned (R1), and the shared settings sit under a tier of their
  *     own, captioned Component settings (R2). A box queues its sets in the file (`add-queue`), and a queued set's tag
- *     reads To add; Update file builds the queue. A row with nothing to add has no box, and its cell stays empty so the
- *     names align. Under a search the section boxes and the tier actions act on the rows shown (Q391 A). The boxes wait
+ *     reads To add; Update file builds the queue. A row with nothing to add whose sets the file holds draws its box checked
+ *     and disabled, named as in the file, and its tags start with In file (#3439 Q-IF.1–3 A; a family partly in the file
+ *     keeps an active box). Any other row with nothing to add has no box, and its cell stays empty so the names align. Under a search the section boxes and the tier actions act on the rows shown (Q391 A). The boxes wait
  *     for the host's full read of the file. There is no Build bar: building is Update file's (Q2909.5 A).
  *   · On the web the list is read-only: no boxes, no queue (Q3129.12 A), and one line saying building needs the plugin.
  *
@@ -63,7 +64,7 @@ import { searchQuery, setSearchHits, subscribe } from '../state/store';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
-  addableOf, boxOfSets, buildableOf, costOf, deselectAllOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, heldBy, isPrivate, neededOf, tiersOf, rowMatches,
+  addableOf, boxOfSets, buildableOf, costOf, deselectAllOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, heldBy, inFileOf, isPrivate, neededOf, tiersOf, rowMatches,
   rowOfFocus, SECTION_BLOCKS, selectAllOf, setFocusKey, splitsOf, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
 } from '../state/component-groups';
 import { glyph, h, hook } from '../shell/dom';
@@ -139,7 +140,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   const narrow = (): boolean => frame()?.dataset.w === 'narrow';
 
   /** A checkbox in the chrome's pattern (a button with `role="checkbox"`, mixed included), as Build style guides'. */
-  const box = (key: string, state: BoxState, label: string, onToggle: () => void, held = false): HTMLButtonElement => {
+  const box = (key: string, state: BoxState, label: string, onToggle: () => void, held: false | 'held' | 'infile' = false): HTMLButtonElement => {
     const b = hook(h('button', 'p3-btn p3-btn-page p3-check p3-cp-check'), 'cp-box');
     b.type = 'button';
     b.dataset.key = key;
@@ -151,7 +152,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     bx.append(glyph(state === 'mixed' ? 'dash' : 'check'));
     b.append(bx);
     // #3306 Q3306.2 A: a needed set's box is ticked and held, in the chrome's held style; its name says which set needs it.
-    if (held) { b.setAttribute('aria-disabled', 'true'); b.title = label; }
+    // #3439 Q-IF.1 A: a box whose sets are in the file is checked and disabled in the same style; its name says so.
+    if (held) b.setAttribute('aria-disabled', 'true');
+    if (held === 'held') b.title = label;
     b.onclick = () => { if (!held) onToggle(); };
     // #3170 Q3170.3 A: a queue write is a write to the file, so it waits while Update file's run is out, and says why.
     const why = plugin ? lend.sets.off() : null;
@@ -171,16 +174,20 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     // Call 15 A: a family opens when one of its sets is queued from its box.
     if (open && w.on && !componentsPage().open.has(open)) setComponentsPage({ open: new Set([...componentsPage().open, open]) });
   };
-  /** A box over `ids` when the file could add any of them, else the empty cell that keeps the names aligned (Q3129.6 A).
-   *  Three-state (call 8 A, #3306 Q3306.2 A); held, named by the set that needs it, when every set under it is needed.
-   *  `name`: the sets' name as a held box's name reads it. */
-  const boxOrCell = (key: string, ids: readonly string[], label: string, open: string | undefined, empty: 'p3-cp-nobox' | 'p3-cp-fold-space', name: string): HTMLElement => {
+  /** A box over `ids` when the file could add any of them. Three-state (call 8 A, #3306 Q3306.2 A); held, named by the
+   *  set that needs it, when every set under it is needed. With nothing to add: checked and disabled, named as in the
+   *  file, when the file holds its sets (#3439 Q-IF.1 A, `inFileOf`; `inFile` false for a section of several rows, which
+   *  is no family), else the empty cell that keeps the names aligned (Q3129.6 A).
+   *  `name`: the sets' name as a held or in-file box's name reads it. */
+  const boxOrCell = (key: string, ids: readonly string[], label: string, open: string | undefined, empty: 'p3-cp-nobox' | 'p3-cp-fold-space', name: string, inFile = true): HTMLElement => {
     const p = present()!;
     const catalog = componentCatalog();
-    if (!addableOf(catalog, ids, p).length) return h('span', empty);
+    if (!addableOf(catalog, ids, p).length) {
+      return inFile && inFileOf(catalog, ids, p) ? box(key, 'on', GROUPS_COPY.inFileName(name), () => {}, 'infile') : h('span', empty);
+    }
     const by = heldBy(catalog, ids, queued(), p);
     const nameOf = (id: string): string => entryOf(catalog, id)?.name ?? id;
-    return box(key, boxOfSets(catalog, ids, queued(), p), by ? GROUPS_COPY.neededBy(name, by.map(nameOf)) : label, () => toggle(ids, open), !!by);
+    return box(key, boxOfSets(catalog, ids, queued(), p), by ? GROUPS_COPY.neededBy(name, by.map(nameOf)) : label, () => toggle(ids, open), by ? 'held' : false);
   };
   /** #3306 Q3306.1 A: one set's own box, in a family that splits; a private part gets the empty cell. */
   const setBox = (id: string, empty: 'p3-cp-nobox' | 'p3-cp-fold-space'): HTMLElement => {
@@ -192,18 +199,21 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     boxOrCell(`row=${row.key}`, row.ids, row.family ? GROUPS_COPY.addAllOf(row.label) : GROUPS_COPY.addSet(row.label), row.family ? row.key : undefined, empty, row.label);
 
   /** #2909 Q2909.8 A: a set's statuses in this file, as tags (plugin only; the web has no file). A family shows what its
-   *  sets show, each status once, in the statuses' own order. */
+   *  sets show, each status once, in the statuses' own order. #3439 Q-IF.2 A: In file first, on a set the file holds and
+   *  on a family the file holds any set of. */
   const STATUS_ORDER: readonly SetStatus[] = ['due', 'hand', 'unchecked', 'checking', 'queued', 'needed', 'new', 'current'];
   const statusTags = (ids: readonly string[]): HTMLElement | null => {
     // #3306 Q3306.2 A: a set not in the file that a chosen set needs reads Needed rather than Not in file.
     const p = present();
     const needed = p ? neededOf(componentCatalog(), queued(), p) : new Map<string, string[]>();
     const has = new Set(ids.flatMap((id) => lend.sets.status(id).map((st): SetStatus => (st === 'new' && needed.has(id) ? 'needed' : st))));
-    // A family whose sets are partly in the file and partly not reads by the ones it holds.
+    // A family whose sets are partly in the file and partly not reads by the ones it holds; In file says it holds some.
     if (has.size > 1) has.delete('current');
     const list = STATUS_ORDER.filter((s) => has.has(s));
-    if (!list.length) return null;
+    const inFile = !!p && ids.some((id) => p.includes(id));
+    if (!list.length && !inFile) return null;
     const box = hook(h('span', 'p3-cp-status'), 'cp-status');
+    if (inFile) { const t = hook(h('span', 'p3-sg-tag', GROUPS_COPY.inFile), 'cp-status-tag'); t.dataset.status = 'infile'; box.append(t); }
     for (const s of list) { const t = hook(h('span', 'p3-sg-tag', UPDATE_COPY.status[s]), 'cp-status-tag'); t.dataset.status = s; box.append(t); }
     return box;
   };
@@ -222,6 +232,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const label = member ? e.name : row.label;
     // #3129: the box sits in the row's leading cell; in a section with settings it takes the empty fold cell (flat rows
     // have no leading cell). R5: only a row's own line carries a box; a family's part keeps the empty cell.
+    // A row the file holds draws its box checked and disabled (#3439 Q-IF.1 A).
     const boxes = !!present();
     if (boxes && !edge) r.append(boxed ? rowBox(boxed, 'p3-cp-nobox') : own ? setBox(id, 'p3-cp-nobox') : h('span', 'p3-cp-nobox'));
     if (boxes && edge) r.append(boxed ? rowBox(boxed, 'p3-cp-fold-space') : own ? setBox(id, 'p3-cp-fold-space') : h('span', 'p3-cp-fold-space'));
@@ -320,12 +331,14 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     // Q391 A on #2812: under a search the section's box acts on the rows shown, and reads over them.
     const shown = rows.flatMap((r) => r.ids);
     // #2825: the box sits in a cell one title line high, centered on it, so it centers on the title's first line as a
-    // row's box centers on its name, however the count wraps. With nothing to add the cell stays, empty (Q3129.6 A).
+    // row's box centers on its name, however the count wraps. With nothing to add the cell stays, empty (Q3129.6 A),
+    // unless the section stands in for a family the file holds (#3439 Q-IF.1 A).
     const line1 = (n: HTMLElement): HTMLElement => { const c = h('span', 'p3-cp-line1'); c.append(n); return c; };
     // R5: a section with settings whose rows are one family stands in for that family's row (Q8 A), so its box is the
     // family's; every box is three-state (#3306 Q3306.2 A).
     const one = sec.flat && sec.rows.length === 1;
-    if (present()) head.append(line1(boxOrCell(`sec=${sec.kind}`, shown, GROUPS_COPY.addAll(sec.title), undefined, 'p3-cp-nobox', sec.title)));
+    // #3439 Q-IF.1 A: only a section that stands in for its family draws the family's in-file box.
+    if (present()) head.append(line1(boxOrCell(`sec=${sec.kind}`, shown, GROUPS_COPY.addAll(sec.title), undefined, 'p3-cp-nobox', sec.title, one)));
     // The count sits inside the title (TY2 A): at 380 it wraps under the name inside the heading, so the space after the
     // section title stays the level's space-300 rather than the gap to a wrapped count.
     const t = hook(h('h2', 'p3-lsec-title p3-cp-title'), 'cp-section-title');

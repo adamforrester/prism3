@@ -180,7 +180,9 @@ export type UiToMain =
    *  choice for hand edits. The confirmed `update-components`, through the same action; answered with its
    *  `component-update-result`. `input`: the panel's brand, the one the check measured, so the plans the apply lays are
    *  the plans the check hashed. */
-  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput }
+  | { type: 'update-sets'; defs: string[]; previewHash: string; handEdits: 'keep' | 'overwrite' | 'accept'; input?: BrandInput;
+      /** #3421 (Q39 A): a set listed under Kept edits, by def, with the choice made for it there, over `handEdits`. */
+      sets?: Record<string, 'keep' | 'overwrite' | 'accept'> }
   /** #3170 Q3170.4 A: "Stop after <set>". The panel's running `update-sets` finishes the set it is on and stops at the
    *  next set boundary; the sets already done keep their changes. Nothing running, nothing to stop. */
   | { type: 'update-stop' }
@@ -196,6 +198,8 @@ export type CheckedSet = {
    *  checked can tell the file moved under one of them since. */
   def: string; hash: string; members: number; update: number; add: number; drop: number; handEdited: number; noBaseline: number;
   blocked: boolean; upToDate: boolean;
+  /** #3421 — blocked only by variables or styles the brand's Theme writes (`SetPreview.themeBlocked`). */
+  themeBlocked?: true;
   /** #2831 — on a published set, what this update breaks for library consumers, as one line (`breakingSummary`).
    *  Absent for a set that is not published, or where nothing breaks. */
   breaks?: string;
@@ -320,7 +324,9 @@ export type RunProgressKind = 'read' | 'update' | 'apply-theme' | 'capture' | 'a
  * was the last line. A cause is what the writer already knows when it turns a run `⚠` or `✗`, sent beside `lines`, so the
  * drawer draws it and never reads the text to find it.
  *
- * - `kind`: `warn`, the step did what it was asked, not cleanly; `bad`, it stopped or wrote nothing.
+ * - `kind`: `warn`, the step did what it was asked, not cleanly; `bad`, it stopped or wrote nothing; `note` (#3326 PR 2,
+ *   Q3390.3 A, Q3326.7 A), worth saying but not why the run is not clean: drawn under Notes with the info mark, and never
+ *   counted. No writer sends a note yet (PR 4's split, Q3326.3 A, is the first).
  * - `subject`: the def id of the set the cause is about, or `null` when the cause is the run's own (a refusal, a throw).
  *   An id, never words: the drawer names it from its catalog, so no writer words a set's name.
  * - `what`: what happened to it, a short phrase the drawer prints after the subject ("built with problems").
@@ -329,10 +335,11 @@ export type RunProgressKind = 'read' | 'update' | 'apply-theme' | 'capture' | 'a
  *   panel fills it there (#3326 PR 2).
  * - `why`, `stays`, `todo`: the cause's explanation, what the run left in place, and what to do (#3326 PR 4's words).
  *
- * A cause is present only on a verdict that is not `ok`. An empty list means the writer found none to name.
+ * A `warn` or `bad` cause is present only on a verdict that is not `ok`; a `note` may ride any verdict. An empty list means
+ * the writer found none to name.
  */
 export type Cause = {
-  readonly kind: 'warn' | 'bad';
+  readonly kind: 'warn' | 'bad' | 'note';
   readonly subject: string | null;
   readonly what: string;
   readonly reasons: readonly string[];

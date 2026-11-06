@@ -1355,7 +1355,8 @@ const PROBE = (opt) => {
   for (const svg of drawn.filter((n) => n.matches('svg.p3-ico'))) {
     const c = parse(getComputedStyle(svg).color, `${label(svg.parentElement)} glyph`);
     const g = groundOf(svg.parentElement);
-    if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)), off: offOf(svg), ink: getComputedStyle(svg).color, canary: !!svg.closest('[data-ccanary]') });
+    // #3439: a mark inside a check's own box sits on the box's fill, so a disabled one is held to the box's roles (DB1 A).
+    if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)), off: offOf(svg), ink: getComputedStyle(svg).color, canary: !!svg.closest('[data-ccanary]'), inBox: !!svg.closest('.p3-check-box') });
   }
   // shadows, on every chrome element and its pseudo-elements, drawn or not. T5's sanctioned use (#3113, the owner,
   // 2026-10-28), typed here and nowhere read from the stylesheet: the Activity drawer's own box-shadow, while it overlays the
@@ -1807,9 +1808,13 @@ const checkExempt = (m, where) => {
     if (!want) continue;
     const got = drawnSkin(x);
     const labels = [...new Set(m.text.filter((t) => t.off === x.i).map((t) => paintOf(t.ink)))];
-    const marks = [...new Set(m.glyphs.filter((g) => g.off === x.i).map((g) => paintOf(g.ink)))];
-    ok(got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && labels.every((c) => c === want.ink) && marks.every((c) => c === want.glyph),
-      `${where}: the exempted ${x.el} draws Prism3's disabled ${appearance} roles for ${m.scheme}: ${want.roles} (want fill ${want.fill}, edge ${want.edge}, ink ${want.ink}, glyph ${want.glyph}; drew ${JSON.stringify({ ...got, labels, glyphs: marks })})`);
+    const marks = [...new Set(m.glyphs.filter((g) => g.off === x.i && !g.inBox).map((g) => paintOf(g.ink)))];
+    // #3439: a check's mark inside its own box (a checked, disabled box, first drawn on Components for a set in the file)
+    // sits on the box's `disabled.fill`, so it is held to `disabled.on-fill`, as DB1 A holds the fixed Light row's mark.
+    const boxMarks = [...new Set(m.glyphs.filter((g) => g.off === x.i && g.inBox).map((g) => paintOf(g.ink)))];
+    const onFill = PRISM3_DISABLED[m.scheme]?.ink;
+    ok(got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && labels.every((c) => c === want.ink) && marks.every((c) => c === want.glyph) && boxMarks.every((c) => c === onFill),
+      `${where}: the exempted ${x.el} draws Prism3's disabled ${appearance} roles for ${m.scheme}: ${want.roles}${boxMarks.length ? ', its box\'s mark color.disabled.on-fill' : ''} (want fill ${want.fill}, edge ${want.edge}, ink ${want.ink}, glyph ${want.glyph}${boxMarks.length ? `, box mark ${onFill}` : ''}; drew ${JSON.stringify({ ...got, labels, glyphs: marks, boxMarks })})`);
   }
 };
 
@@ -3095,6 +3100,16 @@ const AGENT_WIRE = { type: 'agent-link', on: true };
 const WAIT = { timeout: 10000 };
 
 const postMsg = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
+/** #3422 Q44 A: Update file opens Theme ticked only when the badge's recount says the file differs from the brand. Where
+ *  none has said so, a case that needs the Theme step ticks it by hand, as a designer applying the brand again does. The
+ *  tick checks the file again (#3023 Q701 B), answered with `answer`, as the first read was. */
+const tickTheme = async (page, answer) => {
+  const box = page.locator('[data-p3="update-check-theme"]');
+  if ((await box.getAttribute('aria-checked', WAIT).catch(() => null)) !== 'false') return;
+  await hooks.click(box, WAIT);
+  await postMsg(page, { type: 'file-sets', ...answer });
+  await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, WAIT).catch(() => {});
+};
 /** Record every write the UI posts toward the main thread (in this harness `parent` is the page itself),
  *  the whole message, payload included. */
 const recordPosts = (page) => page.evaluate(() => {
@@ -3158,15 +3173,26 @@ const drawerState = (page) => page.evaluate(() => {
     dot: btn?.querySelector('[data-state]')?.dataset.state ?? null,
     // S11: every operation that has run has its row: its state, its verdict pill, its phase while running,
     // and its summary when that is showing.
-    // #3113 (Q3113.2 A, Q3113.5 A): the verdict's words beside the row's mark, and a bad result's reason line before
-    // its mono lines; `summary` reads both, as drawn, in order.
+    // #3113 (Q3113.2 A): the verdict's words beside the row's mark. #3326 (Q3326.1 A) replaces Q3113.5 A's positional
+    // reason: `summary` reads the mono lines as drawn, `causes` the writer's causes drawn before them (subject, what, mark,
+    // step, whether open), and `positional` says whether any line is still set apart as the reason (`op-reason`).
     ops: Object.fromEntries([...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="activity-op"]')].map((n) => [n.dataset.op, {
       state: n.dataset.state, kind: n.dataset.kind, verdict: n.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
       mark: n.querySelector('[data-p3="op-head"] .p3-op-mark')?.dataset.state ?? null,
       phase: n.querySelector('[data-p3="op-progress"]')?.textContent ?? null,
-      summary: [n.querySelector('[data-p3="op-body"] > [data-p3="op-reason"]'), n.querySelector('[data-p3="op-body"] > [data-p3="op-summary"]')].filter(vis).map((x) => x.textContent).join('\n') || null,
-      reason: vis(n.querySelector('[data-p3="op-reason"]')) ? n.querySelector('[data-p3="op-reason"]').textContent : null,
+      summary: [n.querySelector('[data-p3="op-body"] > [data-p3="op-summary"]')].filter(vis).map((x) => x.textContent).join('\n') || null,
+      causes: [...n.querySelectorAll('[data-p3="op-body"] > [data-p3="op-causes"] [data-p3="op-cause"]')].filter(vis).map((c) => ({
+        subject: vis(c.querySelector('[data-p3="op-cause-subject"]')) ? c.querySelector('[data-p3="op-cause-subject"]').textContent : null,
+        what: c.querySelector('[data-p3="op-cause-what"]')?.textContent ?? null, kind: c.dataset.kind ?? null,
+        mark: c.querySelector('summary > .p3-op-mark')?.dataset.state ?? null, open: c.open,
+        step: [...c.querySelectorAll('.p3-op-cause-step, .p3-op-cause-steptext')].filter(vis).map((x) => x.textContent)[0] ?? null })),
+      positional: !!n.querySelector('.p3-op-reason'),
       next: [...n.querySelectorAll('[data-p3="op-next"] button')].filter(vis).map((b) => b.textContent),
+      // #3326 PR 2 (Q3326.4 A): Update file's run row holds its steps: each step's mark, name, words and lines (read
+      // whether or not its disclosure is open).
+      steps: [...n.querySelectorAll('[data-p3="op-body"] > [data-p3="op-steps"] [data-p3="op-step"]')].map((st) => ({ mark: st.querySelector('.p3-op-mark')?.dataset.state ?? null,
+        name: st.querySelector('[data-p3="op-step-name"]')?.textContent ?? null, words: st.querySelector('[data-p3="op-step-words"]')?.textContent ?? null,
+        lines: [...st.querySelectorAll('[data-p3="op-step-line"]')].map((l) => l.textContent) })),
     }])),
     order: [...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="activity-op"]')].map((n) => n.dataset.op),
     last: document.querySelector('[data-p3="activity-toggle"]')?.textContent ?? null,
@@ -3483,15 +3509,38 @@ for (const host of ['web', 'figma']) {
             await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
           }
         };
-        const idleU = await updBtn();
+        let idleU = await updBtn();
         ok(idleU.text === UPDATE_LABEL && !idleU.disabled && !idleU.busy, `${where}: the bar's Update file reads "${UPDATE_LABEL}", and can run (read ${JSON.stringify(idleU)})`);
         await takePosts(page);
         await openUpdate({ present: [], setUp: true });
         const u0 = await page.evaluate(() => ({ focusIn: !!document.activeElement?.closest('[data-p3="update-dialog"]'),
           modal: document.querySelector('[data-p3="update-dialog"]')?.getAttribute('aria-modal') }));
         ok(u0.focusIn && u0.modal === 'true', `Update file ${where}: the overlay opens as a modal dialog, focus inside it (${JSON.stringify(u0)})`);
-        ok(JSON.stringify(await items()) === JSON.stringify([['update-check-theme', 'true'], ['update-check-guides', 'false']]),
-          `Update file ${where}: on a set-up file the checklist shows Theme, ticked, and Style guides, unticked (Q2909.2 A) — read ${JSON.stringify(await items())}`);
+        // #3422 Q44 A: Theme opens ticked only when the badge's recount says the file differs from the brand. None has
+        // answered yet, so Theme opens unticked, as the badge counts no Theme. Q44.2 A: nothing was compared, so no tag.
+        // MUTATION: `defaultTicks` ticking Theme always → this arm, by name; the tag shown unmeasured → this arm, by name.
+        const themeTag = () => page.evaluate(() => document.querySelector('[data-p3="update-check-theme"] [data-p3="update-theme-current"]')?.textContent ?? null);
+        const u44 = { items: await items(), tag: await themeTag() };
+        ok(JSON.stringify(u44) === JSON.stringify({ items: [['update-check-theme', 'false'], ['update-check-guides', 'false']], tag: null }),
+          `Q44 A Update file ${where}: on a set-up file no recount has measured, Theme opens unticked with no tag, beside Style guides, unticked — read ${JSON.stringify(u44)}`);
+        await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+        // The recount says the file matches the brand: Theme opens unticked and reads "Up to date" (Q44.2 A).
+        await postMsg(page, { type: 'file-due', seq: 1e6 - 1, present: [], theme: false, due: {}, queued: [] });
+        await openUpdate({ present: [], setUp: true });
+        const u44m = { items: await items(), tag: await themeTag() };
+        ok(JSON.stringify(u44m) === JSON.stringify({ items: [['update-check-theme', 'false'], ['update-check-guides', 'false']], tag: 'Up to date' }),
+          `Q44 A Update file ${where}: on a set-up file the recount found matching the brand, Theme opens unticked and reads "Up to date" — read ${JSON.stringify(u44m)}`);
+        await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+        // The recount says the file differs from the brand: Theme opens ticked, with no tag. A high seq, so no later answer
+        // in this section replaces it.
+        await postMsg(page, { type: 'file-due', seq: 1e6, present: [], theme: true, due: {}, queued: [] });
+        // The badge now counts Theme, so the idle width the busy one is held to is read again, badge and all.
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-badge"]')?.textContent === '1', null, WAIT).catch(() => {});
+        idleU = await updBtn();
+        await openUpdate({ present: [], setUp: true });
+        const u44d = { items: await items(), tag: await themeTag() };
+        ok(JSON.stringify(u44d) === JSON.stringify({ items: [['update-check-theme', 'true'], ['update-check-guides', 'false']], tag: null }),
+          `Q44 A Update file ${where}: on a set-up file that differs from the brand, the checklist shows Theme, ticked, with no tag, and Style guides, unticked — read ${JSON.stringify(u44d)}`);
         const mu = await measure(page, `${where} / Update file open`, host, w);
         check(mu, `${where} / Update file open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="update-go"]', '[data-p3="update-tab-clean"]'] });
         await shot('update-open');
@@ -3505,9 +3554,10 @@ for (const host of ['web', 'figma']) {
         ok(isWire(wa, FIGMA_WIRE.apply), `Update file ${where}: the theme step posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
         await settle(page);
         const r = await drawerState(page);
-        const ra = r.ops['apply'];
-        ok(ra?.state === 'running' && ra.phase === 'Writing to Figma…', `F2 ${where}: the running write sits on the drawer's Apply Theme row, reading "Writing to Figma…" (row ${JSON.stringify(ra)})`);
-        ok((r.last ?? '').includes('Theme') && (r.last ?? '').includes('Writing to Figma…'), `F2 ${where}: the drawer's bar row names the running write and its phase (read "${r.last}")`);
+        // #3326 PR 2 (Q3326.4 A): the theme is a step of Update file's run, so it runs on the run's row, "Update file".
+        const ra = r.ops['update'];
+        ok(ra?.state === 'running' && ra.phase === 'Writing to Figma…' && !r.ops['apply'], `F2 ${where}: the running write sits on the drawer's Update file row, reading "Writing to Figma…", and the theme draws no row of its own (row ${JSON.stringify(ra)}, rows ${JSON.stringify(r.order)})`);
+        ok((r.last ?? '').includes('Update file') && (r.last ?? '').includes('Writing to Figma…'), `F2 ${where}: the drawer's bar row names the running run and its phase (read "${r.last}")`);
         // Q3113.3 A: a lone run is the lead row's, so the bar counts no "1 running"; its mark is the running ring.
         // MUTATION: `running > 1 &&` back to `running &&` in `countEls` → this arm, by name.
         ok(r.counts.length === 0 && r.barMark === 'run' && ra?.mark === 'run', `Q3113.3 A ${where}: a lone run draws the running ring and no "1 running" count (counts ${JSON.stringify(r.counts)}, bar mark ${r.barMark}, row mark ${ra?.mark})`);
@@ -3516,7 +3566,7 @@ for (const host of ['web', 'figma']) {
           ok(!r.open && r.shown && r.pinned && !r.body, `F2 ${where}: at 380 a running write shows in the strip, pinned to the bottom edge, and the drawer stays closed (${JSON.stringify({ open: r.open, shown: r.shown, pinned: r.pinned })})`);
         } else {
           ok(r.open && r.body && r.pinned, `F2 ${where}: the write opens the drawer by itself while it runs, pinned to the bottom edge (${JSON.stringify({ open: r.open, body: r.body, pinned: r.pinned })})`);
-          ok(r.note === null && (await rowOf(page, 'apply'))?.expanded === 'true', `F2 ${where}: the open drawer's body shows the Apply Theme row, expanded, and not its empty note (note "${r.note}")`);
+          ok(r.note === null && (await rowOf(page, 'update'))?.expanded === 'true', `F2 ${where}: the open drawer's body shows the Update file row, expanded, and not its empty note (note "${r.note}")`);
         }
         const mr = await measure(page, `${where} / a write running`, host, w);
         check(mr, `${where} / a write running`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="activity-toggle"]'] });
@@ -3531,14 +3581,17 @@ for (const host of ['web', 'figma']) {
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
         const t0 = Date.now();
-        await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '') === 'Applied 412 variables', null, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="update"] [data-p3="op-verdict"]')?.textContent ?? '') === 'Theme applied', null, { timeout: 5000 }).catch(() => {});
         {
           // Q3113.2 A: a clean result's verdict is its words without the leading mark, after a check in the ok ink, on the
-          // bar row and the row alike; no count while nothing is bad and one runs at most (Q3113.3 A).
+          // bar row and the row alike; no count while nothing is bad and one runs at most (Q3113.3 A). #3326 PR 2: the run's
+          // verdict is the strip's ("Theme applied"); its Theme step reads the host's headline without its mark.
           // MUTATION: `verdictWords` returning the verdict whole → this arm, by name.
           const sa = await drawerState(page);
-          ok(sa.ops['apply']?.verdict === 'Applied 412 variables' && sa.ops['apply']?.mark === 'ok' && sa.barMark === 'ok' && (sa.last ?? '').includes('Applied 412 variables') && !(sa.last ?? '').includes('\u2713') && sa.counts.length === 0,
-            `Q3113.2 A ${where}: a success reads "Applied 412 variables" after the ok mark, on the bar row and the row, and the bar counts nothing (${JSON.stringify({ row: sa.ops['apply'], bar: sa.last, mark: sa.barMark, counts: sa.counts })})`);
+          const su = sa.ops['update'];
+          ok(su?.verdict === 'Theme applied' && su?.mark === 'ok' && sa.barMark === 'ok' && (sa.last ?? '').includes('Theme applied') && !(sa.last ?? '').includes('\u2713') && sa.counts.length === 0
+            && JSON.stringify(su?.steps?.map((x) => [x.mark, x.name, x.words])) === JSON.stringify([['ok', 'Theme', 'Applied 412 variables']]),
+            `Q3113.2 A ${where}: a success reads "Theme applied" after the ok mark, on the bar row and the row, its Theme step "Applied 412 variables" without the mark, and the bar counts nothing (${JSON.stringify({ row: su, bar: sa.last, mark: sa.barMark, counts: sa.counts })})`);
         }
         if (w === 1280) {
           await sinceMs(page, t0, COLLAPSE_MS - 1000);
@@ -3546,7 +3599,7 @@ for (const host of ['web', 'figma']) {
           ok(early.open && early.body, `F2 ${where}: a success keeps the drawer open at ${(COLLAPSE_MS - 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s) — open ${early.open}`);
           await sinceMs(page, t0, COLLAPSE_MS + 1000);
           const late = await drawerState(page);
-          ok(!late.open && !late.body && late.shown && (late.last ?? '').includes('Applied 412 variables'),
+          ok(!late.open && !late.body && late.shown && (late.last ?? '').includes('Theme applied'),
             `F2 ${where}: a success collapses the drawer by ${(COLLAPSE_MS + 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s), its result still on the drawer's bar row — open ${late.open}, bar "${late.last}"`);
           await shot('drawer-collapsed');
         } else if (narrow) {
@@ -3604,76 +3657,90 @@ for (const host of ['web', 'figma']) {
           : { type: 'file-setup-result', ok: false, headline: '⚠ 2 pages skipped', summary: '2 pages already present were skipped: Cover, Sandbox' };
         await postMsg(page, bad);
         const t1 = Date.now();
-        await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
+        // #3326 PR 2 (Q3326.4 A): Set up file is a step of Update file's run, so its verdict lands on the run's row, and the
+        // run stops there: "Stopped at Set up file" (the strip's words). The step keeps its own kind and words.
+        const stopWords = 'Stopped at Set up file';
+        const stepWant = theme === 'light' ? ['bad', 'Set up file', 'File setup failed', [bad.summary]] : ['warn', 'Set up file', '2 pages skipped', [bad.summary]];
+        const runRow = '[data-p3="activity-op"][data-op="update"]';
+        await page.waitForFunction((r) => document.querySelector(`${r} [data-p3="op-verdict"]`)?.textContent === 'Stopped at Set up file', runRow, { timeout: 5000 }).catch(() => {});
         const after = await takePosts(page);
         ok(after.length === 0, `Update file ${where}: a step that does not land well ends the run: nothing more is posted (posted ${JSON.stringify(after)})`);
         if (w === 1280 || narrow) await sinceMs(page, t1, COLLAPSE_MS + 1000);
         const f = await drawerState(page);
-        const fs = f.ops['filesetup'];
-        ok(f.open && f.body && fs?.summary === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its row's summary showing — open ${f.open}, summary "${fs?.summary}"`);
+        const fs = f.ops['update'];
+        const fstep = fs?.steps?.[0];
+        ok(f.open && f.body && JSON.stringify(fstep && [fstep.mark, fstep.name, fstep.words, fstep.lines]) === JSON.stringify(stepWant),
+          `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its Set up file step showing its mark, words and line — open ${f.open}, step ${JSON.stringify(fstep)}`);
         if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
-        // #3113, read on the bad result: its mark and words (Q3113.2 A), the split count (Q3113.3 A), its reason in the UI
-        // face at the emphasis weight above no mono lines (Q3113.5 A: the summary is one line), and its next steps (Q3113.4 A).
-        // MUTATIONS: `kindOf` dropping the ⚠ test (every bad result a failure) → the dark (warning) arm, by name; the reason
-        // left in the mono list (`splitLines` returning no reason) → the reason arm, by name; `AGAIN.filesetup` removed →
-        // the next-steps arm, by name.
+        // #3113, read on the bad result: its mark and words (Q3113.2 A), the split count (Q3113.3 A) and its next steps
+        // (Q3113.4 A). #3326 (Q3326.1 A) replaces Q3113.5 A's reason line: Set up file's writer names no causes, so its one
+        // line stays in its step's mono list, and nothing is set apart as the reason by its place. #3326 PR 2: the run
+        // stopped, so the row and the count read a failure whatever the step's own kind; the step keeps its own.
+        // MUTATIONS: `kindOf` dropping the ⚠ test (every bad result a failure) → the dark (warning) step arm, by name; the
+        // positional pick back (`splitLines`, the first line drawn as `op-reason`) → the #3326 arm, by name; `AGAIN.update`
+        // removed → the next-steps arm, by name.
         {
-          const wantKind = kind === 'failure' ? 'bad' : 'warn';
-          const words = bad.headline.slice(2);
-          const wantCount = kind === 'failure' ? [['bad', '1 failed']] : [['warn', '1 warning']];
-          ok(fs?.mark === wantKind && fs?.verdict === words && JSON.stringify(f.counts) === JSON.stringify(wantCount) && (narrow || f.barMark === wantKind),
-            `Q3113.2 A Q3113.3 A ${where}: a ${kind} draws the ${wantKind} mark and "${words}", and the bar counts ${JSON.stringify(wantCount)} (row ${JSON.stringify({ mark: fs?.mark, verdict: fs?.verdict })}, bar mark ${f.barMark}, counts ${JSON.stringify(f.counts)})`);
-          const face = await page.evaluate(() => { const r = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]'); const l = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-head"]');
-            return r ? { family: getComputedStyle(r).fontFamily, weight: getComputedStyle(r).fontWeight, rowFamily: getComputedStyle(l).fontFamily, mono: !!r.closest('ul') } : null; });
-          ok(fs?.reason === bad.summary && !!face && face.family === face.rowFamily && !/mono/i.test(face.family) && Number(face.weight) === 500 && !face.mono,
-            `Q3113.5 A ${where}: the ${kind} leads with its reason in the UI face at 500, not in the mono list (${JSON.stringify({ reason: fs?.reason, face })})`);
-          ok(JSON.stringify(fs?.next) === JSON.stringify(['Set up again', 'Copy details']),
-            `Q3113.4 A ${where}: the ${kind} offers "Set up again" and "Copy details" (${JSON.stringify(fs?.next)})`);
-          // "Set up again" reruns the write the panel made: exactly the message Set up file posted, and nothing else.
+          ok(fs?.mark === 'bad' && fs?.verdict === stopWords && JSON.stringify(f.counts) === JSON.stringify([['bad', '1 failed']]) && (narrow || f.barMark === 'bad') && fstep?.mark === stepWant[0],
+            `Q3113.2 A Q3113.3 A ${where}: a run stopped by a ${kind} draws the bad mark and "${stopWords}", its Set up file step the ${stepWant[0]} mark, and the bar counts [["bad","1 failed"]] (row ${JSON.stringify({ mark: fs?.mark, verdict: fs?.verdict })}, step ${JSON.stringify(fstep)}, bar mark ${f.barMark}, counts ${JSON.stringify(f.counts)})`);
+          ok(!fs?.positional && (fs?.causes ?? []).length === 0 && fs?.summary === null && JSON.stringify(fstep?.lines) === JSON.stringify([bad.summary]),
+            `#3326 ${where}: the ${kind}, which names no cause, keeps its line in its step's mono list and sets no line apart as the reason by its place (${JSON.stringify({ summary: fs?.summary, positional: fs?.positional, causes: fs?.causes, step: fstep })})`);
+          ok(JSON.stringify(fs?.next) === JSON.stringify(['Update again', 'Copy details']),
+            `Q3113.4 A ${where}: the ${kind} offers "Update again" and "Copy details" (${JSON.stringify(fs?.next)})`);
+          // "Update again" opens Update file again (Q3390.2 A); its run posts exactly the message Set up file posted.
           await takeWrites(page);
-          await hooks.click(page.locator('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-again"]'), WAIT);
+          await hooks.click(page.locator(`${runRow} [data-p3="op-again"]`), WAIT);
+          await postMsg(page, { type: 'file-sets', present: [], setUp: false });
+          await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
           const again = await takeWrites(page);
-          ok(isWire(again, FIGMA_WIRE['file-setup']), `Q3113.4 A ${where}: "Set up again" posts ${JSON.stringify(FIGMA_WIRE['file-setup'])} and nothing more — ${wireDiff(again[0], FIGMA_WIRE['file-setup'])}`);
+          ok(isWire(again, FIGMA_WIRE['file-setup']), `Q3113.4 A ${where}: "Update again" opens Update file, whose run posts ${JSON.stringify(FIGMA_WIRE['file-setup'])} first and waits on it — ${wireDiff(again[0], FIGMA_WIRE['file-setup'])}`);
           await postMsg(page, bad);
-          await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-reason"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
-          const hist = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-head"]')].map((n) => n.textContent));
-          // Q3113.6 A: the earlier result is one line, its time and its words.
-          ok(hist.length === 1 && new RegExp(`^\\d\\d:\\d\\d${words}$`).test(hist[0]),
-            `Q3113.6 A ${where}: the earlier ${kind} is one line, its time and "${words}" (${JSON.stringify(hist)})`);
+          await page.waitForFunction((r) => document.querySelectorAll(`${r} [data-p3="op-history-head"]`).length === 2, runRow, { timeout: 5000 }).catch(() => {});
+          const hist = await page.evaluate((r) => [...document.querySelectorAll(`${r} [data-p3="op-history-head"]`)].map((n) => n.textContent), runRow);
+          // Q3113.6 A: each earlier result is one line, its time and its words, newest first: the run this one repeats, then
+          // the Theme run this case began with (one Update file row, Q3326.4 A).
+          ok(hist.length === 2 && new RegExp(`^\\d\\d:\\d\\d${stopWords}$`).test(hist[0]) && /^\d\d:\d\dTheme applied$/.test(hist[1]),
+            `Q3113.6 A ${where}: the earlier runs are one line each, its time and words: "${stopWords}", then "Theme applied" (${JSON.stringify(hist)})`);
           // The review of #3126 (nit 3): an open earlier result stays open when a new result arrives, though every entry moves
           // down one. MUTATION: the open entries remembered by their index again → this arm, by name.
-          const row = '[data-p3="activity-op"][data-op="filesetup"]';
+          const row = runRow;
           await page.evaluate((r) => { const d = document.querySelector(`${r} details.p3-op-history`); if (d) d.open = true; const e = document.querySelector(`${r} details.p3-op-entry`); if (e) e.open = true; }, row);
           await takeWrites(page);
           await hooks.click(page.locator(`${row} [data-p3="op-again"]`), WAIT);
+          await postMsg(page, { type: 'file-sets', present: [], setUp: false });
+          await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
           await takeWrites(page);
           await postMsg(page, bad);
-          await page.waitForFunction((r) => document.querySelectorAll(`${r} details.p3-op-entry`).length === 2, row, { timeout: 5000 }).catch(() => {});
+          await page.waitForFunction((r) => document.querySelectorAll(`${r} details.p3-op-entry`).length === 3, row, { timeout: 5000 }).catch(() => {});
           const opened = await page.evaluate((r) => [...document.querySelectorAll(`${r} details.p3-op-entry`)].map((n) => n.open), row);
-          ok(JSON.stringify(opened) === '[false,true]',
+          ok(JSON.stringify(opened) === '[false,true,false]',
             `#3126 review ${where}: an open earlier result stays open when a new result arrives and moves it down one (entries open ${JSON.stringify(opened)})`);
-          // The review of #3126 (should-fix 2), the rerun's two guards. With another write running (an agent's build), "Set up
-          // again" reads unavailable and a click, activated in the page, posts nothing. MUTATION Ma: `activityAgain.can`
-          // returning true up front (`main.ts`) → this arm, by name.
+          // The review of #3126 (should-fix 2), the rerun's two guards. With another write running (an agent's build), "Update
+          // again" reads unavailable and a click, activated in the page, opens nothing and posts nothing. MUTATION Ma:
+          // `activityAgain.can` returning true up front (`main.ts`) → this arm, by name.
           await postMsg(page, { type: 'agent-started', id: 'ag1', cmd: 'build-components' });
           await page.waitForFunction((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') === 'true', row, { timeout: 5000 }).catch(() => {});
           const busy = await page.evaluate((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') ?? null, row);
           await takeWrites(page);
           await page.evaluate((r) => { const n = document.querySelector(`${r} [data-p3="op-again"]`); if (n) HTMLElement.prototype.click.call(n); }, row);
           const busyW = await takeWrites(page);
-          ok(busy === 'true' && busyW.length === 0,
-            `#3126 review ${where}: with a second write running, "Set up again" is aria-disabled and a click posts nothing (aria-disabled ${busy}, posted ${JSON.stringify(busyW.map(keyOf))})`);
+          const busyD = await page.evaluate(() => !!document.querySelector('[data-p3="update-dialog"]'));
+          ok(busy === 'true' && busyW.length === 0 && !busyD,
+            `#3126 review ${where}: with a second write running, "Update again" is aria-disabled and a click opens nothing and posts nothing (aria-disabled ${busy}, dialog ${busyD}, posted ${JSON.stringify(busyW.map(keyOf))})`);
           await postMsg(page, { type: 'agent-finished', id: 'ag1', cmd: 'build-components' });
           await page.waitForFunction((r) => document.querySelector(`${r} [data-p3="op-again"]`)?.getAttribute('aria-disabled') === null, row, { timeout: 5000 }).catch(() => {});
-          // An agent's bad result ran with the agent's input, not the panel's, so it offers "Copy details" alone. MUTATION Mb:
-          // `nextSteps` without `!res.agent` (`activity.ts`) → this arm, by name.
+          // An agent's bad result ran with the agent's input, not the panel's, so it offers "Copy details" alone. It is not a
+          // step of Update file's run, so it has a row of its own (Q3390.1 A). MUTATION Mb: `nextSteps` without
+          // `!res.agent` (`activity.ts`) → this arm, by name.
+          const agentRow = '[data-p3="activity-op"][data-op="filesetup"]';
           await postMsg(page, { type: 'agent-started', id: 'ag2', cmd: 'file-setup' });
           await postMsg(page, bad);
           await postMsg(page, { type: 'agent-finished', id: 'ag2', cmd: 'file-setup' });
-          await page.waitForFunction((r) => !!document.querySelector(`${r} [data-p3="op-copy"]`) && document.querySelectorAll(`${r} details.p3-op-entry`).length === 3 && !document.querySelector(`${r} [data-p3="op-again"]`), row, { timeout: 5000 }).catch(() => {});
-          const agentNext = await page.evaluate((r) => ({ next: [...document.querySelectorAll(`${r} [data-p3="op-next"] button`)].map((n) => n.textContent), agent: !document.querySelector(`${r} [data-p3="op-head"] .p3-op-agent`)?.hidden }), row);
+          await page.waitForFunction((r) => !!document.querySelector(`${r} [data-p3="op-copy"]`), agentRow, { timeout: 5000 }).catch(() => {});
+          const agentNext = await page.evaluate((r) => ({ next: [...document.querySelectorAll(`${r} [data-p3="op-next"] button`)].map((n) => n.textContent), agent: !document.querySelector(`${r} [data-p3="op-head"] .p3-op-agent`)?.hidden }), agentRow);
           ok(agentNext.agent && JSON.stringify(agentNext.next) === '["Copy details"]',
-            `#3126 review ${where}: an agent's ${kind} offers "Copy details" alone (${JSON.stringify(agentNext)})`);
+            `#3126 review ${where}: an agent's ${kind} has its own Set up file row and offers "Copy details" alone (${JSON.stringify(agentNext)})`);
           // Back to the panel's own bad result, the state the checks below read: Set up file run again from Update file.
           await openUpdate({ present: [], setUp: false });
           await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
@@ -3765,9 +3832,12 @@ for (const host of ['web', 'figma']) {
         await postMsg(page, { type: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: REFUSED_WORDS });
         await settle(page);
         const rfU = await updBtn();
-        const rfC = (await drawerState(page)).ops['components'];
-        ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && String(rfC?.summary ?? '').includes(REFUSED_WORDS),
-          `${where}: #3128: a set the host refuses ends the run: Update file is free and the Build set row stops, with the host's words (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)})`);
+        // #3326 PR 2: the queue is Update file's To add step, so the refusal lands on the run's row, in that step's lines.
+        const rfD = await drawerState(page);
+        const rfC = rfD.ops['update'];
+        const rfS = rfC?.steps?.find((x) => x.name === 'To add');
+        ok(JSON.stringify(rfW1) === '["build-components"]' && JSON.stringify(rfW2) === '["build-components"]' && !rfU.busy && rfC?.state !== 'running' && rfS?.mark === 'bad' && (rfS?.lines ?? []).includes(REFUSED_WORDS) && !rfD.order.includes('components'),
+          `${where}: #3128: a set the host refuses ends the run: Update file is free and its row stops, its To add step failed with the host's words, and no Build set row is drawn for it (posted ${JSON.stringify(rfW1)} then ${JSON.stringify(rfW2)}, Update file ${JSON.stringify(rfU)}, row ${JSON.stringify(rfC ?? null)}, rows ${JSON.stringify(rfD.order)})`);
         // #3308 (Q3308.3 A): usage panels on a first run. With Documentation's panels on and a file with no `_Doc-block`
         // (`docBlockLacks`), To add lists the sets the run also builds for it, and the sets step posts the queued Badge
         // first, asking each build to make the template first (`docBlock`). With the panels off, no line and the queue's
@@ -3816,12 +3886,15 @@ for (const host of ['web', 'figma']) {
         await settle(page);
         // Still running is the run gone on: it now waits on the style guides' catalog. Ended, it would be free again.
         const pwU = await updBtn();
-        const pwC = (await drawerState(page)).ops['components'];
-        ok(pwU.busy && pwC?.kind === 'warn' && String(pwC?.verdict ?? '').includes('Built 2 sets · 2 with problems'),
-          `${where}: #3308: a queue that built every set with problems goes on to the style guides, and Activity reads it as a warning (Update file ${JSON.stringify(pwU)}, row ${JSON.stringify(pwC ?? null)})`);
+        ok(pwU.busy, `${where}: #3308: a queue that built every set with problems goes on to the style guides (Update file ${JSON.stringify(pwU)})`);
         await postMsg(page, { type: 'refused', code: 'busy', cmd: 'style-guide', agent: false, message: REFUSED_WORDS });
         await settle(page);
         ok(!(await updBtn()).busy, `${where}: #3308: the refused style guides end that run, and Update file is free again`);
+        // #3326 PR 2: the run's row then holds the queue's result as its To add step, read as a warning.
+        const pwC = (await drawerState(page)).ops['update'];
+        const pwS = pwC?.steps?.find((x) => x.name === 'To add');
+        ok(pwS?.mark === 'warn' && pwS?.words === 'Built 2 sets · 2 with problems',
+          `${where}: #3308: Activity reads the queue that built every set with problems as a warning, its To add step (row ${JSON.stringify(pwC ?? null)})`);
         // #3308 review (Blocking 2): a failed set still ends the run. The same fresh file and queue, but the second set
         // fails (not completed): the sets step is not a warning, so the run stops at To add, Update file is free, the strip
         // reads it, and Activity counts a failure. The failed set is the LAST one, so the queue has a result for every set
@@ -3839,7 +3912,7 @@ for (const host of ['web', 'figma']) {
         await postMsg(page, { type: 'component-result', ok: false, completed: false, headline: '✗ write failed', summary: 'write failed', lines: ['write failed'] });
         await settle(page);
         const pfU = await updBtn();
-        const pfC = (await drawerState(page)).ops['components'];
+        const pfC = (await drawerState(page)).ops['update'];
         const pfS = await page.evaluate(() => {
           const s = document.querySelector('[data-p3="status-strip"]');
           return { tone: s?.dataset.tone ?? null, what: s?.querySelector('[data-p3="status-what"]')?.textContent ?? null };
@@ -13882,6 +13955,7 @@ for (const theme of ['light', 'dark']) {
       await postMsg(page, { type: 'agent-link-state', state: LINK_STATES.listening });
       await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
       await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+      await tickTheme(page, { present: [], setUp: true });
       await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
       await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' });
       // The failure opens the drawer (at 380, the sheet): close it, to read the bar row.
@@ -14111,11 +14185,13 @@ for (const theme of ['light', 'dark']) {
 if (runs('30b')) {
 console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
 /** #2909: the plugin's theme write is Update file's theme step: open it, answer its read with a set-up file, and run the
- *  default checklist (the theme alone, Q2909.2 A). Each step bounded, as a click is. */
+ *  theme alone (Q2909.2 A; ticked by hand where no recount says the file differs, #3422 Q44 A). Each step bounded, as a
+ *  click is. */
 const applyViaUpdate = async (page) => {
   await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
   await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
   await postMsg(page, { type: 'file-sets', present: [], setUp: true });
+  await tickTheme(page, { present: [], setUp: true });
   await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
 };
 /** #2486: Apply as it stood when a click on it did not land (#2909: Update file, the plugin's write now), read over 12 frames, bounded: its native and busy states, its
@@ -15676,7 +15752,7 @@ for (const host of ['web', 'figma']) {
 }
 // #2437: THE CONSUME SKILL'S FLUSH HIT AREA, MEASURED IN A BROWSER (WCAG 2.5.8; owner Q154 A, Q174 B; the spacing
 // sentence is DRAFT for the owner). The engine emits no code layout, so this is the one place the rule can be measured:
-// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-consume/SKILL.md`, applied to
+// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-build-ui/SKILL.md`, applied to
 // buttons on a blank page and hit-tested point by point. The floors (44 at medium and large, 24 at small) are typed here
 // from the owner's decision, never read from the skill. At each size and for labels from 1px to just under the floor:
 //   · two flush buttons at the skill's "always enough" gap (twice its per-side bound) and at the exact gap it states (the
@@ -15690,7 +15766,7 @@ for (const host of ['web', 'figma']) {
 // sketch's 44px raised to 48px → the same arm at the bound AND at the exact gap, the neighbor's own box included.
 {
   const where = '#2437 flush hit area';
-  const skill = readFileSync(join(REPO, 'skills/prism3-consume/SKILL.md'), 'utf8');
+  const skill = readFileSync(join(REPO, 'skills/prism3-build-ui/SKILL.md'), 'utf8');
   const css = /```css\n(\.flush-button[\s\S]*?)```/.exec(skill)?.[1];
   const para = (/\*\*Keep a flush button's hit area clear of its neighbors\.\*\*([\s\S]*?)\n\n/.exec(skill)?.[1] ?? '').replace(/\s+/g, ' ');
   const bound = /(\d+)px is always enough at medium and large, and (\d+)px at small/.exec(para);
@@ -18008,8 +18084,12 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       ok(bd.text === '2' && bd.name === 'Update file, 2 due', `${where}: Q2909.8 A: Update file carries a badge of 2, the due sets, and says so in its name (${JSON.stringify(bd)})`);
       await goPlace(page, 'components');
       const st = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-p3="cp-row"][data-set], [data-p3="cp-member"][data-set]')].map((r) => [r.dataset.set, [...r.querySelectorAll('[data-p3="cp-status-tag"]')].map((t) => t.dataset.status)])));
-      ok(JSON.stringify(st.tag) === JSON.stringify(['hand']) && JSON.stringify(st.badge) === JSON.stringify(['unchecked']) && JSON.stringify(st.select) === JSON.stringify(['due']) && JSON.stringify(st.counter) === JSON.stringify(['new']),
-        `${where}: Q2909.8 A: Components' rows show each set's status: Tag Hand-edited, Badge Not checked yet, Select Due, Counter Not in file (${JSON.stringify({ tag: st.tag, badge: st.badge, select: st.select, counter: st.counter })})`);
+      // #3439 Q-IF.2 A: a set the file holds carries In file first.
+      ok(JSON.stringify(st.tag) === JSON.stringify(['infile', 'hand']) && JSON.stringify(st.badge) === JSON.stringify(['infile', 'unchecked']) && JSON.stringify(st.select) === JSON.stringify(['infile', 'due']) && JSON.stringify(st.counter) === JSON.stringify(['new']),
+        `${where}: Q2909.8 A, #3439 Q-IF.2 A: Components' rows show each set's status: Tag In file · Hand-edited, Badge In file · Not checked yet, Select In file · Due, Counter Not in file (${JSON.stringify({ tag: st.tag, badge: st.badge, select: st.select, counter: st.counter })})`);
+      // #3422 Q44 A: Theme opens ticked only when the badge's recount says the file differs from the brand. The Pill this
+      // case chose is not applied, so the recount says it differs (seq 0: every later ask's answer replaces it).
+      await postMsg(page, { type: 'file-due', seq: 0, present: FILE.present, theme: true, due: DUE });
       // The checklist: it asks for the file's sets, then the full check for the due sets alone.
       step = 'the checklist';
       await page.evaluate(() => { window.__ia2.length = 0; });
@@ -18313,6 +18393,47 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       const dropped = await badgeNow();
       ok(ran.length >= 1 && ran.every((m) => canon(m.input) === canon(HAIRLINE)) && dropped.text === null && dropped.name === null,
         `${where}: Q810 A: the badge drops after a run: the panel asks for the count after the run's verdicts, and the answer (the brand applied, the sets written) leaves no badge and the label alone as the name (${ran.length} asked; ${JSON.stringify(dropped)})`);
+      // #3421 (Q39 A): A SET ONLY THEME BLOCKS RIDES THE RUN. The check reads Select blocked only by variables Theme writes
+      // (`themeBlocked`), so with Theme ticked the update step takes it, checks it again after Theme, and posts under the
+      // new check's hash: the set's own hash moved, because Theme wrote what it binds (`recheckHolds`). What is read is
+      // what the panel posts. MUTATION: the Studio driver's re-check by strict hash equality (`apps/studio/src/main.ts`)
+      // → this arm, by name.
+      step = 'a set only Theme blocks';
+      const TB0 = [sets[0], { ...sets[1], hash: 'hs-0', update: 4, upToDate: false, blocked: true, themeBlocked: true }];
+      const TB1 = [sets[0], { ...sets[1], hash: 'hs-1', update: 4, upToDate: false, blocked: false }];
+      await page.evaluate(() => { window.__ia2.length = 0; window.__due.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-file"]'));
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, FILE);
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { type: 'update-check', previewHash: 'H-TB0', missing: [], refused: [], sets: TB0 });
+      await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      // Theme ticked by hand when it opened unticked (#3422 Q44 A: the last recount here said the file matches); the
+      // toggle asks the file and the check again, answered as before. This arm is about the run with Theme ticked.
+      if ((await page.locator('[data-p3="update-check-theme"]').getAttribute('aria-checked')) === 'false') {
+        await page.evaluate(() => { window.__ia2.length = 0; });
+        await hooks.click(page.locator('[data-p3="update-check-theme"]'));
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, FILE);
+        await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+        await postMsg(page, { type: 'update-check', previewHash: 'H-TB0', missing: [], refused: [], sets: TB0 });
+        await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      }
+      await page.evaluate(() => { window.__ia2.length = 0; });
+      await hooks.click(page.locator('[data-p3="update-go"]'));
+      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
+      const reTB = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-check-request').map((m) => m.defs));
+      await postMsg(page, { type: 'update-check', previewHash: 'H-TB1', missing: [], refused: [], sets: TB1 });
+      await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-sets'), null, { timeout: 5000 }).catch(() => {});
+      const sentTB = await page.evaluate(() => window.__ia2.filter((m) => m.type === 'update-sets').map((m) => ({ defs: m.defs, previewHash: m.previewHash })));
+      ok(JSON.stringify(reTB) === '[["button","select"]]' && JSON.stringify(sentTB) === '[{"defs":["button","select"],"previewHash":"H-TB1"}]',
+        `${where}: #3421 Q39 A: a set only Theme blocks rides the run: after Theme it is checked again, and the update posts it under the new check's hash (${JSON.stringify({ rechecked: reTB, sent: sentTB })})`);
+      await postMsg(page, { type: 'component-update-result', ok: true, headline: '✓ 2 sets updated', summary: '', lines: [] });
+      await page.waitForFunction(() => window.__ia2.filter((m) => m.type === 'file-sets-request').length >= 1, null, { timeout: 5000 }).catch(() => {});
+      await postMsg(page, { ...FILE, due: CURRENT });
+      const ranTB = await nextAsk();
+      await answer(ranTB.at(-1)?.seq ?? 0, false, CURRENT);
       // No brand chosen yet: a fresh plugin page, the load's read landing before the host's restore answers (its library
       // probe can be slow), then the start moment. The panel holds only the boot placeholder, so it asks nothing, and a
       // live answer planted anyway is not shown: the badge keeps the load's read (2). Choosing a brand starts the asks.
@@ -18484,6 +18605,12 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 // The first build's, kept: Due named by code name again (`nameOf` the catalog name) → `3129 figma … P5: Due names its
 // sets as Components does …`; Remove all shown from one row → `3129 figma … Q3129.8 A: Remove all from two rows up …`;
 // Add all on a set-up file → `3129 figma … Q3129.9 A: an empty queue on a set-up file …`.
+// #3439 (Q-IF.1–3 A, superseding Q3129.6 A's empty cell for a set the file holds): the empty cell drawn again
+// (`boxOrCell` returning the cell whenever nothing is addable) → `3129 figma … Q-IF.1 A: a set or family the file holds
+// draws its box checked and disabled …`; the In file tag dropped (`statusTags`' `inFile` line) → `3129 figma … Q-IF.2 A:
+// In file sits first among a row's tags …` (and `ia2 figma … #3439 Q-IF.2 A`); a family partly in the file given a
+// disabled box (`boxOrCell` holding any box over a set the file holds) → `3129 figma … Q-IF.3 A: a family partly in the
+// file keeps an active box …`.
 // And in IA2: Remove's refocus dropped → `IA2 figma … #3129 Q3129.7 A: Remove takes the set out …` (focus left on the
 // dialog). The model's rules (list order, the badge's parts and name, the To add status, the ticks, the two-state family
 // box, the tier actions' sets) fail in `test-update-file.ts` and `test-component-groups.ts` by name.
@@ -18502,7 +18629,18 @@ const S_FILE = { type: 'file-sets', present: S_PRESENT, setUp: true, due: S_DUE,
 // R5, typed from the list: the set lines that carry their row's box (a set alone on its row, or the first set of a
 // family listed at a section's edge), and the parts that carry none.
 const S_BOXED_SETS = ['password-field', 'search-field', 'card-number-field', 'code-input', 'textarea', 'counter'];
-const S_UNBOXED_PARTS = ['code-input-cell', 'accordion', '_accordion-indicator', 'radio-control', 'radio-group', 'radio-row', 'select', 'text-field', 'badge'];
+const S_UNBOXED_PARTS = ['code-input-cell', 'accordion', '_accordion-indicator', 'radio-control', 'radio-group', 'radio-row', 'checkbox-control', 'checkbox-row'];
+// #3439 Q-IF.1 A, typed from S_PRESENT and the list: the boxes over sets the file holds whole, drawn checked and disabled
+// and named "{name} is in this file" (DRAFT), by key. Buttons and Icons & assets split (#3306), so each set the file holds
+// has its own; Buttons and Tag are sections of one family, so the section's box is the family's; Fields and Other
+// components are sections of several rows, so theirs stay as they are.
+const S_IN_FILE = [
+  ['sec=buttons', 'Buttons'], ['setbox=button', 'Button'], ['setbox=button-destructive', 'Button.Destructive'], ['setbox=button-group', 'Button.Group'], ['setbox=button-neutral', 'Button.Neutral'],
+  ['row=components|Select', 'Select'], ['row=components|Text field', 'Text field'],
+  ['sec=tags', 'Tag'],
+  ['row=components|Badge', 'Badge'], ['row=components|Checkbox', 'Checkbox'], ['row=components|Divider', 'Divider'], ['row=components|Veil', 'Veil'],
+  ['row=subcomponents|Field Label', 'Field label'], ['row=subcomponents|Field Message', 'Field message'], ['row=subcomponents|Focus Ring', 'Focus ring'], ['setbox=icon', 'Icon'], ['row=subcomponents|Spinner', 'Spinner'],
+];
 // #3306 Q3306.1 A, typed from the proposal's table: the sets of the families with two or more roots that the sample file
 // lacks, each with a box of its own (Icon is in the file, and Buttons is whole in it, so neither has one).
 const S_SPLIT_SETS = ['icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'provider-logo'];
@@ -18648,8 +18786,10 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
         settingsHolds: !!settings?.querySelector('[data-p3="cp-shared"]') && settings.getAttribute('aria-labelledby') === settings.querySelector('[data-p3="cp-settings-caption"]')?.id,
         badge: { text: document.querySelector('[data-p3="update-badge"]')?.textContent ?? null, name: document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-label') ?? null },
         // #3306: each set box (its own key), and each held box with its name, title, state and its row's status tags.
-        setBoxes: [...document.querySelectorAll('[data-p3="cp-box"][data-key^="setbox="]')].map((b) => b.dataset.key.slice(7)),
-        held: [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"]) > [data-p3="cp-box"][aria-disabled="true"]')].map((b) => {
+        // #3439: an in-file set box (read below, by its name) is not one the file could add.
+        setBoxes: [...document.querySelectorAll('[data-p3="cp-box"][data-key^="setbox="]:not([aria-label$=" is in this file"])')].map((b) => b.dataset.key.slice(7)),
+        // #3439: an in-file box is disabled too; it is read on its own below, by its name.
+        held: [...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"]) > [data-p3="cp-box"][aria-disabled="true"]:not([aria-label$=" is in this file"])')].map((b) => {
           const row = b.parentElement;
           return [row.dataset.set, b.getAttribute('aria-checked'), b.getAttribute('aria-label'), b.title, [...row.querySelectorAll('[data-p3="cp-status-tag"]')].map((t) => [t.dataset.status, t.textContent])];
         }),
@@ -18657,20 +18797,52 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
         // Link is a section of one row, so the section's box is the row's (R5, Q8 A), held as the row's would be.
         linkSec: (() => { const b = sec('links'); return b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label'), b.title] : null; })(),
         linkTags: [...(document.querySelector('[data-set="link"]')?.querySelectorAll('[data-p3="cp-status-tag"]') ?? [])].map((t) => [t.dataset.status, t.textContent]),
+        // #3439 Q-IF.1 A: every box named as in the file, by key, with its state; and every box checked and disabled that is
+        // neither held nor named so (none should be).
+        inFile: [...document.querySelectorAll('[data-p3="components-list"] [data-p3="cp-box"][aria-label$=" is in this file"]')].map((b) => [b.dataset.key, b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label')]),
+        // #3439 Q-IF.3 A: Icons & assets, partly in the file (Icon in, Provider logo not): its family box, before any tick.
+        partFamily: (() => { const b = fam('subcomponents|Icons & assets'); return b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label')] : null; })(),
+        // #3439 Q-IF.2 A: each row's tags, as [status, words], read off the drawn rows and family rows.
+        tags: Object.fromEntries([...document.querySelectorAll('[data-p3="components-list"] :is([data-p3="cp-row"], [data-p3="cp-member"])')].map((r) => [r.dataset.set ?? r.dataset.row,
+          [...r.querySelectorAll('[data-p3="cp-status-tag"]')].map((t) => [t.dataset.status, t.textContent])])),
       };
     });
     ok(S_BOXED_SETS.every((id) => st.boxedSets.includes(id)) && !S_UNBOXED_PARTS.some((id) => st.boxedSets.includes(id)) && st.families.accordion !== 'none' && st.families.breadcrumbs !== 'none',
-      `${where}: R5: one box per family: on each row the file could add a set of, a family's row or a set alone on its row, and none on a part or a set the file holds (${JSON.stringify({ boxed: st.boxedSets, wrong: S_UNBOXED_PARTS.filter((id) => st.boxedSets.includes(id)), missing: S_BOXED_SETS.filter((id) => !st.boxedSets.includes(id)) })})`);
-    ok(st.families.accordion === 'true' && st.families.breadcrumbs === 'false' && st.families.checkbox === 'none' && st.sec.radios === 'mixed' && st.flush === 'mixed',
-      `${where}: Q3306.2 A: a family's box is three-state, a needed set counted: Accordion (all queued) on, Breadcrumbs off, Checkbox (in the file) none, Radio (one of three queued) mixed, Flush icon button (one of three needed) mixed (${JSON.stringify({ ...st.families, radio: st.sec.radios, flush: st.flush })})`);
-    ok(st.sec.buttons === 'none' && st.sec.tags === 'none' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.components === 'mixed' && st.sec.subcomponents === 'mixed',
-      `${where}: call 8, Q3129.6 A, Q3306.2 A: section boxes: Buttons and Tag (all in the file) none, Fields and Other components mixed, Dialog on, Subcomponents mixed by its needed set (${JSON.stringify(st.sec)})`);
+      `${where}: R5: one box per family: on each row the file could add a set of, a family's row or a set alone on its row, and none on a part (${JSON.stringify({ boxed: st.boxedSets, wrong: S_UNBOXED_PARTS.filter((id) => st.boxedSets.includes(id)), missing: S_BOXED_SETS.filter((id) => !st.boxedSets.includes(id)) })})`);
+    ok(st.families.accordion === 'true' && st.families.breadcrumbs === 'false' && st.families.checkbox === 'true' && st.sec.radios === 'mixed' && st.flush === 'mixed',
+      `${where}: Q3306.2 A: a family's box is three-state, a needed set counted: Accordion (all queued) on, Breadcrumbs off, Checkbox (in the file) checked (#3439), Radio (one of three queued) mixed, Flush icon button (one of three needed) mixed (${JSON.stringify({ ...st.families, radio: st.sec.radios, flush: st.flush })})`);
+    ok(st.sec.buttons === 'true' && st.sec.tags === 'true' && st.sec.fields === 'mixed' && st.sec.dialogs === 'true' && st.sec.components === 'mixed' && st.sec.subcomponents === 'mixed',
+      `${where}: call 8, Q3306.2 A, #3439 Q-IF.1 A: section boxes: Buttons and Tag (one family each, all in the file) checked, Fields and Other components mixed, Dialog on, Subcomponents mixed by its needed set (${JSON.stringify(st.sec)})`);
     ok(JSON.stringify([...st.setBoxes].sort()) === JSON.stringify([...S_SPLIT_SETS].sort()),
       `${where}: Q3306.1 A: a family with two or more roots has a box on each set the file could add, and no other family has one (${JSON.stringify(st.setBoxes)})`);
     ok(JSON.stringify(st.held) === JSON.stringify([['flush-icon-button-neutral', 'true', S_NEEDED['flush-icon-button-neutral'], S_NEEDED['flush-icon-button-neutral'], [['needed', 'Needed']]]])
       && JSON.stringify(st.linkSec) === JSON.stringify(['true', 'true', S_NEEDED.link, S_NEEDED.link]) && JSON.stringify(st.linkTags) === JSON.stringify([['needed', 'Needed']]),
       `${where}: Q3306.2 A, Q3306.4 A: a needed set is ticked and held, its tag reads Needed, and its box's name and title name the set that needs it (${JSON.stringify({ held: st.held, link: st.linkSec, linkTags: st.linkTags })})`);
     ok(JSON.stringify([...st.queuedTags].sort()) === JSON.stringify([...S_QUEUED].sort()), `${where}: Q3129.4 A: the queued sets' tag reads To add (${JSON.stringify(st.queuedTags)})`);
+    {
+      // #3439 Q-IF.1 A: a set or family the file holds whole draws its box checked and disabled, named as in the file.
+      const want = S_IN_FILE.map(([k, n]) => [k, 'true', 'true', `${n} is in this file`]).sort((a, b) => a[0].localeCompare(b[0]));
+      const got = [...st.inFile].sort((a, b) => a[0].localeCompare(b[0]));
+      ok(JSON.stringify(got) === JSON.stringify(want),
+        `${where}: Q-IF.1 A: a set or family the file holds draws its box checked and disabled, named "{name} is in this file" (DRAFT), and nothing else does (${JSON.stringify({ missing: want.filter((x) => !got.some((y) => JSON.stringify(y) === JSON.stringify(x))), extra: got.filter((x) => !want.some((y) => JSON.stringify(y) === JSON.stringify(x))) })})`);
+      // #3439 Q-IF.2 A: In file first; a family the file holds part of carries it too (Icons & assets: Icon in, Provider logo not).
+      // The sample file's hand-edit pass is still running, so a set it holds also reads Checking… (`statusesOf`).
+      const T = { infile: ['infile', 'In file'], due: ['due', 'Due'], checking: ['checking', 'Checking…'], new: ['new', 'Not in file'] };
+      const wantTags = { button: [T.infile, T.due, T.checking], divider: [T.infile, T.checking], 'components|Checkbox': [T.infile, T.checking], 'subcomponents|Icons & assets': [T.infile, T.checking, T.new], counter: [T.new] };
+      const gotTags = Object.fromEntries(Object.keys(wantTags).map((k) => [k, st.tags[k] ?? null]));
+      const notFirst = Object.entries(st.tags).filter(([, t]) => t.some(([x]) => x === 'infile') && t[0][0] !== 'infile').map(([k]) => k);
+      ok(JSON.stringify(gotTags) === JSON.stringify(wantTags) && notFirst.length === 0 && Object.values(st.tags).some((t) => t.length > 1),
+        `${where}: Q-IF.2 A: In file sits first among a row's tags, on a set the file holds and on a family it holds a set of; a set it lacks reads Not in file alone (${JSON.stringify({ got: gotTags, notFirst })})`);
+      ok(JSON.stringify(st.partFamily) === JSON.stringify(['false', null, 'Add all of Icons & assets to file']),
+        `${where}: Q-IF.3 A: a family partly in the file keeps an active box, named to add (Icons & assets: Icon in the file, Provider logo not) (${JSON.stringify(st.partFamily)})`);
+      // A tick on an in-file box writes nothing (it is aria-disabled, so the click is dispatched as a person's would land).
+      const before = await page.evaluate(() => window.__q.filter((m) => m.type === 'add-queue').length);
+      await page.evaluate(() => document.querySelector('[data-p3="cp-box"][data-key="row=components|Badge"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+      await settle(page);
+      const inTick = await page.evaluate((n) => ({ posts: window.__q.filter((m) => m.type === 'add-queue').length - n,
+        checked: document.querySelector('[data-p3="cp-box"][data-key="row=components|Badge"]')?.getAttribute('aria-checked') ?? null }), before);
+      ok(inTick.posts === 0 && inTick.checked === 'true', `${where}: Q-IF.1 A: an in-file box writes nothing when ticked, and stays checked (${JSON.stringify(inTick)})`);
+    }
     ok(st.named.accordion === 'Add all of Accordion to file' && st.named.counter === 'Add Counter to file' && st.named.password === 'Add Password field to file' && st.named.radio === 'Add all Radio to file',
       `${where}: Q3129.4 A: a family's box is named "Add all of {family} to file", a set's alone "Add {set} to file" (${JSON.stringify(st.named)})`);
     ok(st.names['password-field'] === st.names.select && st.names.counter === st.names.badge && st.names.select > 0,
@@ -18739,10 +18911,21 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     // R5: Radio's control in the file and nothing of Radio queued: the family's box queues its two missing parts.
     await postMsg(page, { ...S_FILE, present: [...S_PRESENT, 'radio-control'], queued: S_QUEUED.filter((id) => id !== 'radio-control') });
     await page.waitForFunction(() => document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).catch(() => {});
+    // #3439 Q-IF.3 A: the box of a family partly in the file stays active, and each row shows its own state.
+    const partBox = await page.evaluate(() => { const b = document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]');
+      const tags = (id) => [...(document.querySelector(`[data-set="${id}"]`)?.querySelectorAll('[data-p3="cp-status-tag"]') ?? [])].map((t) => t.dataset.status);
+      return { box: b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label')] : null, control: tags('radio-control'), group: tags('radio-group') }; });
     await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=radios"]'));
     const part = await lastQ();
     ok(canon(part) === canon({ type: 'add-queue', ids: ['radio-group', 'radio-row'], on: true }),
       `${where}: R5: a family partly in the file: its box queues the missing parts, never the one the file holds (${JSON.stringify(part)})`);
+    // #3439 Q-IF.3 A: once the whole family is in the file, its box is checked and disabled.
+    await postMsg(page, { ...S_FILE, present: [...S_PRESENT, 'radio-control', 'radio-group', 'radio-row'], queued: S_QUEUED.filter((id) => id !== 'radio-control') });
+    await page.waitForFunction(() => document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]')?.getAttribute('aria-disabled') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const wholeBox = await page.evaluate(() => { const b = document.querySelector('[data-p3="cp-box"][data-key="sec=radios"]'); return b ? [b.getAttribute('aria-checked'), b.getAttribute('aria-disabled'), b.getAttribute('aria-label')] : null; });
+    ok(JSON.stringify(partBox.box) === JSON.stringify(['false', null, 'Add all Radio to file']) && JSON.stringify(partBox.control) === JSON.stringify(['infile', 'unchecked']) && JSON.stringify(partBox.group) === JSON.stringify(['new'])
+      && JSON.stringify(wholeBox) === JSON.stringify(['true', 'true', 'Radio is in this file']),
+      `${where}: Q-IF.3 A: a family partly in the file keeps an active box, each row shows its own state, and once the whole family is in, its box is checked and disabled (${JSON.stringify({ part: partBox, whole: wholeBox })})`);
     step = 'the tier actions';
     await postMsg(page, S_FILE);
     await page.waitForFunction(() => !document.querySelector('[data-p3="cp-deselect-all"][data-key="cp-deselect-all=components"]')?.disabled, null, { timeout: 5000 }).catch(() => {});
@@ -18769,11 +18952,13 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await page.keyboard.press('Escape');
     step = 'a file that lacks no set';
     await postMsg(page, { ...S_FILE, present: ENGINE_SETS, queued: [] });
-    await page.waitForFunction(() => !document.querySelector('[data-p3="components-list"] [role="checkbox"]'), null, { timeout: 5000 }).catch(() => {});
-    const full = await page.evaluate(() => ({ boxes: document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]').length,
-      acts: document.querySelectorAll('[data-p3="cp-tier-actions"]').length, caps: document.querySelectorAll('[data-p3="cp-tier-caption"]').length }));
-    hooks.absent(ok, { seen: st.tierHead.acts.length === 2 && full.caps > 0, state: 'a tier\'s actions on its caption line, and the captions drawn' }, full.boxes === 0 && full.acts === 0,
-      `${where}: R1 (DRAFT): a tier with nothing the file could add carries no Select all or Deselect all, and no row a box (${JSON.stringify(full)})`);
+    await page.waitForFunction(() => !document.querySelector('[data-p3="cp-tier-actions"]'), null, { timeout: 5000 }).catch(() => {});
+    // #3439 Q-IF.1 A: every box left is an in-file box: checked, disabled and named so.
+    const full = await page.evaluate(() => { const bs = [...document.querySelectorAll('[data-p3="components-list"] [role="checkbox"]')];
+      return { boxes: bs.length, active: bs.filter((b) => b.getAttribute('aria-checked') !== 'true' || b.getAttribute('aria-disabled') !== 'true' || !/ is in this file$/.test(b.getAttribute('aria-label') ?? '')).map((b) => b.dataset.key),
+        acts: document.querySelectorAll('[data-p3="cp-tier-actions"]').length, caps: document.querySelectorAll('[data-p3="cp-tier-caption"]').length }; });
+    hooks.absent(ok, { seen: st.tierHead.acts.length === 2 && full.caps > 0, state: 'a tier\'s actions on its caption line, and the captions drawn' }, full.boxes > 0 && full.active.length === 0 && full.acts === 0,
+      `${where}: R1 (DRAFT), #3439 Q-IF.1 A: a tier with nothing the file could add carries no Select all or Deselect all, and every box is checked and disabled, as in the file (${JSON.stringify(full)})`);
     // ── Update file ─────────────────────────────────────────────────────────────────────────
     step = 'Update file: Components, To add and Due';
     await postMsg(page, S_FILE);
@@ -19341,9 +19526,12 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await postMsg(page, T_FILE);
     await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
     await postMsg(page, T_CHECK);
-    await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
-    await postMsg(page, T_FILE);
-    await postMsg(page, T_CHECK);
+    // Theme off, so the run is the update alone. Since #3422 (Q44 A) it opens unticked on a file that matches the brand.
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) === 'true') {
+      await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+      await postMsg(page, T_FILE);
+      await postMsg(page, T_CHECK);
+    }
     // The premise's rows, waited for and never swallowed: a slow runner waits for them, and a real absence fails by name.
     await hooks.need(page, '[data-p3="update-dialog"] [role="checkbox"][data-key="due=tag"][aria-checked="true"]', WAIT);
     // The update alone: Style guides off too, so the run is one step.
@@ -19494,10 +19682,11 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
 // =============================================================================================
 // The drawer's mono text, a run's console lines (`.p3-op-summary`), an Update's publish description
 // (`.p3-op-publish-text`) and the status strip's counter (`.p3-status-n`), is drawn at 10px, its leading the drawer's
-// 1.5 (15px); its UI-face text, a bad result's reason (`.p3-op-reason`), the row's title and the strip's words, stays at
+// 1.5 (15px); its UI-face text, a bad result's cause (#3326: its set, `.p3-op-cause-subj`, and its reasons,
+// `.p3-op-cause-reasons`, which replaced the positional `.p3-op-reason`), the row's title and the strip's words, stays at
 // 12px. Read as computed, on both hosts, light and dark, at 1280 and 380:
 //   · the plugin, whose drawer draws: the strip planted by a `run-progress` reading, then an agent's Update result with
-//     a reason, two console lines and a publish description, each node read as drawn;
+//     a cause, two console lines and a publish description, each node read as drawn;
 //   · the studio, which runs no write and so draws no drawer (section 10): the same classes mounted in its frame, read
 //     through the studio bundle's own stylesheet. A probe of the stylesheet, not of a drawn drawer, and labeled so.
 // INDEPENDENCE (docs/34): the sizes are the issue's literals, typed here; nothing is read from `tokens.mjs`, `spec.mjs`,
@@ -19512,7 +19701,7 @@ const FACE_3305 = (page) => page.evaluate(() => {
   // By the classes the issue names, inside the drawer (`.p3-drawer`), so the studio's mounted probe needs no hook.
   return {
     summary: read('.p3-drawer .p3-op-body > .p3-op-summary'), publish: read('.p3-drawer .p3-op-publish-text'), n: read('.p3-drawer .p3-status-n'),
-    reason: read('.p3-drawer .p3-op-body > .p3-op-reason'), title: read('.p3-drawer .p3-op-head b'), what: read('.p3-drawer .p3-status-what'),
+    subject: read('.p3-drawer .p3-op-body .p3-op-cause-subj'), reason: read('.p3-drawer .p3-op-body .p3-op-cause-reasons > li'), title: read('.p3-drawer .p3-op-head b'), what: read('.p3-drawer .p3-status-what'),
   };
 });
 const holds3305 = (where, f, names) => {
@@ -19523,7 +19712,7 @@ const holds3305 = (where, f, names) => {
 };
 const N_3305 = [['n', "the status strip's counter (.p3-status-n)"]], WHAT_3305 = [['what', "the status strip's words (.p3-status-what)"]];
 const ROW_MONO_3305 = [['summary', "a run's console lines (.p3-op-summary)"], ['publish', "the publish description (.p3-op-publish-text)"]];
-const ROW_UI_3305 = [['reason', "a bad result's reason (.p3-op-reason)"], ['title', "the row's title (.p3-op-head b)"]];
+const ROW_UI_3305 = [['subject', "a bad result's cause, its set (.p3-op-cause-subj)"], ['reason', "a cause's reasons (.p3-op-cause-reasons)"], ['title', "the row's title (.p3-op-head b)"]];
 for (const host of ['figma', 'web']) {
   for (const theme of ['light', 'dark']) {
     for (const w of [1280, 380]) {
@@ -19539,10 +19728,12 @@ for (const host of ['figma', 'web']) {
           step = "an agent's Update result";
           await postMsg(page, { type: 'agent-started', id: 'm3305', cmd: 'update-components' });
           await postMsg(page, { type: 'component-update-result', ok: false, headline: '✗ 1 set not updated', summary: 'Button was hand-edited.',
-            lines: ['Button was hand-edited.', 'button: 24 variants checked', 'tag: up to date'], publish: 'Button: 24 variants updated.' });
+            lines: ['Button was hand-edited.', 'button: 24 variants checked', 'tag: up to date'], publish: 'Button: 24 variants updated.',
+            causes: [{ kind: 'bad', subject: 'button', what: 'not updated', reasons: ['Button was hand-edited.'] }] });
           await postMsg(page, { type: 'agent-finished', id: 'm3305', cmd: 'update-components' });
           await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-body"] > [data-p3="op-summary"]', WAIT);
           await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-publish-text"]', WAIT);
+          await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="op-cause-reasons"]', WAIT);
           await settle(page);
           holds3305(where, await FACE_3305(page), { mono: ROW_MONO_3305, ui: ROW_UI_3305 });
         } else {
@@ -19557,7 +19748,13 @@ for (const host of ['figma', 'web']) {
             const op = el('div', 'p3-op'), head = el('button', 'p3-op-head'), body = el('div', 'p3-op-body');
             head.append(el('b', '', 'Build set'));
             const ul = el('ul', 'p3-op-summary'); ul.append(el('li', 'p3-op-line', 'button: 24 variants checked'));
-            body.append(el('p', 'p3-op-reason', 'Button was hand-edited.'), ul, el('pre', 'p3-op-publish-text', 'Button: 24 variants updated.'));
+            // #3326: a cause as the drawer draws it, open: its summary (the set in emphasis) and its reasons.
+            const causes = el('ul', 'p3-op-causes'), li = el('li'), cause = el('details', 'p3-op-cause'), sum = el('summary'), cb = el('div', 'p3-op-cause-body');
+            cause.open = true;
+            sum.append(el('span', 'p3-op-cause-subj', 'Button:'), el('span', 'p3-op-cause-what', 'not updated'));
+            const rs = el('ul', 'p3-op-cause-reasons'); rs.append(el('li', '', 'Button was hand-edited.'));
+            cb.append(rs); cause.append(sum, cb); li.append(cause); causes.append(li);
+            body.append(causes, ul, el('pre', 'p3-op-publish-text', 'Button: 24 variants updated.'));
             op.append(head, body);
             d.append(strip, op);
             document.querySelector('[data-p3="frame"]').append(d);
@@ -19574,6 +19771,188 @@ for (const host of ['figma', 'web']) {
   }
 }
 } // 3305
+// =============================================================================================
+// #3326 PR 2 — THE DRAWER DRAWS A RUN'S CAUSES (owner decisions Q3326.1 A, Q3326.5 A; #3308 Q3308.1 A)
+// =============================================================================================
+// The owner's first run (#3308), posted as the host sends it: nine sets built, five with problems. Its lines lead with a
+// success line ("Built Icon on ↳ Icons & assets."), which the positional pick (`splitLines`, Q3113.5 A) set apart as the
+// run's reason. The writer now names the causes as data, so the drawer must draw them first, one disclosure each, the
+// first open, and set no line apart by its place. Read on the plugin's drawer, light and dark, at 1280 (the step at the
+// end of the closed row) and 380 (the step inside, as "Step: …").
+// INDEPENDENCE (docs/34): the expected subjects, marks, step and words are typed here from the approved render; nothing
+// is read from `activity.ts`, `causes.ts` or the catalog. MUTATION: `splitLines` put back (a bad result's first line drawn
+// as `op-reason` before the mono list) → `#3326 … no line is set apart as the reason by its place`, by name.
+if (runs('3326')) {
+console.log(`\n#3326 — the Activity drawer draws a run's causes\n${'='.repeat(78)}`);
+const TEMPLATE_3326 = 'No usage panels drawn: this file has no _Doc-block component. Run Set up file, then build again.';
+const SETS_3326 = [['button', 'Button'], ['checkbox-row', 'Checkbox.Row'], ['checkbox-group', 'Checkbox.Group'], ['link', 'Link'], ['badge', 'Badge']];
+const RUN_3326 = {
+  type: 'component-result', ok: false, completed: true, headline: '⚠ Built 9 sets · 5 with problems',
+  lines: ['Built Icon on ↳ Icons & assets.', ...SETS_3326.map(([, n]) => `${n}: built with problems.`), TEMPLATE_3326],
+  causes: SETS_3326.map(([id]) => ({ kind: 'warn', subject: id, what: 'built with problems', reasons: [TEMPLATE_3326], step: 'To add' })),
+};
+RUN_3326.summary = RUN_3326.lines.join(' ');
+const READ_3326 = (page) => page.evaluate(() => {
+  const vis = (n) => !!n && n.checkVisibility();
+  const row = document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="components"]');
+  const causes = row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-causes"] [data-p3="op-cause"]')].filter(vis) : [];
+  return {
+    positional: !!row?.querySelector('.p3-op-reason'),
+    // Before the mono lines: the causes list is the body's first drawn child.
+    first: row ? ([...row.querySelectorAll('[data-p3="op-body"] > *')].find(vis)?.dataset.p3 ?? null) : null,
+    lines: row ? [...row.querySelectorAll('[data-p3="op-body"] > [data-p3="op-summary"] > li')].map((l) => l.textContent) : [],
+    causes: causes.map((c) => ({
+      subject: vis(c.querySelector('[data-p3="op-cause-subject"]')) ? c.querySelector('[data-p3="op-cause-subject"]').textContent : null,
+      what: c.querySelector('[data-p3="op-cause-what"]')?.textContent ?? null,
+      mark: c.querySelector('summary > .p3-op-mark')?.dataset.state ?? null, open: c.open,
+      step: [...c.querySelectorAll('.p3-op-cause-step, .p3-op-cause-steptext')].filter(vis).map((x) => x.textContent)[0] ?? null,
+      reasons: [...c.querySelectorAll('[data-p3="op-cause-reason"]')].filter(vis).map((x) => x.textContent),
+    })),
+  };
+});
+// #3326 PR 2 — UPDATE FILE'S RUN IS ONE ROW: CAUSES, THEN NOTES, THEN STEPS (the owner's Q3326.4 A, Q3326.6–.8 A and
+// Q3390.1–.3 A, 2026-11-05; the approved renders on `claude/3326-renders` at f2a364e).
+//   · A run that sets the file up, adds Badge and would draw the style guides, its Badge build refused: one row, "Update
+//     file", reading the strip's "Stopped at To add". Its body is the causes (Badge: could not be built, its step "To add",
+//     which the panel fills), then "Steps": Set up file ✓ File set up, To add ✗ Build failed, each with its lines behind a
+//     closed disclosure, and Style guides with a dash and "Not run", no disclosure. Then "Update again" and "Copy
+//     details", and no button inside a step. Set up file's verdict draws no row of its own, and the run counts once.
+//   · "Update again" opens Update file again (its checklist), and posts nothing by itself.
+//   · An agent's Build set after the run keeps its own row (Q3390.1 A), and is not a step of the run.
+//   · A clean run whose To add step sends a note: a "Note" section with the info mark and "To add: <what>", no causes, the
+//     run clean (its ok mark, "Sets added") and nothing counted (Q3326.7 A, Q3390.3 A). Nothing sends a note yet, so the
+//     test posts one.
+//   Independence (docs/34): every expected string is typed here from the decisions and the renders, never read from the
+//   drawer's copy tables; the verdicts are the writers' messages posted as the host sends them.
+//   Mutations this fails by name: a step drawing a button → `… no step offers a button`; a note counted → `… a note adds
+//   nothing to the count`; `owned` folding every operation into the run → `… an agent's Build set after the run keeps its
+//   own row`; a never-run step drawn without its dash and words → `… a step the run never reached`.
+const TEMPLATE_NOTE_3326 = 'No usage panels drawn: this file has no _Doc-block component. Turn off Usage panels in Documentation, or run Set up file to add it.';
+const READ_RUN_3326 = (page) => page.evaluate(() => {
+  const row = document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="update"]');
+  const body = row?.querySelector('[data-p3="op-body"]');
+  const q = (sel) => [...(body?.querySelectorAll(sel) ?? [])];
+  return {
+    rows: [...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="activity-op"]')].map((n) => n.dataset.op),
+    title: row?.querySelector('[data-p3="op-head"] b')?.textContent ?? null,
+    mark: row?.querySelector('[data-p3="op-head"] .p3-op-mark')?.dataset.state ?? null,
+    verdict: row?.querySelector('[data-p3="op-head"] [data-p3="op-verdict"]')?.textContent ?? null,
+    order: body ? [...body.children].map((n) => n.dataset.p3 ?? n.className) : [],
+    causes: q(':scope > [data-p3="op-causes"] [data-p3="op-cause"]').map((c) => [c.querySelector('[data-p3="op-cause-subject"]')?.textContent ?? null,
+      c.querySelector('[data-p3="op-cause-what"]')?.textContent ?? null, c.querySelector('summary > .p3-op-mark')?.dataset.state ?? null, c.querySelector('.p3-op-cause-step')?.textContent ?? null]),
+    notesLabel: body?.querySelector(':scope > [data-p3="op-notes-label"]')?.textContent ?? null,
+    notes: q(':scope > [data-p3="op-notes"] [data-p3="op-note"]').map((n) => [n.querySelector('.p3-op-mark')?.dataset.state ?? null, n.querySelector('.p3-op-mark svg')?.dataset.glyph ?? null, n.textContent]),
+    stepsLabel: body?.querySelector(':scope > [data-p3="op-steps-label"]')?.textContent ?? null,
+    steps: q(':scope > [data-p3="op-steps"] [data-p3="op-step"]').map((st) => ({ mark: st.querySelector('.p3-op-mark')?.dataset.state ?? null, glyph: st.querySelector('.p3-op-mark svg')?.dataset.glyph ?? null,
+      name: st.querySelector('[data-p3="op-step-name"]')?.textContent ?? null, words: st.querySelector('[data-p3="op-step-words"]')?.textContent ?? null,
+      disclosure: st.tagName === 'DETAILS', open: st.tagName === 'DETAILS' && st.open, lines: [...st.querySelectorAll('[data-p3="op-step-line"]')].map((l) => l.textContent) })),
+    stepButtons: q('[data-p3="op-steps"] button').length,
+    next: q(':scope > [data-p3="op-next"] button').map((b) => b.textContent),
+    counts: [...document.querySelectorAll('[data-p3="activity-toggle"] [data-p3="activity-count"]')].map((c) => [c.dataset.kind, c.textContent]),
+  };
+});
+/** One Update file run from the checklist, the theme unticked: `sets` is the file the checklist reads. */
+const runUpdate3326 = async (page, sets, narrow) => {
+  if (await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true')) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+  await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+  await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+  await postMsg(page, { type: 'file-sets', ...sets });
+  await hooks.need(page, '[data-p3="update-check-theme"]', WAIT);
+  // #3422: on a set-up file with nothing measured, Theme opens unticked, so untick it only when it is ticked.
+  if ((await page.locator('[data-p3="update-check-theme"]').getAttribute('aria-checked')) === 'true') await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+  await postMsg(page, { type: 'file-sets', ...sets });
+  await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+  await page.waitForFunction(() => document.querySelector('[data-p3="update-go"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+};
+const runs3326 = async (page, where, w) => {
+  // A: the stopped run.
+  await runUpdate3326(page, { present: [], setUp: false, queued: ['badge'] }, w === 380);
+  await postMsg(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages: 9 created' });
+  await postMsg(page, { type: 'component-result', ok: false, completed: false, headline: '✗ build failed', summary: 'Badge: build failed.', lines: ['Badge: build failed.'],
+    causes: [{ kind: 'bad', subject: 'badge', what: 'could not be built', reasons: ['Figma refused a write.'] }] });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="update"]')?.dataset.kind === 'bad', null, { timeout: 5000 }).catch(() => {});
+  const a = await READ_RUN_3326(page);
+  const wantSteps = [
+    { mark: 'ok', glyph: 'check', name: 'Set up file', words: 'File set up', disclosure: true, open: false, lines: ['pages: 9 created'] },
+    { mark: 'bad', glyph: 'error', name: 'To add', words: 'Build failed', disclosure: true, open: false, lines: ['Badge: build failed.'] },
+    { mark: 'skip', glyph: 'dash', name: 'Style guides', words: 'Not run', disclosure: false, open: false, lines: [] },
+  ];
+  ok(a.title === 'Update file' && a.mark === 'bad' && a.verdict === 'Stopped at To add' && !a.rows.includes('filesetup'),
+    `#3326 PR 2 ${where}: Update file's run is one row, "Update file", reading "Stopped at To add" after the failure mark, and Set up file draws no row of its own (${JSON.stringify({ title: a.title, mark: a.mark, verdict: a.verdict, rows: a.rows })})`);
+  ok(JSON.stringify(a.order) === JSON.stringify(['op-causes', 'op-steps-label', 'op-steps', 'op-next']) && a.stepsLabel === 'Steps',
+    `#3326 PR 2 ${where}: the run's body is its causes, then "Steps", then its next steps (${JSON.stringify(a.order)}, label ${JSON.stringify(a.stepsLabel)})`);
+  ok(JSON.stringify(a.causes) === JSON.stringify([['Badge:', 'could not be built', 'bad', 'To add']]),
+    `#3326 PR 2 ${where}: the cause is Badge's, with its step "To add" filled by the panel (${JSON.stringify(a.causes)})`);
+  ok(JSON.stringify(a.steps.slice(0, 2)) === JSON.stringify(wantSteps.slice(0, 2)),
+    `#3326 PR 2 ${where}: each step that ran has its own mark and verdict, its lines behind its own closed disclosure (${JSON.stringify(a.steps.slice(0, 2))})`);
+  ok(JSON.stringify(a.steps[2]) === JSON.stringify(wantSteps[2]),
+    `#3326 PR 2 ${where}: a step the run never reached is listed with a dash and "Not run", and no disclosure (${JSON.stringify(a.steps[2])})`);
+  ok(a.stepButtons === 0 && JSON.stringify(a.next) === JSON.stringify(['Update again', 'Copy details']),
+    `#3326 PR 2 ${where}: no step offers a button; the run offers "Update again" and "Copy details" (step buttons ${a.stepButtons}, next ${JSON.stringify(a.next)})`);
+  ok(JSON.stringify(a.counts) === JSON.stringify([['bad', '1 failed']]),
+    `#3326 PR 2 ${where}: the run counts once, as one failure (${JSON.stringify(a.counts)})`);
+  // "Update again" opens Update file again, and writes nothing by itself.
+  await takeWrites(page);
+  await hooks.click(page.locator('[data-p3="activity-op"][data-op="update"] [data-p3="op-again"]'), WAIT);
+  const again = await page.evaluate(() => !!document.querySelector('[data-p3="update-dialog"]'));
+  const againW = await takeWrites(page);
+  ok(again && againW.length === 0, `#3326 PR 2 ${where}: "Update again" opens Update file again and posts nothing by itself (dialog ${again}, posted ${JSON.stringify(againW.map(keyOf))})`);
+  if (again) await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+  // C: an agent's Build set after the run keeps its own row.
+  await postMsg(page, { type: 'agent-started', id: 'm3326c', cmd: 'build-components' });
+  await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built Link', summary: 'Built Link on ↳ Link.', lines: ['Built Link on ↳ Link.'] });
+  await postMsg(page, { type: 'agent-finished', id: 'm3326c', cmd: 'build-components' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent === 'built Link', null, { timeout: 5000 }).catch(() => {});
+  const c = await READ_RUN_3326(page);
+  const agentRow = await page.evaluate(() => { const n = document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="components"]');
+    return n ? { verdict: n.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, agent: n.querySelector('[data-p3="op-head"] .p3-op-agent')?.hidden === false } : null; });
+  ok(agentRow?.verdict === 'built Link' && agentRow.agent && JSON.stringify(c.steps.map((x) => x.name)) === JSON.stringify(['Set up file', 'To add', 'Style guides']) && c.verdict === 'Stopped at To add',
+    `#3326 PR 2 ${where}: an agent's Build set after the run keeps its own row, not a step of the run (agent row ${JSON.stringify(agentRow)}, run steps ${JSON.stringify(c.steps.map((x) => x.name))}, run ${JSON.stringify(c.verdict)})`);
+  // B: a clean run whose To add step sends a note.
+  await runUpdate3326(page, { present: [], setUp: true, queued: ['badge'] }, w === 380);
+  await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built Badge', summary: 'Built Badge on ↳ Badge.', lines: ['Built Badge on ↳ Badge.'],
+    causes: [{ kind: 'note', subject: null, what: TEMPLATE_NOTE_3326, reasons: [] }] });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="update"]')?.dataset.kind === 'ok', null, { timeout: 5000 }).catch(() => {});
+  const b = await READ_RUN_3326(page);
+  ok(b.notesLabel === 'Note' && JSON.stringify(b.notes) === JSON.stringify([['note', 'info', `To add: ${TEMPLATE_NOTE_3326}`]]) && b.causes.length === 0
+    && JSON.stringify(b.order.slice(0, 4)) === JSON.stringify(['op-notes-label', 'op-notes', 'op-steps-label', 'op-steps']),
+    `#3326 PR 2 ${where}: a note draws under "Note", the info mark and its step first, before the steps, and is not a cause (${JSON.stringify({ label: b.notesLabel, notes: b.notes, causes: b.causes, order: b.order })})`);
+  ok(b.mark === 'ok' && b.verdict === 'Sets added' && b.counts.length === 0,
+    `#3326 PR 2 ${where}: a note adds nothing to the count, and the run stays clean (${JSON.stringify({ mark: b.mark, verdict: b.verdict, counts: b.counts })})`);
+};
+for (const theme of ['light', 'dark']) {
+  for (const w of [1280, 380]) {
+    const where = `figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: w === 380 ? 760 : 900 });
+    try {
+      await recordPosts(page);
+      await postMsg(page, { type: 'file-sets', present: [], setUp: true, queued: [], atOpen: true });
+      await postMsg(page, { type: 'agent-started', id: 'm3326', cmd: 'build-components' });
+      await postMsg(page, RUN_3326);
+      await postMsg(page, { type: 'agent-finished', id: 'm3326', cmd: 'build-components' });
+      await hooks.need(page, '[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="components"] [data-p3="op-causes"]', WAIT);
+      await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-causes"]')?.checkVisibility() === true, null, { timeout: 5000 }).catch(() => {});
+      const r = await READ_3326(page);
+      const c0 = r.causes[0];
+      const wantStep = w === 380 ? 'Step: To add' : 'To add';
+      ok(!r.positional, `#3326 ${where}: no line is set apart as the reason by its place (op-reason drawn: ${r.positional})`);
+      ok(!!c0 && c0.subject === 'Button:' && c0.mark === 'warn' && c0.step === wantStep && c0.open,
+        `#3326 ${where}: the first cause is open and shows its set, its warning mark and its step "${wantStep}" (${JSON.stringify(c0)})`);
+      ok(r.first === 'op-causes', `#3326 ${where}: the causes come first, before the run's lines (first drawn: ${r.first})`);
+      ok(JSON.stringify(r.causes.map((c) => c.subject)) === JSON.stringify(SETS_3326.map(([, n]) => `${n}:`)) && r.causes.every((c) => c.what === 'built with problems' && c.mark === 'warn'),
+        `#3326 ${where}: one cause per set with problems, in the writer's order, each named from the catalog (${JSON.stringify(r.causes.map((c) => [c.subject, c.what, c.mark]))})`);
+      ok(r.causes.filter((c) => c.open).length === 1 && JSON.stringify(c0?.reasons) === JSON.stringify([TEMPLATE_3326]),
+        `#3326 ${where}: only the first cause is open, and it shows its reason (${JSON.stringify(r.causes.map((c) => c.open))}, ${JSON.stringify(c0?.reasons)})`);
+      ok(JSON.stringify(r.lines) === JSON.stringify(RUN_3326.lines), `#3326 ${where}: every line stays, in the writer's order, below the causes (${r.lines.length} of ${RUN_3326.lines.length})`);
+      await runs3326(page, where, w);
+      ok(errors.length === 0, `#3326 ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#3326 ${where}: the case stopped — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+} // 3326
 // =============================================================================================
 // #3150 — THE CHROME'S MOTION (part 2; the owner's Q3150.1–11 A, 2026-10-31). Every other section runs with the motion
 // durations at 0s (SETTLED_MOTION, beside `browser`), so it measures end states; this one runs them live.
@@ -19976,6 +20355,7 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       await hooks.need(page, '[data-p3="update-dialog"]');
       await postMsg(page, { type: 'file-sets', present: [], setUp: true });
       await hooks.need(page, '[data-p3="update-go"]');
+      await tickTheme(page, { present: [], setUp: true });
       await settleAll(page, cdp);
       await slow();
       await hooks.click(page.locator('[data-p3="update-go"]'));
@@ -20024,8 +20404,9 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
       ok(atRest(await restOf(page, '[data-p3="activity-drawer"]')), `${where}: settled, the sheet sits at rest (${fmt(await restOf(page, '[data-p3="activity-drawer"]'))})`);
       // Expand: an operation's row opens its lines; the sheet closed and opened again draws the open row without replaying it.
       step = 'an operation row';
-      const opBody = '[data-p3="activity-op"][data-op="apply"] [data-p3="op-body"]';
-      const opHead = '[data-p3="activity-op"][data-op="apply"] [data-p3="op-head"]';
+      // #3326 PR 2 (Q3326.4 A): the theme ran as Update file's step, so its lines are on the run's row.
+      const opBody = '[data-p3="activity-op"][data-op="update"] [data-p3="op-body"]';
+      const opHead = '[data-p3="activity-op"][data-op="update"] [data-p3="op-head"]';
       if (await page.evaluate((sel) => getComputedStyle(document.querySelector(sel)).display !== 'none', opBody)) await hooks.click(page.locator(opHead));
       await settleAll(page, cdp);
       await slow();

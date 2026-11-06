@@ -35,6 +35,7 @@ import type { PreflightPlan } from './preflight';
 import { preloadFonts } from './preload-fonts';
 import type { FontPreloadResult } from './preload-fonts';
 import { persistInput } from './persist-figma';
+import { stampEmission } from './theme-emission';
 import { isEngineDescription } from './prune-figma';
 import type { StyleKind } from './prune-figma';
 import { resolveComponentPage } from './file-setup';
@@ -337,6 +338,8 @@ export const runText = (raw: unknown) => writeStep(raw, 'text', async (host, d, 
 /** PERSIST (#131) — last, as in the plugin, where it runs only after every executor returned. */
 export const runPersist = (raw: unknown) => writeStep(raw, 'persist', async (host, d) => {
   persistInput(host.root, d.input as BrandInput);
+  // #3422 Q44.1 A: the print of what the paste wrote, worked out by `mcp-paste.ts`, as Apply Theme stamps its own.
+  if (typeof d.emission === 'string') stampEmission(host.root, d.emission);
 });
 
 /* ── read-back ─────────────────────────────────────────────────────────────────────────────────────── */

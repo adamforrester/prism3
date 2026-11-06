@@ -1239,7 +1239,25 @@ export type BuildReport = {
   /** #1664 — the reference back-off passes this run needed, in order; absent or empty on a clean run. */
   refsBackoff?: readonly RefBackoffPass[];
   misses: readonly string[];
+  /** #3421 — an in-place update's bound read-backs that found the plan's binding absent on a node it kept as a hand edit
+   *  (`keptBoundOf`): the edit kept, as asked, never a miss. Absent when none. */
+  kept?: readonly string[];
 };
+
+/** #3086, #3421 — a bound read-back miss on a node an in-place update KEPT as a hand edit: `bound <member>/<part>.<field>
+ *  -> DISCARDED (…)`, where `<part>` is, or ends, a path the member's `keep` holds. Such a node is not written, so the
+ *  plan's binding is absent there by the designer's choice. Returns the member, part and field, or null for any other
+ *  miss. The update's verdict (`update-apply.ts`) and the build record below read misses through this one test. */
+export const keptBoundOf = (miss: string, members: ReadonlyMap<string, { keep: ReadonlySet<string> }>): { member: string; part: string; field: string } | null => {
+  for (const [member, { keep }] of members) {
+    if (!keep.size || !miss.startsWith(`bound ${member}/`)) continue;
+    const m = /^(.+)\.([A-Za-z]+) -> DISCARDED \(/.exec(miss.slice(`bound ${member}/`.length));
+    if (m && [...keep].some((k) => k === m[1] || k.endsWith(`/${m[1]}`))) return { member, part: m[1], field: m[2] };
+  }
+  return null;
+};
+/** How many kept-edit read-backs the persisted record names; the rest are counted (`keptCount`). */
+const REPORT_KEPT_NAMED = 5;
 
 /** The persisted form of `report`: the miss list truncated to `REPORT_MISS_BYTES`, with the number of
  *  sentences that dropped recorded beside it. PURE and exported so the truncation has a gate that does not
@@ -1253,7 +1271,9 @@ export const buildReportJson = (report: BuildReport): string => {
     if (bytes > REPORT_MISS_BYTES) break;
     misses.push(m);
   }
-  return JSON.stringify({ ...report, misses, missesOmitted: report.misses.length - misses.length });
+  const { kept, ...rest } = report;
+  return JSON.stringify({ ...rest, misses, missesOmitted: report.misses.length - misses.length,
+    ...(kept?.length ? { keptCount: kept.length, kept: kept.slice(0, REPORT_KEPT_NAMED) } : {}) });
 };
 
 /** Leave `report` on the set. Never throws. */
@@ -4330,6 +4350,7 @@ const writeComponentSet = async (
     catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
   }
   const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, reactionMiss, asBuiltMiss);
+  const keptMisses = opts.update ? allMisses.filter((x) => keptBoundOf(x, opts.update!.members) !== null) : [];
 
   // #1579 — THE FINAL REPORT, overwriting the provisional one written at the combine (keep-last). On
   // `liveSet()` rather than `set`, for #1574's reason: a report left on a handle the host has replaced is
@@ -4346,7 +4367,9 @@ const writeComponentSet = async (
     refsRepaired,
     boundRepaired,
     refsBackoff,
-    misses: allMisses,
+    // #3421: a binding absent on a node the update kept as a hand edit is that edit, counted apart from the misses.
+    ...(keptMisses.length ? { kept: keptMisses } : {}),
+    misses: opts.update ? allMisses.filter((x) => !keptMisses.includes(x)) : allMisses,
   });
 
   return {

@@ -42,6 +42,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { themePlans } from './src/apply-theme';
 import type { ThemePlans } from './src/apply-theme';
+import { emissionOf } from './src/theme-emission';
 import { preflightPlanOf } from './src/preflight';
 import type { PreflightPlan } from './src/preflight';
 import { pack, packNames } from './src/mcp-steps';
@@ -311,7 +312,7 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
   });
 
   // PERSIST.
-  add({ phase: 'theme', kind: 'persist', label: 'persist brand', purpose: 'Stores the brand input on the file (shared plugin data, #131), as the plugin does after a clean apply.', expect: '{ ok: true }' }, 'runPersist', { ...common('persist brand'), input });
+  add({ phase: 'theme', kind: 'persist', label: 'persist brand', purpose: 'Stores the brand input on the file (shared plugin data, #131), and the print of what was written (#3422), as the plugin does after a clean apply.', expect: '{ ok: true }' }, 'runPersist', { ...common('persist brand'), input, emission: emissionOf(p) });
 
   // READ-BACK — enough variable pages for the plan plus headroom for orphans; `total` in each result says
   // whether the pages covered the file (report.ts checks it).
