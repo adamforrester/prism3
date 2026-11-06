@@ -5,6 +5,8 @@
 - **`currentIndicator: full | partial`**, the brand setting (Q2 A). Partial is the engine default (Q10 B): round(0.5 × the title's width), centered. Full is the title's width. It moves Link's current-page bar, because a nested instance can't differ from its main component, so every current link in a brand draws the same bar.
 - **`footShare`**, a part field. Both executors draw a foot bar at a share of its parent, centered, constrained `SCALE` across so a longer label keeps the share. The readback reads the constraint off the plan's share, and `test-roundtrip.ts` builds and reads back the Partial-materialized Link (`link@partial`) so that branch is gated. `EXECUTOR_REVISION` is raised for it, to 54, which redraws `link` alone.
 
+- **The component-defs export carries the setting.** The export (#3433) restates the plugin's lever chain, so `currentIndicator` joins its brand `settings` and its chain, and the export's format moves to `prism3-component-defs/1.1` (a field added). `test-roundtrip.ts`'s off-defaults brand sets it to `full`.
+
 ### Gates
 Arms in `packages/engine/test.ts`, each with literals typed from the decision comment:
 - `#3345 page-nav code contract`: `<nav`, `<a href` and `aria-current="page"` are present, and no tab role, tablist or aria-selected.
