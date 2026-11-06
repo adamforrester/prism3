@@ -4,11 +4,11 @@
 
 To write the brand you set in the studio into the open Figma file, choose **Update file** in the plugin's top bar, make sure **Theme** is ticked, and choose **Update file** in the dialog. <!-- src: apps/studio/src/state/update-file.ts:298-310 -->
 The item reads "The brand's variables and styles. Layers bound to them restyle at once." <!-- src: apps/studio/src/state/update-file.ts:309-310 -->
-It is ticked when the dialog opens only if the file's variables differ from the brand. <!-- src: apps/studio/src/state/update-file.ts:169-176 -->
+It is ticked when the dialog opens only if the file's variables differ from the brand. <!-- src: apps/studio/src/state/update-file.ts:169-176#dcd3d3c6 -->
 When they already match, it is unticked and reads "Up to date"; tick it to write the brand again. <!-- src: apps/studio/src/state/update-file.ts:312 -->
-It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:108 -->
+It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:108#1bd757c2 -->
 
-Each run checks the file first and writes only if nothing conflicts. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:68-75 --> <!-- src: apps/plugin/src/preflight.ts:144-224 -->
+Each run checks the file first and writes only if nothing conflicts. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:80-91#5d2022ea --> <!-- src: apps/plugin/src/preflight.ts:144-224#a10fee94 -->
 The rest of the checklist, and how a run works, is in [Update a Figma file](update-a-file-safely.md).
 
 ## What gets written
@@ -17,15 +17,15 @@ The rest of the checklist, and how a run works, is in [Update a Figma file](upda
 |---|---|
 | Variable collections | `core`, holding the palette ramps, base dimensions and fonts; `color`, holding every color role; `layout`; `type-sets`; and one collection each for space, size, radius, border width, focus, opacity, motion, icon and control sizes. <!-- src: packages/engine/emit-figma.ts:173-258 --> |
 | Modes | On `color`, one mode per appearance mode the brand ships, such as light, dark and the high-contrast pair. On `layout`, one mode per breakpoint. On `type-sets`, a desktop and a mobile mode. <!-- src: packages/engine/emit-figma.ts:173-258 --> |
-| Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:134-137 --> |
-| Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:86-141 --> |
-| Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:86-141 --> |
+| Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:134-137#b1b1ce3a --> |
+| Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:86-141#97c35787 --> |
+| Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:86-141#97c35787 --> |
 | Grid styles | One per breakpoint, from the same layout values as the `layout` collection. A grid style can't switch modes, so each breakpoint gets its own. <!-- src: packages/engine/emit-figma-styles.ts:289-302 --> |
-| The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:141-143 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35 --> |
+| The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:141-143#ede61fb0 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35#ba150bb3 --> |
 
-Every collection and style Prism3 creates carries a small mark that says Prism3 made it. That mark is how later runs tell Prism3's content from yours. <!-- src: apps/plugin/src/provenance.ts:1-58 -->
+Every collection and style Prism3 creates carries a small mark that says Prism3 made it. That mark is how later runs tell Prism3's content from yours. <!-- src: apps/plugin/src/provenance.ts:1-57#dce1a9a1 -->
 
-The variables the plugin writes match the ones the engine emits for the same brand. CI checks this: it exports the plugin's written file and compares it, token by token, with the engine's own output. <!-- src: apps/plugin/test-readback-parity.ts:1-22 -->
+The variables the plugin writes match the ones the engine emits for the same brand. CI checks this: it exports the plugin's written file and compares it, token by token, with the engine's own output. <!-- src: apps/plugin/test-readback-parity.ts:1-22#750fb90a -->
 
 ## Run it
 
@@ -46,18 +46,18 @@ The variables the plugin writes match the ones the engine emits for the same bra
 
 ## What makes it refuse
 
-Before the first write, the plugin reads everything it is about to touch. If the file already holds something with the same name that Prism3 did not create, it writes nothing and lists each conflict: <!-- src: apps/plugin/src/preflight.ts:144-224 -->
+Before the first write, the plugin reads everything it is about to touch. If the file already holds something with the same name that Prism3 did not create, it writes nothing and lists each conflict: <!-- src: apps/plugin/src/preflight.ts:144-224#a10fee94 -->
 
 > Nothing was written. 2 conflicts with existing content: …
 
-Each conflict says why: <!-- src: apps/plugin/src/preflight.ts:174 --> <!-- src: apps/plugin/src/preflight.ts:182 --> <!-- src: apps/plugin/src/preflight.ts:203 --> <!-- src: apps/plugin/src/preflight.ts:228 -->
+Each conflict says why: <!-- src: apps/plugin/src/preflight.ts:174#bdc1c449 --> <!-- src: apps/plugin/src/preflight.ts:182#e8a24c58 --> <!-- src: apps/plugin/src/preflight.ts:203#52946846 --> <!-- src: apps/plugin/src/preflight.ts:228#e2d4345c -->
 
 - `already in this file, not created by Prism3`: a collection or style with that name exists and carries no Prism3 mark.
 - `Prism3 writes`: a variable with that name exists with a different type. The conflict names both types and the collection.
 
-Rename or remove the named items, then run Update file again. A file with its own library collections can take Prism3's alongside them as long as no names collide. <!-- src: apps/plugin/src/preflight.ts:144-216 -->
+Rename or remove the named items, then run Update file again. A file with its own library collections can take Prism3's alongside them as long as no names collide. <!-- src: apps/plugin/src/preflight.ts:144-216#da02b4b8 -->
 
-One exception: a grid style whose name is taken is skipped for that breakpoint, and the rest of the theme is written. <!-- src: apps/plugin/src/write-grid-styles.ts:37-42 -->
+One exception: a grid style whose name is taken is skipped for that breakpoint, and the rest of the theme is written. <!-- src: apps/plugin/src/write-grid-styles.ts:37-42#3eb25501 -->
 
 Two more cases stop the theme before it starts:
 
@@ -67,6 +67,6 @@ Two more cases stop the theme before it starts:
 ## Writing it again
 
 Run Update file with **Theme** ticked after any change. <!-- src: apps/studio/src/state/update-file.ts:309 -->
-Content Prism3 wrote is updated in place, and a renamed token moves to its new name rather than being written twice. <!-- src: apps/plugin/src/apply-theme.ts:76-85 -->
+Content Prism3 wrote is updated in place, and a renamed token moves to its new name rather than being written twice. <!-- src: apps/plugin/src/apply-theme.ts:76-85#7e0aa344 -->
 
 A token the brand no longer produces is reported, not deleted. To remove those, use the **Clean up** tab: see [Update a Figma file](update-a-file-safely.md#remove-what-the-brand-no-longer-uses). <!-- src: apps/studio/src/state/update-file.ts:302 -->

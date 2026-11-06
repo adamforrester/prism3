@@ -1320,8 +1320,10 @@ npx tsx packages/engine/lint-guide-claims.ts        # the designer guides still 
                                                     # COUNT: "<n> component sets" equals componentDefs.
                                                     # SCOPE: every guide index.md lists is read and cites
                                                     # something; each source tree yields literals.
-                                                    # LIMIT: a claim that quotes nothing is checked for
-                                                    # range only, and the run prints how many there are
+                                                    # FINGERPRINT (#3417): a claim that quotes nothing
+                                                    # cites path:a-b#<8 hex>, the SHA-256 of the cited
+                                                    # lines, so a shift fails by name. --stamp adds a
+                                                    # missing one and never rewrites one.
 npx tsx packages/engine/lint-release-notes.ts       # every release's notes in docs/public/releases/
                                                     # list exactly the changes git shows between its
                                                     # fold and the fold before (#2650), classified by
