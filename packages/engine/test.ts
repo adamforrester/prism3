@@ -37503,8 +37503,11 @@ arm: {
   ok(!!worked && planned.has(worked) && !entries.some((c) => c.id === worked),
     `#3472 prism3-build-ui: the worked negative names a component that is planned and has no entry (got: ${worked ?? 'none'})`);
   const DATE_WORDS = /\b(date|dates|dated|calendar|birth|birthday|dob|day|month|year|yyyy|mm\/dd|dd\/mm)\b|date[-_ ]?picker/i;
-  ok(sec !== '' && !DATE_WORDS.test(sec),
-    `#3472 prism3-build-ui: the can't-build section names no date, calendar or birth-date control, so it can't teach to the adherence R5 detector (found: ${sec.match(DATE_WORDS)?.[0] ?? 'none'})`);
+  const checkStart = skill.indexOf('Then reread the brief against what you built.');
+  const check = checkStart >= 0 ? skill.slice(checkStart, skill.indexOf('\n\n', checkStart)) : '';
+  ok(check !== '', '#3472 prism3-build-ui: the self-check paragraph "Then reread the brief against what you built." is present');
+  ok(sec !== '' && !DATE_WORDS.test(sec + '\n' + check),
+    `#3472 prism3-build-ui: the can't-build section and its self-check line name no date, calendar or birth-date control, so they can't teach to the adherence R5 detector (found: ${(sec + '\n' + check).match(DATE_WORDS)?.[0] ?? 'none'})`);
 }
 
 // ---- Progress (#2670): the approved calls as literals, and its contrast on every committed brand × mode ----

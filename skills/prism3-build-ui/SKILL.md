@@ -35,12 +35,14 @@ brand.
 **If no component or token covers the need, do not build a substitute. Leave it out and name it in
 your report.**
 
-A Prism3 component exists only when the catalog has an entry with its `id`. A name that appears only
-in another entry's `planned` list (under `composition`) is not built yet: it has no spec, no states,
-no keyboard behavior and no contrast contract. A stand-in assembled from other components, a native
-element or hand-styled markup ships behavior nobody designed or verified, and it reads as part of the
-system when it isn't. A token is the same: when no role fits, don't invent one (rule 1) and don't bind
-a primitive (rule 2).
+A Prism3 component exists only when the component catalog (`components.ai.json`) has an entry with
+its `id`. A name that appears only in another entry's `planned` list (under `composition`) is not
+built yet: it has no spec, no states, no keyboard behavior and no contrast contract. A stand-in
+assembled from other components, a native element or hand-styled markup ships behavior nobody
+designed or verified, and it reads as part of the system when it isn't. A token is the same: when no
+role fits, don't invent one (rule 1) and don't bind a primitive (rule 2). A plain layout or surface
+built from tokens is covered by "or token covers the need" and is fine; a stand-in for a missing
+component is not.
 
 When the brief asks for something the system doesn't have:
 
@@ -51,10 +53,10 @@ When the brief asks for something the system doesn't have:
 3. **Build everything else as asked.** One gap doesn't stop the rest of the work.
 
 **A worked negative: a tooltip.** The brief asks for an icon button with a tooltip that explains it.
-The catalog has `icon-button`; `tooltip` appears only in its `planned` list. Tempting: a positioned
-`div` that shows on hover, styled with `background.primary` and a shadow. Wrong: it has no keyboard
-or touch trigger, no dismissal and no measured contrast, so it fails every user who doesn't hover with
-a mouse. Build the icon button with its accessible name, leave the tooltip out, and write in the
+The component catalog has `icon-button`; `tooltip` appears only in its `planned` list. Tempting: a
+positioned `div` that shows on hover, styled with `background.primary` and a shadow. Wrong: it has no
+keyboard or touch trigger, no dismissal and no measured contrast, so it fails every user who doesn't
+hover with a mouse. Build the icon button with its accessible name, leave the tooltip out, and write in the
 report: "Not built: the tooltip on the settings button. Prism3 has no tooltip component yet (it is
 planned), so I left it out rather than build a stand-in."
 
