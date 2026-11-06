@@ -230,14 +230,54 @@ export const icon: ComponentDef = {
       // MUST LEAD with `tone` — `figmaPropertyErrors` requires an unprojected variant axis to be
       // admitted by an entry that STARTS with the axis name, because a passing mention inside an
       // entry about something else is a gate satisfied by unrelated prose (the #563 finding).
-      'tone — not projected: the ink axis defaults to `inherit` (`currentColor`), and Figma has no equivalent — a Figma node\'s fill is a value, never an inheritance from its host. As of #795 that is the one reason rather than three. #1211 SHARPENS that rather than softening it, and the sharpening matters because the old wording is now half wrong. It said the most common tone "has no coordinate to occupy"; it has one, because `paintKeys` now ends on a `{slot}` floor and a coordinate at `inherit` resolves the primary ink like any other tone-less one. What Figma still cannot carry is the MEANING: a projected `tone=inherit` member would paint that floor and be pixel-identical to `tone=primary`, so the axis would offer a value whose entire job — defer to the host — the projection silently drops while looking complete. A duplicate member that lies is worse than an absent one, which is why the axis stays in code. The other two reasons are gone, and both were OURS rather than Figma\'s. STRUCTURAL: this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size (`PROJECTABLE_VARIANT_AXES`) and throws rather than enumerating around it — #795 deleted that list, so the projector would carry `tone` today if this def asked, and the def does not ask. PAINT: `paintOf` used to key every lookup as `{intent}.{appearance}.{slot}`, so a def whose paint axis is `tone` resolved nothing; #758 replaced that with this def\'s own `paintKeys` and the tone ink resolves at every tone — verified in `test.ts`, which plans this def at `{tone: danger}` and asserts the `color/icon/danger` binding. So the set projects over `name` and paints along `tone`, which is the shape #795\'s `variantAxes` doc comment cites as the field\'s original meaning.',
-      'glyph fill vs stroke — the set ships FILLED outlines (`fill="currentColor"` on a closed path, verified across every source in the set), so a materializer paints the vector and never strokes it. A stroked-icon set is the other half of the field (Feather, Lucide) and would need a stroke weight plus a cap/join treatment. `PartDef.strokeWidth` exists since #1266, but it binds the stroke a `box` draws (the focus ring\'s) and is refused on a `vector`, and there is no cap or join field at all — so a stroked glyph still has no way to be declared, which is the `stroke weight` entry below met from the geometry side. Stated here because the def now DOES declare the geometry (#864) and this is the part of it that still cannot be declared.',
-      'optical baseline shift — a glyph\'s bounding box is rarely its visual center of mass, so an inline icon needs an optical shift (Material Symbols moves ~11.5% of the text size down, aligning the glyph center to the x-height rather than the box). That is a relationship between a glyph and the TEXT beside it, resolved at render; Figma centers a node in its parent frame and has nowhere to state it. The recurring polish bug the brief names — an icon sitting a pixel low beside its label — lives entirely in this gap.',
-      'stroke weight — a constant tuned to the typeface rather than a per-icon value (Atlassian\'s 1.5px matches its 1.5px typeface stroke by the squint test; Material\'s baseline is 2dp). It is a property of the SET, so no single glyph component can carry it. `PartDef.strokeWidth` (#1266) is the field a box\'s stroke binds, and `validateComponentDef` refuses it on a `vector`: this set\'s glyphs are filled outlines, so their weight is drawn into the path and a bound stroke would reach no node.',
-      'label routing — the whole a11y contract is a DOM shape: present makes `role="img"` + `aria-label`, absent makes `aria-hidden="true"` (§6). Figma has no accessibility tree, so the one prop that decides whether this component is announced at all is invisible to the Figma leg. It is not a variant either — the meaningful/decorative split is semantic, not visual, and the two cells are pixel-identical.',
-      'touch-target — the target-size floor for an icon-only control is the WRAPPER\'s, not the glyph\'s: at least 24×24 (SC 2.5.8, AA), and 44×44 on touch (SC 2.5.5, AAA; 48 on Android). A 16px glyph cannot be its own target, and this component must not grow to pretend otherwise; the Button supplies the padding while the glyph stays visually tight. Stated here because the temptation is to fix the target size where the small thing is.',
-      'RTL mirroring — directional glyphs mirror under `dir="rtl"` (back/forward, send, undo, list indentation) and non-directional ones must not (a clock stays a clock). The robust mechanism is per-glyph `isMirroredInRTL` metadata so the component automates the transform, which makes it a fact about each member of the set rather than about this def — and Figma carries no such flag.',
-      'delivery — inline SVG vs sprite vs variable WOFF2 is a genuine engineering trade with accessibility, bundle and rendering consequences (§11), and it is downstream of the design language rather than of this def: a locked fixed-stroke system ships tree-shaken inline SVG, a multi-axis one ships a variable font. The Figma leg is indifferent to all of it, and so is the token tier.',
+      {
+        class: 'not-projected',
+        disposition: 'unsupported',
+        description:
+          'tone — not projected: the ink axis defaults to `inherit` (`currentColor`), and Figma has no equivalent — a Figma node\'s fill is a value, never an inheritance from its host. As of #795 that is the one reason rather than three. #1211 SHARPENS that rather than softening it, and the sharpening matters because the old wording is now half wrong. It said the most common tone "has no coordinate to occupy"; it has one, because `paintKeys` now ends on a `{slot}` floor and a coordinate at `inherit` resolves the primary ink like any other tone-less one. What Figma still cannot carry is the MEANING: a projected `tone=inherit` member would paint that floor and be pixel-identical to `tone=primary`, so the axis would offer a value whose entire job — defer to the host — the projection silently drops while looking complete. A duplicate member that lies is worse than an absent one, which is why the axis stays in code. The other two reasons are gone, and both were OURS rather than Figma\'s. STRUCTURAL: this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size (`PROJECTABLE_VARIANT_AXES`) and throws rather than enumerating around it — #795 deleted that list, so the projector would carry `tone` today if this def asked, and the def does not ask. PAINT: `paintOf` used to key every lookup as `{intent}.{appearance}.{slot}`, so a def whose paint axis is `tone` resolved nothing; #758 replaced that with this def\'s own `paintKeys` and the tone ink resolves at every tone — verified in `test.ts`, which plans this def at `{tone: danger}` and asserts the `color/icon/danger` binding. So the set projects over `name` and paints along `tone`, which is the shape #795\'s `variantAxes` doc comment cites as the field\'s original meaning.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'glyph fill vs stroke — the set ships FILLED outlines (`fill="currentColor"` on a closed path, verified across every source in the set), so a materializer paints the vector and never strokes it. A stroked-icon set is the other half of the field (Feather, Lucide) and would need a stroke weight plus a cap/join treatment. `PartDef.strokeWidth` exists since #1266, but it binds the stroke a `box` draws (the focus ring\'s) and is refused on a `vector`, and there is no cap or join field at all — so a stroked glyph still has no way to be declared, which is the `stroke weight` entry below met from the geometry side. Stated here because the def now DOES declare the geometry (#864) and this is the part of it that still cannot be declared.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'optical baseline shift — a glyph\'s bounding box is rarely its visual center of mass, so an inline icon needs an optical shift (Material Symbols moves ~11.5% of the text size down, aligning the glyph center to the x-height rather than the box). That is a relationship between a glyph and the TEXT beside it, resolved at render; Figma centers a node in its parent frame and has nowhere to state it. The recurring polish bug the brief names — an icon sitting a pixel low beside its label — lives entirely in this gap.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'stroke weight — a constant tuned to the typeface rather than a per-icon value (Atlassian\'s 1.5px matches its 1.5px typeface stroke by the squint test; Material\'s baseline is 2dp). It is a property of the SET, so no single glyph component can carry it. `PartDef.strokeWidth` (#1266) is the field a box\'s stroke binds, and `validateComponentDef` refuses it on a `vector`: this set\'s glyphs are filled outlines, so their weight is drawn into the path and a bound stroke would reach no node.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'label routing — the whole a11y contract is a DOM shape: present makes `role="img"` + `aria-label`, absent makes `aria-hidden="true"` (§6). Figma has no accessibility tree, so the one prop that decides whether this component is announced at all is invisible to the Figma leg. It is not a variant either — the meaningful/decorative split is semantic, not visual, and the two cells are pixel-identical.',
+      },
+      {
+        class: 'hit-target',
+        disposition: 'unsupported',
+        description:
+          'touch-target — the target-size floor for an icon-only control is the WRAPPER\'s, not the glyph\'s: at least 24×24 (SC 2.5.8, AA), and 44×44 on touch (SC 2.5.5, AAA; 48 on Android). A 16px glyph cannot be its own target, and this component must not grow to pretend otherwise; the Button supplies the padding while the glyph stays visually tight. Stated here because the temptation is to fix the target size where the small thing is.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL mirroring — directional glyphs mirror under `dir="rtl"` (back/forward, send, undo, list indentation) and non-directional ones must not (a clock stays a clock). The robust mechanism is per-glyph `isMirroredInRTL` metadata so the component automates the transform, which makes it a fact about each member of the set rather than about this def — and Figma carries no such flag.',
+      },
+      {
+        class: 'implementation',
+        disposition: 'refused',
+        description:
+          'delivery — inline SVG vs sprite vs variable WOFF2 is a genuine engineering trade with accessibility, bundle and rendering consequences (§11), and it is downstream of the design language rather than of this def: a locked fixed-stroke system ships tree-shaken inline SVG, a multi-axis one ships a variable font. The Figma leg is indifferent to all of it, and so is the token tier.',
+      },
     ],
   },
 

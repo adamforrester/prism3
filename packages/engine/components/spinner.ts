@@ -111,14 +111,54 @@ export const spinner: ComponentDef = {
     // No entry LEADS with `size` or a state name: `admits()` reads a leading name as license to leave that axis
     // or state out of the projection (#867), and every one of these is behavior Figma cannot hold, not an axis.
     codeOnly: [
-      'rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite` (800ms per turn), a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here.',
-      'reduced motion — under `@media (prefers-reduced-motion: reduce)` the turn SLOWS to `var(--motion-duration-reduced-spin)` (2600ms per turn), still linear and infinite. Not a pulse and not a static ring: the turn is what tells a sighted user work is continuing, so reduced motion keeps it and takes the speed out of it.',
-      'the stroke in code — one `<svg viewBox="0 0 24 24">` with two circles at r=10: the track at `stroke-opacity: 0.2` and the arc with `stroke-dasharray` 33% of the circumference (20.73 of 62.83), both `stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"`, the arc rotated -90deg so it starts at twelve o\'clock. The viewBox scales the 2-unit stroke with the rendered size, the same proportion the Figma outlines hold.',
-      'a fixed arc — MUI\'s `disableShrink`, held by construction. The only animation is the GPU `transform: rotate` above; the arc\'s `stroke-dasharray` is static, and nothing animates `stroke-dasharray` or `stroke-dashoffset`. A dash animation is computed by layout and paint, so it drops frames or freezes under heavy main-thread load (parsing a large JSON payload, rendering a large React tree) — exactly when a spinner most needs to look alive (brief §8).',
-      'right-to-left — the turn stays clockwise and does not mirror (Spectrum\'s rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. Layout mirrors through logical properties, and the rotation is the deliberate exception, so no `[dir="rtl"]` rule flips it.',
-      'enter fade — the spinner fades in when it mounts: `opacity` 0 → 1 over `var(--motion-duration-fast)` on `var(--motion-easing-role-enter)`, and under reduced motion over `var(--motion-duration-reduced-fast)`, because a change of opacity is not vestibular motion. Figma holds the visible member.',
-      'anti-flash delay — the HOST\'s, not the spinner\'s. A spinner that appears for a fast operation flashes, so the host waits about 200–500ms before mounting it and renders nothing if the work resolves first; once shown, the host keeps it about 500ms so it does not flash for one frame, and clears both timers on unmount (brief §11, inherited from Progress; Ant and Fluent expose the wait as a first-class `delay` prop). A button\'s `isPending` "delays the spinner". The spinner renders the moment it is mounted.',
-      'announcement — a wrapper with `role="status"` and `aria-live="polite"` around an `aria-hidden` `<svg>`, with the `label` ("Loading" by default) in a visually hidden span (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer\'s stance) — puts `aria-hidden="true"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role="progressbar"`: a spinner has no value.',
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite` (800ms per turn), a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'reduced motion — under `@media (prefers-reduced-motion: reduce)` the turn SLOWS to `var(--motion-duration-reduced-spin)` (2600ms per turn), still linear and infinite. Not a pulse and not a static ring: the turn is what tells a sighted user work is continuing, so reduced motion keeps it and takes the speed out of it.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'the stroke in code — one `<svg viewBox="0 0 24 24">` with two circles at r=10: the track at `stroke-opacity: 0.2` and the arc with `stroke-dasharray` 33% of the circumference (20.73 of 62.83), both `stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"`, the arc rotated -90deg so it starts at twelve o\'clock. The viewBox scales the 2-unit stroke with the rendered size, the same proportion the Figma outlines hold.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'lowered',
+        description:
+          'a fixed arc — MUI\'s `disableShrink`, held by construction. The only animation is the GPU `transform: rotate` above; the arc\'s `stroke-dasharray` is static, and nothing animates `stroke-dasharray` or `stroke-dashoffset`. A dash animation is computed by layout and paint, so it drops frames or freezes under heavy main-thread load (parsing a large JSON payload, rendering a large React tree) — exactly when a spinner most needs to look alive (brief §8).',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'right-to-left — the turn stays clockwise and does not mirror (Spectrum\'s rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. Layout mirrors through logical properties, and the rotation is the deliberate exception, so no `[dir="rtl"]` rule flips it.',
+      },
+      {
+        class: 'motion',
+        disposition: 'refused',
+        description:
+          'enter fade — the spinner fades in when it mounts: `opacity` 0 → 1 over `var(--motion-duration-fast)` on `var(--motion-easing-role-enter)`, and under reduced motion over `var(--motion-duration-reduced-fast)`, because a change of opacity is not vestibular motion. Figma holds the visible member.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'anti-flash delay — the HOST\'s, not the spinner\'s. A spinner that appears for a fast operation flashes, so the host waits about 200–500ms before mounting it and renders nothing if the work resolves first; once shown, the host keeps it about 500ms so it does not flash for one frame, and clears both timers on unmount (brief §11, inherited from Progress; Ant and Fluent expose the wait as a first-class `delay` prop). A button\'s `isPending` "delays the spinner". The spinner renders the moment it is mounted.',
+      },
+      {
+        class: 'announcement',
+        disposition: 'refused',
+        description:
+          'announcement — a wrapper with `role="status"` and `aria-live="polite"` around an `aria-hidden` `<svg>`, with the `label` ("Loading" by default) in a visually hidden span (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer\'s stance) — puts `aria-hidden="true"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role="progressbar"`: a spinner has no value.',
+      },
     ],
   },
 

@@ -1,5 +1,5 @@
 {
-  "format": "prism3-component-defs/1.1",
+  "format": "prism3-component-defs/1.2",
   "generated": true,
   "engineVersion": "0.237.0",
   "contractVersion": "14.14.0",
@@ -7,7 +7,7 @@
   "brand": null,
   "components": {
     "icon": {
-      "digest": "7766272f",
+      "digest": "e51a1a9e",
       "def": {
         "id": "icon",
         "name": "Icon",
@@ -260,7 +260,41 @@
             "legacy icon fonts",
             "ad-hoc inline SVGs outside the set"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "icon",
@@ -859,7 +893,7 @@
       }
     },
     "provider-logo": {
-      "digest": "9c8b9cc0",
+      "digest": "75a8dee9",
       "def": {
         "id": "provider-logo",
         "name": "ProviderLogo",
@@ -1152,7 +1186,29 @@
             "provider logos pasted into a design as images",
             "a provider logo recolored to match the palette"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "provider-logo",
@@ -1856,7 +1912,7 @@
       }
     },
     "focus-ring": {
-      "digest": "14cf5f57",
+      "digest": "c9dfea10",
       "def": {
         "id": "focus-ring",
         "name": "FocusRing",
@@ -1976,7 +2032,33 @@
             "a per-component focus border",
             "a box-shadow focus glow"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "focus-ring",
@@ -2059,7 +2141,7 @@
       }
     },
     "button": {
-      "digest": "46df2e2b",
+      "digest": "a4386d06",
       "def": {
         "id": "button",
         "name": "Button",
@@ -2338,7 +2420,53 @@
             "input[type=button|submit]",
             "div[role=button]"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "button",
@@ -5177,7 +5305,7 @@
       }
     },
     "button-destructive": {
-      "digest": "8a3a3212",
+      "digest": "e354625f",
       "def": {
         "id": "button-destructive",
         "name": "Button.Destructive",
@@ -5458,7 +5586,53 @@
             "input[type=button|submit]",
             "div[role=button]"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "button-destructive",
@@ -8297,7 +8471,7 @@
       }
     },
     "button-neutral": {
-      "digest": "9449fc36",
+      "digest": "4530f343",
       "def": {
         "id": "button-neutral",
         "name": "Button.Neutral",
@@ -8574,7 +8748,53 @@
             "input[type=button|submit]",
             "div[role=button]"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "button-neutral",
@@ -11413,7 +11633,7 @@
       }
     },
     "wallet-button": {
-      "digest": "a234c2d3",
+      "digest": "4e2efcbd",
       "def": {
         "id": "wallet-button",
         "name": "WalletButton",
@@ -11582,7 +11802,45 @@
             "a hand-drawn wallet button",
             "a wallet logo pasted into a Button"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "wallet-button",
@@ -12703,7 +12961,7 @@
       }
     },
     "sign-in-button": {
-      "digest": "cf7fd27d",
+      "digest": "b7e57796",
       "def": {
         "id": "sign-in-button",
         "name": "SignInButton",
@@ -12883,7 +13141,49 @@
             "a hand-drawn social sign-in button",
             "a provider logo pasted into a Button"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "CARRIED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "sign-in-button",
@@ -13931,7 +14231,7 @@
       }
     },
     "icon-button": {
-      "digest": "6f8f6e87",
+      "digest": "710a5a87",
       "def": {
         "id": "icon-button",
         "name": "IconButton",
@@ -14158,7 +14458,37 @@
             "div[role=button] wrapping an icon",
             "a <button> holding only an <svg> and no accessible name"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "icon-button",
@@ -15694,7 +16024,7 @@
       }
     },
     "icon-button-destructive": {
-      "digest": "41b3c0d7",
+      "digest": "a69a4541",
       "def": {
         "id": "icon-button-destructive",
         "name": "IconButton.Destructive",
@@ -15922,7 +16252,37 @@
             "div[role=button] wrapping an icon",
             "a <button> holding only an <svg> and no accessible name"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "icon-button-destructive",
@@ -17458,7 +17818,7 @@
       }
     },
     "icon-button-neutral": {
-      "digest": "96c3394f",
+      "digest": "c45fa441",
       "def": {
         "id": "icon-button-neutral",
         "name": "IconButton.Neutral",
@@ -17685,7 +18045,37 @@
             "div[role=button] wrapping an icon",
             "a <button> holding only an <svg> and no accessible name"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "icon-button-neutral",
@@ -19221,7 +19611,7 @@
       }
     },
     "flush-icon-button": {
-      "digest": "c1e7ef61",
+      "digest": "361e6973",
       "def": {
         "id": "flush-icon-button",
         "name": "FlushIconButton",
@@ -19407,7 +19797,33 @@
             "an <svg> with a click handler and no button",
             "an IconButton with its padding overridden to zero"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "flush-icon-button",
@@ -20026,7 +20442,7 @@
       }
     },
     "flush-icon-button-destructive": {
-      "digest": "2b52de53",
+      "digest": "d7a41f89",
       "def": {
         "id": "flush-icon-button-destructive",
         "name": "FlushIconButton.Destructive",
@@ -20213,7 +20629,33 @@
             "an <svg> with a click handler and no button",
             "an IconButton with its padding overridden to zero"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "flush-icon-button-destructive",
@@ -20832,7 +21274,7 @@
       }
     },
     "flush-icon-button-neutral": {
-      "digest": "4a3e5311",
+      "digest": "a7da0a07",
       "def": {
         "id": "flush-icon-button-neutral",
         "name": "FlushIconButton.Neutral",
@@ -21020,7 +21462,33 @@
             "an <svg> with a click handler and no button",
             "an IconButton with its padding overridden to zero"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "focus-ring",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "flush-icon-button-neutral",
@@ -21639,7 +22107,7 @@
       }
     },
     "field-label": {
-      "digest": "d20cdf35",
+      "digest": "83aa034f",
       "def": {
         "id": "field-label",
         "name": "FieldLabel",
@@ -21803,7 +22271,25 @@
           "replacesPatterns": [
             "an aria-label standing in for a visible label"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "content-rule",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "field-label",
@@ -22221,7 +22707,7 @@
       }
     },
     "field-message": {
-      "digest": "46f98476",
+      "digest": "84044863",
       "def": {
         "id": "field-message",
         "name": "FieldMessage",
@@ -22352,7 +22838,29 @@
             "inline-message"
           ],
           "replacesPatterns": []
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "announcement",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "field-message",
@@ -22614,7 +23122,7 @@
       }
     },
     "text-field": {
-      "digest": "42f9d84e",
+      "digest": "d433f459",
       "def": {
         "id": "text-field",
         "name": "TextField",
@@ -22938,7 +23446,45 @@
             "placeholder-as-label",
             "type=number for formatted numeric"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "text-field",
@@ -24248,7 +24794,7 @@
       }
     },
     "textarea": {
-      "digest": "0d56c39f",
+      "digest": "648ca24e",
       "def": {
         "id": "textarea",
         "name": "Textarea",
@@ -24555,7 +25101,49 @@
             "a one-row textarea used as a tall input",
             "a contenteditable div used for plain multi-line text"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "announcement",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "textarea",
@@ -25818,7 +26406,7 @@
       }
     },
     "checkbox-control": {
-      "digest": "0f3b8b55",
+      "digest": "824f74b5",
       "def": {
         "id": "checkbox-control",
         "name": "Checkbox.Control",
@@ -25982,7 +26570,25 @@
           "replacesPatterns": [
             "the painted control inlined in a checkbox row"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "checkbox-control",
@@ -26754,7 +27360,7 @@
       }
     },
     "checkbox-row": {
-      "digest": "0ee0bf71",
+      "digest": "df9d720b",
       "def": {
         "id": "checkbox-row",
         "name": "Checkbox.Row",
@@ -26964,7 +27570,37 @@
             "a bare <input type=\"checkbox\"> with no label wiring",
             "a role=\"checkbox\" div where a styled native input would do"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "checkbox-row",
@@ -27378,7 +28014,7 @@
       }
     },
     "checkbox-group": {
-      "digest": "e82f20fc",
+      "digest": "88213845",
       "def": {
         "id": "checkbox-group",
         "name": "Checkbox.Group",
@@ -27582,7 +28218,45 @@
             "a bare set of <input type=\"checkbox\"> with no shared label or group wiring",
             "per-row required / error scattered across the options instead of owned by the group"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "checkbox-group",
@@ -27916,7 +28590,7 @@
       }
     },
     "radio-control": {
-      "digest": "95c41c57",
+      "digest": "015ef969",
       "def": {
         "id": "radio-control",
         "name": "Radio.Control",
@@ -28073,7 +28747,25 @@
             "the painted circle and dot inlined in a radio row",
             "a filled-disc radio that signals selection by the ring filling in"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "radio-control",
@@ -28587,7 +29279,7 @@
       }
     },
     "radio-row": {
-      "digest": "241e2027",
+      "digest": "42706673",
       "def": {
         "id": "radio-row",
         "name": "Radio.Row",
@@ -28771,7 +29463,37 @@
             "a bare <input type=\"radio\"> set with no group label",
             "two radios standing in for a true/false toggle"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "radio-row",
@@ -29185,7 +29907,7 @@
       }
     },
     "radio-group": {
-      "digest": "b003c2c8",
+      "digest": "195fb9ea",
       "def": {
         "id": "radio-group",
         "name": "Radio.Group",
@@ -29396,7 +30118,49 @@
             "a set of checkboxes misused for a mutually exclusive choice",
             "per-option required / error scattered across the options instead of owned by the group"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "radio-group",
@@ -29730,7 +30494,7 @@
       }
     },
     "switch-control": {
-      "digest": "86c60fd7",
+      "digest": "bec59501",
       "def": {
         "id": "switch-control",
         "name": "Switch.Control",
@@ -29890,7 +30654,29 @@
           "replacesPatterns": [
             "the painted track and thumb inlined in a switch row"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "switch-control",
@@ -30607,7 +31393,7 @@
       }
     },
     "switch-row": {
-      "digest": "fba5cb81",
+      "digest": "80f4c6cf",
       "def": {
         "id": "switch-row",
         "name": "Switch.Row",
@@ -30817,7 +31603,37 @@
             "two radios standing in for an obvious binary on/off",
             "an aria-pressed toggle button misused to hold a state setting"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "switch-row",
@@ -31063,7 +31879,7 @@
       }
     },
     "select": {
-      "digest": "e995062e",
+      "digest": "954e6b87",
       "def": {
         "id": "select",
         "name": "Select",
@@ -31309,7 +32125,37 @@
             "a bare <select> with no label wiring",
             "placeholder-as-label"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "select",
@@ -32489,7 +33335,7 @@
       }
     },
     "veil": {
-      "digest": "62a678c7",
+      "digest": "1ed9a745",
       "def": {
         "id": "veil",
         "name": "Veil",
@@ -32638,7 +33484,21 @@
           "replacesPatterns": [
             "a hand-tuned semi-transparent rectangle over an image with an ad-hoc opacity"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "responsive-layout",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "veil",
@@ -33185,7 +34045,7 @@
       }
     },
     "image-placeholder": {
-      "digest": "225955ca",
+      "digest": "6cf1ba58",
       "def": {
         "id": "image-placeholder",
         "name": "ImagePlaceholder",
@@ -33301,7 +34161,29 @@
           "replacesPatterns": [
             "a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "image-placeholder",
@@ -33489,7 +34371,7 @@
       }
     },
     "spinner": {
-      "digest": "f97233d4",
+      "digest": "77b1b285",
       "def": {
         "id": "spinner",
         "name": "Spinner",
@@ -33615,7 +34497,41 @@
             "an animated loading GIF",
             "a static loading glyph in the icon set"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "announcement",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "spinner",
@@ -33814,7 +34730,7 @@
       }
     },
     "badge": {
-      "digest": "873c2c6e",
+      "digest": "35fe1d24",
       "def": {
         "id": "badge",
         "name": "Badge",
@@ -34056,7 +34972,33 @@
             "a hand-drawn colored pill",
             "a red circle with a number drawn over an icon"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "CARRIED"
+          }
+        ]
       },
       "spec": {
         "id": "badge",
@@ -35009,7 +35951,7 @@
       }
     },
     "tag": {
-      "digest": "61fc9e36",
+      "digest": "ef1a37c0",
       "def": {
         "id": "tag",
         "name": "Tag",
@@ -35237,7 +36179,77 @@
             "a clickable div styled as a pill",
             "a bare × glyph with no accessible name"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "brand-setting",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "tag",
@@ -36358,7 +37370,7 @@
       }
     },
     "tab-item": {
-      "digest": "53ceca1a",
+      "digest": "9e62078c",
       "def": {
         "id": "tab-item",
         "name": "Tab.Item",
@@ -36509,7 +37521,45 @@
           "replacesPatterns": [
             "a styled button that shows and hides a div with no tab semantics"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "tab-item",
@@ -37225,7 +38275,7 @@
       }
     },
     "tabs": {
-      "digest": "c8bff74d",
+      "digest": "f905d264",
       "def": {
         "id": "tabs",
         "name": "Tabs",
@@ -37402,7 +38452,49 @@
             "show and hide divs with no tab semantics",
             "role=\"tab\" on links that change the route"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "tabs",
@@ -37854,7 +38946,7 @@
       }
     },
     "divider": {
-      "digest": "a692b5a6",
+      "digest": "2926baa9",
       "def": {
         "id": "divider",
         "name": "Divider",
@@ -38019,7 +39111,45 @@
           "replacesPatterns": [
             "a hand-drawn line or a border-bottom on one item standing in for a separator"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "divider",
@@ -38652,7 +39782,7 @@
       }
     },
     "_accordion-indicator": {
-      "digest": "4a0f1de1",
+      "digest": "41e121a1",
       "def": {
         "id": "_accordion-indicator",
         "name": "Accordion.Indicator",
@@ -38772,7 +39902,21 @@
           "replacesPatterns": [
             "a separate down and up chevron icon toggled by hand in each accordion header"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "_accordion-indicator",
@@ -39142,7 +40286,7 @@
       }
     },
     "accordion": {
-      "digest": "30c68102",
+      "digest": "10446b51",
       "def": {
         "id": "accordion",
         "name": "Accordion",
@@ -39357,7 +40501,49 @@
             "a show/hide div with no aria-expanded or heading",
             "a tablist used for vertical sections that open together"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "accordion",
@@ -40133,7 +41319,7 @@
       }
     },
     "list-item": {
-      "digest": "bbb29d42",
+      "digest": "72c7932a",
       "def": {
         "id": "list-item",
         "name": "List.Item",
@@ -40270,7 +41456,33 @@
             "a paragraph with a typed bullet character and spaces before it",
             "an icon and a text box laid side by side by hand"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "list-item",
@@ -41003,7 +42215,7 @@
       }
     },
     "list": {
-      "digest": "a84b8f58",
+      "digest": "3c908628",
       "def": {
         "id": "list",
         "name": "List",
@@ -41160,7 +42372,33 @@
             "a <ul> with list-style: none and no role=\"list\"",
             "a column of text boxes with typed bullet characters"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "list",
@@ -41458,7 +42696,7 @@
       }
     },
     "segmented-control-segment": {
-      "digest": "de4e7ce8",
+      "digest": "7e9a9b4d",
       "def": {
         "id": "segmented-control-segment",
         "name": "SegmentedControl.Segment",
@@ -41601,7 +42839,41 @@
           "replacesPatterns": [
             "a styled button with a hand-rolled active state"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "segmented-control-segment",
@@ -42281,7 +43553,7 @@
       }
     },
     "segmented-control": {
-      "digest": "9de3fdc7",
+      "digest": "c5b9e807",
       "def": {
         "id": "segmented-control",
         "name": "SegmentedControl",
@@ -42469,7 +43741,45 @@
             "a radio group restyled as a compact switcher for a view that changes at once",
             "a row of buttons with a hand-rolled active state and no group semantics"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "segmented-control",
@@ -42789,7 +44099,7 @@
       }
     },
     "link": {
-      "digest": "886ec7cc",
+      "digest": "68949edd",
       "def": {
         "id": "link",
         "name": "Link",
@@ -43021,7 +44331,57 @@
             "an <a> with no href, href=\"#\" or javascript:void(0)",
             "a[role=button] used for navigation"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "link",
@@ -45680,7 +47040,7 @@
       }
     },
     "button-group": {
-      "digest": "430e6fe6",
+      "digest": "202150ed",
       "def": {
         "id": "button-group",
         "name": "Button.Group",
@@ -45804,7 +47164,33 @@
             "a footer of fixed nested buttons copied into each component",
             "a button-set component with a variant per count and layout"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "button-group",
@@ -46116,7 +47502,7 @@
       }
     },
     "dialog": {
-      "digest": "f78e482b",
+      "digest": "47291609",
       "def": {
         "id": "dialog",
         "name": "Dialog",
@@ -46351,7 +47737,81 @@
             "a div overlay with a z-index and a hand-written focus trap",
             "a backdrop built from a veil"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "brand-setting",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "dialog",
@@ -47633,7 +49093,7 @@
       }
     },
     "password-field": {
-      "digest": "274f0b62",
+      "digest": "2f706d32",
       "def": {
         "id": "password-field",
         "name": "PasswordField",
@@ -47891,7 +49351,65 @@
             "password field with no way to show the characters",
             "autocomplete=\"off\" on a password"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "password-field",
@@ -49133,7 +50651,7 @@
       }
     },
     "toast": {
-      "digest": "5fb0749e",
+      "digest": "fd5567f6",
       "def": {
         "id": "toast",
         "name": "Toast",
@@ -49283,7 +50801,69 @@
             "a status message that moves focus",
             "a timed message with no pause"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "announcement",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "toast",
@@ -49533,7 +51113,7 @@
       }
     },
     "_breadcrumb-separator": {
-      "digest": "7d755ccf",
+      "digest": "ec5b0b5b",
       "def": {
         "id": "_breadcrumb-separator",
         "name": "BreadcrumbSeparator",
@@ -49619,7 +51199,21 @@
           "replacesPatterns": [
             "a \"/\" or \">\" typed as text between breadcrumb links"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "_breadcrumb-separator",
@@ -49761,7 +51355,7 @@
       }
     },
     "breadcrumb-item": {
-      "digest": "c683220c",
+      "digest": "ff88e6bb",
       "def": {
         "id": "breadcrumb-item",
         "name": "BreadcrumbItem",
@@ -49913,7 +51507,41 @@
             "a separator typed as text between links",
             "the current page rendered as a link to itself"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "breadcrumb-item",
@@ -50176,7 +51804,7 @@
       }
     },
     "breadcrumbs": {
-      "digest": "41e2a82b",
+      "digest": "49e309e7",
       "def": {
         "id": "breadcrumbs",
         "name": "Breadcrumbs",
@@ -50378,7 +52006,61 @@
             "a history trail of visited pages",
             "a breadcrumb whose last item links to the page itself"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "breadcrumbs",
@@ -50692,7 +52374,7 @@
       }
     },
     "counter": {
-      "digest": "856ce1e3",
+      "digest": "879049f0",
       "def": {
         "id": "counter",
         "name": "Counter",
@@ -50925,7 +52607,49 @@
             "a select of 1 to 10 for a bag quantity",
             "two IconButtons around a <span> with no spinbutton semantics"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "announcement",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "counter",
@@ -51619,7 +53343,7 @@
       }
     },
     "pagination-item": {
-      "digest": "7c92c76d",
+      "digest": "a9023f50",
       "def": {
         "id": "pagination-item",
         "name": "Pagination.Item",
@@ -51834,7 +53558,53 @@
             "a page number link with href=\"#\" and a click handler",
             "an ellipsis read aloud as \"dot dot dot\""
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "pagination-item",
@@ -53106,7 +54876,7 @@
       }
     },
     "pagination": {
-      "digest": "486aa570",
+      "digest": "f2779baf",
       "def": {
         "id": "pagination",
         "name": "Pagination",
@@ -53329,7 +55099,65 @@
             "a disabled next button that drops focus at the last page",
             "infinite scroll on a page with a footer"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "pagination",
@@ -54024,7 +55852,7 @@
       }
     },
     "progress": {
-      "digest": "f70eec98",
+      "digest": "6c6e44b5",
       "def": {
         "id": "progress",
         "name": "Progress",
@@ -54270,7 +56098,57 @@
             "a bar that creeps to 99% while the real amount is unknown",
             "a label printed inside the moving fill"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "live-geometry",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "announcement",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "progress",
@@ -54957,7 +56835,7 @@
       }
     },
     "search-field": {
-      "digest": "eae5d9e9",
+      "digest": "925c3f52",
       "def": {
         "id": "search-field",
         "name": "SearchField",
@@ -55233,7 +57111,57 @@
             "two clear buttons in a search field",
             "clear button on an empty search field"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "search-field",
@@ -56550,7 +58478,7 @@
       }
     },
     "card-number-field": {
-      "digest": "e8305be7",
+      "digest": "a2cad338",
       "def": {
         "id": "card-number-field",
         "name": "CardNumberField",
@@ -56839,7 +58767,65 @@
             "number, expiration and security code packed into one box",
             "type=\"number\" on a card number"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "card-number-field",
@@ -58029,7 +60015,7 @@
       }
     },
     "banner": {
-      "digest": "cd151616",
+      "digest": "51811f19",
       "def": {
         "id": "banner",
         "name": "Banner",
@@ -58246,7 +60232,73 @@
             "a colored div with an icon and role=\"alert\" on a message present at load",
             "an error shown as a toast that disappears"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "brand-setting",
+            "disposition": "LOWERED"
+          }
+        ]
       },
       "spec": {
         "id": "banner",
@@ -59628,7 +61680,7 @@
       }
     },
     "_slider-thumb": {
-      "digest": "1e6086dc",
+      "digest": "e650a92d",
       "def": {
         "id": "_slider-thumb",
         "name": "Slider.Thumb",
@@ -59741,7 +61793,33 @@
           "replacesPatterns": [
             "the browser's own range thumb, restyled per engine"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "hit-target",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "_slider-thumb",
@@ -60109,7 +62187,7 @@
       }
     },
     "slider": {
-      "digest": "b97e9a5f",
+      "digest": "52e088b5",
       "def": {
         "id": "slider",
         "name": "Slider",
@@ -60399,7 +62477,81 @@
             "a drag-only custom slider with no keyboard support",
             "two separate sliders for a minimum and a maximum"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "implementation",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "motion",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "composition",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "slider",
@@ -61421,7 +63573,7 @@
       }
     },
     "code-input-cell": {
-      "digest": "d7af69bf",
+      "digest": "bbe5a84c",
       "def": {
         "id": "code-input-cell",
         "name": "CodeInput.Cell",
@@ -61546,7 +63698,41 @@
           "replacesPatterns": [
             "one input per character of a one-time code"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "live-geometry",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "brand-setting",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "forced-colors",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "code-input-cell",
@@ -61992,7 +64178,7 @@
       }
     },
     "code-input": {
-      "digest": "68d1fe80",
+      "digest": "9e4b212f",
       "def": {
         "id": "code-input",
         "name": "CodeInput",
@@ -62250,7 +64436,61 @@
             "a code field with paste blocked",
             "auto-submit on the last digit"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "not-projected",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "platform-owned",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          }
+        ]
       },
       "spec": {
         "id": "code-input",
@@ -62812,7 +65052,7 @@
       }
     },
     "page-nav-item": {
-      "digest": "7865af4a",
+      "digest": "ef34cc24",
       "def": {
         "id": "page-nav-item",
         "name": "PageNav.Item",
@@ -62935,7 +65175,37 @@
           "replacesPatterns": [
             "a tab with role=\"tab\" that changes the page"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "brand-setting",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "localization",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "page-nav-item",
@@ -63075,7 +65345,7 @@
       }
     },
     "page-nav": {
-      "digest": "774112fa",
+      "digest": "836de39d",
       "def": {
         "id": "page-nav",
         "name": "PageNav",
@@ -63211,7 +65481,49 @@
             "links styled as tabs with a selected state",
             "a row of links with the current page told apart by color alone"
           ]
-        }
+        },
+        "syncBoundary": [
+          {
+            "class": "deferred",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "semantics",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "visual-treatment",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "keyboard-and-focus",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "runtime-behavior",
+            "disposition": "REFUSED"
+          },
+          {
+            "class": "responsive-layout",
+            "disposition": "UNSUPPORTED"
+          },
+          {
+            "class": "static-placeholder",
+            "disposition": "LOWERED"
+          },
+          {
+            "class": "right-to-left",
+            "disposition": "UNSUPPORTED"
+          }
+        ]
       },
       "spec": {
         "id": "page-nav",

@@ -34,6 +34,8 @@ import { SPACE_LADDER, GAP_FLOOR_PX, isGapKey, SPACE_BASE, densitySpacingStep } 
 // #1602 — type-only (erased at runtime, so no cycle and no plugin-bundle weight) for the weightIntent
 // category. `theme.ts` imports nothing back from here.
 import type { TypeGroup } from './theme';
+import type { CodeOnlyEntry } from './code-only-register';
+export type { CodeOnlyEntry } from './code-only-register';
 
 /** A reference to a token by its root-relative dotted path (`color.interactive.primary.fill.rest`,
  *  `radius.md`). Validated to resolve against the generated tree. */
@@ -1443,8 +1445,10 @@ export type AnatomyDef = {
   derived?: Record<string, string>;
   /** Structure that provably will NOT survive the Figma leg. The component-tier version of the
    *  ceilings discipline docs/14 §3 set for tokens: a schema claiming Figma carries everything
-   *  is wrong, so this list is REQUIRED and validated non-empty. */
-  codeOnly: string[];
+   *  is wrong, so this list is REQUIRED and validated non-empty. Each entry is data (#3441): a class from
+   *  the declared register and a disposition, with the prose kept whole as its `description`
+   *  (`code-only-register.ts`; gated by `lint-code-only-classes.ts`). */
+  codeOnly: CodeOnlyEntry[];
 };
 
 /**
@@ -2525,7 +2529,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
    * written it was the one part of this check no test covered.
    */
   const admits = (term: string) => (def.anatomy?.codeOnly ?? []).some((c) => {
-    const t = c.trim();
+    const t = c.description.trim();
     if (!t.startsWith(term)) return false;
     const rest = t.slice(term.length);
     // `''` so a bare entry qualifies. NOT `-`: a hyphen is part of a compound NAME, not a separator
@@ -4332,6 +4336,12 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // part is making a false claim, and this is the assertion that stops it being made silently.
   if (!Array.isArray(a.codeOnly) || a.codeOnly.length === 0)
     e.push('anatomy.codeOnly must be a non-empty list — some structure provably does not survive Figma, and the schema must say which (docs/14 §3)');
+  // Each entry is an object whose prose survives (#3441). The class and disposition are checked against
+  // their declared lists by `lint-code-only-classes.ts`, the one place that reads the register.
+  else a.codeOnly.forEach((c, i) => {
+    if (!c || typeof c !== 'object' || typeof c.description !== 'string' || !c.description.trim())
+      e.push(`anatomy.codeOnly[${i}] must be an entry { class, disposition, description } with non-empty description prose (#3441)`);
+  });
 
   // Exactly one interaction target. Zero means nothing owns the hit area; two means the
   // materializer has no single node to attach the a11y role and focus ring to.

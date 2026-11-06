@@ -194,6 +194,28 @@ The `code-only` list is the component-tier version of the ceilings discipline `1
 for tokens: some anatomy provably will not survive the Figma leg, and the schema must say so
 **explicitly** rather than lose it silently.
 
+#### The sync boundary as data (2026-11-05, #3441, owner decision #3437 Q1 A)
+
+Each `codeOnly` entry is `{ class, disposition, description }`, so the boundary can be counted and
+diffed, not only read. The outside reference is the sync boundary of `southleft/ds-contracts-poc`
+(`docs/16-sync-boundary.md` and `spec/normative.md` §2, MIT): every fact on every surface is carried,
+lowered, refused or unsupported, and none is lost silently.
+
+- **`class`** is a stable id from `CODE_ONLY_CLASSES` in `packages/engine/code-only-register.ts`, a
+  declared list where each class carries its meaning. It is never gathered from the defs (`34` shape 1).
+- **`disposition`** is one of four. In this file they read as the design file's treatment of the fact:
+  `carried` (in full), `lowered` (a lossy form the entry names: a frozen number, a static placeholder),
+  `refused` (kept out on purpose: code's behavior, semantics, keyboard or motion, or an owner hold) and
+  `unsupported` (the tool has no property, binding or mode for it). Their printed names live in one
+  constant, `DISPOSITION_NAMES`, so renaming them changes no def. The owner kept these names
+  (Q3441.1 A).
+- **`description`** is the prose the entry always held. It still leads with the name an admission needs.
+
+`components.ai.json` ships each def's `syncBoundary` (class and disposition, never the prose), and
+`lint-code-only-classes.ts` prints the counts per class and per disposition. The first classification
+was mechanical from each entry's leading term, then reviewed. Whether a class fits its prose is a reading
+call for review; the gate checks membership, not judgment.
+
 ### The 44px interactive hit-target floor (#1443)
 
 An interactive control presents a hit target of at least **44px** — WCAG 2.2 Success Criterion

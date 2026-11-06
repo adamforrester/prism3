@@ -69,9 +69,24 @@ export const breadcrumbSeparator: ComponentDef = {
       slashGlyph: { kind: 'vector', glyph: 'slash', size: 'glyph-size', presentWhen: { type: ['slash'] }, note: 'A forward slash.' },
     },
     codeOnly: [
-      'The separator in code — CSS ::after on every <li> but the last, with pointer-events: none: never text content, never a list item, never in the accessibility tree. In code it is part of Breadcrumbs, not a component of its own; Figma draws it as this glyph inside each ancestor and overflow item.',
-      'The look in code — Breadcrumbs\' `separator` prop, chevron or slash, applied to every step.',
-      'RTL — the chevron flips to point left, toward the current page. The slash does not mirror.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The separator in code — CSS ::after on every <li> but the last, with pointer-events: none: never text content, never a list item, never in the accessibility tree. In code it is part of Breadcrumbs, not a component of its own; Figma draws it as this glyph inside each ancestor and overflow item.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The look in code — Breadcrumbs\' `separator` prop, chevron or slash, applied to every step.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the chevron flips to point left, toward the current page. The slash does not mirror.',
+      },
     ],
   },
 

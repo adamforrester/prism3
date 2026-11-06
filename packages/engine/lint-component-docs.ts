@@ -102,6 +102,7 @@ import type { ComponentDef } from './component-schema';
 import { docSections } from './component-doc-sections';
 import { componentDefs } from './components/index';
 import { validate } from './json-schema-lite';
+import { codeOnlyText, DISPOSITION_NAMES } from './code-only-register';
 import { exportComponentDefs } from './component-defs-export';
 import type { BrandInput } from './theme';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
@@ -447,8 +448,15 @@ for (const def of componentDefs) {
     const extra = Object.keys(m).filter((k) => k !== 'codeOnly' && k !== 'notes' && k !== 'docGaps');
     const extraNotes = Object.keys(m.notes ?? {}).filter((k) => !(MAINTAINER_NOTES as readonly string[]).includes(k));
     if (extra.length || extraNotes.length) note(`MAINTAINER SHAPE: \`${def.id}\` carries ${[...extra, ...extraNotes.map((k) => `notes.${k}`)].join(', ')} — the record holds \`codeOnly\` and \`notes.{${MAINTAINER_NOTES.join(',')}}\` only`);
+    // A `codeOnly` entry is an object (#3441): its prose round-trips here, by index; its class and
+    // disposition are held just below, the disposition through its printed name.
+    const recCodeOnly: unknown[] = Array.isArray(m.codeOnly) ? m.codeOnly : [];
+    (def.anatomy?.codeOnly ?? []).forEach((e, i) => {
+      const r = recCodeOnly[i] as { class?: unknown; disposition?: unknown } | undefined;
+      if (r?.class !== e.class || r?.disposition !== DISPOSITION_NAMES[e.disposition]) note(`ROUND-TRIP (maintainer): \`${def.id}\` anatomy.codeOnly.${i} is ${e.class} / ${DISPOSITION_NAMES[e.disposition]} in the def and ${String(r?.class)} / ${String(r?.disposition)} in schema/component-maintainer.json`);
+    });
     const lists: [string, readonly string[] | undefined, unknown][] = [
-      ['anatomy.codeOnly', def.anatomy?.codeOnly, m.codeOnly],
+      ['anatomy.codeOnly', codeOnlyText(def.anatomy?.codeOnly), Array.isArray(m.codeOnly) ? m.codeOnly.map((r: { description?: unknown }) => r?.description) : m.codeOnly],
       ...MAINTAINER_NOTES.map((k): [string, readonly string[] | undefined, unknown] => [`notes.${k}`, def.notes?.[k], m.notes?.[k]]),
     ];
     for (const [label, want, got] of lists) {
@@ -686,7 +694,7 @@ for (const def of componentDefs) {
   for (const f of DOC_FIELDS) gather(d[f]);
   const ownHay = own.join('\n');
   const maintainerOnly: [string, string][] = [
-    ...(def.anatomy?.codeOnly ?? []).map((s, i): [string, string] => [`anatomy.codeOnly.${i}`, s]),
+    ...codeOnlyText(def.anatomy?.codeOnly).map((s, i): [string, string] => [`anatomy.codeOnly.${i}`, s]),
     ...MAINTAINER_NOTES.flatMap((k) => (def.notes?.[k] ?? []).map((s, i): [string, string] => [`notes.${k}.${i}`, s])),
   ];
   for (const [path, s] of maintainerOnly) {
@@ -719,7 +727,7 @@ const SAMPLES: [string, boolean][] = [['as in Prism 2', true], ['PRISM2 parity',
 for (const [s, want] of SAMPLES) if (PRISM2.test(s) !== want) note(`PRISM 2 DETECTOR: the pattern ${want ? 'misses' : 'matches'} ${JSON.stringify(s)} — the scan below cannot be trusted`);
 if (PRISM2.test(jsonText)) note('PRISM 2: components.ai.json names Prism 2 — no shipped artifact may cite it');
 for (const [id, md] of pages) if (PRISM2.test(md)) note(`PRISM 2: out/components/${id}.md names Prism 2 — no shipped artifact may cite it`);
-const keptInRecord = componentDefs.reduce((n, d) => n + [...(d.anatomy?.codeOnly ?? []), ...MAINTAINER_NOTES.flatMap((k) => d.notes?.[k] ?? [])].filter((s) => PRISM2.test(s)).length, 0);
+const keptInRecord = componentDefs.reduce((n, d) => n + [...codeOnlyText(d.anatomy?.codeOnly), ...MAINTAINER_NOTES.flatMap((k) => d.notes?.[k] ?? [])].filter((s) => PRISM2.test(s)).length, 0);
 
 // ---- ARM F: an items-slot host says how its size reaches the items (#2829, owner decision Q438 A) -------------
 // A host whose items sit in a native slot passes `size` to the items a designer has not edited, and no further.

@@ -198,9 +198,24 @@ export const veil: ComponentDef = {
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word.
-      'full-bleed — a veil covers its container edge to edge, which is a LAYOUT fact (the box fills its parent) that a STANDALONE Figma component cannot hold: there is no parent to fill, and a fill-sized root acquires no extent at all (the 100×100 default-frame defect `lint-standalone-floor.ts` exists for). So the standalone member binds a NOMINAL square side (`container.narrow`, 720px) and a designer resizes or sets it to fill over their image. In code the veil is an absolutely-positioned or inset overlay sized to its media container; the fixed nominal square is the placeholder that reads as a wash in the library.',
-      'directional washes in code — a `from-*` member is a CSS linear gradient from the veil role at the named edge to the clear role at the opposite edge, two stops. from-top is `linear-gradient(to bottom, var(--color-veil-dark-strong), var(--color-veil-dark-clear))` for a dark strong veil; from-bottom is `to top`, from-left `to right`, from-right `to left`. Use `light` on both stops for a light veil. `full` is the solid role alone (`background: var(--color-veil-dark-strong)`). A browser interpolates the stops premultiplied, so its fade never passes through gray; Figma interpolates them unpremultiplied, which is why each polarity has its own clear end — clear white for a light veil — so the fade keeps the wash\'s hue on both.',
-      'the intensity is a magnitude, not a state — subtle/medium/strong is how much the wash mutes the image, and Figma carries it as a variant coordinate a designer selects, never a runtime state. A veil has no interaction states at all (`states: []`), so there is no hover, press or focus member; a control placed on top of the veil carries its own states.',
+      {
+        class: 'responsive-layout',
+        disposition: 'lowered',
+        description:
+          'full-bleed — a veil covers its container edge to edge, which is a LAYOUT fact (the box fills its parent) that a STANDALONE Figma component cannot hold: there is no parent to fill, and a fill-sized root acquires no extent at all (the 100×100 default-frame defect `lint-standalone-floor.ts` exists for). So the standalone member binds a NOMINAL square side (`container.narrow`, 720px) and a designer resizes or sets it to fill over their image. In code the veil is an absolutely-positioned or inset overlay sized to its media container; the fixed nominal square is the placeholder that reads as a wash in the library.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'directional washes in code — a `from-*` member is a CSS linear gradient from the veil role at the named edge to the clear role at the opposite edge, two stops. from-top is `linear-gradient(to bottom, var(--color-veil-dark-strong), var(--color-veil-dark-clear))` for a dark strong veil; from-bottom is `to top`, from-left `to right`, from-right `to left`. Use `light` on both stops for a light veil. `full` is the solid role alone (`background: var(--color-veil-dark-strong)`). A browser interpolates the stops premultiplied, so its fade never passes through gray; Figma interpolates them unpremultiplied, which is why each polarity has its own clear end — clear white for a light veil — so the fade keeps the wash\'s hue on both.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'the intensity is a magnitude, not a state — subtle/medium/strong is how much the wash mutes the image, and Figma carries it as a variant coordinate a designer selects, never a runtime state. A veil has no interaction states at all (`states: []`), so there is no hover, press or focus member; a control placed on top of the veil carries its own states.',
+      },
     ],
   },
 

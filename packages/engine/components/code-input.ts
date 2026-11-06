@@ -171,14 +171,54 @@ export const codeInputCell: ComponentDef = {
       },
     },
     codeOnly: [
-      'the cell in code — an aria-hidden element the code input draws; it is never focusable and has no role. The one input under the cells takes focus, the name and the value.',
-      'the active cell — the cell at the input\'s caret, or the last cell once the code is complete, carries the 2px focus edge while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input\'s caret position, never a DOM focus move.',
-      'the caret — Figma draws a static bar; code draws a blinking bar on the active empty cell, or hides the native caret and draws none, and stops blinking under prefers-reduced-motion.',
-      'tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.',
-      'the character\'s optical centering — in code its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`), so the cell centers the figure itself, whatever the brand font\'s ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered. Figma keeps vertical trim inside a text style, so the Figma character carries its size\'s text style untrimmed and centers its line box.',
-      'fill width — Figma keeps each cell at its size until a designer sets it to fill; code\'s `width="full"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size\'s.',
-      'style — the cell\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).',
-      'forced-colors — the borders become system-color borders and the active cell\'s focus edge a 2px system-color border, so the active cell still shows.',
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the cell in code — an aria-hidden element the code input draws; it is never focusable and has no role. The one input under the cells takes focus, the name and the value.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the active cell — the cell at the input\'s caret, or the last cell once the code is complete, carries the 2px focus edge while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input\'s caret position, never a DOM focus move.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'lowered',
+        description:
+          'the caret — Figma draws a static bar; code draws a blinking bar on the active empty cell, or hides the native caret and draws none, and stops blinking under prefers-reduced-motion.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.',
+      },
+      {
+        class: 'live-geometry',
+        disposition: 'lowered',
+        description:
+          'the character\'s optical centering — in code its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`), so the cell centers the figure itself, whatever the brand font\'s ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered. Figma keeps vertical trim inside a text style, so the Figma character carries its size\'s text style untrimmed and centers its line box.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'lowered',
+        description:
+          'fill width — Figma keeps each cell at its size until a designer sets it to fill; code\'s `width="full"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size\'s.',
+      },
+      {
+        class: 'brand-setting',
+        disposition: 'lowered',
+        description:
+          'style — the cell\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).',
+      },
+      {
+        class: 'forced-colors',
+        disposition: 'unsupported',
+        description:
+          'forced-colors — the borders become system-color borders and the active cell\'s focus edge a 2px system-color border, so the active cell still shows.',
+      },
     ],
   },
 
@@ -375,19 +415,84 @@ export const codeInput: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract.',
-      'ONE INPUT — `<input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" spellcheck="false">` lies over the cells, which are aria-hidden. Assistive technology meets one textbox with one name and one value. A code with letters sets inputMode text, autocapitalize characters, and drops the pattern. Never one input per cell: paste and the phone\'s code suggestion then fill one cell (W3C Understanding SC 3.3.8).',
-      'NORMALIZE, THEN FILL — spaces, hyphens and dashes are removed before counting, and characters past `length` are dropped without an error. The input carries no native `maxlength`: a browser cuts pasted text to it before any handler runs, so `123-456` would arrive as `123-45` and a valid code would read as incomplete. The handler strips first, then caps at `length`. A pasted or suggested code fills every cell. Paste is never blocked.',
-      'onComplete — fires once when the value reaches `length`, again only after the value changes and reaches it again. No auto-submit: the page decides, so a typo never locks a user out (SC 3.2.2).',
-      'the drawn caret and the active cell — DOM focus never moves. Typing advances the active cell; Backspace removes the last character and moves the focus edge back; arrow keys, Home and End move the native caret and the ring follows. A click on any cell focuses the input with the caret at the end.',
-      'AFTER AN ERROR — the value stays, with the caret at the end and the text selected: the next keystroke replaces the code and Backspace edits it. The field never clears itself.',
-      'pending — not projected: a real state in code (the code is being checked: aria-busy and a polite "Checking code" status, the input still editable) whose look is the rest look, so it has no Figma variant.',
-      'the field\'s status and state in Figma — a placed field\'s cells are the designer\'s (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member\'s default cells show that member\'s state, as a fresh insert\'s starting point. In code the input drives every cell.',
-      'fill width — `width="full"` makes the row `inline-size: 100%` and every cell `flex: 1 1 0` with `min-inline-size: 32px`, the gap held. In Figma a designer sets the field and each cell to fill.',
-      'RTL — the cell row is `dir="ltr"` in every locale, because a code reads left to right; the label and the message follow the text direction.',
-      'the SMALL size on a COARSE POINTER — the small cell\'s character is 16px, so iOS does not zoom on focus; the input under the cells is set to 16px at every size.',
-      'the password-manager badge — the row keeps clear space after the last cell, so a manager\'s icon does not cover it.',
-      'the label / describedby WIRING — the host ties the FieldLabel to the input, stitches the helper and the error into aria-describedby and sets aria-invalid on error. The error is not a live region while the field has focus; a result from the server goes to a polite role="status".',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'ONE INPUT — `<input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" spellcheck="false">` lies over the cells, which are aria-hidden. Assistive technology meets one textbox with one name and one value. A code with letters sets inputMode text, autocapitalize characters, and drops the pattern. Never one input per cell: paste and the phone\'s code suggestion then fill one cell (W3C Understanding SC 3.3.8).',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'NORMALIZE, THEN FILL — spaces, hyphens and dashes are removed before counting, and characters past `length` are dropped without an error. The input carries no native `maxlength`: a browser cuts pasted text to it before any handler runs, so `123-456` would arrive as `123-45` and a valid code would read as incomplete. The handler strips first, then caps at `length`. A pasted or suggested code fills every cell. Paste is never blocked.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'onComplete — fires once when the value reaches `length`, again only after the value changes and reaches it again. No auto-submit: the page decides, so a typo never locks a user out (SC 3.2.2).',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'the drawn caret and the active cell — DOM focus never moves. Typing advances the active cell; Backspace removes the last character and moves the focus edge back; arrow keys, Home and End move the native caret and the ring follows. A click on any cell focuses the input with the caret at the end.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'AFTER AN ERROR — the value stays, with the caret at the end and the text selected: the next keystroke replaces the code and Backspace edits it. The field never clears itself.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'unsupported',
+        description:
+          'pending — not projected: a real state in code (the code is being checked: aria-busy and a polite "Checking code" status, the input still editable) whose look is the rest look, so it has no Figma variant.',
+      },
+      {
+        class: 'static-placeholder',
+        disposition: 'lowered',
+        description:
+          'the field\'s status and state in Figma — a placed field\'s cells are the designer\'s (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member\'s default cells show that member\'s state, as a fresh insert\'s starting point. In code the input drives every cell.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'fill width — `width="full"` makes the row `inline-size: 100%` and every cell `flex: 1 1 0` with `min-inline-size: 32px`, the gap held. In Figma a designer sets the field and each cell to fill.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the cell row is `dir="ltr"` in every locale, because a code reads left to right; the label and the message follow the text direction.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'the SMALL size on a COARSE POINTER — the small cell\'s character is 16px, so iOS does not zoom on focus; the input under the cells is set to 16px at every size.',
+      },
+      {
+        class: 'platform-owned',
+        disposition: 'refused',
+        description:
+          'the password-manager badge — the row keeps clear space after the last cell, so a manager\'s icon does not cover it.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the label / describedby WIRING — the host ties the FieldLabel to the input, stitches the helper and the error into aria-describedby and sets aria-invalid on error. The error is not a live region while the field has focus; a result from the server goes to a polite role="status".',
+      },
     ],
   },
 

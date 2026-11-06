@@ -299,13 +299,48 @@ export const switchRow: ComponentDef = {
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
-      'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1354 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `switch-control` and the consumer drives it from the Row, so no state is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code: the brief recommends a lock affordance over a styled locked control, and the one candidate token resolves to the same step as the rest border in all four brands.',
-      'pending — not projected: it is a THUMB SWAP (a spinner replaces the thumb) on the nested control plus an `aria-busy` lock, not a row skin, so no Figma member carries it; `button`\'s `overlay` part (#848) is the mechanism, unauthored on the control here. In code it is first-class in `props`. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
-      'states — the documented cost of collapsing 24 members to 2 (the #1354 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state.',
-      'showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property). In Figma it is the control\'s own `state icon` boolean (default on), which the exposed nested instance surfaces on the Row, so the Row declares no boolean of its own for it. See `switch-control.ts`.',
-      'THE FULL-WIDTH SETTINGS ROW, this component\'s actual habitat and layout rather than anatomy. The row HUGS its children here, so `label` and the control sit adjacent with the gap between them; a settings panel stretches the row and pins the control to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection\'s.',
-      'The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. Checkbox.Row and Radio.Row project theirs since #3153 (owner Q853 A); this row keeps it in code (Q3153.2 A). A second text part under `label` rather than beside it, which would change the row\'s vertical shape for content that is optional at every member.',
-      'RTL — the label-leading row mirrors AND the thumb travel flips (`on` sits at the inline-END). Logical properties make that automatic in CSS; a Figma projection would need it stated, and nothing does.',
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1354 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `switch-control` and the consumer drives it from the Row, so no state is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code: the brief recommends a lock affordance over a styled locked control, and the one candidate token resolves to the same step as the rest border in all four brands.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'pending — not projected: it is a THUMB SWAP (a spinner replaces the thumb) on the nested control plus an `aria-busy` lock, not a row skin, so no Figma member carries it; `button`\'s `overlay` part (#848) is the mechanism, unauthored on the control here. In code it is first-class in `props`. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'states — the documented cost of collapsing 24 members to 2 (the #1354 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'lowered',
+        description:
+          'showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property). In Figma it is the control\'s own `state icon` boolean (default on), which the exposed nested instance surfaces on the Row, so the Row declares no boolean of its own for it. See `switch-control.ts`.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'THE FULL-WIDTH SETTINGS ROW, this component\'s actual habitat and layout rather than anatomy. The row HUGS its children here, so `label` and the control sit adjacent with the gap between them; a settings panel stretches the row and pins the control to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection\'s.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. Checkbox.Row and Radio.Row project theirs since #3153 (owner Q853 A); this row keeps it in code (Q3153.2 A). A second text part under `label` rather than beside it, which would change the row\'s vertical shape for content that is optional at every member.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the label-leading row mirrors AND the thumb travel flips (`on` sits at the inline-END). Logical properties make that automatic in CSS; a Figma projection would need it stated, and nothing does.',
+      },
     ],
   },
 

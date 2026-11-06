@@ -106,16 +106,66 @@ export const tabs: ComponentDef = {
       },
     },
     codeOnly: [
-      'code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
-      'The tab list in code — role="tablist" with an accessible name, and aria-orientation when vertical. One tab stop: the selected tab is tabindex="0", the rest -1. Arrow keys move between tabs (Left and Right, or Up and Down when vertical), Home and End go to the first and last, and disabled tabs are skipped.',
-      'The panel — role="tabpanel", aria-labelledby naming its tab and tabindex="0", so Tab after the list lands on the panel. Not drawn in Figma: the panel is the content below the list.',
-      'Panel mounting — the default mounts a panel when it is first shown; keep it mounted when it holds state (a half-filled form), or mount all panels when find-in-page or print must reach them.',
-      'The selected underline in code — one element owned by the list that moves to the selected tab and overlaps the baseline: its bottom edge on the baseline\'s bottom edge, painted over the 1px line (for example the baseline as an inset box-shadow or a border on the list, and the underline absolutely positioned at bottom: 0 above it). The tabs reach the list\'s bottom edge; the list adds no height under them.',
-      'Alignment — at center the list spans its container (width: 100%) and the tabs sit centered in it (justify-content: center on the row of tabs); the baseline spans the full width. At start the tabs sit at the inline start. Each tab hugs its label either way.',
-      'Overflow — a horizontal list never wraps. When the tabs do not fit, it scrolls with a fade at the cut edge, or ends in a "More" menu.',
-      'RTL — the row mirrors, the first tab sits rightmost, and Left and Right follow reading order: in RTL, Left moves to the next tab.',
-      'A disabled selected tab — if the selected tab becomes disabled, move tabindex="0" to the nearest enabled tab.',
-      'Deep links — a tab can be bound to a hash or query parameter through the History API, with no route change.',
+      {
+        class: 'deferred',
+        disposition: 'refused',
+        description:
+          'code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The tab list in code — role="tablist" with an accessible name, and aria-orientation when vertical. One tab stop: the selected tab is tabindex="0", the rest -1. Arrow keys move between tabs (Left and Right, or Up and Down when vertical), Home and End go to the first and last, and disabled tabs are skipped.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'The panel — role="tabpanel", aria-labelledby naming its tab and tabindex="0", so Tab after the list lands on the panel. Not drawn in Figma: the panel is the content below the list.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Panel mounting — the default mounts a panel when it is first shown; keep it mounted when it holds state (a half-filled form), or mount all panels when find-in-page or print must reach them.',
+      },
+      {
+        class: 'visual-treatment',
+        disposition: 'unsupported',
+        description:
+          'The selected underline in code — one element owned by the list that moves to the selected tab and overlaps the baseline: its bottom edge on the baseline\'s bottom edge, painted over the 1px line (for example the baseline as an inset box-shadow or a border on the list, and the underline absolutely positioned at bottom: 0 above it). The tabs reach the list\'s bottom edge; the list adds no height under them.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'Alignment — at center the list spans its container (width: 100%) and the tabs sit centered in it (justify-content: center on the row of tabs); the baseline spans the full width. At start the tabs sit at the inline start. Each tab hugs its label either way.',
+      },
+      {
+        class: 'responsive-layout',
+        disposition: 'unsupported',
+        description:
+          'Overflow — a horizontal list never wraps. When the tabs do not fit, it scrolls with a fade at the cut edge, or ends in a "More" menu.',
+      },
+      {
+        class: 'right-to-left',
+        disposition: 'unsupported',
+        description:
+          'RTL — the row mirrors, the first tab sits rightmost, and Left and Right follow reading order: in RTL, Left moves to the next tab.',
+      },
+      {
+        class: 'keyboard-and-focus',
+        disposition: 'refused',
+        description:
+          'A disabled selected tab — if the selected tab becomes disabled, move tabindex="0" to the nearest enabled tab.',
+      },
+      {
+        class: 'runtime-behavior',
+        disposition: 'refused',
+        description:
+          'Deep links — a tab can be bound to a hash or query parameter through the History API, with no route change.',
+      },
     ],
   },
 

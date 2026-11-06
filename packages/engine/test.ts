@@ -14,6 +14,7 @@
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
+import { codeOnlyText } from './code-only-register';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -6682,7 +6683,7 @@ arm: {
   // each from a literal: the shipped aria line, the code guidance, and the anatomy (the dot and its cell are
   // presentation parts, the label carries no hiding and no role of its own).
   const inlineAria = /Inline style: the dot is aria-hidden="true", with no role and no accessible name, and the label reads as plain text in place, with no role="status"\./.test(aria);
-  const inlineCode = badgeDef.anatomy?.codeOnly?.find((l) => /^the inline style in code —/.test(l)) ?? '';
+  const inlineCode = codeOnlyText(badgeDef.anatomy?.codeOnly).find((l) => /^the inline style in code —/.test(l)) ?? '';
   const codeArms = /The dot is aria-hidden="true" with no role and no accessible name/.test(inlineCode) && /the label is not hidden and takes no role="status"/.test(inlineCode);
   const partsA: any = badgeDef.anatomy!.parts;
   const anatomyArms = partsA.statusDot?.role === 'presentation' && partsA.dotCell?.role === 'presentation'
@@ -6693,7 +6694,7 @@ arm: {
   // FORCED COLORS (owner, 2026-09-28, #1747): the browser drops background fills there, so a fill-only bold badge
   // would read as bare text. Every emphasis carries the inset outline; bold's is transparent, which forced colors
   // paints. The code guidance is the only place this lives (Figma has no forced-colors mode), so it is held here.
-  const forcedLine = badgeDef.anatomy?.codeOnly?.find((l) => /forced-colors mode/.test(l) && /outline-offset: -1px/.test(l)) ?? '';
+  const forcedLine = codeOnlyText(badgeDef.anatomy?.codeOnly).find((l) => /forced-colors mode/.test(l) && /outline-offset: -1px/.test(l)) ?? '';
   ok(/outline-offset: -1px/.test(forcedLine) && /bold badge \(status, count or dot\) carries the same inset outline in transparent/.test(forcedLine),
     `badge forced colors: the subtle edge is an inset outline and a bold badge carries it transparent (#1747) (${forcedLine.slice(0, 120) || 'no forced-colors line'})`);
   // The inline dot (#3199) has no edge of its own, so in forced colors it would vanish with its fill: it carries the
@@ -7329,7 +7330,7 @@ arm: {
     && !tagDef.props.some((p) => p.name === 'interaction'),
     `tag type: the prop and the axis are select | dismissible, default select, and no interaction prop remains (prop ${JSON.stringify(typeProp?.values)}/${typeProp?.default}, axis ${JSON.stringify(tagDef.variants?.type)})`);
   // The HTML `type` collision is named in the code guidance (owner: "a component prop, not the element's type attribute").
-  ok((tagDef.anatomy?.codeOnly ?? []).some((l) => /NOT the HTML type attribute/.test(l) && /never forwarded to the element/.test(l)),
+  ok((codeOnlyText(tagDef.anatomy?.codeOnly) ?? []).some((l) => /NOT the HTML type attribute/.test(l) && /never forwarded to the element/.test(l)),
     'tag type: the code guidance says the prop is the component\'s own, NOT the HTML type attribute, and never forwarded to the element');
   const words = [...tagDef.aliases, ...tagDef.ai.triggerKeywords];
   const missingWords = ['chip', 'filter tag', 'input tag', 'removable tag', 'dismissible tag'].filter((w) => !words.includes(w));
@@ -7391,11 +7392,11 @@ arm: {
   ok(/Name the remove control "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
     'tag aria: the remove control is named "Remove" followed by the label, never a bare "Remove" or "×"');
   // THE HIT TARGET IS OPEN (owner decision C): the code guidance states both options and picks neither.
-  const hitLine = (tagDef.anatomy?.codeOnly ?? []).find((l) => /hit target is not decided yet/.test(l)) ?? '';
+  const hitLine = (codeOnlyText(tagDef.anatomy?.codeOnly) ?? []).find((l) => /hit target is not decided yet/.test(l)) ?? '';
   ok(/\(1\) The whole tag is one <button>/.test(hitLine) && /\(2\) Only the × slot is the button/.test(hitLine),
     `tag dismissible hit target: the code guidance states both options, the whole tag and the × slot alone (${hitLine.slice(0, 80) || 'no line'})`);
   // NO TRUNCATION (#1758): the code guidance wraps, and names neither an ellipsis nor a title as the fallback.
-  const expansion = (tagDef.anatomy?.codeOnly ?? []).find((l) => l.startsWith('text expansion')) ?? '';
+  const expansion = (codeOnlyText(tagDef.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('text expansion')) ?? '';
   ok(/never truncates/.test(expansion) && /WRAPS/.test(expansion) && !/truncates with an ellipsis/.test(expansion)
     && !JSON.stringify(tagDef.docs).includes('Truncate a long label'),
     `tag text expansion: a long label wraps and is never truncated (#1758) (${expansion.slice(0, 90) || 'no line'})`);
@@ -7927,7 +7928,7 @@ arm: {
   }
   // THE CODE-SIDE RULE, as the def states it to whoever builds it: linear and infinite, the reduced-motion
   // substitute a slower turn under `prefers-reduced-motion`, and both tokens named where the motion is.
-  const codeOnly = spinner.anatomy!.codeOnly.join('\n');
+  const codeOnly = codeOnlyText(spinner.anatomy!.codeOnly).join('\n');
   ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
     '#1670 spinner: the motion field names both turn tokens and their values');
   ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
@@ -19525,7 +19526,7 @@ arm: {
     ok(narrow.length === 0, `#2343 PR 4 provider rules WIDTH: every member's width floor clears its provider's minimum (${narrow.map((p) => `${planComponentName(p)}: ${p.root.minWidth}`).join('; ') || 'clean'})`);
     // Q3175 A (#3175): PayPal's SDK frame holds 150px, above the 120 floor. The Figma floor stays 120 (no PayPal minW
     // above), and the 150 is a code-only note, held on both places the decision is written: codeOnly and contested.
-    const paypalWidthNote = (wb.anatomy.codeOnly ?? []).find((c) => c.startsWith('the width — ')) ?? '';
+    const paypalWidthNote = (codeOnlyText(wb.anatomy.codeOnly) ?? []).find((c) => c.startsWith('the width — ')) ?? '';
     const paypalContested = (wb.notes?.contested ?? []).find((c) => c.startsWith('Q3175 A')) ?? '';
     ok(/PayPal's script holds its own frame at 150 or wider/.test(paypalWidthNote) && /design file's floor stays 120/.test(paypalWidthNote)
       && /150px/.test(paypalContested) && /floor stays 120/.test(paypalContested) && /code-only provider note in codeOnly/.test(paypalContested)
@@ -19549,7 +19550,7 @@ arm: {
       return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
     });
     const softOver = overHalf(softest);
-    const clamped = (wb.anatomy.codeOnly ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
+    const clamped = (codeOnlyText(wb.anatomy.codeOnly) ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
     ok(Number.isFinite(leverMax('radiusScale')) && Number.isFinite(leverMax('baseMd')) && (softOver.length === 0 || clamped),
       `#2343 PR 4 provider rules RADIUS (every brand): where the softest brand's corner passes half the height, the code clamps Google Pay's radius to min(radius, height / 2) (over half at radiusScale ${leverMax('radiusScale')} × baseMd ${leverMax('baseMd')}: ${softOver.length}, e.g. ${softOver[0] ?? 'none'}; clamp in codeOnly: ${clamped})`);
     // Colors (#3174, flipped from "no member paints", Q3174.3 A): the `any` stand-in paints nothing; every other style
@@ -19614,7 +19615,7 @@ arm: {
     ok(worded.length === 0 && wb.props.every((pr) => pr.name !== 'label'), `#2343 PR 4 provider rules WORDING: no member draws a text node and the code takes no label, so the only wording is the provider's (text: ${worded.slice(0, 3).join(', ') || 'none'})`);
     // The accessible name: the provider's element supplies it, and the component adds no label (it would be announced
     // twice). Held on both places the contract is written, the shipped aria line and the codeOnly bullet.
-    const nameLine = (wb.anatomy.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
+    const nameLine = (codeOnlyText(wb.anatomy.codeOnly) ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
     const a11yText = `${wb.accessibility.aria} ${nameLine}`;
     ok(/provider's element supplies the role and the accessible name/.test(wb.accessibility.aria) && /Add no label of your own/.test(wb.accessibility.aria)
       && /provider's element names itself/.test(nameLine) && /component adds no label/.test(nameLine) && !/aria-label/.test(a11yText),
@@ -19769,7 +19770,7 @@ arm: {
     ok(offWord.length === 0 && Object.keys(sb.figmaProperties?.texts ?? {}).length === 0 && /Apple continue, sign-in, sign-up/.test(wording) && /Google continue, sign-in, sign-up/.test(wording) && /Facebook continue, login/.test(wording),
       `#2343 PR 5 provider rules WORDING: every label reads Continue with <Provider> with no text property, and the wording prop lists each provider's own words (${offWord.slice(0, 3).join('; ') || 'clean'}; prop '${wording.slice(0, 120)}')`);
     // NAME: the visible wording is the accessible name (SC 2.5.3); no aria-label; the glyph decorative.
-    const nameLine = (sb.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
+    const nameLine = (codeOnlyText(sb.anatomy?.codeOnly) ?? []).find((c) => c.startsWith('the accessible name — ')) ?? '';
     ok(/named by its visible wording/.test(sb.accessibility.aria) && /Add no label of your own/.test(sb.accessibility.aria) && /No aria-label is added/.test(nameLine) && /aria-hidden/.test(nameLine) && sb.accessibility.wcag.some((w) => w.startsWith('2.5.3')),
       `#2343 PR 5 provider rules NAME: the visible wording is the accessible name, no aria-label is added and the glyph is hidden (aria '${sb.accessibility.aria.slice(0, 80)}'; codeOnly '${nameLine.slice(0, 80) || 'missing'}')`);
     // CONTRAST, from the typed values: each style's ink on its fill clears 4.5:1. Facebook's two styles measure 4.82:1 on
@@ -20218,13 +20219,13 @@ arm: {
     ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
       && counter.props.find((x) => x.name === 'showLabel')?.default === false,
       `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B), and the message is off (got ${JSON.stringify(b)})`);
-    const keyboardSays = /tabindex="-1"/.test(counter.accessibility.keyboard ?? '') && (counter.anatomy?.codeOnly ?? []).some((e) => /<button type="button" tabindex="-1">/.test(e));
+    const keyboardSays = /tabindex="-1"/.test(counter.accessibility.keyboard ?? '') && (codeOnlyText(counter.anatomy?.codeOnly) ?? []).some((e) => /<button type="button" tabindex="-1">/.test(e));
     ok(counter.props.find((x) => x.name === 'min')?.default === 0 && keyboardSays && !counter.props.some((x) => /remove/i.test(x.name)),
       `#2427 counter/api: min defaults to 0 (Q283.7), the buttons are tabindex="-1" in the shipped keyboard text and in codeOnly (Q283.8 A), and no remove-at-min prop (Q283.7 C)`);
     // Q425 A (#2693): the Counter is ONE tab stop, the WAI-ARIA spinbutton. Read from the def's own shipped fields.
     {
       const a11y = counter.accessibility;
-      const code = (counter.anatomy?.codeOnly ?? []).join('\n');
+      const code = (codeOnlyText(counter.anatomy?.codeOnly) ?? []).join('\n');
       // Each key alone: a bare /Up/ would also be satisfied by "Page Up", so Up and Down skip a preceding "Page ".
       const keyMap: Array<[string, RegExp]> = [['Up Arrow', /(?<!Page )\bUp\b/], ['Down Arrow', /(?<!Page )\bDown\b/], ['Page Up', /\bPage Up\b/], ['Page Down', /\bPage Down\b/], ['Home', /\bHome\b/], ['End', /\bEnd\b/]];
       const dropped = keyMap.filter(([, re]) => !re.test(a11y.keyboard ?? '') || !re.test(code)).map(([k]) => k);
@@ -21308,7 +21309,7 @@ arm: {
       const texts = linkDef.figmaProperties?.texts as Record<string, { default?: string }> | undefined;
       ok(texts?.label?.default === 'Link text'
         && linkDef.summary === 'Text that goes to another page, a place on the page or a file. Underlined in running text.'
-        && (linkDef.anatomy?.codeOnly ?? []).some((e) => e.includes('"(opens in new tab)"'))
+        && (codeOnlyText(linkDef.anatomy?.codeOnly) ?? []).some((e) => e.includes('"(opens in new tab)"'))
         && linkDef.name === 'Link' && linkDef.category === 'navigation'
         && JSON.stringify(linkDef.aliases) === JSON.stringify(['text-link', 'anchor', 'hyperlink']),
         '#2580 link/identity (Q289.7 A, Q289.8 A): Link / link, navigation, aliases text-link, anchor, hyperlink; label "Link text"; the approved summary; "(opens in new tab)"');
@@ -21942,8 +21943,8 @@ arm: {
     // part is making a false claim; docs/14 §3 set this discipline for tokens and it is the same
     // discipline here. Touch-target expansion is the load-bearing entry — it is the one part of the
     // KB brief §2 that has no Figma expression at all.
-    ok(a.codeOnly.length > 0, 'anatomy: codeOnly is non-empty — the Figma ceilings are stated, not silently lost');
-    ok(a.codeOnly.some((c) => /touch-target/.test(c)), 'anatomy: touch-target expansion is declared code-only (no Figma equivalent for a hit area larger than the frame)');
+    ok(codeOnlyText(a.codeOnly).length > 0, 'anatomy: codeOnly is non-empty — the Figma ceilings are stated, not silently lost');
+    ok(codeOnlyText(a.codeOnly).some((c) => /touch-target/.test(c)), 'anatomy: touch-target expansion is declared code-only (no Figma equivalent for a hit area larger than the frame)');
 
     // Exactly one interaction target — the node that owns hit area, radius, fill and border, and
     // the one a materializer attaches the a11y role and focus ring to.
@@ -24440,7 +24441,7 @@ arm: {
       // carries no tab role, tablist or aria-selected anywhere a developer reads it (codeOnly and accessibility, the row's
       // and its item's). Mutation: add role="tablist" to PageNav's codeOnly → `#3345 page-nav code contract`.
       {
-        const read = (d: ComponentDef) => [...(d.anatomy?.codeOnly ?? []), d.accessibility?.role ?? '', d.accessibility?.aria ?? '', d.accessibility?.keyboard ?? ''].join('\n');
+        const read = (d: ComponentDef) => [...codeOnlyText(d.anatomy?.codeOnly), d.accessibility?.role ?? '', d.accessibility?.aria ?? '', d.accessibility?.keyboard ?? ''].join('\n');
         const contract = read(pageNav);
         const want = ['<nav', '<a href', 'aria-current="page"'].filter((s) => !contract.includes(s));
         const banned = ['role="tab"', "role='tab'", 'tablist', 'aria-selected'].flatMap((s) => [pageNav, pageNavItem].filter((d) => read(d).includes(s)).map((d) => `${d.id}: ${s}`));
@@ -28002,13 +28003,13 @@ arm: {
       // at or below the 44×44 target-size floor at `size=small` in every brand, and Figma cannot express
       // a hit area larger than a frame. A designer measuring the emitted small square is reading the
       // wrong box, and that has to be written down where they will look.
-      ok(iba.codeOnly.some((c) => /^touch-target-expansion/.test(c)),
+      ok(codeOnlyText(iba.codeOnly).some((c) => /^touch-target-expansion/.test(c)),
         'anatomy/icon-button: touch-target expansion leads a codeOnly entry — the ONE component where the optical box is smaller than the required hit box at every brand');
       // #1697 — THE PENDING SPINNER PROJECTS NOW, so the old leading `pending — the SPINNER…` admission is
       // gone, and with it this def's instance of #867: that entry led with `pending`, so `admits()` read it
       // as licensing `pending`'s omission from the state axis. Asserted both ways — no codeOnly entry leads
       // with the state, and dropping `pending` from the projected axis is now REFUSED, as it is on Button.
-      ok(!iba.codeOnly.some((c) => /^pending\b/.test(c)),
+      ok(!codeOnlyText(iba.codeOnly).some((c) => /^pending\b/.test(c)),
         'anatomy/icon-button: #1697 no codeOnly entry leads with `pending` — the spinner projects, so there is no ceiling to admit');
       const ibNoPending = { ...iconButton, figmaProperties: { ...iconButton.figmaProperties!, stateAxis: { name: 'state', values: iconButton.figmaProperties!.stateAxis!.values.filter((v) => v !== 'pending') } } };
       ok(figmaPropertyErrors(ibNoPending as ComponentDef).some((e) => /pending/.test(e)),
@@ -28698,7 +28699,7 @@ arm: {
       const fp = d.figmaProperties;
       const names = [...Object.keys(d.variants ?? {}), ...d.states];
       const projected = new Set<string>([...(fp?.variantAxes ?? []), ...(fp?.stateAxis?.values ?? [])]);
-      for (const raw of d.anatomy?.codeOnly ?? []) {
+      for (const raw of codeOnlyText(d.anatomy?.codeOnly) ?? []) {
         const c = raw.trim();
         for (const n of names) {
           if (!leads(c, n)) continue;
@@ -28789,7 +28790,7 @@ arm: {
       `figmaProperties: every value on the state axis is one of the def's own ${button.states.length} states — no legacy renaming, nothing invented`);
     ok(JSON.stringify(button.states.filter((s) => !fp.stateAxis!.values.includes(s))) === JSON.stringify(['inactive']),
       'figmaProperties: `inactive` is the ONE state the axis omits — anything else dropped is a regression, not a decision');
-    ok(figmaPropertyErrors({ ...button, anatomy: { ...button.anatomy!, codeOnly: button.anatomy!.codeOnly.filter((c) => !c.startsWith('inactive')) } } as ComponentDef)
+    ok(figmaPropertyErrors({ ...button, anatomy: { ...button.anatomy!, codeOnly: button.anatomy!.codeOnly.filter((c) => !c.description.startsWith('inactive')) } } as ComponentDef)
       .some((x) => /state 'inactive' is not in the Figma state axis/.test(x)),
       'figmaProperties gate: removing the codeOnly admission for `inactive` FAILS — the omission is licensed by the admission, not by the axis being short');
     ok(!fp.stateAxis?.values.some((v) => ['active', 'focused', 'loading'].includes(v)),
@@ -28936,7 +28937,7 @@ arm: {
     // it asserted almost nothing: `min-width derivation` contains the substring `width`, so DELETING the
     // `width (auto | full)` admission outright kept the whole suite green (#563 review found this by
     // doing exactly that). The gate and the test both check the leading form now.
-    ok(omitted.length > 0 && omitted.every((a) => button.anatomy!.codeOnly.some((c) => c.trim().startsWith(a))),
+    ok(omitted.length > 0 && omitted.every((a) => codeOnlyText(button.anatomy!.codeOnly).some((c) => c.trim().startsWith(a))),
       `figmaProperties: every axis Figma will not carry LEADS a codeOnly entry (${omitted.join(', ')}) — a dropped axis must be an admission, not a gap`);
     // And one mutation per omitted axis, because "the current def happens to pass" is not the claim —
     // "deleting the admission fails" is. Generated over `omitted` so a future unprojected axis is
@@ -28944,7 +28945,7 @@ arm: {
     for (const axis of omitted) {
       const errs = figmaPropertyErrors({
         ...button,
-        anatomy: { ...button.anatomy!, codeOnly: button.anatomy!.codeOnly.filter((c) => !c.trim().startsWith(axis)) },
+        anatomy: { ...button.anatomy!, codeOnly: button.anatomy!.codeOnly.filter((c) => !c.description.trim().startsWith(axis)) },
       } as ComponentDef);
       ok(errs.some((x) => new RegExp(`variants\\.${axis} is not projected`).test(x)),
         `figmaProperties gate: deleting the codeOnly admission for the '${axis}' axis FAILS${errs.length ? '' : ' — got no errors'}`);
@@ -29325,7 +29326,7 @@ arm: {
     {
       const errs = figmaPropertyErrors({
         ...button,
-        anatomy: { ...button.anatomy!, codeOnly: [...button.anatomy!.codeOnly, 'disabledStrategy — a contrast lever, not an admission about the `disabled` state'] },
+        anatomy: { ...button.anatomy!, codeOnly: [...button.anatomy!.codeOnly, { class: 'not-projected', disposition: 'refused', description: 'disabledStrategy — a contrast lever, not an admission about the `disabled` state' }] },
         figmaProperties: { ...fp, stateAxis: { name: 'state', values: button.states.filter((v) => v !== 'disabled') } },
       } as ComponentDef);
       ok(errs.some((x) => /state 'disabled' is not in the Figma state axis/.test(x)),
@@ -30728,7 +30729,7 @@ arm: {
   ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
     `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.1' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.2' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -31758,18 +31759,18 @@ arm: {
   ok(ringUnprojected.join(',') === 'offset',
     `focus-ring: exactly one axis goes unprojected, and it is 'offset' (got [${ringUnprojected.join(', ')}]) — #801 measured why: Figma's x/y bind no variable, so the two members would differ by a number frozen at paste`);
   for (const axis of ringUnprojected)
-    ok(focusRing.anatomy!.codeOnly.some((c) => c.trim().startsWith(axis)),
+    ok(codeOnlyText(focusRing.anatomy!.codeOnly).some((c) => c.trim().startsWith(axis)),
       `focus-ring: the '${axis}' axis is ADMITTED by a codeOnly entry leading with its name — the omission is a decision on the record, not a gap`);
-  ok(!focusRing.anatomy!.codeOnly.some((c) => c.trim().startsWith('surface')),
+  ok(!codeOnlyText(focusRing.anatomy!.codeOnly).some((c) => c.trim().startsWith('surface')),
     'focus-ring: `surface` has NO codeOnly entry — it projects, so admitting it as a Figma ceiling would be the false-claim defect #795 exists to correct');
-  ok(icon.anatomy!.codeOnly.some((c) => c.trim().startsWith('tone')),
+  ok(codeOnlyText(icon.anatomy!.codeOnly).some((c) => c.trim().startsWith('tone')),
     'icon: the `tone` axis is admitted in codeOnly, leading with the axis name (figmaPropertyErrors requires the lead, not a mention)');
   // THE REAL DELIVERABLE OF #741. Button's entry used to close "Accepted deliberately, because the
   // alternative is authoring the ring N ways in N hosts" — describing an unexamined projector
   // constraint as a considered trade-off. That is a comment that stops anyone looking, the same shape
   // as a gate reporting a stale memory as a pass. Both directions are asserted: the false claim is
   // gone, and the true cause is named with its ticket.
-  const ringCeiling = button.anatomy!.codeOnly.find((c) => c.startsWith('focus-ring STROKE'))!;
+  const ringCeiling = codeOnlyText(button.anatomy!.codeOnly).find((c) => c.startsWith('focus-ring STROKE'))!;
   ok(!!ringCeiling, 'button: the focus-ring stroke/width/radius ceiling is still declared');
   ok(!/Accepted deliberately/.test(ringCeiling),
     'button: the ring ceiling no longer calls the ungated stroke a deliberate acceptance — it was never a trade, it is a projector constraint (#741)');
@@ -37457,7 +37458,7 @@ arm: {
   const aiDoc = JSON.parse(readFileSync(resolve(HERE, './out/components/components.ai.json'), 'utf8')) as { components: unknown };
   const aiComponents = (Array.isArray(aiDoc.components) ? aiDoc.components : Object.values(aiDoc.components as object)) as Array<{ id: string; docs?: { do?: string[] } }>;
   for (const def of [button, buttonDestructive, buttonNeutral]) {
-    const code = def.anatomy!.codeOnly.find((c) => /flush/.test(c));
+    const code = codeOnlyText(def.anatomy!.codeOnly).find((c) => /flush/.test(c));
     ok(!!code && missing(code).length === 0,
       `#2408 ${def.id}: codeOnly states a medium or large flush button's hit area is at least 44×44 in code and a small one's at least 24×24, through a transparent ::before inset outward and centered on the label (missing: ${code ? missing(code).join(', ') || 'none' : 'no flush entry'})`);
     const line = def.docs?.do?.find((d) => /^Set inset=flush/.test(d));
@@ -37614,8 +37615,8 @@ arm: {
       const bad = ['ringValue', 'ringValueComplete', 'messageComplete', 'messageError', 'fullRingGlyph'].filter((p) => got.includes(p));
       return want && got.includes('ringGlyph') && bad.length === 0 ? [] : [`${m} (${size}): ${bad.join(', ') || 'no ring or arc'}`];
     });
-    const code = progress.anatomy!.codeOnly.join('\n');
-    const ringNote = progress.anatomy!.codeOnly.find((c) => c.startsWith('the indeterminate ring')) ?? '';
+    const code = codeOnlyText(progress.anatomy!.codeOnly).join('\n');
+    const ringNote = codeOnlyText(progress.anatomy!.codeOnly).find((c) => c.startsWith('the indeterminate ring')) ?? '';
     const usage = progress.docs?.usage ?? '';
     ok(ringOff.length === 0
       && /rotate\(1turn\)/.test(ringNote) && /var\(--motion-duration-sweep\) linear infinite/.test(ringNote) && /prefers-reduced-motion: reduce/.test(ringNote) && /var\(--motion-duration-reduced-sweep\)/.test(ringNote) && /never stopped/.test(ringNote)
@@ -37641,12 +37642,12 @@ arm: {
   });
   ok(committedBrands.length >= 5 && sweepMissing.length === 0,
     `#2670 call 6 motion: every committed brand emits motion.duration.sweep and motion.duration-reduced.sweep (${committedBrands.length} brands${sweepMissing.length ? `; missing in ${sweepMissing.join(', ')}` : ''})`);
-  const motionProse = `${progress.motion?.reduceMotion ?? ''}\n${progress.anatomy!.codeOnly.join('\n')}`;
+  const motionProse = `${progress.motion?.reduceMotion ?? ''}\n${codeOnlyText(progress.anatomy!.codeOnly).join('\n')}`;
   ok(/motion\.duration-reduced\.sweep/.test(motionProse) && /2600ms/.test(motionProse) && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
     '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep (2600ms), under prefers-reduced-motion, kept and never removed');
 
   // Call 8: announced at 25, 50 and 75%, and at the end; never from aria-valuenow.
-  const aria = `${progress.accessibility.aria}\n${progress.anatomy!.codeOnly.join('\n')}`;
+  const aria = `${progress.accessibility.aria}\n${codeOnlyText(progress.anatomy!.codeOnly).join('\n')}`;
   ok(/25, 50 (and|or) 75%/.test(aria) && /polite/.test(aria) && /aria-valuenow` never triggers speech/.test(aria) && progress.props.find((p) => p.name === 'announce')?.default === 'milestones',
     '#2670 call 8 progress: a polite region speaks at 25, 50 and 75% and at the end, never from aria-valuenow, and milestones is the default');
 
@@ -37842,7 +37843,7 @@ arm: {
   // strips the hyphen, so a valid code would read as incomplete (review of #2789, S1). Every line of the contract is read,
   // not only ONE INPUT's, so a maxlength written into any other entry is caught; the one sentence saying there is none is
   // the only exemption.
-  const codeOnlyLines = fieldDef.anatomy.codeOnly ?? [];
+  const codeOnlyLines = codeOnlyText(fieldDef.anatomy.codeOnly) ?? [];
   const withMaxlength = codeOnlyLines.filter((l) => /maxlength/i.test(l.replace(/The input carries no native `maxlength`[^.]*\./, '')));
   ok(codeOnlyLines.some((l) => l.startsWith('ONE INPUT')) && withMaxlength.length === 0,
     `#2428 code-input: the one input in the code contract carries no native maxlength, so a pasted code with separators is not cut before it is normalized (off: ${withMaxlength.map((l) => l.split(' — ')[0]).join('; ') || 'none'})`);
@@ -37852,8 +37853,8 @@ arm: {
   // `codeOnly`, `accessibility`, `props` and `anatomy`, held against literals typed from the decisions, so a contract
   // that drifts to one input per cell, a focusable or named cell, or autocomplete off fails here by name, not only in
   // the surface digest an author re-accepts.
-  const fieldCode = (fieldDef.anatomy.codeOnly ?? []).join('\n');
-  const cellCode = (cellDef.anatomy.codeOnly ?? []).join('\n');
+  const fieldCode = (codeOnlyText(fieldDef.anatomy.codeOnly) ?? []).join('\n');
+  const cellCode = (codeOnlyText(cellDef.anatomy.codeOnly) ?? []).join('\n');
   const inputTags = fieldCode.match(/<input\b[^>]*>/g) ?? [];
   const tag = inputTags[0] ?? '';
   const attr = (name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
@@ -38158,7 +38159,7 @@ arm: {
   const decorative = divider.props.find((p) => p.name === 'decorative');
   ok(decorative?.type === 'boolean' && decorative?.default === true,
     `#2455 divider decorative: a boolean code prop, default true — decorative by default, after the brief (got type ${decorative?.type}, default ${JSON.stringify(decorative?.default)})`);
-  ok(!('decorative' in (divider.figmaProperties?.booleans ?? {})) && (divider.anatomy?.codeOnly ?? []).some((c) => c.startsWith('decorative — ')),
+  ok(!('decorative' in (divider.figmaProperties?.booleans ?? {})) && (codeOnlyText(divider.anatomy?.codeOnly) ?? []).some((c) => c.startsWith('decorative — ')),
     '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
   ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
@@ -38228,7 +38229,7 @@ arm: {
   // Q3051.2 A, the a11y contract: no role on the wrapper, the lines aria-hidden, the label read as text, and never a
   // separator around the label.
   const a11y = `${divider.accessibility.role} ${divider.accessibility.aria}`;
-  const sem = (divider.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the labeled divider\'s semantics — ')) ?? '';
+  const sem = (codeOnlyText(divider.anatomy?.codeOnly) ?? []).find((c) => c.startsWith('the labeled divider\'s semantics — ')) ?? '';
   ok(/a labeled divider takes no role/.test(divider.accessibility.role) && /two lines set aria-hidden="true"/.test(divider.accessibility.aria)
     && /label is plain text in the reading order/.test(divider.accessibility.aria) && !/labeled divider[^.]*role="separator" aria-label/.test(a11y)
     && /wrapper takes no role/.test(sem) && /both lines are `aria-hidden="true"`/.test(sem) && /not focusable/i.test(sem),
@@ -38302,11 +38303,11 @@ arm: {
     && divider.docs.dont.some((x) => /title the group with a heading/.test(x)),
     `${D3143}: docs.do states the 56px minimum (Q3143.5 A) and docs.dont still sends a group title to a heading (Q3143.6 A)`);
   // Q3143.7 A: the Q3051.2 contract unchanged, and the labeled markup sets no aria-orientation (no role to describe).
-  const markup = (divider.anatomy?.codeOnly ?? []).find((c) => c.startsWith('the labeled divider in code — ')) ?? '';
+  const markup = (codeOnlyText(divider.anatomy?.codeOnly) ?? []).find((c) => c.startsWith('the labeled divider in code — ')) ?? '';
   ok(/flex-direction: column; gap: var\(--space-150\); inline-size: max-content; min-block-size: 56px/.test(markup) && !/aria-orientation/.test(markup),
     `${D3143}: the code markup gives the vertical wrapper a column, the 12px gap, max-content width and the 56px minimum, with no aria-orientation (Q3143.2 A, Q3143.5 A, Q3143.7 A)`);
   // The prose no longer says "horizontal only" anywhere it would now be false.
-  const prose = JSON.stringify([divider.summary, divider.description, divider.props, divider.anatomy?.codeOnly, divider.docs, divider.ai, divider.accessibility]);
+  const prose = JSON.stringify([divider.summary, divider.description, divider.props, codeOnlyText(divider.anatomy?.codeOnly), divider.docs, divider.ai, divider.accessibility]);
   ok(!/Horizontal with no inset only|Horizontal with `inset="none"` only|breaks a horizontal rule/.test(prose),
     `${D3143}: no shipped divider prose still says a label is horizontal only`);
 
@@ -38954,9 +38955,9 @@ arm: {
   // THE ALERTDIALOG HIDES CLOSE, in the docs: the role prop and the code contract both say so (Q303.9 A).
   const role = dg.props.find((x) => x.name === 'role');
   ok(JSON.stringify(role?.values) === JSON.stringify(['dialog', 'alertdialog']) && role?.default === 'dialog' && /hides the close button/.test(role?.description ?? '')
-    && dg.anatomy!.codeOnly.some((e) => /^role — /.test(e) && /alertdialog hides the close button/.test(e))
-    && dg.anatomy!.codeOnly.some((e) => /^backdrop click — closes a dialog, never an alertdialog/.test(e))
-    && dg.anatomy!.codeOnly.some((e) => /code delivery pending: behavior layer \(#2454\)/.test(e)),
+    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /^role — /.test(e) && /alertdialog hides the close button/.test(e))
+    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /^backdrop click — closes a dialog, never an alertdialog/.test(e))
+    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /code delivery pending: behavior layer \(#2454\)/.test(e)),
     '#2609 dialog docs: role is dialog or alertdialog, an alertdialog hides the close button and a backdrop click never closes it, and code delivery waits on #2454');
 
   // THE NEW SCHEMA FIELDS ARE REFUSED WHERE THEY CANNOT MEAN ANYTHING.
@@ -39099,13 +39100,13 @@ arm: {
   {
     const textProps = Object.keys(itemDef.figmaProperties?.texts ?? {});
     const markProp = itemDef.props.find((p) => p.name === 'mark');
-    const aria = itemDef.anatomy!.codeOnly.some((e) => /^The ellipsis in code — an <li aria-hidden="true"> holding the more-horizontal icon, with no control and no text in it/.test(e));
+    const aria = codeOnlyText(itemDef.anatomy!.codeOnly).some((e) => /^The ellipsis in code — an <li aria-hidden="true"> holding the more-horizontal icon, with no control and no text in it/.test(e));
     ok(!markProp && JSON.stringify(textProps) === JSON.stringify(['label', 'previousLabel', 'nextLabel']) && aria,
       `#2665 Q404 A / Q414 A pagination item: no \`mark\` prop, the TEXT properties label, previousLabel and nextLabel (none on the ellipsis), and the ellipsis an aria-hidden icon with no control in code (got mark ${markProp ? 'present' : 'absent'}, texts ${textProps.join(', ')}, aria ${aria})`);
   }
   // Q414 A, the code contract (calls 9 A and 12 A): previous and next are links or buttons as a page is, named "Previous
   // page" and "Next page", aria-disabled at an end and still focusable, never native disabled; the chevron aria-hidden.
-  ok(itemDef.anatomy!.codeOnly.some((e) => /^previous and next in code — an <a href> or a <button type="button">/.test(e) && /"Previous page" and "Next page"/.test(e)
+  ok(codeOnlyText(itemDef.anatomy!.codeOnly).some((e) => /^previous and next in code — an <a href> or a <button type="button">/.test(e) && /"Previous page" and "Next page"/.test(e)
       && /aria-disabled="true"/.test(e) && /Native disabled is not used/.test(e) && /chevron is aria-hidden="true"/.test(e))
     && itemDef.props.some((p) => p.name === 'isInactive' && p.type === 'boolean'),
     '#2665 Q414 A pagination item code contract: previous and next are links or buttons named "Previous page" and "Next page", aria-disabled at an end (isInactive, never native disabled), the chevron aria-hidden');
@@ -39274,9 +39275,9 @@ arm: {
     `#2665 call 16 pagination: the approved summary, category navigation, aliases pager, pagination-nav and page-controls, and the nav label "Pagination" (got ${pagDef.category}, ${JSON.stringify(pagDef.aliases)})`);
   // Call 9 A and call 12 A, in the code contract: an end keeps previous and next in place with aria-disabled, never
   // native disabled; getHref present renders links, absent buttons, never href="#".
-  ok(pagDef.anatomy!.codeOnly.some((e) => /^At an end — /.test(e) && /aria-disabled="true"/.test(e) && /Native disabled is not used/.test(e))
-    && pagDef.anatomy!.codeOnly.some((e) => /^links or buttons — with getHref/.test(e) && /Never <a href="#">/.test(e))
-    && pagDef.anatomy!.codeOnly.some((e) => /^The window — with siblingCount 1 and boundaryCount 1/.test(e) && /7 slots/.test(e)),
+  ok(codeOnlyText(pagDef.anatomy!.codeOnly).some((e) => /^At an end — /.test(e) && /aria-disabled="true"/.test(e) && /Native disabled is not used/.test(e))
+    && codeOnlyText(pagDef.anatomy!.codeOnly).some((e) => /^links or buttons — with getHref/.test(e) && /Never <a href="#">/.test(e))
+    && codeOnlyText(pagDef.anatomy!.codeOnly).some((e) => /^The window — with siblingCount 1 and boundaryCount 1/.test(e) && /7 slots/.test(e)),
     '#2665 calls 6, 9 and 12 pagination code contract: seven slots, previous and next aria-disabled at an end (never native disabled), and links from getHref or buttons, never href="#"');
 
   // (5) excludeCoordinates OVER THE STATE AXIS (#2665, the mechanism call 7 needs). The validator takes the state
@@ -39385,7 +39386,7 @@ arm: {
   ]), `#2668 toast properties: message "Status message", action off, close on, all lowercase (got ${JSON.stringify(planSetProperties(plans))})`);
 
   // THE CODE-SIDE BEHAVIOR (calls 4, 5, 6, 10), each stated in codeOnly and the props as literals.
-  const co = td.anatomy!.codeOnly.join('\n');
+  const co = codeOnlyText(td.anatomy!.codeOnly).join('\n');
   const dur = td.props.find((p) => p.name === 'duration'), dis = td.props.find((p) => p.name === 'dismissible');
   const behavior: [string, boolean][] = [
     ['duration defaults to 6000, never under 5000', dur?.default === 6000 && /6000ms by default and never less than 5000ms/.test(co) && /Never less than 5000/.test(dur?.description ?? '')],
@@ -39543,7 +39544,7 @@ arm: {
 // Q491 A: reduced motion is instant at every placement, so no contract line may promise a fade under it.
 {
   const dg = componentDefs.find((d) => d.id === 'dialog')!;
-  const lines = dg.anatomy!.codeOnly;
+  const lines = codeOnlyText(dg.anatomy!.codeOnly);
   const line = (head: string) => lines.find((e) => e.startsWith(`${head} — `)) ?? '';
   const a11y = [dg.accessibility.role, dg.accessibility.focus, dg.accessibility.aria, dg.accessibility.keyboard];
   // Any clause that excepts a placement from the modal contract: "except end", "but not on an end panel", "unless full"...
@@ -39624,7 +39625,7 @@ arm: {
   // EQUAL SHARES AT EVERY WIDTH (Q492 B, Q?3 A on #2880): `flex: 1 1 0` alone keeps `min-width: auto`, so a long label
   // widened its button and wrapped the row. The code line names both declarations, says the label wraps inside its
   // button, and sends long labels to stacked. Clauses typed here, read against the def's own line (docs/34).
-  const fillLine = (bg.anatomy?.codeOnly ?? []).find((l) => l.startsWith('the inline row')) ?? '';
+  const fillLine = (codeOnlyText(bg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('the inline row')) ?? '';
   ok(fillLine.includes('`flex: 1 1 0; min-width: 0`') && fillLine.includes('wraps inside its button') && fillLine.includes('`overflow-wrap: anywhere` on the label') && fillLine.includes('pick stacked'),
     `#2880 button group fill: each button is \`flex: 1 1 0; min-width: 0\`, a long label wraps inside its button (\`overflow-wrap: anywhere\` on the label, so one long word breaks too), and long labels pick stacked (got ${JSON.stringify(fillLine)})`);
 
@@ -40171,7 +40172,7 @@ arm: {
 
   // THE KEYBOARD MODEL is the Password field's own, not the shared entry: TextField's names Escape-to-clear, and this
   // field has no clear button (review on #2648).
-  const pwKeyboard = pw.anatomy!.codeOnly.filter((e) => e.startsWith('the KEYBOARD MODEL '));
+  const pwKeyboard = codeOnlyText(pw.anatomy!.codeOnly).filter((e) => e.startsWith('the KEYBOARD MODEL '));
   ok(pwKeyboard.length === 1 && !/escape|clear/i.test(pwKeyboard[0]),
     `#2648 password-field: one KEYBOARD MODEL code-only entry, and it names no Escape-to-clear, because the field has no clear button (got ${JSON.stringify(pwKeyboard)})`);
 
@@ -40195,7 +40196,7 @@ arm: {
   const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING'];
   const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
   const sharedBad = SHARED_CODE_ONLY.filter((sub) => {
-    const t = bySubject(textField.anatomy!.codeOnly, sub); const p = bySubject(pw.anatomy!.codeOnly, sub);
+    const t = bySubject(codeOnlyText(textField.anatomy!.codeOnly), sub); const p = bySubject(codeOnlyText(pw.anatomy!.codeOnly), sub);
     return t.length !== 1 || p.length !== 1 || t[0] !== p[0];
   });
   ok(sharedBad.length === 0,
@@ -40274,15 +40275,15 @@ arm: {
   // THE SHARED CODE-ONLY ENTRIES read the same as TextField's. `style` is not among them: the Search field names its own lever.
   const SHARED = ['the SMALL field on a COARSE POINTER', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING'];
   const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
-  const sharedBad = SHARED.filter((sub) => { const t = bySubject(textField.anatomy!.codeOnly, sub), x = bySubject(sf.anatomy!.codeOnly, sub); return t.length !== 1 || x.length !== 1 || t[0] !== x[0]; });
-  const style = bySubject(sf.anatomy!.codeOnly, 'style');
+  const sharedBad = SHARED.filter((sub) => { const t = bySubject(codeOnlyText(textField.anatomy!.codeOnly), sub), x = bySubject(codeOnlyText(sf.anatomy!.codeOnly), sub); return t.length !== 1 || x.length !== 1 || t[0] !== x[0]; });
+  const style = bySubject(codeOnlyText(sf.anatomy!.codeOnly), 'style');
   ok(sharedBad.length === 0 && style.length === 1 && /Search field style/.test(style[0]) && /`follow`/.test(style[0]),
     `#2888 search-field code-only: the ${SHARED.length} shared entries read as TextField's, and its style entry names the Search field style lever${sharedBad.length ? ` — DIFFER: ${sharedBad.join(', ')}` : ''}`);
   // THE APPROVED WORDING (Q514 taking Q?3 A), verbatim where the code contract states it.
-  const clear = bySubject(sf.anatomy!.codeOnly, 'the CLEAR BUTTON in code');
+  const clear = bySubject(codeOnlyText(sf.anatomy!.codeOnly), 'the CLEAR BUTTON in code');
   ok(clear.length === 1 && clear[0].includes('aria-label="Clear search"') && clear[0].includes('"Search cleared"') && /RETURNS FOCUS TO THE INPUT/.test(clear[0])
     && sf.accessibility.aria.includes('aria-label="Clear search"') && sf.accessibility.aria.includes('"Search cleared"')
-    && sf.anatomy!.codeOnly.some((e) => e.startsWith('ONE CLEAR BUTTON ONLY') && e.includes('::-webkit-search-cancel-button')),
+    && codeOnlyText(sf.anatomy!.codeOnly).some((e) => e.startsWith('ONE CLEAR BUTTON ONLY') && e.includes('::-webkit-search-cancel-button')),
     '#2888 Q?3 A: the clear button is named "Clear search", returns focus to the input, announces "Search cleared", and the browser\'s own cancel glyph is hidden');
   // THE CLEAR BUTTON'S HIT AREA (review Q1 A, WCAG 2.5.8): the button sits inside the input's own target, so the
   // spacing exception cannot apply and the button must meet 24 CSS px itself. Its 20px glyph alone does not. The def
@@ -40310,7 +40311,7 @@ arm: {
   {
     const FLOOR = 24;
     const sized = (t: string | undefined) => [...(t ?? '').matchAll(/at least (\d+)×(\d+)/g)].map((m) => Math.min(Number(m[1]), Number(m[2])));
-    const affix = textField.anatomy!.codeOnly.filter((e) => e.startsWith('the TRAILING AFFIX '));
+    const affix = codeOnlyText(textField.anatomy!.codeOnly).filter((e) => e.startsWith('the TRAILING AFFIX '));
     const trailing = textField.props.find((p) => p.name === 'trailingIcon')?.description;
     const wcag = textField.accessibility.wcag.filter((w) => w.startsWith('2.5.8'));
     const hitBad: string[] = [];
@@ -40466,7 +40467,7 @@ arm: {
     }
     ok(plans.length === 84 && dimmed === 12 && bad.length === 0,
       `#2738 ${id} label-dims: the nested FieldLabel is at state=disabled on the 12 disabled members and at state=rest on the other 72, read-only included, and each coordinate resolves to one FieldLabel member (${plans.length} members, ${dimmed} dimmed)${bad.length ? ` — WRONG on ${bad.length}: ${bad.slice(0, 2).join(' | ')}` : ''}`);
-    const limit = def.anatomy!.codeOnly.filter((e) => /LABEL's disabled dimming/i.test(e));
+    const limit = codeOnlyText(def.anatomy!.codeOnly).filter((e) => /LABEL's disabled dimming/i.test(e));
     ok(limit.length === 0, `#2738 ${id} codeOnly: no entry records the label's disabled dimming as a projection limit (found ${JSON.stringify(limit)})`);
   }
 }
