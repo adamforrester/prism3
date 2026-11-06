@@ -15,7 +15,10 @@
  * BY-NAME MUTATIONS (proven red in the PR): R1's token oracle pointed at `skills/prism3-build-ui/SKILL.md` →
  * `independence/oracle-paths`, `oracle/load` (16 assertions run: nothing can be scored without the oracle); `loadOracle`
  * made to read the skill with `readFileSync`, past `readPinned` (review M2b) → `independence/static-skills`,
- * `independence/static-reads`; the probe made to match the whole transcript as free text →
+ * `independence/static-reads`; `oracle.ts` made to read the skill and `loadOracle` to use it (delta review M2c) →
+ * `independence/static-skills-oracle`, `independence/static-reads-oracle`; `READ_TOOLS` back to Read, WebFetch, Bash →
+ * `contamination/grep`, `contamination/glob`, `contamination/agent`, `contamination/task`,
+ * `contamination/grep-text`; the probe made to match the whole transcript as free text →
  * `contamination/json-u-escaped`, `contamination/prose-mention`; the element-styled-as-a-date branch made to skip its
  * interactivity check, and a bare `data-component` counted as a control → `R5/note-with-date-class`,
  * `R5/banner-with-date-id`; `REPORT_RE` set back to its first literal → `R5/report-dob`, `R5/report-birthday`,
@@ -23,7 +26,7 @@
  * `R5/fieldset-numbers`; the `own` custom-property exemption dropped →
  * `R1/own-property`; the enum check dropped → `R1/bad-enum`; the `core` check dropped → `R2/bad-primitive`; the
  * large-text floor made 4.5 → `R4/large-text`; the date-input type check dropped → `R5/faked-input`; the record's
- * sha256 compare dropped → `record/stale-edit`. Every other arm stayed green, 60 assertions run.
+ * sha256 compare dropped → `record/stale-edit`. Every other arm stayed green, 69 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -279,6 +282,12 @@ console.log('\ncapture, record and contamination — orchestrate.ts');
   ok(probeContamination(`${proseText}\n⏺ Read(/home/user/repo/CLAUDE.md)`, packet).includes('a CLAUDE.md appears'), 'contamination/claude-md: a CLAUDE.md Read, as a text transcript prints it, voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('WebFetch', { url: 'https://github.com/adamforrester/prism3/blob/main/x', prompt: 'read' })}`, packet).includes('a fetch of the repository'), 'contamination/fetch: a WebFetch of the repository voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/bash: a Bash input naming CLAUDE.md voids the run');
+  // Delta review nit: a Grep, a Glob or a sub-agent can reach a skill file as well as a Read can.
+  ok(probeContamination(`${cleanJsonl}\n${call('Grep', { pattern: 'token', path: 'skills/prism3-build-ui' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/grep: a Grep over skills/prism3-* voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('Glob', { pattern: '**/CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/glob: a Glob for CLAUDE.md voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('Agent', { description: 'look up tokens', prompt: 'Read skills/prism3-build-ui/SKILL.md and summarize it' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/agent: an Agent sub-task told to read the skill voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('Task', { prompt: 'open the CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/task: a Task sub-task naming CLAUDE.md voids the run');
+  ok(probeContamination(`${proseText}\n⏺ Grep(pattern: "x", path: "skills/prism3-build-ui")`, packet).includes('a read of skills/prism3-*'), 'contamination/grep-text: a Grep call line in a text transcript voids the run');
   ok(median([3, 1, 2]) === 2 && median([4, 1, 2, 3]) === 2.5 && median([]) === null, 'median: odd, even and empty');
 }
 

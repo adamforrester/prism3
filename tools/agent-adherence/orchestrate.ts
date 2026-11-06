@@ -18,8 +18,8 @@
  * is dropped. A run whose final message lacks either file is recorded as captured with that file missing.
  *
  * CONTAMINATION (proposal §2, "checked on every run rather than assumed"): `capture` voids a run whose transcript shows
- * a TOOL CALL that loads a prism3 skill (`Skill`), or a `Read` / `WebFetch` / `Bash` whose input names a CLAUDE.md,
- * `skills/prism3-*` or the repository. Prose is never matched: the C1 packet itself names `skills/prism3-rebind/…`, so
+ * a TOOL CALL that loads a prism3 skill (`Skill`), or a `Read` / `WebFetch` / `Bash` / `Grep` / `Glob` / `Agent` /
+ * `Task` whose input names a CLAUDE.md, * `skills/prism3-*` or the repository. Prose is never matched: the C1 packet itself names `skills/prism3-rebind/…`, so
  * a free-text match voided C1 runs that C0 runs could not reach (review S1, selection bias). A void run is recorded,
  * reported, and never scored.
  */
@@ -50,7 +50,8 @@ const CONTAMINATION: [RegExp, string][] = [
   [/github\.com\/adamforrester\/prism3|raw\.githubusercontent\.com\/adamforrester\/prism3|api\.github\.com\/repos\/adamforrester\/prism3/i, 'a fetch of the repository'],
 ];
 /** The tools whose input can reach the repo, a CLAUDE.md or a skill file. A `Skill` call is judged by its skill name. */
-const READ_TOOLS = ['Read', 'WebFetch', 'Bash'];
+/** `Grep`, `Glob` and a sub-agent (`Agent`, `Task`) can reach a skill file too (delta review nit). */
+const READ_TOOLS = ['Read', 'WebFetch', 'Bash', 'Grep', 'Glob', 'Agent', 'Task'];
 const SKILL_RE = /prism3-/i;
 
 /** One tool call, however the transcript spells it: its tool name and its input as text. */
@@ -60,7 +61,7 @@ type ToolCall = { name: string; input: string };
  * read, so an agent that only MENTIONS `skills/prism3-rebind/…` (as the C1 packet does) is not void (review S1).
  *   · JSON: the whole file, or one event per line (JSONL). Every object with `type: "tool_use"`, a `name` and an `input`,
  *     at any depth. Parsing undoes every escape spelling (`\uXXXX` included), so no spelling of the packet matters.
- *   · Text: a line that starts (after bullets or symbols) with `Skill(`, `Read(`, `WebFetch(` or `Bash(` and ends at
+ *   · Text: a line that starts (after bullets or symbols) with `Skill(` or one of `READ_TOOLS` and `(`, and ends at
  *     its closing `)`, as a terminal transcript prints a call. A sentence that names a tool mid-line is prose.
  */
 export const toolCalls = (transcript: string): ToolCall[] => {
@@ -79,7 +80,7 @@ export const toolCalls = (transcript: string): ToolCall[] => {
   for (const line of transcript.split('\n')) {
     const ev = line.trim().startsWith('{') ? json(line) : undefined;
     if (ev !== undefined) { walk(ev); continue; }
-    const m = /^[^\p{L}\p{N}]*(Skill|Read|WebFetch|Bash)\((.*)\)\s*$/u.exec(line);
+    const m = /^[^\p{L}\p{N}]*(Skill|Read|WebFetch|Bash|Grep|Glob|Agent|Task)\((.*)\)\s*$/u.exec(line);
     if (m) calls.push({ name: m[1], input: m[2] });
   }
   return calls;
