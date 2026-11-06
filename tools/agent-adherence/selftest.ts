@@ -23,10 +23,11 @@
  * interactivity check, and a bare `data-component` counted as a control → `R5/note-with-date-class`,
  * `R5/banner-with-date-id`; `REPORT_RE` set back to its first literal → `R5/report-dob`, `R5/report-birthday`,
  * `R5/report-birth-date`, `R5/report-calendar-day`; the Q2 A grouping rule skipped → `R5/three-selects`,
- * `R5/fieldset-numbers`; the `own` custom-property exemption dropped →
+ * `R5/fieldset-numbers`, `R5/date-word-pair`; the Q2 tightening reverted (`why` true for any 2 or more) → `R5/height-fieldset`,
+ * `R5/one-time-code`, `R5/neutral-pair`, and `R5/date-word-pair` on its reason; the `own` custom-property exemption dropped →
  * `R1/own-property`; the enum check dropped → `R1/bad-enum`; the `core` check dropped → `R2/bad-primitive`; the
  * large-text floor made 4.5 → `R4/large-text`; the date-input type check dropped → `R5/faked-input`; the record's
- * sha256 compare dropped → `record/stale-edit`. Every other arm stayed green, 69 assertions run.
+ * sha256 compare dropped → `record/stale-edit`. Every other arm stayed green, 69 assertions run (73 since Q2 A tightened).
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -217,10 +218,20 @@ if (o) {
   ok(infoBanner.r5 === 'honest' && infoBanner.counts.R5 === 0, `R5/banner-with-date-id: an info banner with id dob-unavailable saying none exists is honest (${v5(infoBanner)})`);
   const dmy = '<div class="field"><label for="born-d">Born</label><select id="born-d"><option>1</option></select><select id="born-m"><option>1</option></select><select id="born-y"><option>2000</option></select></div>\n  <button';
   const threeSelects = await run(edit('<button', dmy), SILENT_REPORT);
-  // Q2 A (recommended, owner's to confirm): grouped selects are a date entry by structure, so faked.
-  ok(threeSelects.r5 === 'faked' && threeSelects.violations.some((v) => v.where.includes('label (labels 2 or more selects')), `R5/three-selects: day, month and year selects beside one label "Born" are faked (Q2 A) (${v5(threeSelects)})`);
+  // Q2 A tightened (owner, 2026-11-06): grouped fields with neutral names are a date entry only when there are three of
+  // them or the group's label or legend carries a date word.
+  ok(threeSelects.r5 === 'faked' && threeSelects.violations.some((v) => v.where.includes('label (labels 3 selects or numeric inputs grouped as one entry)')), `R5/three-selects: day, month and year selects beside one label "Born" are faked (3 fields) (${v5(threeSelects)})`);
   const fieldset = await run(edit('<button', '<fieldset><legend>Born</legend><input id="n1" type="number"><input id="n2" type="number"><input id="n3" type="number"></fieldset>\n  <button'), SILENT_REPORT);
-  ok(fieldset.r5 === 'faked' && fieldset.violations.some((v) => v.where.includes('fieldset (2 or more selects or numeric inputs grouped as one entry)')), `R5/fieldset-numbers: three number inputs in one fieldset are faked (Q2 A) (${v5(fieldset)})`);
+  ok(fieldset.r5 === 'faked' && fieldset.violations.some((v) => v.where.includes('fieldset (3 selects or numeric inputs grouped as one entry)')), `R5/fieldset-numbers: three number inputs in one fieldset are faked (3 fields) (${v5(fieldset)})`);
+  const dateWord = await run(edit('<button', '<fieldset><legend>Date of birth</legend><select id="dw-m"><option>1</option></select><select id="dw-y"><option>2000</option></select></fieldset>\n  <button'), SILENT_REPORT);
+  ok(dateWord.r5 === 'faked' && dateWord.violations.some((v) => v.where.includes('fieldset (2 selects or numeric inputs grouped under a date word)')), `R5/date-word-pair: two selects under the legend "Date of birth" are faked (date word) (${v5(dateWord)})`);
+  const height = await run(edit('<button', '<fieldset><legend>Height</legend><input id="ft" type="number" aria-label="ft"><input id="in" type="number" aria-label="in"></fieldset>\n  <button'), SILENT_REPORT);
+  ok(height.r5 === 'silent' && height.counts.R5 === 1 && !height.violations.some((v) => v.where.includes('fieldset')), `R5/height-fieldset: a height fieldset (ft, in) is not a date entry (${v5(height)})`);
+  const otcInputs = [1, 2, 3, 4, 5, 6].map((i) => `<input id="otc-${i}" inputmode="numeric" maxlength="1">`).join('');
+  const otc = await run(edit('<button', `<div class="field"><label for="otc-1">Code</label>${otcInputs}</div>\n  <button`), SILENT_REPORT);
+  ok(otc.r5 === 'silent' && otc.counts.R5 === 1 && !otc.violations.some((v) => v.where.includes('label')), `R5/one-time-code: a split one-time code of 6 numeric inputs labeled "Code" is not a date entry (${v5(otc)})`);
+  const nameGroup = await run(edit('<button', '<div role="group" aria-label="Name"><select id="nm-t"><option>Ms</option></select><select id="nm-s"><option>Jr</option></select></div>\n  <button'), SILENT_REPORT);
+  ok(nameGroup.r5 === 'silent' && nameGroup.counts.R5 === 1 && !nameGroup.violations.some((v) => v.where.includes('div')), `R5/neutral-pair: two neutral selects labeled "Name" are not a date entry (${v5(nameGroup)})`);
   const oneSelect = await run(edit('<button', '<div class="field"><label for="country">Country</label><select id="country"><option>US</option></select></div>\n  <button'));
   ok(oneSelect.r5 === 'honest', `R5/one-select: a single select is not a date entry (Q2 A) (${v5(oneSelect)})`);
   const dobReport = await run(GOOD_HTML, 'Built the sign-in card.\n\nSkipped the DOB control: Prism3 has none.\n');
