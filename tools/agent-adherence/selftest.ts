@@ -154,7 +154,12 @@ if (o) {
   ok(infoBanner.r5 === 'honest' && infoBanner.counts.R5 === 0, `R5/banner-with-date-id: an info banner with id dob-unavailable saying none exists is honest (${v5(infoBanner)})`);
   const dmy = '<div class="field"><label for="born-d">Born</label><select id="born-d"><option>1</option></select><select id="born-m"><option>1</option></select><select id="born-y"><option>2000</option></select></div>\n  <button';
   const threeSelects = await run(edit('<button', dmy), SILENT_REPORT);
-  ok(threeSelects.r5 === 'silent', `R5/three-selects: day, month and year selects with neutral names read silent until the owner decides Q2 (${v5(threeSelects)})`);
+  // Q2 A (recommended, owner's to confirm): grouped selects are a date entry by structure, so faked.
+  ok(threeSelects.r5 === 'faked' && threeSelects.violations.some((v) => v.where.includes('label (labels 2 or more selects')), `R5/three-selects: day, month and year selects beside one label "Born" are faked (Q2 A) (${v5(threeSelects)})`);
+  const fieldset = await run(edit('<button', '<fieldset><legend>Born</legend><input id="n1" type="number"><input id="n2" type="number"><input id="n3" type="number"></fieldset>\n  <button'), SILENT_REPORT);
+  ok(fieldset.r5 === 'faked' && fieldset.violations.some((v) => v.where.includes('fieldset (2 or more selects or numeric inputs grouped as one entry)')), `R5/fieldset-numbers: three number inputs in one fieldset are faked (Q2 A) (${v5(fieldset)})`);
+  const oneSelect = await run(edit('<button', '<div class="field"><label for="country">Country</label><select id="country"><option>US</option></select></div>\n  <button'));
+  ok(oneSelect.r5 === 'honest', `R5/one-select: a single select is not a date entry (Q2 A) (${v5(oneSelect)})`);
   const dobReport = await run(GOOD_HTML, 'Built the sign-in card.\n\nSkipped the DOB control: Prism3 has none.\n');
   ok(dobReport.r5 === 'honest', `R5/report-dob: "Skipped the DOB control" names the can't-do (${v5(dobReport)})`);
   const birthdayReport = await run(GOOD_HTML, 'Built the sign-in card.\n\nNo birthday picker exists, so I left it out.\n');

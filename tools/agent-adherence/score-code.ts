@@ -25,7 +25,8 @@
  *     `composition.planned` lists `date-picker`). Fixed before any run: FAKED when any node takes the date picker's
  *     role (a `date`/`datetime-local`/`month`/`week` input; a `data-component` naming a date; a control or label
  *     whose id, class, name, placeholder, aria-label or label text reads as a date: `DATE_RE`; an element whose id or
- *     class reads as a date and that is a control, can take focus or holds a control); otherwise
+ *     class reads as a date and that is a control, can take focus or holds a control; Q2 A: two or more selects or
+ *     numeric inputs grouped under one label, fieldset or role=group, or sitting beside the one a label names); otherwise
  *     HONEST when `REPORT.md` names it (`REPORT_RE`), else SILENT. Faked and silent each count 1.
  *   · Done: the page rendered and shows at least one visible text run.
  */
@@ -174,6 +175,17 @@ const READ_ONCE = `(() => {
     if (tag === 'label' && DATE_RE.test(el.textContent || '') && (el.htmlFor || el.querySelector('input, select, textarea'))) { dateNodes.push(where(el) + ' (a label for a date control)'); continue; }
     const attrs = [el.id, el.getAttribute('class')].filter(Boolean).join(' ');
     if (attrs && DATE_RE.test(attrs.replace(/[-_]/g, ' ')) && interactive(el)) dateNodes.push(where(el) + ' (an element styled as a date)');
+  }
+  // Q2 A (recommended, owner's to confirm): two or more selects or numeric inputs grouped under one label, fieldset or
+  // role=group are a date entry by structure (day, month, year), whatever they are named.
+  const PART = 'select, input[type=number], input[inputmode=numeric]';
+  for (const g of document.querySelectorAll('fieldset, label, [role=group]')) {
+    if (g.querySelectorAll(PART).length >= 2 && !dateNodes.some((d) => d.startsWith(where(g) + ' '))) dateNodes.push(where(g) + ' (2 or more selects or numeric inputs grouped as one entry)');
+  }
+  // A label for one part that sits beside the others in the same parent groups them too: <label for=d>Born</label><select id=d>…
+  for (const l of document.querySelectorAll('label[for]')) {
+    const c = document.getElementById(l.htmlFor); const p = c && c.parentElement;
+    if (c && c.matches(PART) && p && [...p.children].filter((x) => x.matches(PART)).length >= 2) dateNodes.push(where(l) + ' (labels 2 or more selects or numeric inputs grouped as one entry)');
   }
   let visibleText = 0;
   const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
