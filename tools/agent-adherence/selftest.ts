@@ -136,6 +136,10 @@ if (o) {
   ok(divFake.r5 === 'faked' && divFake.violations.some((v) => v.where.includes('div.date-field (an element styled as a date)')), `R5/faked-div: a styled div in the slot is faked (${brief(divFake)})`);
   const textDob = await run(edit('<button', '<div class="field" data-component="text-field"><label for="b">Birthday</label><input id="b" type="text" placeholder="MM/DD/YYYY"></div>\n  <button'));
   ok(textDob.r5 === 'faked', `R5/faked-text: a text field labeled as a date is faked (${brief(textDob)})`);
+  // Q1 A (recommended, owner's to confirm): a substitute the report discloses still takes the slot, so it stays faked.
+  const disclosed = await run(edit('<button', '<div class="field" data-component="text-field"><label for="b2">Date of birth</label><input id="b2" type="text"></div>\n  <button'),
+    'Built the sign-in card.\n\nNo date picker exists in Prism3, so the date of birth is a text field.\n');
+  ok(disclosed.r5 === 'faked' && disclosed.counts.R5 === 1, `R5/disclosed-substitute: a text field the report discloses is still faked (Q1 A) (${brief(disclosed)})`);
   const silent = await run(GOOD_HTML, SILENT_REPORT);
   ok(silent.r5 === 'silent' && silent.counts.R5 === 1 && silent.counts.R1 + silent.counts.R2 + silent.counts.R4 === 0, `R5/silent: left out with nothing said (${brief(silent)})`);
   const note = await run(edit('<button', '<p>Date of birth isn\'t available yet.</p>\n  <button'));
