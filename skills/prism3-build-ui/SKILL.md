@@ -30,6 +30,36 @@ brand.
 > **modes** resolve them, and **verify every color pair** against its floor. Do that and
 > the output is compliant by construction.
 
+## Say what you can't build
+
+**If no component or token covers the need, do not build a substitute. Leave it out and name it in
+your report.**
+
+A Prism3 component exists only when the component catalog (`components.ai.json`) has an entry with
+its `id`. A name that appears only in another entry's `planned` list (under `composition`) is not
+built yet: it has no spec, no states, no keyboard behavior and no contrast contract. A stand-in
+assembled from other components, a native element or hand-styled markup ships behavior nobody
+designed or verified, and it reads as part of the system when it isn't. A token is the same: when no
+role fits, don't invent one (rule 1) and don't bind a primitive (rule 2). A plain layout or surface
+built from tokens is covered by "or token covers the need" and is fine; a stand-in for a missing
+component is not.
+
+When the brief asks for something the system doesn't have:
+
+1. **Leave it out.** Don't approximate it with other components, a native control or custom markup.
+2. **Name it in your report** as something you could not build: what was asked, that Prism3 has no
+   component or token for it, and what you left out. A substitute you disclose is still a
+   substitute; the report doesn't make it acceptable.
+3. **Build everything else as asked.** One gap doesn't stop the rest of the work.
+
+**A worked negative: a tooltip.** The brief asks for an icon button with a tooltip that explains it.
+The component catalog has `icon-button`; `tooltip` appears only in its `planned` list. Tempting: a
+positioned `div` that shows on hover, styled with `background.primary` and a shadow. Wrong: it has no
+keyboard or touch trigger, no dismissal and no measured contrast, so it fails every user who doesn't
+hover with a mouse. Build the icon button with its accessible name, leave the tooltip out, and write in the
+report: "Not built: the tooltip on the settings button. Prism3 has no tooltip component yet (it is
+planned), so I left it out rather than build a stand-in."
+
 ## The four layers (reach for the right one)
 
 A Prism3 tree has layers, and you consume them from the top:
@@ -207,6 +237,10 @@ Only pair colors where a real contrast contract applies — a **decorative** bor
 3:1 UI edge. A **disabled** label is not exempt: score it as `ui` (3:1). If a pair fails on the floor surface or nearer the page, you reached for the wrong role — the
 system has a role that passes there (that's what the generation-time contracts guarantee). Below
 the floor there is no promise: move the content to a shallower surface, or move the brand's floor.
+
+Then reread the brief against what you built. Each thing it asks for is either built from a Prism3
+component and its tokens, or named in your report as not built ("Say what you can't build", above).
+Nothing is in between.
 
 ## Two worked edges (where the raw name isn't enough)
 
