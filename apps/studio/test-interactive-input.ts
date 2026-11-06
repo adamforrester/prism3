@@ -107,6 +107,38 @@ ok(same(store.brandState.overrides?.light?.['inverse.interactive.primary.fill.re
 I.writeInteractiveRow('light', row('inverse.interactive.primary.fill.rest'), undefined);
 ok(pristine(), 'its Auto (crisp white or black) clears it');
 
+console.log('\n3b. #3406: an override row\'s picker offers the palette its override names, and a pick there writes that palette');
+{
+  // THE FIXTURE is #3391's: a brand color `brand-neutral`, and the primary border overridden to `brand-neutral 350` in
+  // Light. Expected palette lists are literals. "A pick there lands" is the engine's own resolved path, never the module.
+  const BC = 'brand-neutral', ROLE = 'interactive.primary.border.rest', INV = 'inverse.interactive.primary.fill.rest';
+  const pathOf = (role: string, mode: string): string | undefined => {
+    try { return (resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === mode)?.roles as Record<string, { path?: string } | undefined>)?.[role]?.path; } catch { return undefined; }
+  };
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: BC, oklch: { l: 0.62, c: 0.012, h: 240 } });
+  store.rebuild();
+  ok(row(ROLE).write === 'override' && I.interactivePaletteOf(row(ROLE)) === 'primary', `premise: ${ROLE} is an override row on primary (${row(ROLE).write}, ${I.interactivePaletteOf(row(ROLE))})`);
+  ok(same(I.pickerPalettesOf('light', row(ROLE)), ['primary']), `with no override, the picker offers its own ramp only (${JSON.stringify(I.pickerPalettesOf('light', row(ROLE)))})`);
+  store.brandState.overrides = { light: { [ROLE]: { palette: BC, step: '350' } } };
+  ok(same(I.pickerPalettesOf('light', row(ROLE)), ['primary', 'brand-neutral']),
+    `#3406 offer: an override on brand-neutral adds it after the row's own ramp (${JSON.stringify(I.pickerPalettesOf('light', row(ROLE)))})`);
+  ok(same(I.pickerPalettesOf('dark', row(ROLE)), ['primary']), 'a mode with no override offers the own ramp only');
+  I.writeInteractiveRow('light', row(ROLE), 'brand-neutral::400');
+  ok(same(store.brandState.overrides, { light: { [ROLE]: { palette: 'brand-neutral', step: '400' } } }) && pathOf(ROLE, 'light') === 'pds3.core.palette.brand-neutral.400',
+    `#3406 move: a pick of brand-neutral 400 writes brand-neutral 400, and the engine resolves it there (${JSON.stringify(store.brandState.overrides)}, ${pathOf(ROLE, 'light')})`);
+  I.writeInteractiveRow('light', row(ROLE), '300');
+  ok(same(store.brandState.overrides, { light: { [ROLE]: { palette: 'primary', step: '300' } } }) && same(I.pickerPalettesOf('light', row(ROLE)), ['primary']),
+    `a bare step still writes the row's own family, and the picker goes back to one palette (${JSON.stringify(store.brandState.overrides)})`);
+  store.brandState.overrides = { light: { [ROLE]: { palette: 'gone', step: '350' } } };
+  ok(same(I.pickerPalettesOf('light', row(ROLE)), ['primary']), 'a held palette the theme does not build is not offered (it has no steps)');
+  store.brandState.overrides = { light: { [INV]: { palette: BC, step: '350' } } };
+  ok(same(I.pickerPalettesOf('light', row(INV)), ['primary', 'neutral', 'brand-neutral']),
+    `#3406 offer, inverse fill: its two ramps, then brand-neutral (${JSON.stringify(I.pickerPalettesOf('light', row(INV)))})`);
+  store.brandState.overrides = { light: { [INV]: { palette: 'neutral', step: '100' } } };
+  ok(same(I.pickerPalettesOf('light', row(INV)), ['primary', 'neutral']), 'an inverse fill held on neutral adds nothing: neutral is already offered');
+}
+
 console.log('\n4. Links: the rungs and the family pin');
 reset();
 // The derived walk, from the ENGINE: what the expected pins below are worked out from.
