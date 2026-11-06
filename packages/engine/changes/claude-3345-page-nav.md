@@ -14,5 +14,5 @@ as before. A new part field, `footShare`, carries the share; both component exec
 centered, constrained SCALE across. `applyCurrentIndicator` materializes it into Link before projection; it is the identity
 at Full. Because Partial is the default, a brand that sets nothing now draws every current Link's bar at half the title's
 width, so Link's selected members are due on Update. No token is added or renamed, so CONTRACT is unchanged and every
-committed token emission is byte-identical. Two component pages join `out/components/` (229 committed artifacts). The component-defs export carries the setting: `currentIndicator` joins its brand `settings` and its lever chain, and its format moves `prism3-component-defs/1.0` → `1.1` (a field added: minor). Link's,
+committed token emission is byte-identical. Two component pages join `out/components/` (227 committed artifacts). Link's,
 PageNav's and PageNav.Item's docs say the bar's width is the brand's Current page indicator.

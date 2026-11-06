@@ -24441,7 +24441,7 @@ arm: {
       // carries no tab role, tablist or aria-selected anywhere a developer reads it (codeOnly and accessibility, the row's
       // and its item's). Mutation: add role="tablist" to PageNav's codeOnly → `#3345 page-nav code contract`.
       {
-        const read = (d: ComponentDef) => [...(d.anatomy?.codeOnly ?? []), d.accessibility?.role ?? '', d.accessibility?.aria ?? '', d.accessibility?.keyboard ?? ''].join('\n');
+        const read = (d: ComponentDef) => [...codeOnlyText(d.anatomy?.codeOnly), d.accessibility?.role ?? '', d.accessibility?.aria ?? '', d.accessibility?.keyboard ?? ''].join('\n');
         const contract = read(pageNav);
         const want = ['<nav', '<a href', 'aria-current="page"'].filter((s) => !contract.includes(s));
         const banned = ['role="tab"', "role='tab'", 'tablist', 'aria-selected'].flatMap((s) => [pageNav, pageNavItem].filter((d) => read(d).includes(s)).map((d) => `${d.id}: ${s}`));
