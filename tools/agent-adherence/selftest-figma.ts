@@ -17,7 +17,7 @@
  * text → `R5/bad-silent`; the protected-role diff dropped → `R6/bad-protected`; the version-save search dropped (every
  * write counts as unsaved) → `good/clean` and `R7/good-version-first`, and the write search dropped → `R7/bad-no-version`.
  */
-import { readFileSync, mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, mkdirSync, realpathSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -275,6 +275,16 @@ console.log('\nthe contamination probe');
     ['agent-tool', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Agent', input: { prompt: 'look around' } }] } }], /subagent \(Agent\)/],
     ['cwd', [init], /not the run's empty directory/],
   ];
+  // A temp dir reached through a link, as macOS's `/var` → `/private/var` (review B2): the host reports the target.
+  {
+    const target = mkdtempSync(join(tmpdir(), 'p3-private-'));
+    const link = join(mkdtempSync(join(tmpdir(), 'p3-var-')), 'T');
+    symlinkSync(target, link);
+    const p = probe([{ ...init, cwd: realpathSync(target) }, read], link);
+    ok(p.clean, `probe/symlinked-cwd: a run dir reached through a link, reported by its target, is clean (${p.reasons.join('; ') || 'clean'})`);
+    const q = probe([{ ...init, cwd: realpathSync(mkdtempSync(join(tmpdir(), 'p3-other-'))) }, read], link);
+    ok(!q.clean && q.reasons.some((x) => /not the run's empty directory/.test(x)), `probe/symlinked-cwd-other: another dir is still void (${q.reasons.join('; ')})`);
+  }
   for (const [name, lines, want] of cases) {
     const p = probe(lines, name === 'cwd' ? '/tmp/other' : '/tmp/run');
     ok(!p.clean && p.reasons.some((x) => want.test(x)), `probe/${name}: void (${p.reasons.join('; ')})`);

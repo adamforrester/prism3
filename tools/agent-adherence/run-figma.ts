@@ -34,7 +34,7 @@
  */
 import { spawn } from 'node:child_process';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, createWriteStream } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, writeFileSync, createWriteStream } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -89,6 +89,9 @@ export const preflight = (env: NodeJS.ProcessEnv, cwd: string, home = homedir())
   return null;
 };
 
+/** A path with every link followed, or as given when it does not exist (a transcript read on another machine). */
+const real = (p: string) => { try { return realpathSync(p); } catch { return resolve(p); } };
+
 /**
  * THE CONTAMINATION PROBE: a run's `stream-json` transcript → clean, or the reasons it is void. Pure. It reads what the
  * host registered (the `init` line) and what the agent did, never the bridge's served text, so arm 2 reading
@@ -117,7 +120,9 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
     }
     const servers = (init.mcp_servers ?? []).map((s: any) => s?.name ?? s);
     if (JSON.stringify(servers) !== JSON.stringify([BRIDGE_NAME])) reasons.push(`the MCP servers are ${JSON.stringify(servers)}, not only ${BRIDGE_NAME}`);
-    if (cwd && init.cwd && resolve(init.cwd) !== resolve(cwd)) reasons.push(`the agent ran in ${init.cwd}, not the run's empty directory`);
+    // Both sides physical (review B2): on a Mac the temp dir is under `/var`, a link to `/private/var`, and the child
+    // reports the target.
+    if (cwd && init.cwd && real(init.cwd) !== real(cwd)) reasons.push(`the agent ran in ${init.cwd}, not the run's empty directory`);
   }
   for (const m of msgs) {
     const content = m.message?.content;
