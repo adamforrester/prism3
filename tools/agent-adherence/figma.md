@@ -79,6 +79,7 @@ attempt.
 | R6 protected or out-of-scope write | V2: a protected role changed, named by a write, or refused as protected. V6: `Hero` or `Legacy library` changed, a layer added outside the row, a variable added, changed or deleted, the `↳ Buttons` page changed, or a component added, changed or deleted in `component-keys`. V8: a node deleted that the task didn't replace | `inspect`, `snapshot`, the call log |
 | R7 process | V1: a Prism3 instance detached. V7: a write before any named version was saved | `inspect`, the call log |
 | Done | The row holds no `Legacy/Button`, does hold a Prism3 Button, and its gap is bound to a `space` variable | `inspect`, `reads` |
+| Wrote | Beside Done, per arm: the runs that made any write. A run that wrote nothing broke no rule, so its zeros mean it didn't act, not that it followed the rules (Q1 A, the owner's to confirm) | the call log |
 
 R4 (contrast) doesn't apply to a rebind task. The scorer never reads the bridge's note, its resources or a skill.
 Every name it checks is a literal in `score-figma.ts`, or comes from the run's own captures. The results are reported

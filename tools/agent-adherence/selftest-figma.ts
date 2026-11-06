@@ -453,5 +453,15 @@ console.log('\nreporting');
   ok(arm.runs === 2 && arm.void === 1 && arm.median.R1 === 1, `report/summary: a void run is left out of the medians (${JSON.stringify(arm)})`);
 }
 
+// Q1 A (owner's to confirm): runs that made any write, per arm, next to Done.
+{
+  const quiet = fresh();
+  quiet.calls = quiet.calls.filter((c) => c.seq <= 2);
+  const q = score(quiet);
+  ok(score(fresh()).wrote === true && q.wrote === false, `report/wrote: the good run wrote, a run of reads only did not (${q.wrote})`);
+  const [arm] = summarize([score(fresh()), { ...q, index: 2 }]);
+  ok(arm.wrote === 1 && arm.runs === 2, `report/wrote-count: the arm counts 1 of 2 runs that wrote (${JSON.stringify({ wrote: arm.wrote, runs: arm.runs })})`);
+}
+
 console.log(`\n${failures === 0 ? '✅ ALL PASS' : `❌ ${failures} FAILED`} — ${executed} assertions executed`);
 process.exit(failures === 0 ? 0 : 1);
