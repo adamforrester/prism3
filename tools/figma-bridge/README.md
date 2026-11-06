@@ -138,6 +138,20 @@ more:
 
 The bridge points at the engine MCP server (`prism3-engine`) rather than proxying its tools (Q3300.4 A).
 
+## The adherence test's arms (#3440)
+
+`PRISM3_BRIDGE_ARM` picks what a fresh agent is shown, for the agent-adherence test (`tools/agent-adherence/figma.md`):
+
+- `0`: the three tools only. There are no `instructions`, no `readFirst` and no resources, and `figma_run context` is
+  refused at the bridge with `unknown-command`. `context` is also left out of the command lists.
+- `1`: arm 0 plus the note.
+- `2`, the default: the bridge as described above.
+
+A value other than these three stops the server from starting. `--record <file>` appends one `attempt` line per
+`figma_run` call before it runs, and one `outcome` line after it ends, refused calls included.
+`apps/plugin/test-agent-bridge.ts` (`arm/…`, `record/…`) checks both. Its sentinels are written in the test, not read
+from `BRIDGE_INSTRUCTIONS`.
+
 ## How it is built
 
 - `server.ts` — the stdio JSON-RPC loop (hand-rolled like `packages/engine/mcp.ts`, reusing its

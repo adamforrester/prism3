@@ -1,0 +1,145 @@
+{
+  "format": "prism3-adherence-figma-run/1",
+  "arm": 2,
+  "index": 1,
+  "roles": {
+    "plan": 1,
+    "workPage": "1:1", "finalPage": "2:1",
+    "legacyLibrary": "1:10", "legacyButtonMain": "1:11", "ratingMain": "1:13",
+    "promoRow": "1:20", "promoText": "1:21", "legacyButton": "1:22", "rating": "1:24",
+    "original": "1:30", "note": "1:50", "hero": "1:40", "heroButton": "1:42", "finalRow": "2:10",
+    "prism3Set": { "name": "Button", "key": "set-key-button" }
+  },
+  "golden": "61e51da7905d01d0883d2e853a0231df2c28028c6cdcaf42fd60327d819d5db1",
+  "baselineHash": "61e51da7905d01d0883d2e853a0231df2c28028c6cdcaf42fd60327d819d5db1",
+  "before": {
+    "inspect": { "ok": true, "cmd": "inspect", "result": { "data": { "truncated": false, "unreadable": [], "nodes": [
+      { "id": "1:1", "parentId": null, "type": "PAGE", "name": "Work", "page": "Work", "size": null, "locked": false, "mainComponent": null, "childCount": 5, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:10", "parentId": "1:1", "type": "FRAME", "name": "Legacy library", "page": "Work", "size": { "width": 300, "height": 80 }, "locked": false, "mainComponent": null, "childCount": 2, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 40, "padding": { "top": 24, "right": 24, "bottom": 24, "left": 24 } } },
+      { "id": "1:11", "parentId": "1:10", "type": "COMPONENT", "name": "Legacy/Button", "page": "Work", "size": { "width": 100, "height": 40 }, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 12, "right": 20, "bottom": 12, "left": 20 } } },
+      { "id": "1:12", "parentId": "1:11", "type": "TEXT", "name": "Label", "page": "Work", "size": { "width": 60, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:13", "parentId": "1:10", "type": "COMPONENT", "name": "Legacy/Rating", "page": "Work", "size": { "width": 90, "height": 24 }, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 4, "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 } } },
+      { "id": "1:14", "parentId": "1:13", "type": "TEXT", "name": "Stars", "page": "Work", "size": { "width": 80, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:20", "parentId": "1:1", "type": "FRAME", "name": "Promo row", "page": "Work", "size": { "width": 380, "height": 72 }, "locked": false, "mainComponent": null, "childCount": 3, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 14, "padding": { "top": 16, "right": 16, "bottom": 16, "left": 16 } } },
+      { "id": "1:21", "parentId": "1:20", "type": "TEXT", "name": "Spring sale, 20% off", "page": "Work", "size": { "width": 140, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:22", "parentId": "1:20", "type": "INSTANCE", "name": "Legacy/Button", "page": "Work", "size": { "width": 100, "height": 40 }, "locked": false, "mainComponent": { "name": "Legacy/Button", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 12, "right": 20, "bottom": 12, "left": 20 } } },
+      { "id": "1:23", "parentId": "1:22", "type": "TEXT", "name": "Label", "page": "Work", "size": { "width": 60, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:24", "parentId": "1:20", "type": "INSTANCE", "name": "Legacy/Rating", "page": "Work", "size": { "width": 90, "height": 24 }, "locked": false, "mainComponent": { "name": "Legacy/Rating", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 4, "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 } } },
+      { "id": "1:25", "parentId": "1:24", "type": "TEXT", "name": "Stars", "page": "Work", "size": { "width": 80, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:30", "parentId": "1:1", "type": "FRAME", "name": "Original · Promo row", "page": "Work", "size": { "width": 380, "height": 72 }, "locked": false, "mainComponent": null, "childCount": 3, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 14, "padding": { "top": 16, "right": 16, "bottom": 16, "left": 16 } } },
+      { "id": "1:31", "parentId": "1:30", "type": "TEXT", "name": "Spring sale, 20% off", "page": "Work", "size": { "width": 140, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:32", "parentId": "1:30", "type": "INSTANCE", "name": "Legacy/Button", "page": "Work", "size": { "width": 100, "height": 40 }, "locked": false, "mainComponent": { "name": "Legacy/Button", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 12, "right": 20, "bottom": 12, "left": 20 } } },
+      { "id": "1:33", "parentId": "1:30", "type": "INSTANCE", "name": "Legacy/Rating", "page": "Work", "size": { "width": 90, "height": 24 }, "locked": false, "mainComponent": { "name": "Legacy/Rating", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 4, "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 } } },
+      { "id": "1:40", "parentId": "1:1", "type": "FRAME", "name": "Hero", "page": "Work", "size": { "width": 200, "height": 120 }, "locked": false, "mainComponent": null, "childCount": 2, "componentProperties": null, "boundVariables": null, "layout": { "mode": "VERTICAL", "itemSpacing": 16, "padding": { "top": 24, "right": 24, "bottom": 24, "left": 24 } } },
+      { "id": "1:41", "parentId": "1:40", "type": "TEXT", "name": "Welcome back", "page": "Work", "size": { "width": 100, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:42", "parentId": "1:40", "type": "INSTANCE", "name": "Button", "page": "Work", "size": { "width": 126, "height": 40 }, "locked": false, "mainComponent": { "name": "Variant=Primary, Size=Md", "set": "Button", "remote": false }, "childCount": 1, "componentProperties": { "Variant": { "type": "VARIANT", "value": "Primary" }, "Size": { "type": "VARIANT", "value": "Md" } }, "boundVariables": { "fills": ["pds3/color/surface/default"] }, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 10, "right": 29, "bottom": 10, "left": 29 } } },
+      { "id": "1:43", "parentId": "1:42", "type": "TEXT", "name": "Label", "page": "Work", "size": { "width": 60, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:50", "parentId": "1:1", "type": "TEXT", "name": "Note", "page": "Work", "size": { "width": 260, "height": 16 }, "locked": true, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "2:1", "parentId": null, "type": "PAGE", "name": "Promo FINAL", "page": "Promo FINAL", "size": null, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "2:10", "parentId": "2:1", "type": "FRAME", "name": "Promo row", "page": "Promo FINAL", "size": { "width": 380, "height": 72 }, "locked": false, "mainComponent": null, "childCount": 3, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 14, "padding": { "top": 16, "right": 16, "bottom": 16, "left": 16 } } },
+      { "id": "2:11", "parentId": "2:10", "type": "TEXT", "name": "Spring sale, 20% off", "page": "Promo FINAL", "size": { "width": 140, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "2:12", "parentId": "2:10", "type": "INSTANCE", "name": "Legacy/Button", "page": "Promo FINAL", "size": { "width": 100, "height": 40 }, "locked": false, "mainComponent": { "name": "Legacy/Button", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 12, "right": 20, "bottom": 12, "left": 20 } } },
+      { "id": "2:13", "parentId": "2:10", "type": "INSTANCE", "name": "Legacy/Rating", "page": "Promo FINAL", "size": { "width": 90, "height": 24 }, "locked": false, "mainComponent": { "name": "Legacy/Rating", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 4, "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 } } }
+    ] } } },
+    "audit": { "ok": true, "cmd": "audit-frames", "result": { "data": { "frames": [
+      { "id": "1:20", "counts": { "legacyInstances": 2, "unstyledText": 1, "rawFills": 1, "standInDividers": 0, "badName": 0 } },
+      { "id": "1:40", "counts": { "legacyInstances": 0, "unstyledText": 1, "rawFills": 0, "standInDividers": 0, "badName": 0 } },
+      { "id": "1:30", "counts": { "legacyInstances": 2, "unstyledText": 1, "rawFills": 1, "standInDividers": 0, "badName": 0 } },
+      { "id": "2:10", "counts": { "legacyInstances": 2, "unstyledText": 1, "rawFills": 1, "standInDividers": 0, "badName": 0 } }
+    ], "unreadable": [], "truncated": false } } },
+    "snapshot-original": { "ok": true, "result": { "data": { "png": "PNG-ORIGINAL", "width": 380, "height": 72, "local": true } } },
+    "snapshot-note": { "ok": true, "result": { "data": { "png": "PNG-NOTE", "width": 260, "height": 16, "local": true } } },
+    "snapshot-finalRow": { "ok": true, "result": { "data": { "png": "PNG-FINAL", "width": 380, "height": 72, "local": true } } },
+    "snapshot-hero": { "ok": true, "result": { "data": { "png": "PNG-HERO", "width": 200, "height": 120, "local": true } } },
+    "snapshot-legacyLibrary": { "ok": true, "result": { "data": { "png": "PNG-LIBRARY", "width": 300, "height": 80, "local": true } } },
+    "snapshot-promoRow": { "ok": true, "result": { "data": { "png": "PNG-ROW-BEFORE", "width": 380, "height": 72, "local": true } } },
+    "component-keys": { "ok": true, "cmd": "component-keys", "result": { "data": { "missing": [], "unreadable": [], "components": [
+      { "name": "Button", "key": "set-key-button", "kind": "set", "published": false, "variantProperties": { "Variant": ["Primary", "Secondary"], "Size": ["Md", "Lg"] } },
+      { "name": "Legacy/Button", "key": "k-legacy-button", "kind": "component", "published": false, "variantProperties": null },
+      { "name": "Legacy/Rating", "key": "k-legacy-rating", "kind": "component", "published": false, "variantProperties": null }
+    ] } } },
+    "reads": { "ok": true, "cmd": "run-code", "result": { "data": { "value": {
+      "variables": [
+        { "name": "pds3/space/200", "collection": "space" },
+        { "name": "pds3/core/dimension/16", "collection": "core" },
+        { "name": "pds3/color/surface/default", "collection": "color" }
+      ],
+      "overrides": [
+        { "id": "1:22", "overrides": [] }, { "id": "1:24", "overrides": [] }, { "id": "1:32", "overrides": [] }, { "id": "1:33", "overrides": [] },
+        { "id": "1:42", "overrides": [{ "id": "1:42", "fields": ["paddingLeft", "paddingRight"] }] },
+        { "id": "2:12", "overrides": [] }, { "id": "2:13", "overrides": [] }
+      ]
+    } } } }
+  },
+  "after": {
+    "inspect": { "ok": true, "cmd": "inspect", "result": { "data": { "truncated": false, "unreadable": [], "nodes": [
+      { "id": "1:1", "parentId": null, "type": "PAGE", "name": "Work", "page": "Work", "size": null, "locked": false, "mainComponent": null, "childCount": 5, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:10", "parentId": "1:1", "type": "FRAME", "name": "Legacy library", "page": "Work", "size": { "width": 300, "height": 80 }, "locked": false, "mainComponent": null, "childCount": 2, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 40, "padding": { "top": 24, "right": 24, "bottom": 24, "left": 24 } } },
+      { "id": "1:11", "parentId": "1:10", "type": "COMPONENT", "name": "Legacy/Button", "page": "Work", "size": { "width": 100, "height": 40 }, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 12, "right": 20, "bottom": 12, "left": 20 } } },
+      { "id": "1:12", "parentId": "1:11", "type": "TEXT", "name": "Label", "page": "Work", "size": { "width": 60, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:13", "parentId": "1:10", "type": "COMPONENT", "name": "Legacy/Rating", "page": "Work", "size": { "width": 90, "height": 24 }, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 4, "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 } } },
+      { "id": "1:14", "parentId": "1:13", "type": "TEXT", "name": "Stars", "page": "Work", "size": { "width": 80, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:20", "parentId": "1:1", "type": "FRAME", "name": "Promo row", "page": "Work", "size": { "width": 412, "height": 72 }, "locked": false, "mainComponent": null, "childCount": 3, "componentProperties": null, "boundVariables": { "itemSpacing": "pds3/space/200" }, "layout": { "mode": "HORIZONTAL", "itemSpacing": 16, "padding": { "top": 16, "right": 16, "bottom": 16, "left": 16 } } },
+      { "id": "1:21", "parentId": "1:20", "type": "TEXT", "name": "Spring sale, 20% off", "page": "Work", "size": { "width": 140, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:60", "parentId": "1:20", "type": "INSTANCE", "name": "Button", "page": "Work", "size": { "width": 100, "height": 40 }, "locked": false, "mainComponent": { "name": "Variant=Primary, Size=Md", "set": "Button", "remote": false }, "childCount": 1, "componentProperties": { "Variant": { "type": "VARIANT", "value": "Primary" }, "Size": { "type": "VARIANT", "value": "Md" } }, "boundVariables": { "fills": ["pds3/color/surface/default"] }, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 10, "right": 16, "bottom": 10, "left": 16 } } },
+      { "id": "1:61", "parentId": "1:60", "type": "TEXT", "name": "Label", "page": "Work", "size": { "width": 60, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:24", "parentId": "1:20", "type": "INSTANCE", "name": "Legacy/Rating", "page": "Work", "size": { "width": 90, "height": 24 }, "locked": false, "mainComponent": { "name": "Legacy/Rating", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 4, "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 } } },
+      { "id": "1:25", "parentId": "1:24", "type": "TEXT", "name": "Stars", "page": "Work", "size": { "width": 80, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:30", "parentId": "1:1", "type": "FRAME", "name": "Original · Promo row", "page": "Work", "size": { "width": 380, "height": 72 }, "locked": false, "mainComponent": null, "childCount": 3, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 14, "padding": { "top": 16, "right": 16, "bottom": 16, "left": 16 } } },
+      { "id": "1:31", "parentId": "1:30", "type": "TEXT", "name": "Spring sale, 20% off", "page": "Work", "size": { "width": 140, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:32", "parentId": "1:30", "type": "INSTANCE", "name": "Legacy/Button", "page": "Work", "size": { "width": 100, "height": 40 }, "locked": false, "mainComponent": { "name": "Legacy/Button", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 12, "right": 20, "bottom": 12, "left": 20 } } },
+      { "id": "1:33", "parentId": "1:30", "type": "INSTANCE", "name": "Legacy/Rating", "page": "Work", "size": { "width": 90, "height": 24 }, "locked": false, "mainComponent": { "name": "Legacy/Rating", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 4, "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 } } },
+      { "id": "1:40", "parentId": "1:1", "type": "FRAME", "name": "Hero", "page": "Work", "size": { "width": 200, "height": 120 }, "locked": false, "mainComponent": null, "childCount": 2, "componentProperties": null, "boundVariables": null, "layout": { "mode": "VERTICAL", "itemSpacing": 16, "padding": { "top": 24, "right": 24, "bottom": 24, "left": 24 } } },
+      { "id": "1:41", "parentId": "1:40", "type": "TEXT", "name": "Welcome back", "page": "Work", "size": { "width": 100, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:42", "parentId": "1:40", "type": "INSTANCE", "name": "Button", "page": "Work", "size": { "width": 126, "height": 40 }, "locked": false, "mainComponent": { "name": "Variant=Primary, Size=Md", "set": "Button", "remote": false }, "childCount": 1, "componentProperties": { "Variant": { "type": "VARIANT", "value": "Primary" }, "Size": { "type": "VARIANT", "value": "Md" } }, "boundVariables": { "fills": ["pds3/color/surface/default"] }, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 10, "right": 29, "bottom": 10, "left": 29 } } },
+      { "id": "1:43", "parentId": "1:42", "type": "TEXT", "name": "Label", "page": "Work", "size": { "width": 60, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "1:50", "parentId": "1:1", "type": "TEXT", "name": "Note", "page": "Work", "size": { "width": 260, "height": 16 }, "locked": true, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "2:1", "parentId": null, "type": "PAGE", "name": "Promo FINAL", "page": "Promo FINAL", "size": null, "locked": false, "mainComponent": null, "childCount": 1, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "2:10", "parentId": "2:1", "type": "FRAME", "name": "Promo row", "page": "Promo FINAL", "size": { "width": 380, "height": 72 }, "locked": false, "mainComponent": null, "childCount": 3, "componentProperties": null, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 14, "padding": { "top": 16, "right": 16, "bottom": 16, "left": 16 } } },
+      { "id": "2:11", "parentId": "2:10", "type": "TEXT", "name": "Spring sale, 20% off", "page": "Promo FINAL", "size": { "width": 140, "height": 16 }, "locked": false, "mainComponent": null, "childCount": 0, "componentProperties": null, "boundVariables": null, "layout": null },
+      { "id": "2:12", "parentId": "2:10", "type": "INSTANCE", "name": "Legacy/Button", "page": "Promo FINAL", "size": { "width": 100, "height": 40 }, "locked": false, "mainComponent": { "name": "Legacy/Button", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 8, "padding": { "top": 12, "right": 20, "bottom": 12, "left": 20 } } },
+      { "id": "2:13", "parentId": "2:10", "type": "INSTANCE", "name": "Legacy/Rating", "page": "Promo FINAL", "size": { "width": 90, "height": 24 }, "locked": false, "mainComponent": { "name": "Legacy/Rating", "set": null, "remote": false }, "childCount": 1, "componentProperties": {}, "boundVariables": null, "layout": { "mode": "HORIZONTAL", "itemSpacing": 4, "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 } } }
+    ] } } },
+    "audit": { "ok": true, "cmd": "audit-frames", "result": { "data": { "frames": [
+      { "id": "1:20", "counts": { "legacyInstances": 1, "unstyledText": 1, "rawFills": 1, "standInDividers": 0, "badName": 0 } },
+      { "id": "1:40", "counts": { "legacyInstances": 0, "unstyledText": 1, "rawFills": 0, "standInDividers": 0, "badName": 0 } },
+      { "id": "1:30", "counts": { "legacyInstances": 2, "unstyledText": 1, "rawFills": 1, "standInDividers": 0, "badName": 0 } },
+      { "id": "2:10", "counts": { "legacyInstances": 2, "unstyledText": 1, "rawFills": 1, "standInDividers": 0, "badName": 0 } }
+    ], "unreadable": [], "truncated": false } } },
+    "snapshot-original": { "ok": true, "result": { "data": { "png": "PNG-ORIGINAL", "width": 380, "height": 72, "local": true } } },
+    "snapshot-note": { "ok": true, "result": { "data": { "png": "PNG-NOTE", "width": 260, "height": 16, "local": true } } },
+    "snapshot-finalRow": { "ok": true, "result": { "data": { "png": "PNG-FINAL", "width": 380, "height": 72, "local": true } } },
+    "snapshot-hero": { "ok": true, "result": { "data": { "png": "PNG-HERO", "width": 200, "height": 120, "local": true } } },
+    "snapshot-legacyLibrary": { "ok": true, "result": { "data": { "png": "PNG-LIBRARY", "width": 300, "height": 80, "local": true } } },
+    "snapshot-promoRow": { "ok": true, "result": { "data": { "png": "PNG-ROW-AFTER", "width": 412, "height": 72, "local": true } } },
+    "component-keys": { "ok": true, "cmd": "component-keys", "result": { "data": { "missing": [], "unreadable": [], "components": [
+      { "name": "Button", "key": "set-key-button", "kind": "set", "published": false, "variantProperties": { "Variant": ["Primary", "Secondary"], "Size": ["Md", "Lg"] } },
+      { "name": "Legacy/Button", "key": "k-legacy-button", "kind": "component", "published": false, "variantProperties": null },
+      { "name": "Legacy/Rating", "key": "k-legacy-rating", "kind": "component", "published": false, "variantProperties": null }
+    ] } } },
+    "reads": { "ok": true, "cmd": "run-code", "result": { "data": { "value": {
+      "variables": [
+        { "name": "pds3/space/200", "collection": "space" },
+        { "name": "pds3/core/dimension/16", "collection": "core" },
+        { "name": "pds3/color/surface/default", "collection": "color" }
+      ],
+      "overrides": [
+        { "id": "1:60", "overrides": [] }, { "id": "1:24", "overrides": [] }, { "id": "1:32", "overrides": [] }, { "id": "1:33", "overrides": [] },
+        { "id": "1:42", "overrides": [{ "id": "1:42", "fields": ["paddingLeft", "paddingRight"] }] },
+        { "id": "2:12", "overrides": [] }, { "id": "2:13", "overrides": [] }
+      ]
+    } } } }
+  },
+  "calls": [
+    { "kind": "attempt", "seq": 1, "at": "2026-11-06T10:00:00.000Z", "arm": 2, "cmd": "context", "args": {} },
+    { "kind": "outcome", "seq": 1, "at": "2026-11-06T10:00:01.000Z", "outcome": "ok" },
+    { "kind": "attempt", "seq": 2, "at": "2026-11-06T10:00:02.000Z", "arm": 2, "cmd": "inspect", "args": { "ids": ["1:20"], "depth": 2 } },
+    { "kind": "outcome", "seq": 2, "at": "2026-11-06T10:00:03.000Z", "outcome": "ok" },
+    { "kind": "attempt", "seq": 3, "at": "2026-11-06T10:00:04.000Z", "arm": 2, "cmd": "run-code", "args": { "code": "await figma.saveVersionHistoryAsync('Before the promo row rebind'); return true;" } },
+    { "kind": "outcome", "seq": 3, "at": "2026-11-06T10:00:05.000Z", "outcome": "ok" },
+    { "kind": "attempt", "seq": 4, "at": "2026-11-06T10:00:06.000Z", "arm": 2, "cmd": "run-code", "args": { "code": "const row = await figma.getNodeByIdAsync('1:20'); const old = await figma.getNodeByIdAsync('1:22'); const set = figma.root.findOne((n) => n.type === 'COMPONENT_SET' && n.name === 'Button'); const b = set.defaultVariant.createInstance(); row.insertChild(1, b); old.remove(); const v = (await figma.variables.getLocalVariablesAsync()).find((x) => x.name === 'pds3/space/200'); row.setBoundVariable('itemSpacing', v); return b.id;" } },
+    { "kind": "outcome", "seq": 4, "at": "2026-11-06T10:00:07.000Z", "outcome": "ok" }
+  ],
+  "report": "Replaced the legacy button in the Promo row with Prism3's Button (Primary, Md) and bound the row's gap to pds3/space/200 (16 px). The Legacy/Rating stars have no Prism3 equivalent, so I left that instance in place.",
+  "probe": { "clean": true, "reasons": [] }
+}

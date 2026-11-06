@@ -1,0 +1,288 @@
+/**
+ * THE FIGMA HALF'S RUNNER (#3440 §3, Q3440.3 A and Q3440.4 A): the Mac's side of one adherence run on the scratch file.
+ * It sends the plan's programs through its own bridge, starts one fresh agent on the arm's bridge, and writes one run
+ * file for `score-figma.ts`. It never scores.
+ *
+ *   npx tsx tools/agent-adherence/run-figma.ts setup --out <runs dir>
+ *   npx tsx tools/agent-adherence/run-figma.ts run   --out <runs dir> --arm 0|1|2 --index <n> [--model <id>] [--minutes 15]
+ *   npx tsx tools/agent-adherence/run-figma.ts plan  setup|reset            (print the commands, send nothing)
+ *
+ * `setup` (once): `file-setup`, `apply-theme` with the house brand, `build-components button`, the plant, then the
+ * captures; the baseline `inspect`'s hash is written to `<out>/golden.json`. `run`: the reset (the plant again), the
+ * captures, and the hash check — a baseline that does not hash to the golden one writes a void run and stops before any
+ * agent starts. Then the agent, then the captures again, then `<out>/F<arm>-<n>.json`.
+ *
+ * THE INVARIANTS, every run (the owner's comment of 2026-11-06 on #3440, RESULT 57–59). `run` refuses to start without
+ * them, and the contamination probe voids a run whose transcript shows otherwise:
+ *   · `CLAUDE_CONFIG_DIR` names the Mac's dedicated test profile: set, not `~/.claude`, and holding no `CLAUDE.md`;
+ *   · `--mcp-config` names only the bridge (`prism3-figma`, on `PRISM3_BRIDGE_ARM=<arm>` with `--record`), with
+ *     `--strict-mcp-config` and `--disable-slash-commands`;
+ *   · a new empty working directory per run, under the OS temp dir, with no `CLAUDE.md` in it or above it;
+ *   · the probe (`probe`) voids a run whose transcript lists a registered skill, a slash command, a plugin, an MCP server
+ *     other than the bridge, carries a `CLAUDE.md`, calls the Skill tool, reads a `skills/` path or fetches GitHub.
+ * The first run is F0 against F2, 5 runs each (Q3440.3 A); F1 comes later.
+ *
+ * ONE BRIDGE AT A TIME. The plugin holds one bridge connection (#3297) on one port, so this runner's own bridge and the
+ * agent's never run together: it closes its own before the agent starts and opens it again after the agent exits. The
+ * plugin reconnects by itself (it retries every 2 s) and stays paired, since every bridge process on this machine reads
+ * the same pairing secret. The session that runs this job must not have the bridge connected itself.
+ *
+ * WRITES ONLY TO THE SCRATCH FILE the owner has open, and only through `run-code` (a dev build, #2530). Names no brand,
+ * writes no file key. A TOOL (`tools/CLAUDE.md`): not in `ci.yml`. `selftest-figma.ts` checks its pure parts
+ * (`agentCommand`, `probe`).
+ */
+import { spawn } from 'node:child_process';
+import type { ChildProcessWithoutNullStreams } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, createWriteStream } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import { dirname, join, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { TASK, captureCommands, inspectHash, resetCommands, setupCommands, type Cmd, type Roles } from './figma-plan';
+import { RUN_FORMAT } from './score-figma';
+
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const SERVER = join(REPO, 'tools/figma-bridge/server.ts');
+const TSX = join(REPO, 'node_modules/.bin/tsx');
+/** The bridge's name in the agent's MCP config; its tools are `mcp__prism3-figma__…`. */
+export const BRIDGE_NAME = 'prism3-figma';
+const BRIDGE_TOOLS = ['figma_status', 'figma_run', 'figma_logs'].map((t) => `mcp__${BRIDGE_NAME}__${t}`);
+/** The two built-in tools that read MCP resources, which arm 2 serves. No other tool is allowed. */
+const RESOURCE_TOOLS = ['ListMcpResourcesTool', 'ReadMcpResourceTool'];
+
+/* ── the agent ──────────────────────────────────────────────────────────────────────────────────────── */
+
+/** The MCP config naming only the bridge, on the arm, recording its calls. Pure. */
+export const mcpConfig = (arm: number, record: string) => ({
+  mcpServers: { [BRIDGE_NAME]: { command: TSX, args: [SERVER, '--record', record], env: { PRISM3_BRIDGE_ARM: String(arm) } } },
+});
+
+/** The headless `claude` invocation for one run. Pure: every invariant above is in the argv it returns. */
+export const agentCommand = (o: { mcpConfigPath: string; model?: string }) => ({
+  cmd: 'claude',
+  args: [
+    '-p', TASK,
+    '--mcp-config', o.mcpConfigPath, '--strict-mcp-config', '--disable-slash-commands',
+    '--allowedTools', [...BRIDGE_TOOLS, ...RESOURCE_TOOLS].join(','),
+    '--output-format', 'stream-json', '--verbose',
+    ...(o.model ? ['--model', o.model] : []),
+  ],
+});
+
+/** Why a run may not start here, or null. */
+export const preflight = (env: NodeJS.ProcessEnv, cwd: string, home = homedir()): string | null => {
+  const profile = env.CLAUDE_CONFIG_DIR;
+  if (!profile) return 'CLAUDE_CONFIG_DIR is not set: name the dedicated test profile';
+  if (resolve(profile) === resolve(home, '.claude')) return 'CLAUDE_CONFIG_DIR is the normal profile (~/.claude), not the test profile';
+  if (existsSync(join(profile, 'CLAUDE.md'))) return `the test profile holds a CLAUDE.md (${join(profile, 'CLAUDE.md')})`;
+  if (readdirSync(cwd).length) return `the run's working directory is not empty (${cwd})`;
+  for (let d = resolve(cwd); ; d = dirname(d)) {
+    if (existsSync(join(d, 'CLAUDE.md')) || existsSync(join(d, '.claude', 'CLAUDE.md'))) return `a CLAUDE.md sits at or above the run's directory (${d})`;
+    if (dirname(d) === d) break;
+  }
+  return null;
+};
+
+/**
+ * THE CONTAMINATION PROBE: a run's `stream-json` transcript → clean, or the reasons it is void. Pure. It reads what the
+ * host registered (the `init` line) and what the agent did, never the bridge's served text, so arm 2 reading
+ * `prism3://skills/…` resources through the bridge is not contamination; a skill the HOST registered is.
+ */
+export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons: string[] } => {
+  const reasons: string[] = [];
+  const msgs = lines.filter((l): l is Record<string, any> => !!l && typeof l === 'object');
+  const init = msgs.find((m) => m.type === 'system' && m.subtype === 'init');
+  if (!init) reasons.push('no init line in the transcript');
+  else {
+    for (const k of ['skills', 'slash_commands', 'plugins', 'agents'] as const) {
+      const v = init[k];
+      if (Array.isArray(v) && v.length) reasons.push(`the host registered ${k}: ${v.map((x: any) => (typeof x === 'string' ? x : x?.name ?? JSON.stringify(x))).join(', ')}`);
+    }
+    const servers = (init.mcp_servers ?? []).map((s: any) => s?.name ?? s);
+    if (JSON.stringify(servers) !== JSON.stringify([BRIDGE_NAME])) reasons.push(`the MCP servers are ${JSON.stringify(servers)}, not only ${BRIDGE_NAME}`);
+    if (cwd && init.cwd && resolve(init.cwd) !== resolve(cwd)) reasons.push(`the agent ran in ${init.cwd}, not the run's empty directory`);
+  }
+  for (const m of msgs) {
+    const content = m.message?.content;
+    const parts: any[] = Array.isArray(content) ? content : typeof content === 'string' ? [{ type: 'text', text: content }] : [];
+    for (const p of parts) {
+      // What the host put in front of the agent (a user turn that is not a tool result) must carry no CLAUDE.md.
+      if (m.type === 'user' && p?.type === 'text' && /CLAUDE\.md/.test(String(p.text))) reasons.push('a CLAUDE.md reached the agent');
+      if (m.type === 'assistant' && p?.type === 'tool_use') {
+        const input = JSON.stringify(p.input ?? {});
+        if (p.name === 'Skill') reasons.push(`the agent called the Skill tool (${input})`);
+        if (/CLAUDE\.md/.test(input) && p.name !== `mcp__${BRIDGE_NAME}__figma_run`) reasons.push(`the agent reached for a CLAUDE.md (${p.name})`);
+        if (/(^|[\\/"])skills[\\/]/.test(input) && !/prism3:\/\/skills\//.test(input)) reasons.push(`the agent read a skills/ path (${p.name})`);
+        if (/github\.com|githubusercontent/.test(input)) reasons.push(`the agent fetched from GitHub (${p.name})`);
+      }
+    }
+  }
+  return { clean: reasons.length === 0, reasons: [...new Set(reasons)] };
+};
+
+/* ── this runner's own bridge ───────────────────────────────────────────────────────────────────────── */
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+type Client = { call(name: string, args?: unknown): Promise<{ isError: boolean; value: any }>; close(): Promise<void> };
+
+const openBridge = async (): Promise<Client> => {
+  for (let attempt = 0; ; attempt++) {
+    const p: ChildProcessWithoutNullStreams = spawn(TSX, [SERVER], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, PRISM3_BRIDGE_ARM: '2' } });
+    let err = '';
+    let buf = '';
+    const got = new Map<number, any>();
+    p.stderr.setEncoding('utf8'); p.stdout.setEncoding('utf8');
+    p.stderr.on('data', (d) => { err += d; });
+    p.stdout.on('data', (d) => {
+      buf += d;
+      let nl: number;
+      while ((nl = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, nl); buf = buf.slice(nl + 1); if (line.trim()) { const m = JSON.parse(line); if (m.id != null) got.set(m.id, m); } }
+    });
+    const t0 = Date.now();
+    while (!/listening on localhost/.test(err) && p.exitCode === null && Date.now() - t0 < 60_000) await sleep(50);
+    if (p.exitCode !== null || !/listening on localhost/.test(err)) {
+      // The agent's bridge may still be letting go of the port.
+      if (attempt < 10) { p.kill(); await sleep(2000); continue; }
+      throw new Error(`the runner's bridge did not start: ${err.trim()}`);
+    }
+    let n = 0;
+    const rpc = async (method: string, params: unknown, ms = 900_000) => {
+      const id = ++n;
+      p.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
+      const t = Date.now();
+      while (!got.has(id)) { if (Date.now() - t > ms) throw new Error(`no reply to ${method}`); await sleep(25); }
+      return got.get(id);
+    };
+    await rpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'run-figma', version: '1' } });
+    const call = async (name: string, args: unknown = {}) => {
+      const r = await rpc('tools/call', { name, arguments: args });
+      return { isError: !!r.result?.isError, value: r.result?.structuredContent };
+    };
+    return {
+      call,
+      close: async () => { p.stdin.end(); const t = Date.now(); while (p.exitCode === null && Date.now() - t < 5000) await sleep(50); if (p.exitCode === null) p.kill(); },
+    };
+  }
+};
+
+/** Wait for the plugin to connect to this bridge, then send each command, keeping every envelope verbatim. */
+const send = async (c: Client, cmds: Cmd[], say: (s: string) => void): Promise<Record<string, any>> => {
+  const t0 = Date.now();
+  while (!(await c.call('figma_status')).value?.connected) {
+    if (Date.now() - t0 > 120_000) throw new Error('the plugin did not connect within 2 minutes: is Agent link on in the scratch file?');
+    await sleep(1000);
+  }
+  const out: Record<string, any> = {};
+  for (const x of cmds) {
+    say(`  ${x.key} (${x.cmd})`);
+    const r = await c.call('figma_run', { cmd: x.cmd, args: x.args, timeoutMs: 900_000 });
+    if (r.isError) throw new Error(`${x.key}: ${JSON.stringify(r.value)}`);
+    out[x.key] = r.value;
+    if (r.value?.ok === false) throw new Error(`${x.key} failed: ${JSON.stringify(r.value?.error ?? r.value?.result?.verdict)}`);
+  }
+  return out;
+};
+const rolesOf = (plant: any): Roles => {
+  const v = plant?.result?.data?.value;
+  if (!v || typeof v !== 'object' || typeof v.promoRow !== 'string') throw new Error(`the plant returned no roles: ${JSON.stringify(plant)}`);
+  return v as Roles;
+};
+
+/* ── the CLI ────────────────────────────────────────────────────────────────────────────────────────── */
+
+const isMain = !!process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  const [sub, ...argv] = process.argv.slice(2);
+  const opt = (k: string) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : undefined; };
+  const say = (s: string) => process.stderr.write(`[run-figma] ${s}\n`);
+  const usage = () => { console.error('usage: run-figma.ts setup --out <dir> · run --out <dir> --arm 0|1|2 --index <n> [--model <id>] [--minutes 15] · plan setup|reset'); process.exit(2); };
+  const houseBrand = async () => {
+    const { brandFromDesignMd } = await import('../../apps/plugin/mcp-paste');
+    return brandFromDesignMd(readFileSync(join(REPO, 'packages/engine/examples/prism3.design.md'), 'utf8'));
+  };
+
+  if (sub === 'plan') {
+    const which = argv[0];
+    if (which === 'setup') console.log(JSON.stringify(setupCommands(await houseBrand()), null, 2));
+    else if (which === 'reset') console.log(JSON.stringify(resetCommands(), null, 2));
+    else usage();
+    process.exit(0);
+  }
+
+  const out = opt('out');
+  if (!out || (sub !== 'setup' && sub !== 'run')) usage();
+  const root = resolve(out!);
+  mkdirSync(root, { recursive: true });
+
+  if (sub === 'setup') {
+    const c = await openBridge();
+    try {
+      say('setup: file-setup, apply-theme, build-components button, the plant');
+      const status = await send(c, [{ key: 'status', cmd: 'status', args: {} }], say);
+      const s = await send(c, setupCommands(await houseBrand()), say);
+      const roles = rolesOf(s.plant);
+      const cap = await send(c, captureCommands(roles), say);
+      const hash = inspectHash(cap.inspect?.result?.data);
+      writeFileSync(join(root, 'golden.json'), JSON.stringify({ hash, build: status.status?.result?.data?.status?.build ?? null, at: new Date().toISOString() }, null, 2));
+      say(`golden inspect hash ${hash}`);
+    } finally { await c.close(); }
+    process.exit(0);
+  }
+
+  // run
+  const arm = Number(opt('arm'));
+  const index = Number(opt('index'));
+  if (![0, 1, 2].includes(arm) || !Number.isInteger(index) || index < 1) usage();
+  const golden = (() => { try { return JSON.parse(readFileSync(join(root, 'golden.json'), 'utf8')).hash as string; } catch { return ''; } })();
+  if (!golden) { say(`no ${join(root, 'golden.json')}: run setup first`); process.exit(1); }
+  const name = `F${arm}-${index}`;
+  const dir = join(root, name);
+  mkdirSync(dir, { recursive: true });
+  const cwd = mkdtempSync(join(tmpdir(), `p3-adherence-${name}-`));
+  const why = preflight(process.env, cwd);
+  if (why) { say(`refusing to start: ${why}`); process.exit(1); }
+
+  let c = await openBridge();
+  let roles: Roles;
+  let before: Record<string, any>;
+  let status: Record<string, any>;
+  try {
+    say(`${name}: reset and baseline`);
+    status = await send(c, [{ key: 'status', cmd: 'status', args: {} }], say);
+    roles = rolesOf((await send(c, resetCommands(), say)).plant);
+    before = await send(c, captureCommands(roles), say);
+  } finally { await c.close(); }
+  const baselineHash = inspectHash(before.inspect?.result?.data);
+  const base = { format: RUN_FORMAT, arm, index, build: status.status?.result?.data?.status?.build ?? null, roles, golden, baselineHash, before };
+  if (baselineHash !== golden) {
+    writeFileSync(join(root, `${name}.json`), JSON.stringify({ ...base, after: {}, calls: [], report: '', probe: { clean: true, reasons: [] } }, null, 2));
+    say(`${name} is void: the baseline hash ${baselineHash} is not the golden ${golden}. No agent was started.`);
+    process.exit(1);
+  }
+
+  const calls = join(dir, 'calls.jsonl');
+  const mcpPath = join(dir, 'mcp.json');
+  writeFileSync(mcpPath, JSON.stringify(mcpConfig(arm, calls), null, 2));
+  const a = agentCommand({ mcpConfigPath: mcpPath, model: opt('model') });
+  const minutes = Number(opt('minutes') ?? 15);
+  say(`${name}: the agent, in ${cwd}, up to ${minutes} min`);
+  const transcriptPath = join(dir, 'transcript.jsonl');
+  const tx = createWriteStream(transcriptPath);
+  const agent = spawn(a.cmd, a.args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: process.env });
+  agent.stdout.pipe(tx);
+  agent.stderr.on('data', (d) => process.stderr.write(d));
+  const timer = setTimeout(() => { say(`${name}: ${minutes} min passed, stopping the agent`); agent.kill('SIGTERM'); }, minutes * 60_000);
+  await new Promise((r) => agent.on('close', r));
+  clearTimeout(timer);
+  await new Promise((r) => tx.end(r));
+  const transcript = readFileSync(transcriptPath, 'utf8').split('\n').filter((l) => l.trim()).map((l) => { try { return JSON.parse(l); } catch { return { unparsed: l }; } });
+  const final = [...transcript].reverse().find((m: any) => m?.type === 'result');
+  const report = typeof final?.result === 'string' ? final.result : '';
+
+  c = await openBridge();
+  let after: Record<string, any>;
+  try { say(`${name}: after`); after = await send(c, captureCommands(roles), say); } finally { await c.close(); }
+  const callLines = existsSync(calls) ? readFileSync(calls, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l)) : [];
+  const run = { ...base, after, calls: callLines, report, probe: probe(transcript, cwd), agentExit: agent.exitCode, cwd: cwd.split(sep).slice(-1)[0] };
+  writeFileSync(join(root, `${name}.json`), JSON.stringify(run, null, 2));
+  say(`${name}: written${run.probe.clean ? '' : `, void by the probe: ${run.probe.reasons.join('; ')}`}`);
+}

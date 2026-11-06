@@ -19,7 +19,9 @@
  * resources/list · resources/resolve · resources/public-only · served/no-file-keys (#3300) · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
- * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B)
+ * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B) ·
+ * arm/0-starts · arm/1-starts · arm/<n>-context · arm/<n>-resources · arm/no-leak · arm/1-note · record/calls · record/args · arm/bad-value (#3440;
+ * mutation: one sentence of the note leaked into arm 0's figma_status description → `arm/no-leak: arm 0's tools/list …`)
  *
  * #3147 Phase 2a: each read-only node command (inspect, component-keys, audit-frames, snapshot) through figma_run, against
  * the same `NodeShim` fixture and literal expectations as `test-agent-link.ts`; its shim write log must stay empty
@@ -1179,6 +1181,99 @@ section('instructions + resources — what a fresh agent reads on connecting (#3
   // No served body carries a Figma file URL with its key.
   const FILE_KEY = /figma\.com\/(file|design|board|proto|slides|make)\/[A-Za-z0-9]{6,}/;
   for (const [what, body] of bodies) ok(!FILE_KEY.test(body), `served/no-file-keys: ${what} carries no Figma file URL or key${FILE_KEY.test(body) ? ` (${FILE_KEY.exec(body)![0]})` : ''}`);
+}
+
+/* ── the adherence test's arms (#3440, Q3440.3 A) ─────────────────────────────────────────────────────────── */
+section('arms — what arm 0 and arm 1 show a fresh agent (#3440)');
+{
+  // A second and third server, on PRISM3_BRIDGE_ARM=0 and =1, with no plugin connected: what an agent reads before its first
+  // command must not depend on a plugin. THE SENTINELS ARE WRITTEN HERE, one phrase per line of the note, never read from
+  // `BRIDGE_INSTRUCTIONS` (docs/34 shape 1): an arm that read the constant would pass with the constant leaked.
+  const SENTINELS = [
+    'Prism3 bridge. Each command runs', 'Never detach', 'Keep hand edits', 'contains FINAL', 'Original · ',
+    'component properties only', 'avoid_when', 'core.*', 'named version', 'Never delete a page', 'prism3://',
+  ];
+  const leaks = (body: string) => SENTINELS.filter((s) => body.includes(s));
+  const spawnArm = async (arm: string, extra: string[] = []) => {
+    const p = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--config', CONFIG, ...extra], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, PRISM3_BRIDGE_ARM: arm } });
+    let err = '';
+    let buf = '';
+    const got = new Map<number, any>();
+    p.stderr.setEncoding('utf8'); p.stdout.setEncoding('utf8');
+    p.stderr.on('data', (d) => { err += d; });
+    p.stdout.on('data', (d) => {
+      buf += d;
+      let nl: number;
+      while ((nl = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, nl); buf = buf.slice(nl + 1); if (line.trim()) { const m = JSON.parse(line); if (m.id != null) got.set(m.id, m); } }
+    });
+    const started = await until(() => /listening on localhost:\d+/.test(err) || p.exitCode !== null, 60000);
+    let n = 0;
+    const ask = async (method: string, params: unknown = {}): Promise<any> => {
+      const id = ++n;
+      p.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
+      if (!(await until(() => got.has(id), 20000))) throw new Error(`arm ${arm}: no reply to ${method}`);
+      return got.get(id);
+    };
+    const stop = async () => { p.stdin.end(); await until(() => p.exitCode !== null, 5000); if (p.exitCode === null) p.kill(); };
+    return { started: started && p.exitCode === null, ask, stop, stderr: () => err };
+  };
+
+  const REC = join(TMP, 'arm0-record.jsonl');
+  for (const arm of ['0', '1'] as const) {
+    const s = await spawnArm(arm, arm === '0' ? ['--record', REC] : []);
+    ok(s.started, `arm/${arm}-starts: PRISM3_BRIDGE_ARM=${arm} starts the bridge${s.started ? '' : ` (${s.stderr().trim()})`}`);
+    if (!s.started) continue;
+    const init = await s.ask('initialize', { protocolVersion: '2024-11-05' });
+    const disc = await s.ask('server/discover');
+    const tools = await s.ask('tools/list');
+    const st = await s.ask('tools/call', { name: 'figma_status', arguments: {} });
+    const rl = await s.ask('resources/list');
+    const rr = await s.ask('resources/read', { uri: 'prism3://skills/prism3-rebind' });
+    const cx = await s.ask('tools/call', { name: 'figma_run', arguments: { cmd: 'context' } });
+    const cxv = cx.result?.structuredContent;
+    const enumCmds: string[] = (tools.result?.tools ?? []).find((t: { name: string }) => t.name === 'figma_run')?.inputSchema?.properties?.cmd?.enum ?? [];
+    const statusCmds: string[] = st.result?.structuredContent?.commands ?? [];
+    // `context` is refused at the bridge, as the build's own code for a command it lacks, written here by hand.
+    ok(cx.result?.isError === true && cxv?.error?.code === 'unknown-command',
+      `arm/${arm}-context: figma_run context is refused at the bridge with unknown-command, with no plugin asked (${JSON.stringify(cxv)})`);
+    ok(!enumCmds.includes('context') && enumCmds.includes('inspect') && !statusCmds.includes('context') && statusCmds.includes('inspect'),
+      `arm/${arm}-context: neither figma_run's command list nor figma_status's names context (${enumCmds.length} listed, ${statusCmds.length} in status)`);
+    ok(rl.error?.code === -32601 && rr.error?.code === -32601 && init.result?.capabilities?.resources === undefined && disc.result?.capabilities?.resources === undefined,
+      `arm/${arm}-resources: no resources capability, and resources/list and resources/read are methods it does not have (${JSON.stringify(rl.error ?? rl.result)})`);
+    if (arm === '0') {
+      const bodies: [string, unknown][] = [['initialize', init.result], ['server/discover', disc.result], ['tools/list', tools.result], ['figma_status', st.result], ['resources/list', rl]];
+      for (const [what, body] of bodies) {
+        const found = leaks(JSON.stringify(body));
+        ok(found.length === 0, `arm/no-leak: arm 0's ${what} carries no sentence of the note${found.length ? ` (found: ${found.join(' · ')})` : ''}`);
+      }
+      ok(init.result?.instructions === undefined && disc.result?.instructions === undefined && st.result?.structuredContent?.readFirst === undefined,
+        'arm/no-leak: arm 0 sends no instructions field and no readFirst');
+    } else {
+      // Arm 1 is arm 0 plus the note: every sentinel is in `instructions` and `readFirst`, identically.
+      const inst = String(init.result?.instructions ?? '');
+      ok(leaks(inst).length === SENTINELS.length && disc.result?.instructions === inst && st.result?.structuredContent?.readFirst === inst,
+        `arm/1-note: arm 1 sends the whole note in initialize, server/discover and readFirst (${leaks(inst).length}/${SENTINELS.length} sentinels)`);
+    }
+    if (arm === '0') {
+      await s.ask('tools/call', { name: 'figma_run', arguments: { cmd: 'status' } });
+      await s.ask('tools/call', { name: 'figma_run', arguments: { cmd: 'run-code', args: { code: 'return 1' } } });
+    }
+    await s.stop();
+  }
+
+  // --record (#3440 §3): every figma_run call, the refused one included, as an attempt line and an outcome line.
+  const lines = (() => { try { return readFileSync(REC, 'utf8').trim().split('\n').map((l) => JSON.parse(l)); } catch { return []; } })();
+  const attempts = lines.filter((l) => l.kind === 'attempt');
+  const outcomeOf = (seq: number) => lines.find((l) => l.kind === 'outcome' && l.seq === seq)?.outcome;
+  const want = [['context', 'refused-by-bridge'], ['status', 'tool-error'], ['run-code', 'tool-error']];
+  ok(attempts.length === 3 && want.every(([cmd, outcome], i) => attempts[i]?.cmd === cmd && attempts[i]?.arm === 0 && outcomeOf(attempts[i].seq) === outcome),
+    `record/calls: the log holds each figma_run with its outcome, the refused context first (${attempts.map((a) => `${a.cmd}→${outcomeOf(a.seq)}`).join(', ')})`);
+  ok(attempts[2]?.args?.code === 'return 1', `record/args: run-code's code is kept whole (${JSON.stringify(attempts[2]?.args)})`);
+
+  const bad = spawn('npx', ['tsx', resolve(HERE, '../../tools/figma-bridge/server.ts'), '--port', '0', '--config', CONFIG], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, PRISM3_BRIDGE_ARM: '3' } });
+  await until(() => bad.exitCode !== null, 60000);
+  ok(bad.exitCode === 2, `arm/bad-value: PRISM3_BRIDGE_ARM=3 refuses to start (exit ${bad.exitCode})`);
+  if (bad.exitCode === null) bad.kill();
 }
 
 child.stdin.end();
