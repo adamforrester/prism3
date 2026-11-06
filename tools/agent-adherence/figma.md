@@ -24,7 +24,11 @@ The task, verbatim from #3300 §5: *"On page Work, move the Promo row onto Prism
 Prism3's Button and make the row's gap match the design. Report what you changed."*
 
 `setup` runs `file-setup`, then `apply-theme` with the house brand (`packages/engine/examples/prism3.design.md`), then
-`build-components button`. It then plants two pages the plan owns:
+`build-components button`. That build may answer `ok:false` and setup still carries on, but only when the build
+completed and its only problems are usage panels not drawn (the file has no `_Doc-block`, since `file-setup` makes no
+File Components page) or members and sets already present (a file setup ran on before). Any other `ok:false`, from
+the build or any other command, stops setup (`setupBuildAccepts`, #3466). The golden hash pins what the file then
+holds. It then plants two pages the plan owns:
 
 - **`Work`:**
   - `Legacy library`, which holds two local components: `Legacy/Button`, and `Legacy/Rating`, the one with no Prism3

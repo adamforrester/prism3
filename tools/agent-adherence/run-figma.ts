@@ -9,7 +9,9 @@
  *   npx tsx tools/agent-adherence/run-figma.ts plan  setup|reset            (print the commands, send nothing)
  *
  * `setup` (once): `file-setup`, `apply-theme` with the house brand, `build-components button`, the plant, then the
- * captures; the baseline's golden hash (`goldenHash`: both plan pages, `↳ Buttons`, the variables, `component-keys`) is written to `<out>/golden.json`. `run`: the reset (the plant again), the
+ * captures; the baseline's golden hash (`goldenHash`: both plan pages, `↳ Buttons`, the variables, `component-keys`) is written to `<out>/golden.json`.
+ * Setup's build may answer `ok:false` for a usage panel not drawn or a set already present, and only that
+ * (`setupBuildAccepts`, #3466); every other command, and both sides of `run`, stay strict. `run`: the reset (the plant again), the
  * captures, and the hash check — a baseline that does not hash to the golden one writes a void run and stops before any
  * agent starts. Then the agent, then the captures again, then `<out>/F<arm>-<n>.json`.
  *
@@ -261,7 +263,7 @@ const openBridge = async (): Promise<Client> => {
  * `ok:false` envelope instead, since a node the agent deleted is a refused read there, not a broken run; a transport
  * error (`isError`) still throws.
  */
-export const send = async (c: Client, cmds: Cmd[], say: (s: string) => void, o: { keepFailed?: boolean } = {}): Promise<Record<string, any>> => {
+export const send = async (c: Client, cmds: Cmd[], say: (s: string) => void, o: { keepFailed?: boolean; accept?: Record<string, (env: any) => string | null> } = {}): Promise<Record<string, any>> => {
   const t0 = Date.now();
   while (!(await c.call('figma_status')).value?.connected) {
     if (Date.now() - t0 > 120_000) throw new Error('the plugin did not connect within 2 minutes: is Agent link on in the scratch file?');
@@ -273,9 +275,68 @@ export const send = async (c: Client, cmds: Cmd[], say: (s: string) => void, o: 
     const r = await c.call('figma_run', { cmd: x.cmd, args: x.args, timeoutMs: 900_000 });
     if (r.isError) throw new Error(`${x.key}: ${JSON.stringify(r.value)}`);
     out[x.key] = r.value;
-    if (r.value?.ok === false && !o.keepFailed) throw new Error(`${x.key} failed: ${JSON.stringify(r.value?.error ?? r.value?.result?.verdict)}`);
+    if (r.value?.ok === false && !o.keepFailed) {
+      // `accept` (setup's build only, #3466): an `ok:false` its predicate answers null for is kept and the job goes on.
+      const judge = o.accept?.[x.key];
+      const why = judge ? judge(r.value) : null;
+      if (!judge || why) throw new Error(`${x.key} failed: ${JSON.stringify(r.value?.error ?? r.value?.result?.verdict)}${why ? ` (${why})` : ''}`);
+      say(`  ${x.key}: ok:false accepted (${r.value?.result?.verdict?.headline ?? 'no headline'}): only usage panels not drawn or sets already present`);
+    }
   }
   return out;
+};
+
+/** The usage panel template (`DOC_BLOCK_SET`, `apps/plugin/src/doc-block.ts`), written here as a literal, not imported. */
+const DOC_BLOCK = '_Doc-block';
+/** A member the build skipped because its set already holds it (`write-components.ts`): not a miss for setup. */
+const ALREADY_PRESENT = /^member .* -> ALREADY PRESENT /;
+/**
+ * SETUP'S BUILD (#3466): why a `build-components` envelope that answered `ok:false` still fails setup, or null when it
+ * may be accepted. Pure. Setup accepts exactly two kinds of non-ok: a usage panel not drawn because the file has no
+ * `_Doc-block` (the plugin's missing-template warning; `file-setup` makes no File Components page), and members or sets
+ * already present (a file setup has run on before). Anything else throws: a run that did not complete, a real miss on
+ * the set or a set built first, a stale member, any other missing template, or a second verdict.
+ *
+ * Read from the envelope's data (`result.data.build`), not from the verdict's words: the agent link's verdict carries
+ * `completed` but not `causes` (`forAgent`, `agent-dispatch.ts`), and `report`, `alsoBuilt` and `furniture` are the
+ * facts the plugin's own `ok` is derived from (`main.ts`, the build's verdict). The golden hash taken after setup pins
+ * whatever the file then holds, so runs stay comparable.
+ */
+export const setupBuildAccepts = (env: any): string | null => {
+  const res = env?.result;
+  const v = res?.verdict;
+  if (env?.cmd !== 'build-components') return `not a build-components reply (${JSON.stringify(env?.cmd ?? null)})`;
+  if (env?.error) return 'the command was refused';
+  if (v?.type !== 'component-result') return 'no component-result verdict';
+  if (v.completed !== true) return 'the build did not complete';
+  if (Array.isArray(res?.data?.earlierVerdicts) && res.data.earlierVerdicts.length) return 'the build posted more than one verdict';
+  const b = res?.data?.build;
+  const r = b?.report;
+  if (!b || b.threw || !r) return 'no build report in the reply';
+  if (r.set == null) return 'no set was built';
+  const misses: unknown[] = Array.isArray(r.misses) ? r.misses : [];
+  const real = misses.filter((m) => !ALREADY_PRESENT.test(String(m)));
+  if (real.length) return `${real.length} real miss${real.length === 1 ? '' : 'es'}: ${real.slice(0, 3).map(String).join('; ')}`;
+  if (r.stale) return `${r.stale} stale member${r.stale === 1 ? '' : 's'}`;
+  const deps = (Array.isArray(b.alsoBuilt) ? b.alsoBuilt : []).filter((d: any) => d?.misses !== 0);
+  if (deps.length) return `a set built first has misses: ${deps.map((d: any) => d?.id).join(', ')}`;
+  const other = (Array.isArray(b.furniture) ? b.furniture : []).flatMap((f: any) => f?.missing ?? []).filter((t: unknown) => t !== DOC_BLOCK);
+  if (other.length) return `the file lacks other templates: ${[...new Set(other)].join(', ')}`;
+  return null;
+};
+
+/**
+ * SETUP, after the guard: the setup commands (the build judged by `setupBuildAccepts`, every other command strict), the
+ * captures, and `<root>/golden.json`. Returns the golden hash.
+ */
+export const setup = async (c: Client, o: { root: string; input: unknown; build: unknown; say: (s: string) => void }): Promise<string> => {
+  const s = await send(c, setupCommands(o.input), o.say, { accept: { 'build-components': setupBuildAccepts } });
+  const roles = rolesOf(s.plant);
+  const cap = await send(c, captureCommands(roles), o.say);
+  const hash = goldenHash(cap);
+  writeFileSync(join(o.root, 'golden.json'), JSON.stringify({ hash, build: o.build, at: new Date().toISOString() }, null, 2));
+  o.say(`golden hash ${hash}`);
+  return hash;
 };
 /**
  * THE AFTER SIDE (review B4): the captures again, then the run file, written whatever the captures found. A run whose
@@ -360,12 +421,7 @@ if (isMain) {
     try {
       const status = await guard(c);
       say('setup: a named version, file-setup, apply-theme, build-components button, the plant');
-      const s = await send(c, setupCommands(await houseBrand()), say);
-      const roles = rolesOf(s.plant);
-      const cap = await send(c, captureCommands(roles), say);
-      const hash = goldenHash(cap);
-      writeFileSync(join(root, 'golden.json'), JSON.stringify({ hash, build: status.status?.result?.data?.status?.build ?? null, at: new Date().toISOString() }, null, 2));
-      say(`golden hash ${hash}`);
+      await setup(c, { root, input: await houseBrand(), build: status.status?.result?.data?.status?.build ?? null, say });
     } finally { await c.close(); }
     process.exit(0);
   }
