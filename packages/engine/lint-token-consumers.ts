@@ -72,21 +72,19 @@ type Unread = {
  * not a rule: a token claimed by two entries fails, so the order decides nothing.
  */
 export const UNREAD_BY_DESIGN: readonly Unread[] = [
-  // ── OWNER QUESTIONS (#3409): each looks like it could be bound; held, never deleted, until the owner answers. ──
-  { match: 'color.icon.link.visited', count: 1, held: 'Q-TC1',
-    reason: 'The visited link icon. Link\'s visited state is code only (Q289.5 A) and its code note colors the text with `color.text.link.visited`; a standalone link\'s trailing icon has no visited color named. Bind it beside the text, or keep it for consumers?' },
-  { match: 'color.interactive.*.fill.focused', count: 3, held: 'Q-TC2',
-    reason: 'The focused fill of each intent (primary, neutral, destructive). No control paints a fill at focus: focus is the focus ring. Should a control bind it at focus-visible, or does it stay for consumers\' own controls?' },
-  { match: 'color.interactive.destructive.indicator.*', count: 3, held: 'Q-TC3',
-    reason: 'The destructive selection mark at rest, hover and pressed. No control selects in the destructive intent (the checkbox, radio and switch marks bind primary). A matrix kept complete for consumers, or a missing destructive control?' },
-  { match: 'color.interactive.*.fill.selected', count: 2, held: 'Q-TC3',
-    reason: 'The selected fill of the neutral and destructive intents (primary\'s is read). No neutral or destructive control has a selected state. A matrix kept complete for consumers, or a missing binding?' },
-  { match: 'color.*.tertiary', count: 2, held: 'Q-TC4',
-    reason: '`color.text.tertiary` and `color.foreground.tertiary`, the third step of the text and fill ladders. No component uses a third step: muted text binds `color.text.secondary`. Should a quieter part bind it (helper text, a placeholder, a disabled-looking hint), or does it stay for consumers?' },
-  { match: 'control.size.lg.*', count: 3, held: 'Q-TC5',
-    reason: 'The large selection-control rung (`inset`, `track`, `width`). The checkbox, radio and switch controls offer small and medium only. Add a large size, or keep the rung for consumers?' },
-  { match: 'size.xs.height', count: 1, held: 'Q-TC5',
-    reason: 'The extra-small control height. No control offers an extra-small size. Add one, or keep the rung for consumers?' },
+  // ── BY DESIGN, settled by the owner (#3438): each looked like it could be bound, and the owner kept it unbound. ──
+  { match: 'color.interactive.*.fill.focused', count: 3,
+    reason: 'The focused fill of each intent (primary, neutral, destructive). Kept for consumers; Prism3 controls show focus with the ring (Q-TC2 A).' },
+  { match: 'color.interactive.destructive.indicator.*', count: 3,
+    reason: 'The destructive selection mark at rest, hover and pressed. The matrix is kept whole: every role carries every state, for consumers. No Prism3 control selects in the destructive intent (Q-TC3 A).' },
+  { match: 'color.interactive.*.fill.selected', count: 2,
+    reason: 'The selected fill of the neutral and destructive intents (primary\'s is read). The matrix is kept whole: every role carries every state, for consumers (Q-TC3 A).' },
+  { match: 'color.*.tertiary', count: 2,
+    reason: '`color.text.tertiary` and `color.foreground.tertiary`, the third step of the text and fill ladders. Kept for consumers; Prism3\'s muted parts stay on secondary (Q-TC4 A).' },
+  { match: 'control.size.lg.*', count: 3,
+    reason: 'The large selection-control rung (`inset`, `track`, `width`). Rungs kept for consumers\' own controls; the checkbox, radio and switch controls add no large size (Q-TC5 A).' },
+  { match: 'size.xs.height', count: 1,
+    reason: 'The extra-small control height. Rungs kept for consumers\' own controls; no Prism3 control adds an extra-small size (Q-TC5 A).' },
 
   // ── BY DESIGN: a family emitted whole, so a consumer finds every member of it. ──
   { match: 'color.inverse.**', count: 120,
