@@ -8661,6 +8661,18 @@
       "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
       "resolves_to": "21px"
     },
+    "type.caption.md.line-box": {
+      "$description": "type.caption.md line-box — 14px, the height of one line of the `caption.md` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
+      "meaning": "Caption line height, md — one line of the caption md type",
+      "when_to_use": "The box a mark beside a caption centers in, such as a small inline status dot, so it stays on the caption's first line.",
+      "resolves_to": "14px"
+    },
+    "type.caption.lg.line-box": {
+      "$description": "type.caption.lg line-box — 17px, the height of one line of the `caption.lg` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.",
+      "meaning": "Caption line height, lg — one line of the caption lg type",
+      "when_to_use": "The box a mark beside a caption centers in, such as a small inline status dot, so it stays on the caption's first line.",
+      "resolves_to": "17px"
+    },
     "blur.glass": {
       "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with color.glass.surface",
       "meaning": "Background-blur radius — glass",

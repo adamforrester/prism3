@@ -34041,7 +34041,7 @@
             "com.prism3": {
               "type": "enum: 'contained' | 'inline'",
               "required": false,
-              "description": "How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text on the text line, as tall as the line, for running text, list rows and cards. A count and a dot are always contained."
+              "description": "How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text with no fill or edge, a quieter status label at the same text size. A count and a dot are always contained."
             }
           }
         },
@@ -34056,7 +34056,7 @@
             "com.prism3": {
               "type": "enum: 'small' | 'medium'",
               "required": false,
-              "description": "The status label's size. medium = 12px text, about 30px tall, when contained; 16px text on a 24px line when inline. small = 11px text, about 19px tall, when contained; 14px text on a 21px line when inline, for dense layouts such as a label on a product card. A count and a dot come in medium only."
+              "description": "The status label's size, the same text size in both styles. medium = 12px text, about 30px tall when contained and 14px tall inline. small = 11px text, about 19px tall when contained and 15px tall inline, for dense layouts such as a label on a product card. A count and a dot come in medium only."
             }
           }
         },
@@ -34304,7 +34304,7 @@
             "dotCell": {
               "styles": {
                 "height": {
-                  "$token": "type.body.md.line-box",
+                  "$token": "type.label.sm.line-box",
                   "$type": "dimension"
                 }
               }
@@ -34359,7 +34359,7 @@
             "dotCell": {
               "styles": {
                 "height": {
-                  "$token": "type.body.sm.line-box",
+                  "$token": "type.caption.md.line-box",
                   "$type": "dimension"
                 }
               }
@@ -34485,7 +34485,7 @@
             "label": {
               "styles": {
                 "typography": {
-                  "$token": "type.body.md.default",
+                  "$token": "type.label.sm.default",
                   "$type": "typography"
                 }
               }
@@ -34501,7 +34501,7 @@
             "label": {
               "styles": {
                 "typography": {
-                  "$token": "type.body.sm.default",
+                  "$token": "type.caption.md.default",
                   "$type": "typography"
                 }
               }

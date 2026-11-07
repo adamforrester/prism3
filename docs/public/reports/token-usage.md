@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 281 of 820 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 283 of 822 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members. A key marked "not drawn" names the token but no member draws it; another key on the row does.
 
@@ -3295,12 +3295,11 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 18 component(s).
+Type: typography. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (8 of 48) |
-| badge | `size.medium.inline.type` | label | emphasis: subtle · size: medium · style: inline · type: status (5 of 50) |
 | banner | `body-type` | bodyText | every member (10 of 10) |
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3337,11 +3336,10 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.line-box`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `size.medium.dot-cell` | dotCell | emphasis: subtle · size: medium · style: inline · type: status (5 of 50) |
 | checkbox-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 | radio-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 
@@ -3365,12 +3363,11 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.default`
 
-Type: typography. Bound by 19 component(s).
+Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (8 of 48) |
-| badge | `size.small.inline.type` | label | emphasis: subtle · size: small · style: inline · type: status (5 of 50) |
 | breadcrumb-item | `size.small.type` | current | kind: current · separator: chevron · size: small (1 of 10) |
 | card-number-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
@@ -3413,11 +3410,10 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.line-box`
 
-Type: dimension. Bound by 5 component(s).
+Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| badge | `size.small.dot-cell` | dotCell | emphasis: subtle · size: small · style: inline · type: status (5 of 50) |
 | checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | radio-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | switch-row | `size.medium.control-box` | controlCell | size: medium (2 of 4) |
@@ -3500,12 +3496,21 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.caption.md.default`
 
-Type: typography. Bound by 2 component(s).
+Type: typography. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| badge | `size.small.inline.type` | label | emphasis: subtle · size: small · style: inline · type: status (5 of 50) |
 | field-message | `type` | label | every member (4 of 4) |
 | textarea | `counter-type` | counter | every member (84 of 84) |
+
+### `type.caption.md.line-box`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| badge | `size.small.dot-cell` | dotCell | emphasis: subtle · size: small · style: inline · type: status (5 of 50) |
 
 ### `type.caption.md.strong`
 
@@ -3615,11 +3620,12 @@ Type: dimension. Bound by 1 component(s).
 
 ### `type.label.sm.default`
 
-Type: typography. Bound by 5 component(s).
+Type: typography. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.type` | label | size: small (16 of 48) |
+| badge | `size.medium.inline.type` | label | emphasis: subtle · size: medium · style: inline · type: status (5 of 50) |
 | pagination | `size.small.type` | status | size: small · style: border · type: compact (1 of 12) |
 | pagination-item | `size.small.type.unselected` | label | labeled: false · selection: unselected · size: small · state: focus-visible, hover, pressed, rest · style: border · type: page (4 of 87) |
 |  |  | nextText | labeled: true · selection: unselected · size: small · style: border · type: next (5 of 87) |
@@ -3657,6 +3663,14 @@ Type: typography. Bound by 3 component(s).
 | button | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
 | button-destructive | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
 | button-neutral | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
+
+### `type.label.sm.line-box`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| badge | `size.medium.dot-cell` | dotCell | emphasis: subtle · size: medium · style: inline · type: status (5 of 50) |
 
 ### `type.title.2xl.strong`
 
@@ -3716,7 +3730,7 @@ Declared, not drawn: `color.border.focus`
 
 46 token(s); 50 design-file member(s).
 
-`border-width.hairline`, `color.background.primary`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger`, `color.foreground.danger-subtle`, `color.foreground.info`, `color.foreground.info-subtle`, `color.foreground.secondary`, `color.foreground.success`, `color.foreground.success-subtle`, `color.foreground.warning`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.secondary`, `color.icon.success`, `color.icon.warning`, `color.inverse.foreground.tertiary`, `color.inverse.text.primary`, `color.text.danger`, `color.text.info`, `color.text.on-danger`, `color.text.on-info`, `color.text.on-success`, `color.text.on-warning`, `color.text.primary`, `color.text.success`, `color.text.warning`, `radius.none`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `space.075`, `space.100`, `space.150`, `type.body.md.default`, `type.body.md.line-box`, `type.body.sm.default`, `type.body.sm.line-box`, `type.caption.md.strong`, `type.label.sm.emphasis`
+`border-width.hairline`, `color.background.primary`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger`, `color.foreground.danger-subtle`, `color.foreground.info`, `color.foreground.info-subtle`, `color.foreground.secondary`, `color.foreground.success`, `color.foreground.success-subtle`, `color.foreground.warning`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.secondary`, `color.icon.success`, `color.icon.warning`, `color.inverse.foreground.tertiary`, `color.inverse.text.primary`, `color.text.danger`, `color.text.info`, `color.text.on-danger`, `color.text.on-info`, `color.text.on-success`, `color.text.on-warning`, `color.text.primary`, `color.text.success`, `color.text.warning`, `radius.none`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `space.075`, `space.100`, `space.150`, `type.caption.md.default`, `type.caption.md.line-box`, `type.caption.md.strong`, `type.label.sm.default`, `type.label.sm.emphasis`, `type.label.sm.line-box`
 
 ### banner
 
@@ -4151,7 +4165,7 @@ Declared, not drawn: `color.border.focus`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`
 - **size** — `size.xs.height`
 - **space** — `space.1000`, `space.1100`, `space.1200`, `space.700`, `space.800`, `space.900`
-- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.line-box`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
+- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.line-box`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.line-box`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.sm.default-link`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
 
 ### Primitive
 

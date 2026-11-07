@@ -3261,8 +3261,8 @@ export const resolveWeightIntent = (intent: string, avail: readonly WeightRoleNa
   throw new Error(`unknown weight intent '${intent}' — the declared intents are [${WEIGHT_INTENTS.join(', ')}]`);
 };
 
-/** THE FIXED WEIGHT INTENT (#2428, `ComponentDef.typeWeight`): every `type.<group>.*` ref's role tail repointed to the
- *  brand's resolution of the def's one intent. Identity for a def without it, and for a brand whose resolution is the
+/** THE FIXED WEIGHT INTENT (#2428, `ComponentDef.typeWeight`): every `type.<group>.*` ref's role tail (or only the
+ *  refs under `keys`, #3475) repointed to the brand's resolution of the def's one intent. Identity for a def without it, and for a brand whose resolution is the
  *  authored role. */
 const applyTypeWeight = (def: ComponentDef, avail: WeightAvailability): ComponentDef => {
   const tw = def.typeWeight;
@@ -3272,9 +3272,10 @@ const applyTypeWeight = (def: ComponentDef, avail: WeightAvailability): Componen
     throw new Error(`${def.id}: typeWeight.group '${tw.group}' has no emitted weight roles for this brand — a weight intent cannot resolve against a category the brand does not ship`);
   const role = resolveWeightIntent(tw.intent, groupAvail);
   const tokens: Record<string, string> = {};
+  const only = tw.keys ? new Set(tw.keys) : null;
   for (const [k, ref] of Object.entries(def.tokens)) {
     const segs = ref.split('.');
-    if (segs[0] === 'type' && segs[1] === tw.group) { segs[segs.length - 1] = role; tokens[k] = segs.join('.'); } else tokens[k] = ref;
+    if (segs[0] === 'type' && segs[1] === tw.group && (!only || only.has(k))) { segs[segs.length - 1] = role; tokens[k] = segs.join('.'); } else tokens[k] = ref;
   }
   return { ...def, tokens };
 };

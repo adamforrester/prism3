@@ -79,8 +79,8 @@
  * ── THE STYLE AXIS: AN INLINE STATUS (owner decisions on #3199, 2026-10-31; Q-ST1 A, Q1–Q8 A) ─────────────
  *
  * `style` (`contained | inline`) is how a status label is drawn. `contained` is every member above: a filled label
- * with padding. `inline` is a status dot and plain text on a text line, with no fill, padding, radius or edge, as tall
- * as the line itself (24px at medium, 21px at small). Status stays ONE decision, Badge (Q-ST1 A): someone showing a
+ * with padding. `inline` is a status dot and plain text, with no fill, padding, radius or edge, as tall as its label's
+ * line (14px at medium, 15px at small; 14px on the reference brand, whose small caption is 10px). Status stays ONE decision, Badge (Q-ST1 A): someone showing a
  * status reaches for Badge and only picks how it looks, rather than choosing between two components that do one job.
  * The value is `inline`, not `dot` (Q1 A), so the panel keeps one "dot", the aria-hidden `type=dot`, and "a status
  * dot" cannot resolve to the hidden type.
@@ -94,15 +94,18 @@
  * `excludeCoordinates` keeps `inline` off the count and dot and off bold and surface, so the inline members are
  * 5 tones × 2 sizes at `type=status, emphasis=subtle`, and the set is 50.
  *
- * THE GEOMETRY (Q4 A, Q6 A). The root is a top-aligned row with no padding (`space.0`), no corner (`radius.none`)
- * and no paint, so its height is the label's line box. The label takes the body roles at the default weight,
- * `type.body.md.default` and `type.body.sm.default`, so it matches the copy around it. The dot leads, in `dotCell`:
- * a box one line box tall (`type.body.{rung}.line-box`, fixed) that centers the 8px `statusDot` (`space.100`, 8px
+ * THE GEOMETRY (Q4 A, Q6 A; the type is owner decision Q93 B on #3475). The root is a top-aligned row with no padding
+ * (`space.0`), no corner (`radius.none`) and no paint, so its height is the label's line box. The label takes the
+ * contained label's rung at each size, at the default weight: `type.label.sm.default` (12px) at medium and
+ * `type.caption.md.default` (the corpus's 11px) at small. #3199 had set it in the body roles "so it matches the copy
+ * around it"; Q93 B moved the premise: an inline badge is not placed in running copy, it is a standalone status label
+ * like the others, only quieter, so one `size` reads at one text size in both styles (`test.ts` holds the two to one
+ * font size and line height). The dot leads, in `dotCell`:
+ * a box one line box tall (`type.label.sm.line-box` / `type.caption.md.line-box`, fixed) that centers the 8px `statusDot` (`space.100`, 8px
  * in every example brand). So a wrapping label keeps the dot on its first line, the construction the checkbox
  * row's `controlCell` uses (#1201). The gap is `space.100` at medium and `space.075` at small.
  *
- * THE PAINT (Q3 A, Q5 A, Q7 A). The label is `text.primary` in every tone: it is part of the sentence, and the dot
- * carries the tone. The dot is `icon.<tone>` (neutral `icon.secondary`), the graphic role for a graphic, never a
+ * THE PAINT (Q3 A, Q5 A, Q7 A). The label is `text.primary` in every tone, and the dot carries the tone. The dot is `icon.<tone>` (neutral `icon.secondary`), the graphic role for a graphic, never a
  * text role (#1471). The label carries the meaning, so WCAG 1.4.11 does not require 3:1 for the dot; it holds 3:1
  * against `background.primary`, `background.secondary`, `foreground.primary` and `foreground.raised` in every mode
  * anyway, as gated design intent (`test.ts`, lowest 3.16:1). The label holds 4.5:1 against the same four (14.05:1).
@@ -154,8 +157,8 @@ export const badge: ComponentDef = {
 
   props: [
     { name: 'type', type: "enum: 'status' | 'count' | 'dot'", values: ['status', 'count', 'dot'], default: 'status', required: false, description: 'Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name.' },
-    { name: 'style', type: "enum: 'contained' | 'inline'", values: ['contained', 'inline'], default: 'contained', required: false, description: 'How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text on the text line, as tall as the line, for running text, list rows and cards. A count and a dot are always contained.' },
-    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The status label\'s size. medium = 12px text, about 30px tall, when contained; 16px text on a 24px line when inline. small = 11px text, about 19px tall, when contained; 14px text on a 21px line when inline, for dense layouts such as a label on a product card. A count and a dot come in medium only.' },
+    { name: 'style', type: "enum: 'contained' | 'inline'", values: ['contained', 'inline'], default: 'contained', required: false, description: 'How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text with no fill or edge, a quieter status label at the same text size. A count and a dot are always contained.' },
+    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The status label\'s size, the same text size in both styles. medium = 12px text, about 30px tall when contained and 14px tall inline. small = 11px text, about 19px tall when contained and 15px tall inline, for dense layouts such as a label on a product card. A count and a dot come in medium only.' },
     { name: 'emphasis', type: "enum: 'subtle' | 'bold' | 'surface'", values: ['subtle', 'bold', 'surface'], default: 'subtle', required: false, description: 'How a status label reads. subtle = the tone\'s tint with a 1px edge in the tone\'s border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. surface = the page color with the tone\'s text and no edge, for a label on a photo or any busy ground, where it brings its own background. A count and a dot are always bold.' },
     { name: 'tone', type: "enum: 'neutral' | 'info' | 'success' | 'warning' | 'danger'", values: ['neutral', 'info', 'success', 'warning', 'danger'], default: 'neutral', required: false, description: 'Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it.' },
     { name: 'label', type: 'string', required: false, description: 'The status text, for type status. One or two words when contained; inline, it can name the whole state. Consistent casing across the product.' },
@@ -194,16 +197,20 @@ export const badge: ComponentDef = {
   paintKeys: ['{tone}.{type}.{style}.{emphasis}.{slot}'],
   // The small label's caption rung names its weight by INTENT (#2983): `strong` is the default brand's bold caption,
   // and a brand that ships its bold caption under another role (`emphasis`) is repointed before projection.
-  typeWeight: { group: 'caption', intent: 'bold' },
+  // `keys` (#3475) scopes it to the contained small label: the inline small label is the REGULAR caption (owner Q93 B),
+  // and the small dot cell reads the caption's `line-box`, which names no weight.
+  typeWeight: { group: 'caption', intent: 'bold', keys: ['size.small.contained.type'] },
 
   tokens: {
     // The label type, per size (#2983). Medium is the status label's original rung. Small is the corpus's only
     // 11px rung (owner decision Q2983.5 A, 2026-10-24); it is a caption rung, and a label rung at 11px would be a new token name.
     'size.medium.contained.type': 'type.label.sm.emphasis',
     'size.small.contained.type': 'type.caption.md.strong',
-    // The inline label (#3199, Q4 A): the body roles at the default weight, so it reads as part of the sentence it sits in.
-    'size.medium.inline.type': 'type.body.md.default',
-    'size.small.inline.type': 'type.body.sm.default',
+    // The inline label (owner decision Q93 B on #3475, replacing #3199's body roles): the contained label's own rung at
+    // each size, at the default weight, so an inline and a contained badge of one size read at one text size. The
+    // inline style stays the quieter one through its weight and its missing fill and edge.
+    'size.medium.inline.type': 'type.label.sm.default',
+    'size.small.inline.type': 'type.caption.md.default',
     // ── GEOMETRY, per type. The CORNER is per type (owner decision, 2026-09-28): the status label takes the
     // tier's small radius, `radius.sm` (2px in nb and prism3, 4px in aurora — it scales per brand), so a status
     // label reads as a label and never as Tag's pill; the count and the dot stay fully round, `radius.round`,
@@ -254,9 +261,10 @@ export const badge: ComponentDef = {
     'size.small.contained.gap': 'space.0',
     'size.medium.inline.gap': 'space.100',
     'size.small.inline.gap': 'space.075',
-    // The inline dot's cell, one line box of the label tall (#3199), so the dot centers on the first line.
-    'size.medium.dot-cell': 'type.body.md.line-box',
-    'size.small.dot-cell': 'type.body.sm.line-box',
+    // The inline dot's cell, one line box of the label tall (#3199), so the dot centers on the first line. It follows
+    // the label's rung (#3475): `label.sm` at medium, `caption.md` at small.
+    'size.medium.dot-cell': 'type.label.sm.line-box',
+    'size.small.dot-cell': 'type.caption.md.line-box',
     // The inline dot (#3199, Q6 A): 8px at both sizes, `space.100` (8px in every example brand), and round.
     'status-dot-size': 'space.100',
     'status-dot.radius': 'radius.round',
@@ -387,7 +395,7 @@ export const badge: ComponentDef = {
         kind: 'text',
         type: 'size.{size}.{style}.type',
         presentWhen: { type: ['status'] },
-        note: 'The status text in the tone\'s text role. It carries the meaning, so the tone is never the only signal. In the inline style it is body text in the primary text color, and the dot carries the tone.',
+        note: 'The status text in the tone\'s text role. It carries the meaning, so the tone is never the only signal. In the inline style it is the same size as a contained label, at the regular weight, in the primary text color, and the dot carries the tone.',
       },
       count: {
         kind: 'text',
@@ -490,13 +498,13 @@ export const badge: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a status label to show a state or attribute next to what it describes, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Use surface for a label on a photo or any busy ground, such as "Selling fast" on a product image. Use small where space is tight, such as on a product card. Keep it static. If it needs to be clicked, toggled or removed, it is a tag. Use the inline style when the status sits in running text, a list or table row, or the details of a store or product card, where a container would break up the line. It is as tall as the text beside it (24px at medium, 21px at small), so the row keeps its height. Use a contained style when the label has to read as an object of its own: on a card header, a media tile or beside a page title. On a photo or busy ground use the contained surface emphasis, since the inline style has no ground of its own.',
+    usage: 'Use a status label to show a state or attribute next to what it describes, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Use surface for a label on a photo or any busy ground, such as "Selling fast" on a product image. Use small where space is tight, such as on a product card. Keep it static. If it needs to be clicked, toggled or removed, it is a tag. Use the inline style where a status should be quieter than a filled label, such as in a list or table row or the details of a store or product card. It has the same text size as a contained label of the same size, with a dot in place of the fill. Use a contained style when the label has to read as an object of its own: on a card header, a media tile or beside a page title. On a photo or busy ground use the contained surface emphasis, since the inline style has no ground of its own.',
     do: [
       'Put the meaning of a count or dot in the host\'s accessible name',
       'Cap a count, as in "99+", and hide it at zero unless zero matters',
       'Keep a contained label to one or two words, and use the same casing everywhere',
       'Pair every tone with text that says the same thing',
-      'Use the inline style for status in a sentence, a list row, a table cell or a store card',
+      'Use the inline style for a quieter status in a list row, a table cell or a store card',
       'Write the whole state in the label ("Out of stock at this location"). It wraps, and the dot stays on the first line',
       'Keep one style per list, so rows scan as a column',
     ],
@@ -514,7 +522,7 @@ export const badge: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Mark a status, count or presence with a small static badge that nobody clicks.',
-    whenToUse: 'A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a status inside running text, a list or table row, or a card\'s details, where a filled label would break up the line.',
+    whenToUse: 'A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card\'s details, where a filled label would draw too much attention.',
     avoidWhen: 'The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.',
     // `tab` moved here from `planned` when it was built (#2416): a tab nests a count badge.
     commonPartners: ['icon-button', 'button', 'tab-item'],
@@ -558,6 +566,7 @@ export const badge: ComponentDef = {
       'A `size` axis, `small | medium`, for the status label (owner direction on #2983, 2026-10-24): small is 11px text at 2px × 8px padding, about 19px tall. The count and dot stay medium. A large size, or a small count, once a host needs one.',
       'A third emphasis, `surface` (owner decision on #2983, 2026-10-24): the page surface with the tone\'s text and no edge, for a label on a photo or any busy ground. It replaces a separate `surface: default | media` axis drafted first, which the owner turned down: the style is an emphasis level, and its name must not say "media".',
       'An inline style, `style: contained | inline` (owner decisions on #3199, 2026-10-31, Q-ST1 A and Q1–Q8 A): a status dot and plain body text on a text line, with no fill, padding, radius or edge, as tall as the line. The label is `text.primary`; the dot is `icon.<tone>` (neutral `icon.secondary`) at `space.100`, centered in a cell one line box tall. Spectrum ships the same look as a separate Status light; Carbon treats it as a status-indicator pattern apart from Tag; Polaris, GOV.UK and Atlassian have no inline form. The owner kept it inside Badge so a status choice is never a fork between two components. The 40 contained members gained `style=contained` in place.',
+      'The inline label\'s text size (owner decision Q93 B on #3475, 2026-11-07): the inline style takes the contained label\'s rung at each size, at the regular weight, `type.label.sm` (12px) at medium and `type.caption.md` (11px) at small, in place of #3199\'s body roles (16px and 14px). The inline style is a standalone status label like the others, only quieter, not text set in running copy. Its dot cell follows the new line box.',
     ],
   },
 };
