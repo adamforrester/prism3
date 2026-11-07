@@ -64,8 +64,10 @@
  * #3091 (section 6d): `watchSets`' listener a no-op, so a set deleted or added by hand stays miscounted until the next
  * read → `hand/delete` and `hand/add`.
  * The panel's Draw specs (section 8) scoped to the file, not the current page (`main.ts`'s `draw-specs` case passing
- * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`. Draw specs' causes dropped (section 8b, #3404) →
- * `causes/draw specs none`, `causes/draw specs refused`, `causes/every verdict`. #3081 Q810 A (section 6c): the live recount
+ * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`. Draw specs' causes dropped (sections 8a, 8b, #3404) →
+ * `causes/draw specs noted`, `causes/draw specs none`, `causes/draw specs refused`, `causes/every verdict`; their kind
+ * taken from what was drawn, not the mark (a ✗ cause under ⚠, against Q89 A) → `causes/draw specs refused`; ✓ put back
+ * for a run that drew every panel with a note (against Q90 A) → `causes/draw specs noted`. #3081 Q810 A (section 6c): the live recount
  * (`fileDue`) reading the stored brand whatever the panel sends → `q810/rises`; it reading the file's sets again each time
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
@@ -940,11 +942,22 @@ const specDefs = (): string[] => { const walk = (n: any): any[] => [n, ...((n.ch
 ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. drew 1 spec panel/.test(String(drew.headline)),
   `specs/this page: the panel's Draw specs draws the spec panel for the set on the current page alone, ${LEVER_DEF}, not Badge on its own page ("${drew?.headline}": ${String(drew?.summary ?? '').slice(0, 160)}; tagged ${JSON.stringify(specDefs())})`);
 
+// 8a. #3404 Q90 A: section 8's run drew its one panel, but with a note, so it is not ok, and its headline says so with ⚠,
+//     not ✓; Q89 A: its cause's kind follows that mark, `warn`. Literal, the note as the fixture words it. Mutation: the
+//     ✓ put back for a run with a note → `causes/draw specs noted`.
+{
+  const note = "Parts of the spec panel for switch-row were not written (color/border/secondary; _Doc-block has no Type=Heading, Size=lg variant; _Doc-block has no Type=Paragraph, Size=md variant; …)";
+  ok(drew?.ok === false && drew?.headline === '⚠ drew 1 spec panel'
+    && JSON.stringify(drew?.causes) === JSON.stringify([{ kind: 'warn', subject: null, what: 'drew 1 spec panel', reasons: [note] }]),
+    `causes/draw specs noted: every panel drawn with a note reads ⚠, and its cause is a warning, the note its reason (${JSON.stringify({ ok: drew?.ok, headline: drew?.headline, causes: drew?.causes })})`);
+}
+
 // 8b. #3404: a Draw specs verdict that is not ok says why. Two runs through the panel's `draw-specs` and the real
 //     `drawSpecs`: from a page with no set on it (✗, nothing drawn), and from Switch row's page while the host refuses
 //     every new frame (the family's panel fails, caught and reported). The causes expected are literal: the run's own,
-//     worded by its headline, its reasons the items its lines print. Mutation: Draw specs' causes dropped →
-//     `causes/draw specs none`, `causes/draw specs refused` and `causes/every verdict`.
+//     worded by its headline, its kind from its mark (Q89 A: ⚠ → warn, as `runCause`), its reasons the items its lines
+//     print. Mutations: Draw specs' causes dropped → `causes/draw specs none`, `causes/draw specs refused` and
+//     `causes/every verdict`; the kind taken from what was drawn (a ✗ cause under ⚠) → `causes/draw specs refused`.
 {
   const bare = mkPage(false);
   shim.currentPage = bare;
@@ -960,7 +973,7 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
   shim.currentPage = shownPage;
   const want = `No spec panel for ${LEVER_DEF}: Figma refused the write (in createFrame: refused)`;
   ok(refused?.ok === false && refused?.headline === '⚠ drew 0 of 1 spec panels'
-    && JSON.stringify(refused?.causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'drew 0 of 1 spec panels', reasons: [want] }]),
+    && JSON.stringify(refused?.causes) === JSON.stringify([{ kind: 'warn', subject: null, what: 'drew 0 of 1 spec panels', reasons: [want] }]),
     `causes/draw specs refused: a panel the host refused is the verdict's cause, its line the reason (${JSON.stringify({ headline: refused?.headline, causes: refused?.causes })})`);
 }
 

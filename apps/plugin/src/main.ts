@@ -1881,14 +1881,14 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     sink.data({ specs: { drawn, items } });
     // DRAFT wording (Q2830.7).
     const ok = drawn.length > 0 && drawn.length === targets.length && !skipped.length;
-    const headline = !targets.length ? '✗ no sets to spec' : ok ? `✓ drew ${drawn.length} spec panel${drawn.length === 1 ? '' : 's'}` : `⚠ drew ${drawn.length} of ${targets.length} spec panels`;
+    const headline = !targets.length ? '✗ no sets to spec' : ok ? `${items.length ? '⚠' : '✓'} drew ${drawn.length} spec panel${drawn.length === 1 ? '' : 's'}` : `⚠ drew ${drawn.length} of ${targets.length} spec panels`;
     const summary = !targets.length ? `No family's lead set is ${scope === 'page' ? 'on this page' : 'in this file'}${defId ? ` for ${defId}` : ''}.` : [`Drew ${drawn.length} of ${targets.length}.`, ...items].join(' ');
     // #3404: a verdict that is not ok says why (#3326 PR 1's invariant). No new words: the run's own cause, worded by its
-    // headline without the mark, as `runCause` words the others, and its reasons the items the lines already print (or,
-    // with no set to spec, the summary). `✗` wrote nothing, so `bad`; a run that drew panels, `warn`.
+    // headline without the mark, and its kind from that mark, as `runCause` does (Q89 A: ⚠ → warn, never ✗ under ⚠); its
+    // reasons the items the lines already print (or, with no set to spec, the summary). Q90 A: a run that drew every
+    // panel but has a note is not clean, so its headline is ⚠ (above), not ✓.
     const clean = ok && !items.length;
-    const causes = clean ? [] : !targets.length ? [runCause(headline, summary)]
-      : [cause(drawn.length ? 'warn' : 'bad', null, headline.replace(/^[✓⚠✗]\s*/u, ''), items)];
+    const causes = clean ? [] : [{ ...runCause(headline, ''), reasons: targets.length ? [...items] : [summary] }];
     postVerdict({ type: 'component-update-result', ok: clean, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary], causes }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
