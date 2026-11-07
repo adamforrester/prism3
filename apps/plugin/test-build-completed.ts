@@ -66,7 +66,11 @@
  * #3091 (section 6d): `watchSets`' listener a no-op, so a set deleted or added by hand stays miscounted until the next
  * read → `hand/delete` and `hand/add`.
  * The panel's Draw specs (section 8) scoped to the file, not the current page (`main.ts`'s `draw-specs` case passing
- * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`. #3081 Q810 A (section 6c): the live recount
+ * `'file'`, or `specTargets` ignoring `page`) → `specs/this page`. Draw specs' causes dropped (sections 8a, 8b, #3404) →
+ * `causes/draw specs noted`, `causes/draw specs none`, `causes/draw specs refused`, `causes/every verdict`; their kind
+ * taken from what was drawn, not the mark (a ✗ cause under ⚠, against Q89 A) → `causes/draw specs refused`; ✓ put back
+ * for a run that drew every panel with a note (against Q90 A) → `causes/draw specs noted`; section 8c's some-drawn
+ * kind made `bad` → `causes/draw specs some`; the throw's causes dropped, or its kind `warn` → `causes/draw specs threw`. #3081 Q810 A (section 6c): the live recount
  * (`fileDue`) reading the stored brand whatever the panel sends → `q810/rises`; it reading the file's sets again each time
  * (`presentCache` unused) → `q810/cheap`; `guarded` keeping the sets it caches after a write → `q810/after a write`; its
  * Theme item compared without the keys sorted (`holdsInput`) → `q810/theme`; `guarded` keeping the sets a recount
@@ -966,6 +970,68 @@ const specDefs = (): string[] => { const walk = (n: any): any[] => [n, ...((n.ch
 ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. drew 1 spec panel/.test(String(drew.headline)),
   `specs/this page: the panel's Draw specs draws the spec panel for the set on the current page alone, ${LEVER_DEF}, not Badge on its own page ("${drew?.headline}": ${String(drew?.summary ?? '').slice(0, 160)}; tagged ${JSON.stringify(specDefs())})`);
 
+// 8a. #3404 Q90 A: section 8's run drew its one panel, but with a note, so it is not ok, and its headline says so with ⚠,
+//     not ✓; Q89 A: its cause's kind follows that mark, `warn`. Literal, the note as the fixture words it. Mutation: the
+//     ✓ put back for a run with a note → `causes/draw specs noted`.
+{
+  const note = "Parts of the spec panel for switch-row were not written (color/border/secondary; _Doc-block has no Type=Heading, Size=lg variant; _Doc-block has no Type=Paragraph, Size=md variant; …)";
+  ok(drew?.ok === false && drew?.headline === '⚠ drew 1 spec panel'
+    && JSON.stringify(drew?.causes) === JSON.stringify([{ kind: 'warn', subject: null, what: 'drew 1 spec panel', reasons: [note] }]),
+    `causes/draw specs noted: every panel drawn with a note reads ⚠, and its cause is a warning, the note its reason (${JSON.stringify({ ok: drew?.ok, headline: drew?.headline, causes: drew?.causes })})`);
+}
+
+// 8b. #3404: a Draw specs verdict that is not ok says why. Two runs through the panel's `draw-specs` and the real
+//     `drawSpecs`: from a page with no set on it (✗, nothing drawn), and from Switch row's page while the host refuses
+//     every new frame (the family's panel fails, caught and reported). The causes expected are literal: the run's own,
+//     worded by its headline, its kind from its mark (Q89 A: ⚠ → warn, as `runCause`), its reasons the items its lines
+//     print. Mutations: Draw specs' causes dropped → `causes/draw specs none`, `causes/draw specs refused` and
+//     `causes/every verdict`; the kind taken from what was drawn (a ✗ cause under ⚠) → `causes/draw specs refused`.
+{
+  const bare = mkPage(false);
+  shim.currentPage = bare;
+  const none = await askRun({ type: 'draw-specs' }, 'component-update-result');
+  ok(none?.ok === false && none?.headline === '✗ no sets to spec'
+    && JSON.stringify(none?.causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'no sets to spec', reasons: ["No family's lead set is on this page."] }]),
+    `causes/draw specs none: with no set on the page, the verdict's cause is the run's own, the summary its reason (${JSON.stringify({ headline: none?.headline, causes: none?.causes })})`);
+  shim.currentPage = rowPage;
+  const realFrame = shim.createFrame;
+  shim.createFrame = () => { throw new Error('in createFrame: refused'); };
+  const refused = await askRun({ type: 'draw-specs' }, 'component-update-result');
+  shim.createFrame = realFrame;
+  shim.currentPage = shownPage;
+  const want = `No spec panel for ${LEVER_DEF}: Figma refused the write (in createFrame: refused)`;
+  ok(refused?.ok === false && refused?.headline === '⚠ drew 0 of 1 spec panels'
+    && JSON.stringify(refused?.causes) === JSON.stringify([{ kind: 'warn', subject: null, what: 'drew 0 of 1 spec panels', reasons: [want] }]),
+    `causes/draw specs refused: a panel the host refused is the verdict's cause, its line the reason (${JSON.stringify({ headline: refused?.headline, causes: refused?.causes })})`);
+}
+
+// 8c. #3404 Q89 A, the two cases 8a and 8b leave (the #3496 review): each cause's kind follows its headline's mark.
+//     Some drawn: the agent's whole-file Draw specs (`'file'`) while Badge's page refuses every write, so three of the
+//     file's four families draw and Badge's fails (⚠ → warn). The run threw: the same run while the file's set search
+//     throws (✗ → bad). Both literal. Mutations: the some-drawn kind made `bad` → `causes/draw specs some`; the throw's
+//     causes dropped, or its kind `warn` → `causes/draw specs threw`.
+{
+  const badgeSet = pageOfSet('badge')!.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'badge') as any;
+  const host = badgeSet.parent;
+  const [app, ins] = [host.appendChild, host.insertChild];
+  host.appendChild = () => { throw new Error('in appendChild: refused'); };
+  host.insertChild = () => { throw new Error('in insertChild: refused'); };
+  const some = (await runAction((sink) => ACTIONS.drawSpecs(undefined, 'file', sink as never))).posts.find((m) => m?.type === 'component-update-result');
+  [host.appendChild, host.insertChild] = [app, ins];
+  const parts = (id: string): string => `Parts of the spec panel for ${id} were not written (color/border/secondary; _Doc-block has no Type=Heading, Size=lg variant; _Doc-block has no Type=Paragraph, Size=md variant; …)`;
+  const someWant = [{ kind: 'warn', subject: null, what: 'drew 3 of 4 spec panels',
+    reasons: [parts('focus-ring'), parts('switch-row'), 'No spec panel for badge: Figma refused the write (in appendChild: refused)', parts('divider')] }];
+  ok(some?.ok === false && some?.headline === '⚠ drew 3 of 4 spec panels' && JSON.stringify(some?.causes) === JSON.stringify(someWant),
+    `causes/draw specs some: a run that drew some panels is a warning, as its ⚠ headline, its items the reasons (${JSON.stringify({ headline: some?.headline, causes: some?.causes })})`);
+  const find = root.findAllWithCriteria;
+  root.findAllWithCriteria = () => { throw new Error('the file could not be read'); };
+  const threw = (await runAction((sink) => ACTIONS.drawSpecs(undefined, 'file', sink as never))).posts.find((m) => m?.type === 'component-update-result');
+  root.findAllWithCriteria = find;
+  ok(threw?.ok === false && threw?.headline === '✗ draw specs failed'
+    && JSON.stringify(threw?.causes) === JSON.stringify([{ kind: 'bad', subject: null, what: 'draw specs failed', reasons: ['the file could not be read'] }]),
+    `causes/draw specs threw: a run that threw is a failure, as its ✗ headline, the error its reason (${JSON.stringify({ headline: threw?.headline, causes: threw?.causes })})`);
+}
+
 // 9. The review of #3034 (Nit 1, and its gap): `specTargets` counts two sets of one name over the WHOLE file before it
 //    keeps the current page's, so the panel's Draw specs skips the family the agent's whole-file command skips; and it
 //    knows the page by its id, not by the object (the plugin API is not promised to hand back one object per page). The
@@ -1002,9 +1068,8 @@ ok(tagBuilt?.ok === false && tagCause?.kind === 'warn' && tagCause.what === 'bui
 // Update's causes dropped → `causes/every verdict`.
 {
   const ids = new Set(componentDefs.map((d) => d.id));
-  // Draw specs posts a `component-update-result` too, with no causes yet: outside #3326 PR 1's four writers, filed
-  // as #3404. Its verdicts are left out by their headline, which only Draw specs words.
-  const notOk = verdicts.filter((v) => v.ok === false && !/spec panel|to spec|draw specs/.test(String(v.headline)));
+  // Draw specs' verdicts are in too, since #3404 gave them causes: section 8b posts two that are not ok.
+  const notOk = verdicts.filter((v) => v.ok === false);
   const bad = notOk.filter((v) => !Array.isArray(v.causes) || !v.causes.length || v.causes.some((c: any) => c.subject !== null && !ids.has(c.subject)));
   ok(notOk.length > 0 && !bad.length,
     `causes/every verdict: each of the ${notOk.length} verdicts not ok names a cause, each subject a def id (${JSON.stringify(bad.slice(0, 3).map((v) => ({ headline: v.headline, causes: v.causes })))})`);
