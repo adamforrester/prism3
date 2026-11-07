@@ -26,8 +26,10 @@
  *             LIMIT: a label is checked for existing SOMEWHERE in the three trees, so a label drawn in several places
  *             (**Set up file** is in five files) does not fail when one copy is renamed; CITE is the backstop there.
  *   CITE      Every `<!-- src: path:line -->` or `path:first-last` resolves: the path is a file git tracks, and the
- *             lines are inside it. Then the cited lines must still hold what the claim quotes: the claim is the text
- *             before the citation on its line (or, for a citation on a line of its own, the block above it), its
+ *             lines are inside it, counted as the file's lines, so a file's closing newline is not one more (#3456). Then
+ *             the cited lines must still hold what the claim quotes: the claim is the text before the citation on its
+ *             line (or, for a citation on a line of its own, the block above it, stepping over one blank line, so a
+ *             citation set under a table after a blank line claims the table: #3457), its
  *             ANCHORS are its "quoted strings", `code spans` and **bold labels**, and at least one anchor must appear
  *             in the cited lines, read with their comments removed (in TS/JS, HTML and CSS), so a comment that keeps
  *             the old words cannot hold a claim for code that changed. A quoted string is an example the app composes,
@@ -50,6 +52,11 @@
  *             numbers by hand, or delete the old fingerprint and stamp again once you have read the block.
  *             LIMIT: a fingerprint proves the cited lines have not changed since they were stamped, not that they
  *             were the right lines then. That judgment is review's, as the migration's content audit was (#3417).
+ *   SELF-CHECK  Each gap CITE and FINGERPRINT once had is planted in a small in-memory tree and run through the
+ *             function the guides run through: a citation one line past a file's end (#3456), a table's citation after
+ *             a blank line whose cited lines hold none of its quotes (#3457), and a range-only citation whose block a
+ *             PR moved down a line (#3417). Each must fail by name, and a CONTROL with the same shapes cited correctly
+ *             must pass, so a gate that fails everything cannot satisfy them.
  *   COUNT     "<n> component sets" in a guide equals `componentDefs.length`, read from the engine. At least one guide
  *             makes the claim, so the arm cannot pass by having nothing to check.
  *   SCOPE     Represented, not counted (`docs/34` shape 13): every guide `index.md` lists is read, every guide carries
@@ -263,10 +270,13 @@ for (const g of listed) if (!guideFiles.includes(g)) fail('SCOPE', `${GUIDES}/in
 
 const tracked = new Set(spawnSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n').filter(Boolean));
 if (!tracked.size) fail('SCOPE', 'git ls-files returned nothing, so no citation could be checked.');
-const fileLines = new Map<string, string[]>();
-const linesOf = (p: string): string[] => {
-  if (!fileLines.has(p)) fileLines.set(p, readFileSync(join(ROOT, p), 'utf8').split('\n'));
-  return fileLines.get(p)!;
+/** A file's lines, as many as it has (#3456). `split('\n')` gives a file that ends in `\n` one empty element more
+ *  than it has lines, and the range check read that as a line, so `provenance.ts:1-58` passed on a 57-line file. */
+const linesIn = (src: string): string[] => {
+  if (src === '') return [];
+  const out = src.split('\n');
+  if (src.endsWith('\n')) out.pop();
+  return out;
 };
 /** Each span blanked, its newlines kept, so line numbers still line up. */
 const blank = (src: string, spans: readonly [number, number][]): string => {
@@ -279,33 +289,51 @@ const blank = (src: string, spans: readonly [number, number][]): string => {
   }
   return out + src.slice(at);
 };
-/** A file's lines with its comments removed, for CITE (S1 on #3270): a comment on a cited line that keeps the old
- *  words must not hold a claim. TS/JS through the same tokenizer the labels use, so `//` inside a string stays;
- *  HTML's `<!-- -->` and its inline scripts' comments; CSS's block comments. Any other file is read as it is. */
-const codeLines = new Map<string, string[]>();
-/** The literals of every cited file, read in the same pass, so a cited engine file (outside the three trees the
- *  labels read) still offers its templates to an anchor. */
-const citedLits = new Map<string, Lit[]>();
-const codeLinesOf = (p: string): string[] => {
-  if (codeLines.has(p)) return codeLines.get(p)!;
-  const src = readFileSync(join(ROOT, p), 'utf8');
-  const spans: [number, number][] = [];
-  const own: Lit[] = [];
-  citedLits.set(p, own);
-  if (/\.(ts|tsx|js|mjs|cjs)$/.test(p)) scanScript(src, p, own, spans);
-  else if (/\.html?$/.test(p)) {
-    scanHtml(src, p, own);
-    for (const m of src.matchAll(/<!--[\s\S]*?-->/g)) spans.push([m.index ?? 0, (m.index ?? 0) + m[0].length]);
-    for (const m of src.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
-      const start = (m.index ?? 0) + m[0].indexOf('>') + 1;
-      const inner: [number, number][] = [];
-      scanScript(m[1], p, [], inner);
-      for (const [a, b] of inner) spans.push([a + start, b + start]);
-    }
-  } else if (/\.css$/.test(p)) for (const m of src.matchAll(/\/\*[\s\S]*?\*\//g)) spans.push([m.index ?? 0, (m.index ?? 0) + m[0].length]);
-  const lines = blank(src, spans).split('\n');
-  codeLines.set(p, lines);
-  return lines;
+
+/** Where CITE reads the cited files: the repo for the guides, or the in-memory tree of the SELF-CHECK fixtures. */
+type Tree = { readonly tracked: (p: string) => boolean; readonly read: (p: string) => string };
+type Reader = {
+  readonly tracked: (p: string) => boolean;
+  readonly linesOf: (p: string) => string[];
+  readonly codeLinesOf: (p: string) => string[];
+  readonly litsOf: (p: string) => Lit[];
+};
+const readerOf = (tree: Tree): Reader => {
+  const fileLines = new Map<string, string[]>();
+  const linesOf = (p: string): string[] => {
+    if (!fileLines.has(p)) fileLines.set(p, linesIn(tree.read(p)));
+    return fileLines.get(p)!;
+  };
+  /** A file's lines with its comments removed, for CITE (S1 on #3270): a comment on a cited line that keeps the old
+   *  words must not hold a claim. TS/JS through the same tokenizer the labels use, so `//` inside a string stays;
+   *  HTML's `<!-- -->` and its inline scripts' comments; CSS's block comments. Any other file is read as it is. */
+  const codeLines = new Map<string, string[]>();
+  /** The literals of every cited file, read in the same pass, so a cited engine file (outside the three trees the
+   *  labels read) still offers its templates to an anchor. */
+  const citedLits = new Map<string, Lit[]>();
+  const codeLinesOf = (p: string): string[] => {
+    if (codeLines.has(p)) return codeLines.get(p)!;
+    const src = tree.read(p);
+    const spans: [number, number][] = [];
+    const own: Lit[] = [];
+    citedLits.set(p, own);
+    if (/\.(ts|tsx|js|mjs|cjs)$/.test(p)) scanScript(src, p, own, spans);
+    else if (/\.html?$/.test(p)) {
+      scanHtml(src, p, own);
+      for (const m of src.matchAll(/<!--[\s\S]*?-->/g)) spans.push([m.index ?? 0, (m.index ?? 0) + m[0].length]);
+      for (const m of src.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+        const start = (m.index ?? 0) + m[0].indexOf('>') + 1;
+        const inner: [number, number][] = [];
+        scanScript(m[1], p, [], inner);
+        for (const [a, b] of inner) spans.push([a + start, b + start]);
+      }
+    } else if (/\.css$/.test(p)) for (const m of src.matchAll(/\/\*[\s\S]*?\*\//g)) spans.push([m.index ?? 0, (m.index ?? 0) + m[0].length]);
+    const lines = blank(src, spans).split('\n');
+    codeLines.set(p, lines);
+    return lines;
+  };
+  const litsOf = (p: string): Lit[] => { codeLinesOf(p); return citedLits.get(p) ?? []; };
+  return { tracked: tree.tracked, linesOf, codeLinesOf, litsOf };
 };
 
 const CITE = /<!--\s*src:\s*([^\s:]+(?: [^\s:]+)*):(\d+)(?:-(\d+))?(?:#([0-9a-f]{8}))?\s*-->/g;
@@ -314,7 +342,6 @@ const fingerprint = (lines: readonly string[]): string => createHash('sha256').u
 const STAMP = process.argv.includes('--stamp');
 /** `--stamp`'s edits, by guide: each citation's own text and the text it becomes. */
 const stamps = new Map<string, { line: number; from: string; to: string }[]>();
-let fingerprinted = 0;
 const BOLD = /\*\*((?:[^*\n]|\*(?!\*)[^*\n]+\*)+?)\*\*/g;
 /** A claim's anchors: its quoted strings, code spans and bold labels. A quoted string is an example of a message the
  *  app composes at run time, so a number or an ellipsis in it stands for a value (`<n>`, a placeholder): "Built 3
@@ -339,15 +366,134 @@ const anchorIn = (anchor: string, text: string, inRange: readonly Lit[]): boolea
   return inRange.some((l) => { const re = patternOf(l); return re !== null && re.test(s); });
 };
 
+/** The claim of a citation on a line of its own: the block above it, up to a blank line or a heading. One blank line
+ *  between them is stepped over (#3457): a citation set under a table after a blank line cites the table, and read
+ *  without the step its claim was empty, so the table's quotes were never held to the cited lines. */
+const blockAbove = (lines: readonly string[], k: number): string => {
+  let j = k - 1;
+  if (j >= 0 && !lines[j].trim()) j--;
+  const block: string[] = [];
+  for (; j >= 0 && lines[j].trim() && !lines[j].startsWith('#'); j--) block.unshift(lines[j]);
+  return block.join('\n');
+};
+
+type CiteStats = { cites: number; unanchored: number; fingerprinted: number };
+type Fail = (arm: string, msg: string) => void;
+
+/** CITE and FINGERPRINT for the citations on one line of a guide. The guides and the SELF-CHECK fixtures run
+ *  through this one function, so a fixture tests the arm the guides are held by, not a copy of it. */
+const citeLine = (rel: string, lines: readonly string[], k: number, r: Reader, stats: CiteStats, fail: Fail, stamp: boolean): void => {
+  const raw = lines[k];
+  const at = `${rel}:${k + 1}`;
+  let last = 0;
+  let claim = '';
+  for (const m of raw.matchAll(CITE)) {
+    stats.cites++;
+    const [whole, path, a, b, hash] = m;
+    const seg = raw.slice(last, m.index).replace(/<!--[\s\S]*?-->/g, ' ');
+    last = (m.index ?? 0) + whole.length;
+    if (seg.trim()) claim = seg;
+    if (!claim.trim()) claim = blockAbove(lines, k);
+    const first = Number(a);
+    const end = b ? Number(b) : first;
+    if (!r.tracked(path)) { fail('CITE', `${at}: ${path} is not a file git tracks.`); continue; }
+    const src = r.linesOf(path);
+    if (first < 1 || end < first || end > src.length) { fail('CITE', `${at}: ${path}:${a}${b ? `-${b}` : ''} is outside the file (${src.length} lines).`); continue; }
+    const anchors = anchorsOf(claim);
+    const range = `${path}:${a}${b ? `-${b}` : ''}`;
+    if (hash) {
+      stats.fingerprinted++;
+      const now = fingerprint(src.slice(first - 1, end));
+      if (now !== hash) {
+        const n = end - first + 1;
+        const at2: number[] = [];
+        for (let s = 1; s + n - 1 <= src.length && at2.length < 2; s++) if (s !== first && fingerprint(src.slice(s - 1, s - 1 + n)) === hash) at2.push(s);
+        const where = at2.length === 1 ? ` The block now sits at ${path}:${at2[0]}${n > 1 ? `-${at2[0] + n - 1}` : ''}: cite that.` : ' The cited code changed: read it, correct the claim if it no longer holds, then re-cite it and delete the fingerprint so --stamp writes a new one.';
+        fail('FINGERPRINT', `${at}: ${range}#${hash} now hashes to #${now}, so those lines are not the block this citation was stamped on.${where}`);
+      }
+    }
+    if (!anchors.length) {
+      stats.unanchored++;
+      if (!hash) {
+        if (stamp) {
+          const to = whole.replace(/\s*-->$/, `#${fingerprint(src.slice(first - 1, end))} -->`);
+          if (!stamps.has(rel)) stamps.set(rel, []);
+          stamps.get(rel)!.push({ line: k, from: whole, to });
+        } else fail('FINGERPRINT', `${at}: ${range} quotes nothing, so only a fingerprint can tell when its code moves, and it has none. Read the cited lines, then run lint-guide-claims.ts --stamp.`);
+      }
+      continue;
+    }
+    const text = norm(r.codeLinesOf(path).slice(first - 1, end).join('\n'));
+    const inRange = r.litsOf(path).filter((l) => l.line >= first && l.line <= end);
+    if (!anchors.some((x) => anchorIn(x, text, inRange))) fail('CITE', `${at}: ${path}:${a}${b ? `-${b}` : ''} holds none of what the claim quotes (${anchors.map((x) => JSON.stringify(x)).join(', ')}). The code moved: cite where it is now, or correct the claim.`);
+  }
+};
+
+// ── SELF-CHECK: each gap CITE and FINGERPRINT once had, planted, and the failure that must name it ──────────────
+//
+// Every fixture runs through `citeLine`, the function the guides run through, over a small in-memory tree. Each gap
+// fixture is a case the gate once passed; the CONTROL holds the same three shapes written correctly and must pass,
+// so a gate that fails everything cannot satisfy the gap fixtures. The cited files and their fingerprints are
+// written here by hand (the hashes by `printf '%s' <line> | sha256sum`), never computed by the gate (`docs/34`).
+const FIXTURE_FILES: Record<string, string> = {
+  // Two lines, ending in a newline: `split('\n')` reads three elements.
+  'fixture/end.ts': 'const a = 1;\nconst b = 2;\n',
+  'fixture/tools.ts': "export const tools = ['list_levers'];\n",
+  // `figma.on('close', done);` was line 2 when it was stamped (#8ac7ac65); a PR has since inserted line 1.
+  'fixture/shift.ts': "// a line a PR inserted above the cited block\nconst x = 1;\nfigma.on('close', done);\n",
+};
+const fixtureReader = readerOf({ tracked: (p) => p in FIXTURE_FILES, read: (p) => FIXTURE_FILES[p] });
+const FIXTURES: readonly { readonly name: string; readonly gap: string; readonly guide: readonly string[]; readonly want: RegExp | null }[] = [
+  {
+    name: '3456', gap: 'a citation naming the line after the last one, in a file that ends in a newline',
+    guide: ['`const b` is the second line. <!-- src: fixture/end.ts:1-3 -->'],
+    want: /^CITE: fixture\/3456\.md:1: fixture\/end\.ts:1-3 is outside the file \(2 lines\)\.$/,
+  },
+  {
+    name: '3457', gap: 'a citation under a table after a blank line, whose cited lines hold none of the table\'s quotes',
+    guide: ['| Tool |', '|---|', '| `theme_from_brief` |', '', '<!-- src: fixture/tools.ts:1#4eedf20f -->'],
+    want: /^CITE: fixture\/3457\.md:5: fixture\/tools\.ts:1 holds none of what the claim quotes \("theme_from_brief"\)\./,
+  },
+  {
+    name: '3417', gap: 'a range-only citation whose block a PR moved down a line',
+    guide: ['The plugin stops when its window closes. <!-- src: fixture/shift.ts:2#8ac7ac65 -->'],
+    want: /^FINGERPRINT: fixture\/3417\.md:1: fixture\/shift\.ts:2#8ac7ac65 now hashes to #[0-9a-f]{8}, .* The block now sits at fixture\/shift\.ts:3: cite that\.$/,
+  },
+  {
+    name: 'control', gap: 'the same three shapes, cited correctly',
+    guide: [
+      '`const b` is the second line. <!-- src: fixture/end.ts:1-2 -->',
+      '',
+      '| Tool |', '|---|', '| `list_levers` |',
+      '',
+      '<!-- src: fixture/tools.ts:1#4eedf20f -->',
+      '',
+      'The plugin stops when its window closes. <!-- src: fixture/shift.ts:3#8ac7ac65 -->',
+    ],
+    want: null,
+  },
+];
+for (const f of FIXTURES) {
+  const got: string[] = [];
+  const st: CiteStats = { cites: 0, unanchored: 0, fingerprinted: 0 };
+  f.guide.forEach((_, k) => citeLine(`fixture/${f.name}.md`, f.guide, k, fixtureReader, st, (arm, msg) => got.push(`${arm}: ${msg}`), false));
+  const seen = got.length ? got.join(' | ') : 'no failure';
+  if (f.want && !got.some((g) => f.want!.test(g))) fail('SELF-CHECK', `#${f.name} (${f.gap}) was not named. Expected ${f.want}; got ${seen}.`);
+  // The control's table citation must count as quoting (`list_levers`): read as quoting nothing, it is #3457 again.
+  if (!f.want && (got.length || st.cites !== 3 || st.unanchored !== 1)) fail('SELF-CHECK', `the control (${f.gap}) must pass with 3 citations, 1 of them quoting nothing; got ${seen}, ${st.cites} citations, ${st.unanchored} quoting nothing.`);
+}
+
+// ── THE GUIDES, through the same arms ───────────────────────────────────────────────────────────────
+
+const repo = readerOf({ tracked: (p) => tracked.has(p), read: (p) => readFileSync(join(ROOT, p), 'utf8') });
+const stats: CiteStats = { cites: 0, unanchored: 0, fingerprinted: 0 };
 let labels = 0;
-let cites = 0;
-let unanchored = 0;
 const counts: { file: string; n: number }[] = [];
 
 for (const g of guideFiles) {
   const rel = `${GUIDES}/${g}`;
   const lines = readFileSync(join(guideDir, g), 'utf8').split('\n');
-  let guideCites = 0;
+  const before = stats.cites;
   let fence = false;
   lines.forEach((raw, k) => {
     if (raw.startsWith('```')) fence = !fence;
@@ -366,56 +512,10 @@ for (const g of guideFiles) {
     // COUNT
     for (const m of prose.matchAll(/\b(\d+) component sets\b/g)) counts.push({ file: at, n: Number(m[1]) });
 
-    // CITE
-    let last = 0;
-    let claim = '';
-    for (const m of raw.matchAll(CITE)) {
-      cites++; guideCites++;
-      const [whole, path, a, b, hash] = m;
-      const seg = raw.slice(last, m.index).replace(/<!--[\s\S]*?-->/g, ' ');
-      last = (m.index ?? 0) + whole.length;
-      if (seg.trim()) claim = seg;
-      if (!claim.trim()) {
-        // A citation on a line of its own: the block above it.
-        const block: string[] = [];
-        for (let j = k - 1; j >= 0 && lines[j].trim() && !lines[j].startsWith('#'); j--) block.unshift(lines[j]);
-        claim = block.join('\n');
-      }
-      const first = Number(a);
-      const end = b ? Number(b) : first;
-      if (!tracked.has(path)) { fail('CITE', `${at}: ${path} is not a file git tracks.`); continue; }
-      const src = linesOf(path);
-      if (first < 1 || end < first || end > src.length) { fail('CITE', `${at}: ${path}:${a}${b ? `-${b}` : ''} is outside the file (${src.length} lines).`); continue; }
-      const anchors = anchorsOf(claim);
-      const range = `${path}:${a}${b ? `-${b}` : ''}`;
-      if (hash) {
-        fingerprinted++;
-        const now = fingerprint(src.slice(first - 1, end));
-        if (now !== hash) {
-          const n = end - first + 1;
-          const at2: number[] = [];
-          for (let s = 1; s + n - 1 <= src.length && at2.length < 2; s++) if (s !== first && fingerprint(src.slice(s - 1, s - 1 + n)) === hash) at2.push(s);
-          const where = at2.length === 1 ? ` The block now sits at ${path}:${at2[0]}${n > 1 ? `-${at2[0] + n - 1}` : ''}: cite that.` : ' The cited code changed: read it, correct the claim if it no longer holds, then re-cite it and delete the fingerprint so --stamp writes a new one.';
-          fail('FINGERPRINT', `${at}: ${range}#${hash} now hashes to #${now}, so those lines are not the block this citation was stamped on.${where}`);
-        }
-      }
-      if (!anchors.length) {
-        unanchored++;
-        if (!hash) {
-          if (STAMP) {
-            const to = whole.replace(/\s*-->$/, `#${fingerprint(src.slice(first - 1, end))} -->`);
-            if (!stamps.has(rel)) stamps.set(rel, []);
-            stamps.get(rel)!.push({ line: k, from: whole, to });
-          } else fail('FINGERPRINT', `${at}: ${range} quotes nothing, so only a fingerprint can tell when its code moves, and it has none. Read the cited lines, then run lint-guide-claims.ts --stamp.`);
-        }
-        continue;
-      }
-      const text = norm(codeLinesOf(path).slice(first - 1, end).join('\n'));
-      const inRange = (citedLits.get(path) ?? []).filter((l) => l.line >= first && l.line <= end);
-      if (!anchors.some((x) => anchorIn(x, text, inRange))) fail('CITE', `${at}: ${path}:${a}${b ? `-${b}` : ''} holds none of what the claim quotes (${anchors.map((x) => JSON.stringify(x)).join(', ')}). The code moved: cite where it is now, or correct the claim.`);
-    }
+    // CITE, FINGERPRINT
+    citeLine(rel, lines, k, repo, stats, fail, STAMP);
   });
-  if (listed.includes(g) && !guideCites) fail('SCOPE', `${rel} carries no src citation, so nothing in it is checked against the code.`);
+  if (listed.includes(g) && stats.cites === before) fail('SCOPE', `${rel} carries no src citation, so nothing in it is checked against the code.`);
 }
 
 // --stamp: each citation's text replaced on its own line, in order, so two identical citations on one line each get
@@ -444,4 +544,4 @@ if (fails.length) {
   console.error(`❌ ${TAG}: ${fails.length} failure${fails.length === 1 ? '' : 's'}\n${fails.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${cites} citations resolve, ${cites - unanchored} of them still holding what their claim quotes (${unanchored} quote nothing and are held by their fingerprint; ${fingerprinted} fingerprints match); ${counts.length} component-set counts equal componentDefs (${defs}).`);
+console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}).`);

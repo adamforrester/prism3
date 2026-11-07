@@ -480,8 +480,12 @@
                 "description": "The kind of fact: a stable id from the register."
               },
               "disposition": {
-                "type": "string",
-                "minLength": 1,
+                "enum": [
+                  "CARRIED",
+                  "LOWERED",
+                  "REFUSED",
+                  "UNSUPPORTED"
+                ],
                 "description": "How the design file treats the fact: carried in full, lowered to a named lossy form, refused on purpose, or unsupported by the tool."
               }
             }

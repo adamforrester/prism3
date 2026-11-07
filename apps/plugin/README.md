@@ -344,8 +344,11 @@ They are not recorded there: the paste path writes no as-built record, so an in-
 same as everything else on a paste build. A member that already has reactions is left alone, so a re-paste keeps a
 designer's edit (owner Q on #3287).
 
-**Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
-placement, and the message contract + main-thread handler are complete and ready for it.
+**The UI trigger for `file-setup`** is a step of Studio's Update file checklist, Set up file, shown on a file that is
+not set up yet (Q668 A, `apps/studio/src/state/update-file.ts`). It runs the same main-thread action as the agent
+command (`ACTIONS.fileSetup`). An agent that runs `file-setup` before `apply-theme` finds the Cover empty,
+because setup draws the cover only from a saved brand and `apply-theme` does not draw it: run `file-setup` again after
+`apply-theme` to draw it (#3467, Q6 A).
 
 ## Scope (#111 / #1553 — the same writes with the plugin closed, over the Figma MCP)
 

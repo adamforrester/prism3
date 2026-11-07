@@ -201,8 +201,10 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   /** #2909 Q2909.8 A: a set's statuses in this file, as tags (plugin only; the web has no file). A family shows what its
    *  sets show, each status once, in the statuses' own order. #3439 Q-IF.2 A: In file first, on a set the file holds and
    *  on a family the file holds any set of. #3446: Kept edits (#3421 Q39 A) after Due and before Hand-edited, the order
-   *  `statusesOf` gives them. */
-  const STATUS_ORDER: readonly SetStatus[] = ['due', 'kept', 'hand', 'unchecked', 'checking', 'queued', 'needed', 'new', 'current'];
+   *  `statusesOf` gives them. #3462: the order is the key order of a `Record<SetStatus, true>`, so a status added to
+   *  `SetStatus` and not placed here fails the typecheck by its name instead of losing its tag. */
+  const STATUS_KEYS: Record<SetStatus, true> = { due: true, kept: true, hand: true, unchecked: true, checking: true, queued: true, needed: true, new: true, current: true };
+  const STATUS_ORDER = Object.keys(STATUS_KEYS) as readonly SetStatus[];
   const statusTags = (ids: readonly string[]): HTMLElement | null => {
     // #3306 Q3306.2 A: a set not in the file that a chosen set needs reads Needed rather than Not in file.
     const p = present();

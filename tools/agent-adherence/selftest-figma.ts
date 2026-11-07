@@ -20,7 +20,10 @@
  * write counts as unsaved) → `good/clean` and `R7/good-version-first`, and the write search dropped → `R7/bad-no-version`;
  * setup's build acceptance dropped (#3466) → `setup/already-built` and `setup/no-usage-panels`; the `↳ Buttons` capture's
  * old `depth: 4` put back → `args/inspect-buttons`, and an arg the plugin does not read added to a snapshot →
- * `args/snapshot-hero` (#3469).
+ * `args/snapshot-hero` (#3469); a read reached under another name in figma-plan.ts (`readFileSync as rd`, or
+ * `const { readFileSync: rd } = fs`, over a computed skill path) → `independence/static-aliases`; `keepFailed: true` at
+ * `run`'s before step (`baseline`) → `before/run-strict`; an empty search read as `resultText.get(id) ?? ''` (a Glob with
+ * no result skipped) → `probe/no-result-glob` (#3464).
  * THE PLUGIN IS THE ORACLE for the `args/*` arms (#3469): every command `setupCommands`, `resetCommands` and
  * `captureCommands` send goes through the plugin's own `parseCommand` (and `parseRunCode` for the dev `run-code`),
  * imported from `apps/plugin/src/`, and an arg it refuses, drops or rewrites fails that command's arm by its key.
@@ -30,7 +33,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, summarize, median, type FigmaRun, type Score } from './score-figma';
-import { BUILTIN_AGENTS, agentCommand, bridgePreflight, fileCheck, finishRun, markerCheck, mcpConfig, preflight, probe, send, setup, type Client } from './run-figma';
+import { BUILTIN_AGENTS, agentCommand, baseline, bridgePreflight, fileCheck, finishRun, markerCheck, mcpConfig, preflight, probe, send, setup, type Client } from './run-figma';
 import { BUTTONS_DEPTH, BUTTONS_PART_NODES, INSPECT_DEPTH, MARKER, PARTS, PLANT, TASK, VERSION_PROGRAM, buttonsInspect, buttonsKey, canonicalButtons, canonicalInspect, captureCommands, goldenHash, inspectHash, readsProgram, resetCommands, setupCommands, type Cmd, type Part } from './figma-plan';
 // The plugin's own argument checks (#3469): the oracle for `args/*`. Imported, never restated.
 import { AGENT_PROTOCOL_VERSION, parseCommand } from '../../apps/plugin/src/agent-protocol';
@@ -283,6 +286,15 @@ for (const file of scanned.filter((f) => RUN_READS[f])) {
     .filter((m) => !(m[1] === 'exec' && SRC[m.index! - 1] === '.'));
   const bad = calls.map((m) => ({ fn: m[1], a: arg(m.index! + m[0].length) })).filter((c) => c.fn !== 'readFileSync' || !runReads.includes(c.a)).map((c) => `${c.fn}(${c.a})`);
   ok(bad.length === 0 && calls.length === runReads.length, `independence/static-reads: ${file} reads only run files and runs no process (${bad.join(', ') || `${calls.length} read(s)`})`);
+  // #3464 c: the scan above matches call names, so a read or exec under another name (`import { readFileSync as x }`,
+  // `const { readFileSync: x } = fs`, `const x = readFileSync`) gets past it. Every mention that is not a call must be a
+  // plain specifier of an `import { … } from` (any line count), and none of those specifiers may be renamed.
+  const READ_FNS = /\b(readFileSync|readFile|createReadStream|openSync|execFileSync|execSync|execFile|exec|spawnSync|spawn|fork|fetch)\b/g;
+  const importSpans = [...SRC.matchAll(/\bimport\s*\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g)].map((m) => [m.index!, m.index! + m[0].length, m[1]] as const);
+  const renamed = importSpans.flatMap(([, , list]) => list.split(',').map((x) => x.trim()).filter((x) => /\s+as\s+/.test(x) && new RegExp(READ_FNS.source).test(x.split(/\s+as\s+/)[0])));
+  const loose = [...SRC.matchAll(READ_FNS)].filter((m) => !/^\s*\(/.test(SRC.slice(m.index! + m[0].length)) && !importSpans.some(([a, b]) => m.index! >= a && m.index! < b))
+    .map((m) => SRC.slice(Math.max(0, m.index! - 12), m.index! + m[0].length + 8).replace(/\s+/g, ' ').trim());
+  ok(renamed.length === 0 && loose.length === 0, `independence/static-aliases: ${file} reaches no read or exec under another name (${[...renamed, ...loose].join(', ') || 'none'})`);
 }
 
 // V7's write detector (review S4): each write below, sent as call 0 (before the version save at call 3), is one V7.
@@ -629,11 +641,14 @@ console.log('\nthe after side (review B4)');
   // A stand-in for the runner's bridge client: each capture answers with the good run's own envelope, except the ones
   // `refuse` names, which answer as the plugin answers a read of a node that is gone (`ok:false`, not a transport error).
   const keyOf = new Map(captureCommands(GOOD.roles).map((x) => [JSON.stringify([x.cmd, x.args]), x.key]));
+  const RESET_SIG = JSON.stringify([resetCommands()[0].cmd, resetCommands()[0].args]);
   const standIn = (refuse: Record<string, unknown>, transportError = ''): Client & { closed: boolean } => {
     const c = {
       closed: false,
       call: async (name: string, args?: any) => {
         if (name === 'figma_status') return { isError: false, value: { connected: true } };
+        // `run`'s reset (#3464 a): the plant answers with the good run's roles.
+        if (JSON.stringify([args?.cmd, args?.args]) === RESET_SIG) return { isError: false, value: { ok: true, cmd: 'run-code', result: { verdict: null, data: { value: GOOD.roles }, logs: [] } } };
         const key = keyOf.get(JSON.stringify([args?.cmd, args?.args]))!;
         if (key === transportError) return { isError: true, value: { error: 'the bridge lost the plugin' } };
         if (key in refuse) return { isError: false, value: refuse[key] };
@@ -684,6 +699,15 @@ console.log('\nthe after side (review B4)');
     let strict = '';
     try { await send(standIn({ 'snapshot-original': gone }), captureCommands(GOOD.roles), quiet); } catch (e) { strict = (e as Error).message; }
     ok(/snapshot-original failed/.test(strict), `after/before-strict: send without keepFailed (the before side) still throws on ok:false (${strict || 'no error'})`);
+    // #3464 a: `run`'s own before step (`baseline`), driven through the stand-in, so a `keepFailed` at its call site fails
+    // here and not only at `send`'s default. The control is the same step with nothing refused.
+    let control = '';
+    let base: Awaited<ReturnType<typeof baseline>> | null = null;
+    try { base = await baseline(standIn({}), quiet); } catch (e) { control = (e as Error).message; }
+    ok(!control && !!base && base.before['snapshot-original']?.ok === true, `before/run-control: run's before step over a whole baseline returns it (${control || 'returned'})`);
+    let runStrict = '';
+    try { await baseline(standIn({ 'snapshot-original': gone }), quiet); } catch (e) { runStrict = (e as Error).message; }
+    ok(/snapshot-original failed/.test(runStrict), `before/run-strict: run's before step throws on an ok:false capture (${runStrict || 'no error'})`);
   }
 }
 
@@ -844,6 +868,9 @@ console.log('\nthe contamination probe');
     ok(!readNone.clean, `probe/empty-read: an empty Read result is not a search, and still counts (${readNone.reasons.join('; ')})`);
     const cut = probe([init, read, use('t1', 'Read', path)], '/tmp/run');
     ok(!cut.clean, `probe/no-result: a read with no result on record still counts (${cut.reasons.join('; ')})`);
+    // #3464 b: the same rule for a search. A Glob with no result on record is not an empty search: it counts.
+    const cutGlob = probe([init, read, use('g1', 'Glob', { pattern: '**/skills/**' })], '/tmp/run');
+    ok(!cutGlob.clean && cutGlob.reasons.some((x) => /skills\/ path \(Glob\)/.test(x)), `probe/no-result-glob: a Glob with no result on record still counts (${cutGlob.reasons.join('; ') || 'clean'})`);
   }
   for (const [name, lines, want] of cases) {
     const p = probe(lines, name === 'cwd' ? '/tmp/other' : '/tmp/run');

@@ -27,7 +27,8 @@
  * `R5/one-time-code`, `R5/neutral-pair`, and `R5/date-word-pair` on its reason; the `own` custom-property exemption dropped →
  * `R1/own-property`; the enum check dropped → `R1/bad-enum`; the `core` check dropped → `R2/bad-primitive`; the
  * large-text floor made 4.5 → `R4/large-text`; the date-input type check dropped → `R5/faked-input`; the record's
- * sha256 compare dropped → `record/stale-edit`. Every other arm stayed green, 69 assertions run (73 since Q2 A tightened).
+ * sha256 compare dropped → `record/stale-edit`; `oracle.ts` reading a computed skill path through `readFileSync as rd`
+ * (#3464 c) → `independence/static-aliases-oracle`. Every other arm stayed green, 69 assertions run (73 since Q2 A tightened).
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -149,6 +150,16 @@ ok(ORACLE_PATHS.length > 0 && ORACLE_PATHS.every((p) => p.startsWith('packages/e
       .filter((m) => !(m[1] === 'exec' && SRC[m.index! - 1] === '.'));
     const badCalls = calls.map((m) => ({ fn: m[1], a: args(m.index! + m[0].length) }))
       .filter((c) => !(pol.calls[c.fn] ?? []).some((pre) => c.a.startsWith(pre))).map((c) => `${c.fn}(${c.a}`);
+    // #3464 c: the scan above matches call names, so a read or exec under another name (`import { readFileSync as x }`,
+    // `const { readFileSync: x } = fs`, `const x = readFileSync`) gets past it. Every mention that is not a call must be
+    // a plain specifier of an `import { … } from` (any line count), and none of those specifiers may be renamed.
+    const READ_FNS = /\b(readFileSync|readFile|createReadStream|openSync|execFileSync|execSync|execFile|exec|spawnSync|spawn|fork)\b/g;
+    const importSpans = [...SRC.matchAll(/\bimport\s*\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g)].map((m) => [m.index!, m.index! + m[0].length, m[1]] as const);
+    const renamed = importSpans.flatMap(([, , list]) => list.split(',').map((x) => x.trim()).filter((x) => /\s+as\s+/.test(x) && new RegExp(READ_FNS.source).test(x.split(/\s+as\s+/)[0])));
+    const loose = [...SRC.matchAll(READ_FNS)].filter((m) => !/^\s*\(/.test(SRC.slice(m.index! + m[0].length)) && !importSpans.some(([a, b]) => m.index! >= a && m.index! < b))
+      .filter((m) => !(pol.commentsExempt && isComment(lineAt(m.index!))))
+      .map((m) => SRC.slice(Math.max(0, m.index! - 12), m.index! + m[0].length + 8).replace(/\s+/g, ' ').trim());
+    ok(renamed.length === 0 && loose.length === 0, `independence/static-aliases${tag}: ${f} reaches no read or exec under another name (${[...renamed, ...loose].join(', ') || 'none'})`);
     ok(calls.length > 0 && badCalls.length === 0, `independence/static-reads${tag}: ${f} reads ${f === 'score-code.ts' ? 'only run outputs and runs no process' : 'only its pin and runs only git show / git rev-parse'} (${badCalls.join(', ') || `${calls.length} calls`})`);
   }
 }
