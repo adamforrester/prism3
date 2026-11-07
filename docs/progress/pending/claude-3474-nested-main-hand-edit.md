@@ -51,7 +51,8 @@ compares it in place of the node's hash. `nodeSignature` is unchanged, so every 
 
 - **Existing records read exactly as they did.** A record from before this holds no `own` part, so its instances are
   compared whole, and a main change still flags them. They clear as each set is next written (an update, or Overwrite,
-  the workaround in use). Whether to clear them sooner is held for the owner (see the PR).
+  the workaround in use). Owner decision Q77 A (2026-11-07): records written before this PR stay as they are, and
+  Option B (clearing them sooner) is not taken. No real hand edit is lost.
 - **A swap is still the host's** (`main` is always in the own part). **A rename of the nested component still moves it**:
   v3 names the main by name, not by key.
 - **A binding is resolved against the main.** Figma lists a binding the host set or cleared as one field,
@@ -77,4 +78,6 @@ Arms: `test-update-components.ts` `#3474/…` and `test-update-apply.ts` `#3474 
 the own-part branch dropped → `#3474/main`; the own signature ignoring overrides → `#3474/host`, `#3474/host override`;
 the snapshot not reading `overrides` → `#3474/main`; `finishUpdated`'s keep dropped → `#3474 kept/still reported`;
 `finishUpdated`'s branch for a record with no own part removed → `#3474 kept/earlier record`; `boundVariables` dropped
-unresolved → `#3474/host rebind`; every binding counted as the host's → `#3474/main`, `#3474/main rebind`.
+unresolved → `#3474/host rebind`; every binding counted as the host's → `#3474/main`, `#3474/main rebind`; only the
+instance's own binding keys walked, so a host clear of a main binding is dropped → `#3474/host clear`; the unreadable-main
+fallback inverted → `#3474/host rebind, main unreadable`.

@@ -100,7 +100,9 @@
  *                  file, #3477), and the instance's `boundVariables` holds its main's bindings too, so the entry is
  *                  resolved against the main: a main rebind is not a hand edit, a host rebind is. Mutations:
  *                  `boundVariables` dropped unresolved → `#3474/host rebind`; every binding counted as the host's →
- *                  `#3474/main rebind`.
+ *                  `#3474/main rebind`; only the instance's own binding keys walked (a host clear of a main binding
+ *                  dropped) → `#3474/host clear`; the unreadable-main fallback inverted → `#3474/host rebind, main
+ *                  unreadable`.
  *
  * Run: `npx tsx apps/plugin/test-update-components.ts`
  */
@@ -1166,6 +1168,26 @@ section('#3474 nested main — a change that reaches a member only through its n
   const hr = await check();
   ok(hr.counts.handEdited === 3 && hr.handEdits.some((h) => h.member === rebind.name && h.path === 'focusRing'),
     `#3474/host rebind: a binding set on the nested instance itself is a hand edit, though the overrides list only \`boundVariables\` (${JSON.stringify(hr.handEdits.map((h) => `${h.member} ${h.path}`))})`);
+  // A HOST CLEAR, in Figma's shape: a binding the main holds, cleared on one member's ring. The instance no longer names
+  // it, so only the main's keys can say it was there. Mutation: only the instance's own binding keys walked →
+  // `#3474/host clear`.
+  const cleared = focused[20];
+  ok(!!(ringOf(cleared).boundVariables as Record<string, unknown>).strokeTopWeight, `#3474 premise: the ring to clear holds its main's stroke-weight binding`);
+  delete (ringOf(cleared).boundVariables as Record<string, unknown>).strokeTopWeight;
+  const hc = await check();
+  ok(hc.counts.handEdited === 4 && hc.handEdits.some((h) => h.member === cleared.name && h.path === 'focusRing'),
+    `#3474/host clear: a binding the main holds, cleared on the nested instance, is a hand edit (${JSON.stringify(hc.handEdits.map((h) => `${h.member} ${h.path}`))})`);
+  // A MAIN WHOSE BINDINGS CANNOT BE READ (a library main, a getter that throws): every binding the instance lists is kept
+  // as the host's, so a host rebind there is never swallowed. Mutation: the fallback inverted (bindings kept only where
+  // the main reads) → `#3474/host rebind, main unreadable`.
+  const unread = focused[17];
+  const realMain = ringOf(unread).mainComponent as Record<string, unknown>;
+  const library = new Proxy(realMain, { get: (t, k) => { if (k === 'boundVariables') throw new Error('main not readable'); return Reflect.get(t, k); } });
+  Object.defineProperty(ringOf(unread), 'getMainComponentAsync', { value: async () => library, configurable: true });
+  (ringOf(unread).setBoundVariable as (f: string, v: { id: string; value: number }) => void)('strokeTopWeight', { id: 'V:size/md/height', value: 8 });
+  const ur = await check();
+  ok(ur.counts.handEdited === 5 && ur.handEdits.some((h) => h.member === unread.name && h.path === 'focusRing'),
+    `#3474/host rebind, main unreadable: a host rebind on a ring whose main's bindings cannot be read is a hand edit (${JSON.stringify(ur.handEdits.map((h) => `${h.member} ${h.path}`))})`);
   // A RECORD FROM BEFORE #3474 holds no own part: it is compared whole, as it always was, so the main's change still
   // reads on it. Existing records read exactly as they did.
   const old = focused[0];
