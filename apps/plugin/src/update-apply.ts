@@ -52,7 +52,7 @@ import { planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/
 import { partRenames, type ComponentRename } from '@prism3/engine/component-renames';
 import { applyComponentPlan, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { NS } from './persist-figma';
-import { baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
+import { UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, relocateTables, type PageMove, type TableMove } from './page-moves';
@@ -597,6 +597,11 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   if (out.deprecated.length) live.setSharedPluginData?.(NS, RETAINED_KEY, JSON.stringify(retained));
 
   // ── THE BUILD'S OWN PASS, IN UPDATE MODE ────────────────────────────────────────────────────────────────────
+  // Each member this update configures, its stamp as the pass finds it, so a pass that stops can count the members it
+  // finished off the host (#3449) rather than off a result it never returned.
+  type Stamped = { getSharedPluginData?(ns: string, k: string): string };
+  const dataOf = (name: string, key: string): string => (before.get(name)?.ref as Stamped | undefined)?.getSharedPluginData?.(NS, key) ?? '';
+  const stampWas = new Map([...work.members.keys()].map((m) => [m, dataOf(m, STAMP_KEY)] as const));
   let r: ComponentApplyResult;
   try {
     r = await applyComponentPlan(t.plans, api, {
@@ -612,6 +617,15 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     });
   } catch (err) {
     out.stopped = (err as Error)?.message ?? String(err);
+    // A STOPPED SET COUNTS THE MEMBERS IT FINISHED (#3449). The pass returned nothing, so they are read off the host: a
+    // member is finished when it carries its planned stamp, which it did not before, and no in-progress marker. The
+    // stamp is written last (§7), so this is exactly what the next dry run reads as current. Before this the count was
+    // always 0, even when the pass had stamped members before it stopped.
+    out.updated = [...stampWas].filter(([m, was]) => {
+      const pl = plans.get(m);
+      const want = pl ? memberStamp(pl) : '';
+      return !!want && was !== want && dataOf(m, STAMP_KEY) === want && !dataOf(m, UPDATING_KEY);
+    }).map(([m]) => m);
     return out;
   }
   out.updated = r.updatedInPlace ?? [];

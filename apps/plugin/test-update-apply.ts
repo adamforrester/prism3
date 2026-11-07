@@ -25,6 +25,9 @@
  *   stop/…         a run that stops part-way leaves members that read out of date, and running the update again
  *                  finishes it with every key unchanged. Mutation: the stamp written before the member is
  *                  configured → `stop/out of date`, `stop/finished`.
+ *   stop/count     a stopped set's line counts the members the pass finished, read off the host's stamps: 0 when it
+ *                  stopped before any stamp, 9 when the 10th stamp write throws (#3449). Mutation: the count not read
+ *                  off the host on a stop → `stop/count finished`.
  *   version/…      a named version is saved once, before the first write; refused, nothing is written.
  *                  Mutation: the version not saved → `version/once`, `version/refused`.
  *   fonts/…        a text style whose typeface will not load refuses the set before anything is written.
@@ -1076,6 +1079,9 @@ section('stop — a run that stops part-way finishes when the update runs again'
   ok(/^✗ update stopped at /.test(applyVerdict(res).headline), `stop/verdict: ${applyVerdict(res).headline}`);
   ok(JSON.stringify(applyVerdict(res).causes) === JSON.stringify([{ kind: 'bad', subject: TAG, what: 'stopped', reasons: [res.outcomes[0].stopped] }]),
     `causes/stopped: the set the run stopped at is its cause, the host's words its reason (${JSON.stringify(applyVerdict(res).causes)})`);
+  // #3449: stopped inside the members' writes, before any stamp, the pass finished none, and the line says 0.
+  const zeroLine = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
+  ok(zeroLine.includes('). 0 members updated; '), `stop/count none: stopped before any member's stamp, the line counts 0 finished (${zeroLine.slice(0, 160)})`);
   const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
   ok(mid.counts.current === 0 && mid.counts.update === 45 && mid.handEdits.length === 0,
     `stop/out of date: every member still reads out of date, and none as a hand edit (${JSON.stringify(mid.counts)}, ${mid.handEdits.length} edits)`);
@@ -1085,6 +1091,31 @@ section('stop — a run that stops part-way finishes when the update runs again'
   ok(post.counts.current === 45, `stop/current: and every member reads current (${JSON.stringify(post.counts)})`);
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), 'stop/keys: every member keeps its key and id across both runs');
+}
+
+/* ── stop/count (#3449) ──────────────────────────────────────────────────────────────────────────────── */
+section('stop/count — a set stopped after some members finished counts them');
+{
+  // The host throws on the 10th member's STAMP write. The stamp is written last for each member, outside the record's
+  // catch (`finishUpdated`), so the pass stops there with 9 members finished and 36 not. The count expected is literal,
+  // and the dry run, read off the host's stamps by its own path, is the second witness. Mutation: the stopped set's
+  // count not read off the host (`out.updated` left empty on a stop) → `stop/count finished`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const next = moveGap(w.plans);
+  let writes = 0;
+  for (const m of membersOf(w.set())) {
+    const real = m.setSharedPluginData as (ns: string, k: string, v: string) => void;
+    m.setSharedPluginData = (ns: string, k: string, v: string) => {
+      if (k === STAMP_KEY && v && ++writes === 10) throw new Error('in setSharedPluginData: the host stopped');
+      real.call(m, ns, k, v);
+    };
+  }
+  const { res } = await confirm(w, [{ def: TAG, plans: next }]);
+  ok(!!res.outcomes[0]?.stopped && /the host stopped/.test(res.outcomes[0].stopped!) && writes === 10, `premise: the run stopped at the 10th stamp write (${res.outcomes[0]?.stopped}; ${writes} writes)`);
+  const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
+  ok(mid.counts.current === 9 && mid.counts.update === 36, `stop/count premise: the dry run reads 9 members current and 36 out of date (${JSON.stringify(mid.counts)})`);
+  const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
+  ok(line.includes('). 9 members updated; '), `stop/count finished: the stopped set's line counts the 9 members it finished (${line.slice(0, 160)})`);
 }
 
 /* ── version ─────────────────────────────────────────────────────────────────────────────────────────── */

@@ -37,10 +37,15 @@
  *   · pack: the transport encoding round-trips every example brand's plans
  *   · components: dependency order, every script compiles, the `loadAllPagesAsync` adapter
  *   · size: every script for every example brand is ≤ SCRIPT_CEILING
+ *   · size/one member (#3418): a set member that will not fit in a chunk alone is a thrown error naming it
  *   · size/pages (#3414): no chunk script carries the file taxonomy, so a new component page costs a chunk nothing;
  *     each set is placed once, by its own script, before its first chunk
  */
 import { readFileSync, readdirSync } from 'node:fs';
+import { figmaAnatomySet, planSetChunks } from '@prism3/engine/anatomy-figma';
+import { componentDefs } from '@prism3/engine/components/index';
+import { SWAP_TARGET } from './src/build-deps';
+import { materializeForBrand } from './src/brand-def';
 import type { BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { runApplyTheme, themePlans } from './src/apply-theme';
@@ -534,6 +539,26 @@ await section('size/pages', async () => {
   const dialog = scripts.filter((s) => s.def === 'dialog');
   ok(dialog[0]?.kind === 'component-place' && pageOf(dialog[0]) === '↳ Dialog' && dialog.filter((s) => s.kind === 'component-chunk').every((s) => pageOf(s) === '↳ Dialog'),
     `size/pages: dialog is placed on '↳ Dialog' first, and every one of its chunks switches to '↳ Dialog' (${dialog.map((s) => `${s.kind}:${pageOf(s)}`).slice(0, 2).join(', ')}, …)`);
+});
+
+/* ── size/one member (#3418) ─────────────────────────────────────────────────────────────────────────── */
+// The header's rule: a single indivisible unit that will not fit is a THROWN ERROR, never a script over the ceiling. A
+// set's indivisible unit is one member in a chunk, and `planSetChunks` ships it alone and over budget rather than
+// loop. So `componentScripts` must throw, naming the def and the member. Badge has no dependencies, so its chunks are
+// the first a lowered ceiling reaches. The premise is measured off the engine's own packer at a budget of 1 (one
+// member per chunk), not off `componentScripts`: every badge member alone is over 30,000 characters before any
+// wrapper, so at a 30,000 ceiling none can fit. Mutation: the over-budget check dropped from `componentScripts` → `size/one
+// member: a member that will not fit alone throws`.
+await section('size/one member', async () => {
+  const input = PARITY[1][1];
+  const plans = figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === 'badge')!, input), { swapTarget: SWAP_TARGET });
+  const alone = Math.min(...planSetChunks(plans, 1).map((c) => c.bytes));
+  ok(alone > 30_000, `size/one member: premise — the smallest badge member alone makes a ${alone}-character chunk, over 30,000`);
+  ok(componentScripts(input, ['badge']).filter((s) => s.kind === 'component-chunk').length > 1, 'size/one member: control — at the real ceiling badge packs without a throw, into more than one chunk');
+  let thrown = '';
+  try { componentScripts(input, ['badge'], { chunkCeiling: 30_000 }); } catch (e) { thrown = (e as Error).message; }
+  ok(/^badge components: member '[^']*type=status[^']*' alone makes a \d+-character chunk, over its \d+-character budget \(the 30000 ceiling less the script's own \d+\), and a member cannot be split$/.test(thrown),
+    `size/one member: a member that will not fit alone throws, naming the def and the member (${thrown ? `"${thrown.slice(0, 220)}"` : 'no throw'})`);
 });
 
 console.log(failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass');
