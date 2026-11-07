@@ -332,8 +332,8 @@ the brief and the KPIs). Arm 1 is a package in this monorepo, generated from the
 contributor's own repo. The decisions below are arm 1's and are scoped to the POC. If the POC's
 evidence supports them, a later decision carries them into §2–§3.
 
-Two arm 1 questions are still open and are not decided here: whether the components are plain custom
-elements or Lit 3 (Q95), and the CSS custom-property prefix (Q98, `35` §9.2).
+One arm 1 question is still open and is not decided here: whether the components are plain custom
+elements or Lit 3 (Q95). The CSS custom-property prefix is decided in `35` §9.4 (Q98 A).
 
 ### 10.1 Decided (2026-11-07, #3408): arm 1's packages are generated from the defs export, and a parity gate checks them
 

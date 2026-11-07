@@ -1705,6 +1705,15 @@ npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over E
                                           # and the per-platform x type verdicts are pinned (the
                                           # native gaps tagged with their issues). Which SD versions
                                           # behave this way: tools/sd-version-matrix/ (a tool)
+npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHIPPABLE side of the
+                                          # package. `npm pack` runs prepack (sd.ship.mjs, the same
+                                          # stock SD) to build the house brand's token CSS; the
+                                          # tarball installs into a temp folder OUTSIDE the repo; the
+                                          # installed CSS, resolved through `exports`, must define
+                                          # every guaranteed name in token-contract.json under
+                                          # `--pds3-` (Q98 A) in `:root` and each promised
+                                          # `[data-theme]` block. The contract, prefix and mode list
+                                          # are the oracle, never read off the build
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component

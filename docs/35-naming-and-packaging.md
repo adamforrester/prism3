@@ -491,9 +491,7 @@ assumption baked into the layout — the layout above supports all three.
 
 The POC measures two ways of delivering Prism3 to code (`19` §10). Arm 1 is built in this monorepo,
 and these are its naming and packaging decisions, recorded where the naming lives. The CSS
-custom-property prefix (Q98) is still open: stock Style Dictionary emits `--pds3-…` names, and the
-adherence scorer expects unprefixed ones. §9.2's prefix is for classes and elements only and does not
-decide it.
+custom-property prefix is §9.4; §9.2's prefix is for classes and elements only.
 
 ### 9.1 Decided (2026-11-07, #3408): arm 1 ships `@prism3/web-components` and `@prism3/css`
 
@@ -516,6 +514,19 @@ already runs; a new `@prism3/tokens-css` package was the alternative. The source
 copies the components into a client repo and keeps the tokens a versioned package, and that needs a
 package to install. That is the POC's working answer to #253, which stays open until the POC reports.
 §2's "a gate we run rather than something we ship" is amended to match.
+
+**Built (#3408 S1):** `sd.ship.mjs` builds the house brand's CSS with the same stock Style Dictionary,
+`npm pack` makes the tarball (`dist/` and the README only), and `check-package.mjs` installs it outside
+the repo and checks the contract's names in every mode block. The package stays `private`: a tarball,
+not a registry (Q84 A).
+
+### 9.4 Decided (2026-11-07, #3408): CSS custom properties keep the `--pds3-` prefix
+
+Q98 A. Token CSS names are stock Style Dictionary's root-prefixed names (`--pds3-color-text-primary`),
+with no custom build step and no root rename. A namespaced name can't collide with a CMS site's own
+variables, and it keeps `packages/tokens`' no-custom-code rule. The adherence scorer learns the prefix
+instead of stripping it. The `pds3` / `p3-` mismatch with §9.2 is accepted: renaming the token root
+would be a breaking contract change.
 
 ---
 

@@ -68,6 +68,8 @@ import { fileURLToPath } from 'node:url';
 import { buildConsumer, buildProjected, SOURCE, OUT_ROOT } from './sd.consumer.mjs';
 
 const CONFIG = resolve(dirname(fileURLToPath(import.meta.url)), 'sd.consumer.mjs');
+/** The shippable build (#3408 S1) is bound by the same rule, so its source is read the same way. */
+const SHIP_CONFIG = resolve(dirname(fileURLToPath(import.meta.url)), 'sd.ship.mjs');
 
 /**
  * The brands to measure, discovered rather than listed — `<brand>.tokens.json` minus the projected
@@ -171,10 +173,12 @@ const ok = (cond, label) => { console.log(`  ${cond ? '✓' : '✗'} ${label}`);
 // the gate's most important check — without it, the cheapest way to make a future failure go away is
 // the exact move that destroys the gate's meaning.
 console.log(`\nConsumability gate — a stock Style Dictionary over every emitted brand\n`);
-const cfg = readFileSync(CONFIG, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-for (const banned of ['preprocessors', 'hooks', 'transforms:', 'registerTransform', 'registerPreprocessor', 'registerFormat']) {
-  ok(!cfg.includes(banned),
-    `[RULE] the consumer config declares no \`${banned}\` — no custom code a consumer would have to run`);
+for (const [label, file] of [['consumer config', CONFIG], ['shippable build', SHIP_CONFIG]]) {
+  const cfg = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  for (const banned of ['preprocessors', 'hooks', 'transforms:', 'registerTransform', 'registerPreprocessor', 'registerFormat']) {
+    ok(!cfg.includes(banned),
+      `[RULE] the ${label} declares no \`${banned}\` — no custom code a consumer would have to run`);
+  }
 }
 
 // ---- SCOPE: representation, not a count (#635) ----
