@@ -24,9 +24,12 @@ first line (`Drew n of m`) to the first item.
 
 ### Gates
 
-`test-build-completed.ts` section 8a, `causes/draw specs noted` (section 8's own run, every panel drawn with a note),
-and section 8b, `causes/draw specs none` (no set on the page) and `causes/draw specs refused` (the host refuses every
-new frame), each literal. The `causes/every verdict` invariant no longer leaves Draw specs out. Mutations: the causes
-emptied → all three arms and `causes/every verdict`; the kind taken from what was drawn (✗ under ⚠) →
-`causes/draw specs refused`; ✓ put back for the note case → `causes/draw specs noted`; the causes keyed on `ok` alone,
-ignoring items → `causes/draw specs noted` and `causes/every verdict`.
+`test-build-completed.ts` pins every case literally, so the mapping cannot move without a test failing by name:
+section 8a `causes/draw specs noted` (section 8's own run, every panel drawn with a note); section 8b
+`causes/draw specs none` (no set on the page) and `causes/draw specs refused` (nothing drawn: the host refuses every new
+frame); section 8c `causes/draw specs some` (the whole-file run while Badge's page refuses writes, three of four drawn)
+and `causes/draw specs threw` (the set search throws). The `causes/every verdict` invariant no longer leaves Draw specs
+out. The #3496 review found the some-drawn, note and throw cases unpinned; 8a and 8c close that. Mutations: the kind
+taken from what was drawn (✗ under ⚠) → `causes/draw specs refused`; ✓ put back for the note case, its kind `bad`, or
+`clean = ok` → `causes/draw specs noted`; the some-drawn kind `bad` → `causes/draw specs some`; the throw's causes
+dropped or its kind `warn` → `causes/draw specs threw`; every cause emptied → all five arms and `causes/every verdict`.
