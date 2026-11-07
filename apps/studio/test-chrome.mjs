@@ -3638,6 +3638,19 @@ for (const host of ['web', 'figma']) {
         ok(JSON.stringify(wd) === JSON.stringify(['prune:true']), `Clean up ${where}: Delete posts the confirmed prune — posted ${JSON.stringify(wd)}`);
         await postMsg(page, { type: 'prune-result', ok: true, applied: true, count: 3, summary: 'Removed 3 stale items.' });
         await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+        // #3467 (Q3 A, Q4 A): a set-up file whose read lists something Set up file owns is offered Set up file, unticked, its
+        // line naming what the file lacks; a set-up file whose read lists nothing is not. Literals. (mutation: the shell's
+        // row drawn on `fresh` alone → `#3467 Update file … offered`)
+        await openUpdate({ present: [], setUp: true, setupIncomplete: ['_Label', '_Doc-block'] });
+        const inc = await page.evaluate(() => ({ box: document.querySelector('[data-p3="update-dialog"] [data-p3="update-check-setup"]')?.getAttribute('aria-checked') ?? null,
+          sub: document.querySelector('[data-p3="update-dialog"] [data-p3="update-item-setup"] .p3-upd-sub')?.textContent ?? null }));
+        ok(inc.box === 'false' && inc.sub === 'Builds what this file lacks: _Label, _Doc-block.',
+          `#3467 Update file ${where}: offered on a set-up file that lacks what setup owns, unticked, naming it (${JSON.stringify(inc)})`);
+        await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
+        await openUpdate({ present: [], setUp: true });
+        const none = await items();
+        ok(!none.some(([k]) => k === 'update-check-setup'), `#3467 Update file ${where}: not offered on a set-up file whose read lists nothing (${JSON.stringify(none)})`);
+        await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
         // Set up file: the first checklist on a file that is not set up (Q668 A). Its result fails (light) or warns (dark),
         // which ends the run and keeps the drawer open (F2); at 380 it opens the full-pane sheet.
         await openUpdate({ present: [], setUp: false });

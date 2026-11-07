@@ -56,7 +56,8 @@ export const forAgent = (m: MainToUi): MainToUi => {
 /** The main-thread handlers the UI's buttons reach — built by `main.ts` from its own functions. */
 export type AgentActions = {
   applyTheme(input: BrandInput, sink: ActionSink): Promise<void>;
-  /** `options.docBlock`: the panel's Update file only (#3308 Q3308.3 A); the agent's build never passes it. */
+  /** `options.docBlock`: Update file's sets step (#3308 Q3308.3 A) and the agent's build (#3467 Q1 A) both pass it, so a
+   *  first build on a themed file builds `_Doc-block` first, as the panel's first run does. */
   buildComponents(def: string | undefined, sink: ActionSink, options?: { readonly docBlock?: boolean }): Promise<void>;
   fileSetup(sink: ActionSink): Promise<void>;
   styleGuide(options: StyleGuideOptions, sink: ActionSink): Promise<void>;
@@ -175,7 +176,8 @@ type Route = (c: ValidCommand, a: AgentActions, sink: ActionSink, d: Deps) => Pr
 export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   status: async (_c, _a, sink, d) => { sink.data(await d.status()); },
   'apply-theme': (c, a, sink) => a.applyTheme((c as Extract<ValidCommand, { cmd: 'apply-theme' }>).args.input, sink),
-  'build-components': (c, a, sink) => a.buildComponents((c as Extract<ValidCommand, { cmd: 'build-components' }>).args.def, sink),
+  // #3467 Q1 A: the same `docBlock` ask as Update file's sets step (`apps/studio/src/main.ts`), through the same handler.
+  'build-components': (c, a, sink) => a.buildComponents((c as Extract<ValidCommand, { cmd: 'build-components' }>).args.def, sink, { docBlock: true }),
   'file-setup': (_c, a, sink) => a.fileSetup(sink),
   'style-guide': (c, a, sink) => a.styleGuide((c as Extract<ValidCommand, { cmd: 'style-guide' }>).args, sink),
   prune: (c, a, sink) => {
