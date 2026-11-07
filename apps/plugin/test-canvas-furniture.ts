@@ -54,6 +54,11 @@
  *   templates/missing…  a file without `_Label` or `_inverse-backdrop` (#2598): one line for the run, naming each
  *                 missing template and Set up file, and the update's summary carries it. Mutations: the line dropped →
  *                 `templates/missing build`; one line per set → the same; the summary left out → `templates/update summary`.
+ *   #3467 doc-block/…  a missing `_Doc-block` (Q2 A, Q5 A): a note, never a warning, the verdict left ok and ✓; with
+ *                 `_Label` missing too, ⚠ for `_Label` alone; the line names the fix for the file it is handed (no theme,
+ *                 sets missing, everything there). Mutations: `withTemplateWarning` flipping on any missing template →
+ *                 `#3467 doc-block/note`; `docBlockNotes` returning none → the same; the theme branch removed →
+ *                 `#3467 doc-block/fix no theme`; the sets branch removed → `#3467 doc-block/fix sets`.
  *   templates/cause…  the same line as data (#3326 PR 1, Q3326.1 A): `withTemplateWarning` adds one cause per set that
  *                 lacked a template, its reason that set's template line, merged with a cause the verdict already holds
  *                 for it. Mutations: the line dropped from `templateCauses`' reasons, its prose left → `templates/cause
@@ -94,7 +99,7 @@ import { captureBaselines, previewUpdate, previewLine, previewVerdict, type Upda
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
 import type { Cause } from './src/messages';
 import { allLeaves } from './src/file-taxonomy';
@@ -330,6 +335,27 @@ section('draw — the executor places, tags, redraws and clears');
     `templates/cause merge: one cause per set, the template line after the set's own reason (${JSON.stringify(merged.causes)})`);
   const clean = { ok: true, headline: '✓ built 8', causes: [] as Cause[] };
   ok(withTemplateWarning(clean, [o, again], 'build') === clean, `templates/cause none: a file with both templates leaves the verdict and its causes as they were`);
+  // #3467 (Q2 A, Q5 A) — A MISSING `_Doc-block` IS A NOTE, WITH THE FIX FOR THIS FILE. Literals throughout: the outcome is
+  // a set whose usage panel found no template; the file's state is the `fix` handed in.
+  const noBlock = { ...again, def: 'badge', missing: ['_Doc-block'] };
+  const HEAD = 'No usage panels drawn: this file has no _Doc-block component';
+  const notedB = withTemplateWarning({ ok: true, headline: '✓ built 50 variants', causes: [] as Cause[] }, [noBlock], 'build', { theme: true, lacks: ['tag', 'divider'] });
+  ok(notedB.ok === true && notedB.headline === '✓ built 50 variants' && JSON.stringify(notedB.causes) === JSON.stringify([
+    { kind: 'note', subject: null, what: `${HEAD}.`, reasons: ['Build tag, divider, then run Set up file and build again.'] },
+  ]), `#3467 doc-block/note: only _Doc-block missing, the verdict stays ok and ✓, its one cause a note (${JSON.stringify(notedB)})`);
+  const bothB = withTemplateWarning({ ok: true, headline: '✓ built 8', causes: [] as Cause[] }, [{ ...noBlock, missing: ['_Label', '_Doc-block'] }], 'build', null);
+  ok(!bothB.ok && bothB.headline === '⚠ built 8' && JSON.stringify(bothB.causes) === JSON.stringify([
+    { kind: 'note', subject: null, what: `${HEAD}.`, reasons: ['Run Set up file, then build again.'] },
+    { kind: 'warn', subject: 'badge', what: 'built with problems', reasons: ['No canvas labels drawn: this file has no _Label component. Run Set up file, then build again.'] },
+  ]), `#3467 doc-block/label still warns: _Label missing too, the run is ⚠ for _Label alone, the usage panels a note (${JSON.stringify(bothB.causes)})`);
+  ok(docBlockLine([noBlock], 'build', { theme: false, lacks: ['badge', 'tag', 'list-item', 'divider'] }) === `${HEAD}, and it is built from the theme. Apply the theme, then build again`,
+    `#3467 doc-block/fix no theme: the theme first ("${docBlockLine([noBlock], 'build', { theme: false, lacks: ['badge'] })}")`);
+  ok(docBlockLine([noBlock], 'update', { theme: true, lacks: ['list-item'] }) === `${HEAD}. Build list-item, then run Set up file and update again`,
+    `#3467 doc-block/fix sets: the sets it lacks, then Set up file ("${docBlockLine([noBlock], 'update', { theme: true, lacks: ['list-item'] })}")`);
+  ok(docBlockLine([noBlock], 'build', { theme: true, lacks: [] }) === `${HEAD}. Run Set up file, then build again`,
+    `#3467 doc-block/fix ready: everything in the file, Set up file alone ("${docBlockLine([noBlock], 'build', { theme: true, lacks: [] })}")`);
+  ok(docBlockLine([o, again], 'build', { theme: true, lacks: [] }) === '' && furnitureItems([noBlock], 'build').length === 0,
+    `#3467 doc-block/none: no line when no set lacked it, and the warning items never carry it (${JSON.stringify(furnitureItems([noBlock], 'build'))})`);
   clearFurniture(page, 'grid');
 }
 

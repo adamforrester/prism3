@@ -455,7 +455,7 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // the ledger's a full one. Before, the read after open always landed first; now it yields, so a request can win.
       if (m.atOpen && s.fileSets && !s.fileSets.atOpen) return s;
       if (m.partial && s.fileSets && !s.fileSets.partial) return s;
-      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.docBlockLacks ? { docBlockLacks: m.docBlockLacks } : {}), ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}), ...(m.unpaneled ? { unpaneled: m.unpaneled, panelLeads: m.panelLeads } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass,
+      return { ...s, fileSets: { present: m.present, setUp: m.setUp, error: m.error, due: m.due, ...(m.docBlockLacks ? { docBlockLacks: m.docBlockLacks } : {}), ...(m.setupIncomplete ? { setupIncomplete: m.setupIncomplete } : {}), ...(m.partial ? { partial: true } : {}), ...(m.atOpen ? { atOpen: true } : {}), ...(m.unpaneled ? { unpaneled: m.unpaneled, panelLeads: m.panelLeads } : {}) }, handPass: s.handPass === 'idle' && !m.error ? 'running' : s.handPass,
         addQueue: m.error ? s.addQueue : m.queued };
     case 'file-due':
       // An answer older than the one held was overtaken by a newer request: the newer answer is the brand on screen.

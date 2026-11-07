@@ -223,6 +223,13 @@ jobs:
       - name: Skills gate (shipped skills make true claims)
         run: npx --yes tsx@4 packages/engine/lint-skills.ts
 
+      # #3413 P1 — the motion skill teaches "every timing is a token", so it is held to it: no duration,
+      # curve or spring constant in its text (the oracle is a typed SHAPE, never the emitted values, which
+      # would pass an off-ramp duration), and every motion.* name it quotes resolves in every brand's
+      # committed DTCG. Non-motion numbers are admitted by exact text, each with a reason.
+      - name: The motion skill names tokens, never durations or curves (#3413)
+        run: npx --yes tsx@4 packages/engine/lint-motion-literals.ts
+
       # A gate that silently stops running is worse than no gate, because green starts meaning
       # "nothing ran". If any emitter, report or schema artifact ever leaves the compared set, this
       # fails loudly rather than quietly shrinking. Update the number deliberately when the set
