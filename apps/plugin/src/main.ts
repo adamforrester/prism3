@@ -1883,10 +1883,16 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     const ok = drawn.length > 0 && drawn.length === targets.length && !skipped.length;
     const headline = !targets.length ? '✗ no sets to spec' : ok ? `✓ drew ${drawn.length} spec panel${drawn.length === 1 ? '' : 's'}` : `⚠ drew ${drawn.length} of ${targets.length} spec panels`;
     const summary = !targets.length ? `No family's lead set is ${scope === 'page' ? 'on this page' : 'in this file'}${defId ? ` for ${defId}` : ''}.` : [`Drew ${drawn.length} of ${targets.length}.`, ...items].join(' ');
-    postVerdict({ type: 'component-update-result', ok: ok && !items.length, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary] }, sink);
+    // #3404: a verdict that is not ok says why (#3326 PR 1's invariant). No new words: the run's own cause, worded by its
+    // headline without the mark, as `runCause` words the others, and its reasons the items the lines already print (or,
+    // with no set to spec, the summary). `✗` wrote nothing, so `bad`; a run that drew panels, `warn`.
+    const clean = ok && !items.length;
+    const causes = clean ? [] : !targets.length ? [runCause(headline, summary)]
+      : [cause(drawn.length ? 'warn' : 'bad', null, headline.replace(/^[✓⚠✗]\s*/u, ''), items)];
+    postVerdict({ type: 'component-update-result', ok: clean, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary], causes }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
-    postVerdict({ type: 'component-update-result', ok: false, headline: '✗ draw specs failed', summary: why, lines: [why] }, sink);
+    postVerdict({ type: 'component-update-result', ok: false, headline: '✗ draw specs failed', summary: why, lines: [why], causes: [runCause('✗ draw specs failed', why)] }, sink);
   }
 };
 
