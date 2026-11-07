@@ -24,7 +24,7 @@ The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxon
 - A divider, then `Subcomponents`
 - A divider, then `Sandbox`, with `↳ File Components`
 
-The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:466-467 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5#53a54c27 -->
+The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:471-472 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5#53a54c27 -->
 
 Component pages are not created here. Each component page, such as `↳ Buttons` or `↳ Checkbox`, appears the first time a set for it is added, so a file never holds empty component pages. <!-- src: apps/plugin/src/file-taxonomy.ts:99-105 --> `↳ Icons & assets`, under Foundations, appears the same way. <!-- src: apps/plugin/src/file-taxonomy.ts:87 --> Pages under Components and Subcomponents sit in alphabetical order. <!-- src: apps/plugin/src/file-taxonomy.ts:94#9c677188 --> <!-- src: apps/plugin/src/file-taxonomy.ts:182#9c677188 -->
 
@@ -35,13 +35,13 @@ A file with no brand yet gets its cover once the theme is written. <!-- src: app
 
 ## The helper components
 
-On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with: <!-- src: apps/plugin/src/file-taxonomy.ts:200 -->
+On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with. All but `_Doc-block` are built on any file; `_Doc-block` needs other sets first (below). <!-- src: apps/plugin/src/file-taxonomy.ts:200 -->
 
 | Component | What it is for |
 |---|---|
 | `_Section-header`, `_Headings` | The header at the top of each component page. <!-- src: apps/plugin/src/file-components.ts:34-35 --> |
 | `_Label`, `_inverse-backdrop`, `_scrim-backdrop` | The labels and backdrops placed beside a component set on the canvas. The scrim is the modal backdrop drawn behind the centered and bottom-sheet Dialog examples. <!-- src: apps/plugin/src/furniture-templates.ts:44-69 --> |
-| `_Doc-block` | The blocks a usage panel is drawn from. <!-- src: apps/plugin/src/doc-block.ts:42 --> |
+| `_Doc-block` | The blocks a usage panel is drawn from. <!-- src: apps/plugin/src/doc-block.ts:42 --> It is assembled from the file's own Badge, Tag, List Item and Divider sets and the theme, so setup builds it only once all four sets and the theme are in the file. Until then the result says what is missing. <!-- src: apps/plugin/src/doc-block.ts:177-180#ef13b52f --> |
 | `_style-guide-swatches`, `_style-guide-text-cells`, `_style-guide-spacing-cells` | The cells [Build style guides](style-guides.md) draws its tables from. <!-- src: apps/plugin/src/style-guide-cells.ts:26-28 --> |
 
 The names start with an underscore because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, setup uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:1936-1965#3fa249a3 -->
