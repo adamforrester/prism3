@@ -9432,7 +9432,7 @@ console.log(`\nLayout (S10)\n${'='.repeat(78)}`);
 const LAYOUT_MANIFEST = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/lever-manifest.json'), 'utf8')).levers.filter((l) => l.group === 'layout').map((l) => l.key);
 ok(LAYOUT_MANIFEST.length === 4, `the committed manifest homes ${LAYOUT_MANIFEST.length} levers in its layout group (want 4: breakpoints, columns, the two containers) — ${LAYOUT_MANIFEST.join(', ')}`);
 /** The preview's sections, by title, and the lever sections they pair with (Q23). Literal. */
-const EXPECT_LAYOUT_SECTIONS = ['Breakpoints', 'Grid', 'Containers'];
+const EXPECT_LAYOUT_SECTIONS = ['Grid', 'Breakpoints', 'Containers'];  // #683 (Q111 A): Grid first.
 /** The approved copy (owner, S10 scope), literal. */
 const LAYOUT_APPROVED = {
   intro: 'Breakpoints, the grid and content widths.',
@@ -9440,7 +9440,7 @@ const LAYOUT_APPROVED = {
   Grid: 'Columns, gutter and margin for each breakpoint. Auto follows the default steps.',
   Containers: 'Content stretches up to the maximum width. The content container is narrower, for long text.',
   first: 'Always 0px.', add: 'Add breakpoint', next: 'Continue to Components',
-  hints: ['To scale. Each color is the range one layout covers.', 'Bars are columns; the gray is the margin.', 'To scale against the widest breakpoint, 1920px.'],
+  hints: ['Bars are columns; the gray is the margin.', 'To scale. Each color is the range one layout covers.', 'To scale against the widest breakpoint, 1920px.'],
   labels: ['Grid columns', 'Maximum width', 'Content container'],
 };
 /** Words D16 retires from Layout's visible copy (and Q53's "face", "band", "rung", "muted"). Literal. */
