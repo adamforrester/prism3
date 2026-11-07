@@ -13,7 +13,7 @@
  * whole transcript (every event, as text or JSON) to another, then `capture` them. Never edit either file by hand: the
  * record holds each output's sha256, and the scorer refuses an output that no longer matches (proposal §1).
  *
- * THE CAPTURE FORMAT is the packet's "What to send back" (`packets.ts` `TASK`): each file between `=== FILE: <name> ===`
+ * THE CAPTURE FORMAT is the packet's "What to send back" (`packets.ts` `task`): each file between `=== FILE: <name> ===`
  * and `=== END FILE ===` on lines of their own. The last block for each name wins. A code fence just inside the markers
  * is dropped. A run whose final message lacks either file is recorded as captured with that file missing.
  *
