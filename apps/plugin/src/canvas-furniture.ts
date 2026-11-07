@@ -799,16 +799,53 @@ export const withPanel = (f: FurnitureOutcome, p: PanelOutcome): FurnitureOutcom
   return f;
 };
 
+/** The templates whose absence makes a run a warning (Q284.3 A): the canvas labels and both backdrops. `_Doc-block` is
+ *  not one: since #3467 (Q2 A) a missing usage-panel template is a note (`docBlockNotes`). */
+const WARN_TEMPLATES = [LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT] as const;
+/** The templates `o` lacked that make the run a warning. */
+const warnMissingOf = (o: FurnitureOutcome): string[] => (o.missing ?? []).filter((t) => (WARN_TEMPLATES as readonly string[]).includes(t));
+
 /**
- * THE MISSING-TEMPLATE LINE (#2598), once per run, naming every template a set needed and the file lacks, and what to
- * do: run Set up file, then the same action again. Empty when nothing is missing. Wording approved, Q284.1 A.
+ * THE MISSING-TEMPLATE LINE (#2598), once per run, naming every warning template a set needed and the file lacks, and
+ * what to do: run Set up file, then the same action again. Empty when nothing is missing. Wording approved, Q284.1 A.
+ * `_Doc-block` has its own line since #3467 (`docBlockLine`).
  */
 export const templatesLine = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): string => {
-  const missing = [LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, DOC_BLOCK_SET].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
+  const missing = WARN_TEMPLATES.filter((t) => outcomes.some((o) => o.missing?.includes(t)));
   if (!missing.length) return '';
-  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : t === SCRIM_COMPONENT ? 'scrim backdrops' : t === DOC_BLOCK_SET ? 'usage panels' : 'inverse backdrops')).join(' or ');
+  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : t === SCRIM_COMPONENT ? 'scrim backdrops' : 'inverse backdrops')).join(' or ');
   const names = missing.join(' or ');
   return `No ${what} drawn: this file has no ${names} component. Run Set up file, then ${action === 'build' ? 'build' : 'update'} again`;
+};
+
+/** What the file holds of what `_Doc-block` is built from (#3467 Q5 A): whether the theme is in the file, and the def
+ *  ids of the four sets it lacks (`DOC_BLOCK_DEFS` order). Read by the caller, which has the host. */
+export type DocBlockFix = { readonly theme: boolean; readonly lacks: readonly string[] };
+
+/**
+ * THE USAGE-PANEL LINE (#3467 Q2 A, Q5 A), once per run when a set's usage panel found no `_Doc-block`: what is missing,
+ * then the fix that works on this file, from `fix`. With no theme, the theme first; with sets missing, those sets, then
+ * Set up file; with everything in the file, Set up file alone. Empty when no set lacked the template. `fix` null reads as
+ * everything in the file. DRAFT wording, held for the owner's sign-off (Q5 A).
+ */
+export const docBlockParts = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update', fix: DocBlockFix | null): [string, string] | null => {
+  if (!outcomes.some((o) => o.missing?.includes(DOC_BLOCK_SET))) return null;
+  const again = action === 'build' ? 'build' : 'update';
+  const head = `No usage panels drawn: this file has no ${DOC_BLOCK_SET} component`;
+  if (fix && !fix.theme) return [`${head}, and it is built from the theme`, `Apply the theme, then ${again} again`];
+  if (fix?.lacks.length) return [head, `Build ${fix.lacks.join(', ')}, then run Set up file and ${again} again`];
+  return [head, `Run Set up file, then ${again} again`];
+};
+/** The usage-panel line as one sentence for a verdict's summary and lines. */
+export const docBlockLine = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update', fix: DocBlockFix | null): string => {
+  const p = docBlockParts(outcomes, action, fix);
+  return p ? `${p[0]}. ${p[1]}` : '';
+};
+/** The usage-panel line as the run's one note (#3390's `note` kind): said under Notes, never counted, and the run stays
+ *  clean. The run's own, so `subject` is null. */
+export const docBlockNotes = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update', fix: DocBlockFix | null): Cause[] => {
+  const p = docBlockParts(outcomes, action, fix);
+  return p ? [cause('note', null, `${p[0]}.`, [`${p[1]}.`])] : [];
 };
 
 /** The verdict clauses for a build or update: the missing-template line first, then one per set whose furniture
@@ -843,7 +880,7 @@ export const withFurnitureItems = <V extends { summary: string; lines: string[] 
  * finding the line by its text. A build's set reads "built with problems", an update's "updated with problems".
  */
 export const templateCauses = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): Cause[] =>
-  outcomes.filter((o) => o.missing?.length).map((o) =>
+  outcomes.filter((o) => warnMissingOf(o).length).map((o) =>
     cause('warn', o.def, action === 'build' ? CAUSE_WHAT.built : CAUSE_WHAT.updated, [`${templatesLine([o], action)}.`]));
 
 /**
@@ -855,9 +892,17 @@ export const templateCauses = (outcomes: readonly FurnitureOutcome[], action: 'b
  *
  * #3326: the same predicate adds the template line's causes (`templateCauses`) to the verdict's own, so a run is never
  * turned `⚠` by a template without the cause that says which set and why.
+ *
+ * #3467 (Q2 A): `_Doc-block` is not a warning template. A set built without its usage panel was built correctly, and on a
+ * fresh file the template's absence is expected, so it adds the run's note (`docBlockNotes`) and leaves `ok` and the
+ * headline as they are. `_Label` and the backdrops keep Q284.3 A's warning.
  */
-export const withTemplateWarning = <V extends { ok: boolean; headline: string; causes?: Cause[] }>(verdict: V, outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): V =>
-  outcomes.some((o) => o.missing?.length)
-    ? { ...verdict, ok: false, headline: verdict.headline.startsWith('✓') ? `⚠${verdict.headline.slice(1)}` : verdict.headline,
-      causes: mergeCauses(verdict.causes, templateCauses(outcomes, action)) }
-    : verdict;
+export const withTemplateWarning = <V extends { ok: boolean; headline: string; causes?: Cause[] }>(verdict: V, outcomes: readonly FurnitureOutcome[], action: 'build' | 'update', fix: DocBlockFix | null = null): V => {
+  // #3467 Q2 A: a missing `_Doc-block` is a note. It rides the verdict as it is, `ok` and headline untouched.
+  const notes = docBlockNotes(outcomes, action, fix);
+  const noted = notes.length ? { ...verdict, causes: mergeCauses(verdict.causes, notes) } : verdict;
+  return outcomes.some((o) => warnMissingOf(o).length)
+    ? { ...noted, ok: false, headline: verdict.headline.startsWith('✓') ? `⚠${verdict.headline.slice(1)}` : verdict.headline,
+      causes: mergeCauses(noted.causes, templateCauses(outcomes, action)) }
+    : noted;
+};

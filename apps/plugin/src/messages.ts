@@ -592,6 +592,10 @@ export type MainToUi =
       /** #3308 (Q3308.3 A): on a full read of a file with no `_Doc-block`, the sets the template is built from that the
        *  file lacks (none when it holds them all). Absent when the file holds the template, and on the ledger's read. */
       docBlockLacks?: string[];
+      /** #3467 (Q3 A, Q4 A): on a full read, what Set up file would build on this file now, by name (`setup-incomplete.ts`):
+       *  the `↳ File Components` page, a page-furniture template, a style-guide cell set, or `_Doc-block` once it can be
+       *  built. Absent when there is none, and on the ledger's read. `setUp` is unchanged by it. */
+      setupIncomplete?: string[];
       /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a panel family and have no live
        *  panel (`panel-census.ts`), from one search for panel tags in the read that loaded every page. Absent on the
        *  ledger's read at open, which loads no page, and while panels are off. */
