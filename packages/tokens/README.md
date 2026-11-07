@@ -8,11 +8,52 @@ behavior layer, which `19` §3's re-ranked projections put at ranks 5–6; it is
 The token layer this package gates is now **rank 1** — the projection both named delivery platforms
 consume natively — so this workspace got more load-bearing, not less.*
 
-What exists today is one thing: **a gate that answers whether a stranger could consume our tokens** — measured across every brand the engine emits.
+This package does two things:
+
+- **It ships the token CSS** a client installs (#3408 S1, `docs/35` §9.3).
+- **It runs a gate that answers whether a stranger could consume our tokens**, measured across every
+  brand the engine emits.
 
 ```bash
-npm run -w @prism3/tokens check:consumability
+npm run -w @prism3/tokens check:consumability   # the gate
+npm run -w @prism3/tokens check:package         # pack, install outside the repo, check the CSS
 ```
+
+## Using the package
+
+The package holds CSS custom properties for the house brand. The light defaults are on `:root`, and
+each theme mode is a `[data-theme="…"]` block. It isn't on a registry: install it from the tarball.
+
+```bash
+npm pack -w @prism3/tokens                      # builds dist/ and writes prism3-tokens-<version>.tgz
+npm install ./prism3-tokens-<version>.tgz       # in the client project
+```
+
+```css
+@import "@prism3/tokens";                       /* every block: :root, dark, hc-dark, hc-light */
+
+.card { color: var(--pds3-color-text-primary); }
+```
+
+```html
+<html data-theme="dark">
+```
+
+| Import | What it holds |
+|---|---|
+| `@prism3/tokens` (also `@prism3/tokens/prism3.css`) | every block, `:root` first |
+| `@prism3/tokens/prism3/base.css` | the light defaults on `:root` only |
+| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light` |
+
+Names are stock Style Dictionary's, with the token root as prefix: `--pds3-…` (`docs/35` §9.4). Every
+mode block defines every name, so a theme switch never falls back to a light value. References stay
+references (`var(--pds3-…)`), so a primitive changed in one place moves every role that uses it.
+
+`sd.ship.mjs` builds it with the same stock Style Dictionary and the same no-custom-code rule as the
+gate below. It's a separate file so the gate's configuration never bends to suit the deliverable.
+`check-package.mjs` holds the installed CSS to `packages/engine/schema/token-contract.json`: every
+guaranteed name, in every mode block. A non-DTCG type (today the three `spring` tokens) isn't in the
+projection, so it isn't in the CSS (#642).
 
 ## The rule
 

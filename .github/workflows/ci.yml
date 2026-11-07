@@ -216,6 +216,14 @@ jobs:
       - name: Consumability gate (a stock Style Dictionary over the emitted DTCG)
         run: npm run -w @prism3/tokens check:consumability
 
+      # The SHIPPABLE side of packages/tokens (#3408 S1, docs/35 §9.3): `npm pack` builds the house
+      # brand's token CSS with the same stock Style Dictionary, the tarball is installed into a temp
+      # folder outside the repo, and the installed CSS must define every guaranteed name from
+      # token-contract.json under `--pds3-` in `:root` and every `[data-theme]` block. The contract,
+      # the prefix and the mode list are the oracle; none is read off the build.
+      - name: Token package gate (the packed @prism3/tokens installs and defines the contract's names)
+        run: npm run -w @prism3/tokens check:package
+
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
       # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,

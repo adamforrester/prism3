@@ -369,6 +369,13 @@
       "title": "the code POC's behavior is native HTML plus a small script",
       "doc": "docs/41-internal-and-ejected.md",
       "section": "7.1"
+    },
+    {
+      "date": "2026-11-07",
+      "issue": 3408,
+      "title": "CSS custom properties keep the `--pds3-` prefix",
+      "doc": "docs/35-naming-and-packaging.md",
+      "section": "9.4"
     }
   ]
 }
