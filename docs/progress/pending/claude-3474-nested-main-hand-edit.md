@@ -20,14 +20,25 @@ Focus Ring, then Icon button nesting it, built into one file; the main then chan
 
 ### The counts are not explained
 
-Icon button's 36 and Flush icon button's 12 are exactly their focus-visible members, which fits. Button's 36 of 96
-focus-visible members, and 12 more members on each Destructive set, do not follow from the shim: the shim cannot say
-which fields the real file's instances override and which they read from the main. 36 is Button's inset=default
-focus-visible members on ONE surface (3 appearance × 3 size × 4 slot), and 48 is that plus the surface's 12 flush
-members, but Icon button's 36 span both surfaces, so a change to one ring member does not explain all three. A read-only
-`update-components confirm:false` through the agent link (or a Mac job) gives each flagged member's path. To find the
-field, the read also needs, for one flagged and one unflagged focus-visible member of the same set: the ring instance's
-`nodeSignature` input (snapshot), its `overrides`, and the Focus Ring main's `boundVariables` and `strokes`.
+The shim reproduces **one mechanism**: a change to a nested component's main flags every member that nests it. It flags
+all 36 of Icon button's focus-visible members. The real distribution does not look like that, and this entry does not
+claim to explain it:
+
+- **Flush icon button flags 9 of its 12 focus-visible members** (60 members). Its Destructive and Neutral sets flag 12,
+  their focus-visible count. A change to the shared ring main would flag all 12, so it is not the whole story for the
+  plain set.
+- **Icon button Destructive flags 48, but holds only 36 focus-visible members**, so at least 12 flagged members do not nest
+  Focus Ring at all. Button's 36 of 96 does not follow from the shim either.
+- **On the real file, every focus-visible ring in a set has the identical override shape** (read 2026-11-07, both
+  surfaces): the corners, size, positioning, name and `boundVariables`. So the shape cannot tell Flush's 9 from its other
+  3: the flagged subset must differ by value. One candidate is the two ring mains (default and inverse surface) having
+  moved differently.
+- **The Spinner lead is plausible but unconfirmed.** The extra 12 appear only on sets with a pending state, whose 36
+  pending members each nest a Spinner instance that overrides only its name and reads its size through its main. A change
+  to Spinner's main for one paint family would fit, and the rule here would cover it, but nobody has seen the flagged list.
+
+Only the plugin's dry run (`update-components confirm:false`) produces the flagged member paths; a read of the file
+cannot. That run is what would confirm or rule out this mechanism for #3474's counts.
 
 ### The rule
 
@@ -43,15 +54,27 @@ compares it in place of the node's hash. `nodeSignature` is unchanged, so every 
   the workaround in use). Whether to clear them sooner is held for the owner (see the PR).
 - **A swap is still the host's** (`main` is always in the own part). **A rename of the nested component still moves it**:
   v3 names the main by name, not by key.
+- **A binding is resolved against the main.** Figma lists a binding the host set or cleared as one field,
+  `boundVariables`, not by the bound field's name (read on the real file: every nested focus ring lists it, while its
+  `boundVariables` also holds the stroke weights and strokes its main binds). So each field whose binding on the instance
+  differs from the main's is the host's, and one the two share is the main's. A host rebind still reads as a hand edit; a
+  rebind on the main does not. Where the main's bindings cannot be read, every binding is kept as the host's.
 - **A kept hand edit keeps its own part as recorded** (`finishUpdated`), as it keeps its node hash, or the next dry run
-  would stop reporting it. That is the executor's code, so `EXECUTOR_REVISION` 54 → 55, reaching no set (it draws
+  would stop reporting it. On a record from before this, which holds no own part, the update leaves the part out, so the
+  ring is still compared whole. That is the executor's code, so `EXECUTOR_REVISION` 54 → 55, reaching no set (it draws
   nothing).
 
 ### Gates
 
-`figmaInstances` (`component-shim.ts`) models a Figma instance through `wrapNode`, from the typings, never from the record
-code. A plain shim instance now carries `overrides` reading `undefined`, a host that lists none: without it the snapshot's
-read of `overrides` was a host API the shim lacked, and `lint-executor-reach.ts` read four sets (code input and its cell,
-page navigation and its item) as redrawn by 55. Nothing is drawn from that read, so entry 55 names none, measured clean. `test-update-components.ts` `#3474/…` and `test-update-apply.ts` `#3474 kept/…`. Mutations, each failing by name:
+`figmaInstances` (`component-shim.ts`) models a Figma instance through `wrapNode`, from the typings and the real-file
+read, never from the record code: unset fields and bindings read through from the live main, and a binding the host sets
+or clears is listed as `boundVariables`. A plain shim instance carries `overrides` reading `undefined`, a host that lists
+none: without it the snapshot's read of `overrides` was a host API the shim lacked, and `lint-executor-reach.ts` read four
+sets (code input and its cell, page navigation and its item) as redrawn by 55. Nothing is drawn from that read, so entry
+55 names none, measured clean.
+
+Arms: `test-update-components.ts` `#3474/…` and `test-update-apply.ts` `#3474 kept/…`. Mutations, each failing by name:
 the own-part branch dropped → `#3474/main`; the own signature ignoring overrides → `#3474/host`, `#3474/host override`;
-the snapshot not reading `overrides` → `#3474/main`; `finishUpdated`'s keep dropped → `#3474 kept/still reported`.
+the snapshot not reading `overrides` → `#3474/main`; `finishUpdated`'s keep dropped → `#3474 kept/still reported`;
+`finishUpdated`'s branch for a record with no own part removed → `#3474 kept/earlier record`; `boundVariables` dropped
+unresolved → `#3474/host rebind`; every binding counted as the host's → `#3474/main`, `#3474/main rebind`.

@@ -96,6 +96,11 @@
  *                  compared whole, as before. The host's instances are modelled by `figmaInstances` (`component-shim.ts`).
  *                  Mutations: `baselineDiff`'s own-part branch dropped → `#3474/main`; `ownSignature` keeping only the
  *                  host keys → `#3474/host`, `#3474/host override`; the snapshot not reading `overrides` → `#3474/main`.
+ *                  A binding the host sets or clears is listed as `boundVariables`, not by its field (read on the real
+ *                  file, #3477), and the instance's `boundVariables` holds its main's bindings too, so the entry is
+ *                  resolved against the main: a main rebind is not a hand edit, a host rebind is. Mutations:
+ *                  `boundVariables` dropped unresolved → `#3474/host rebind`; every binding counted as the host's →
+ *                  `#3474/main rebind`.
  *
  * Run: `npx tsx apps/plugin/test-update-components.ts`
  */
@@ -1109,6 +1114,13 @@ section('#3474 nested main — a change that reaches a member only through its n
     `#3474 premise: 36 focus-visible members, every member current on a fresh build (${focused.length}, ${JSON.stringify(fresh.counts)})`);
   const rec = (m: Node) => JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)) as { nodes: Record<string, string>; own?: Record<string, string> };
   ok(focused.every((m) => !!rec(m).own?.focusRing), `#3474 premise: each focus-visible member's record holds its ring's own part (${focused.filter((m) => rec(m).own?.focusRing).length} of 36)`);
+  // FIGMA'S OWN SHAPE (read on the real file, #3477): the host's binding work on the ring (its size bindings cleared) is
+  // listed as ONE field, `boundVariables`, while the ring's `boundVariables` also holds the stroke weights its main binds.
+  const shape = ringOf(focused[0]);
+  const fields = ((shape.overrides as { overriddenFields: string[] }[])[0]?.overriddenFields ?? []);
+  const weights = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+  ok(fields.includes('boundVariables') && !weights.some((w) => fields.includes(w)) && weights.every((w) => (shape.boundVariables as Record<string, unknown>)[w]),
+    `#3474 premise: the ring lists \`boundVariables\`, not the bound fields, and holds its main's stroke-weight bindings (${JSON.stringify(fields)})`);
   // THE MAIN MOVES, as an update or rebuild of Focus Ring moves it: its stroke rebound and repainted, and a property
   // added to its set. The host is not touched.
   const before = focused.map((m) => rec(m).nodes.focusRing);
@@ -1122,6 +1134,18 @@ section('#3474 nested main — a change that reaches a member only through its n
   const after = await check();
   ok(after.counts.handEdited === 0 && after.handEdits.length === 0,
     `#3474/main: a change that reaches a member only through its nested instance's main is not a hand edit (${after.counts.handEdited} flagged: ${JSON.stringify(after.handEdits.slice(0, 2))})`);
+  // THE MAIN REBOUND: each ring member's stroke weight bound to another variable. Every ring reads the new binding through
+  // (its whole hash moves), and the host lists `boundVariables` all the same, so only a compare against the main can
+  // tell this from a host rebind. Mutation: every binding counted as the host's whenever `boundVariables` is listed →
+  // `#3474/main rebind`.
+  const rebound = focused.map((m) => rec(m).nodes.focusRing);
+  for (const m of membersOf(ringSet)) (m.setBoundVariable as (f: string, v: { id: string; value: number }) => void)('strokeWeight', { id: 'V:space/0', value: 0 });
+  const through = (await Promise.all(focused.map(async (m) => baselineOf(await snapshotMember(m)).nodes.focusRing))).filter((h, i) => h !== rebound[i]).length;
+  ok(through === 36 && (ringOf(focused[0]).boundVariables as Record<string, { id: string }>).strokeTopWeight?.id === 'V:space/0',
+    `#3474 premise: the main's rebind reads through on every ring (${through} of 36 moved)`);
+  const reb = await check();
+  ok(reb.counts.handEdited === 0 && reb.handEdits.length === 0,
+    `#3474/main rebind: a binding that reaches a member only through its nested instance's main is not a hand edit (${reb.counts.handEdited} flagged: ${JSON.stringify(reb.handEdits.slice(0, 2))})`);
   // A HOST EDIT on one member's ring: a corner set on the instance itself. Still a hand edit, at its path.
   const edited = focused[5];
   ringOf(edited).topLeftRadius = 1;
@@ -1134,6 +1158,14 @@ section('#3474 nested main — a change that reaches a member only through its n
   const paint = await check();
   ok(paint.counts.handEdited === 2 && paint.handEdits.some((h) => h.member === painted.name && h.path === 'focusRing'),
     `#3474/host override: a field the main handed the instance, overridden on the host, is a hand edit (${JSON.stringify(paint.handEdits.map((h) => `${h.member} ${h.path}`))})`);
+  // A HOST REBIND, in Figma's shape: one member's ring bound to another variable on the instance itself. The overrides
+  // list says only `boundVariables`, which every ring already lists. Mutation: \`boundVariables\` dropped from the list
+  // unresolved → `#3474/host rebind`.
+  const rebind = focused[13];
+  (ringOf(rebind).setBoundVariable as (f: string, v: { id: string; value: number }) => void)('strokeTopWeight', { id: 'V:size/md/height', value: 8 });
+  const hr = await check();
+  ok(hr.counts.handEdited === 3 && hr.handEdits.some((h) => h.member === rebind.name && h.path === 'focusRing'),
+    `#3474/host rebind: a binding set on the nested instance itself is a hand edit, though the overrides list only \`boundVariables\` (${JSON.stringify(hr.handEdits.map((h) => `${h.member} ${h.path}`))})`);
   // A RECORD FROM BEFORE #3474 holds no own part: it is compared whole, as it always was, so the main's change still
   // reads on it. Existing records read exactly as they did.
   const old = focused[0];

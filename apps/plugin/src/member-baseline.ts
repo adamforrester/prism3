@@ -143,15 +143,21 @@ type LiveNode = Record<string, unknown> & {
   getMainComponentAsync?: () => Promise<unknown>; overrides?: unknown; id?: unknown;
 };
 
-/** The main component an instance points at, as plain data. `getMainComponentAsync` first: the plugin
- *  runs under `documentAccess: dynamic-page`, where the sync `mainComponent` getter throws. The sync
- *  property is the fallback for the shim, which models it as a plain descriptor. */
-export const mainOf = async (n: LiveNode): Promise<Record<string, unknown> | null> => {
+/** The main component an instance points at, LIVE: the host's node. `getMainComponentAsync` first: the plugin runs
+ *  under `documentAccess: dynamic-page`, where the sync `mainComponent` getter throws. The sync property is the fallback
+ *  for the shim, which models it as a plain descriptor. */
+const liveMainOf = async (n: LiveNode): Promise<Record<string, unknown> | null> => {
   let main: unknown = null;
   try { if (typeof n.getMainComponentAsync === 'function') main = await n.getMainComponentAsync(); } catch { main = null; }
   if (!main) { try { main = n.mainComponent; } catch { main = null; } }
-  if (!main || typeof main !== 'object') return null;
-  const m = main as Record<string, unknown>;
+  return main && typeof main === 'object' ? (main as Record<string, unknown>) : null;
+};
+
+/** The main component an instance points at, as plain data. */
+export const mainOf = async (n: LiveNode): Promise<Record<string, unknown> | null> => describeMain(await liveMainOf(n));
+
+const describeMain = (m: Record<string, unknown> | null): Record<string, unknown> | null => {
+  if (!m) return null;
   let parent: { name: string; type: string } | null = null;
   try {
     const p = m.parent as Record<string, unknown> | null | undefined;
@@ -188,15 +194,39 @@ export const resetStyleNames = (): void => styleNames.clear();
 
 /** THE FIELDS SET ON THIS INSTANCE ITSELF (#3474): its own entry in `InstanceNode.overrides`, sorted, or `[]` when it has
  *  none. `null` where the host does not list overrides (a shim, an older host): the record then makes no claim about
- *  them, and the instance is compared whole, as before. */
-const ownOverrides = (n: LiveNode): string[] | null => {
+ *  them, and the instance is compared whole, as before.
+ *
+ *  A BINDING IS LISTED AS `boundVariables`, not by its field (read on the real file, #3477): the entry says some
+ *  binding on the instance is the host's, not which, while the instance's `boundVariables` also holds every binding its
+ *  main hands it (a nested focus ring's stroke weights and strokes). So the entry is resolved against the main: each
+ *  field whose binding on the instance differs from the main's, set, rebound or cleared, is the host's, and one the two
+ *  share is the main's. Where the main's bindings cannot be read (a library main, a throwing getter), every binding the
+ *  instance holds is kept as the host's: a rebind on the main may then read as a hand edit, never the reverse. */
+const ownOverrides = (n: LiveNode, main: Record<string, unknown> | null): string[] | null => {
   let list: unknown;
   try { list = n.overrides; } catch { return null; }
   if (!Array.isArray(list)) return null;
   let id: unknown;
   try { id = n.id; } catch { return null; }
   const mine = (list as { id?: unknown; overriddenFields?: unknown }[]).find((o) => o && o.id === id);
-  return Array.isArray(mine?.overriddenFields) ? [...new Set(mine!.overriddenFields.map(String))].sort() : [];
+  if (!Array.isArray(mine?.overriddenFields)) return [];
+  const fields = new Set(mine!.overriddenFields.map(String));
+  if (fields.delete('boundVariables')) {
+    const own = bindingsOf(n, 'boundVariables') ?? {};
+    const theirs = main ? bindingsOf(main, 'boundVariables') : null;
+    for (const k of new Set([...Object.keys(own), ...Object.keys(theirs ?? {})])) if (!theirs || own[k] !== theirs[k]) fields.add(k);
+  }
+  return [...fields].sort();
+};
+
+/** A node's bindings, one string per field: the variable ids it names, in order. `null` where they cannot be read. */
+const bindingsOf = (n: Record<string, unknown>, k: 'boundVariables'): Record<string, string> | null => {
+  let bv: unknown;
+  try { bv = n[k]; } catch { return null; }
+  if (!bv || typeof bv !== 'object') return null;
+  const out: Record<string, string> = {};
+  for (const [f, b] of Object.entries(bv as Record<string, unknown>)) out[f] = JSON.stringify(Array.isArray(b) ? b.map(idOf) : idOf(b));
+  return out;
 };
 
 export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
@@ -215,9 +245,10 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
       if (typeof out[k] === 'string' && out[k]) out[to] = await styleNameOf(out[k] as string);
     Object.defineProperty(out, 'parent', { enumerable: false, value: { width: parentWidth, height: parentHeight } });
     if (out.type === 'INSTANCE') {
-      const main = await mainOf(n);
+      const live = await liveMainOf(n);
+      const main = describeMain(live);
       if (main) out.mainComponent = main;
-      const own = ownOverrides(n);
+      const own = ownOverrides(n, live);
       if (own) out.overridden = own;
       return out;
     }

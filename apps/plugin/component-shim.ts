@@ -2409,13 +2409,19 @@ export const makeShim = (opts: ShimOpts = {}) => {
 // a suite models the host by passing this as `wrapNode` (#3160), from Figma's typings (`InstanceNode.overrides`,
 // `NodeChangeProperty`), never from `member-baseline.ts`: the record code is the subject, and a model read off it could
 // not fail. The main is found the way the file holds it: the set named by `mainComponent.parent`, the member by name.
+//
+// A BINDING THE HOST SETS OR CLEARS is listed as ONE field, `boundVariables`, never by the bound field's name: read on
+// the real file (#3477, 2026-11-07), every nested focus ring lists `boundVariables` beside its corners and size, while its
+// `boundVariables` holds the stroke weights and strokes its main binds. So the instance's `boundVariables` is modelled as
+// Figma reads it: the main's bindings, live, with the host's own sets and clears on top, and `overrides` says only that
+// some binding is the host's, not which.
 export const figmaInstances = (page: Page) => (raw: Node): Node => {
   if (raw.type !== 'INSTANCE') return raw;
   // Fields the main hands an instance that does not override them. The ring's own: its stroke, paint and look.
   const INHERITED = new Set(['fills', 'strokes', 'strokeWeight', 'strokeAlign', 'effects', 'opacity', 'visible', 'dashPattern']);
   // Fields a host write overrides, from `NodeChangeProperty`. The shim's own bookkeeping (`_…`), the tree and the
-  // methods it installs are not fields.
-  const NOT_FIELDS = new Set(['parent', 'children', 'findAll', 'findOne', 'mainComponent', 'componentProperties', 'setProperties', 'id', 'key', 'type']);
+  // methods it installs are not fields; nor is `boundVariables`, which the view below records as it is written.
+  const NOT_FIELDS = new Set(['parent', 'children', 'findAll', 'findOne', 'mainComponent', 'componentProperties', 'setProperties', 'id', 'key', 'type', 'boundVariables']);
   const over = new Set<string>();
   const mainOf = (t: Node): Node | undefined => {
     const m = t.mainComponent as { name?: string; parent?: { name?: string; type?: string } } | undefined;
@@ -2423,16 +2429,40 @@ export const figmaInstances = (page: Page) => (raw: Node): Node => {
     const set = page.children.find((n) => n.type === 'COMPONENT_SET' && n.name === m.parent!.name);
     return (set?.children as Node[] | undefined)?.find((c) => c.name === m.name);
   };
+  // THE INSTANCE'S BINDINGS, one view for every reader and writer (the shim's own `setBoundVariable` and corner setters
+  // write through `node.boundVariables`, the wrapped node): a key the host set or cleared reads the host's layer (`raw`'s
+  // own object); any other reads the main's, live. A main this file does not hold (a catalog name) leaves the host layer
+  // as the whole of it. Any write or clear is listed as `boundVariables`.
+  const touched = new Set<string>();
+  const layer = (): Record<string, unknown> => (raw.boundVariables ?? {}) as Record<string, unknown>;
+  const mainBv = (): Record<string, unknown> | null => { const m = mainOf(raw); return m ? ((m.boundVariables ?? {}) as Record<string, unknown>) : null; };
+  const has = (k: string): boolean => { const m = mainBv(); return !m || touched.has(k) ? k in layer() : k in m; };
+  const val = (k: string): unknown => { const m = mainBv(); return !m || touched.has(k) ? layer()[k] : m[k]; };
+  const keys = (): string[] => { const m = mainBv(); return m ? [...new Set([...Object.keys(m), ...touched])].filter(has) : Object.keys(layer()); };
+  const bvView = new Proxy({} as Record<string, unknown>, {
+    get: (_t, k) => (typeof k === 'string' ? val(k) : undefined),
+    has: (_t, k) => typeof k === 'string' && has(k),
+    set: (_t, k, v) => { if (typeof k === 'string') { touched.add(k); layer()[k] = v; over.add('boundVariables'); } return true; },
+    deleteProperty: (_t, k) => { if (typeof k === 'string') { touched.add(k); delete layer()[k]; over.add('boundVariables'); } return true; },
+    ownKeys: () => keys(),
+    getOwnPropertyDescriptor: (_t, k) => (typeof k === 'string' && has(k) ? { value: val(k), enumerable: true, configurable: true, writable: true } : undefined),
+  });
   return new Proxy(raw, {
     get(t, k, r) {
       if (k === 'overrides') return over.size ? [{ id: t.id, overriddenFields: [...over] }] : [];
-      if (k === 'setBoundVariable' || k === 'resize' || k === 'setProperties') {
+      if (k === 'boundVariables') return bvView;
+      // `mainComponent` is the live main on the host, so its own bindings read from it.
+      if (k === 'mainComponent') {
+        const d = Reflect.get(t, k, r) as object | undefined;
+        if (!d) return d;
+        return new Proxy(d, { get: (dt, dk) => (dk === 'boundVariables' ? (mainOf(t)?.boundVariables) : Reflect.get(dt, dk)) });
+      }
+      if (k === 'resize' || k === 'setProperties') {
         const f = Reflect.get(t, k, r) as ((...a: unknown[]) => unknown) | undefined;
         if (typeof f !== 'function') return f;
         return (...a: unknown[]) => {
           const out = f.apply(r, a);
-          if (k === 'setBoundVariable') over.add(String(a[0]));
-          else if (k === 'resize') { over.add('width'); over.add('height'); }
+          if (k === 'resize') { over.add('width'); over.add('height'); }
           else over.add('componentProperties');
           return out;
         };
