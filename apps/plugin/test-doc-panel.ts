@@ -121,7 +121,8 @@
  *   family/related  (#2970 Q5 A) Checkbox's and Buttons' Related lists typed from the approved wireframe; a family named
  *                   twice in one list once. Mutations: the own-family drop removed → `family/related`, `family/related
  *                   buttons`; the de-duplication removed → `family/related once`.
- *   line/…          a file without `_Doc-block`: one Set up file line for the run, naming usage panels.
+ *   line/…          a file without `_Doc-block`: one usage-panel line for the run (`docBlockLine`), and the warning templates'
+ *                   line names nothing (#3467 Q2 A). Mutation: `_Doc-block` back in `WARN_TEMPLATES` → `line/not a warning`.
  *
  * INDEPENDENCE (docs/34): the expected sections come from the engine's model (`docSections`), which the panel reads but
  * this file does not reach through the panel; the site-only section, the layer names, the variant names and every
@@ -143,7 +144,7 @@ import { TAXONOMY } from './src/file-taxonomy';
 import { readSpecTag } from './src/spec-tag';
 import { fingerprintOf } from './src/style-guide';
 import { ensureDocBlock, type DocBlockApi } from './src/doc-block';
-import { drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { docBlockLine, drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { pageSetMoves, previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, previewHashOf } from './src/update-apply';
 import { livePanels, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf } from './src/panel-census';
@@ -1876,8 +1877,10 @@ section('line/… — a file without `_Doc-block`');
     const r = await drawDocPanel(host([p], { template: false }), set, componentDefs.find((d) => d.id === id)!, { names });
     outs.push(withPanel({ def: id, parent: p.name as string, columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [], fontMisses: [] }, r));
   }
-  const line = templatesLine(outs, 'build');
+  // #3467 (Q2 A): the usage panels have their own line now; the warning templates' line leaves them out.
+  const line = docBlockLine(outs, 'build', null);
   ok(panelsOn(p).length === 0 && line === 'No usage panels drawn: this file has no _Doc-block component. Run Set up file, then build again', `line/once: "${line}"`);
+  ok(templatesLine(outs, 'build') === '', `line/not a warning: the missing-template warning line does not name _Doc-block ("${templatesLine(outs, 'build')}")`);
 }
 
 

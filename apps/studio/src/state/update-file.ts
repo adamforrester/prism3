@@ -4,7 +4,9 @@
  *
  * THE CHECKLIST (owner decisions Q2909.2 A, Q2909.5 A, Q668 A). Update file is the plugin's one global write. It always
  * opens the checklist, even when only the theme is to be written (Q2909.2 A). Its items, in the order they run:
- *   · Set up file, only on a file that is not set up: the first checklist on such a file is the setup (Q668 A);
+ *   · Set up file, on a file that is not set up: the first checklist on such a file is the setup (Q668 A). Since #3467
+ *     (Q3 A) also on a set-up file while the host's read lists something setup owns that the file lacks
+ *     (`setupIncomplete`): there it opens unticked, and names what is missing;
  *   · Theme: the brand's variables and styles (today's Apply Theme), ticked only when the file's variables differ from
  *     the brand, the signal the badge counts (`themeDueOf`, #3422 Q44 A); else unticked and "Up to date", and still
  *     tickable to apply it again. A file that is not set up holds no brand, so its Theme is always ticked;
@@ -56,6 +58,9 @@ export type FileSets = { readonly present: readonly string[]; readonly setUp: bo
   readonly atOpen?: boolean;
   /** #3308 (Q3308.3 A): the file has no `_Doc-block`, and these are the sets it is built from that the file lacks. */
   readonly docBlockLacks?: readonly string[];
+  /** #3467 (Q3 A, Q4 A): what Set up file would build on this file now, by name (the host's `setup-incomplete.ts`). Beside
+   *  `setUp`, which is unchanged; while it lists anything, the checklist offers Set up file (`setupOfferedOf`). */
+  readonly setupIncomplete?: readonly string[];
   /** #3137 Q3137.3 A: while Documentation has panels on, the present sets that lead a family and have no live usage
    *  panel, and how many present sets lead one (`panelLeads`). Absent while panels are off, and on the ledger's read. */
   readonly unpaneled?: readonly string[];
@@ -175,10 +180,15 @@ export const defaultTicks = (catalog: Catalog, f: FileSets, queue: readonly stri
   return { setup: fresh, theme: fresh || themeDueOf(live), guides: fresh, panels: panelSetsOf(catalog, f, queue).length > 0, update: new Set(dueSetsOf(catalog, f)), handEdits: 'keep', kept: new Map() };
 };
 
-/** The steps a set of ticks runs, in order. Set up file is a step only on a file that is not set up; `sets` only while
- *  the add queue holds a set (`queuedOf`); `cover` only after Set up file and Theme both run (#3308, Q3308.4 A). */
+/** #3467 (Q3 A): whether the checklist offers Set up file: on a file that is not set up (Q668 A), ticked by default, and
+ *  on a set-up file while the host's read lists something setup owns that the file lacks (`setupIncomplete`), unticked. */
+export const setupOfferedOf = (f: Pick<FileSets, 'setUp' | 'setupIncomplete'>): boolean => !f.setUp || !!f.setupIncomplete?.length;
+
+/** The steps a set of ticks runs, in order. Set up file is a step only while it is offered (`setupOfferedOf`); `sets`
+ *  only while the add queue holds a set (`queuedOf`); `cover` only after Set up file and Theme both run on a file that is
+ *  not set up (#3308, Q3308.4 A). */
 export const stepsOf = (t: Ticks, f: FileSets, queued: readonly string[]): StepKey[] =>
-  STEP_ORDER.filter((k) => (k === 'setup' ? !f.setUp && t.setup : k === 'sets' ? queued.length > 0 : k === 'update' ? t.update.size > 0
+  STEP_ORDER.filter((k) => (k === 'setup' ? setupOfferedOf(f) && t.setup : k === 'sets' ? queued.length > 0 : k === 'update' ? t.update.size > 0
     : k === 'cover' ? !f.setUp && t.setup && t.theme : t[k]));
 
 /** The brand Update file's due read, its check and its update measure against (Q699 A, #3023 Q701 B): the panel's when
@@ -306,6 +316,8 @@ export const UPDATE_COPY = {
   lead: 'Tick what to write. Untick what should wait.',
   setup: 'Set up file',
   setupSub: 'The pages, the templates and the style-guide cells. The cover too, while Documentation has it on.',
+  /** #3467 (Q3 A): Set up file's line on a set-up file that lacks something setup owns. DRAFT for the owner's sign-off. */
+  setupMissing: (names: readonly string[]) => `Builds what this file lacks: ${names.join(', ')}.`,
   theme: 'Theme',
   themeSub: 'The brand’s variables and styles. Layers bound to them restyle at once.',
   /** #3422 Q44 A: the Theme row's tag when the file's variables already match the brand. The sets' own status word. */
