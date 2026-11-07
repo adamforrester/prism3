@@ -65,7 +65,8 @@ prism3/                            (this repo — grows into the monorepo)
 ├── packages/
 │   ├── engine/                    the core, a workspace package (@prism3/engine)
 │   │   └── schema/                lever-manifest.json · preview-spec.json · theme-schema.json
-│   └── tokens/                    the consumability gate + shippable token CSS (@prism3/tokens)
+│   ├── tokens/                    the consumability gate + shippable token CSS (@prism3/tokens)
+│   └── css/                       components as plain HTML/CSS, generated from the defs (@prism3/css, #3408)
 ├── apps/
 │   ├── studio/                    the dashboard adapter (DOM/CSS host)
 │   ├── plugin/                    the plugin adapter (Figma sandbox host)

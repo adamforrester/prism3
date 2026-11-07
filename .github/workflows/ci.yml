@@ -224,6 +224,20 @@ jobs:
       - name: Token package gate (the packed @prism3/tokens installs and defines the contract's names)
         run: npm run -w @prism3/tokens check:package
 
+      # @prism3/css (#3408 S2, Q96 A): button.css and demo.html are GENERATED from the engine's emission
+      # (out/components/specs.json + component-defs.json) by packages/css/generate.ts, and committed so a
+      # client needs no build. This fails when either is not what the generator writes from the current
+      # emission, the regen --check shape for one package.
+      - name: "@prism3/css matches what its generator writes from the emission (#3408 S2)"
+        run: npm run -w @prism3/css check:generated
+
+      # Adherence rule R2 run on our own CSS, with the agent-adherence scorer's own scoreR2 imported: no
+      # hex, rgb(), non-zero px or primitive token in button.css or the demo's styles, outside one
+      # documented exception (the min-width floors specs.json states as derived px). R1 too: every var()
+      # names a tree leaf and every demo mark is a real prop and value. Planted mutants must be named.
+      - name: "@prism3/css reads tokens, never raw values (#3408 S2)"
+        run: npm run -w @prism3/css check:raw-values
+
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
       # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,
@@ -1019,6 +1033,22 @@ jobs:
       # is quoted, one character class along.
       - name: "Studio headless smoke suite (#775)"
         run: npm run -w @prism3/studio test:smoke
+
+      # @prism3/css parity (#3408 S2, a first slice of S6). EXPECTED is specs.json and components.ai.json;
+      # ACTUAL is what Chromium computes for markup written from the check's own copy of the markup
+      # contract, with every token defined as a unique sentinel so each computed value decodes to one
+      # token name. Four mutants (a swapped token, a dropped state, a dropped prop value in the CSS and
+      # in the contract) must each fail by name. Needs only the browser from the install step above.
+      - name: "@prism3/css binds the tokens specs.json names, in every part, size and state (#3408 S2)"
+        timeout-minutes: 10
+        run: npm run -w @prism3/css check:parity
+
+      # The demo, with the REAL token CSS (the script builds @prism3/tokens first): computed colors and
+      # sizes equal the values the scorer's oracle resolves from the DTCG on light and dark, focus-visible
+      # shows on keyboard focus and not on a mouse click, and the accessibility tree holds.
+      - name: "@prism3/css demo renders the resolved tokens on light and dark (#3408 S2)"
+        timeout-minutes: 10
+        run: npm run -w @prism3/css test:browser
 
   plugin:
     runs-on: ubuntu-latest
