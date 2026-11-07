@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -69,6 +69,18 @@ ok(t2.setup && t2.theme && t2.guides && !('sets' in t2),
   'Q3129.10 A ticks: on a file that is not set up, the setup, the theme and the style guides are ticked, and no set is (Q668 A)');
 
 ok(same(stepsOf(t1, SET_UP, []), ['theme']), 'steps: a set-up file with the defaults and an empty queue writes the theme only');
+// #3467 (Q3 A, Q4 A): a set-up file whose read lists something Set up file owns offers it, unticked; it runs first when
+// ticked, and the cover step stays a fresh file's. A list that is empty or absent offers nothing. Literals.
+// (mutations: `setupOfferedOf` reading `setUp` alone → `#3467 offered`, `#3467 steps`; `defaultTicks` ticking it →
+// `#3467 ticks`)
+const INCOMPLETE = { ...SET_UP, setupIncomplete: ['_Label', '_Doc-block'] };
+ok(setupOfferedOf(INCOMPLETE) && setupOfferedOf(FRESH) && !setupOfferedOf(SET_UP) && !setupOfferedOf({ ...SET_UP, setupIncomplete: [] }),
+  '#3467 offered: Set up file is offered on a fresh file and on a set-up file whose read lists something, never on one whose read lists nothing');
+const t3 = defaultTicks(CAT, INCOMPLETE, null, { present: ['button'], theme: true, error: null, due: SET_UP.due });
+ok(t3.setup === false, '#3467 ticks: on a set-up file that lacks something setup owns, Set up file opens unticked');
+ok(same(stepsOf({ ...t3, setup: true }, INCOMPLETE, []), ['setup', 'theme']) && same(stepsOf(t3, INCOMPLETE, []), ['theme']),
+  '#3467 steps: ticked, Set up file runs first and no cover step follows; unticked, it is not a step');
+ok(UPDATE_COPY.setupMissing(['_Label', '_Doc-block']) === 'Builds what this file lacks: _Label, _Doc-block.', '#3467 copy: the line names what the file lacks (DRAFT, held for the owner)');
 
 // ── #3422 Q44 A: Theme ticked only when the file differs from the brand ─────────────────────────────────────────────
 // Mutations that fail here by name: `defaultTicks` ticking Theme always → `Q44 A ticks: a file that matches the brand

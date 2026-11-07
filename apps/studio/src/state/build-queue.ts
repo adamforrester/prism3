@@ -120,15 +120,19 @@ export const RUN_COPY = {
 export const runCauses = (r: BuildRun): Cause[] => {
   const out: Cause[] = [];
   const add = (c: Cause): void => { out.push(c); };
+  // #3467 (Q2 A): a set's build may send a note on a clean verdict (a missing `_Doc-block`). Each subject's latest note is
+  // kept, a clean set's included, after the problems: a later build words it from the file as that build left it.
+  const notes = new Map<string | null, Cause>();
   for (const x of r.results) {
+    for (const c of x.causes ?? []) if (c.kind === 'note') { notes.delete(c.subject); notes.set(c.subject, c); }
     if (x.result === 'ok') continue;
-    const own = x.causes ?? [];
+    const own = (x.causes ?? []).filter((c) => c.kind !== 'note');
     if (!own.some((c) => c.subject === x.id)) add({ kind: x.result === 'failed' ? 'bad' : 'warn', subject: x.id, what: x.result === 'failed' ? CAUSE_WHAT.failed : CAUSE_WHAT.built, reasons: [] });
     for (const c of own) add(c);
   }
   // A stop is the person's: each set it left is not built, and is a cause of its own with no reason but the stop.
   for (const id of r.ids.slice(r.results.length)) add({ kind: 'warn', subject: id, what: CAUSE_WHAT.notBuilt, reasons: [] });
-  return mergeCauses(out);
+  return [...mergeCauses(out), ...notes.values()];
 };
 
 /** The verdict a run of several sets ends with: one headline and one line per page built, per set that failed or had
