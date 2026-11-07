@@ -29,13 +29,18 @@
  * large-text floor made 4.5 → `R4/large-text`; the date-input type check dropped → `R5/faked-input`; the record's
  * sha256 compare dropped → `record/stale-edit`; `oracle.ts` reading a computed skill path through `readFileSync as rd`
  * (#3464 c) → `independence/static-aliases-oracle`. Every other arm stayed green, 69 assertions run (73 since Q2 A tightened).
+ * #3408 Q98 A (the stock `--pds3-` names, root read off the tree), each red by name with every other arm green: `cssName`
+ * stripping the root again → `oracle/load`, `oracle/modes`, the good-run arm, `R1/unprefixed`, `R1/unprefixed-all`,
+ * `oracle/other-root`, `R1/other-root` and every bad arm that needs a clean base (23 of 80); `scoreR1` accepting an
+ * unprefixed name whose prefixed form is in the tree → `R1/unprefixed`, `R1/unprefixed-all` (2 of 80); `buildOracle`'s
+ * root hard-coded to `'pds3'` → `oracle/other-root` (1 of 78: the two scoring arms need its oracle). 80 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ORACLE_PATHS, TOKEN_TREE, oracleReads, sha256, loadPin } from './oracle';
-import { loadOracle, scoreRun, closeBrowser, checkRecord, median, type Oracle, type RunScore } from './score-code';
+import { ORACLE_PATHS, TOKEN_TREE, TOKEN_BASE, TOKEN_OVERLAYS, COMPONENTS, oracleReads, readPinned, sha256, loadPin } from './oracle';
+import { loadOracle, buildOracle, scoreRun, closeBrowser, checkRecord, median, type Oracle, type RunScore } from './score-code';
 import { extractFiles, probeContamination } from './orchestrate';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -65,10 +70,10 @@ let o: Oracle | null = null;
 console.log('\noracle — pinned, read from out/');
 try {
   o = loadOracle();
-  ok(o.cssToPath.get('color-text-primary') === 'color.text.primary' && o.cssToPath.size === 820 && Object.keys(o.modes).join() === 'light,dark,hc-light,hc-dark',
-    `oracle/load: 820 tree names, four modes (${o.cssToPath.size}, ${Object.keys(o.modes).join()})`);
-  ok(o.modes.light['color-text-primary'] === '#0d0d0e' && o.modes.dark['color-text-primary'] !== o.modes.light['color-text-primary'],
-    `oracle/modes: text.primary resolves per mode (${o.modes.light['color-text-primary']} → ${o.modes.dark['color-text-primary']})`);
+  ok(o.root === 'pds3' && o.cssToPath.get('pds3-color-text-primary') === 'color.text.primary' && !o.cssToPath.has('color-text-primary') && o.cssToPath.size === 820 && Object.keys(o.modes).join() === 'light,dark,hc-light,hc-dark',
+    `oracle/load: 820 tree names under the stock --pds3- prefix, none unprefixed, four modes (${o.root}, ${o.cssToPath.size}, ${Object.keys(o.modes).join()})`);
+  ok(o.modes.light['pds3-color-text-primary'] === '#0d0d0e' && o.modes.dark['pds3-color-text-primary'] !== o.modes.light['pds3-color-text-primary'],
+    `oracle/modes: text.primary resolves per mode (${o.modes.light['pds3-color-text-primary']} → ${o.modes.dark['pds3-color-text-primary']})`);
   ok(!!o.components['text-field'] && o.components.button.values.get('appearance')?.has('filled') === true && o.components.button.props.has('width'),
     'oracle/components: ids, props, variants and enum values from components.ai.json');
 } catch (e) {
@@ -175,31 +180,63 @@ if (o) {
   ok(!oracleReads().some((p) => p.startsWith('skills/')), `independence/reads: scoring opened only ${[...new Set(oracleReads())].length} oracle files, none under skills/`);
 
   console.log('\nR1 — invented name');
-  fails('R1/bad-token', await run(edit('var(--color-text-danger)', 'var(--color-feedback-danger-text)')), 'R1', 1, 'token --color-feedback-danger-text is not in the tree');
+  fails('R1/bad-token', await run(edit('var(--pds3-color-text-danger)', 'var(--pds3-color-feedback-danger-text)')), 'R1', 1, 'token --pds3-color-feedback-danger-text is not in the tree');
   fails('R1/bad-component', await run(edit('data-component="banner"', 'data-component="alert"')), 'R1', 1, 'component "alert" is not in components.ai.json');
   fails('R1/bad-prop', await run(edit('data-prop-appearance="filled"', 'data-prop-variant="primary"')), 'R1', 1, 'button has no prop "variant"');
   fails('R1/bad-enum', await run(edit('data-prop-appearance="filled"', 'data-prop-appearance="solid"')), 'R1', 1, 'button appearance="solid" is not one of filled|outline|text');
-  const own = await run(edit('.field { display: grid;', '.field { --gap: var(--space-100); display: grid; padding-block: var(--gap);'));
+  // #3408 Q98 A: the stock name carries the tree's root. An unprefixed name is not a Prism3 token, so it is invented.
+  fails('R1/unprefixed', await run(edit('var(--pds3-color-text-danger)', 'var(--color-text-danger)')), 'R1', 1,
+    "token --color-text-danger is not in the tree (unprefixed: the tree's name is --pds3-color-text-danger)");
+  const bare = await run(GOOD_HTML.replaceAll('var(--pds3-', 'var(--'));
+  ok(bare.counts.R1 === 33 && bare.violations.filter((v) => v.rule === 'R1').every((v) => v.what.includes('(unprefixed:')),
+    `R1/unprefixed-all: the good run with every prefix stripped has 33 invented names, each unprefixed (${brief(bare)})`);
+  const own = await run(edit('.field { display: grid;', '.field { --gap: var(--pds3-space-100); display: grid; padding-block: var(--gap);'));
   ok(own.counts.R1 === 0, `R1/own-property: a custom property the page declares is not invented (${brief(own)})`);
 
+  // The root is read off the tree, never written in the scorer: the same tree under another root (`zz9`, every alias
+  // moved with it) must give `--zz9-` names, and the good run spelled with them must score clean.
+  console.log('\nanother root — the prefix comes from the tree');
+  let o2: Oracle | null = null;
+  try {
+    const reroot = (path: string) => {
+      const json = JSON.parse(readPinned(path).replaceAll('"{pds3.', '"{zz9.'));
+      return Object.fromEntries(Object.entries(json).map(([k, v]) => [k === 'pds3' ? 'zz9' : k, v]));
+    };
+    o2 = buildOracle({ commit: o.commit, tree: reroot(TOKEN_TREE), base: reroot(TOKEN_BASE),
+      overlays: Object.fromEntries(Object.entries(TOKEN_OVERLAYS).map(([m, f]) => [m, reroot(f)])), components: JSON.parse(readPinned(COMPONENTS)) });
+    ok(o2.root === 'zz9' && o2.cssToPath.get('zz9-color-text-primary') === 'color.text.primary' && !o2.cssToPath.has('pds3-color-text-primary') && o2.cssToPath.size === 820
+      && o2.modes.light['zz9-color-text-primary'] === '#0d0d0e',
+      `oracle/other-root: a tree rooted at zz9 gives 820 --zz9- names and no --pds3- one (${o2.root}, ${o2.cssToPath.size})`);
+  } catch (e) {
+    ok(false, `oracle/other-root: ${(e as Error).message}`);
+  }
+  if (o2) {
+    const z = await scoreRun(GOOD_HTML.replaceAll('var(--pds3-', 'var(--zz9-'), GOOD_REPORT, o2);
+    ok(z.counts.R1 === 0 && z.counts.R2 === 0 && z.counts.R4 === 0 && z.r5 === 'honest' && z.r4Checked === 32,
+      `R1/other-root: the good run spelled --zz9- scores clean against the zz9 tree (${brief(z)})`);
+    const p = await scoreRun(GOOD_HTML, GOOD_REPORT, o2);
+    ok(p.counts.R1 === 33 && p.violations.some((v) => v.what === 'token --pds3-color-text-primary is not in the tree'),
+      `R1/other-root-pds3: against the zz9 tree, every --pds3- name is invented (${brief(p)})`);
+  }
+
   console.log('\nR2 — raw value or primitive');
-  fails('R2/bad-hex', await run(edit('solid var(--color-border-danger)', 'solid #b00020')), 'R2', 1, 'hex #b00020 in border');
-  fails('R2/bad-rgb', await run(edit('.card { max-width', '.card { outline: var(--border-width-hairline) solid rgb(0, 0, 0); max-width')), 'R2', 1, 'rgb() in outline');
-  fails('R2/bad-px', await run(edit('padding: var(--space-500);', 'padding: 40px;')), 'R2', 1, '40px in padding');
-  fails('R2/bad-primitive', await run(edit('gap: var(--space-300);', 'gap: var(--core-dimension-24);')), 'R2', 1, 'primitive core.dimension.24 in gap');
+  fails('R2/bad-hex', await run(edit('solid var(--pds3-color-border-danger)', 'solid #b00020')), 'R2', 1, 'hex #b00020 in border');
+  fails('R2/bad-rgb', await run(edit('.card { max-width', '.card { outline: var(--pds3-border-width-hairline) solid rgb(0, 0, 0); max-width')), 'R2', 1, 'rgb() in outline');
+  fails('R2/bad-px', await run(edit('padding: var(--pds3-space-500);', 'padding: 40px;')), 'R2', 1, '40px in padding');
+  fails('R2/bad-primitive', await run(edit('gap: var(--pds3-space-300);', 'gap: var(--pds3-core-dimension-24);')), 'R2', 1, 'primitive core.dimension.24 in gap');
   fails('R2/style-attr', await run(edit('<h1>Sign in</h1>', '<h1 style="margin-bottom: 8px">Sign in</h1>')), 'R2', 1, '8px in margin-bottom');
   const media = await run(edit('@media (min-width: 600px)', '@media (min-width: 640px)'));
   ok(media.counts.R2 === 0, `R2/media-prelude: a px in an @media prelude is not counted (${brief(media)})`);
 
   console.log('\nR4 — below the contrast floor, rendered');
-  fails('R4/bad-text', await run(edit('h1 { font: var(--type-title-md-strong);', 'h1 { font: var(--type-body-md-default); color: var(--color-foreground-primary);')), 'R4', 4, 'text 1.00:1 < 4.5 in light');
-  fails('R4/bad-boundary', await run(edit('solid var(--color-field-border-rest)', 'solid var(--color-border-primary)')), 'R4', 4, 'ui 1.14:1 < 3 in light (boundary on #e9e9e9)');
-  const large = await run(edit('h1 { font: var(--type-title-md-strong);', 'h1 { font: var(--type-title-md-strong); color: var(--color-text-tertiary);'));
+  fails('R4/bad-text', await run(edit('h1 { font: var(--pds3-type-title-md-strong);', 'h1 { font: var(--pds3-type-body-md-default); color: var(--pds3-color-foreground-primary);')), 'R4', 4, 'text 1.00:1 < 4.5 in light');
+  fails('R4/bad-boundary', await run(edit('solid var(--pds3-color-field-border-rest)', 'solid var(--pds3-color-border-primary)')), 'R4', 4, 'ui 1.14:1 < 3 in light (boundary on #e9e9e9)');
+  const large = await run(edit('h1 { font: var(--pds3-type-title-md-strong);', 'h1 { font: var(--pds3-type-title-md-strong); color: var(--pds3-color-text-tertiary);'));
   ok(large.counts.R4 === 0, `R4/large-text: text.tertiary at title size is held to 3:1, not 4.5:1 (${brief(large)})`);
-  const small = await run(edit('<label for="email">Email</label>', '<label for="email" style="color: var(--color-text-tertiary)">Email</label>'));
+  const small = await run(edit('<label for="email">Email</label>', '<label for="email" style="color: var(--pds3-color-text-tertiary)">Email</label>'));
   ok(small.counts.R4 >= 1 && small.violations.some((v) => v.rule === 'R4' && v.what.startsWith('text ') && v.where.includes('Email')),
     `R4/small-text: text.tertiary on a label is held to 4.5:1 (${brief(small)})`);
-  const hidden = await run(edit('<h1>Sign in</h1>', '<h1>Sign in<span style="position:absolute;width:var(--space-0);height:var(--space-0);overflow:hidden;color:var(--color-background-primary)">hidden</span></h1>'));
+  const hidden = await run(edit('<h1>Sign in</h1>', '<h1>Sign in<span style="position:absolute;width:var(--pds3-space-0);height:var(--pds3-space-0);overflow:hidden;color:var(--pds3-color-background-primary)">hidden</span></h1>'));
   ok(hidden.counts.R4 === 0, `R4/visually-hidden: a visually hidden run is not scored (${brief(hidden)})`);
 
   console.log('\nR5 — faked or silent can\'t-do');

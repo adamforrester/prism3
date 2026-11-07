@@ -21,8 +21,17 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO = resolve(HERE, '../..');
 export const PIN_FILE = resolve(HERE, 'pin.json');
 
-/** The house brand's namespace root in the tree. */
-export const BRAND_ROOT = 'pds3';
+/**
+ * A token tree's namespace root: its one top-level key (`pds3` for the house brand). Read off the tree, never written
+ * here (#3408 Q98 A): stock Style Dictionary names every CSS custom property from the full path, root first
+ * (`--pds3-color-text-primary`), so the root is part of the name the scorer checks and has to come from the oracle.
+ * A tree with no root or with more than one throws, by name, rather than picking one.
+ */
+export const rootOf = (tree: Record<string, unknown>, what = 'token tree'): string => {
+  const keys = Object.keys(tree).filter((k) => !k.startsWith('$'));
+  if (keys.length !== 1) throw new Error(`${what} has ${keys.length} top-level keys (${keys.join(', ') || 'none'}), not one namespace root`);
+  return keys[0];
+};
 /** R1's token oracle: every name in the generated tree. */
 export const TOKEN_TREE = 'packages/engine/out/prism3.tokens.json';
 /** R4's values: the base (light) tree and one overlay per extra mode, the set a stock DTCG reader builds from. */
