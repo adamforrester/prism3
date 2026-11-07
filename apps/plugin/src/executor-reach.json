@@ -31,6 +31,7 @@
     "51": ["field-message"],
     "52": ["card-number-field", "code-input", "code-input-cell", "counter", "password-field", "search-field", "select", "text-field", "textarea"],
     "53": [],
-    "54": ["link"]
+    "54": ["link"],
+    "55": []
   }
 }

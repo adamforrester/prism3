@@ -3159,6 +3159,11 @@ const writeComponentSet = async (
       if (!entry.accept && entry.keep.has(REACTIONS_PATH) && prior?.reactions !== undefined) now.reactions = prior.reactions;
       // So does artwork kept as a hand edit (#2343 PR 2): recording the redraw as built would launder it.
       if (!entry.accept) for (const p of entry.keep) if (prior?.art?.[p] !== undefined) now.art = { ...(now.art ?? {}), [p]: prior.art[p] };
+      // And an instance's own part (#3474), for the same reason: the dry run compares it in place of the node's hash.
+      if (!entry.accept) for (const p of entry.keep) {
+        if (prior?.own?.[p] !== undefined) now.own = { ...(now.own ?? {}), [p]: prior.own[p] };
+        else if (now.own?.[p] !== undefined) { const { [p]: _gone, ...rest } = now.own; now.own = Object.keys(rest).length ? rest : undefined; }
+      }
       m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
     } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }
     // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.

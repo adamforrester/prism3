@@ -268,7 +268,7 @@ import { NS } from './src/persist-figma';
 import { EXECUTOR_REACH } from './src/executor-reach';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
-import { fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
+import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
@@ -754,6 +754,53 @@ section('hand — a hand edit is kept, and still reported after the update');
   ok(post.handEdits.length === 1 && post.handEdits[0].member === m.name && post.handEdits[0].path === 'content',
     `hand/still reported: the next dry run still reports the edit (${JSON.stringify(post.handEdits)})`);
   ok(post.counts.current === 44, `hand/rest current: the other 44 read current (${post.counts.current})`);
+}
+
+/* ── #3474: a kept edit on a nested instance stays reported ─────────────────────────────────────────────── */
+// The record keeps, per nested instance, the part of it the host set (`Baseline.own`, #3474), and the dry run compares
+// that in place of the node's hash. So an update that keeps a hand edit on a nested instance must keep that part as
+// recorded too, or it records the edit as built and the next dry run stops reporting it. Mutation: `finishUpdated`'s
+// own-part keep dropped → `#3474 kept/still reported`.
+section('#3474 kept — a hand edit kept on a nested instance is still reported after the update');
+// Twice: on a record this PR writes, and on one from before it (no `own` part, so the ring is compared whole). The
+// second is the path the first real update takes on a file whose records predate #3474: `finishUpdated` must not record
+// the edited ring's own part as built, or the next dry run compares own with own and the edit goes quiet. Mutation:
+// `finishUpdated`'s branch for a prior record with no own part removed → `#3474 kept/earlier record`.
+for (const earlier of [false, true]) {
+  const tag = earlier ? 'earlier record' : 'still reported';
+  const ring = plansOf('focus-ring'), host = plansOf('icon-button');
+  const page: Page = { children: [] };
+  const comps = [...new Set([SWAP_TARGET, ...host.flatMap((p) => planComps(p.root))])].filter((c) => c !== 'focus-ring');
+  const api = makeShim({
+    vars: [...new Set([...ring, ...host].flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]).concat('space/999'))],
+    styles: [...new Set(host.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(host.flatMap((p) => planEffectStyles(p.root)))],
+    comps, page, liveRoot: true, identities: true, scaleConstrained: true, wrapNode: figmaInstances(page),
+  }) as any;
+  const built = [...(await applyComponentPlan(ring, api)).misses, ...(await applyComponentPlan(host, api)).misses];
+  ok(built.length === 0, `#3474 kept premise (${tag}): Focus Ring and Icon button build clean (${built[0] ?? ''})`);
+  const file = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  const set = page.children.find((n) => n.type === 'COMPONENT_SET' && n.name === 'icon-button') as Node;
+  const m = membersOf(set).find((x) => /state=focus-visible/.test(String(x.name)))!;
+  if (earlier) {
+    // A RECORD FROM BEFORE #3474: the same record with its own part dropped.
+    const rec = JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)) as Record<string, unknown>;
+    ok(!!(rec.own as Record<string, string> | undefined)?.focusRing, `#3474 kept premise (${tag}): the record as built holds the ring's own part`);
+    delete rec.own;
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify(rec));
+  }
+  childNamed(m, 'focusRing').topLeftRadius = 1;
+  // A plan change on every member, so the update rewrites this one around its kept edit: the root's gap moved.
+  const next = host.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root.bound as Record<string, string>).itemSpacing = 'space/999'; return q; });
+  const targets = [{ def: 'icon-button', plans: next }];
+  const pre = await previewUpdate(file, targets);
+  ok(pre.sets[0].handEdits.some((h) => h.member === m.name && h.path === 'focusRing') && pre.sets[0].counts.update > 0,
+    `#3474 kept premise (${tag}): the ring edit is reported, and the plan change updates members (${JSON.stringify(pre.sets[0].counts)})`);
+  const res = await applyUpdate(file, api, targets, previewHashOf(pre));
+  ok(res.outcomes[0]?.kept.some((k) => k.member === m.name && k.path === 'focusRing'), `#3474 kept/listed (${tag}): the ring edit is kept (${JSON.stringify(res.outcomes[0]?.kept)})`);
+  const post = (await previewUpdate(file, targets)).sets[0];
+  ok(post.handEdits.length === 1 && post.handEdits[0].member === m.name && post.handEdits[0].path === 'focusRing',
+    `#3474 kept/${tag}: the next dry run still reports the ring edit (${JSON.stringify(post.handEdits)})`);
 }
 
 /* ── choices ─────────────────────────────────────────────────────────────────────────────────────────── */
