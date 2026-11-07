@@ -17,12 +17,12 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 |---|---|---|---|---|
 | Start from a color, an example or a `design.md` | ✓ | ✓ | – | ✓ from a `design.md` (`theme_from_brief`) |
 | Set levers with a live preview | ✓ | ✓ | – | ✓ list the levers (`list_levers`), no preview |
-| Check contrast in every mode | ✓ Inspect › Contrast | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `theme_from_brief` |
-| Keep the working brand | ✓ in this browser | ✓ in the Figma file, when Update file writes the theme | – | – |
+| Check contrast in every mode | ✓ Inspect › Contrast <!-- src: apps/studio/src/shell/pages.ts:118-120#9232e735 --> | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `theme_from_brief` |
+| Keep the working brand | ✓ in this browser <!-- src: apps/studio/src/persist-local.ts:40-79#7bd91f4c --> | ✓ in the Figma file, when Update file writes the theme <!-- src: apps/plugin/src/persist-figma.ts:30-35#ba150bb3 --> | – | – |
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
-| Export a `design.md` brief | ✓ | ✓ | – | – |
+| Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1321 --> | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:168-219#f0d574f0 --> <!-- src: apps/studio/src/shell/pages.ts:118-120#9232e735 --> <!-- src: apps/studio/src/persist-local.ts:40-79#7bd91f4c --> <!-- src: apps/plugin/src/persist-figma.ts:30-35#ba150bb3 --> <!-- src: apps/studio/src/export-settings.ts:112-116#b04a2f14 --> <!-- src: packages/engine/mcp.ts:245-391#d810bcff -->
+<!-- src: apps/studio/src/shell/start.ts:168-219#f0d574f0 --> <!-- src: packages/engine/mcp.ts:245-391#d810bcff -->
 
 ## Figma file
 
@@ -30,24 +30,24 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 |---|---|---|---|---|
 | [Write the theme](apply-a-theme.md): variables, modes and styles | – | ✓ Update file › Theme | ✓ `apply-theme` | – |
 | [Set up file](file-setup.md): pages and helper components | – | ✓ Update file › Set up file | ✓ `file-setup` | – |
-| [Add component sets](build-components.md) | – (lists the sets) | ✓ Components, then Update file › To add | ✓ `build-components` | – |
+| [Add component sets](build-components.md) | – (lists the sets) <!-- src: apps/studio/src/preview/sections/component-sets.ts:29#37b05aef --> | ✓ Components, then Update file › To add | ✓ `build-components` | – |
 | [Update sets in place](update-a-file-safely.md#update-sets-in-place) | – | ✓ Update file › Due | ✓ `update-components` | – |
-| [Draw style guides](style-guides.md) | – | ✓ Documentation, then Update file › Style guides | ✓ `style-guide` | – |
+| [Draw style guides](style-guides.md) | – | ✓ Documentation, then Update file › Style guides <!-- src: apps/studio/src/shell/pages.ts:531-536#aed5e5ff --> | ✓ `style-guide` | – |
 | [Remove what the brand no longer uses](update-a-file-safely.md#remove-what-the-brand-no-longer-uses), with a preview | – | ✓ Update file › Clean up | ✓ `prune` | – |
-| Draw spec panels | – | ✓ Documentation › Specs | ✓ `draw-specs` | – |
+| Draw spec panels | – | ✓ Documentation › Specs <!-- src: apps/studio/src/shell/pages.ts:531-536#aed5e5ff --> | ✓ `draw-specs` | – |
 | Read the file back | – | ✓ when the plugin opens | ✓ `readback`, `status` | – |
 
-<!-- src: apps/studio/src/state/update-file.ts:301-326#ddad7221 --> <!-- src: apps/plugin/src/agent-protocol.ts:41#2ca0eeca --> <!-- src: apps/studio/src/preview/sections/component-sets.ts:29#37b05aef --> <!-- src: apps/studio/src/shell/pages.ts:531-536#aed5e5ff -->
+<!-- src: apps/studio/src/state/update-file.ts:301-326#ddad7221 --> <!-- src: apps/plugin/src/agent-protocol.ts:41#2ca0eeca -->
 
 ## Tokens
 
 | Feature | Web studio | Figma plugin | Agent link | MCP server |
 |---|---|---|---|---|
-| [Download DTCG token files](export-tokens.md): a base file and one overlay per mode | ✓ | ✓ | – | – |
+| [Download DTCG token files](export-tokens.md): a base file and one overlay per mode | ✓ <!-- src: apps/studio/src/export-settings.ts:102-111#531be286 --> | ✓ | – | – |
 | Write the Figma variable files to a folder | – | – | – | ✓ `export_theme` |
 | Score how generated UI used the tokens | – | – | – | ✓ `score_consumption` |
 
-<!-- src: apps/studio/src/export-settings.ts:102-111#531be286 --> <!-- src: packages/engine/mcp.ts:345-379#c8235700 --> <!-- src: packages/engine/mcp.ts:293-328#a6aa6b2c -->
+<!-- src: packages/engine/mcp.ts:345-379#c8235700 --> <!-- src: packages/engine/mcp.ts:293-328#a6aa6b2c -->
 
 TokenPress, a separate Figma plugin, exports any Figma file's variables and styles as DTCG token files. See [Export tokens](export-tokens.md#export-any-figma-file-with-tokenpress). <!-- src: apps/tokenpress/README.md:3#68cda092 -->
 
