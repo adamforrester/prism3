@@ -2,8 +2,8 @@
 name: prism3-build-component
 description: >-
   Author a NEW Prism3 component definition — one `ComponentDef` the engine
-  projects into every surface (Figma shell, Web Components / React, Storybook,
-  docs, `.ai.json`, Code Connect). Teaches brief-first research (the KB component
+  projects into the Figma shell, the docs and `.ai.json` today, with code,
+  Storybook and Code Connect planned (#3408). Teaches brief-first research (the KB component
   brief is the primary source), the brief-to-def field mapping, what ships and what
   stays maintainer-only, the anatomy model (the part tree and its structure/paint
   split), the nesting relations, the naming canon, every gate list a new def joins,
@@ -21,10 +21,11 @@ when_to_use: >-
 
 # prism3-build-component — authoring a component definition the engine can project
 
-You are writing **one `ComponentDef`** — the single source from which every artifact
-projects: the Figma component shell, the Web Components / React code, Storybook, the
-docs, the `.ai.json` metadata, and Code Connect. A definition binds visual properties to
-**locked token names, never values**, which is what makes it brand- and mode-invariant:
+You are writing **one `ComponentDef`** — the single source every artifact projects from.
+Today that is the Figma component shell, the docs and the `.ai.json` metadata. Code, Storybook
+and Code Connect are planned, not built: no emitter for them exists yet, and the code proof of
+concept (#3408) is where the first one is being built, as web components plus vanilla HTML/CSS.
+A definition binds visual properties to **locked token names, never values**, which is what makes it brand- and mode-invariant:
 brands and modes are value-columns the engine already supplies. The schema and its
 runtime validator are `packages/engine/component-schema.ts`; the definitions live one file
 per component under `packages/engine/components/` (read `packages/engine/components/button.ts`
@@ -297,7 +298,7 @@ fact about the design (the def declares it). Three kinds:
 - **`nest-exposed`** — a nested component whose variants the consumer controls from the parent
   (#1330). It carries the same `variant` default and optional `follow` as `nest-fixed`, plus
   `expose` naming the child axes the consumer drives: those surface on the parent as Figma exposed
-  nested-instance properties (and as React props, `.ai.json` options, Storybook controls) rather
+  nested-instance properties (and as `.ai.json` options; code props and Storybook controls are planned) rather
   than the parent re-enumerating them into its own variant matrix. The two lists are disjoint — the
   validator refuses an axis in both. `checkbox-row` nests `checkbox-control` `nest-exposed`, exposing
   `selection` + `state` and `follow`ing its own `size`, which collapses the Row's Figma set to 3

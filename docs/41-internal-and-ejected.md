@@ -11,6 +11,9 @@
 > Scope: this draws one line and says what falls either side of it. It does not design the
 > conformance checker, write the skill, or specify the metadata projection's schema — all three are
 > named here and built separately.
+>
+> `35` owns the naming and repo layout the eject boundary organizes. This doc decides what crosses it
+> for the component tier.
 
 ---
 
@@ -285,6 +288,19 @@ contract that each framework target implements.
 **Decide it before tranche 4 is authored, not during.** The def's `accessibility` block is where a
 behavior contract would live, and finding that out after eighteen defs are written is an eighteen-file
 migration — the identical shape as #821's argument for closing the state vocabulary now.
+
+### 7.1 Decided (2026-11-07, #3408): the code POC's behavior is native HTML plus a small script
+
+Q86 A, for the code POC (`19` §10). The components wrap native elements (`<button>`, `<label>` with
+`<input>`), and the behavior the markup cannot express is a small script: the pending state
+(`aria-busy` and the spinner) and the password Show/Hide toggle. That is the first of the three options
+above, chosen for the POC's three components. It does not answer the tranche 4 question, which still
+has to be decided before tranche 4 is authored, and #252 stays parked.
+
+**The POC's ejection test is the first fixture for the conformance checker (#879).** Arm 1 ejects into
+a standalone client repo in two modes: the components as a versioned package, and the components copied
+in with the tokens kept a package. The copied client is the client-shaped fixture §4 property 3 asks
+for, so the checker's first mutations run against it rather than against this repo.
 
 ## 8. The cost this creates, and the evidence that would retire it
 
