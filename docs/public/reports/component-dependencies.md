@@ -114,7 +114,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | From | Part | Kind | To | Relation | Fixed variant | Follows | Exposes |
 |---|---|---|---|---|---|---|---|
 | _slider-thumb | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| accordion | divider | nest | divider | nest-fixed | orientation=horizontal, inset=none, labeled=false, emphasis=bold | — | — |
+| accordion | divider | nest | divider | nest-fixed | orientation=horizontal, inset=none, labeled=false, emphasis=subtle | — | — |
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
@@ -167,8 +167,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | dialog | actionsInline | nest | button-group | nest-fixed | layout=inline | — | — |
 | dialog | actionsStacked | nest | button-group | nest-fixed | layout=stacked | — | — |
 | dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=medium, surface=default, state=rest | — | — |
-| dialog | footerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none, labeled=false, emphasis=bold | — | — |
-| dialog | headerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none, labeled=false, emphasis=bold | — | — |
+| dialog | footerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none, labeled=false, emphasis=subtle | — | — |
+| dialog | headerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none, labeled=false, emphasis=subtle | — | — |
 | flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | flush-icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | flush-icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |

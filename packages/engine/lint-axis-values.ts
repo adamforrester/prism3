@@ -268,8 +268,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'thing reads against what is around it — and with badge\'s own two words, which mean the same here: the stronger '
       + 'and the quieter paint of one element. DISJOINT from canonical, as badge\'s is: a paint strength, not a text role. '
       + 'It differs from badge\'s set in ORDER and in having no `surface`: `bold` LEADS because it is the code default '
-      + 'and Figma\'s default member, the color every divider had before the axis, so placed dividers and every nesting '
-      + 'host keep their color; and a rule never brings its own background, so `surface` has nothing to name. The axis '
+      + 'and Figma\'s default member, the color every divider had before the axis, so placed dividers keep their color '
+      + '(the two nesting hosts, Accordion and Dialog, name `subtle`, #3476 owner Q72 B); and a rule never brings its own background, so `surface` has nothing to name. The axis '
       + 'name is held for the owner on the PR (the routing said `strength`).',
   },
   {

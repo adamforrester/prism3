@@ -381,9 +381,9 @@ Keyed by `placement`, `footer`.
 ### Nesting and properties
 
 - `panel/header/close` nests `flush-icon-button-neutral` at `shape=flush, size=medium, surface=default, state=rest`
-- `panel/headerDivider` nests `divider` at `orientation=horizontal, inset=none, labeled=false, emphasis=bold`
+- `panel/headerDivider` nests `divider` at `orientation=horizontal, inset=none, labeled=false, emphasis=subtle`
 - `panel/body` is a slot
-- `panel/footerDivider` nests `divider` at `orientation=horizontal, inset=none, labeled=false, emphasis=bold`
+- `panel/footerDivider` nests `divider` at `orientation=horizontal, inset=none, labeled=false, emphasis=subtle`
 - `panel/footer/actionsInline` nests `button-group` at `layout=inline`
 - `panel/footer/actionsStacked` nests `button-group` at `layout=stacked`
 - `panel/footer/actionsFill` nests `button-group` at `layout=fill`

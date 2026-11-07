@@ -249,7 +249,7 @@ export const accordion: ComponentDef = {
       divider: {
         kind: 'nest',
         nests: 'divider',
-        nesting: { kind: 'nest-fixed', variant: { orientation: 'horizontal', inset: 'none', labeled: 'false', emphasis: 'bold' } },
+        nesting: { kind: 'nest-fixed', variant: { orientation: 'horizontal', inset: 'none', labeled: 'false', emphasis: 'subtle' } },
         crossAxisFill: true,
         optional: true,
         note: 'The rule under the section, separating it from the next. It spans the section\'s width.',

@@ -28,7 +28,7 @@
         "orientation": "horizontal",
         "inset": "none",
         "labeled": "false",
-        "emphasis": "bold"
+        "emphasis": "subtle"
       }
     },
     {
@@ -786,7 +786,7 @@
         "orientation": "horizontal",
         "inset": "none",
         "labeled": "false",
-        "emphasis": "bold"
+        "emphasis": "subtle"
       }
     },
     {
@@ -799,7 +799,7 @@
         "orientation": "horizontal",
         "inset": "none",
         "labeled": "false",
-        "emphasis": "bold"
+        "emphasis": "subtle"
       }
     },
     {

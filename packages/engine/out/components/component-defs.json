@@ -40286,7 +40286,7 @@
       }
     },
     "accordion": {
-      "digest": "10446b51",
+      "digest": "4745d24f",
       "def": {
         "id": "accordion",
         "name": "Accordion",
@@ -41263,7 +41263,7 @@
               "orientation": "horizontal",
               "inset": "none",
               "labeled": "false",
-              "emphasis": "bold"
+              "emphasis": "subtle"
             },
             "follows": [],
             "exposes": []
@@ -47502,7 +47502,7 @@
       }
     },
     "dialog": {
-      "digest": "47291609",
+      "digest": "a2231089",
       "def": {
         "id": "dialog",
         "name": "Dialog",
@@ -49005,7 +49005,7 @@
               "orientation": "horizontal",
               "inset": "none",
               "labeled": "false",
-              "emphasis": "bold"
+              "emphasis": "subtle"
             },
             "follows": [],
             "exposes": []
@@ -49023,7 +49023,7 @@
               "orientation": "horizontal",
               "inset": "none",
               "labeled": "false",
-              "emphasis": "bold"
+              "emphasis": "subtle"
             },
             "follows": [],
             "exposes": []
