@@ -169,6 +169,9 @@ The loop:
    `bad-version`, `bad-args`, `stale`, `handler-threw`); otherwise `result.verdict` is the panel's
    own verdict and `result.data` holds the detail.
 
+On a fresh file, send `file-setup` again after `apply-theme`: setup draws the Cover only from the brand the file
+holds, and `apply-theme` does not draw it (#3467, Q6 A).
+
 What a result holds (`apps/plugin/src/agent-protocol.ts` is the definition):
 
 | Field | What it is |
