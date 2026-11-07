@@ -3699,7 +3699,7 @@ for (const host of ['web', 'figma']) {
           const hist = await page.evaluate((r) => [...document.querySelectorAll(`${r} [data-p3="op-history-head"]`)].map((n) => n.textContent), runRow);
           // Q3113.6 A: each earlier result is one line, its time and its words, newest first: the run this one repeats, then
           // the Theme run this case began with (one Update file row, Q3326.4 A).
-          ok(hist.length === 2 && new RegExp(`^\\d\\d:\\d\\d${stopWords}$`).test(hist[0]) && /^\d\d:\d\dTheme applied$/.test(hist[1]),
+          ok(hist.length === 2 && new RegExp(`^(1[0-2]|[1-9]):\\d\\d [AP]M${stopWords}$`).test(hist[0]) && /^(1[0-2]|[1-9]):\d\d [AP]MTheme applied$/.test(hist[1]),
             `Q3113.6 A ${where}: the earlier runs are one line each, its time and words: "${stopWords}", then "Theme applied" (${JSON.stringify(hist)})`);
           // The review of #3126 (nit 3): an open earlier result stays open when a new result arrives, though every entry moves
           // down one. MUTATION: the open entries remembered by their index again → this arm, by name.
@@ -21084,6 +21084,63 @@ if (runs('3391')) {
     } finally { await ctx.close(); }
   }
 } // 3391
+// #3471 (owner decisions Q91 A, Q92 A): a run's time reads as clock time, "9:25 AM", never "09:25", which read as a
+// duration; a run from an earlier day also shows its date, "Nov 6, 9:25 AM". Measured as rendered in the plugin's
+// drawer: its row, its Earlier results and its bar row. The page's clock and zone are fixed here, not the host's: the
+// zone America/Los_Angeles (UTC−8 in November 2026) and the locale de-DE, so a formatter that read UTC or the locale
+// would read differently. The expected words are literals.
+// MUTATIONS (each after a `wip:` commit): `runTime` back to `HH:MM` → `#3471 … the row reads "9:05 PM"` and its siblings;
+// the date dropped → `#3471 … the earlier result reads "Nov 6, 9:25 AM"`.
+if (runs('3471')) {
+  console.log(`\nActivity: a run's time is clock time (#3471)\n${'='.repeat(78)}`);
+  const where = '3471 figma light 1280';
+  const DAY1 = new Date('2026-11-06T17:25:00Z'); // Nov 6, 9:25 AM in Los Angeles
+  const DAY2 = new Date('2026-11-08T05:05:00Z'); // Nov 7, 9:05 PM in Los Angeles
+  const prep = async (page) => {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setTimezoneOverride', { timezoneId: 'America/Los_Angeles' });
+    await cdp.send('Emulation.setLocaleOverride', { locale: 'de-DE' });
+    await page.clock.setFixedTime(DAY1);
+  };
+  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900, prep });
+  let step = 'premise';
+  try {
+    const zone = await page.evaluate(() => ({ off: new Date().getTimezoneOffset(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, lang: navigator.language }));
+    ok(zone.off === 480 && zone.tz === 'America/Los_Angeles', `${where}: premise, the page's zone is fixed at America/Los_Angeles, UTC−8 (${JSON.stringify(zone)})`);
+    step = 'first read-back';
+    await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'seed-info', ok: true, present: true, summary: 'Contract holds: 412 variables checked.', failed: 0 } }, '*'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="readback"]'), null, { timeout: 5000 });
+    step = 'second read-back';
+    await page.clock.setFixedTime(DAY2);
+    await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'seed-info', ok: true, present: true, summary: 'Contract holds: 413 variables checked.', failed: 0 } }, '*'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="readback"] [data-p3="op-history-entry"]'), null, { timeout: 5000 });
+    step = 'open';
+    await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 });
+    const row = page.locator('[data-p3="activity-op"][data-op="readback"]');
+    // A clean result collapses its row (#483), so open it to reach its Earlier results.
+    if (await row.locator('[data-p3="op-head"]').getAttribute('aria-expanded') !== 'true') await hooks.click(row.locator('[data-p3="op-head"]'));
+    await hooks.click(row.locator('[data-p3="op-history"] > summary'));
+    await settle(page);
+    const t = await page.evaluate(() => {
+      const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width >= 1 && r.height >= 1; };
+      const shown = (n) => (vis(n) ? n.textContent : null);
+      const r = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
+      return {
+        row: shown(r?.querySelector('[data-p3="op-head"] .p3-op-when')),
+        earlier: [...(r?.querySelectorAll('[data-p3="op-history-entry"] .p3-op-when') ?? [])].map(shown),
+        bar: shown(document.querySelector('[data-p3="activity-toggle"] .p3-op-when')),
+      };
+    });
+    ok(t.row === '9:05 PM', `#3471 ${where}: the row reads "9:05 PM", today's run with no date (got ${JSON.stringify(t.row)})`);
+    ok(t.bar === '9:05 PM', `#3471 ${where}: the bar row reads "9:05 PM" (got ${JSON.stringify(t.bar)})`);
+    ok(t.earlier.length === 1 && t.earlier[0] === 'Nov 6, 9:25 AM', `#3471 ${where}: the earlier result reads "Nov 6, 9:25 AM", its date shown (got ${JSON.stringify(t.earlier)})`);
+    await (SHOTS ? page.screenshot({ path: join(SHOTS, 's3471-plugin-light-1280-run-time.png') }) : null);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 3471
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
