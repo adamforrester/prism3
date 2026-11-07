@@ -3878,7 +3878,8 @@
           "THE NOMINAL LENGTHS ARE PLACEHOLDERS. `container.narrow` (720px) and `size.md.height` make the standalone members rule-shaped; nobody has decided they are right, and in use the rule fills its container."
         ],
         "evolution": [
-          "EMPHASIS AND THE STROKE (#3382, owner Q15 revised A): a `bold | subtle` axis, bold on `color.border.secondary` (the color every divider had before) and subtle on `color.border.primary`, with no brand setting; and the rule drawn as an inside stroke at the hairline weight rather than a fill, so the border role shows in Figma's stroke picker. Bold leads, so placed dividers and every nesting host keep their color. The axis reuses Badge's `emphasis` name rather than the routed `strength`, held for the owner on the PR."
+          "EMPHASIS AND THE STROKE (#3382, owner Q15 revised A): a `bold | subtle` axis, bold on `color.border.secondary` (the color every divider had before) and subtle on `color.border.primary`, with no brand setting; and the rule drawn as an inside stroke at the hairline weight rather than a fill, so the border role shows in Figma's stroke picker. Bold leads, so placed dividers and every nesting host keep their color. The axis reuses Badge's `emphasis` name rather than the routed `strength`, held for the owner on the PR.",
+          "NESTED AT SUBTLE (#3476, owner Q72 B): Accordion and Dialog nest the divider at `emphasis: subtle`, on `color.border.primary`, for every brand, so their separators recede. Divider's own default stays bold. Both are decorative rules with no contrast minimum."
         ],
         "projection": []
       },

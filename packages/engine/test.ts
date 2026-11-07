@@ -38462,7 +38462,7 @@ arm: {
     `${D3382} stroke: every rule and labeled line is a stroke at border-width/hairline with no fill, so its border role shows in the stroke picker (${rules} parts, want 18${notStroke.length ? `; NOT A STROKE: ${notStroke.slice(0, 4).join('; ')}` : ''})`);
   ok(wrongRole.length === 0,
     `${D3382} strength: bold strokes color/border/secondary and subtle strokes color/border/primary, on every rule and line${wrongRole.length ? ` — WRONG: ${wrongRole.slice(0, 4).join('; ')}` : ''}`);
-  // The default is bold, so a divider placed before #3382 and every host that nests one keep their color.
+  // The default is bold, so a divider placed before #3382 keeps its color. The nesting hosts name subtle (#3476).
   const prop = divider.props.find((p) => p.name === 'emphasis');
   ok(prop?.default === 'bold' && JSON.stringify(prop?.values) === JSON.stringify(['bold', 'subtle']),
     `${D3382} strength: the code prop is emphasis = bold | subtle, default bold (got ${JSON.stringify(prop?.values)} default ${prop?.default})`);
@@ -38475,6 +38475,28 @@ arm: {
   }
   ok(thick.length === 0,
     `${D3382} stroke: every plain member stays one hairline thick across, the width of its inside stroke, so the rule draws the pixels the fill drew${thick.length ? ` — ${thick.join('; ')}` : ''}`);
+
+  // #3476 (owner Q72 B): Accordion and Dialog nest their dividers at emphasis=subtle, for every brand, while Divider's
+  // own default stays bold (held above). EXPECTED is typed here from the decision; ACTUAL is every nested divider
+  // instance in every projected member of both hosts. Mutation: either host back to `emphasis: 'bold'` fails
+  // "#3476 nested divider" by name.
+  const NESTED_3476 = { orientation: 'horizontal', inset: 'none', labeled: 'false', emphasis: 'subtle' };
+  const HOSTS_3476: Record<string, string[]> = { accordion: ['divider'], dialog: ['headerDivider', 'footerDivider'] };
+  const notSubtle: string[] = [];
+  let nested3476 = 0;
+  for (const [host, parts] of Object.entries(HOSTS_3476)) {
+    const walk = (n: any): any[] => [n, ...((n.children ?? []) as any[]).flatMap(walk)];
+    for (const plan of figmaAnatomySet(componentDefs.find((d) => d.id === host)!, { swapTarget: 'FPO-default-icon' })) {
+      for (const n of walk(plan.root).filter((x: any) => parts.includes(x.name))) {
+        nested3476++;
+        if (n.nestTarget !== 'divider' || JSON.stringify(n.nestVariant) !== JSON.stringify(NESTED_3476))
+          notSubtle.push(`${host} ${planComponentName(plan)} ${n.name}: ${n.nestTarget} ${JSON.stringify(n.nestVariant)}`);
+      }
+    }
+  }
+  // 48 accordion members, one rule each; 24 dialog members, a header rule each and a footer rule on the 18 with a footer.
+  ok(nested3476 === 90 && notSubtle.length === 0,
+    `#3476 nested divider: Accordion and Dialog nest every divider at ${JSON.stringify(NESTED_3476)}, so their separators draw color/border/primary (owner Q72 B) (${nested3476} nested, want 90${notSubtle.length ? `; NOT SUBTLE: ${notSubtle.slice(0, 3).join(' | ')}` : ''})`);
 }
 
 // ------------------------------------------------------------------- #2417: the accordion and its indicator

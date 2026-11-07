@@ -60,8 +60,9 @@
  * setting. The axis REUSES the `emphasis` name Badge already carries as `subtle | bold` (`VARIANT_AXES`), because it is
  * the same question, how strongly a thing reads against what is around it, and a second name for one question is the
  * #756 failure. The routing named it `strength`; the PR holds that naming for the owner. `bold` LEADS, so it is the
- * code default and Figma's default member: every divider placed before #3382, and every host that nests one, keeps
- * its rendered color. An AUTHORING axis: a rule's strength is chosen where it is placed.
+ * code default and Figma's default member: every divider placed before #3382 keeps its rendered color. The two
+ * nesting hosts, Accordion and Dialog, name `subtle` (#3476, owner Q72 B): their separators recede. An AUTHORING
+ * axis: a rule's strength is chosen where it is placed.
  *
  * FILLING THE PARENT is a placement fact, and the root sets no `fill` sizing for it. A root has no parent in
  * its own def; `sizing.x: 'fill'` with a `placementWidth` is the idiom for a root that fills across, but it is
@@ -468,6 +469,7 @@ export const divider: ComponentDef = {
     ],
     evolution: [
       'EMPHASIS AND THE STROKE (#3382, owner Q15 revised A): a `bold | subtle` axis, bold on `color.border.secondary` (the color every divider had before) and subtle on `color.border.primary`, with no brand setting; and the rule drawn as an inside stroke at the hairline weight rather than a fill, so the border role shows in Figma\'s stroke picker. Bold leads, so placed dividers and every nesting host keep their color. The axis reuses Badge\'s `emphasis` name rather than the routed `strength`, held for the owner on the PR.',
+      'NESTED AT SUBTLE (#3476, owner Q72 B): Accordion and Dialog nest the divider at `emphasis: subtle`, on `color.border.primary`, for every brand, so their separators recede. Divider\'s own default stays bold. Both are decorative rules with no contrast minimum.',
     ],
     unverified: [
       'A HOST STRETCHING A BOUND LENGTH. The standalone member binds its length to a variable; a host that nests it with `crossAxisFill` projects the instance as STRETCH on that axis. That stretch overriding the inherited width binding on the real Figma host is expected but not yet measured — the first nesting host (Accordion) is where it gets measured.',
