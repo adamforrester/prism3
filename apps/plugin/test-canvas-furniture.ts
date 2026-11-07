@@ -38,7 +38,9 @@
  *                 an earlier layout its dry run reports the moves worked out by hand here (360 for the three buttons,
  *                 180 for the three icon buttons, none for the rest), the apply moves them, and the next dry run reads
  *                 up to date; its furniture is drawn with nothing skipped, a backdrop only for the six with `surface`
- *                 rows, and no label inside its own set.
+ *                 rows, and no label inside its own set; and every def with a `size` axis of two or more values has
+ *                 each of them, read off the def, drawn as a label (#3475). Mutation: `size` cut by `ROW_LABEL_DEPTH`
+ *                 again → `rollout/badge sizes`, `rollout/accordion sizes`, `rollout/link sizes`, `rollout/pagination-item sizes`.
  *   clearance/…   every page that holds more than one set, built in page order as `main.ts` builds (the set lands,
  *                 its furniture is drawn, a set the run created is placed again, `seatNewSet`): no label enters another
  *                 set or its labels, and the white space from one set's frame-and-furniture to the next one's is
@@ -1064,6 +1066,18 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     const sb = { x: Number(set.x), y: Number(set.y), w: Number(set.width), h: Number(set.height) };
     const inside = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.x) < sb.x + sb.w && Number(n.x) + Number(n.width) > sb.x && Number(n.y) < sb.y + sb.h && Number(n.y) + Number(n.height) > sb.y);
     ok(inside.length === 0, `rollout/${id} outside: no label overlaps its own set (${inside.map(textOf).join(', ')})`);
+    // EVERY SIZE IS NAMED ON THE CANVAS (#3475). The oracle is the def's own axes, never the furniture: a def that
+    // declares `size` as a variant axis with two or more values has each value drawn as a label, row or column, in the
+    // label wording written out here (hyphens to spaces, first letter up), not `sentenceCase`. Badge, Accordion, Link
+    // and Pagination item lost theirs to the row-depth cap.
+    const def = componentDefs.find((d) => d.id === id)!;
+    const sizes = def.figmaProperties?.variantAxes?.includes('size') ? ((def.variants as Record<string, string[]> | undefined)?.size ?? []) : [];
+    if (sizes.length > 1) {
+      const drawn = new Set(furn.filter((n) => tagOf(n).kind === 'label').map(textOf));
+      const word = (v: string): string => v.charAt(0).toUpperCase() + v.slice(1).replace(/-/g, ' ');
+      const unnamed = sizes.filter((v) => !drawn.has(word(v)));
+      ok(unnamed.length === 0, `rollout/${id} sizes: every size the def declares is labeled, ${sizes.map(word).join(', ')} (missing: ${JSON.stringify(unnamed)})`);
+    }
   }
 
   // SIDE BY SIDE (#2471 item 10): the pages that hold more than one set, built in page order by the real executor so
