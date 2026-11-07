@@ -1293,6 +1293,7 @@
         "items": [
           "prism3-build-component",
           "prism3-build-ui",
+          "prism3-motion",
           "prism3-rebind",
           "prism3-theme"
         ]

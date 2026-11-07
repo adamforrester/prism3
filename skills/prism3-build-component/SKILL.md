@@ -176,6 +176,7 @@ register` block in `packages/engine/test.ts` refuses code spans, all-caps words 
 "def" and issue numbers in the consumer fields (summary, description, prop descriptions, accessibility,
 content, docs and ai's three decision fields), and `#2714 child-only whenToUse` holds the two templates.
 Motion and a part's `note` ship too but are not gated yet (#2773), so hold them to the same rules by hand.
+Write the `motion` field from the `prism3-motion` rules and recipes: token names, never numbers.
 
 ### Identity and relations — the #1700 rules
 
