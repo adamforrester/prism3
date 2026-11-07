@@ -12,10 +12,12 @@
  *   2. The queue is the panel's: the five families' rows (`groupsOf`), each ticked as its box ticks (`toggleSets`), in
  *      the order Update file posts them (`queuedOf`). Each set is posted once, straight after the last answer, as the
  *      panel's build queue does (`runAfterResult`).
- *   3. Each answer is a `component-result` that COMPLETED; which are clean and which have problems, and each problem's
- *      reason, are held against literals. The owner's strip counted the same: "Built 9 sets · 5 with problems".
+ *   3. Each answer is a `component-result` that COMPLETED. The owner's strip counted "Built 9 sets · 5 with problems",
+ *      each problem the missing `_Doc-block`. Since #3467 (Q2 A) that is a note, not a problem: all nine are clean, and
+ *      the five whose family draws a usage panel each carry the note, with the fix that works on the file as that build
+ *      left it (Q5 A), held against literals.
  *   4. Those answers, recorded as the panel records them, go through the panel's `runVerdict` and `stepDone`: the run
- *      moves on to the style guides, and its verdict is the "⚠" warning Activity counts as one.
+ *      moves on to the style guides, its sets step clean, and the run carries the latest note (`runCauses`, #3467).
  *
  * THE HOST is the shared component shim with its strict default (#3215: no opt-out, so the host and root methods
  * are fixed as Figma's are). The suite adds what a fresh file has that the shim lacks (its pages, the UI channel) as new
@@ -26,8 +28,11 @@
  * INDEPENDENCE (docs/34): what is read is what `main.ts` posted; the expected kinds, headlines and reasons are typed
  * here as literals. The queue is the panel's own functions over the plugin's defs, as the panel computes it.
  *
- * Mutations this fails by name: `stepDone` ignoring `warn` (`apps/studio/src/state/update-file.ts`, #3323) → `run/goes
- * on`; the "⚠" dropped from `runVerdict`'s with-problems headline (`build-queue.ts`) → `run/verdict`.
+ * Mutations this fails by name: a missing `_Doc-block` turning the run `⚠` again (`withTemplateWarning`'s warn filter,
+ * `canvas-furniture.ts`) → `sets/<id>: … clean` and `run/verdict`; `runCauses` skipping a clean set's note
+ * (`build-queue.ts`) → `#3467 run/note`. Before #3467 this file also held `stepDone` ignoring `warn` and `runVerdict`'s
+ * "⚠"; with every set clean it no longer can, and `test-update-file.ts` (`run/warn goes on`) and
+ * `apps/studio/test-component-groups.ts` (`a run with problems says how many, marked a warning`) hold them.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -159,10 +164,12 @@ const order = queuedOf(catalog, { present: [] }, queue);
 ok(JSON.stringify(order) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral', 'link', 'badge', 'checkbox-group', 'checkbox-row', 'icon']),
   `queue: the owner's ticks queue nine sets, in the order Update file posts them (${order.join(', ')})`);
 
-// 3. Each set, posted once, straight after the last answer. Every one completes. Button, Link, Badge, Checkbox.Group and
-//    Checkbox.Row are built with problems, as the owner's were; the other four are clean.
-const DOC_BLOCK = 'No usage panels drawn: this file has no _Doc-block component. Run Set up file, then build again';
-const WITH_PROBLEMS = ['button', 'link', 'badge', 'checkbox-group', 'checkbox-row'];
+// 3. Each set, posted once, straight after the last answer. Every one completes, clean (#3467 Q2 A). Button, Link, Badge,
+//    Checkbox.Group and Checkbox.Row, the owner's five with problems, each say no usage panel was drawn, as a note with
+//    the fix for the file as its build left it: Badge is in the file from its own build on, so the later lines drop it.
+const NOTE_BEFORE_BADGE = 'No usage panels drawn: this file has no _Doc-block component. Build badge, tag, list-item, divider, then run Set up file and build again';
+const NOTE_AFTER_BADGE = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, divider, then run Set up file and build again';
+const NOTED: Record<string, string> = { button: NOTE_BEFORE_BADGE, link: NOTE_BEFORE_BADGE, badge: NOTE_AFTER_BADGE, 'checkbox-group': NOTE_AFTER_BADGE, 'checkbox-row': NOTE_AFTER_BADGE };
 // Posted in the run's order, as the panel posts them: `startRun` puts each set after the queued sets it nests (#3320).
 let run = startRun('selection', order, catalog);
 const answers: { id: string; r: any }[] = [];
@@ -170,31 +177,39 @@ for (const id of run.ids) {
   const r = await send({ type: 'build-components', def: id }, ['component-result']);
   answers.push({ id, r });
   const lines: string[] = Array.isArray(r?.lines) ? r.lines : [];
-  const bad = WITH_PROBLEMS.includes(id);
-  ok(r?.type === 'component-result' && r.completed === true && r.ok === !bad,
-    `sets/${id}: answered by a component-result that completed, ${bad ? 'with problems' : 'clean'} (${said(r)})`);
-  // The reason each set with problems has: Set up file, the run's first step, cannot draw the _Doc-block template on a
-  // fresh file (Q3308.3, held for the owner). A clean set has no such line.
-  ok(lines.includes(DOC_BLOCK) === bad, `sets/${id}: ${bad ? 'its problem is' : 'no problem line:'} "${DOC_BLOCK}" (${JSON.stringify(lines.filter((l) => l.startsWith('No usage') || l.startsWith('⚠')))})`);
+  const causes: any[] = Array.isArray(r?.causes) ? r.causes : [];
+  const note = NOTED[id];
+  ok(r?.type === 'component-result' && r.completed === true && r.ok === true && String(r.headline).startsWith('✓'),
+    `sets/${id}: answered by a component-result that completed, clean (${said(r)})`);
+  // The line a set with a usage panel has: Set up file, the run's first step, cannot draw the _Doc-block template on a
+  // fresh file. A set with no panel family has none.
+  const wanted = note ? [note] : [];
+  ok(JSON.stringify(lines.filter((l) => l.startsWith('No usage'))) === JSON.stringify(wanted),
+    `sets/${id}: ${note ? `its note line is "${note}"` : 'no usage-panel line'} (${JSON.stringify(lines.filter((l) => l.startsWith('No usage') || l.startsWith('⚠')))})`);
+  ok(causes.every((c) => c.kind === 'note') && causes.length === (note ? 1 : 0),
+    `#3467 sets/${id}: ${note ? 'one cause, a note' : 'no cause'}, and no problem (${JSON.stringify(causes)})`);
 }
 // Checkbox.Row, posted before Checkbox.Group (which nests it), is built once: no member is found already present. The
 // owner's "built twice" (#3308 item 3) is #3320's fix.
 const row = answers.find((a) => a.id === 'checkbox-row')?.r;
-ok(row?.headline === '⚠ built 6 variants' && !(row?.lines ?? []).some((l: string) => l.includes('ALREADY PRESENT')),
+ok(row?.headline === '✓ built 6 variants' && !(row?.lines ?? []).some((l: string) => l.includes('ALREADY PRESENT')),
   `sets/checkbox-row: built once, before Checkbox.Group, its six members new (${JSON.stringify(row?.headline)})`);
 
 // 4. The panel's verdict and run over those answers, recorded as `runAfterResult` records each: ok, issues (completed,
 //    not ok) or failed. The theme step is the file's variables above, so the run here is Set up file, To add, Style guides.
-for (const { id, r } of answers) run = record(run, { id, result: r?.ok ? 'ok' : r?.completed ? 'issues' : 'failed', headline: String(r?.headline ?? '') });
+for (const { id, r } of answers) run = record(run, { id, result: r?.ok ? 'ok' : r?.completed ? 'issues' : 'failed', headline: String(r?.headline ?? ''), causes: r?.causes });
 const verdict = runVerdict(run, catalog);
-ok(verdict.ok === false && verdict.headline === '⚠ Built 9 sets · 5 with problems',
-  `run/verdict: the queue's verdict is a warning, "⚠ Built 9 sets · 5 with problems" (${JSON.stringify({ ok: verdict.ok, headline: verdict.headline })})`);
+ok(verdict.ok === true && verdict.headline === 'Built 9 sets',
+  `run/verdict: the queue's verdict is clean, "Built 9 sets" (${JSON.stringify({ ok: verdict.ok, headline: verdict.headline })})`);
+// #3467: the run keeps the latest note, a clean set's, so Activity says it once with the file's current fix.
+ok(JSON.stringify(verdict.causes) === JSON.stringify([{ kind: 'note', subject: null, what: 'No usage panels drawn: this file has no _Doc-block component.', reasons: ['Build tag, list-item, divider, then run Set up file and build again.'] }]),
+  `#3467 run/note: the run carries one note, the last build's (${JSON.stringify(verdict.causes)})`);
 let u = startUpdate(['setup', 'sets', 'guides'], order);
 u = stepDone(u, setup?.ok === true, String(setup?.headline ?? ''));
 // Every set did what it was asked (each answer completed), so the sets step is a warning, not a failure.
 u = stepDone(u, verdict.ok, verdict.headline, answers.length === order.length && answers.every((a) => a.r?.completed === true));
-ok(!u.done && stepOf(u) === 'guides' && u.results[1]?.warn === true,
-  `run/goes on: the owner's run moves on from To add to the style guides, its sets step a warning (${JSON.stringify({ done: u.done, next: stepOf(u), sets: u.results[1] })})`);
+ok(!u.done && stepOf(u) === 'guides' && u.results[1]?.ok === true && u.results[1]?.warn !== true,
+  `run/goes on: the owner's run moves on from To add to the style guides, its sets step clean (${JSON.stringify({ done: u.done, next: stepOf(u), sets: u.results[1] })})`);
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
 process.exit(failed ? 1 : 0);

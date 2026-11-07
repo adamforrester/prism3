@@ -40,7 +40,9 @@
  * (`withFurnitureItems(applyVerdict(r), …)`) → `templates/update verdict`. The warning (Q284.3 A) dropped from the
  * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
  * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
- * `templates/update clean`. #3326: `withTemplateWarning`'s causes dropped (its `templateCauses`) → `causes/build`,
+ * `templates/update clean`. #3467 (Q2 A): a missing `_Doc-block` turning the run ⚠ again (`withTemplateWarning`'s
+ * warn filter) → `#3467 note/build` and `#3467 note/update`; its note dropped (`docBlockNotes`) → `#3467 note/build
+ * causes`, `causes/build`, `causes/update`. #3326: `withTemplateWarning`'s causes dropped (its `templateCauses`) → `causes/build`,
  * `causes/update`; the build's own causes sent on a clean run → `causes/clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
  * `furnish` hook without `panelFor` → `panel/update drawn`. Documentation's switches (#2995, the file's
  * `prism3:docSettings`): Build ignoring Usage panels off (`main.ts`, the `readDocSettings(figma.root).panels` before
@@ -314,9 +316,12 @@ ok(JSON.stringify(chk2?.missing) === JSON.stringify(['button']) && chk2?.sets?.l
 // 1b. #2598: a file with no `_Label` is told so, in the verdict the build posts and in the Update's summary. The
 //     expected line is typed here, from the issue; the actual is what `main.ts` posted. This host has no `_Label`
 //     (nothing in it makes one), so the furniture `furnishSet` draws beside Badge finds no template.
-// #846: the file has no `_Doc-block` either, so the one line names the usage panels with the labels.
-const NO_LABEL = 'No canvas labels or usage panels drawn: this file has no _Label or _Doc-block component. Run Set up file, then build again';
-ok(!!first && (first.lines as string[]).includes(NO_LABEL) && String(first.summary).includes(NO_LABEL),
+// #846: the file has no `_Doc-block` either. Since #3467 (Q2 A, Q5 A) that is a line of its own, the run's note, with the
+// fix for this file: it holds the theme and Badge, not Tag, List Item or Divider.
+const NO_LABEL = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then build again';
+const NO_PANEL = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, divider, then run Set up file and build again';
+ok(!!first && (first.lines as string[]).includes(NO_LABEL) && String(first.summary).includes(NO_LABEL)
+  && (first.lines as string[]).includes(NO_PANEL) && String(first.summary).includes(NO_PANEL),
   `templates/build verdict: the build's component-result carries the missing-template line (${JSON.stringify(first?.lines)})`);
 // #3309: the agent link's read-only `activity`, over the bridge (the panel's `agent-command`), names Badge as built with
 // problems, with the one reason its verdict's `ok` read: the missing template. Literal. The panel's own build is a run
@@ -361,8 +366,10 @@ const hash = (check.data.find((d) => (d.update as { mode?: string })?.mode === '
 ok(typeof hash === 'string', `fixture: the Update's check finds Badge and returns its hash (${hash})`);
 const applied = (await runAction((sink) => ACTIONS.updateComponents('badge', hash ?? null, undefined, undefined, sink as never))).posts
   .find((m) => m?.type === 'component-update-result');
-const NO_LABEL_UPDATE = 'No canvas labels or usage panels drawn: this file has no _Label or _Doc-block component. Run Set up file, then update again';
-ok(!!applied && String(applied.summary).includes(NO_LABEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_LABEL_UPDATE)),
+const NO_LABEL_UPDATE = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then update again';
+const NO_PANEL_UPDATE = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, divider, then run Set up file and update again';
+ok(!!applied && String(applied.summary).includes(NO_LABEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_LABEL_UPDATE))
+  && String(applied.summary).includes(NO_PANEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_PANEL_UPDATE)),
   `templates/update verdict: the Update's component-update-result summary carries the missing-template line (${JSON.stringify(applied?.summary)})`);
 // #2909 Q2909.8 A: the scoped check's hash is the agent check's own, for the same sets, so the panel's update can echo it.
 ok(chk?.previewHash === hash, `update-check: the panel's scoped check hashes as the agent's check of the same set (${chk?.previewHash} vs ${hash})`);
@@ -447,10 +454,12 @@ ok(!!applied && applied.ok === false && String(applied.headline).startsWith('⚠
 // #3326 PR 1 (Q3326.1 A): the posted verdicts name the warning's cause as data, Badge with the template line for it as
 // its reason, so the drawer never finds it by position (the owner's run showed a per-set line as the reason). Literal.
 const causeOf = (m: Record<string, any> | undefined) => JSON.stringify(m?.causes);
-ok(causeOf(first) === JSON.stringify([{ kind: 'warn', subject: 'badge', what: 'built with problems', reasons: [`${NO_LABEL}.`] }]),
-  `causes/build: the build's verdict names Badge as built with problems, the template line its reason (${causeOf(first)})`);
-ok(causeOf(applied) === JSON.stringify([{ kind: 'warn', subject: 'badge', what: 'updated with problems', reasons: [`${NO_LABEL_UPDATE}.`] }]),
-  `causes/update: the Update's verdict names Badge as updated with problems, the template line its reason (${causeOf(applied)})`);
+// #3467 (Q2 A): the missing `_Doc-block` is the run's note beside it, never Badge's problem.
+const noteOf = (line: string) => { const at = line.indexOf('. '); return { kind: 'note', subject: null, what: `${line.slice(0, at)}.`, reasons: [`${line.slice(at + 2)}.`] }; };
+ok(causeOf(first) === JSON.stringify([noteOf(NO_PANEL), { kind: 'warn', subject: 'badge', what: 'built with problems', reasons: [`${NO_LABEL}.`] }]),
+  `causes/build: the build's verdict names Badge as built with problems, the template line its reason, and the usage panels as a note (${causeOf(first)})`);
+ok(causeOf(applied) === JSON.stringify([noteOf(NO_PANEL_UPDATE), { kind: 'warn', subject: 'badge', what: 'updated with problems', reasons: [`${NO_LABEL_UPDATE}.`] }]),
+  `causes/update: the Update's verdict names Badge as updated with problems, the template line its reason, and the usage panels as a note (${causeOf(applied)})`);
 // Then Set up file's own template builder makes them, as the line asks, and the same build and Update read ✓ again.
 const { ensureFurnitureTemplates } = await import('./src/furniture-templates');
 const componentsPage = mkPage(false);
@@ -459,6 +468,24 @@ componentsPage.name = '↳ File Components';
 const templatesApi = { ...shim, createComponent: () => shim.createComponentFromNode(shim.createFrame()) };
 const made = await ensureFurnitureTemplates(templatesApi as never, componentsPage as never);
 ok(made.built.includes('_Label'), `fixture: Set up file's template builder makes _Label in this host (${JSON.stringify(made)})`);
+// #3467 (Q2 A): with `_Label` and the backdrops in the file and only `_Doc-block` missing, the build and the Update stay
+// `ok` and ✓, and say so as their one note. Literals. The file holds Divider by now (built above), so the fix names two.
+{
+  const NO_PANEL = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, then run Set up file and build again';
+  const NO_PANEL_UPDATE = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, then run Set up file and update again';
+  const noted = await build('badge');
+  ok(!!noted && noted.ok === true && noted.completed === true && String(noted.headline).startsWith('✓')
+    && (noted.lines as string[]).includes(NO_PANEL) && !(noted.lines as string[]).includes(NO_LABEL),
+    `#3467 note/build: only _Doc-block missing, the build stays ✓, ok, and carries the usage-panel line (ok ${noted?.ok}, "${noted?.headline}", ${JSON.stringify(noted?.lines)})`);
+  ok(causeOf(noted) === JSON.stringify([noteOf(NO_PANEL)]), `#3467 note/build causes: its one cause is the note (${causeOf(noted)})`);
+  const chkN = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, undefined, sink as never));
+  const hashN = (chkN.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
+  const appliedN = (await runAction((sink) => ACTIONS.updateComponents('badge', hashN ?? null, undefined, undefined, sink as never))).posts
+    .find((m) => m?.type === 'component-update-result');
+  ok(!!appliedN && appliedN.ok === true && String(appliedN.headline).startsWith('✓') && String(appliedN.summary).includes(NO_PANEL_UPDATE)
+    && causeOf(appliedN) === JSON.stringify([noteOf(NO_PANEL_UPDATE)]),
+    `#3467 note/update: only _Doc-block missing, the Update stays ✓, ok, with the line in its summary and the note its one cause (ok ${appliedN?.ok}, "${appliedN?.headline}", ${causeOf(appliedN)})`);
+}
 // And a `_Doc-block` (#846), one Heading variant: this host has no Tag, List.Item or Divider for Set up file to build the
 // whole set from, and what these arms read is only whether a missing template makes the run a warning.
 const block = shim.createComponentFromNode(shim.createFrame());

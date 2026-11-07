@@ -56,11 +56,12 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { blockHeadersLines, headerFor, pageHeaderItems, placeBlockHeaders } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
-import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
-import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
+import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, docBlockLine, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import type { DocBlockFix, FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { cause, runCause, CAUSE_WHAT } from './causes';
 import { ensureFurnitureTemplates } from './furniture-templates';
-import { builtDocBlockItem, ensureDocBlock, docBlockNote, docBlockThemed, DOC_BLOCK_DEFS, type DocBlockApi, type DocBlockResult } from './doc-block';
+import { setupIncompleteOf, type IncompleteApi } from './setup-incomplete';
+import { builtDocBlockItem, ensureDocBlock, docBlockNote, docBlockThemed, DOC_BLOCK_DEFS, DOC_BLOCK_SET, type DocBlockApi, type DocBlockResult } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
@@ -773,6 +774,15 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
  */
 /** #3308 (Q3308.3 A): what Update file's sets step asks of each build (`build-components`' `docBlock`). */
 type BuildOptions = { readonly docBlock?: boolean };
+/** #3467 (Q5 A): what fixes a missing `_Doc-block` on this file, for the usage-panel line (`docBlockLine`). Read only when
+ *  a set lacked it, after the run's writes. CAUGHT: a failed read words the line as if everything were in the file. */
+const docBlockFixOf = async (outcomes: readonly FurnitureOutcome[]): Promise<DocBlockFix | null> => {
+  if (!outcomes.some((o) => o.missing?.includes(DOC_BLOCK_SET))) return null;
+  try {
+    const sets = figma.root.findAllWithCriteria({ types: ['COMPONENT_SET'] });
+    return { theme: await docBlockThemed(figma as unknown as DocBlockApi), lacks: DOC_BLOCK_DEFS.filter((id) => !sets.some((n) => n.name === id)) };
+  } catch { return null; }
+};
 const buildComponents = async (defId: string | undefined, sink: ActionSink, options: BuildOptions = {}): Promise<void> => {
   // EXACTLY ONE VERDICT PER BUILD, and this flag exists because #908's reordering is what made a second one
   // possible. The success verdict now posts BEFORE the console telemetry, so a throw in the telemetry tail
@@ -989,6 +999,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
     // #908 removed is the designer waiting for it: awaited here, a busy host held `Building…` for the
     // whole tick budget (8.4s at 20ms of work per tick, 40s at 100ms) and then reported `null`. The
     // ordering is `verdictBeforeSettle`'s, and its header says why it is a named function with a test.
+    // #3467 Q5 A: read here, before the settle, because the verdict below is posted synchronously.
+    const fix = await docBlockFixOf(furniture);
     const settleMs = await verdictBeforeSettle(measureSettle, () => {
       // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
       // starved file can produce one miss per binding per member and the whole list is not a summary.
@@ -1036,7 +1048,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       const buildCauses = ok ? [] : r.set === null
         ? [cause('bad', def.id, CAUSE_WHAT.failed, [head[0], ...real])]
         : [cause('warn', def.id, CAUSE_WHAT.built, [...real, ...(r.stale && staleItem ? [staleItem] : [])])];
-      // A missing furniture template makes the run a warning (Q284.3 A, `withTemplateWarning`).
+      // A missing furniture template makes the run a warning (Q284.3 A, `withTemplateWarning`); a missing `_Doc-block` is
+      // the run's note, with the fix that works on this file (#3467 Q2 A, Q5 A; `fix` is read before the settle, above).
       postVerdict(withTemplateWarning({
         type: 'component-result' as const,
         ok,
@@ -1045,15 +1058,16 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
         ...fromClauses([
           ...head.map((x) => [', ', x] as const), [', ', missNote], ['. ', staleItem],
           ['. ', alsoBuiltItem(alsoBuilt)], ['. ', builtDocBlockItem(docBlock)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
-          ...furnitureItems(furniture, 'build').map((x) => ['. ', x] as const),
+          ...furnitureItems(furniture, 'build').map((x) => ['. ', x] as const), ['. ', docBlockLine(furniture, 'build', fix)],
         ]),
         causes: buildCauses,
-      }, furniture, 'build'), sink);
+      }, furniture, 'build', fix), sink);
       verdictPosted = true;
       // #3309: the sets this run left not clean, and why, by the rule its `ok` reads: a miss that is not a skipped or
       // stale member (those are named once, in the stale note), and a missing canvas template. A set built first counts.
       try {
-        const reasons = [...real, ...(r.stale && staleItem ? [staleItem] : []), ...furnitureItems(furniture.filter((o) => o.missing?.length), 'build')];
+        // #3467 Q2 A: a set that lacked only `_Doc-block` is not a problem; its note is the run's.
+        const reasons = [...real, ...(r.stale && staleItem ? [staleItem] : []), ...furnitureItems(furniture.filter((o) => o.missing?.some((t) => t !== DOC_BLOCK_SET)), 'build')];
         const problems: ActivityProblem[] = [
           ...alsoBuilt.filter((d) => d.misses > 0).map((d) => ({ set: d.id, reasons: [`${d.misses} misses`] })),
           ...(r.set === null || reasons.length ? [{ set: def.id, reasons: r.set === null ? [head[0], ...reasons] : reasons }] : []),
@@ -1551,7 +1565,11 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
     // #3308 (Q3308.3 A): what Update file's run would build first for the usage panels, read from the same search.
     const docBlockLacks = findDocBlock({ root: rootOver(read) } as unknown as PanelApi) ? null : DOC_BLOCK_DEFS.filter((id) => !present.includes(id));
-    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(read) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(docBlockLacks ? { docBlockLacks } : {}), ...unpaneled, ...(atOpen ? { atOpen: true as const } : {}) });
+    // #3467 (Q3 A, Q4 A): what Set up file owns and the file lacks, beside `setUp`, which is unchanged (P8). Update file
+    // shows its Set up file step while this lists anything. CAUGHT: a failed read lists nothing, as before this read.
+    let setupIncomplete: string[] = [];
+    try { setupIncomplete = await setupIncompleteOf({ root: rootOver(read), variables: figma.variables } as unknown as IncompleteApi); } catch { /* none listed */ }
+    postToUi({ type: 'file-sets', present, setUp: isSetUp(rootOver(read) as unknown as Parameters<typeof isSetUp>[0]), due, queued: queuedFor(present), ...(docBlockLacks ? { docBlockLacks } : {}), ...(setupIncomplete.length ? { setupIncomplete } : {}), ...unpaneled, ...(atOpen ? { atOpen: true as const } : {}) });
   } catch (e) {
     postToUi({ type: 'file-sets', present: [], setUp: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e), ...(atOpen ? { atOpen: true as const } : {}) });
   }
@@ -1811,7 +1829,10 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     restampQuiet();
     sink.data({ update: { mode: 'apply', ...r, furniture } });
     // #2858: the library publish description, which the Activity drawer offers with a Copy button.
-    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture, 'update'), ...(r.publish ? { publish: r.publish } : {}) }, sink);
+    // #3467 Q2 A, Q5 A: a missing `_Doc-block` is the run's note, with the fix that works on this file.
+    const fix = await docBlockFixOf(furniture);
+    const items = [...furnitureItems(furniture, 'update'), ...[docBlockLine(furniture, 'update', fix)].filter(Boolean)];
+    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), items), furniture, 'update', fix), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
     const headline = previewHash === null ? '✗ check failed' : '✗ update failed';

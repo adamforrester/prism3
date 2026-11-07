@@ -244,6 +244,10 @@ accepts('style-guide-result with a malformed stopped leaves it off', { type: 'st
 
 // #3110: the flags the host sets on a read at open cross intact, so the panel can tell the ledger's answer and a read after
 // open from an answer it asked for; a flag that is not `true` is left off, the answer kept.
+// #3467 (Q3 A, Q4 A): the read's setup-incomplete list reaches the panel, its non-string entries dropped; absent stays absent.
+// (mutation: the adapter's `setupIncomplete` spread removed → `file-sets keeps setupIncomplete`)
+accepts('file-sets keeps setupIncomplete', { type: 'file-sets', present: [], setUp: true, due: {}, setupIncomplete: ['_Label', 7, '_Doc-block'] },
+  { kind: 'file-sets', present: [], setUp: true, error: null, due: {}, queued: [], setupIncomplete: ['_Label', '_Doc-block'] });
 accepts('file-sets at open, the ledger\'s alone, keeps partial and atOpen', { type: 'file-sets', present: ['button'], setUp: false, due: {}, partial: true, atOpen: true },
   { kind: 'file-sets', present: ['button'], setUp: false, error: null, due: {}, queued: [], partial: true, atOpen: true });
 accepts('file-sets with a malformed partial and atOpen leaves both off', { type: 'file-sets', present: ['button'], setUp: true, due: {}, partial: 'yes', atOpen: 1 },

@@ -345,10 +345,11 @@ same as everything else on a paste build. A member that already has reactions is
 designer's edit (owner Q on #3287).
 
 **The UI trigger for `file-setup`** is a step of Studio's Update file checklist, Set up file, shown on a file that is
-not set up yet (Q668 A, `apps/studio/src/state/update-file.ts`). It runs the same main-thread action as the agent
-command (`ACTIONS.fileSetup`). An agent that runs `file-setup` before `apply-theme` finds the Cover empty,
-because setup draws the cover only from a saved brand and `apply-theme` does not draw it: run `file-setup` again after
-`apply-theme` to draw it (#3467, Q6 A).
+not set up yet (Q668 A), and on a set-up file that lacks something setup builds, such as a deleted template, where it
+starts unticked and names what is missing (#3467, Q3 A, `setupOfferedOf` in `apps/studio/src/state/update-file.ts`).
+It runs the same main-thread action as the agent command (`ACTIONS.fileSetup`). An agent that runs `file-setup`
+before `apply-theme` finds the Cover empty, because setup draws the cover only from a saved brand and `apply-theme`
+does not draw it: run `file-setup` again after `apply-theme` to draw it (#3467, Q6 A).
 
 ## Scope (#111 / #1553 — the same writes with the plugin closed, over the Figma MCP)
 
