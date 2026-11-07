@@ -8,7 +8,7 @@
  *     its column, or as its own text where that is wider, centered on it; the columns widen to the widest label so
  *     no two meet (`widenColumns`, #2705);
  *   - ROW LABELS to the left, `Text=Left` labels as tall as the rows they group: nested brackets for the OUTER row
- *     axes only, `ROW_LABEL_DEPTH` of them, innermost nearest the set. An on/off axis (one whose values are
+ *     axes only, `ROW_LABEL_DEPTH` of them, innermost nearest the set, plus `size` wherever the cap cut it (#3475). An on/off axis (one whose values are
  *     `true`/`false`, such as "leading icon") gets none. A bracket is drawn only where its axis actually varies
  *     inside the group around it: Button's `inset` is `default` on every filled row, so a filled block carries no
  *     inset bracket;
@@ -145,7 +145,11 @@ export const planFurniture = (
   })).sort((a, b) => a.top - b.top || a.row - b.row);
 
   const onOff = (axis: string): boolean => members.every((m) => ON_OFF.has(m.values[axis] ?? ''));
-  const labeled = layout.rowKeys.filter((k) => k !== 'surface' && !onOff(k)).slice(0, ROW_LABEL_DEPTH);
+  // `size` IS ALWAYS LABELED (#3475), past `ROW_LABEL_DEPTH` like the Inverse bracket: it is the innermost row axis,
+  // so a set with more outer axes than the cap (Badge, Accordion, Link, Pagination item) lost exactly the axis a
+  // designer reads first. Kept in row-key order, so it stays the column nearest the set.
+  const outer = layout.rowKeys.filter((k) => k !== 'surface' && !onOff(k)).slice(0, ROW_LABEL_DEPTH);
+  const labeled = layout.rowKeys.filter((k) => outer.includes(k) || (k === 'size' && !onOff(k)));
   const withSurface = layout.rowKeys.includes('surface');
   const rowAxes = [...(withSurface ? ['surface'] : []), ...labeled];
 

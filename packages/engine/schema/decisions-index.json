@@ -327,6 +327,48 @@
       "title": "the reference brand's secondary text is fitted on the page",
       "doc": "docs/06-surface-and-content-color-model.md",
       "section": null
+    },
+    {
+      "date": "2026-11-07",
+      "issue": 3408,
+      "title": "arm 1's packages are generated from the defs export, and a parity gate checks them",
+      "doc": "docs/19-code-library-and-dx.md",
+      "section": "10.1"
+    },
+    {
+      "date": "2026-11-07",
+      "issue": 3408,
+      "title": "`password-field` is in the POC as a third top-level component",
+      "doc": "docs/19-code-library-and-dx.md",
+      "section": "10.2"
+    },
+    {
+      "date": "2026-11-07",
+      "issue": 3408,
+      "title": "arm 1 ships `@prism3/web-components` and `@prism3/css`",
+      "doc": "docs/35-naming-and-packaging.md",
+      "section": "9.1"
+    },
+    {
+      "date": "2026-11-07",
+      "issue": 3408,
+      "title": "the class and custom-element prefix is `p3-`",
+      "doc": "docs/35-naming-and-packaging.md",
+      "section": "9.2"
+    },
+    {
+      "date": "2026-11-07",
+      "issue": 3408,
+      "title": "`packages/tokens` also builds a shippable token output",
+      "doc": "docs/35-naming-and-packaging.md",
+      "section": "9.3"
+    },
+    {
+      "date": "2026-11-07",
+      "issue": 3408,
+      "title": "the code POC's behavior is native HTML plus a small script",
+      "doc": "docs/41-internal-and-ejected.md",
+      "section": "7.1"
     }
   ]
 }
