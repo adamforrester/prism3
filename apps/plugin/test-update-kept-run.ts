@@ -26,6 +26,7 @@
  *   · a fully kept set recorded as current (`ledgerAfter` drops `held`) → `after/kept listed`;
  *   · a kept-edit read-back filed as a miss in the build record (`kept` not split out) → `record/kept apart`;
  *   · `ledgerAfter` carrying `held` through a Keep run that kept no edits (` && o.kept.length` dropped) → `edits gone`;
+ *   · `ledgerAfter` keeping only this run's `held` (the join with `was` dropped, `now ?? before` alone) → `held joined`;
  *   · `themeBlocked` when any blocker is Theme's (`lacks.theme > 0`) → `theme only/nest`;
  *   · `themeBlocked` ignoring the dry run's own blockers (`!had` dropped) → `theme only/dry run`.
  *
@@ -233,6 +234,13 @@ ok(discarded.length === 0 && (rec.keptCount ?? 0) > 0,
   const still = ledgerAfter([keepRun([{ member: 'selection=checked', path: 'ring' }])], entry, was)['radio-control'];
   ok(!!still?.held, `edits gone/control: a Keep run that still keeps an edit carries the held its entry had (${JSON.stringify(still?.held)})`);
   ok(!!gone && !gone.held, `edits gone: a Keep run that keeps no hand edits records no held, so the set reads current (${JSON.stringify(gone?.held)})`);
+  // #3463: a second Keep run that holds a change of its own (B) over a set whose entry already carries one (A) records
+  // both, the members the larger count. Literals here, never read off `ledgerAfter`.
+  const heldB = { members: ['selection=checked', 'selection=unchecked'], changes: ['dot → size/indicator/dot'] };
+  const joined = ledgerAfter([{ ...keepRun([{ member: 'selection=checked', path: 'dot' }]), held: heldB }], entry, was)['radio-control'];
+  const changes = [...(joined?.held?.changes ?? [])].sort();
+  ok(joined?.held?.members === 3 && JSON.stringify(changes) === JSON.stringify(['border → color/interactive/primary/indicator/rest', 'dot → size/indicator/dot']),
+    `held joined: a second Keep run holding B over an entry holding A records A and B, 3 members (${JSON.stringify(joined?.held)})`);
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
