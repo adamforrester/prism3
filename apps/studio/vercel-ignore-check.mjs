@@ -24,9 +24,15 @@
  * subject is esbuild's output for the web entry; the detector is held to a planted bundle that imports the
  * definitions, which it must find, so a detector that stopped matching fails by name instead of reporting a clean
  * web bundle.
+ *
+ * A THIRD QUESTION (#3407): every input of the web bundle, wherever it lives, sits under one of the script's trigger
+ * paths (`PATHS`). The first question covers engine files only, so a file Studio began importing from elsewhere
+ * (`apps/plugin/src/causes.ts`, #3389) could change the site while a change to it skipped the deploy. Its operands and
+ * its planted bundle are described where it runs.
  */
 import { build } from 'esbuild';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
+import { SOURCE_ROOTS as GLYPH_SOURCE_ROOTS } from './chrome/glyphs.mjs';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, copyFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -45,6 +51,23 @@ if (!block) {
 }
 const excluded = new Set(block[1].split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#')));
 
+// WHAT A PLUGIN READS FROM DISK (#3407). The chrome CSS arrives as a virtual module (`p3-chrome:chrome-css`), so the
+// files it is built from (the token JSON, the fonts, the icon license) never appear in the metafile. The plugin
+// already declares them to esbuild as `watchFiles`, so each `onLoad` result is recorded here, and the scope check
+// below treats them as bundle inputs. This wraps the plugin and changes nothing it returns.
+const pluginReads = new Set();
+const recordReads = (plugin) => ({
+  name: plugin.name,
+  setup: (b) => plugin.setup({
+    ...b,
+    onLoad: (opts, cb) => b.onLoad(opts, async (args) => {
+      const r = await cb(args);
+      for (const f of r?.watchFiles ?? []) pluginReads.add(f);
+      return r;
+    }),
+  }),
+});
+
 // `loader` mirrors the real build (#769 — `src/styles.css` arrives as TEXT). Its absence would not
 // misreport here, it would fail outright: esbuild refuses to import CSS into JS with no output path
 // configured, and `write: false` gives this build none. Kept in step with `build.mjs`
@@ -58,7 +81,8 @@ const res = await build({
   // stops at `Could not resolve "p3:chrome-css"`. The plugin reads `packages/engine/out/*.tokens.json`
   // from disk, so those files never appear in the metafile; they are not on the skip list either, and
   // `vercel-ignore.sh` triggers on all of `packages/engine` apart from that list.
-  plugins: [chromeCss()],
+  plugins: [recordReads(chromeCss())],
+  absWorkingDir: root,   // metafile paths are relative to this; the scope check below resolves them against it
   write: false,
   metafile: true,
   logLevel: 'silent',
@@ -144,6 +168,104 @@ if (webDefs.length) {
 }
 console.log(`  ✓ web bundle carries no component definition module (the detector finds ${plantedDefs.length} in a planted bundle that imports them).`);
 
+// ---- EVERY BUNDLE INPUT SITS UNDER A TRIGGER PATH (#3407) --------------------------------------------------------------
+// The skip-list check above asks one question of ENGINE files only. This one asks it of every input: the script skips
+// the build when `git diff` over its trigger pathspecs is empty, so an input no pathspec covers is a file whose change
+// ships nothing. #3389 was the case: Studio began importing `apps/plugin/src/causes.ts`, and a change to that file
+// alone exited 0 (SKIP) with every gate green.
+//
+// Both operands are read, neither is written here. The bundle's inputs are esbuild's metafile, plus the files the
+// chrome plugin reports reading (recorded above). The trigger pathspecs are the script's own: its array code is run
+// by bash, so the `:(exclude)` entries it builds from EXCLUDED arrive exactly as `git diff` gets them. Which files
+// those pathspecs cover is answered by git (`git ls-files`), with git's pathspec rules, not a reimplementation of them.
+// A dependency under `node_modules/` is not tracked; it moves only when `package-lock.json` does, so it counts as
+// that file.
+const REPO = resolve(root, '../..');
+const repoRel = (abs) => abs.slice(REPO.length + 1).split('\\').join('/');
+const arrays = sh.slice(0, sh.indexOf('\nBASE='));
+if (!/\nPATHS=\(/.test(arrays)) {
+  console.error('✗ could not find PATHS=( ... ) before BASE= in apps/studio/vercel-ignore.sh — did its shape change?');
+  process.exit(1);
+}
+const pathspecs = (() => {
+  const r = spawnSync('bash', ['-c', `${arrays}\nprintf '%s\\0' "\${PATHS[@]}"`], { encoding: 'utf8' });
+  if (r.status !== 0) { console.error(`✗ running the PATHS code of vercel-ignore.sh failed: ${r.stderr}`); process.exit(1); }
+  return r.stdout.split('\0').filter(Boolean);
+})();
+const covered = (() => {
+  const r = spawnSync('git', ['ls-files', '-z', '--', ...pathspecs], { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  if (r.status !== 0) { console.error(`✗ git ls-files over the trigger pathspecs failed: ${r.stderr}`); process.exit(1); }
+  return new Set(r.stdout.split('\0').filter(Boolean));
+})();
+const tracked = (() => {
+  const r = spawnSync('git', ['ls-files', '-z'], { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  if (r.status !== 0) { console.error(`✗ git ls-files failed: ${r.stderr}`); process.exit(1); }
+  return new Set(r.stdout.split('\0').filter(Boolean));
+})();
+// READ BY A CHECK, NOT BUILT FROM, BY LITERAL. The chrome plugin also watches every source file under
+// `apps/plugin/src/`: its `[glyphs]` check reads their string literals to prove the embedded face can draw them
+// (`chrome/glyphs.mjs`). That check can fail the build; it never changes the CSS, so those files are not inputs of the
+// deployed bundle. (`apps/studio/src/` is the check's other root, and is a trigger path anyway.) The entry is stale,
+// and fails, once the glyph check stops reading that root, so the exemption cannot outlive its reason.
+const CHECK_ONLY = ['apps/plugin/src/'];
+for (const d of CHECK_ONLY) {
+  if (!GLYPH_SOURCE_ROOTS.map((r) => `${repoRel(r)}/`).includes(d)) {
+    console.error(`✗ CHECK_ONLY names ${d}, which the [glyphs] check no longer reads (chrome/glyphs.mjs SOURCE_ROOTS) — remove it, so the chrome plugin's reads there are checked as bundle inputs.`);
+    process.exit(1);
+  }
+}
+// A namespaced input (`p3-chrome:chrome-css`) is virtual: it has no file of its own, and is checked through the reads
+// its plugin recorded. One with no recorded reads fails, because nothing would stand behind it.
+const VIRTUAL = /^[a-z0-9-]+:/i;
+const inputsOf = (meta, reads) => {
+  const files = [], virtual = [];
+  for (const p of Object.keys(meta.inputs)) (VIRTUAL.test(p) ? virtual : files).push(p);
+  const read = [...reads].map(repoRel).filter((f) => !CHECK_ONLY.some((d) => f.startsWith(d)));
+  return { virtual, read, files: [...files.map((p) => repoRel(resolve(root, p))), ...read] };
+};
+const uncovered = ({ files }) => files
+  .map((f) => (f.split('/').includes('node_modules') ? { f, as: 'package-lock.json' } : { f, as: f }))
+  .filter(({ as }) => !covered.has(as))
+  .map(({ f, as }) => `${f}${tracked.has(as) ? '' : ' (not tracked by git, so no commit can change it: generate it from a covered file)'}`)
+  .sort();
+
+// The detector, held to a planted bundle first (docs/34): it imports a plugin file that is under no trigger path, and
+// the check must name that file. A path mapping or pathspec reading that stopped matching would otherwise report every
+// input covered.
+const PLANT = 'apps/plugin/src/pace.ts';
+const plantedOut = await build({
+  stdin: { contents: "import { PACE_MS } from '../plugin/src/pace'; console.log(PACE_MS);", resolveDir: root, loader: 'ts' },
+  bundle: true, format: 'esm', write: false, metafile: true, logLevel: 'silent', outfile: 'planted.js', absWorkingDir: root,
+});
+const plantedMiss = uncovered(inputsOf(plantedOut.metafile, new Set()));
+if (!plantedMiss.includes(PLANT)) {
+  console.error(`\n✗ the scope detector does not report ${PLANT} in a planted bundle that imports it (it reported: ${plantedMiss.join(', ') || 'nothing'}) — it would call every web input covered while checking nothing.`);
+  process.exit(1);
+}
+const web = inputsOf(res.metafile, pluginReads);
+// THE SCOPE IS REPRESENTED, not counted: each kind of input the walk promises to check is present in it, so a walk
+// that silently lost one (the plugin's reads, everything outside the app) cannot pass by checking less.
+const represented = [
+  ['an input under apps/studio/', web.files.some((f) => f.startsWith('apps/studio/'))],
+  ['an input outside apps/studio/', web.files.some((f) => !f.startsWith('apps/studio/'))],
+  ['a file the chrome plugin builds the CSS from', web.read.length > 0],
+];
+const absent = represented.filter(([, ok]) => !ok).map(([what]) => what);
+const unbacked = web.virtual.length && !web.read.length ? web.virtual : [];
+if (absent.length || unbacked.length) {
+  if (absent.length) console.error(`\n✗ the web-input walk is missing ${absent.join('; ')} — it would pass by checking less than the bundle reads.`);
+  if (unbacked.length) console.error(`\n✗ virtual input(s) ${unbacked.join(', ')} with no file recorded behind them.`);
+  process.exit(1);
+}
+const webMiss = uncovered(web);
+if (webMiss.length) {
+  console.error(`\n✗ ${webMiss.length} web bundle input(s) sit under no trigger path in apps/studio/vercel-ignore.sh — a change to one alone would SKIP the deploy:`);
+  for (const f of webMiss) console.error(`    ${f}`);
+  console.error('\n  Add each to PATHS in apps/studio/vercel-ignore.sh.');
+  process.exit(1);
+}
+console.log(`  ✓ every web bundle input sits under a trigger path (${web.files.length} files, ${web.read.length} of them read by the chrome plugin; the detector reports ${PLANT} in a planted bundle).`);
+
 // ---- WHAT THE SCRIPT DECIDES, run for real ---------------------------------------------------------
 // The list above can be right while the decision is wrong: a production path that skips an engine change
 // ships a stale site (#474). So the script itself runs against throwaway commits in a temp repo, with each
@@ -181,6 +303,7 @@ try {
   expect('a change to an excluded engine file only is SKIPPED', decide(step('packages/engine/regen.ts', 'excluded')), 0);
   expect('a studio change BUILDS', decide(step('apps/studio/src/main.ts', 'studio')), 1);
   expect('a plugin-only change is SKIPPED', decide(step('apps/plugin/src/x.ts', 'plugin')), 0);
+  expect('a change to apps/plugin/src/causes.ts, which the web bundle reads, BUILDS (#3407)', decide(step('apps/plugin/src/causes.ts', 'causes')), 1);
   expect('a vercel.json change BUILDS', decide(step('vercel.json', 'vercel')), 1);
   expect('a docs/public change BUILDS — the site serves it at /docs (#2637)', decide(step('docs/public/llms.txt', 'served docs')), 1);
   // #1953: the branch's newest commit is docs-only, but a commit since the last deployment changed the app.

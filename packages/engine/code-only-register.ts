@@ -15,7 +15,9 @@
  * THE DISPOSITION NAMES ARE THE OWNER'S, KEPT AS BUILT (Q3441.1 A). The keys are the stable ids the
  * defs write; `DISPOSITION_NAMES` holds the names every artifact prints. The four names below are the
  * outside reference's (the sync boundary of `southleft/ds-contracts-poc`, `spec/normative.md` §2, MIT).
- * A rename is an edit to the values of that one constant; no def changes.
+ * A rename is an edit to the values of that one constant, and to the `disposition` enum of both export schemas
+ * (`schema/component-docs.schema.json`, `schema/component-defs.schema.json`); no def changes. The schemas list the
+ * four names as literals on purpose, not read from this constant, so a typo here fails their validation (#3451).
  */
 
 /** The four dispositions. Keys are what a def writes; values are the names artifacts print. */
