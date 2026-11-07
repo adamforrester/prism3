@@ -391,8 +391,13 @@ export const namesFor = (input: BrandInput, def: ComponentDef): string[] => {
   return [planSetLayout(plans, 'mcp-paste').component];
 };
 
+/** `chunkCeiling` lowers the ceiling a set's chunk scripts pack to (never raises it), as `sliceCeiling` does for the
+ *  theme: the gate uses it to reach the one-member chunk that cannot fit (#3418). */
+type ComponentOpts = { chunkCeiling?: number };
+
 /** Every component script for the defs, in build order, then one read-back per page. */
-export const componentScripts = (input: BrandInput, requested: 'all' | string[]): Script[] => {
+export const componentScripts = (input: BrandInput, requested: 'all' | string[], opts: ComponentOpts = {}): Script[] => {
+  const ceiling = Math.min(opts.chunkCeiling ?? SCRIPT_CEILING, SCRIPT_CEILING);
   const out: Script[] = [];
   const byPage = new Map<string | null, { names: string[]; defs: string[] }>();
   for (const def of buildOrder(input, requested)) {
@@ -430,7 +435,14 @@ export const componentScripts = (input: BrandInput, requested: 'all' | string[])
     // `planSetChunks` packs to the room that is really left.
     const wrapper = (chunk: number, chunks: number) => ({ step: 0, of: 0, label: `${def.id} ${chunk + 1}/${chunks}`, def: def.id, page, chunk, chunks });
     const overhead = assemble('runComponentChunk', wrapper(999, 999), ['']).length + NUMBER_SLACK + 64;
-    const chunks = planSetChunks(plans, SCRIPT_CEILING - overhead);
+    const budget = ceiling - overhead;
+    const chunks = planSetChunks(plans, budget);
+    // ONE MEMBER THAT WILL NOT FIT IS A THROWN ERROR (#3418), this header's rule. `planSetChunks` always puts at least one
+    // member in a chunk, so a member that does not fit with the chunk shell ships alone and over the budget it was packed
+    // to; the engine stays permissive (its own gates pack to a budget of 1 on purpose), and the budget is known here.
+    // Only a one-member chunk can be over: `settleChunks` moves a member off any larger chunk until it fits.
+    const over = chunks.find((c) => c.bytes > budget);
+    if (over) throw new Error(`${def.id} components: member '${over.variants.join("', '")}' alone makes a ${over.bytes}-character chunk, over its ${budget}-character budget (the ${ceiling} ceiling less the script's own ${overhead}), and a member cannot be split`);
     for (const c of chunks) {
       out.push({
         phase: 'components', kind: 'component-chunk', label: `${def.id} ${c.index + 1}/${c.total}`, def: def.id, names, planned: plans.length,
