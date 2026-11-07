@@ -85,6 +85,11 @@ drawer's runs this session) and `context` (#3300, what the open file is: brand, 
 (the full shapes: `docs/public/reference/commands.json`). `prune` with `confirm: true` deletes; send `confirm: false` first and report
 the preview. `status` lists every command the running build answers.
 
+**Run `file-setup` again after `apply-theme`** (#3467, Q6 A). Setup draws the Cover only from the brand the file
+holds, and `apply-theme` does not draw it, so on a fresh file the order `file-setup` → `apply-theme` leaves the Cover
+empty. A second `file-setup` adds nothing else that is already there and draws the cover, as Update file's last
+`cover` step does.
+
 **A dev build of the plugin also answers `run-code {code, timeoutMs?}`** (#2530): `code` runs in the plugin's main
 thread as the body of an async function, so it may `await` and `return`, and reaches `figma` as a global.
 `result.data.value` is the returned value as JSON, `result.logs` the console lines printed while it ran; a syntax

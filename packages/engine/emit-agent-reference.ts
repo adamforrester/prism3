@@ -118,7 +118,7 @@ export const WRITES: Record<string, string> = {
   status: 'Nothing. Reads the link state, the plugin build and the file\'s themed state.',
   'apply-theme': 'Variables, collections, text styles and effect styles for the brand, as the panel\'s Apply does.',
   'build-components': 'Component sets on their component pages, creating a page when it is missing.',
-  'file-setup': 'The page structure (cover, dividers, section pages) and the two template assets. Idempotent.',
+  'file-setup': 'The page structure (cover, dividers, section pages) and the helper components on ↳ File Components; _Doc-block only once badge, tag, list-item, divider and the theme are in the file. Idempotent. The cover is drawn only from a saved brand, and apply-theme does not draw it: run file-setup again after apply-theme.',
   'style-guide': 'Style-guide tables on the canvas.',
   prune: 'With confirm: false, nothing (a preview of what would go). With confirm: true, deletes the variables and styles the brand no longer emits, recomputed from a fresh read.',
   readback: 'Nothing. Reads the file\'s themed state and a census of every component page.',
