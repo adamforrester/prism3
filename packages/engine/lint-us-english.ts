@@ -370,6 +370,7 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'a brand-coloured box', expect: true },      // PATTERN `-oured`
   { sample: 'my favourite, honourable pick', expect: true }, // `-ourite`, `-ourable`
   { sample: 'poured into a contoured, devoured tour', expect: false }, // en-US `our`+suffix; NOT_EN_GB subtracts
+  { sample: 'const h = at.getHours();', expect: false }, // #3471: `getHours` ships in the bundles; NOT_EN_GB subtracts
   // #1463 — the classes none of the shapes above reach, each sampled in both directions.
   { sample: 'the component catalogue', expect: true },   // EN_GB_WORDS `-ogue`
   { sample: 'the component catalog and its dialogue', expect: false }, // en-US; `dialogue` is en-US too
