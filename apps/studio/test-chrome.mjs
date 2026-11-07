@@ -440,13 +440,24 @@
  *   · `→` appended to the Back label → `… every chrome text element draws in the embedded Inter — … Back to Palett drew DejaVu Sans (device), Inter`.
  *
  * #2179 ADDS: the Contrast floor row in Default background fills draws its picker on the right, beside its name, its
- * right edge on the other three rows' picker edge, every brand × mode at 1280 and 380 (web). Mutation: the floor row's
+ * right edge on the other three rows' picker edge, every brand × mode at 1280 and 380, on both hosts. Mutation: the floor row's
  * `p3-fillrow` class dropped → `#2179 web 1280 prism3 / light: the Contrast floor's picker ends at the other rows' picker edge …`.
  * FL1 A (#2197): on Auto the floor's label reads "Auto · ‹step›" (prism3: the emission's floor), its tooltip is the full
  * sentence, and the label is not cut off; both hosts. Its COMPUTED accessible name is the owner's option 1 ("Contrast floor,
  * Light: Auto · neutral 050, follows background.secondary. Pick a step"), and each picker's contains its visible label.
  * Mutations: the long label back as the visible one → `#2179 web 1280 prism3 / light: FL1 A: the Contrast floor's Auto
  * label reads "Auto · ‹step›" …`; the earlier name form back → `… option 1: the Contrast floor's computed accessible name is …`.
+ * #2228 ADDS: for prism3, whether the floor "follows" `background.secondary` is read off the committed emission
+ * (`EMITTED_FLOOR`: the floor's step is the tier's palette step), not off the button's tooltip, so the name's clause and the
+ * tooltip both answer to it. And the two names the sweep never reaches, in the #2250 block: the Auto floor at Primary
+ * Black, which follows no tier, and a picked step. In HC light and HC dark the row shows, read-only, the surfaces of the
+ * mode each is drawn from (Light, Dark), so the oracle reads that mode's floor. Mutations: `follows` dropped from the name
+ * and the tooltip together (`floorAutoFollows` returning null, `floorAutoLabel`'s sentence form removed) → 32 failures,
+ * the first `#2179 web 1280 prism3 / light: FL1 A: the Contrast floor's tooltip is the full sentence (the emission: …)`
+ * and its name twin `… option 1: the Contrast floor's computed accessible name is "Contrast floor, Light: Auto · neutral
+ * 050, follows background.secondary. Pick a step" …`; `floorAutoFollows` always naming the tier → `#2228: Primary Black:
+ * the Auto floor follows no tier …`; the picked step given `follows` too (`color-fills.ts`) → `#2228: floor picked at
+ * neutral 050: …`.
  *
  * #2180 ADDS: in the plugin, Components' build bar stands at least `space.300` (the stacked-card gap, resolved from the
  * emission) above the Activity drawer, at 1280 and 380, the drawer closed and open, at three scroll positions.
@@ -5164,10 +5175,22 @@ const EMITTED_FLOOR = (() => {
     const fills = Object.fromEntries(FLOOR_BADGED.map((sem) => [sem, { hex: resolveHex(t, `${root}.color.foreground.${sem}`), against: againstIn(`${root}.color.foreground.${sem}`) }]));
     // Q13(a): each on-fill card's two roles, emitted hexes, for the drawn-pairing badge's oracle.
     const roles = Object.fromEntries(ON_FILL_CARDS.flat().map((k) => [k, resolveHex(t, `${root}.color.${k}`)]));
-    return [m, { step, hex, fills, roles }];
+    // #2228: the palette step `background.secondary` sits on in this mode (`neutral.050`), its alias chain followed in
+    // this mode's tree to the last `core.palette` path. The floor "follows" the tier exactly when `step` is this step:
+    // the oracle for the floor's accessible-name clause, read off the emission and never off the button's tooltip.
+    const paletteStep = (path, seen = 0) => {
+      const v = leafAt(t, path)?.$value;
+      const m2 = typeof v === 'string' ? /^\{(.+)\}$/.exec(v) : null;
+      if (!m2 || seen > 20) return null;
+      const pal = `${root}.core.palette.`;
+      return paletteStep(m2[1], seen + 1) ?? (m2[1].startsWith(pal) ? m2[1].slice(pal.length) : null);
+    };
+    const secondary = paletteStep(`${root}.color.background.secondary`);
+    return [m, { step, hex, fills, roles, secondary }];
   }));
 })();
 if (runs('18')) {
+ok(Object.values(EMITTED_FLOOR).every((x) => typeof x.secondary === 'string' && x.secondary.length > 0), `#2228: the oracle resolved background.secondary's palette step for every mode from the emission (${JSON.stringify(Object.fromEntries(Object.entries(EMITTED_FLOOR).map(([m, x]) => [m, [x.step, x.secondary]])))})`);
 ok(Object.values(EMITTED_FLOOR).every((x) => /^#[0-9a-f]{6}$/.test(x.hex ?? '')), `the oracle resolved the contrast floor for every mode from the emission (${JSON.stringify(EMITTED_FLOOR)})`);
 ok(Object.entries(EMITTED_FLOOR).some(([m, x]) => x.hex !== EMITTED[m]), `the oracle's contrast floor differs from the page in at least one mode, so a Foreground on the page can fail (${JSON.stringify(EMITTED_FLOOR)} vs ${JSON.stringify(EMITTED)})`);
 } // 18
@@ -6199,7 +6222,7 @@ if (runs('18-s4f')) {
       text: lab?.textContent ?? null, aria: pk?.getAttribute('aria-label') ?? null, title: pk?.getAttribute('title') ?? null,
       scroll: lab ? [lab.scrollWidth, lab.clientWidth] : null };
   });
-  let measured = 0;
+  let measured = 0, followedSeen = 0;
   for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
     for (const brand of brands) {
       const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: 'light' });
@@ -6256,9 +6279,19 @@ if (runs('18-s4f')) {
           const step = (/^Auto · ([a-z0-9-]+ [0-9]+)$/.exec(floor.text ?? '') ?? [])[1] ?? null;
           const want = brand === 'prism3' && EMITTED_FLOOR[mode]?.step ? `Auto · ${EMITTED_FLOOR[mode].step.split('.').join(' ')}` : null;
           ok(step !== null && (want === null || floor.text === want), `${where}: FL1 A: the Contrast floor's Auto label reads "Auto · ‹step›"${want ? ` (${JSON.stringify(want)}, the emission's floor)` : ''} — read ${JSON.stringify(floor.text)}`);
-          const follows = floor.title === `Auto · follows background.secondary (${step})`;
-          ok(step !== null && (follows || floor.title === floor.text),
-            `${where}: FL1 A: the Contrast floor's tooltip is the full sentence for the same step, or the label where it follows no tier — read ${JSON.stringify(floor.title)}`);
+          // #2228: WHETHER IT FOLLOWS comes from the emission for prism3 (`EMITTED_FLOOR`: the floor's step is
+          // `background.secondary`'s), so a change that drops "follows" from the name AND the tooltip fails here by name.
+          // Elsewhere there is no committed emission to read, and the tooltip stands in, as before.
+          // The surface controls edit Light and Dark only; any other mode shows, read-only, the surfaces of the mode it is
+          // drawn from (`SURFACE_MODES`, Q22), so the floor row in HC light describes Light's floor. Restated here, not
+          // read from the studio: HC light is drawn from Light, HC dark from Dark.
+          const SURFACE_SOURCE = { 'hc-light': 'light', 'hc-dark': 'dark' };
+          const emitted = brand === 'prism3' ? EMITTED_FLOOR[SURFACE_SOURCE[mode] ?? mode] : undefined;
+          const follows = emitted ? emitted.step === emitted.secondary : floor.title === `Auto · follows background.secondary (${step})`;
+          if (emitted && follows) followedSeen++;
+          const wantTitle = follows ? `Auto · follows background.secondary (${step})` : floor.text;
+          ok(step !== null && floor.title === wantTitle,
+            `${where}: FL1 A: the Contrast floor's tooltip is ${emitted ? (follows ? 'the full sentence (the emission: the floor is background.secondary\'s step)' : 'its label (the emission: the floor is not background.secondary\'s step)') : 'the full sentence for the same step, or the label where it follows no tier'} — want ${JSON.stringify(wantTitle)}, read ${JSON.stringify(floor.title)}`);
           // Owner, option 1 on #2193: "Contrast floor, ‹mode›: Auto · ‹step›, follows ‹role›. Pick a step"; with no tier
           // followed, the rows' usual "‹row›, ‹mode›: ‹label›. Pick a step".
           const wantName = `Contrast floor, ${MODE_WORD[mode] ?? mode}: ${floor.text}${follows ? ', follows background.secondary' : ''}. Pick a step`;
@@ -6274,6 +6307,8 @@ if (runs('18-s4f')) {
     }
   }
   ok(measured >= brands.length * 2 * 2 * 2, `#2179: the floor row was measured in ${measured} host × brand × mode × width states (floor ${brands.length * 2 * 2 * 2})`);
+  // #2228: the emission's "follows" was the oracle in at least one prism3 state, so the name's clause was checked against it.
+  ok(followedSeen >= 1, `#2228: the Contrast floor's "follows" clause was checked against the emission in ${followedSeen} prism3 state(s) where the floor is background.secondary's step (floor 1)`);
 }
 // A6 (owner, 2026-10-03): the scrim's wash sits over a checkered ground, in the levers' swatch and the preview's card, so
 // it reads as translucent: both chrome themes, Light and Dark previewed. THE ORACLE is the render: the element under
@@ -6412,6 +6447,18 @@ for (const theme of ['light', 'dark']) {
   const text = (sel) => page.evaluate((q) => { const e = document.querySelector(q); return e ? e.textContent.trim() : null; }, sel);
   const bar = () => page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return e && !e.hidden ? e.textContent?.trim() ?? '' : ''; });
   const engineOnScreen = () => page.evaluate((src) => new RegExp(src).test(document.body.innerText), ENGINE_WORDS.source);
+  // #2228: the floor button's COMPUTED accessible name (CDP), never its attribute, in the two states the #2179 sweep
+  // never reaches: an Auto floor that follows no tier, and a picked step. THE ORACLE is literal: the owner's option 1 on
+  // #2193, with no "follows" clause in either.
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send('Accessibility.enable');
+  const floorName = async () => {
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `${PANE} [data-p3="surface-floor-pick"]` });
+    if (!nodeId) return null;
+    const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+    return nodes.find((n) => !n.ignored)?.name?.value ?? null;
+  };
   try {
     await goPlace(page, 'color-fills');
     await showMode(page, 'light');
@@ -6420,10 +6467,16 @@ for (const theme of ['light', 'dark']) {
     const WANT_NONE = 'No page background in Light sits on a neutral step, so the floor stays Auto.';
     const none = await text(`${PANE} [data-p3="surface-floor-none"]`);
     ok(none === WANT_NONE, `#2250: Primary Black: the line under the floor picker reads "${WANT_NONE}" — read ${JSON.stringify(none)}`);
+    const WANT_UNFOLLOWED = 'Contrast floor, Light: Auto · neutral 950. Pick a step';
+    const unfollowed = await floorName();
+    ok(unfollowed === WANT_UNFOLLOWED, `#2228: Primary Black: the Auto floor follows no tier, and its computed accessible name is ${JSON.stringify(WANT_UNFOLLOWED)}, with no "follows" — read ${JSON.stringify(unfollowed)}`);
     await pick('surface-base-pick', 'white');
     ok(await page.locator(`${PANE} [data-p3="surface-floor-none"]`).count() === 0, '#2250: Primary back to White: the empty-picker line goes');
     await pick('surface-floor-pick', '050');
     ok(await page.locator(`${PANE} [data-p3="surface-floor-reset"]`).count() === 0, '#2250: picking a floor shows no reset notice');
+    const WANT_PICKED = 'Contrast floor, Light: neutral 050. Pick a step';
+    const picked = await floorName();
+    ok(picked === WANT_PICKED, `#2228: floor picked at neutral 050: its computed accessible name is ${JSON.stringify(WANT_PICKED)}, the step and no "Auto" or "follows" — read ${JSON.stringify(picked)}`);
     await pick('surface-secondary-pick', '200');
     const WANT_RESET = 'The contrast floor is back on Auto — neutral 050 is no longer a page background in Light.';
     const reset = await text(`${PANE} [data-p3="surface-floor-reset"]`);
