@@ -32471,7 +32471,7 @@
             "orientation": "horizontal",
             "inset": "none",
             "labeled": "false",
-            "emphasis": "bold"
+            "emphasis": "subtle"
           },
           "follows": [],
           "exposes": []
@@ -38695,7 +38695,7 @@
             "orientation": "horizontal",
             "inset": "none",
             "labeled": "false",
-            "emphasis": "bold"
+            "emphasis": "subtle"
           },
           "follows": [],
           "exposes": []
@@ -38713,7 +38713,7 @@
             "orientation": "horizontal",
             "inset": "none",
             "labeled": "false",
-            "emphasis": "bold"
+            "emphasis": "subtle"
           },
           "follows": [],
           "exposes": []

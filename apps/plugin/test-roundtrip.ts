@@ -1071,6 +1071,53 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       `#2878 accordion indicator: on all 48 members the header's nested _accordion-indicator is the member at the Accordion's own indicator, expansion and size, drawing chevron-down / chevron-up / plus / minus (${members.length} members, ${seen.size} of 4 indicator × expansion pairs, ${r.misses.length} misses, ${off.length} off — ${off[0] ?? r.misses[0] ?? 'none'})`);
   }
 
+  // #3476 (owner Q72 B) AS BUILT IN THE HOST: Accordion and Dialog are built after their dependencies, into one file, and
+  // each nested divider instance is read back off the host: which member of the built `divider` set it instances, and
+  // the variable that member's rule stroke binds. EXPECTED is typed here from the decision (subtle, on
+  // color/border/primary); ACTUAL is the shim's instance, its main component and that component's rule. Mutation:
+  // either host back to `emphasis: 'bold'` fails "#3476 nested divider as built" by name.
+  {
+    const HOSTS: Record<string, string[]> = { accordion: ['divider'], dialog: ['headerDivider', 'footerDivider'] };
+    const page: Page = { children: [] };
+    const defs = Object.keys(HOSTS).map((id) => componentDefs.find((d) => d.id === id)!);
+    const shim = makeShim({ ...fullFor([...defs.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET })), ...ALL_PLANS()]), comps: [SWAP_TARGET], liveRoot: true, page });
+    const misses: string[] = [];
+    for (const def of defs) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+      await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+      misses.push(...(await applyComponentPlan(figmaAnatomySet(def, { swapTarget: SWAP_TARGET }), shim as any, {})).misses);
+    }
+    const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+    const nameOf = new Map(vars.map((v) => [v.id, v.name.replace(/^zzclient\//, '')] as const));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a walk over host nodes
+    const walk = (n: any): any[] => [n, ...((n?.children ?? []) as any[]).flatMap(walk)];
+    const seg = (name: string): Record<string, string> => Object.fromEntries(name.split(', ').map((s) => s.split('=') as [string, string]));
+    const dividerSet = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'divider');
+    const off: string[] = [];
+    let seen = 0;
+    for (const [host, parts] of Object.entries(HOSTS)) {
+      const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === host);
+      for (const m of (set?.children ?? []) as unknown as HostNode[]) {
+        for (const inst of walk(m).filter((n) => parts.includes(n.name))) {
+          seen++;
+          const main = inst.mainComponent as { name?: string; parent?: { name?: string } | null } | null | undefined;
+          // The rule that member draws, off the divider set built into this file (the instance's main names its member).
+          const drawn = (dividerSet?.children ?? []).find((x) => x.name === main?.name) as { children?: unknown[] } | undefined;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the member's rule, a host node
+          const rule = ((drawn?.children ?? []) as any[]).find((c) => c.name === 'rule');
+          const strokeId = rule?.strokes?.[0]?.boundVariables?.color?.id;
+          const got = { set: main?.parent?.name, emphasis: seg(String(main?.name ?? '')).emphasis, stroke: typeof strokeId === 'string' ? nameOf.get(strokeId) : undefined };
+          const want = { set: 'divider', emphasis: 'subtle', stroke: 'color/border/primary' };
+          if (JSON.stringify(got) !== JSON.stringify(want)) off.push(`${host} ${String(m.name)} ${inst.name}: ${JSON.stringify(got)}`);
+        }
+      }
+    }
+    // 48 accordion rules; 24 dialog header rules and 18 footer rules (none on the footer=none members).
+    ok(misses.length === 0 && seen === 90 && off.length === 0,
+      `#3476 nested divider as built: every Accordion and Dialog divider instances the built divider member at emphasis=subtle, whose rule strokes color/border/primary (owner Q72 B) (${seen} instances, want 90; ${misses.length} misses${off.length ? `; OFF: ${off.slice(0, 3).join(' | ')}` : ''})`);
+  }
+
   // NON-VACUITY (docs/34) — the pre-fix state, reproduced explicitly: a built text node whose `textStyleId`
   // was detached (exactly what the shim's `paragraphSpacing`/`leadingTrim` setters model, and what shipped
   // before this fix) is reported by the SAME read-back, by name. Without this, a check that only ever sees the

@@ -567,7 +567,7 @@
     },
     "accordion": {
       "members": 48,
-      "sha256": "21cc54dfc220854a42b20d420086c3866dd6cdfff8c634d4834df9db7e5c4f1d",
+      "sha256": "dc52c7ff7338b6e649934b6a35a1e2c6213803c11419942a047e499cd09e9ea9",
       "properties": [
         "content:SLOT",
         "divider:BOOLEAN",
@@ -655,7 +655,7 @@
     },
     "dialog": {
       "members": 24,
-      "sha256": "07e3277379101123f27fee8b8f06e346cd492bef2e9a1a71eabfe9ac50565776",
+      "sha256": "44a5aa4d0a330dd06cef95a54bda634e1dbfbe554d97756b3cf57ed819ba9196",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",
