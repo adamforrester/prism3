@@ -34730,7 +34730,7 @@
       }
     },
     "badge": {
-      "digest": "4988f702",
+      "digest": "3677dd33",
       "def": {
         "id": "badge",
         "name": "Badge",
@@ -34781,7 +34781,7 @@
               "small",
               "medium"
             ],
-            "description": "The status label's size, the same text size in both styles. medium = 12px text, about 30px tall when contained and 14px tall inline. small = 11px text, about 19px tall when contained and 15px tall inline, for dense layouts such as a label on a product card. A count and a dot come in medium only."
+            "description": "The status label's size, the same text size in both styles. medium = 12px text, about 30px tall when contained and 14px tall inline. small = 11px text, about 19px tall when contained and about 14–15px tall inline, for dense layouts such as a label on a product card. A count and a dot come in medium only."
           },
           {
             "name": "emphasis",
