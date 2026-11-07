@@ -13,11 +13,17 @@
   `load-skills` members (`lint-ecosystem` MEMBERS), `llms.txt`, the README, CLAUDE.md's layer table and docs/07.
 - **Pointers:** one line each from `prism3-build-ui` (beside the `motion.*` exception) and
   `prism3-build-component` (beside the ungated `motion` field, #2773).
-- **`packages/engine/lint-motion-literals.ts`**, in CI after the skills gate. Two halves: no duration, curve
+- **`packages/engine/lint-motion-literals.ts`**, in CI after the skills gate. Three halves: no duration, curve
   or spring constant in the skill's text, and every `motion.*` name resolving in every brand's committed
-  `out/<brand>.tokens.json`.
+  `out/<brand>.tokens.json`; and (added below) no reduced exit longer than its entrance.
 - **Filed, per Q-M6 A:** G1–G6 as #3481–#3486; raw milliseconds in `tab`/`tabs`/`banner` motion prose as
   #3487; `dialog`'s reduced form dropping the fade as #3488.
+- **Reduced order (owner decision Q88 A):** the reduced ramp isn't monotonic (#3493: in every brand the reduced
+  `fast` outlasts the reduced `normal`), so the accordion and the toast and banner recipes now use one reduced
+  role, `motion.duration-reduced.normal`, both ways. R3, R7, checklist item 3 and the gaps table say so. The
+  gate gains a third half, REDUCED EXIT LONGER: each recipe's direction-tagged reduced roles are compared in
+  the emitted milliseconds of every brand, aliases followed to the primitive, with floors on the reduced
+  forms and pairs it reads.
 
 ### Why the literal oracle is a shape
 
@@ -32,7 +38,9 @@ allowance fails as stale.
 
 Recorded with the commands and output in the PR: a literal `200ms` in the skill (DURATION LITERAL), a
 `cubic-bezier(0.2, 0, 0, 1)` in a recipe (CURVE LITERAL), and `motion.easing-role.enter` renamed in the
-skill (UNRESOLVED PATH; `lint-skills` also fails it, as a dead token path, from its own probe tree).
+skill (UNRESOLVED PATH; `lint-skills` also fails it, as a dead token path, from its own probe tree). The
+accordion's or the toast's reduced form put back to `…normal` entering and `…fast` leaving fails as REDUCED
+EXIT LONGER, naming all 5 brands.
 
 ### Remaining
 

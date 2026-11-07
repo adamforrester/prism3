@@ -69,7 +69,9 @@ exit accelerates away, so it reads as gone without being watched.
 **R3. Leaving is faster than arriving.** An exit runs shorter than its entrance. The transitions
 encode it: `motion.transition.exit` sits on `motion.duration.fast` and `motion.transition.enter` on
 `motion.duration.normal`. When you pair a duration yourself, keep the exit at least one step shorter
-than the entrance. A person who dismissed something has already moved on.
+than the entrance. A person who dismissed something has already moved on. Under reduced motion the
+twins aren't in order yet (#3493): a reduced `fast` can outlast a reduced `normal`. So a reduced enter
+and its exit share one `motion.duration-reduced.*` role, and the exit is never longer.
 *Grounding:* KB `18-motion-foundations`, Tier 2, "exit faster by default".
 
 **R4. Springs move what a person touches; curves move what the system starts.** A drag release, a
@@ -96,7 +98,8 @@ slow.
 
 **R7. Reduced motion substitutes; it doesn't delete.** Under `prefers-reduced-motion`:
 - movement (a slide, a scale, a spring) becomes a fade;
-- every duration takes its twin in `motion.duration-reduced.*`;
+- every duration takes its twin in `motion.duration-reduced.*`, except that an enter and its exit
+  share one twin until the reduced ramp is in order (R3, #3493);
 - a functional loop slows instead of stopping: the spinner turns on `motion.duration-reduced.spin`,
   the progress sweep on `motion.duration-reduced.sweep`.
 
@@ -156,7 +159,7 @@ Move focus into the dialog when it opens, without waiting for the enter to finis
 | Indicator glyph turn | `motion.transition.default` | `motion.transition.default` |
 
 **Reduced:** the height changes at once; the panel's fade stays, on `motion.duration-reduced.normal`
-opening and `motion.duration-reduced.fast` closing. The indicator swaps without turning.
+both ways (R3). The indicator swaps without turning.
 
 ### Tabs indicator
 
@@ -178,8 +181,8 @@ opening and `motion.duration-reduced.fast` closing. The indicator swaps without 
 A replacement toast plays the exit, then the enter. The toast's slide distance has no token yet
 (#3482): take it from the `toast` definition until it does.
 
-**Reduced:** fades only, on `motion.duration-reduced.normal` entering and
-`motion.duration-reduced.fast` leaving. The banner's height changes at once.
+**Reduced:** fades only, on `motion.duration-reduced.normal` both ways (R3). The banner's height
+changes at once.
 
 ### Spinner, delayed show
 
@@ -207,6 +210,7 @@ them transitions. The control under the ring keeps its own state change (R6).
 | No motion distance scale | #3482 | Take a slide distance from the component's definition. |
 | No reduced twin for springs or curves | #3483 | Under reduced motion, drop the spring and fade. |
 | Some reduced durations resolve to zero | #3484 | Handle the case where no transition runs. |
+| The reduced ramp isn't in order: a shorter role can resolve longer | #3493 | Under reduced motion, give an enter and its exit the same `motion.duration-reduced.*` role. |
 | Springs reach Figma without a paired duration | #3485 | Figma only; code is unaffected. |
 | No show-delay or minimum-show timing | #3486 | Use the host's own spec for the wait. |
 
@@ -218,7 +222,8 @@ Report a gap you hit; don't fill it with a number.
    function, no spring constant typed in.
 2. Each moving thing has an easing role that matches its change: `enter`, `exit`, `default` or
    `emphasized`.
-3. Each exit is shorter than its entrance.
+3. Each exit is shorter than its entrance. Under reduced motion, each exit shares its entrance's
+   reduced role, so it's never longer (#3493).
 4. Only transform and opacity animate, except the declared layout cases (R5).
 5. Under reduced motion, every movement became a fade on a `motion.duration-reduced.*` twin, and
    every functional loop still runs, slower.
