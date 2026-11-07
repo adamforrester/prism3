@@ -1954,8 +1954,13 @@ export type ComponentDef = {
    *  `subtle` only), so a hard role misses on some brand (#1601). `applyWeightIntent` repoints each such ref's role to
    *  the brand's resolution of `intent` (`resolveWeightIntent`), the rule `weightIntent` uses. The authored role is the
    *  DEFAULT-brand resolution, so a themeless projection is unchanged. Validated: `group` names at least one bound ref,
-   *  and it is not the `weightIntent` group as well (one category resolved two ways). */
-  typeWeight?: { group: TypeGroup; intent: WeightIntent };
+   *  and it is not the `weightIntent` group as well (one category resolved two ways).
+   *
+   *  `keys` (#3475) narrows it to the named token keys, for a def that binds one category at two weights: Badge's
+   *  contained small label is the bold caption and its inline small label the regular one (owner Q93 B), and its dot
+   *  cell reads the caption's `line-box`, which names no weight. Every other `type.<group>.*` ref binds as authored.
+   *  Validated: each key is bound, to a `type.<group>.*` ref. */
+  typeWeight?: { group: TypeGroup; intent: WeightIntent; keys?: readonly string[] };
 
   /** THE SPACING THAT FOLLOWS DENSITY (the spacing model, 2026-09-29: "size is for size, space is for
    *  space"). The `tokens` keys whose `space.*` step is this def's COMFORTABLE padding or gap. Before
@@ -2314,6 +2319,11 @@ export const validateComponentDef = (
       errors.push(`typeWeight.group '${group}': no \`type.${group}.*\` token is bound — the intent resolves nothing`);
     if (def.weightIntent?.group === group)
       errors.push(`typeWeight.group '${group}' is also the weightIntent group — one category's weight resolved two ways`);
+    for (const k of def.typeWeight.keys ?? []) {
+      const ref = def.tokens?.[k];
+      if (typeof ref !== 'string' || !ref.startsWith(`type.${group}.`))
+        errors.push(`typeWeight.keys: '${k}' is not a bound \`type.${group}.*\` token key — the intent would resolve nothing there`);
+    }
   }
   if (def.weightIntent) {
     const { axis, group } = def.weightIntent;

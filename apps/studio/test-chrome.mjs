@@ -20544,18 +20544,21 @@ console.log(`\n#3150 — the chrome's motion: declared, live, reduced, settled\n
 } // 3150
 if (runs('3199')) {
 console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot on the first line, the box one line tall\n${'='.repeat(78)}`);
-// WHAT THIS HOLDS (owner decisions on #3199, Q4 A and Q6 A). An inline badge is a dot and plain text on a text line, as
-// tall as the line: 24px at medium and 21px at small. A wrapping label keeps the dot on its FIRST line. Figma cannot show
+// WHAT THIS HOLDS (owner decisions on #3199, Q4 A and Q6 A; the type is Q93 B on #3475). An inline badge is a dot and
+// plain text, as tall as its label's line: since #3475 the label is the contained label's rung (`label.sm` at medium,
+// `caption.md` at small), so the line is 14px at medium in both brands and, at small, 15px on the default brand and 14px
+// on the reference brand, whose `caption.md` is 10px. The cell binds the baked line box (whole px) and the label renders
+// the composite's own line (13.8px at medium, 15.4px at small on the default brand), so each is held within 0.5px. A wrapping label keeps the dot on its FIRST line. Figma cannot show
 // a wrap, so the browser lays it out: each projected `style=inline` member's plan, as the engine emits it, becomes boxes
 // whose CSS follows the plan's own layout fields, with every bound value resolved from the committed emission (the
 // default brand and the reference brand). The expectations are the issue's literals, not read from the plan or the
-// tokens: the box is 24 / 21px tall on one line, and at 210px wide a label that wraps keeps the dot's
-// center within 0.5px of the first line's center (12 / 10.5px). The label's line height comes from its text style
+// tokens: the box is the line's height on one line, and at 150px wide a label that wraps keeps the dot's center within
+// 0.5px of the first line's center (half the line). 150px, not #3199's 210px: at 11-12px the text fits in 210px. The label's line height comes from its text style
 // (font size × line height), independently of the `line-box` the dot cell binds, so the two have to agree.
 //
 // Mutations: the root's cross axis back to `align: 'center'` in badge.ts → `3199 <brand> <member>: wrapped`, the dot
 // floats to the middle of the two lines; `size.medium.dot-cell` bound to `type.body.lg.line-box` → `… one line` (the
-// box grows past 24px) and `… wrapped`.
+// box grows past 14px) and `… wrapped`.
 {
   const esbuild = await import('esbuild');
   const eng = await esbuild.build({ stdin: { contents: "export { figmaAnatomySet, planComponentName } from '@prism3/engine/anatomy-figma'; export { componentDefs } from '@prism3/engine/components/index';", resolveDir: join(HERE, 'src'), loader: 'ts' },
@@ -20563,15 +20566,16 @@ console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot 
   const { figmaAnatomySet, planComponentName, componentDefs } = await import(`data:text/javascript;base64,${Buffer.from(eng.outputFiles[0].text).toString('base64')}`);
   const badge = componentDefs.find((d) => d.id === 'badge');
   const inline = figmaAnatomySet(badge, {}).filter((p) => /style=inline/.test(planComponentName(p)));
-  // The issue's literals.
-  const LINE = { medium: 24, small: 21 };
-  const WRAP_WIDTH = 210;
-  // The docs' own example, lengthened: in the runner's fallback face "Out of stock at this location" is 192px, which
+  // The issues' literals (#3199 geometry, #3475 sizes), per brand.
+  const LINE_BY_BRAND = { prism3: { medium: 14, small: 15 }, nb: { medium: 14, small: 14 } };
+  const WRAP_WIDTH = 150;
+  // The docs' own example, lengthened: at #3199's 16px, in the runner's fallback face "Out of stock at this location" is 192px, which
   // fits the 194px beside the dot, so it would not wrap here though it does in the brands' faces. The premise arm
   // below proves the wrap, whatever the face.
   const WRAP_TEXT = 'Out of stock at this location until Friday';
   ok(inline.length === 10, `3199: the badge set projects 10 inline members (${inline.length})`);
   for (const brand of ['prism3', 'nb']) {
+    const LINE = LINE_BY_BRAND[brand];
     const tree = JSON.parse(readFileSync(join(REPO, 'packages/engine/out', `${brand}.tokens.json`), 'utf8'));
     const ns = Object.keys(tree).find((k) => !k.startsWith('$'));
     const node = (path) => path.split('.').reduce((o, k) => o?.[k], tree);

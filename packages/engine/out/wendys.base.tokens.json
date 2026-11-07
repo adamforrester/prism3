@@ -4035,6 +4035,11 @@
               "textDecoration": "underline"
             },
             "$description": "caption md strong link — 11px Roboto, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)"
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "15px",
+            "$description": "type.caption.md line-box — 15px, the height of one line of the `caption.md` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps."
           }
         },
         "lg": {
@@ -4083,6 +4088,11 @@
               "textDecoration": "underline"
             },
             "$description": "caption lg strong link — 12px Roboto, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)"
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "17px",
+            "$description": "type.caption.lg line-box — 17px, the height of one line of the `caption.lg` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps."
           }
         }
       },

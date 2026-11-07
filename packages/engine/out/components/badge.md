@@ -12,7 +12,7 @@
 A small, static marker of one of three types. A status label is short text in the flow of content, such as a lifecycle state, a keyword or a file size, and it announces its own text. A count is a number over a host, such as unread messages on an icon button, capped at a maximum. A dot is a contentless mark over a host for presence or unread state. A count or dot is hidden from assistive technology, and its meaning goes in the host's accessible name. A badge has no hover, focus or pressed state. Anything a user can click, toggle or remove is a tag.
 
 - **Purpose:** Mark a status, count or presence with a small static badge that nobody clicks.
-- **Use when:** A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a status inside running text, a list or table row, or a card's details, where a filled label would break up the line.
+- **Use when:** A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card's details, where a filled label would draw too much attention.
 - **Avoid when:** The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.
 
 ## Anatomy
@@ -22,7 +22,7 @@ Shown on the default member: type `status`, style `contained`, size `medium`, em
 1. **Surface** — The badge body, sized by what it holds: a small-radius label around a status text, a circle around one digit that grows into a pill, or the round dot itself. A subtle status label is the tone's tint with a 1px edge in the tone's border color, drawn inside the edge so it adds no size. A bold badge is the solid tone fill with no edge. Neither paints an interactive color. In the inline style it paints nothing and has no padding: a dot and the label on one text line, as tall as the line.
 2. **Dot cell** — A cell one line of the label tall, at the start of an inline status. It centers the dot on the first line, so the dot stays there when the label wraps.
 3. **Status dot** — The 8px status dot, in the tone's icon color. It repeats what the label says and is hidden from assistive technology.
-4. **Label** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal. In the inline style it is body text in the primary text color, and the dot carries the tone.
+4. **Label** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal. In the inline style it is the same size as a contained label, at the regular weight, in the primary text color, and the dot carries the tone.
 5. **Count** — The number, in the ink paired with the bold tone fill. Capped as the maximum followed by a plus sign, as in "99+".
 6. **Dot** — The dot's fixed square, about 8px. It paints nothing itself: the badge around it has no padding for this type, so the pill's round fill is the dot.
 
@@ -31,14 +31,14 @@ Shown on the default member: type `status`, style `contained`, size `medium`, em
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `type` | `status`, `count`, `dot` | once, when authored | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
-| `style` | `contained`, `inline` | once, when authored | How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text on the text line, as tall as the line, for running text, list rows and cards. A count and a dot are always contained. |
-| `size` | `medium`, `small` | once, when authored | The status label's size. medium = 12px text, about 30px tall, when contained; 16px text on a 24px line when inline. small = 11px text, about 19px tall, when contained; 14px text on a 21px line when inline, for dense layouts such as a label on a product card. A count and a dot come in medium only. |
+| `style` | `contained`, `inline` | once, when authored | How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text with no fill or edge, a quieter status label at the same text size. A count and a dot are always contained. |
+| `size` | `medium`, `small` | once, when authored | The status label's size, the same text size in both styles. medium = 12px text, about 30px tall when contained and 14px tall inline. small = 11px text, about 19px tall when contained and about 14–15px tall inline, for dense layouts such as a label on a product card. A count and a dot come in medium only. |
 | `emphasis` | `subtle`, `bold`, `surface` | at runtime | How a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. surface = the page color with the tone's text and no edge, for a label on a photo or any busy ground, where it brings its own background. A count and a dot are always bold. |
 | `tone` | `neutral`, `info`, `success`, `warning`, `danger` | at runtime | Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it. |
 
 ## Usage guidelines
 
-Use a status label to show a state or attribute next to what it describes, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Use surface for a label on a photo or any busy ground, such as "Selling fast" on a product image. Use small where space is tight, such as on a product card. Keep it static. If it needs to be clicked, toggled or removed, it is a tag. Use the inline style when the status sits in running text, a list or table row, or the details of a store or product card, where a container would break up the line. It is as tall as the text beside it (24px at medium, 21px at small), so the row keeps its height. Use a contained style when the label has to read as an object of its own: on a card header, a media tile or beside a page title. On a photo or busy ground use the contained surface emphasis, since the inline style has no ground of its own.
+Use a status label to show a state or attribute next to what it describes, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Use surface for a label on a photo or any busy ground, such as "Selling fast" on a product image. Use small where space is tight, such as on a product card. Keep it static. If it needs to be clicked, toggled or removed, it is a tag. Use the inline style where a status should be quieter than a filled label, such as in a list or table row or the details of a store or product card. It has the same text size as a contained label of the same size, with a dot in place of the fill. Use a contained style when the label has to read as an object of its own: on a card header, a media tile or beside a page title. On a photo or busy ground use the contained surface emphasis, since the inline style has no ground of its own.
 
 ### Do
 
@@ -46,7 +46,7 @@ Use a status label to show a state or attribute next to what it describes, such 
 - Cap a count, as in "99+", and hide it at zero unless zero matters
 - Keep a contained label to one or two words, and use the same casing everywhere
 - Pair every tone with text that says the same thing
-- Use the inline style for status in a sentence, a list row, a table cell or a store card
+- Use the inline style for a quieter status in a list row, a table cell or a store card
 - Write the whole state in the label ("Out of stock at this location"). It wraps, and the dot stays on the first line
 - Keep one style per list, so rows scan as a column
 
@@ -103,8 +103,8 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `type` | enum: 'status' \| 'count' \| 'dot' | `status` | no | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
-| `style` | enum: 'contained' \| 'inline' | `contained` | no | How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text on the text line, as tall as the line, for running text, list rows and cards. A count and a dot are always contained. |
-| `size` | enum: 'small' \| 'medium' | `medium` | no | The status label's size. medium = 12px text, about 30px tall, when contained; 16px text on a 24px line when inline. small = 11px text, about 19px tall, when contained; 14px text on a 21px line when inline, for dense layouts such as a label on a product card. A count and a dot come in medium only. |
+| `style` | enum: 'contained' \| 'inline' | `contained` | no | How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text with no fill or edge, a quieter status label at the same text size. A count and a dot are always contained. |
+| `size` | enum: 'small' \| 'medium' | `medium` | no | The status label's size, the same text size in both styles. medium = 12px text, about 30px tall when contained and 14px tall inline. small = 11px text, about 19px tall when contained and about 14–15px tall inline, for dense layouts such as a label on a product card. A count and a dot come in medium only. |
 | `emphasis` | enum: 'subtle' \| 'bold' \| 'surface' | `subtle` | no | How a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. surface = the page color with the tone's text and no edge, for a label on a photo or any busy ground, where it brings its own background. A count and a dot are always bold. |
 | `tone` | enum: 'neutral' \| 'info' \| 'success' \| 'warning' \| 'danger' | `neutral` | no | Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it. |
 | `label` | string | — | no | The status text, for type status. One or two words when contained; inline, it can name the whole state. Consistent casing across the product. |
@@ -151,7 +151,7 @@ Keyed by `size`, `style`, `type`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `surface` | `space.0` | `space.100` | — | — | — | — |
-| `surface/dotCell` | — | — | `type.body.md.line-box` | — | — | — |
+| `surface/dotCell` | — | — | `type.label.sm.line-box` | — | — | — |
 | `surface/dotCell/statusDot` | — | — | `space.100` | `space.100` | — | — |
 
 **size=small, style=inline, type=status**
@@ -159,7 +159,7 @@ Keyed by `size`, `style`, `type`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `surface` | `space.0` | `space.075` | — | — | — | — |
-| `surface/dotCell` | — | — | `type.body.sm.line-box` | — | — | — |
+| `surface/dotCell` | — | — | `type.caption.md.line-box` | — | — | — |
 | `surface/dotCell/statusDot` | — | — | `space.100` | `space.100` | — | — |
 
 **size=medium, style=contained, type=count**
@@ -184,8 +184,8 @@ Keyed by `size`, `style`.
 | size=medium, style=contained | `surface/label` | `type.label.sm.emphasis` |
 | size=medium, style=contained | `surface/count` | `type.label.sm.emphasis` |
 | size=small, style=contained | `surface/label` | `type.caption.md.strong` |
-| size=medium, style=inline | `surface/label` | `type.body.md.default` |
-| size=small, style=inline | `surface/label` | `type.body.sm.default` |
+| size=medium, style=inline | `surface/label` | `type.label.sm.default` |
+| size=small, style=inline | `surface/label` | `type.caption.md.default` |
 
 ### Color
 

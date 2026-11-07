@@ -807,17 +807,25 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // any label line height: no offset is subtracted, so nothing goes negative when the line outgrows
   // the glyph (at 1.5, `md` is 21px against a 20px glyph). The glyph overflows the box equally on both
   // sides when it is the taller of the two, which centring does on its own.
-  const labelLineBox: Record<string, number> = {};
-  const labelLineBoxFrom: Record<string, string> = {};
-  for (const c of theme.typography.composites) {
-    if (c.group !== 'label') continue;
-    const rung = c.path.split('.')[1]; // 'label.md.emphasis' → 'md'
-    const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
-    if (labelLineBox[rung] !== undefined && labelLineBox[rung] !== px)
-      throw new Error(`type.label.${rung}.line-box is ambiguous: ${labelLineBoxFrom[rung]} gives ${labelLineBox[rung]}px but ${c.path} gives ${px}px. Every label composite at one rung must share a size and line height (#2586, as #1220).`);
-    labelLineBox[rung] = px;
-    labelLineBoxFrom[rung] ??= c.path;
-  }
+  // #3475 — the same bake for the CAPTION type: the inline Badge's small label is `type.caption.md` (owner Q93 B), so
+  // its dot cell reads `type.caption.md.line-box`, as the medium one reads `type.label.sm.line-box`. One loop for both
+  // groups, so the two bakes cannot drift apart; the error still names the group it found ambiguous.
+  const lineBoxOf = (group: 'label' | 'caption'): Record<string, number> => {
+    const box: Record<string, number> = {};
+    const from: Record<string, string> = {};
+    for (const c of theme.typography.composites) {
+      if (c.group !== group) continue;
+      const rung = c.path.split('.')[1]; // 'label.md.emphasis' → 'md'
+      const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
+      if (box[rung] !== undefined && box[rung] !== px)
+        throw new Error(`type.${group}.${rung}.line-box is ambiguous: ${from[rung]} gives ${box[rung]}px but ${c.path} gives ${px}px. Every ${group} composite at one rung must share a size and line height (#2586, as #1220).`);
+      box[rung] = px;
+      from[rung] ??= c.path;
+    }
+    return box;
+  };
+  const labelLineBox = lineBoxOf('label');
+  const captionLineBox = lineBoxOf('caption');
   for (const c of theme.dims.controls) {
     const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a square control's own dimension: a checkbox square or a radio circle (density: ${theme.dims.density}). A square control reads this on both axes. A switch's track is not square and reads \`track\`/\`width\` instead.`);
     const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.track}px \`track\` height, the common 2:1 track ratio). A square control uses \`height\` on both axes and does not read this.`);
@@ -1158,6 +1166,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const [rung, px] of Object.entries(labelLineBox)) {
     if (!typeGroup.label?.[rung]) continue;
     typeGroup.label[rung]['line-box'] = dimLeaf(px, `type.label.${rung} line-box — ${px}px, the height of one line of the \`label.${rung}\` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.`);
+  }
+  // #3475 — the caption twin: the small inline Badge's dot cell is one line of its `caption.md` label.
+  for (const [rung, px] of Object.entries(captionLineBox)) {
+    if (!typeGroup.caption?.[rung]) continue;
+    typeGroup.caption[rung]['line-box'] = dimLeaf(px, `type.caption.${rung} line-box — ${px}px, the height of one line of the \`caption.${rung}\` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps.`);
   }
   // #3153 — the body twin (owner Q852): an option row's control cell is its label's OWN line box, and the label is
   // body one rung below the control's (`ROW_LABEL_RUNG`), so the cell reads `type.body.{label rung}.line-box`

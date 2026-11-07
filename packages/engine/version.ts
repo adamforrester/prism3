@@ -696,7 +696,13 @@ export const ENGINE_VERSION = '0.237.0';
  * label's color as resolved, overrides included. An added path cannot break a reference. Nothing is removed or
  * retyped; `interactive.*.border.*` keeps its names and, for every brand that does not override its labels, its values.
  */
-export const CONTRACT_VERSION = '14.14.0';
+/**
+ * 14.15.0 (#3475 part 1, owner Q93 B, 2026-11-07): MINOR. `type.caption.{md,lg}.line-box` join the guaranteed surface:
+ * one line of each caption rung, the caption twin of `type.label.*.line-box` (14.7.0) and `type.body.*.line-box`
+ * (14.13.0). The small inline Badge's label is `caption.md`, and its dot cell is that label's own line box. Two added
+ * paths; an added path cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.15.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

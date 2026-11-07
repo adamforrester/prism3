@@ -23,7 +23,7 @@ import { Theme } from './theme';
 import { buildTree, at } from './tree';
 import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
-  figmaControlDescription, figmaLabelLineBoxDescription, figmaBodyLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription, figmaBlurDescription,
+  figmaControlDescription, figmaLabelLineBoxDescription, figmaBodyLineBoxDescription, figmaCaptionLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription, figmaBlurDescription,
   figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
   figmaCurveDescription, figmaEasingRoleDescription, figmaSpringDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
@@ -345,6 +345,22 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       resolvedType: 'FLOAT',
       scopes: SIZE_HEIGHT_SCOPES,
       description: figmaBodyLineBoxDescription(rung, px),
+      value: px,
+      alias: null,
+    });
+  }
+
+  // `type/caption/{rung}/line-box` with #3475 — the small inline Badge's dot cell binds it as its height (one line of
+  // its `caption.md` label, owner Q93 B), beside the label and body twins above and for the same reason.
+  for (const rung of byNumericKey(Object.keys(brand.type?.caption ?? {}))) {
+    const leaf = brand.type.caption[rung]?.['line-box'];
+    if (!leaf) continue;
+    const px = pxFromValue(tree, leaf.$value);
+    controlVars.push({
+      name: ns(`type/caption/${rung}/line-box`),
+      resolvedType: 'FLOAT',
+      scopes: SIZE_HEIGHT_SCOPES,
+      description: figmaCaptionLineBoxDescription(rung, px),
       value: px,
       alias: null,
     });

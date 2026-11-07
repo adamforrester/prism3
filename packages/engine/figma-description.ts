@@ -313,6 +313,10 @@ export const figmaLabelLineBoxDescription = (rung: string, px: number): string =
 export const figmaBodyLineBoxDescription = (rung: string, px: number): string =>
   `Label line height (body ${rung}, ${px}px) — an option row's control stays on the label's first line.`;
 
+/** `type/caption/<rung>/line-box` (#3475, Q93 B): one line of the caption type, carried in the `control` collection. */
+export const figmaCaptionLineBoxDescription = (rung: string, px: number): string =>
+  `Caption line height (caption ${rung}, ${px}px) — a mark centers on the caption's first line.`;
+
 /** `focus/ring/<key>` (#1623 FG/F-17). */
 export const figmaFocusDescription = (key: string, px: number): string => {
   switch (key) {

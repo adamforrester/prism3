@@ -27741,7 +27741,7 @@
               "part": "surface/dotCell",
               "values": {
                 "height": {
-                  "token": "type.body.md.line-box"
+                  "token": "type.label.sm.line-box"
                 }
               }
             },
@@ -27789,7 +27789,7 @@
               "part": "surface/dotCell",
               "values": {
                 "height": {
-                  "token": "type.body.sm.line-box"
+                  "token": "type.caption.md.line-box"
                 }
               }
             },
@@ -27917,7 +27917,7 @@
           "parts": [
             {
               "part": "surface/label",
-              "textStyle": "type.body.md.default"
+              "textStyle": "type.label.sm.default"
             }
           ]
         },
@@ -27929,7 +27929,7 @@
           "parts": [
             {
               "part": "surface/label",
-              "textStyle": "type.body.sm.default"
+              "textStyle": "type.caption.md.default"
             }
           ]
         }

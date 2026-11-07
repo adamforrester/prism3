@@ -6937,11 +6937,13 @@ arm: {
 
   // PROJECTION: every inline member, read off the projected plan against the issue's literal geometry. No padding, no
   // corner, no fill, no edge on the root; the gap per size; a dot cell one LINE BOX tall (fixed) leading the label and
-  // centering an 8px round dot in the tone's icon role; the label in the size's body role and text.primary. A key that
+  // centering an 8px round dot in the tone's icon role; the label in the size's rung and text.primary. A key that
   // fell through to the contained member's (its padding, its corner, its subtle tint) fails here by member name.
+  // The rungs are owner decision Q93 B on #3475, replacing #3199's body roles: the contained label's rung at each size,
+  // at the default weight (`label.sm` at medium, `caption.md` at small), and the cell is that rung's line box.
   const INLINE_BOX: Record<string, { gap: string; lineBox: string; style: string }> = {
-    medium: { gap: 'space/100', lineBox: 'type/body/md/line-box', style: 'body/md/default' },
-    small: { gap: 'space/075', lineBox: 'type/body/sm/line-box', style: 'body/sm/default' },
+    medium: { gap: 'space/100', lineBox: 'type/label/sm/line-box', style: 'label/sm/default' },
+    small: { gap: 'space/075', lineBox: 'type/caption/md/line-box', style: 'caption/md/default' },
   };
   const inlinePlans = (badgeSet as any[]).filter((m) => /style=inline/.test(planComponentName(m)));
   const wrongInlinePlan = inlinePlans.flatMap((m) => {
@@ -6967,16 +6969,43 @@ arm: {
     return JSON.stringify(got) === JSON.stringify(exp) ? [] : [`${name}: ${Object.keys(exp).filter((k) => (got as any)[k] !== (exp as any)[k]).map((k) => `${k} ${(got as any)[k]} (want ${(exp as any)[k]})`).join(', ')}`];
   });
   ok(inlinePlans.length === 10 && wrongInlinePlan.length === 0,
-    `badge inline members (#3199): all 10 lead with a fixed dot cell one line box tall centering an 8px space/100 dot in the tone's icon role, set the label in the size's body role and text.primary, and have no padding, corner, fill or edge (got ${inlinePlans.length}${wrongInlinePlan.length ? ` — ${wrongInlinePlan.slice(0, 3).join(' | ')}` : ''})`);
-  // The line box behind the cell is the label's own: 24px for body.md and 21px for body.sm in every example brand, the
-  // issue's figures. A cell bound to another rung, or a body role whose line height moved, fails here.
+    `badge inline members (#3199, #3475): all 10 lead with a fixed dot cell one line box tall centering an 8px space/100 dot in the tone's icon role, set the label in the size's contained rung at the default weight and text.primary, and have no padding, corner, fill or edge (got ${inlinePlans.length}${wrongInlinePlan.length ? ` — ${wrongInlinePlan.slice(0, 3).join(' | ')}` : ''})`);
+  // The line box behind the cell is the label's own: 14px for label.sm at medium in every example brand, and for
+  // caption.md at small 15px, 14px on the reference brand, whose caption.md is the 10px step rather than 11px (measured
+  // at #3475; caption's cozy leading makes the small line the taller of the two). A cell bound to another rung, or a
+  // rung whose size or line height moved, fails here.
+  const LINE_BOX_PX: Record<string, string> = { nb: '14/14', prism3: '14/15', aurora: '14/15', harbor: '14/15', wendys: '14/15' };
+  const pxOfLeaf = (leaf: any) => String(leaf?.$extensions?.prism3?.px ?? leaf?.$value).replace(/px$/, '');
   const lineBoxPx = themes.map(([b, th]) => {
     const built = buildTree(th).tree as any;
     const root = built[Object.keys(built)[0]];
-    return `${b} ${root?.type?.body?.md?.['line-box']?.$extensions?.prism3?.px ?? root?.type?.body?.md?.['line-box']?.$value}/${root?.type?.body?.sm?.['line-box']?.$extensions?.prism3?.px ?? root?.type?.body?.sm?.['line-box']?.$value}`;
+    return [b, `${pxOfLeaf(root?.type?.label?.sm?.['line-box'])}/${pxOfLeaf(root?.type?.caption?.md?.['line-box'])}`] as const;
   });
-  ok(lineBoxPx.every((s) => /\s(24|24px)\/(21|21px)$/.test(s)),
-    `badge inline height (#3199): the line box is 24px at medium and 21px at small in every example brand (${lineBoxPx.join(', ')})`);
+  ok(lineBoxPx.length === Object.keys(LINE_BOX_PX).length && lineBoxPx.every(([b, got]) => LINE_BOX_PX[b] === got),
+    `badge inline height (#3475): the line box is label.sm's at medium and caption.md's at small, ${JSON.stringify(LINE_BOX_PX)} (got ${lineBoxPx.map(([b, g]) => `${b} ${g}`).join(', ')})`);
+
+  // ONE SIZE, ONE TEXT SIZE (owner decision Q93 B on #3475): at the same `size`, an inline label and a contained label
+  // set the same font size and line height in every example brand. Weight may differ (inline is the default weight,
+  // contained the bold one); size may not. Read from each brand's emitted composite through the projected plan's text
+  // style, so a rebinding of either style's key, at either size, fails here by size and brand.
+  const sizeOf = (tree: any, style: string | undefined) => {
+    const leaf = String(style ?? '').split('/').reduce((n: any, k) => n?.[k], tree?.type);
+    return leaf ? `${leaf.$value?.fontSize}@${leaf.$value?.lineHeight}` : `(no type.${String(style).replace(/\//g, '.')})`;
+  };
+  const styleAt = (size: string, style: string) => {
+    const m = (badgeSet as any[]).find((x) => new RegExp(`size=${size}\\b`).test(planComponentName(x)) && new RegExp(`style=${style}\\b`).test(planComponentName(x)) && /type=status/.test(planComponentName(x)));
+    return ((m?.root.children ?? []) as any[]).find((c) => c.name === 'label')?.textStyle as string | undefined;
+  };
+  const sizeSplit = themes.flatMap(([b, th]) => {
+    const built = buildTree(th).tree as any;
+    const root = built[Object.keys(built)[0]];
+    return ['medium', 'small'].flatMap((size) => {
+      const inl = sizeOf(root, styleAt(size, 'inline')), con = sizeOf(root, styleAt(size, 'contained'));
+      return inl === con && !inl.startsWith('(') ? [] : [`${b} ${size}: inline ${inl} vs contained ${con}`];
+    });
+  });
+  ok(sizeSplit.length === 0,
+    `badge inline and contained share a text size at each size (#3475, Q93 B): font size and line height match at medium and at small in every example brand${sizeSplit.length ? ` — ${sizeSplit.slice(0, 6).join('; ')}` : ''}`);
 
   // THE FOOTPRINT COHORTS (#1611, #3199). `style` is authoring, so the cohort holds it: inline members are compared only
   // with each other, one cohort per size, the 5 tones in each; the contained cohorts are unchanged, so a subtle status
@@ -6994,6 +7023,23 @@ arm: {
   const gotCohorts = Object.fromEntries([...cohorts.entries()].sort());
   ok(JSON.stringify(gotCohorts) === JSON.stringify(Object.fromEntries(Object.entries(COHORTS).sort())),
     `badge footprint cohorts (#3199): six, the inline style in its own cohort per size with its 5 tones, the contained ones unchanged (got ${JSON.stringify(gotCohorts)})`);
+
+  // THE WEIGHT INTENT STAYS ON THE CONTAINED SMALL LABEL (#3475). Badge's `typeWeight` repoints the caption's weight per
+  // brand, and since the inline small label is the REGULAR caption and the small dot cell reads the caption's
+  // `line-box`, it is scoped by `keys`. The themeless projection above never materializes it, so this arm does, per
+  // brand: the inline label and both dot cells come back as authored, and only the contained small label may move.
+  const INLINE_REFS: Record<string, string> = {
+    'size.medium.inline.type': 'type.label.sm.default', 'size.small.inline.type': 'type.caption.md.default',
+    'size.medium.dot-cell': 'type.label.sm.line-box', 'size.small.dot-cell': 'type.caption.md.line-box',
+  };
+  const weightOff = themes.flatMap(([b, th]) => {
+    const m = applyWeightIntent(badgeDef, weightAvailability(th.typography));
+    const off = Object.entries(INLINE_REFS).filter(([k, r]) => m.tokens[k] !== r).map(([k, r]) => `${k} ${m.tokens[k]} (want ${r})`);
+    const moved = Object.keys(badgeDef.tokens).filter((k) => m.tokens[k] !== badgeDef.tokens[k] && k !== 'size.small.contained.type');
+    return [...off, ...moved.filter((k) => !(k in INLINE_REFS)).map((k) => `${k} moved to ${m.tokens[k]}`)].map((x) => `${b}: ${x}`);
+  });
+  ok(themes.length === 5 && weightOff.length === 0,
+    `badge weight intent (#3475): materialized per brand, the inline labels and both dot cells bind as authored and only size.small.contained.type may move${weightOff.length ? ` — ${weightOff.slice(0, 6).join('; ')}` : ''}`);
 }
 
 // ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
@@ -17422,7 +17468,7 @@ arm: {
           `#2945 Control label weight: a ${style} tag at Emphasis (${content}) is the same def back`);
       }
       const OTHERS: [ComponentDef, [string, string][]][] = [
-        [badge, [['size.medium.contained.type', 'type.label.sm.emphasis'], ['size.small.contained.type', 'type.caption.md.strong'], ['size.medium.inline.type', 'type.body.md.default'], ['size.small.inline.type', 'type.body.sm.default']]],
+        [badge, [['size.medium.contained.type', 'type.label.sm.emphasis'], ['size.small.contained.type', 'type.caption.md.strong'], ['size.medium.inline.type', 'type.label.sm.default'], ['size.small.inline.type', 'type.caption.md.default']]], // inline since #3475 (Q93 B)
         [select, Object.entries(select.tokens).filter(([, r]) => r.startsWith('type.'))],
       ];
       const moved = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, () => 44))
@@ -22248,7 +22294,7 @@ arm: {
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'nextText', axes: { size: 3 }, at: { type: 'next', labeled: 'true' } },
       { def: componentDefs.find((d) => d.id === 'pagination')!, part: 'status', axes: { size: 3 }, at: { type: 'compact' } },
       // BADGE (#2983): the status label binds one rung per size, 12px label at medium and the 11px caption at small; since
-      // #3199 per style too, the body roles at inline. The count is medium and contained only, so its key is fixed and not in this grid.
+      // #3199 per style too, and since #3475 the inline style takes the same rungs at the default weight. The count is medium and contained only, so its key is fixed and not in this grid.
       { def: componentDefs.find((d) => d.id === 'badge')!, part: 'label', axes: { size: 2, style: 2 } },
       // CODE INPUT (#2428, Q330 A): the cell's character binds four rungs, 16 / 20 / 24 / 40. It exists only where the
       // cell holds a character.

@@ -2,7 +2,7 @@
   "format": "prism3-component-defs/1.2",
   "generated": true,
   "engineVersion": "0.237.0",
-  "contractVersion": "14.14.0",
+  "contractVersion": "14.15.0",
   "note": "Every component definition, exported from the TypeScript source: `def` is the definition's shipped fields (the code API, states, variants, accessibility, the decision surface and relationships), and `spec` is the model of the design-file component built from it (parts, spacing and size tokens per size, color tokens per state, nesting). Token names only, so one file serves every brand. Generated, never edited: change the definition.",
   "brand": null,
   "components": {
@@ -34730,7 +34730,7 @@
       }
     },
     "badge": {
-      "digest": "35fe1d24",
+      "digest": "3677dd33",
       "def": {
         "id": "badge",
         "name": "Badge",
@@ -34770,7 +34770,7 @@
               "contained",
               "inline"
             ],
-            "description": "How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text on the text line, as tall as the line, for running text, list rows and cards. A count and a dot are always contained."
+            "description": "How a status label is drawn. contained = a filled label with padding, in the chosen emphasis. inline = a dot and plain text with no fill or edge, a quieter status label at the same text size. A count and a dot are always contained."
           },
           {
             "name": "size",
@@ -34781,7 +34781,7 @@
               "small",
               "medium"
             ],
-            "description": "The status label's size. medium = 12px text, about 30px tall, when contained; 16px text on a 24px line when inline. small = 11px text, about 19px tall, when contained; 14px text on a 21px line when inline, for dense layouts such as a label on a product card. A count and a dot come in medium only."
+            "description": "The status label's size, the same text size in both styles. medium = 12px text, about 30px tall when contained and 14px tall inline. small = 11px text, about 19px tall when contained and about 14–15px tall inline, for dense layouts such as a label on a product card. A count and a dot come in medium only."
           },
           {
             "name": "emphasis",
@@ -34907,13 +34907,13 @@
           "labelPattern": "Status label: one or two words when contained, the whole state when inline, in the same casing everywhere (\"In review\", \"Failed\", \"PDF 262 KB\"; inline, \"Out of stock at this location\"). Count: a number, capped (\"99+\"). Dot: no text on screen. The host names what it means (\"3 unread messages\", \"Online\")."
         },
         "docs": {
-          "usage": "Use a status label to show a state or attribute next to what it describes, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Use surface for a label on a photo or any busy ground, such as \"Selling fast\" on a product image. Use small where space is tight, such as on a product card. Keep it static. If it needs to be clicked, toggled or removed, it is a tag. Use the inline style when the status sits in running text, a list or table row, or the details of a store or product card, where a container would break up the line. It is as tall as the text beside it (24px at medium, 21px at small), so the row keeps its height. Use a contained style when the label has to read as an object of its own: on a card header, a media tile or beside a page title. On a photo or busy ground use the contained surface emphasis, since the inline style has no ground of its own.",
+          "usage": "Use a status label to show a state or attribute next to what it describes, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Use surface for a label on a photo or any busy ground, such as \"Selling fast\" on a product image. Use small where space is tight, such as on a product card. Keep it static. If it needs to be clicked, toggled or removed, it is a tag. Use the inline style where a status should be quieter than a filled label, such as in a list or table row or the details of a store or product card. It has the same text size as a contained label of the same size, with a dot in place of the fill. Use a contained style when the label has to read as an object of its own: on a card header, a media tile or beside a page title. On a photo or busy ground use the contained surface emphasis, since the inline style has no ground of its own.",
           "do": [
             "Put the meaning of a count or dot in the host's accessible name",
             "Cap a count, as in \"99+\", and hide it at zero unless zero matters",
             "Keep a contained label to one or two words, and use the same casing everywhere",
             "Pair every tone with text that says the same thing",
-            "Use the inline style for status in a sentence, a list row, a table cell or a store card",
+            "Use the inline style for a quieter status in a list row, a table cell or a store card",
             "Write the whole state in the label (\"Out of stock at this location\"). It wraps, and the dot stays on the first line",
             "Keep one style per list, so rows scan as a column"
           ],
@@ -34930,7 +34930,7 @@
         },
         "ai": {
           "primaryPurpose": "Mark a status, count or presence with a small static badge that nobody clicks.",
-          "whenToUse": "A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a status inside running text, a list or table row, or a card's details, where a filled label would break up the line.",
+          "whenToUse": "A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card's details, where a filled label would draw too much attention.",
           "avoidWhen": "The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.",
           "commonPartners": [
             "icon-button",
@@ -35209,7 +35209,7 @@
                 "part": "surface/dotCell",
                 "values": {
                   "height": {
-                    "token": "type.body.md.line-box"
+                    "token": "type.label.sm.line-box"
                   }
                 }
               },
@@ -35257,7 +35257,7 @@
                 "part": "surface/dotCell",
                 "values": {
                   "height": {
-                    "token": "type.body.sm.line-box"
+                    "token": "type.caption.md.line-box"
                   }
                 }
               },
@@ -35385,7 +35385,7 @@
             "parts": [
               {
                 "part": "surface/label",
-                "textStyle": "type.body.md.default"
+                "textStyle": "type.label.sm.default"
               }
             ]
           },
@@ -35397,7 +35397,7 @@
             "parts": [
               {
                 "part": "surface/label",
-                "textStyle": "type.body.sm.default"
+                "textStyle": "type.caption.md.default"
               }
             ]
           }
