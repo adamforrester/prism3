@@ -26,8 +26,9 @@
  *                  finishes it with every key unchanged. Mutation: the stamp written before the member is
  *                  configured → `stop/out of date`, `stop/finished`.
  *   stop/count     a stopped set's line counts the members the pass finished, read off the host's stamps: 0 when it
- *                  stopped before any stamp, 9 when the 10th stamp write throws (#3449). Mutation: the count not read
- *                  off the host on a stop → `stop/count finished`.
+ *                  stopped before any stamp, 9 when the 10th stamp write or the 10th marker clear throws (#3449).
+ *                  Mutations: the count not read off the host on a stop → `stop/count finished`; the in-progress
+ *                  marker ignored → `stop/count marker`.
  *   version/…      a named version is saved once, before the first write; refused, nothing is written.
  *                  Mutation: the version not saved → `version/once`, `version/refused`.
  *   fonts/…        a text style whose typeface will not load refuses the set before anything is written.
@@ -270,7 +271,7 @@ import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { EXECUTOR_REACH } from './src/executor-reach';
 import { materializeForBrand } from './src/brand-def';
-import { BASELINE_KEY } from './src/member-baseline';
+import { BASELINE_KEY, UPDATING_KEY } from './src/member-baseline';
 import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { adoptMembers, breakingLine, breakingOf, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
@@ -1116,6 +1117,34 @@ section('stop/count — a set stopped after some members finished counts them');
   ok(mid.counts.current === 9 && mid.counts.update === 36, `stop/count premise: the dry run reads 9 members current and 36 out of date (${JSON.stringify(mid.counts)})`);
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
   ok(line.includes('). 9 members updated; '), `stop/count finished: the stopped set's line counts the 9 members it finished (${line.slice(0, 160)})`);
+}
+{
+  // The host throws on the 10th member's MARKER clear, the write after its stamp (`finishUpdated`): that member carries
+  // its new stamp and still its in-progress marker, so it is not finished, and 9 are. The premise is read off the host:
+  // 10 members stamped (the dry run reads 10 current, since it does not hold a marker against the stamp) and exactly
+  // one still marked. Mutation: the in-progress marker left out of the stopped set's count (`!dataOf(m, UPDATING_KEY)` dropped) →
+  // `stop/count marker`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const next = moveGap(w.plans);
+  let clears = 0;
+  const pd = (m: any, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const stampBefore = new Map(membersOf(w.set()).map((m: any) => [m.id, pd(m, STAMP_KEY)] as const));
+  for (const m of membersOf(w.set())) {
+    const real = m.setSharedPluginData as (ns: string, k: string, v: string) => void;
+    m.setSharedPluginData = (ns: string, k: string, v: string) => {
+      if (k === UPDATING_KEY && !v && ++clears === 10) throw new Error('in setSharedPluginData: the host stopped');
+      real.call(m, ns, k, v);
+    };
+  }
+  const { res } = await confirm(w, [{ def: TAG, plans: next }]);
+  ok(!!res.outcomes[0]?.stopped && /the host stopped/.test(res.outcomes[0].stopped!) && clears === 10, `premise: the run stopped at the 10th marker clear (${res.outcomes[0]?.stopped}; ${clears} clears)`);
+  const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
+  const restamped = membersOf(w.set()).filter((m: any) => pd(m, STAMP_KEY) !== stampBefore.get(m.id));
+  const marked = restamped.filter((m: any) => pd(m, UPDATING_KEY)).length;
+  ok(restamped.length === 10 && mid.counts.current === 10 && marked === 1,
+    `stop/count marker premise: 10 members carry the new stamp (the dry run reads ${mid.counts.current} current) and ${marked} of them is still marked in progress`);
+  const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
+  ok(line.includes('). 9 members updated; '), `stop/count marker: a member stamped but still marked in progress is not counted finished (${line.slice(0, 160)})`);
 }
 
 /* ── version ─────────────────────────────────────────────────────────────────────────────────────────── */

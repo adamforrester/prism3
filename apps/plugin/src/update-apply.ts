@@ -619,8 +619,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     out.stopped = (err as Error)?.message ?? String(err);
     // A STOPPED SET COUNTS THE MEMBERS IT FINISHED (#3449). The pass returned nothing, so they are read off the host: a
     // member is finished when it carries its planned stamp, which it did not before, and no in-progress marker. The
-    // stamp is written last (§7), so this is exactly what the next dry run reads as current. Before this the count was
-    // always 0, even when the pass had stamped members before it stopped.
+    // stamp is written last (§7), so this is what the next dry run reads as current, with one exception: a stop on the
+    // marker's clear, the write after the stamp, leaves a member the dry run reads as current but this does not count,
+    // since its update did not complete. Before this the count was always 0, even when the pass had stamped members.
     out.updated = [...stampWas].filter(([m, was]) => {
       const pl = plans.get(m);
       const want = pl ? memberStamp(pl) : '';

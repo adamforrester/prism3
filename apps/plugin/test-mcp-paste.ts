@@ -545,19 +545,23 @@ await section('size/pages', async () => {
 // The header's rule: a single indivisible unit that will not fit is a THROWN ERROR, never a script over the ceiling. A
 // set's indivisible unit is one member in a chunk, and `planSetChunks` ships it alone and over budget rather than
 // loop. So `componentScripts` must throw, naming the def and the member. Badge has no dependencies, so its chunks are
-// the first a lowered ceiling reaches. The premise is measured off the engine's own packer at a budget of 1 (one
-// member per chunk), not off `componentScripts`: every badge member alone is over 30,000 characters before any
-// wrapper, so at a 30,000 ceiling none can fit. Mutation: the over-budget check dropped from `componentScripts` → `size/one
-// member: a member that will not fit alone throws`.
+// the first a lowered ceiling reaches. The ceiling is set so the smallest member sits BETWEEN the budget and the
+// ceiling (#3418's harm: a chunk over its budget but under the ceiling, never reported), so a check against the
+// ceiling rather than the budget cannot pass. The member's size is measured off the engine's own packer at a budget of
+// 1 (one member per chunk), not off `componentScripts`; the budget is the one the error states. Mutations: the
+// over-budget check dropped from `componentScripts`, or compared against the ceiling → `size/one member: a member that
+// will not fit alone throws`.
 await section('size/one member', async () => {
   const input = PARITY[1][1];
   const plans = figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === 'badge')!, input), { swapTarget: SWAP_TARGET });
+  const CEILING = 32_000;
   const alone = Math.min(...planSetChunks(plans, 1).map((c) => c.bytes));
-  ok(alone > 30_000, `size/one member: premise — the smallest badge member alone makes a ${alone}-character chunk, over 30,000`);
   ok(componentScripts(input, ['badge']).filter((s) => s.kind === 'component-chunk').length > 1, 'size/one member: control — at the real ceiling badge packs without a throw, into more than one chunk');
   let thrown = '';
-  try { componentScripts(input, ['badge'], { chunkCeiling: 30_000 }); } catch (e) { thrown = (e as Error).message; }
-  ok(/^badge components: member '[^']*type=status[^']*' alone makes a \d+-character chunk, over its \d+-character budget \(the 30000 ceiling less the script's own \d+\), and a member cannot be split$/.test(thrown),
+  try { componentScripts(input, ['badge'], { chunkCeiling: CEILING }); } catch (e) { thrown = (e as Error).message; }
+  const budget = Number(/over its (\d+)-character budget/.exec(thrown)?.[1] ?? NaN);
+  ok(budget < alone && alone < CEILING, `size/one member: premise — budget < alone < ceiling: ${budget} < ${alone} < ${CEILING}, so only the budget catches the smallest badge member`);
+  ok(/^badge components: member '[^']*type=status[^']*' alone makes a \d+-character chunk, over its \d+-character budget \(the 32000 ceiling less the script's own \d+\), and a member cannot be split$/.test(thrown),
     `size/one member: a member that will not fit alone throws, naming the def and the member (${thrown ? `"${thrown.slice(0, 220)}"` : 'no throw'})`);
 });
 
