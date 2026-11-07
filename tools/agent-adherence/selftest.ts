@@ -34,6 +34,8 @@
  * `oracle/other-root`, `R1/other-root` and every bad arm that needs a clean base (23 of 80); `scoreR1` accepting an
  * unprefixed name whose prefixed form is in the tree → `R1/unprefixed`, `R1/unprefixed-all` (2 of 80); `buildOracle`'s
  * root hard-coded to `'pds3'` → `oracle/other-root` (1 of 78: the two scoring arms need its oracle). 80 assertions run.
+ * The #3502 review's M5: `rootOf` taking the first of several top-level keys instead of throwing → `oracle/two-roots`,
+ * `oracle/two-roots-base` (2 of 83); `rootOf` accepting an empty tree → `oracle/no-root` (1 of 83). 83 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -218,6 +220,24 @@ if (o) {
     ok(p.counts.R1 === 33 && p.violations.some((v) => v.what === 'token --pds3-color-text-primary is not in the tree'),
       `R1/other-root-pds3: against the zz9 tree, every --pds3- name is invented (${brief(p)})`);
   }
+  // A tree with several roots, or none, is refused by name: picking one would score every name under the others as
+  // invented, or score against the wrong namespace. The expected text is written out, not read off `rootOf`.
+  const src = () => ({ commit: o.commit, tree: JSON.parse(readPinned(TOKEN_TREE)), base: JSON.parse(readPinned(TOKEN_BASE)),
+    overlays: Object.fromEntries(Object.entries(TOKEN_OVERLAYS).map(([m, f]) => [m, JSON.parse(readPinned(f))])), components: JSON.parse(readPinned(COMPONENTS)) });
+  const refuses = (label: string, s: ReturnType<typeof src>, expected: string): void => {
+    let got = 'no error: an oracle was built';
+    try { buildOracle(s); } catch (e) { got = (e as Error).message; }
+    ok(got === expected, `${label}: refused with "${expected}" (got "${got}")`);
+  };
+  const two = src();
+  two.tree = { ...two.tree, zz9: two.tree.pds3 };
+  refuses('oracle/two-roots', two, 'token tree has 2 top-level keys (pds3, zz9), not one namespace root');
+  const twoBase = src();
+  twoBase.base = { ...twoBase.base, zz9: twoBase.base.pds3 };
+  refuses('oracle/two-roots-base', twoBase, 'base tree has 2 top-level keys (pds3, zz9), not one namespace root');
+  const none = src();
+  none.tree = { $description: none.tree.$description ?? 'no root' };
+  refuses('oracle/no-root', none, 'token tree has 0 top-level keys (none), not one namespace root');
 
   console.log('\nR2 — raw value or primitive');
   fails('R2/bad-hex', await run(edit('solid var(--pds3-color-border-danger)', 'solid #b00020')), 'R2', 1, 'hex #b00020 in border');
