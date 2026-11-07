@@ -947,6 +947,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-skills.ts'),
   },
   {
+    // #3413 P1 — reads the motion skill and the committed out/<brand>.tokens.json; needs no build.
+    id: 'lint-motion-literals',
+    ciStep: 'The motion skill names tokens, never durations or curves (#3413)',
+    cmd: engine('lint-motion-literals.ts'),
+  },
+  {
     id: 'lint-us-english',
     ciStep: 'US-English gate (shipped text)',
     cmd: engine('lint-us-english.ts'),
