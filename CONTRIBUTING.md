@@ -337,6 +337,10 @@ npx tsx packages/engine/emit-figma-conventions.ts --check
                                                     # (REFERENCE_ARTIFACTS), so the habitual regenerate
                                                     # moves it.
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
+npx tsx packages/engine/lint-motion-literals.ts     # the motion skill types no duration, curve or
+                                                    # spring constant (a shape oracle, never the
+                                                    # emitted values), and every motion.* name it
+                                                    # quotes resolves in every brand (#3413)
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line
                                                     # names no ci.yml step, so only RETIRED_GATES, a

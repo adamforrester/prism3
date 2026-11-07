@@ -25,7 +25,7 @@ deterministic shell + template composition fed by real system context, not freef
 |---|---|---|
 | 1 — **DTCG tokens + descriptions** | the themed token layer, machine-readable | ✅ the engine emits this today (DTCG + `.ai.json` + Figma directives) |
 | 2 — **Component metadata** (`.ai.json` per component) | anatomy, when-to-use, slot contracts | 🔶 started — the engine emits `out/components/components.ai.json` and a doc per component (`out/components/*.md`) from the component defs; the code component library is still future |
-| 3 — **Agent instructions** (`CLAUDE.md` + skills) | how an agent should use layers 1–2 | 🔶 started — `CLAUDE.md` and four shipped skills (`skills/prism3-theme`, `prism3-build-ui`, `prism3-rebind`, `prism3-build-component`); no `AGENTS.md`; the per-brand payload instructions an ejected repo carries are #668, not built |
+| 3 — **Agent instructions** (`CLAUDE.md` + skills) | how an agent should use layers 1–2 | 🔶 started — `CLAUDE.md` and five shipped skills (`skills/prism3-theme`, `prism3-build-ui`, `prism3-motion`, `prism3-rebind`, `prism3-build-component`); no `AGENTS.md`; the per-brand payload instructions an ejected repo carries are #668, not built |
 | 4 — **MCP exposure / Figma pipeline** | the surface agents actually call | ✅ built — `packages/engine/mcp.ts` (6 tools, CI-gated by `mcp-test.ts`) and the Figma plugin write path (`apps/plugin/src/write-figma.ts`) both exist |
 
 The whole E2E vision reduces to one sentence: **Prism3 built layer 1; the journey is to

@@ -85,6 +85,8 @@ The semantic token aliases the primitive *and* carries the mode behavior and the
 Binding a raw primitive throws all of that away and is the #1 source of drift.
 *Exception:* `opacity.*`, `motion.*`, and `shadow.*` are consumable directly — their
 semantic layer is thin (the `.ai.json` marks them `consume: "Consumable …"`).
+For how things move (which duration, easing role, spring or transition each change takes, and what
+reduced motion substitutes), read `prism3-motion`.
 
 **Size is for size, space is for space.** `size.*` holds control heights only
 (`size.md.height`, and `size.md.min-height` for the 44px target floor). Every padding and gap
