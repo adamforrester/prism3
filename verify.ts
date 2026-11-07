@@ -942,9 +942,21 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/tokens', 'check:consumability'),
   },
   {
+    // #3408 S1 — packs @prism3/tokens (its prepack builds the CSS), installs the tarball outside the repo.
+    id: 'token-package',
+    ciStep: "Token package gate (the packed @prism3/tokens installs and defines the contract's names)",
+    cmd: ws('@prism3/tokens', 'check:package'),
+  },
+  {
     id: 'lint-skills',
     ciStep: 'Skills gate (shipped skills make true claims)',
     cmd: engine('lint-skills.ts'),
+  },
+  {
+    // #3413 P1 — reads the motion skill and the committed out/<brand>.tokens.json; needs no build.
+    id: 'lint-motion-literals',
+    ciStep: 'The motion skill names tokens, never durations or curves (#3413)',
+    cmd: engine('lint-motion-literals.ts'),
   },
   {
     id: 'lint-us-english',

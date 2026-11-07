@@ -11,11 +11,13 @@
  * A TOOL, NOT A GATE (`tools/CLAUDE.md`): it answers and exits 0. It exits 2 only when it cannot answer at all.
  *
  * THE RULES, and each one's oracle (never the skill: `oracle.ts`'s INDEPENDENCE):
- *   · R1 invented name: every `var(--x)` the page reads must name a leaf of the generated tree (or a custom property
- *     the page declares itself); every `data-component` must be an id in `components.ai.json`; every `data-prop-<p>`
+ *   · R1 invented name: every `var(--x)` the page reads must name a leaf of the generated tree by its stock Style
+ *     Dictionary name, `--<root>-<path>` with the root read off the tree (`--pds3-color-text-primary`, #3408 Q98 A), or a
+ *     custom property the page declares itself. An unprefixed `var(--color-text-primary)` is not a Prism3 token: nothing
+ *     a consumer installs defines it, so it counts here as invented, not as a non-token read; every `data-component` must be an id in `components.ai.json`; every `data-prop-<p>`
  *     must be one of that component's `props` or `variants`; an enum prop's value must be one of its `values`.
  *   · R2 raw value or primitive: in CSS declarations (`<style>` blocks and `style` attributes) and SVG paint attributes,
- *     each hex color, `rgb()`/`rgba()` and non-zero `px` literal, plus each `var(--core-…)` read (a primitive, `eval.ts`'s
+ *     each hex color, `rgb()`/`rgba()` and non-zero `px` literal, plus each `var(--<root>-core-…)` read (a primitive, `eval.ts`'s
  *     `core` tier). A `px` in an `@media` prelude is not counted: a media query can't read a custom property.
  *   · R4 below the contrast floor: rendered in Chromium once per mode with that mode's token values injected, then each
  *     visible text run's computed color on its composited background, and each text field's boundary on its parent,
@@ -36,7 +38,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contrast } from '@prism3/engine/color';
-import { readPinned, loadPin, sha256, BRAND_ROOT, TOKEN_TREE, TOKEN_BASE, TOKEN_OVERLAYS, COMPONENTS } from './oracle';
+import { readPinned, loadPin, sha256, rootOf, TOKEN_TREE, TOKEN_BASE, TOKEN_OVERLAYS, COMPONENTS } from './oracle';
 
 // ------------------------------------------------------------------------------------------------ the oracle, loaded
 type Leaf = { path: string; $type?: string; $value?: unknown };
@@ -50,10 +52,17 @@ const leavesOf = (root: any): Map<string, Leaf> => {
   walk(root, []);
   return out;
 };
-export const cssName = (path: string): string => path.replace(/\./g, '-');
+/**
+ * A leaf's CSS custom-property name (without `--`), as stock Style Dictionary's `css` transform group names it: the
+ * full path, namespace root first, each `.` a `-` (#3408 Q98 A). `root` is the tree's own top-level key (`rootOf`),
+ * passed in, never a literal here, so the oracle (the tree) and the subject (this mapping) stay two things (`docs/34`).
+ * Measured equal to Style Dictionary 5's names for all 820 leaves of the pinned tree.
+ */
+export const cssName = (root: string, path: string): string => `${root}-${path.replace(/\./g, '-')}`;
 
 export type Oracle = {
   commit: string;
+  root: string;                         // the tree's namespace root, read off the tree (`rootOf`)
   cssToPath: Map<string, string>;       // every tree leaf, by its CSS custom-property name (without `--`)
   modes: Record<string, Record<string, string>>; // mode → css name → CSS value
   components: Record<string, { props: Set<string>; values: Map<string, Set<string>> }>;
@@ -61,12 +70,12 @@ export type Oracle = {
 
 const ALIAS = /^\{([^}]+)\}$/;
 /** A DTCG value as CSS, aliases resolved against `leaves`. Composites: typography → `font`, shadow → `box-shadow`. */
-const toCss = (v: unknown, type: string | undefined, leaves: Map<string, Leaf>, depth = 0): string | null => {
+const toCss = (v: unknown, type: string | undefined, leaves: Map<string, Leaf>, root: string, depth = 0): string | null => {
   if (depth > 20) return null;
   const deref = (x: unknown): unknown => {
     if (typeof x === 'string') {
       const m = ALIAS.exec(x);
-      if (m) { const l = leaves.get(m[1].replace(new RegExp(`^${BRAND_ROOT}\\.`), '')); return l ? deref(l.$value) : undefined; }
+      if (m) { const l = leaves.get(m[1].startsWith(`${root}.`) ? m[1].slice(root.length + 1) : m[1]); return l ? deref(l.$value) : undefined; }
     }
     return x;
   };
@@ -77,34 +86,52 @@ const toCss = (v: unknown, type: string | undefined, leaves: Map<string, Leaf>, 
   if (Array.isArray(val) && type === 'fontFamily') return val.map((f) => `"${f}"`).join(', ');
   if (type === 'typography' && typeof val === 'object') {
     const t = val as Record<string, unknown>;
-    const f = (k: string, ty?: string) => toCss(t[k], ty, leaves, depth + 1) ?? '';
+    const f = (k: string, ty?: string) => toCss(t[k], ty, leaves, root, depth + 1) ?? '';
     return `${t.fontStyle ? `${t.fontStyle} ` : ''}${f('fontWeight')} ${f('fontSize')}/${f('lineHeight')} ${f('fontFamily', 'fontFamily')}`.trim();
   }
   if (type === 'shadow') {
     const layers = (Array.isArray(val) ? val : [val]) as Record<string, unknown>[];
-    return layers.map((s) => ['offsetX', 'offsetY', 'blur', 'spread', 'color'].map((k) => toCss(s[k], k === 'color' ? 'color' : 'dimension', leaves, depth + 1) ?? '0').join(' ')).join(', ');
+    return layers.map((s) => ['offsetX', 'offsetY', 'blur', 'spread', 'color'].map((k) => toCss(s[k], k === 'color' ? 'color' : 'dimension', leaves, root, depth + 1) ?? '0').join(' ')).join(', ');
   }
   return null;
 };
 
-export const loadOracle = (): Oracle => {
-  const pin = loadPin();
-  const tree = leavesOf(JSON.parse(readPinned(TOKEN_TREE))[BRAND_ROOT]);
-  const cssToPath = new Map([...tree.keys()].map((p) => [cssName(p), p]));
-  const base = leavesOf(JSON.parse(readPinned(TOKEN_BASE))[BRAND_ROOT]);
+/** The oracle's parsed inputs: the tree, the base tree and one overlay per extra mode, and the component docs. */
+export type OracleSource = { commit: string; tree: any; base: any; overlays: Record<string, any>; components: any };
+
+/** The pinned oracle (`oracle.ts`): every input read at the pin and checked against its sha256. */
+export const loadOracle = (): Oracle => buildOracle({
+  commit: loadPin().commit,
+  tree: JSON.parse(readPinned(TOKEN_TREE)),
+  base: JSON.parse(readPinned(TOKEN_BASE)),
+  overlays: Object.fromEntries(Object.entries(TOKEN_OVERLAYS).map(([mode, file]) => [mode, JSON.parse(readPinned(file))])),
+  components: JSON.parse(readPinned(COMPONENTS)),
+});
+
+/** The oracle from its inputs. The namespace root is the tree's own (`rootOf`); the base and each overlay must share it. */
+export const buildOracle = (src: OracleSource): Oracle => {
+  const root = rootOf(src.tree);
+  const under = (json: any, what: string): any => {
+    const r = rootOf(json, what);
+    if (r !== root) throw new Error(`${what} has root "${r}", not the tree's "${root}"`);
+    return json[r];
+  };
+  const tree = leavesOf(src.tree[root]);
+  const cssToPath = new Map([...tree.keys()].map((p) => [cssName(root, p), p]));
+  const base = leavesOf(under(src.base, 'base tree'));
   const modes: Oracle['modes'] = {};
   const asCss = (leaves: Map<string, Leaf>) => {
     const out: Record<string, string> = {};
-    for (const [p, l] of leaves) { const c = toCss(l.$value, l.$type, leaves); if (c !== null) out[cssName(p)] = c; }
+    for (const [p, l] of leaves) { const c = toCss(l.$value, l.$type, leaves, root); if (c !== null) out[cssName(root, p)] = c; }
     return out;
   };
   modes.light = asCss(base);
-  for (const [mode, file] of Object.entries(TOKEN_OVERLAYS)) {
+  for (const [mode, json] of Object.entries(src.overlays)) {
     const merged = new Map(base);
-    for (const [p, l] of leavesOf(JSON.parse(readPinned(file))[BRAND_ROOT])) merged.set(p, l);
+    for (const [p, l] of leavesOf(under(json, `${mode} overlay`))) merged.set(p, l);
     modes[mode] = asCss(merged);
   }
-  const docs = JSON.parse(readPinned(COMPONENTS));
+  const docs = src.components;
   const components: Oracle['components'] = {};
   for (const [id, e] of Object.entries<any>(docs.components)) {
     const props = new Set<string>(), values = new Map<string, Set<string>>();
@@ -116,7 +143,7 @@ export const loadOracle = (): Oracle => {
     for (const [name, v] of Object.entries<any>(e.variants ?? {})) add(name, v?.values);
     components[id] = { props, values };
   }
-  return { commit: pin.commit, cssToPath, modes, components };
+  return { commit: src.commit, root, cssToPath, modes, components };
 };
 
 // ------------------------------------------------------------------------------------------------ the page, read
@@ -304,7 +331,12 @@ export const scoreR1 = (page: Pick<PageRead, 'css' | 'marks'>, o: Oracle): Viola
   const own = new Set<string>();
   for (const c of page.css) for (const d of declarations(c.text)) if (d.prop.startsWith('--')) own.add(d.prop.slice(2));
   for (const c of page.css) for (const m of stripComments(c.text).matchAll(VAR_RE))
-    if (!o.cssToPath.has(m[1]) && !own.has(m[1])) v.push({ rule: 'R1', what: `token --${m[1]} is not in the tree`, where: c.where });
+    if (!o.cssToPath.has(m[1]) && !own.has(m[1])) {
+      // An unprefixed name (`--color-text-primary`) is not a Prism3 token: stock Style Dictionary never emits it, so
+      // nothing defines it on a consumer's page. It counts as invented (#3408 Q98 A); the note names the real one.
+      const stock = o.cssToPath.has(`${o.root}-${m[1]}`) ? ` (unprefixed: the tree's name is --${o.root}-${m[1]})` : '';
+      v.push({ rule: 'R1', what: `token --${m[1]} is not in the tree${stock}`, where: c.where });
+    }
   for (const mk of page.marks) {
     const comp = o.components[mk.component];
     if (!comp) { v.push({ rule: 'R1', what: `component "${mk.component}" is not in components.ai.json`, where: mk.where }); continue; }

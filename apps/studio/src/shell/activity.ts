@@ -45,6 +45,7 @@ import type { OpKey } from '../state/host-session';
 import type { Cause } from '../../../plugin/src/messages';
 import type { Host } from './pages';
 import { armEnter, enterMark, glyph, h, hook, leave, tile } from './dom';
+import { runTime } from './run-time';
 
 /** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
  *  "agent link on" while it is). The plugin's Agent tile (`apps/plugin/src/agent-link-ui.ts`) reports each state the
@@ -284,13 +285,11 @@ export const finishLine = (k: RowKey, o: Pick<OpReading, 'state' | 'verdict' | '
   return `${ROW_TITLE[k]} ${warning ? 'finished with a warning' : 'failed'}${reason ? `: ${reason}` : ''}.`;
 };
 
-/** A clock time, HH:MM, as concept v6 stamps an operation. */
-const clock = (d: Date): string => d.toTimeString().slice(0, 5);
 
 /** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
  *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
 type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly publish?: string | null;
-  readonly causes?: readonly Cause[] | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true;
+  readonly causes?: readonly Cause[] | null; readonly agent: boolean; readonly t: Date; readonly ref: unknown; readonly refused?: true;
   /** #3326 PR 2: Update file's run says its own kind, and holds its steps (`UpdateReading`). */
   readonly kind?: Kind; readonly steps?: readonly UpdateStepReading[];
   /** What the run reported as failed, as data (`OpReading.failed`), so a "⚠" result with a failed item is a failure. */
@@ -324,7 +323,7 @@ const stepWords = (s: UpdateStepReading): string => {
 };
 /** One operation's record: what the drawer has seen of it this session. `at` orders the records by what happened last,
  *  finer than `t`'s minute (#3326 PR 2: a run row and an operation's row can share one). */
-type Rec = { t: string; at: number; result: Result | null; history: Result[] };
+type Rec = { t: Date | null; at: number; result: Result | null; history: Result[] };
 
 const EMPTY: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };
 
@@ -340,6 +339,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   readonly room?: { readonly frame: HTMLElement; readonly ceiling: () => number } }, cleanups: (() => void)[]): Activity => {
   const { narrow } = opts;
   const now = opts.now ?? (() => new Date());
+  /** A run's time as drawn (#3471): `runTime`, read against the clock now, so a run from an earlier day shows its date. */
+  const when = (t: Date | null): string => (t ? runTime(t, now()) : '');
   const { read, closeDetail } = opts.lend;
   const nameOf = opts.lend.nameOf ?? ((id: string) => id);
 
@@ -731,7 +732,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     el.words.hidden = !running && !res;
     el.root.dataset.state = running ? 'running' : res ? (res.ok ? 'ok' : 'bad') : 'idle';
     el.root.dataset.kind = kind ?? 'idle';
-    if (el.when.textContent !== rec.t) el.when.textContent = rec.t;
+    const t = when(rec.t);
+    if (el.when.textContent !== t) el.when.textContent = t;
     const isOpen = expanded.has(k);
     el.head.setAttribute('aria-expanded', String(isOpen));
     el.body.hidden = !isOpen;
@@ -764,7 +766,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       rec.history.forEach((x) => {
         const entry = hook(h('li', 'p3-op-entry-row'), 'op-history-entry');
         const head = hook(h('span', 'p3-op-entry-head'), 'op-history-head');
-        head.append(markOf(kindOfResult(x)), h('span', 'p3-op-when', x.t), h('span', undefined, x.refused ? x.verdict : verdictWords(x.verdict)));
+        head.append(markOf(kindOfResult(x)), h('span', 'p3-op-when', when(x.t)), h('span', undefined, x.refused ? x.verdict : verdictWords(x.verdict)));
         if (x.agent) { const tag = h('span', 'p3-op-agent'); tag.append(glyph('agent'), 'Agent'); head.append(tag); }
         const lines = x.summary || x.steps?.length ? linesOf(x, { list: 'op-history-lines', line: 'op-history-line', causes: 'op-history-causes', notes: 'op-history-notes', steps: 'op-history-steps' }) : [];
         if (lines.length) {
@@ -827,7 +829,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const words = hook(h('span', 'p3-drawer-verdict', run ? phaseOf(lead) ?? 'Running' : verdictWords(rec.result?.verdict ?? null)), 'activity-verdict');
       words.dataset.state = kind;
       text.append(h('b', undefined, ROW_TITLE[lead]), ' ', words);
-      parts.push(text, h('span', 'p3-op-when', rec.t));
+      parts.push(text, h('span', 'p3-op-when', when(rec.t)));
       // At 380, the closed strip carries the running style guide's progress (the S11.2 mockup, variant 1).
       if (run && lead === 'styleguide' && o.strip && narrow() && !open) {
         const bar = hook(h('progress', 'p3-op-prog p3-strip-prog'), 'activity-strip-progress') as HTMLProgressElement;
@@ -956,10 +958,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   let stamp = 0;
   const recOf = (k: RowKey): Rec => {
     let r = recs.get(k);
-    if (!r) { r = { t: '', at: 0, result: null, history: [] }; recs.set(k, r); }
+    if (!r) { r = { t: null, at: 0, result: null, history: [] }; recs.set(k, r); }
     return r;
   };
-  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, causes: o.causes ?? null, agent: o.agent, t, ref: o.ref, failed: o.failed ?? 0 });
+  const resultOf = (o: OpReading, t: Date): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, causes: o.causes ?? null, agent: o.agent, t, ref: o.ref, failed: o.failed ?? 0 });
   /** The previous result moves to the history, newest first, at most `HISTORY_MAX`. */
   const retire = (rec: Rec): void => {
     if (rec.result) rec.history = [rec.result, ...rec.history].slice(0, HISTORY_MAX);
@@ -989,7 +991,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           // v6 `startOp`: the last result becomes history, and the row opens on the run.
           const rec = recOf(k);
           retire(rec);
-          rec.t = clock(now());
+          rec.t = now();
       rec.at = ++stamp;
           expanded.add(k);
           if (loud(k)) started = true;
@@ -1011,7 +1013,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           ended = true;
           continue;
         }
-        rec.result = resultOf(n, rec.t);
+        rec.result = resultOf(n, rec.t ?? now());
         // A clean result collapses its row (#483, owner decision #1 on #1956); a bad one opens it. A quiet one's
         // result marks the drawer unread, never opens it (S11.2).
         if (n.state === 'bad') { expanded.add(k); if (loud(k)) settledBad = true; else { quietlySettled.add(k); if (!open) unread = true; } } else { settledOk = true; expanded.delete(k); }
@@ -1022,9 +1024,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       // A result that arrived without a run the drawer saw: the boot read-back, or a prune preview.
       const rec = recOf(k);
       retire(rec);
-      rec.t = clock(now());
+      rec.t = now();
       rec.at = ++stamp;
-      rec.result = resultOf(n, rec.t);
+      rec.result = resultOf(n, rec.t ?? now());
       if (n.state === 'bad') { settledBad = true; expanded.add(k); } else { landedOk = true; expanded.delete(k); }
     }
     // #3326 PR 2 (Q3326.4 A): Update file's run, one row. It starts when a new run is lent (the last result becomes history,
@@ -1036,7 +1038,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const rec = recOf('update');
       if (u.n !== pu?.n) {
         retire(rec);
-        rec.t = clock(now());
+        rec.t = now();
       rec.at = ++stamp;
         expanded.add('update');
         if (!u.done) {
@@ -1048,7 +1050,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       if (u.done) {
         const kind = u.kind ?? 'ok';
         const causes = u.steps.flatMap((st) => st.causes);
-        rec.result = { ok: kind === 'ok', kind, verdict: u.verdict ?? ROW_TITLE.update, summary: null, lines: null, causes: null, steps: u.steps, agent: false, t: rec.t, ref: u };
+        rec.result = { ok: kind === 'ok', kind, verdict: u.verdict ?? ROW_TITLE.update, summary: null, lines: null, causes: null, steps: u.steps, agent: false, t: rec.t ?? now(), ref: u };
         if (kind !== 'ok') { expanded.add('update'); settledBad = true; } else { settledOk = true; expanded.delete('update'); }
         const firstBad = u.steps.find((st) => st.state === 'bad' || st.state === 'warn');
         said.push(finishLine('update', { state: kind === 'ok' ? 'ok' : 'bad', verdict: u.verdict, summary: null, lines: firstBad ? [firstBad.words, ...firstBad.lines] : null, causes }, kind));
@@ -1062,7 +1064,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const runs = !!r && !r.agent && !!cur.update?.steps.some((st) => st.op === r.op && st.lines.includes(r.message));
     if (r && r.n !== last.refused?.n && !runs) {
       const rec = recOf(r.op);
-      const t = clock(now());
+      const t = now();
       if (!rec.t) { rec.t = t; rec.at = ++stamp; }
       rec.history = [{ ok: true, verdict: 'Refused', summary: r.message, agent: r.agent, t, ref: r, refused: true } as Result, ...rec.history].slice(0, HISTORY_MAX);
       live.textContent = `${OP_TITLE[r.op]} already running; the second request was declined.`;

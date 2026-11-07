@@ -7,6 +7,13 @@
 > the DX we're aiming past `prism2`'s fork-per-brand model. Planning altitude — decisions are
 > flagged, not all locked. Companion artifact: the ecosystem map (`claude.ai/code/artifact/…`,
 > 2026-07-05).
+>
+> **POC note (2026-11-07, #3408).** A two-arm proof of concept is measuring how Prism3 reaches code.
+> Its code target is **web components plus vanilla HTML/CSS, not React**, for both arms. Arm 1's
+> packages are `@prism3/web-components` and `@prism3/css` (`35` §9.1), so the `@prism3/components`
+> name in §2 and §8 is superseded for the POC. §3's ranking is **not** re-ranked here: the POC exists
+> to produce the evidence a re-rank would need, and §3 changes when it reports, not before. The POC's
+> own decisions are in §10.
 
 ---
 
@@ -39,6 +46,9 @@ coherence: atomic changes across token contract ↔ definitions ↔ code, shared
 "scaffold, then disconnect into a client's repo"). The package is authored with **no monorepo-internal
 runtime coupling** — it depends only on the *published token output* (a brand's generated token set),
 never on sibling packages' internals. That yields two delivery modes from one source:
+
+> **Superseded for the POC (2026-11-07, #3408):** `@prism3/components` below is the pre-`35` name.
+> The POC ships `@prism3/web-components` and `@prism3/css` (`35` §9.1); the two delivery modes stand.
 
 - **Core library — npm package.** Client installs `@prism3/components` + their generated tokens;
   stays connected to upstream (updates flow).
@@ -210,6 +220,10 @@ re-author; (b) **commit to markdown/MDX as the source of truth** so we never get
 
 ## 8. First slice (endorsed, from `14 §6`)
 
+> **POC note (2026-11-07, #3408):** the POC's slice is `button`, `text-field` and `password-field`
+> (§10.2) into `@prism3/web-components` and `@prism3/css`, with one Storybook. That supersedes this
+> section's WC-plus-`@prism3/components` reading for the POC; #256 is re-scoped into it.
+
 Definition schema + **three components** (Button, Text Field, Card — already the preview-spec core) →
 generate Figma + WC + one Storybook + `.ai.json` for those three → prove the whole projection chain
 end-to-end before scaling to the ~40. Same "small first increment" discipline every engine axis used.
@@ -308,6 +322,33 @@ is no longer pointed at the canonical tree.
 **Style Dictionary would be this repo's first real runtime dependency.** It belongs in a workspace
 alongside `apps/studio`/`apps/plugin`, never imported by the engine core — the buildless, no-`npm install` invariant
 is what lets the engine bundle into the Figma plugin sandbox.
+
+---
+
+## 10. The code POC (#3408)
+
+The POC builds the same component set two ways and measures both against one set of KPIs (#3408 holds
+the brief and the KPIs). Arm 1 is a package in this monorepo, generated from the defs; arm 2 is the
+contributor's own repo. The decisions below are arm 1's and are scoped to the POC. If the POC's
+evidence supports them, a later decision carries them into §2–§3.
+
+One arm 1 question is still open and is not decided here: whether the components are plain custom
+elements or Lit 3 (Q95). The CSS custom-property prefix is decided in `35` §9.4 (Q98 A).
+
+### 10.1 Decided (2026-11-07, #3408): arm 1's packages are generated from the defs export, and a parity gate checks them
+
+Q96 A. A generator inside the package reads `out/components/component-defs.json` and its `.specs.json`
+sibling (#3425) and writes the CSS and the custom-element shells. Hand-writing them and checking the
+result was the alternative. A parity gate compares the package's components with `components.ai.json`
+(props and values) and the specs (token bindings per part, size and state), and a mutation of either
+side fails it by name (`34`). This is §1's "everything else a projection" made literal for the code leg.
+
+### 10.2 Decided (2026-11-07, #3408): `password-field` is in the POC as a third top-level component
+
+Q100 A. The brief's password Show/Hide button lives in the `password-field` def, not in `text-field`,
+so the POC builds `button`, `text-field` and `password-field`, each with its nested parts: icon,
+spinner, focus ring, field label, and field message with its status glyph. Props mirror the defs, and
+nothing is invented. Dropping the toggle was the alternative.
 
 ---
 

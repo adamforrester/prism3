@@ -2359,7 +2359,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     }, [row, LIVE]);
     ok(JSON.stringify(seen.texts) === JSON.stringify(want.map((r) => r.items.map(([, t]) => t))),
       `#2281 ${k.op} ${w}: the earlier results show their items as lines, newest first (${want.map((r) => r.items.length).join(' and ')} lines) — read ${JSON.stringify(seen.texts.map((l) => l.map((t) => (t ?? '').slice(0, 30))))}`);
-    ok(seen.heads.length === 2 && seen.heads.every((t, i) => new RegExp(`^\\d\\d:\\d\\d${WORDS(want[i].headline).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(t ?? '')),
+    ok(seen.heads.length === 2 && seen.heads.every((t, i) => new RegExp(`^(1[0-2]|[1-9]):\\d\\d [AP]M${WORDS(want[i].headline).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(t ?? '')),
       `#2281 ${k.op} ${w}: each earlier result leads with its time and verdict, nothing after it — read ${JSON.stringify(seen.heads)}`);
     ok(seen.mono !== '' && seen.fonts.length > 0 && seen.fonts.every((f) => f === seen.mono) && seen.bullets.length === 2 && seen.bullets.every((b) => b === 'none'),
       `#2281 ${k.op} ${w}: every earlier line is in the chrome's mono font (${seen.mono}), in an unbulleted list — read ${JSON.stringify([...new Set(seen.fonts)])}, ${JSON.stringify(seen.bullets)}`);

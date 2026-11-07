@@ -216,12 +216,27 @@ jobs:
       - name: Consumability gate (a stock Style Dictionary over the emitted DTCG)
         run: npm run -w @prism3/tokens check:consumability
 
+      # The SHIPPABLE side of packages/tokens (#3408 S1, docs/35 §9.3): `npm pack` builds the house
+      # brand's token CSS with the same stock Style Dictionary, the tarball is installed into a temp
+      # folder outside the repo, and the installed CSS must define every guaranteed name from
+      # token-contract.json under `--pds3-` in `:root` and every `[data-theme]` block. The contract,
+      # the prefix and the mode list are the oracle; none is read off the build.
+      - name: Token package gate (the packed @prism3/tokens installs and defines the contract's names)
+        run: npm run -w @prism3/tokens check:package
+
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
       # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,
       # which an agent would emit as references resolving to nothing.
       - name: Skills gate (shipped skills make true claims)
         run: npx --yes tsx@4 packages/engine/lint-skills.ts
+
+      # #3413 P1 — the motion skill teaches "every timing is a token", so it is held to it: no duration,
+      # curve or spring constant in its text (the oracle is a typed SHAPE, never the emitted values, which
+      # would pass an off-ramp duration), and every motion.* name it quotes resolves in every brand's
+      # committed DTCG. Non-motion numbers are admitted by exact text, each with a reason.
+      - name: The motion skill names tokens, never durations or curves (#3413)
+        run: npx --yes tsx@4 packages/engine/lint-motion-literals.ts
 
       # A gate that silently stops running is worse than no gate, because green starts meaning
       # "nothing ran". If any emitter, report or schema artifact ever leaves the compared set, this

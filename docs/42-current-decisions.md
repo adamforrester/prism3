@@ -109,6 +109,13 @@ decision recorded there is correct prose forever and is not this file's subject 
 | a brand's own glass roles are brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3073 |
 | the opaque outline hover fill is brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3071 |
 | the reference brand's secondary text is fitted on the page (Q-TXT1 A: `secondaryTextGround: page`, light and dark only) | 2026-10-31 | `docs/06-surface-and-content-color-model.md` | #3221 |
+| the code POC's arm 1 ships `@prism3/web-components` and `@prism3/css` (Q83 A, Q87 A) | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.1 | #3408 |
+| the class and custom-element prefix is `p3-` (Q97 A); the CSS custom-property prefix (Q98) is still open | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.2 | #3408 |
+| `packages/tokens` also builds a shippable token output, beside its consumability gate (Q99 A) | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.3 | #3408 |
+| CSS custom properties keep stock Style Dictionary's `--pds3-` prefix (Q98 A) | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.4 | #3408 |
+| the code POC's behavior is native HTML plus a small script (Q86 A); tranche 4's behavior question stays open | 2026-11-07 | `docs/41-internal-and-ejected.md` §7.1 | #3408 |
+| arm 1's packages are generated from the defs export, and a parity gate checks them (Q96 A) | 2026-11-07 | `docs/19-code-library-and-dx.md` §10.1 | #3408 |
+| `password-field` is in the POC as a third top-level component (Q100 A) | 2026-11-07 | `docs/19-code-library-and-dx.md` §10.2 | #3408 |
 
 ## Known gaps, named rather than silent
 

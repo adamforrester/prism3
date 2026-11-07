@@ -19,7 +19,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readPinned, BRAND_ROOT, TOKEN_TREE, COMPONENTS, SKILL, sha256 } from './oracle';
+import { readPinned, rootOf, TOKEN_TREE, COMPONENTS, SKILL, sha256 } from './oracle';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const PACKET_DIR = resolve(HERE, 'packets');
@@ -27,11 +27,14 @@ export const ARMS = ['C0', 'C1'] as const;
 export type Arm = (typeof ARMS)[number];
 export const SLICE = ['text-field', 'password-field', 'button', 'banner', 'field-label', 'field-message'];
 
-/** The task and the output contract, the same words in both arms. The capture format is `orchestrate.ts`'s. */
-export const TASK = `# Task
+/**
+ * The task and the output contract, the same words in both arms. The capture format is `orchestrate.ts`'s. `root` is the
+ * tree's namespace root (`rootOf`): the CSS names are stock Style Dictionary's, root first (#3408 Q98 A).
+ */
+export const task = (root: string): string => `# Task
 
 Build a sign-in card as one self-contained HTML file, using the Prism3 design system described below (the house
-brand, namespace \`${BRAND_ROOT}\`).
+brand, namespace \`${root}\`).
 
 The card holds:
 - an email field
@@ -42,8 +45,8 @@ The card holds:
 
 ## How the tokens reach your page
 
-Every token in the list below is available to the page as a CSS custom property: \`--\` followed by the token's path,
-with each \`.\` replaced by \`-\`. For example, \`color.text.primary\` is \`var(--color-text-primary)\`. The values are
+Every token in the list below is available to the page as a CSS custom property: \`--${root}-\` followed by the token's
+path, with each \`.\` replaced by \`-\`. For example, \`color.text.primary\` is \`var(--${root}-color-text-primary)\`. The values are
 supplied when the page is rendered, once for each mode (light, dark, high-contrast light and high-contrast dark), so
 don't define them yourself. A typography token is a \`font\` shorthand, and a shadow token is a \`box-shadow\` value.
 
@@ -74,7 +77,7 @@ const leaves = (tree: any): { path: string; type: string }[] => {
     if (n.$value !== undefined || n.$type !== undefined) { out.push({ path: p.join('.'), type: n.$type ?? '' }); return; }
     for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...p, k]);
   };
-  walk(tree[BRAND_ROOT], []);
+  walk(tree[rootOf(tree)], []);
   return out;
 };
 
@@ -84,7 +87,7 @@ export const buildPacket = (arm: Arm): string => {
   const names = leaves(tree);
   const slice = { note: docs.note, components: Object.fromEntries(SLICE.map((id) => [id, docs.components[id]])) };
   const parts = [
-    TASK,
+    task(rootOf(tree)),
     `## Tokens (${names.length} names)\n\nEach line is a token path and its type.\n\n\`\`\`\n${names.map((n) => `${n.path} ${n.type}`).join('\n')}\n\`\`\`\n`,
     `## Components (${SLICE.length} entries from components.ai.json)\n\n\`\`\`json\n${JSON.stringify(slice, null, 1)}\n\`\`\`\n`,
   ];

@@ -13,6 +13,7 @@ apps/plugin/release-offline/
 tools/release/out/
 apps/tokenpress/dist/
 packages/tokens/build/
+packages/tokens/dist/
 
 # Built on demand, never committed (Q319.6): `npm run tokens-html`. regen.ts ON_DEMAND_OUT.
 packages/engine/out/tokens.html

@@ -337,6 +337,10 @@ npx tsx packages/engine/emit-figma-conventions.ts --check
                                                     # (REFERENCE_ARTIFACTS), so the habitual regenerate
                                                     # moves it.
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
+npx tsx packages/engine/lint-motion-literals.ts     # the motion skill types no duration, curve or
+                                                    # spring constant (a shape oracle, never the
+                                                    # emitted values), and every motion.* name it
+                                                    # quotes resolves in every brand (#3413)
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line
                                                     # names no ci.yml step, so only RETIRED_GATES, a
@@ -1701,6 +1705,15 @@ npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over E
                                           # and the per-platform x type verdicts are pinned (the
                                           # native gaps tagged with their issues). Which SD versions
                                           # behave this way: tools/sd-version-matrix/ (a tool)
+npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHIPPABLE side of the
+                                          # package. `npm pack` runs prepack (sd.ship.mjs, the same
+                                          # stock SD) to build the house brand's token CSS; the
+                                          # tarball installs into a temp folder OUTSIDE the repo; the
+                                          # installed CSS, resolved through `exports`, must define
+                                          # every guaranteed name in token-contract.json under
+                                          # `--pds3-` (Q98 A) in `:root` and each promised
+                                          # `[data-theme]` block. The contract, prefix and mode list
+                                          # are the oracle, never read off the build
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component

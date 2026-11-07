@@ -10,6 +10,14 @@
 > `19` owns *what* the code library is and how it's delivered. This doc owns *what
 > everything is called and where it sits*. It deliberately does **not** re-decide `19` §7's
 > open items — see §8.
+>
+> `41` owns what crosses the eject boundary for the component tier: the def stays internal, and the
+> contract, metadata and code projection are ejected. This doc owns the naming and layout that
+> boundary organizes.
+>
+> **POC note (2026-11-07, #3408):** the code POC adds `@prism3/css`, keeps `react` and `core` out of
+> its scope, and makes `@prism3/tokens` build a shippable output as well as run its gate. §9 records
+> the decisions.
 
 ---
 
@@ -49,6 +57,11 @@ prism3/
 └── Tokens/                  # legacy hand-built layer + regression target
 ```
 
+**POC scope (2026-11-07, #3408):** the POC builds `web-components` and adds `css` (`@prism3/css`,
+§9.1). `react` and `core` are **outside the POC's scope**: its code target is web components plus
+vanilla HTML/CSS, and its behavior is native HTML plus a small script (`41` §7.1), so there is no
+headless core to share. The tree is left as drawn, as the dated proposal it is.
+
 `apps/` = we run it. `packages/` = **package-shaped and consumed by name** — it has a
 `package.json`, and everything that uses it imports `@prism3/<name>` rather than a relative path.
 A reader can tell which side of the boundary anything is on from its path.
@@ -60,6 +73,11 @@ property of the **package** — declared by the package, and true of `web-compon
 when they exist — not a property of the directory. Reading it as a directory-level promise makes
 `packages/engine` look like an eject target and `packages/tokens` like a deliverable, and #625 is
 the issue that inherits that imprecision if this is left as it was.
+
+**Amended (2026-11-07, #3408, Q99 A):** `@prism3/tokens` is still the gate described above, and it
+**also builds a shippable output**: the token CSS a client installs as a versioned package. The POC's
+source-mode ejection needs that package, because copied components must not fork the tokens per app
+(§9.3). The gate's configuration stays naive and separate from the shippable build (`19` §9).
 
 **Nesting also fixes a real defect:** a top-level `tokens/` directory is *impossible* today —
 `Tokens/` already exists, and the owner's filesystem is case-insensitive (macOS). Under
@@ -81,6 +99,8 @@ the issue that inherits that imprecision if this is left as it was.
 ## 4. Component libraries: named by framework, not by category
 
 **Decision: `@prism3/web-components` + `@prism3/react`, not `@prism3/components`.**
+
+For the POC, `@prism3/react` is out of scope and `@prism3/css` joins `@prism3/web-components` (§9.1).
 
 `19` §2 currently specifies `@prism3/components`. That was written before the multi-target
 plan in §3 hardened, and the field says it's the name you outgrow at exactly the moment a
@@ -466,6 +486,47 @@ assumption baked into the layout — the layout above supports all three.
   are left as written: the first is a dated snapshot of the layout this doc proposed, and the second
   is the historical reasoning that produced `packages/tokens` — rewriting either would erase the
   evidence for this reversal.
+
+## 9. The code POC (#3408)
+
+The POC measures two ways of delivering Prism3 to code (`19` §10). Arm 1 is built in this monorepo,
+and these are its naming and packaging decisions, recorded where the naming lives. The CSS
+custom-property prefix is §9.4; §9.2's prefix is for classes and elements only.
+
+### 9.1 Decided (2026-11-07, #3408): arm 1 ships `@prism3/web-components` and `@prism3/css`
+
+Q83 A and Q87 A. Package names follow §4: named by target, never `@prism3/components`. With React
+dropped from the POC, the second target is vanilla HTML/CSS, and its package is **`@prism3/css`**: the
+styles and markup patterns for plain HTML, the delivery path for server-rendered platforms (§5). It sits
+beside `@prism3/web-components`, and the web components add behavior to the same markup and stylesheet.
+
+### 9.2 Decided (2026-11-07, #3408): the class and custom-element prefix is `p3-`
+
+Q97 A. A component's CSS class and its custom element share one prefix: `.p3-button`, `<p3-button>`.
+`prism3-` was the alternative. The prefix is short because it repeats on every element in a client's
+markup, and one prefix for both keeps the HTML/CSS form and the web-component form reading as one
+component.
+
+### 9.3 Decided (2026-11-07, #3408): `packages/tokens` also builds a shippable token output
+
+Q99 A. The token CSS a client installs comes from `packages/tokens`, beside the consumability gate it
+already runs; a new `@prism3/tokens-css` package was the alternative. The source-mode ejection test
+copies the components into a client repo and keeps the tokens a versioned package, and that needs a
+package to install. That is the POC's working answer to #253, which stays open until the POC reports.
+§2's "a gate we run rather than something we ship" is amended to match.
+
+**Built (#3408 S1):** `sd.ship.mjs` builds the house brand's CSS with the same stock Style Dictionary,
+`npm pack` makes the tarball (`dist/` and the README only), and `check-package.mjs` installs it outside
+the repo and checks the contract's names in every mode block. The package stays `private`: a tarball,
+not a registry (Q84 A).
+
+### 9.4 Decided (2026-11-07, #3408): CSS custom properties keep the `--pds3-` prefix
+
+Q98 A. Token CSS names are stock Style Dictionary's root-prefixed names (`--pds3-color-text-primary`),
+with no custom build step and no root rename. A namespaced name can't collide with a CMS site's own
+variables, and it keeps `packages/tokens`' no-custom-code rule. The adherence scorer learns the prefix
+instead of stripping it. The `pds3` / `p3-` mismatch with §9.2 is accepted: renaming the token root
+would be a breaking contract change.
 
 ---
 
