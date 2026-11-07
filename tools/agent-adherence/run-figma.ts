@@ -341,6 +341,18 @@ export const setup = async (c: Client, o: { root: string; input: unknown; build:
   return hash;
 };
 /**
+ * THE BEFORE SIDE, `run`'s reset and baseline: the plant again, then the captures, strict. A transport error or an
+ * `ok:false` envelope throws (no `keepFailed`: a baseline that cannot be read is not a baseline), and so does a
+ * `↳ Buttons` read the plugin cut short. Exported so the self-test drives it through its stand-in client (#3464 a).
+ */
+export const baseline = async (c: Client, say: (s: string) => void): Promise<{ roles: Roles; before: Record<string, any> }> => {
+  const roles = rolesOf((await send(c, resetCommands(), say)).plant);
+  const before = await send(c, captureCommands(roles), say);
+  const short = cutShort(before);
+  if (short) throw new Error(short);
+  return { roles, before };
+};
+/**
  * THE AFTER SIDE (review B4): the captures again, then the run file, written whatever the captures found. A run whose
  * agent deleted a snapshotted layer or a whole plan page gets an `ok:false` envelope for that read (`snapshot` refuses a
  * missing node), and that run is exactly what V2, V6 and V8 exist to score, so the envelope is kept and the scorer
@@ -465,10 +477,7 @@ if (isMain) {
   try {
     say(`${name}: reset and baseline`);
     status = await guard(c);
-    roles = rolesOf((await send(c, resetCommands(), say)).plant);
-    before = await send(c, captureCommands(roles), say);
-    const short = cutShort(before);
-    if (short) throw new Error(short);
+    ({ roles, before } = await baseline(c, say));
   } finally { await c.close(); }
   const baselineHash = goldenHash(before);
   const build = status.status?.result?.data?.status?.build ?? null;
