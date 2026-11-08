@@ -3657,8 +3657,8 @@ for (const host of ['web', 'figma']) {
         ok(JSON.stringify(wd) === JSON.stringify(['prune:true']), `Clean up ${where}: Delete posts the confirmed prune — posted ${JSON.stringify(wd)}`);
         // #533 (Q110 A), the review of #3520 (findings 1 and 3): an ordinary op's run, the panel's confirmed prune, ends while
         // an agent's build still runs. Nothing is told yet; once the agent's command ends too, the prune's end is told once,
-        // as its short line. Literals. MUTATIONS: the operations branch's `pendingEnds.push` disabled (`activity.ts`) → both
-        // arms' second, by name; the ends kept per reading again (emptied at each `onHost`) → the second, by name.
+        // as its short line. Literals. MUTATIONS: the operations branch's `pendingEnds.push` disabled (`activity.ts`) → the
+        // second arm, by name; the ends kept per reading again (emptied at each `onHost`) → the second arm, by name.
         await postMsg(page, { type: 'agent-started', id: 'ag533', cmd: 'build-components' });
         await postMsg(page, { type: 'prune-result', ok: true, applied: true, count: 3, summary: 'Removed 3 stale items.' });
         await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="prune"] [data-p3="op-verdict"]')?.textContent ?? '') !== '', null, { timeout: 5000 }).catch(() => {});
