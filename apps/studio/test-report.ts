@@ -28,6 +28,8 @@
  * #3525 review finding 1 (a name next to `,` `:` `;` `(` `)` leaked): `SEGMENT` narrowed back to `/.\\- "'` → each
  * `#3525 R1 … bounded by punctuation is replaced (…)` arm; letters added to `SEGMENT` → `#3525 R1 an ordinary word
  * holding a name stays whole next to punctuation` and `#3525 R1 a short root inside an ordinary word stays whole …`.
+ * Delta review: curly quotes, the backtick or `{}` dropped, or straight quotes dropped → the matching quote arm of
+ * `#3525 R1 … bounded by punctuation is replaced (…)`; `0-9` added → `#3525 R1 an ordinary word holding a name stays whole …`.
  */
 import { brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 
