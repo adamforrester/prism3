@@ -13,6 +13,12 @@
  * `no keys: a token-shaped run is removed`; the Figma URL rule dropped → `no file names: a Figma file link is removed`;
  * `issueUrl` not cutting → `link: a long report is cut to fit`; `isIssueUrl` accepting any https URL → `link: the
  * plugin opens nothing but the issue form`.
+ *
+ * The review at 03d62700 (findings 1, 2, 3, 5, 6), each fixture the reviewer's: short words matched by substring, or
+ * not at all → `#3522 R1 …`; the cut not backing off a high surrogate → `#3522 R2 link: a cut inside an emoji …`;
+ * `URL_LIMIT` raised past the literal 7000 → `#3522 R3 link: a long report is cut to at most 7000`; `isIssueUrl`'s
+ * length bound dropped → `#3522 R3 link: an issue URL over 7000 is not opened`; a scrub rule dropped → its `#3522 R5`
+ * arm; the verdict left unscrubbed → `#3522 R6 …`.
  */
 import { brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 
@@ -59,18 +65,55 @@ ok(scrub('library key 0f4e2a9c1b3d5e7f9a1b2c3d4e5f6a7b8c9d0e1f') === 'library ke
 ok(scrub('token p3bridge_9Fz2Qk7LmN4xR8tV1wY6') === 'token [removed]', 'no keys: a token-shaped run is removed');
 ok(scrub('hbr/color/background/primary at tree-a59be505, commit 0899c2d5') === 'hbr/color/background/primary at tree-a59be505, commit 0899c2d5',
   'no keys: a token name, the 8-hex tree and the short commit stay (they name no file and open nothing)');
-ok(JSON.stringify(brandWords({ id: 'ab', name: 'Harbor Fleet', root: 'hbr' })) === JSON.stringify(['Harbor Fleet', 'hbr']), 'brand words: longest first, and a word under 3 letters is left');
+ok(JSON.stringify(brandWords({ id: 'ab', name: 'Harbor Fleet', root: 'hbr' })) === JSON.stringify(['Harbor Fleet', 'hbr', 'ab']), 'brand words: longest first, and a word under 3 letters counts too (scrub matches it as a whole segment)');
 ok(JSON.stringify(brandWords({ id: 'prism3', name: 'Prism3', root: 'pds3' })) === JSON.stringify(['pds3']), 'brand words: the product\'s own name is never taken out (the house brand carries it)');
 const keyed = buildReport({ ...BASE, includeBrand: true, activity: [{ title: 'Apply Theme', verdict: '✗ failed', lines: ['key 0f4e2a9c1b3d5e7f9a1b'], agent: false }] });
 ok(keyed.includes('key [removed]'), 'no keys: the scrub holds with the brand included too');
+
+// ── #3522 review R1: a short root or name is taken out as a whole segment, and only so ──
+const SHORT = { id: 'harbor', root: 'hf' };
+const shortOff = buildReport({ ...BASE, brand: SHORT, activity: [{ title: 'Apply Theme', verdict: '✗ 1 conflict', lines: ['variable "hf/color/background/primary" conflicts', 'shelf.hf-x stays half'], agent: false }] });
+ok(!shortOff.includes('hf/color') && shortOff.includes('variable "[brand]/color/background/primary" conflicts'),
+  '#3522 R1 Q116 opt-in: off, a 2-letter token root is replaced with [brand] as a whole segment');
+ok(shortOff.includes('shelf.[brand]-x stays half'), '#3522 R1 a short brand word inside an ordinary word is left: only a whole segment is replaced');
+ok(scrub('g/color/background/primary at the gate', ['g']) === '[brand]/color/background/primary at the gate', '#3522 R1 a 1-letter root (root: \'g\') is replaced as a segment, and words holding the letter stay whole');
+
+// ── #3522 review R5: no file names, no keys, no people, in more shapes ──
+ok(scrub('figma.com/design/AbCdEfGhIjKlMnOpQrStUv/Client-Checkout') === '[removed]', '#3522 R5 no file names: a Figma link without https:// is removed, file name and all');
+ok(scrub('file AbCdEfGhIjKlMnOpQrStUv') === 'file [removed]', '#3522 R5 no keys: a 22-letter file key with no digit is removed');
+ok(scrub('at /Users/jane.doe/acme/brand.md') === 'at [removed]' && scrub('at /home/jane/acme/brand.md') === 'at [removed]' && scrub('at C:\\Users\\jane\\brand.md') === 'at [removed]',
+  '#3522 R5 no file names: an absolute path (/Users, /home, C:\\) is removed');
+ok(scrub('ask jane.doe@acme.com about it') === 'ask [removed] about it', '#3522 R5 no people: an email address is removed');
+ok(scrub('color/background/primary in light-mode') === 'color/background/primary in light-mode', '#3522 R5 a lower-case token name and ordinary words stay');
+
+// ── #3522 review R6: the verdict is scrubbed as the lines are ──
+const verdictOff = buildReport({ ...BASE, activity: [{ title: 'Apply Theme', verdict: '✗ hbr/color for Harbor Fleet, key 0f4e2a9c1b3d5e7f9a', lines: [], agent: false }] });
+ok(verdictOff.includes('- Apply Theme: ✗ [brand]/color for [brand], key [removed]') && !/hbr|harbor|0f4e2a9c/i.test(verdictOff),
+  '#3522 R6 the verdict is scrubbed: no brand word and no key reaches it');
 
 // ── the link ──
 const url = issueUrl(off);
 ok(url.startsWith(`${ISSUE_BASE}?title=Problem%20report&body=`) && decodeURIComponent(url.split('&body=')[1]) === off, 'link: the issue form, prefilled with the whole report');
 const long = buildReport({ ...BASE, activity: [{ title: 'Build', verdict: '✗ failed', lines: Array.from({ length: 400 }, (_, i) => `member ${i} failed to bind its fill`), agent: false }] });
 const cut = issueUrl(long);
+// GitHub refuses a prefilled issue URL past roughly 8 KB (observed; GitHub does not document the figure), so the
+// ceiling is typed here as a literal, 7000, and never read from the module under test (docs/34).
+const GITHUB_SAFE = 7000;
+ok(URL_LIMIT <= GITHUB_SAFE && cut.length <= GITHUB_SAFE, `#3522 R3 link: a long report is cut to at most 7000 characters (${cut.length})`);
 ok(cut.length <= URL_LIMIT && decodeURIComponent(cut.split('&body=')[1]).endsWith('The full report is on your clipboard: paste it here.)'), `link: a long report is cut to fit (${cut.length} ≤ ${URL_LIMIT}) and says where the rest is`);
 ok(isIssueUrl(url) && isIssueUrl(cut), 'link: the plugin opens the issue form it built');
+const over = `${ISSUE_BASE}?body=`.padEnd(7001, 'x');
+const atLimit = `${ISSUE_BASE}?body=`.padEnd(7000, 'x');
+ok(over.length === 7001 && !isIssueUrl(over), '#3522 R3 link: an issue URL over 7000 characters is not opened');
+ok(atLimit.length === 7000 && isIssueUrl(atLimit), '#3522 R3 link: an issue URL of exactly 7000 characters is opened');
+// #3522 review R2: a cut that lands inside an emoji (a surrogate pair) backs off it, and does not throw.
+const emoji = buildReport({ ...BASE, activity: [{ title: 'Build', verdict: '✗ failed', lines: Array.from({ length: 400 }, (_, i) => `member ${i} on page "🎨 Components"`), agent: false }] });
+let emojiCuts = 0;
+let emojiErr = '';
+for (let pad = 0; pad < 12; pad++) {
+  try { const u = issueUrl('x'.repeat(pad) + emoji); decodeURIComponent(u); if (u.length <= 7000) emojiCuts++; } catch (e) { emojiErr = String(e); }
+}
+ok(emojiCuts === 12 && !emojiErr, `#3522 R2 link: a cut inside an emoji backs off it, and the link still opens (${emojiCuts}/12 cut${emojiErr ? `, ${emojiErr}` : ''})`);
 ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github.com/someone-else/repo/issues/new?body=x') && !isIssueUrl(`${ISSUE_BASE}x?body=1`) && !isIssueUrl(42),
   'link: the plugin opens nothing but the issue form');
 

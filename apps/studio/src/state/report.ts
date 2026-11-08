@@ -32,29 +32,45 @@ export type ReportInput = {
 
 const REDACTED = '[removed]';
 
+/** Under this length a brand word is matched only as a whole segment (`SEGMENT`), so ordinary words keep their letters. */
+const SHORT_WORD = 3;
+
 /** The brand's own words: its `id`, display `name` and token `root`, longest first so a word inside another goes second.
- *  Words shorter than three characters are left: matching them would take letters out of ordinary words, and so is the
- *  product's own name. */
+ *  A word of any length counts (a root can be one letter, `root: 'g'`); `scrub` matches the short ones only as a whole
+ *  segment. The product's own name is never one. */
 export const brandWords = (brand: Readonly<Record<string, unknown>> | null): string[] => {
   if (!brand) return [];
   // The product's own name is never the client's: the house brand is named for it, and every result line says it.
-  const words = ['id', 'name', 'root'].map((k) => brand[k]).filter((v): v is string => typeof v === 'string' && v.trim().length >= 3 && !/^prism3$/i.test(v.trim())).map((v) => v.trim());
+  const words = ['id', 'name', 'root'].map((k) => brand[k]).filter((v): v is string => typeof v === 'string' && v.trim().length > 0 && !/^prism3$/i.test(v.trim())).map((v) => v.trim());
   return [...new Set(words)].sort((a, b) => b.length - a.length);
 };
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** What bounds a short brand word as a whole segment: the start or end, `/`, `.`, `-`, a space or a quote. */
+const SEGMENT = `/.\\- "'`;
+
 /** Take out of one line what could carry a file name or a key. `words`: the brand's words to take out too. */
 export const scrub = (text: string, words: readonly string[] = []): string => {
   let t = text
-    // A Figma file or design URL names the file and carries its key.
-    .replace(/https?:\/\/(?:www\.)?figma\.com\/\S+/gi, REDACTED)
+    // A Figma file or design link names the file and carries its key, with or without its scheme.
+    .replace(/(?:https?:\/\/)?(?:www\.)?figma\.com\/\S+/gi, REDACTED)
+    // An absolute path names a person (a home folder) and a file.
+    .replace(/(?:\/(?:Users|home)\/|\b[A-Za-z]:\\)\S+/g, REDACTED)
+    // An email address names a person.
+    .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, REDACTED)
     // A long hex run: a key, a hash, a node's library key.
     .replace(/\b[0-9a-f]{16,}\b/gi, REDACTED)
     // A token-shaped run of 20 or more letters, digits, `-` and `_` holding both a letter and a digit (an API key, a
     // bridge token). A token name never matches: its segments are joined by `/` or `.`, and each is short.
-    .replace(/\b(?=[A-Za-z0-9_-]*[0-9])(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{20,}\b/g, REDACTED);
-  for (const w of words) t = t.replace(new RegExp(escapeRe(w), 'gi'), '[brand]');
+    .replace(/\b(?=[A-Za-z0-9_-]*[0-9])(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{20,}\b/g, REDACTED)
+    // A Figma file key with no digit: 22 letters, upper and lower case. A token name never matches: it is lower case.
+    .replace(/\b(?=[A-Za-z]*[A-Z])(?=[A-Za-z]*[a-z])[A-Za-z]{22}\b/g, REDACTED);
+  for (const w of words) {
+    t = w.length < SHORT_WORD
+      ? t.replace(new RegExp(`(^|[${SEGMENT}])${escapeRe(w)}(?=$|[${SEGMENT}])`, 'gi'), '$1[brand]')
+      : t.replace(new RegExp(escapeRe(w), 'gi'), '[brand]');
+  }
   return t;
 };
 
@@ -79,7 +95,8 @@ export const buildReport = (r: ReportInput): string => {
   return out.join('\n');
 };
 
-/** The longest issue URL this builds. GitHub refuses a longer one, so a longer body is cut and says where the rest is. */
+/** The longest issue URL this builds, under the roughly 8 KB at which GitHub refuses a prefilled issue URL, so a longer
+ *  body is cut and says where the rest is. `test-report.ts` holds it to a literal ceiling. */
 export const URL_LIMIT = 7000;
 
 /** The prefilled issue's URL: the title, and the body cut to fit `URL_LIMIT` with a line saying the full bundle is on
@@ -88,10 +105,12 @@ export const issueUrl = (body: string): string => {
   const at = (b: string): string => `${ISSUE_BASE}?title=${encodeURIComponent(REPORT_COPY.issueTitle)}&body=${encodeURIComponent(b)}`;
   if (at(body).length <= URL_LIMIT) return at(body);
   const note = `\n\n${REPORT_COPY.cut}`;
+  // A cut never splits a surrogate pair (an emoji in a page name): `encodeURIComponent` throws on half of one.
+  const head = (n: number): string => { const c = body.charCodeAt(n - 1); return body.slice(0, n > 0 && c >= 0xd800 && c <= 0xdbff ? n - 1 : n); };
   let lo = 0;
   let hi = body.length;
-  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (at(body.slice(0, mid) + note).length <= URL_LIMIT) lo = mid; else hi = mid - 1; }
-  return at(body.slice(0, lo) + note);
+  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (at(head(mid) + note).length <= URL_LIMIT) lo = mid; else hi = mid - 1; }
+  return at(head(lo) + note);
 };
 
 /** The one kind of URL the plugin opens for a report: the issue form on this repo, nothing else. */

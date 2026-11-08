@@ -13,7 +13,8 @@
  *
  * #2069 (Q116 A): `open-issue`, Report a problem's link, opens only this repo's issue form. Mutations: the `isIssueUrl`
  * check dropped → `#2069 open-issue opens nothing but this repo's issue form`; the case dropped → `#2069 open-issue opens
- * the prefilled issue form in the browser`.
+ * the prefilled issue form in the browser`; `isIssueUrl`'s length bound dropped, or `URL_LIMIT` raised → `#3522 R3
+ * open-issue opens no issue URL over 7000 characters`.
  *
  * Mutations this fails by name: the `open-docs` case dropped from `main.ts` → `open-docs opens the docs landing page
  * in the browser`; `DOCS_URL` pointed anywhere else → the same arm, naming the address it opened.
@@ -86,6 +87,13 @@ for (const bad of ['https://example.com/collect?d=1', 'https://github.com/someon
 }
 await settle();
 ok(JSON.stringify(opened) === JSON.stringify([ISSUE]), `#2069 open-issue opens nothing but this repo's issue form (opened ${JSON.stringify(opened)})`);
+// #3522 review R3: an over-long address on the form is not opened. 7000 is a literal: under the roughly 8 KB at which
+// GitHub refuses a prefilled issue URL (observed, not documented), never read from report.ts.
+const OVER = `${ISSUE}`.padEnd(7001, 'x');
+opened.length = 0;
+send({ type: 'open-issue', url: OVER });
+await settle();
+ok(OVER.length === 7001 && opened.length === 0, `#3522 R3 open-issue opens no issue URL over 7000 characters (opened ${opened.length})`);
 
 console.log(`\n${executed - failed}/${executed} open-docs assertions passed.`);
 if (failed) process.exit(1);
