@@ -35,6 +35,7 @@ import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
+import { conflictKey, choiceNote, isChoices, type CollisionChoices } from './collision-choice';
 import { APPLY_STAGES, runApplyTheme, themePlans, type ApplyStage, type ThemePace } from './apply-theme';
 import { emissionOf, themeDue } from './theme-emission';
 import { serializeBrandInput } from '@prism3/engine/persist-input';
@@ -382,17 +383,20 @@ let updateStopAsked = false;
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
  * the theme changed (#110). Idempotent find-by-name; colour axis (`core` + `color`).
  */
-const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> => {
+const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefined, sink: ActionSink): Promise<void> => {
   try {
     // The write sequence — fonts first, pre-flight, then the guarded executor calls — lives in
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
     // global `figma` is the host; everything below this line (the report) is unchanged.
-    const { plans, pf, guarded, before } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink));
+    const { plans, pf, guarded, before, chose, exec, names } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink), choices);
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
       const conflicts = conflictSummary(guarded.conflicts);
-      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts] }, sink);
+      // #1909: the panel's refusal carries each collision with its key, so the panel can offer Skip or Rename for it.
+      // An agent's result is unchanged: it has `conflicts` through `sink.data` already, and `collisions` stays off.
+      const collisions = sink === uiSink ? { collisions: guarded.conflicts.map((c) => ({ key: conflictKey(c), kind: c.kind, name: c.name, detail: c.detail })) } : {};
+      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts], ...collisions }, sink);
       return;
     }
     const { mig, r, f, s, gs, tv, ts, mv } = guarded.result;
@@ -448,6 +452,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // plans name. The plan-owned set is spelled with `$collection` / `plan.name` rather than the axis
     // labels the orphan report uses, because `core/dimension` is a label and `core` is what Figma has.
     const plannedCollections = [
+      // #1909: a collection a Rename wrote under its new name is the plan's too.
+      ...[names.core, names.color, ...exec.float.map((p) => p.name), ...exec.font.map((p) => p.name), ...exec.motion.map((p) => p.name)].filter((n): n is string => n !== null),
       colorFiles.palette.$collection,
       ...colorFiles.color.map((c) => c.$collection),
       ...floatPlan.map((p) => p.name),
@@ -510,6 +516,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
       ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      // #1909: what the person chose for the collisions this apply met, when it met any (copy DRAFT, `choiceNote`).
+      chose ? choiceNote(chose) ?? '' : '',
       // #2888: the search field's own edge, the same way. Before the field style line, which ends the list.
       searchFieldStyleNote(before, input),
       // #2695 (Q16 A): a field style switch reaches the field sets through Update, so Apply says so.
@@ -2469,7 +2477,8 @@ onUiMessage((msg: UiToMain) => {
       if (isHeight(msg.px)) void figma.clientStorage.setAsync(ACTIVITY_HEIGHT_KEY, Math.round(msg.px)).catch(() => {/* best-effort */});
       return;
     case 'apply-theme':
-      void ACTIONS.applyTheme(msg.input, uiSink);
+      // #1909: the panel's Skip or Rename for each collision, when it posts them; none is the refusal as before.
+      void ACTIONS.applyTheme(msg.input, isChoices(msg.collisions) ? msg.collisions : undefined, uiSink);
       return;
     case 'build-components':
       // `msg.def` straight through, `undefined` included — the resolution lives in `buildComponents`

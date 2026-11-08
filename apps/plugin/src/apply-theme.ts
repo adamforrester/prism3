@@ -19,7 +19,8 @@ import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration 
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
-import { guardApply, preflightPlanOf } from './preflight';
+import { guardApply, preflightApply, preflightPlanOf, COLOR_NAMES } from './preflight';
+import { resolveCollisions, type CollisionChoices, type ChoiceTally } from './collision-choice';
 import { preloadFonts } from './preload-fonts';
 import { persistInput, restoreInput } from './persist-figma';
 import { emissionOf, stampEmission } from './theme-emission';
@@ -68,10 +69,21 @@ export type ThemePace = { check: () => void; stage: (stage: ApplyStage, done: nu
  * Returns the plans alongside so the caller's report reads the same objects that were written. `beforeWrite` runs once
  * between the two, which is where the plugin saves its named version.
  */
-export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWrite?: () => Promise<void>, pace?: ThemePace) => {
+export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWrite?: () => Promise<void>, pace?: ThemePace, choices?: CollisionChoices) => {
   pace?.check();
   const plans = themePlans(input);
-  const { textPlan, colorPlan, floatPlan, fontPlan, motionPlan, stylesPlan, gridPlan } = plans;
+  // THE COLLISION CHOICE (#1909, Q112 A): with the person's Skip or Rename for every collision, the plans below are the
+  // ones the choice made, and the pre-flight runs again over them. Without a choice for each, they stay as built, so the
+  // pre-flight refuses exactly as before: refusal is the default. The choice is this apply's alone; nothing keeps it.
+  let exec = { color: plans.colorPlan, float: plans.floatPlan, font: plans.fontPlan, motion: plans.motionPlan, styles: plans.stylesPlan, grid: plans.gridPlan, text: plans.textPlan };
+  let names = COLOR_NAMES;
+  let chose: ChoiceTally | null = null;
+  if (choices && Object.keys(choices).length) {
+    const first = await preflightApply(preflightPlanOf(exec), preflightApiOf(host));
+    const r = resolveCollisions(exec, first, choices);
+    if (r.ok && first.length) { exec = r.plans; names = r.names; chose = r.tally; }
+  }
+  const { text: textPlan, color: colorPlan, float: floatPlan, font: fontPlan, motion: motionPlan, styles: stylesPlan, grid: gridPlan } = exec;
   // FONTS FIRST (#680), before ANY variable write. Writing a `font/family/*` variable makes Figma
   // re-resolve every text style bound to it, and re-resolution throws `unloaded font` — which used to
   // abort the whole apply from inside a writer that touches no text. The face needed is the CROSS
@@ -88,7 +100,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
   // type — write NOTHING and report every conflict. The rename pre-pass is inside the guarded write
   // because it renames collections, so it is a write too. See `preflight.ts`.
   const guarded = await guardApply(
-    preflightPlanOf({ color: colorPlan, float: floatPlan, font: fontPlan, motion: motionPlan, styles: stylesPlan, grid: gridPlan, text: textPlan }),
+    preflightPlanOf(exec, names),
     preflightApiOf(host),
     async () => {
       // THE NAMED VERSION (#2828), after the pre-flight passed and before the first write, so a refused apply saves none.
@@ -115,7 +127,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
       // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
       await pace?.stage('color', 1);
-      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick);
+      const r = await applyWritePlan(colorPlan, host.variables, mig, pace?.tick, names);
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
       await pace?.stage('styles', 2);
@@ -146,5 +158,5 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       return { mig, r, f, s, gs, tv, ts, mv };
     },
   );
-  return { plans, pf, guarded, before };
+  return { plans, pf, guarded, before, chose, exec, names };
 };

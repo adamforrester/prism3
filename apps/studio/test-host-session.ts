@@ -68,7 +68,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 
 const init = initialHostSession();
 ok(same(plain(init), {
-  seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
+  seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, collisions: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, panelsClean: { busy: false, count: null, verdict: null }, addQueue: null,
   handEdits: [], handPass: 'idle', updateCheck: null, updateProgress: null,

@@ -20,7 +20,7 @@
  */
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
-import type { CheckedSetView, HostMessage, SetDueView } from '../write-adapter';
+import type { CheckedSetView, CollisionView, HostMessage, SetDueView } from '../write-adapter';
 import type { Cause, StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/src/messages';
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';
 import type { HostTopic } from './store';
@@ -106,6 +106,10 @@ export interface HostSession {
    *  the file before it. And with no slot of its own there was nowhere for `pending` to live, so a write
    *  over a large file looked like a button that did nothing. Two facts, two slots. */
   readonly applyState: ActionState;
+  /** #1909 (Q112 A): the collisions the panel's last refused apply named, while the person chooses Skip or Rename for
+   *  them; `null` otherwise. Set only by a refusal that carries them (the panel's own), cleared by any other apply
+   *  verdict, by a new apply, and by Cancel. Never stored: the next refusal asks again. */
+  readonly collisions: readonly CollisionView[] | null;
   /** The state of the Build-Button-set write (#483) — same shape, its own slot, for the same reason
    *  `applyState` is not `seedOutcome`: two actions, two buttons, two verdicts. A component build cannot
    *  report into the theme write's pill without claiming something about the variables it never touched,
@@ -267,6 +271,7 @@ export const initialHostSession = (): HostSession => ({
   inputRecovered: false,
   restoreError: null,
   applyState: null,
+  collisions: null,
   componentState: null,
   componentUpdate: null,
   componentLatest: null,
@@ -385,7 +390,7 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'apply-result':
       // A bad result opens its own detail; a clean one closes whatever was open, whose counts would
       // otherwise sit beside a pill that has just been replaced.
-      return { ...s, applyState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'apply' };
+      return { ...s, applyState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'apply', collisions: m.ok ? null : m.collisions };
     case 'component-result': {
       // The progress clears with the verdict, so a next build's first render cannot show this run's fraction.
       // S8.2 (G9): the verdict that answers the panel's own pending build is recorded against the set it posted.
