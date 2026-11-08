@@ -9,6 +9,8 @@ ladder reads the base grid columns that Grid sets, so the control now sits above
   `test:chrome` holds the two lists equal, so the preview has to follow.
 - `test:chrome` and `test:smoke` each keep a literal expected order; both now read Grid first, and the approved hints
   list follows the preview's order.
+- The public guide `theme-a-brand.md` lists the Layout page's sections in the new order, as its other rows do
+  (review finding).
 
 ### Held for the owner
 
