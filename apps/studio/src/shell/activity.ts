@@ -43,7 +43,6 @@
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
 import type { Cause } from '../../../plugin/src/messages';
-import type { Host } from './pages';
 import { armEnter, enterMark, glyph, h, hook, leave, tile } from './dom';
 import { REPORT_COPY } from '../state/report';
 import { runTime } from './run-time';
@@ -95,8 +94,8 @@ export const ROW_TITLE: Readonly<Record<RowKey, string>> = { ...OP_TITLE, update
 // At the wide tier, while the drawer is open, a handle on its top edge drags it taller: from today's open height (the
 // drawer as it draws with no height set) up to just under the preview header. The handle is a window splitter
 // (`role="separator"`): Arrow Up and Arrow Down move it by `HEIGHT_STEP`, Home and End go to the least and the most.
-// The height is kept per person under `prism3:activity-height`: the web keeps it in `localStorage` (`entry.ts`,
-// `persist-local.ts`); the plugin's iframe has no storage, so its UI entry posts each kept height to the main thread,
+// The height is kept per person under `prism3:activity-height`. The drawer is the plugin's alone (#3011, Q121 A), and its
+// iframe has no storage, so its UI entry posts each kept height to the main thread,
 // which keeps it in `figma.clientStorage` and sends it back on `ui-ready`, like the Theme choice
 // (`apps/plugin/src/ui/entry.ts`, `apps/plugin/src/main.ts`). At 380 the drawer stays a sheet and draws no handle (AD2).
 
@@ -107,14 +106,14 @@ export const heightOf = (v: unknown): number | null => (typeof v === 'number' &&
 let keptHeight: number | null = null;
 let keepHeight: ((px: number) => void) | null = null;
 const heightWatchers = new Set<() => void>();
-/** Each host hands over the height it kept, if any, and how to keep the next one: the web before the first render,
- *  the plugin's UI entry right after it (its kept height arrives later, through `restoreActivityHeight`). */
+/** The plugin's UI entry hands over how to keep the next height, right after the first render (its kept height arrives
+ *  later, through `restoreActivityHeight`). */
 export const initActivityHeight = (kept: unknown, keep: (px: number) => void): void => {
   keptHeight = heightOf(kept);
   keepHeight = keep;
   for (const f of heightWatchers) f();
 };
-/** Plugin only: the height the main thread kept, arriving after launch. Anything that is not a height is ignored. */
+/** The height the main thread kept, arriving after launch. Anything that is not a height is ignored. */
 export const restoreActivityHeight = (v: unknown): void => {
   const px = heightOf(v);
   if (px === null || px === keptHeight) return;
@@ -332,7 +331,7 @@ const EMPTY: OpReading = { state: 'idle', ref: null, verdict: null, summary: nul
 
 /** Mount the drawer and its button. `narrow` reads the frame's width tier; `cleanups` takes the
  *  subscriptions and the pending collapse. `now` is the clock the times are read from. */
-export const mountActivity = (opts: { readonly host: Host; readonly lend: ActivityLend; readonly narrow: () => boolean; readonly now?: () => Date;
+export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narrow: () => boolean; readonly now?: () => Date;
   /** An operation the page in view shows itself (S11.2, owner decision P1 variant 1: the Build style guides page and
    *  the style guide): the drawer does not open by itself when it starts or fails. Its row, the bar row and the dot
    *  still record it. */
@@ -387,10 +386,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   // sheet draws it (the stylesheet hides it wider), and there the bar row gives way to it.
   const sheetHead = hook(h('div', 'p3-drawer-head'), 'activity-sheet-head');
   const sheetCounts = h('span', 'p3-drawer-counts');
-  // Shown while nothing has run. The plugin's line is concept v6's; the studio runs no write.
-  const note = hook(h('p', 'p3-note p3-drawer-note', opts.host === 'figma'
-    ? 'Results of Apply, Build and Prune appear here after they run.'
-    : 'Nothing has run in this session.'), 'activity-note');
+  // Shown while nothing has run: concept v6's line. Plugin only: the studio mounts no drawer (#3011, Q121 A).
+  const note = hook(h('p', 'p3-note p3-drawer-note', 'Results of Apply, Build and Prune appear here after they run.'), 'activity-note');
   // The agent link's full status line (#2213, AS1 A): the open drawer's first line, above the runs, while the plugin
   // reports one.
   const linkDetail = hook(h('p', 'p3-note p3-drawer-note p3-drawer-linkline'), 'activity-agent-detail');
@@ -910,9 +907,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     drawer.dataset.open = String(open);
     if (open) { drawer.setAttribute('role', 'region'); drawer.setAttribute('aria-label', 'Activity'); }
     else { drawer.removeAttribute('role'); drawer.removeAttribute('aria-label'); }
-    // Q3113.9 A: the plugin draws the bar row from launch; the studio runs no write, so its drawer stays undrawn. At 380 the
-    // strip waits for the first run, so a short window keeps #2105's room for the levers under an error line (Q3113.15).
-    drawer.dataset.ever = String((opts.host === 'figma' && !narrow()) || recs.size > 0);
+    // Q3113.9 A: the plugin draws the bar row from launch (the studio mounts no drawer, #3011). At 380 the strip waits for
+    // the first run, so a short window keeps #2105's room for the levers under an error line (Q3113.15).
+    drawer.dataset.ever = String(!narrow() || recs.size > 0);
     grip.hidden = !open;
     // #2176: sized once this paint is done, so today's open height is measured with its rows in place.
     queueMicrotask(sizeDrawer);

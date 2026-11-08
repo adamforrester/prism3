@@ -2688,7 +2688,7 @@ for (const brand of BRANDS) {
 console.log(`\nLayout — the moved page, against each brand's emission\n${'='.repeat(78)}`);
 const SG_LAYOUT = '[data-p3="preview-body"] [data-p3="layout-style-guide"]';
 /** The Layout preview's sections, by title, in order, with the marker each module stamps. Literal (S10). */
-const EXPECT_LAYOUT_SECTIONS = ['Breakpoints', 'Grid', 'Containers'];
+const EXPECT_LAYOUT_SECTIONS = ['Grid', 'Breakpoints', 'Containers'];  // #683 (Q111 A): Grid first.
 const EXPECT_LAYOUT_MARKER = { Breakpoints: 'breakpoints', Grid: 'grid', Containers: 'containers' };
 /** The emitted layout tokens of `brand`: `{ bp: px }`, `{ bp: { columns, gutter, margin } }` (px), and the containers. */
 const emittedLayout = async (brand) => {
