@@ -2,7 +2,7 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Update file checklist for #3264). -->
 
-Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1946-2016#34bf74fb -->
+Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:1947-2017#34bf74fb -->
 It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet, or lacks something setup builds: "The pages, the templates and the style-guide cells. The cover too, while Documentation has it on." <!-- src: apps/studio/src/state/update-file.ts:317-318 -->
 
 ## Set up a new file
@@ -12,7 +12,7 @@ It is the first item of the **Update file** checklist, **Set up file**, listed w
 3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:392 -->
 
 Once the file is set up, the checklist lists the setup item again only while the file lacks something setup builds, such as a deleted template. The item then starts unticked and names what is missing. <!-- src: apps/studio/src/shell/update-file.ts:259#ea4392b9 -->
-Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:95-102#4882125b --> If a setup failed, the run stops there, and the Activity drawer offers **Update again**, which opens Update file again. <!-- src: apps/studio/src/shell/activity.ts:242 -->
+Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:95-102#4882125b --> If a setup failed, the run stops there, and the Activity drawer offers **Update again**, which opens Update file again. <!-- src: apps/studio/src/shell/activity.ts:246 -->
 
 ## The pages it creates
 
@@ -44,7 +44,7 @@ On `↳ File Components`, setup builds the components the plugin draws page furn
 | `_Doc-block` | The blocks a usage panel is drawn from. <!-- src: apps/plugin/src/doc-block.ts:42 --> It is assembled from the file's own Badge, Tag, List Item and Divider sets and the theme, so setup builds it only once all four sets and the theme are in the file. Until then the result says what is missing. <!-- src: apps/plugin/src/doc-block.ts:177-180#ef13b52f --> |
 | `_style-guide-swatches`, `_style-guide-text-cells`, `_style-guide-spacing-cells` | The cells [Build style guides](style-guides.md) draws its tables from. <!-- src: apps/plugin/src/style-guide-cells.ts:26-28 --> |
 
-The names start with an underscore because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, setup uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:1969-1998#3fa249a3 -->
+The names start with an underscore because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, setup uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:1970-1999#3fa249a3 -->
 
 ## The result
 
@@ -52,7 +52,7 @@ The Activity drawer reports `✓ file set up` and lists the pages it created, or
 
 | Result | Meaning |
 |---|---|
-| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1999 --> |
-| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:2014 --> |
+| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:2000 --> |
+| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:2015 --> |
 
 While setup runs, a second request for it is refused: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:39-43 -->
