@@ -418,7 +418,7 @@ ok(J(SETS.map((id) => membersOf(id).length)) === J([14, 50, 45]), `premise: the 
 {
   posted.length = 0;
   const sunk: any[] = [];
-  await (main.ACTIONS.applyTheme as (...a: unknown[]) => Promise<void>)(BRAND, { post: (m: unknown) => { sunk.push(m); }, data: () => undefined });
+  await (main.ACTIONS.applyTheme as (...a: unknown[]) => Promise<void>)(BRAND, undefined, { post: (m: unknown) => { sunk.push(m); }, data: () => undefined });
   ok(sunk.some((m) => m?.type === 'apply-result') && !posted.some((m) => m?.type === 'run-progress') && !sunk.some((m) => m?.type === 'run-progress'),
     'apply/agent: an agent\'s Apply Theme posts no reading');
 }

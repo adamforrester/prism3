@@ -18,13 +18,22 @@
  */
 import type { UiToMain, MainToUi, OfType, Cause, StyleGuideOptions, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideCatalogTable, StyleGuideKind } from '../../plugin/src/messages';
 
+/** One collision a refused apply names (#1909): what it is, its name, what differs, and its key. */
+export type CollisionView = { readonly key: string; readonly kind: string; readonly name: string; readonly detail: string };
+/** The person's choice for each collision, by key (#1909, Q112 A). */
+export type CollisionChoices = Readonly<Record<string, 'skip' | 'rename'>>;
+
 /** A host→UI notification after the adapter has validated it at the boundary. Not a wire type: the
  *  wire carries `messages.ts` `MainToUi` (tagged `type`); the adapter checks each field and hands the UI
  *  this `kind`-tagged shape, with defaults filled in (`headline`, `styles`). See `onHostMessage`. */
 export type HostMessage =
   // `lines` (#2177): the summary's items, one per line in the Activity drawer; `null` from a host that sends none, or a
   // malformed list, and the drawer then shows `summary` as its one line.
-  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null }
+  // `collisions` (#1909): a refused apply's collisions, each with the key a Skip or Rename is posted back under; `null`
+  // on a clean apply, on an agent's, from a host that sends none, or on a malformed list.
+  // `chosen` (the review of #3518): with `collisions`, the choices that apply already used, posted back with the new ones;
+  // `null` when it used none, without `collisions`, or malformed.
+  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; collisions: readonly CollisionView[] | null; chosen: CollisionChoices | null }
   // `causes` (#3326): why the run is not clean, as the writer sent it (`Cause`); `null` from a host that sends none, or a
   // malformed list.
   | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null; causes: readonly Cause[] | null }
@@ -146,7 +155,7 @@ export interface HostCommit {
    *  payload is the `BrandInput` — the main thread rebuilds the write plan + runs the executor,
    *  reusing #108 verbatim. Typed loosely (`unknown`) here to avoid a web→engine type import in
    *  the DOM layer; the plugin bridge + main thread carry the real `BrandInput` type. */
-  postTheme(input: unknown): void;
+  postTheme(input: unknown, collisions?: CollisionChoices): void;
   /** Ask the host to materialise one component set onto the canvas (#483; Figma only, no-op on web,
    *  which has no canvas to build onto).
    *
@@ -289,6 +298,26 @@ const verdict = <K extends VerdictKind>(kind: K, m: Untrusted<OfType<MainToUi, V
 const linesOf = (x: unknown): readonly string[] | null =>
   Array.isArray(x) && x.length > 0 && x.every((l) => typeof l === 'string') ? x as string[] : null;
 
+/** A refused apply's `collisions` (#1909): each entry's four fields strings, or none at all. Like `linesOf`, a list with
+ *  one malformed entry is dropped whole: a row without its key could not be answered, and the refusal stands. */
+const collisionsOf = (x: unknown): readonly CollisionView[] | null => {
+  if (!Array.isArray(x) || x.length === 0) return null;
+  const out: CollisionView[] = [];
+  for (const e of x as unknown[]) {
+    const c = (e ?? {}) as Record<string, unknown>;
+    if (typeof c.key !== 'string' || !c.key || typeof c.kind !== 'string' || typeof c.name !== 'string' || typeof c.detail !== 'string') return null;
+    out.push({ key: c.key, kind: c.kind, name: c.name, detail: c.detail });
+  }
+  return out;
+};
+
+/** A refusal's `chosen` (the review of #3518): an object whose every value is `skip` or `rename`, at least one, else none. */
+const chosenOf = (x: unknown): CollisionChoices | null => {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  const e = Object.entries(x as Record<string, unknown>);
+  return e.length > 0 && e.every(([k, v]) => k !== '' && (v === 'skip' || v === 'rename')) ? Object.fromEntries(e) as CollisionChoices : null;
+};
+
 /** A verdict's `causes` (#3326): each a `Cause` whose every field has its type, or none at all. Like `linesOf`, a list
  *  with one malformed entry is dropped whole: a cause drawn without its subject or reasons would mark the wrong thing. An
  *  empty list is kept, since it says the writer found none. */
@@ -409,7 +438,10 @@ const catalogOf = (c: unknown): StyleGuideCatalog | null => {
  *  it is dropped here, as any unknown `type` is. Every entry is a function or `null`, never a call, so the
  *  table has no side effects and the web bundle, which never calls `toHostMessage`, drops it whole. */
 const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
-  'apply-result': (m) => ({ ...verdict('apply-result', m, '✓ applied', '✗ apply failed'), lines: linesOf(m.lines) }),
+  'apply-result': (m) => {
+    const collisions = m.ok ? null : collisionsOf(m.collisions);
+    return { ...verdict('apply-result', m, '✓ applied', '✗ apply failed'), lines: linesOf(m.lines), collisions, chosen: collisions ? chosenOf(m.chosen) : null };
+  },
   // The default says "built" without a count, because an older host that sends no headline sends no
   // counts to put in one either.
   // `completed` (S8.2, C1): required of the host (`messages.ts`), and never inferred from `ok`. Only a literal `true`
@@ -615,9 +647,11 @@ export const toHostMessage = (data: unknown): HostMessage | null => {
  *  main thread via `parent.postMessage` and listens for the main thread's replies. */
 const figmaCommit = (): HostCommit => ({
   isFigma: true,
-  postTheme(input) {
-    // `input` is `unknown` at this seam (see `postTheme`), so it is cast to the wire's `BrandInput` here.
-    post({ type: 'apply-theme', input: input as ApplyTheme['input'] });
+  postTheme(input, collisions) {
+    // `input` is `unknown` at this seam (see `postTheme`), so it is cast to the wire's `BrandInput` here. The choices
+    // (#1909) ride only when there are some, so a plain Apply posts exactly what it did before.
+    const msg: ApplyTheme = collisions && Object.keys(collisions).length ? { type: 'apply-theme', input: input as ApplyTheme['input'], collisions: { ...collisions } } : { type: 'apply-theme', input: input as ApplyTheme['input'] };
+    post(msg);
   },
   postComponents(def, docBlock) {
     // `def` omitted from the message when the caller omitted it, rather than sent as `undefined`: the

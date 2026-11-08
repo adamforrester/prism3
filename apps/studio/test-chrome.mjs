@@ -21240,6 +21240,88 @@ if (runs('3471')) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 3471
+// #1909 (Q112 A): THE COLLISION CHOICE. A refused Apply Theme that names its collisions opens a list of them, each with
+// Skip or Rename, and "Apply to all" in the foot. Refusal is the default (Apply is off until every row has a choice),
+// and nothing is remembered (the next refusal starts with none). The rows and the expected post are literals.
+// MUTATIONS (each after a `wip:` commit): `allChosen` true with a row unchosen → `#1909 … Apply stays off while one row
+// has no choice`; the choices dropped from `postTheme` → `#1909 … Apply posts apply-theme with the three choices`.
+if (runs('1909')) {
+  console.log(`\nApply Theme: the collision choice (#1909, Q112 A)\n${'='.repeat(78)}`);
+  const where = '1909 figma light 1280';
+  const ROWS = [
+    { key: 'collection:color', kind: 'collection', name: 'color', detail: 'already in this file, not created by Prism3' },
+    { key: 'variable:color:pds3/color/background/primary', kind: 'variable', name: 'pds3/color/background/primary', detail: 'is STRING in "color"; Prism3 writes COLOR' },
+    { key: 'effect style:shadow/xs', kind: 'effect style', name: 'shadow/xs', detail: 'already in this file, not created by Prism3' },
+  ];
+  const refusal = { type: 'apply-result', ok: false, headline: '✗ 3 conflicts', summary: 'Nothing was written. 3 conflicts with existing content.', lines: ['Nothing was written.'], collisions: ROWS };
+  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+  let step = 'premise';
+  try {
+    await recordPosts(page);
+    step = 'refusal';
+    await postMsg(page, refusal);
+    await hooks.need(page, '[data-p3="collisions-dialog"]', WAIT);
+    const d0 = await page.evaluate(() => {
+      const dlg = document.querySelector('[data-p3="collisions-dialog"]');
+      return { modal: dlg?.getAttribute('aria-modal'), rows: [...document.querySelectorAll('[data-p3="collisions-row"] .p3-upd-setname')].map((n) => n.textContent),
+        picks: [...document.querySelectorAll('[data-p3="collisions-choice"]')].map((n) => n.value), go: document.querySelector('[data-p3="collisions-go"]')?.disabled,
+        focusIn: !!document.activeElement?.closest('[data-p3="collisions-dialog"]') };
+    });
+    ok(d0.modal === 'true' && d0.focusIn, `#1909 ${where}: the refusal opens a modal list with focus inside it (${JSON.stringify({ modal: d0.modal, focusIn: d0.focusIn })})`);
+    ok(JSON.stringify(d0.rows) === JSON.stringify(['collection color', 'variable pds3/color/background/primary', 'effect style shadow/xs']),
+      `#1909 ${where}: one row per collision, by kind and name (${JSON.stringify(d0.rows)})`);
+    ok(d0.picks.every((v) => v === '') && d0.go === true, `#1909 ${where}: every row starts with no choice and Apply is off (refusal is the default) (${JSON.stringify(d0.picks)}, off ${d0.go})`);
+    step = 'one row';
+    await page.locator('[data-p3="collisions-choice"]').nth(0).selectOption('skip');
+    await page.locator('[data-p3="collisions-choice"]').nth(2).selectOption('rename');
+    const off = await page.evaluate(() => document.querySelector('[data-p3="collisions-go"]')?.disabled);
+    ok(off === true, `#1909 ${where}: Apply stays off while one row has no choice (off ${off})`);
+    step = 'apply to all';
+    await page.locator('[data-p3="collisions-all"]').selectOption('rename');
+    const d1 = await page.evaluate(() => ({ picks: [...document.querySelectorAll('[data-p3="collisions-choice"]')].map((n) => n.value), go: document.querySelector('[data-p3="collisions-go"]')?.disabled }));
+    ok(d1.picks.every((v) => v === 'rename') && d1.go === false, `#1909 ${where}: "Apply to all" sets every row, and Apply turns on (${JSON.stringify(d1.picks)}, off ${d1.go})`);
+    await (SHOTS ? page.screenshot({ path: join(SHOTS, 's1909-plugin-light-1280-collisions.png') }) : null);
+    step = 'apply';
+    await takeWrites(page);
+    await hooks.click(page.locator('[data-p3="collisions-go"]'), WAIT);
+    const w = await takeWrites(page);
+    const want = { 'collection:color': 'rename', 'variable:color:pds3/color/background/primary': 'rename', 'effect style:shadow/xs': 'rename' };
+    ok(w.length === 1 && w[0].type === 'apply-theme' && canon(w[0].collisions) === canon(want) && !!w[0].input,
+      `#1909 ${where}: Apply posts apply-theme with the three choices and the brand (${JSON.stringify(w.map((m) => ({ type: m.type, collisions: m.collisions })))})`);
+    const gone = await page.evaluate(() => !document.querySelector('[data-p3="collisions-dialog"]'));
+    ok(gone, `#1909 ${where}: the list closes on Apply`);
+    step = 'again';
+    await postMsg(page, refusal);
+    await hooks.need(page, '[data-p3="collisions-dialog"]', WAIT);
+    const picks2 = await page.evaluate(() => [...document.querySelectorAll('[data-p3="collisions-choice"]')].map((n) => n.value));
+    ok(picks2.every((v) => v === ''), `#1909 ${where}: the next refusal starts with no choices (nothing is remembered) (${JSON.stringify(picks2)})`);
+    step = 'escape';
+    await page.keyboard.press('Escape');
+    await settle(page);
+    const w2 = await takeWrites(page);
+    const gone2 = await page.evaluate(() => !document.querySelector('[data-p3="collisions-dialog"]'));
+    ok(gone2 && w2.length === 0, `#1909 ${where}: Escape closes the list and posts nothing (${w2.length} posts)`);
+    // The review of #3518 (finding 1): a Rename onto a name someone else holds. The refusal names the new row alone and
+    // carries the Rename already chosen; the panel posts that back with the new row's choice, so the person is not asked
+    // the first list again and the apply can finish. MUTATION: `withEarlier` dropped from the lend's submit (`main.ts`)
+    // → this arm, by name.
+    step = 'renamed name taken';
+    await postMsg(page, { ...refusal, headline: '✗ 1 conflict', collisions: [{ key: 'collection:color (Prism3)', kind: 'collection', name: 'color (Prism3)', detail: 'already in this file, not created by Prism3' }],
+      chosen: { 'collection:color': 'rename' } });
+    await hooks.need(page, '[data-p3="collisions-dialog"]', WAIT);
+    const rows3 = await page.evaluate(() => [...document.querySelectorAll('[data-p3="collisions-row"] .p3-upd-setname')].map((n) => n.textContent));
+    await page.locator('[data-p3="collisions-choice"]').nth(0).selectOption('skip');
+    await takeWrites(page);
+    await hooks.click(page.locator('[data-p3="collisions-go"]'), WAIT);
+    const w3 = await takeWrites(page);
+    const want3 = { 'collection:color': 'rename', 'collection:color (Prism3)': 'skip' };
+    ok(JSON.stringify(rows3) === JSON.stringify(['collection color (Prism3)']) && w3.length === 1 && w3[0].type === 'apply-theme' && canon(w3[0].collisions) === canon(want3),
+      `#1909 ${where}: a renamed name already taken asks for that row alone, and Apply posts it with the Rename already chosen (rows ${JSON.stringify(rows3)}, posted ${JSON.stringify(w3.map((m) => m.collisions))})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 1909
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

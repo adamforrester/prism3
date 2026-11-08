@@ -139,7 +139,9 @@ const LITERAL_SITES: { file: string; label: string }[] = [
   { file: 'apps/plugin/src/write-figma.ts', label: 'the plugin executor' },
   { file: 'packages/engine/materialise-to-figma.ts', label: 'the paste-path generator' },
 ];
-const LITERAL_RE = /(?:upsertCollection\(\s*vars\s*,\s*|findCol\()'([^']+)'/g;
+// The third shape (#1909): the color executor takes its two collection names as an argument (`names`, so a collision
+// choice can rename or skip one), and the literal it writes by default is spelled in that argument's default object.
+const LITERAL_RE = /(?:upsertCollection\(\s*vars\s*,\s*|findCol\(|=\s*\{\s*core:\s*CORE_COLLECTION\s*,\s*color:\s*)'([^']+)'/g;
 
 type Split = { variables: Set<string>; styles: Set<string> };
 

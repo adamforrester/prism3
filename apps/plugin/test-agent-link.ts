@@ -269,8 +269,9 @@ type Case = { cmd: string; args: Record<string, unknown>; ui: Record<string, unk
 /** The panel's post less the drawer's `lines` (#2177): what the agent link has always been sent. */
 const withoutLines = (m: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
   if (!m) return m;
-  // #3326: `causes` is the drawer's too, dropped with `lines` (`forAgent`).
-  const { lines: _drawer, causes: _marks, ...rest } = m;
+  // #3326: `causes` is the drawer's too, dropped with `lines` (`forAgent`). #1909: so is a refusal's `collisions`, the
+  // panel's Skip or Rename list.
+  const { lines: _drawer, causes: _marks, collisions: _panel, ...rest } = m;
   return rest;
 };
 /** Each verdict kind's keys as the agent link read them before #2177, in order: typed here, never read from the code. */
@@ -823,7 +824,7 @@ section('busy/sink, busy/titles — a refusal reaching the agent\'s sink fails t
   const noop = async () => undefined;
   const d = createDispatcher({
     actions: {
-      applyTheme: async (_input: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
+      applyTheme: async (_input: unknown, _choices: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
       buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop, updateComponents: noop, captureBaseline: noop, adoptMembers: noop, drawSpecs: noop, panelsClean: noop,
     } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
     status: async () => ({}),
