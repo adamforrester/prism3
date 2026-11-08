@@ -135,6 +135,8 @@ const GLYPHS = {
   page: 'file-text',
   send: 'upload',
   link: 'link',
+  // #3524 (DRAFT, the owner's call): the web rail's Report a problem, beside Help.
+  report: 'message-report',
 } as const satisfies Record<string, TablerIcon>;
 export type Glyph = keyof typeof GLYPHS;
 

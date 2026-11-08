@@ -59,6 +59,7 @@ import { mountRail } from './rail';
 import { mountDocumentation, type DocumentationLend } from './documentation';
 import { mountUpdateFile, type UpdateFileLend } from './update-file';
 import { mountReport, type ReportLend } from './report';
+import { REPORT_COPY } from '../state/report';
 import { mountCollisions, type CollisionsLend } from './collisions';
 import { mountStatusStrip, type StatusLend } from './status-strip';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
@@ -443,6 +444,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   // Since #2909 no page shows a style guide's run (Documentation holds settings only), so the drawer is never quiet.
   // #2069: Report a problem opens from the drawer's foot, in its own layer over everything.
   // #3011 (Q121 A): plugin only. The studio runs no write and has no door to the drawer since Q2909.9 A, so it mounts none.
+  // #3524: the web opens Report a problem from its rail instead (below, beside Help).
   const report = opts.report ? mountReport(opts.report, cleanups) : null;
   const activity = opts.activity ? mountActivity({ lend: report ? { ...opts.activity, report: (from) => report.open(from) } : opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: () => false,
     // #2176: the open drawer grows up to just under the preview header (or Inspect's, in its place; or, on a page of
@@ -493,9 +495,22 @@ export const mountFrame = (app: HTMLElement, opts: {
   help.btn.setAttribute('aria-label', 'Help');
   if (opts.openDocs) help.btn.onclick = () => opts.openDocs!();
   help.btn.classList.add('p3-rail-tile');
+  // #3524 (Q151 A follow-up): on the web, which draws no Activity drawer (#3011), Report a problem sits beside Help at the
+  // rail's foot and opens the same dialog. Icon alone, like Help (#3083); its name and tooltip are the dialog's own
+  // words. The plugin keeps it at the drawer's foot. DRAFT placement: the owner's call.
+  let reportTile: HTMLButtonElement | null = null;
+  if (report && !activity) {
+    const rep = tile('report-open', null);
+    rep.mark.append(glyph('report'));
+    rep.tip.textContent = REPORT_COPY.open;
+    rep.btn.setAttribute('aria-label', REPORT_COPY.open);
+    rep.btn.onclick = () => report.open(rep.btn);
+    rep.btn.classList.add('p3-rail-tile');
+    reportTile = rep.btn;
+  }
   theme.querySelector('.p3-tile')?.classList.add('p3-rail-tile');
   // Q2909.9 A: the web's rail holds Theme, Components and Export, and no Minimize.
-  const rail = mountRail({ logo: opts.logo(), areas: railAreas(host), go: goArea, foot: [minimize, help.btn, theme].filter((n): n is HTMLElement => !!n) });
+  const rail = mountRail({ logo: opts.logo(), areas: railAreas(host), go: goArea, foot: [minimize, help.btn, reportTile, theme].filter((n): n is HTMLElement => !!n) });
   root.prepend(rail.node);
   root.dataset.shell = 'rail';
   previewHead.insertBefore(verdict, previewHead.children[1] ?? null);
