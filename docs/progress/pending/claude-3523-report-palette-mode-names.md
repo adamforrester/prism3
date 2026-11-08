@@ -12,8 +12,14 @@ names are brand input under Q116 A, so they are replaced with `[brand]` too.
   `{ whole: name }`, and `scrub` matches them only as a whole segment (the same `SEGMENT` bound as a short root), at
   any length. `tidewaters` and `overnight-watchers` stay whole. The `id`, `name` and `root` keep their rules: a
   substring match from 3 characters, a segment match under that.
-- `test-report.ts` adds the reviewer's two fixtures as arms. Each mutation fails its arm by name: palette names
-  dropped, mode names dropped, and either matched by substring.
+- **The segment bound includes prose punctuation** (#3525 review, finding 1). `SEGMENT` was built for token paths
+  (`/` `.` `-` a space, a quote), so a name next to `,` `:` `;` or a bracket leaked: the plugin writes mode lists as
+  `per mode (light, dark, night-watch)` and `→ light, night-watch;`. It now also counts `,` `:` `;` `!` `?`, round,
+  square and curly brackets, a backtick and curly quotes. A letter or digit never bounds, so `tidewaters` still
+  stays whole. This widens the short-root rule too (`hf, …` and `hf: …` were the same leak before this PR).
+- `test-report.ts` adds the reviewer's two fixtures as arms, and the review's punctuation fixtures as `#3525 R1` arms. Each mutation fails its arm by name: palette names
+  dropped, mode names dropped, either matched by substring, `SEGMENT` narrowed back to the path characters, and
+  `SEGMENT` widened to any non-space character.
 
 ### Traps for whoever re-verifies
 

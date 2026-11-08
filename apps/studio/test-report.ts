@@ -24,6 +24,10 @@
  * finding 4: `brandColors[].name` left out of `brandWords` → `#3523 Q147 opt-in: off, a palette name is replaced`;
  * `customModes[].name` left out → `#3523 Q147 opt-in: off, a custom mode name is replaced`; either matched by substring
  * instead of as a whole segment → `#3523 Q147 a palette or mode name inside an ordinary word is left`.
+ *
+ * #3525 review finding 1 (a name next to `,` `:` `;` `(` `)` leaked): `SEGMENT` narrowed back to `/.\\- "'` → each
+ * `#3525 R1 … bounded by punctuation is replaced (…)` arm; `SEGMENT` widened to any non-space character → `#3525 R1 an
+ * ordinary word holding a name stays whole next to punctuation`.
  */
 import { brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 
@@ -106,6 +110,31 @@ ok(namedOff.includes('- Apply Theme: ✓ applied, mode [brand]') && !namedOff.in
 ok(namedOff.includes('tidewaters and overnight-watchers stay'), '#3523 Q147 a palette or mode name inside an ordinary word is left: only a whole segment is replaced');
 const namedOn = buildReport({ ...BASE, brand: NAMED, includeBrand: true, activity: [{ title: 'Apply Theme', verdict: '✓ applied, mode night-watch', lines: ['wrote hf/core/palette/tidewater/500'], agent: false }] });
 ok(namedOn.includes('wrote hf/core/palette/tidewater/500') && namedOn.includes('mode night-watch'), '#3523 Q147 opt-in: on, palette and mode names are left in');
+
+// ── #3525 review finding 1: a name next to prose punctuation is still a whole segment ──
+// Each fixture is the reviewer's, or a plugin line shape it cited (`style-guide.ts` `per mode (…)`, `prune-figma.ts` `→ …;`).
+const PUNCT = brandWords(NAMED);
+const punct: readonly [string, string][] = [
+  ['mode night-watch, then light', 'mode [brand], then light'],
+  ['modes: night-watch; dark', 'modes: [brand]; dark'],
+  ['(tidewater) ramp', '([brand]) ramp'],
+  ['tidewater: 12 steps', '[brand]: 12 steps'],
+  ['tidewater,sea', '[brand],sea'],
+  ['per mode (light, dark, night-watch)', 'per mode (light, dark, [brand])'],
+  ['→ light, night-watch;', '→ light, [brand];'],
+  ['[tidewater] and night-watch! or tidewater?', '[[brand]] and [brand]! or [brand]?'],
+  ['palette tidewater.500', 'palette [brand].500'],
+];
+for (const [inp, want] of punct) {
+  const got = scrub(inp, PUNCT);
+  ok(got === want, `#3525 R1 a palette or mode name bounded by punctuation is replaced (${inp} → ${got})`);
+}
+ok(scrub('overnight-watch, tidewaters: overnight-watchers;', PUNCT) === 'overnight-watch, tidewaters: overnight-watchers;',
+  '#3525 R1 an ordinary word holding a name stays whole next to punctuation: a letter is never a boundary');
+const ROOT = brandWords(SHORT);
+ok(scrub('hf, then hf: and (hf)', ROOT) === '[brand], then [brand]: and ([brand])',
+  '#3525 R1 a short root bounded by punctuation is replaced (hf, / hf: / (hf))');
+ok(scrub('shelf, half: hfx;', ROOT) === 'shelf, half: hfx;', '#3525 R1 a short root inside an ordinary word stays whole next to punctuation');
 
 // ── the link ──
 const url = issueUrl(off);

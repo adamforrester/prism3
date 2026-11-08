@@ -64,8 +64,10 @@ export const brandWords = (brand: Readonly<Record<string, unknown>> | null): Bra
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** What bounds a short brand word as a whole segment: the start or end, `/`, `.`, `-`, a space or a quote. */
-const SEGMENT = `/.\\- "'`;
+/** What bounds a brand word as a whole segment: the start or end, `/`, `.`, `-`, a space, a quote, or the punctuation
+ *  prose puts next to a name — `,` `:` `;` `!` `?` and brackets (#3525 review: `(light, dark, night-watch)`, `→ light,
+ *  night-watch;`). A letter or digit never does, so an ordinary word that holds the name stays whole (`tidewaters`). */
+const SEGMENT = `/.\\- "'\`“”‘’,:;!?()\\[\\]{}`;
 
 /** Take out of one line what could carry a file name or a key. `words`: the brand's words to take out too. */
 export const scrub = (text: string, words: readonly BrandWord[] = []): string => {
