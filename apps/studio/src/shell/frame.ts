@@ -149,7 +149,8 @@ export type Frame = {
   /** The shell's own bar nodes, which the bar places (S1.3, S1.4): the verdict (Contrast), the Activity button and the
    *  Figma menu (plugin only). Kept on the frame beside `barMain`, as main has them. */
   readonly verdict: HTMLElement;
-  readonly activity: HTMLElement;
+  /** Plugin only (#3011): the studio mounts no Activity drawer. */
+  readonly activity: HTMLElement | null;
   /** Slot: the notices row, under the top bar: the error strip (`notices.ts`). */
   readonly notices: HTMLElement;
   /** The Agent tile's stable, empty slot (IA-3, plugin only), placed by the bar between Theme and Activity (T7). The
@@ -201,8 +202,9 @@ const select = (tabs: readonly HTMLElement[], on: HTMLElement | null): void => {
 export const mountFrame = (app: HTMLElement, opts: {
   readonly host: Host;
   readonly inspect: InspectLegacy;
-  /** The host session's writes, as the Activity drawer reads them, and how it answers a request to show one (S1.4, S11). */
-  readonly activity: ActivityLend;
+  /** The host session's writes, as the Activity drawer reads them, and how it answers a request to show one (S1.4, S11),
+   *  or null where there is no Figma file: the studio runs no write, so it mounts no drawer (#3011, Q121 A). */
+  readonly activity: ActivityLend | null;
   /** #2909 IA v2 phase 1: Update file's reads and writes, or null where there is no Figma file (the studio). */
   readonly updateFile: UpdateFileLend | null;
   /** #1909: the collision choice a refused Apply Theme opens, or null where there is no Figma file. */
@@ -436,18 +438,19 @@ export const mountFrame = (app: HTMLElement, opts: {
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
   // S11.2 (P1, variant 1): while the Build style guides page shows its run, the drawer does not open by itself for it.
   // Since #2909 no page shows a style guide's run (Documentation holds settings only), so the drawer is never quiet.
-  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: () => false,
+  // #3011 (Q121 A): plugin only. The studio runs no write and has no door to the drawer since Q2909.9 A, so it mounts none.
+  const activity = opts.activity ? mountActivity({ lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: () => false,
     // #2176: the open drawer grows up to just under the preview header (or Inspect's, in its place; or, on a page of
     // the shell's own, the head). A region not drawn measures 0, so the lowest bottom is the one shown.
-    room: { frame: root, ceiling: () => Math.max(...[head, previewHead, inspectHead].map((n) => n.getBoundingClientRect().bottom)) } }, cleanups);
+    room: { frame: root, ceiling: () => Math.max(...[head, previewHead, inspectHead].map((n) => n.getBoundingClientRect().bottom)) } }, cleanups) : null;
   // Q731 (the owner, 2026-10-26): the Agent tile's slot sits on the plugin's top bar, where Minimize was; Minimize's is at
   // the rail's foot, where Agent was.
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 
   // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
-  bar.append(activity.live);
+  if (activity) bar.append(activity.live);
   // #3170 part 2: the status strip, at the panel's foot: first in the drawer, above its bar row (plugin only).
-  if (opts.status) activity.drawer.prepend(mountStatusStrip(opts.status, cleanups));
+  if (opts.status && activity) activity.drawer.prepend(mountStatusStrip(opts.status, cleanups));
   // The Build style guides page (S11.2): a full-width page of the shell's own, shown in the `page` layout.
   const menuPage = hook(h('main', 'p3-sgpage'), 'menu-page');
   menuPage.id = 'p3-menu-page';
@@ -458,7 +461,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   let homeView: HomeView | null = null;
   // S12: the window layer, last, so a window is drawn over the drawer too.
   const layer = hook(h('div', 'p3-layer'), 'layer');
-  root.append(head, panes, menuPage, home.node, inspect, activity.drawer, layer);
+  root.append(head, panes, menuPage, home.node, inspect, ...(activity ? [activity.drawer] : []), layer);
   app.append(root);
 
   // The verdict, in the Theme area's preview header (round 4: Contrast moved off the global bar into Theme). Then the
@@ -901,7 +904,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   return {
     head, bar: barSlot, barMain, notices, verdict, syncSticky, layer,
-    activity: activity.button, agent, setHome,
+    activity: activity?.button ?? null, agent, setHome,
   };
 };
 

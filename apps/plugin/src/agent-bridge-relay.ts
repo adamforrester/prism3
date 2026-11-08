@@ -1,7 +1,7 @@
 /**
  * THE AGENT LINK'S TRANSPORT B, PLUGIN SIDE — the relay between the local desktop bridge's WebSocket and the
- * main thread's dispatcher. Runs in the UI IFRAME: the main thread has no network (docs/18 §1), so the
- * iframe holds the socket and forwards envelopes both ways; the main thread runs every command through the
+ * main thread's dispatcher. Runs in the UI IFRAME: the main thread has no WebSocket (only Figma's `fetch`, docs/18 §1),
+ * so the iframe holds the socket and forwards envelopes both ways; the main thread runs every command through the
  * same `dispatch` the mailbox uses (`agent-dispatch.ts`), so the protocol and the handlers are shared.
  *
  *   bridge ──{command}──▶ relay ──agent-command──▶ main (dispatch) ──agent-result──▶ relay ──{result}──▶ bridge

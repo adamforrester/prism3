@@ -26,8 +26,8 @@
  * cannot be answered by id is an entry with no usable id, and the mailbox reports those on its link record
  * (`inboxError`) instead.
  *
- * NO EVAL. A command is data mapped to a handler by name (`agent-dispatch.ts`); nothing in an envelope is
- * ever executed.
+ * NO EVAL IN THE RELEASE BUILD. A command is data mapped to a handler by name (`agent-dispatch.ts`). A dev build adds
+ * `run-code` (#2544), which runs its `code` in the main thread; `lint-release-bundle.ts` keeps it out of `release/`.
  */
 import type { RunCodeArgs } from './dev-commands';
 import type { BrandInput } from '@prism3/engine/theme';

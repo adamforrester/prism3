@@ -1128,9 +1128,10 @@ const mountView = (view: RootView): void => {
       frame = mountFrame(app, {
         host: commit.isFigma ? 'figma' : 'web',
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
-        activity: { read: activityReading, closeDetail: closeOpenDetail, again: commit.isFigma ? activityAgain : undefined,
+        // #3011 (Q121 A): the drawer is the plugin's alone; the studio runs no write, so it lends none.
+        activity: commit.isFigma ? { read: activityReading, closeDetail: closeOpenDetail, again: activityAgain,
           // #3326: a cause names its set by def id; the drawer shows the set's name.
-          nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id },
+          nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id } : null,
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
         collisions: commit.isFigma ? collisionsLend : null,
