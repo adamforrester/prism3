@@ -31,7 +31,9 @@ export type HostMessage =
   // malformed list, and the drawer then shows `summary` as its one line.
   // `collisions` (#1909): a refused apply's collisions, each with the key a Skip or Rename is posted back under; `null`
   // on a clean apply, on an agent's, from a host that sends none, or on a malformed list.
-  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; collisions: readonly CollisionView[] | null }
+  // `chosen` (the review of #3518): with `collisions`, the choices that apply already used, posted back with the new ones;
+  // `null` when it used none, without `collisions`, or malformed.
+  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; collisions: readonly CollisionView[] | null; chosen: CollisionChoices | null }
   // `causes` (#3326): why the run is not clean, as the writer sent it (`Cause`); `null` from a host that sends none, or a
   // malformed list.
   | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null; causes: readonly Cause[] | null }
@@ -306,6 +308,13 @@ const collisionsOf = (x: unknown): readonly CollisionView[] | null => {
   return out;
 };
 
+/** A refusal's `chosen` (the review of #3518): an object whose every value is `skip` or `rename`, at least one, else none. */
+const chosenOf = (x: unknown): CollisionChoices | null => {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  const e = Object.entries(x as Record<string, unknown>);
+  return e.length > 0 && e.every(([k, v]) => k !== '' && (v === 'skip' || v === 'rename')) ? Object.fromEntries(e) as CollisionChoices : null;
+};
+
 /** A verdict's `causes` (#3326): each a `Cause` whose every field has its type, or none at all. Like `linesOf`, a list
  *  with one malformed entry is dropped whole: a cause drawn without its subject or reasons would mark the wrong thing. An
  *  empty list is kept, since it says the writer found none. */
@@ -426,7 +435,10 @@ const catalogOf = (c: unknown): StyleGuideCatalog | null => {
  *  it is dropped here, as any unknown `type` is. Every entry is a function or `null`, never a call, so the
  *  table has no side effects and the web bundle, which never calls `toHostMessage`, drops it whole. */
 const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
-  'apply-result': (m) => ({ ...verdict('apply-result', m, '✓ applied', '✗ apply failed'), lines: linesOf(m.lines), collisions: m.ok ? null : collisionsOf(m.collisions) }),
+  'apply-result': (m) => {
+    const collisions = m.ok ? null : collisionsOf(m.collisions);
+    return { ...verdict('apply-result', m, '✓ applied', '✗ apply failed'), lines: linesOf(m.lines), collisions, chosen: collisions ? chosenOf(m.chosen) : null };
+  },
   // The default says "built" without a count, because an older host that sends no headline sends no
   // counts to put in one either.
   // `completed` (S8.2, C1): required of the host (`messages.ts`), and never inferred from `ok`. Only a literal `true`

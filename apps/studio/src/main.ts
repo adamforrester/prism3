@@ -36,6 +36,7 @@ import type { StyleGuidesLend } from './shell/style-guides';
 import { kindOf, type ActivityLend, type ActivityReading, type OpReading, type UpdateReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
 import type { CollisionsLend } from './shell/collisions';
+import { withEarlier } from './state/collisions';
 import type { StatusLend } from './shell/status-strip';
 import { agentHeard, heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
@@ -1823,7 +1824,7 @@ const RESTORE_OFF_HINT = "Off until a brand loads. This file's saved brand didn'
  *  the state. */
 const runApply = (): void => {
   if (applyBusy()) return;
-  setHost({ applyState: 'pending', openDetail: null, collisions: null }); hostChanged(); commit.postTheme(lastGoodInput);
+  setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput);
 };
 /** #1909 (Q112 A): the collision choice. Apply runs Apply Theme again with a choice for every collision the refusal
  *  named; Cancel closes the list and the refusal stands. Nothing is kept: the choices ride this one post. */
@@ -1831,9 +1832,11 @@ const collisionsLend: CollisionsLend = {
   read: () => host.collisions,
   submit: (choices) => {
     if (applyBusy()) return;
-    setHost({ applyState: 'pending', openDetail: null, collisions: null }); hostChanged(); commit.postTheme(lastGoodInput, choices);
+    // The review of #3518: with the choices this attempt already used, so a renamed name someone else holds asks only once.
+    const all = withEarlier(host.collisionsChosen, choices);
+    setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput, all);
   },
-  cancel: () => { setHost({ collisions: null }); hostChanged(); },
+  cancel: () => { setHost({ collisions: null, collisionsChosen: null }); hostChanged(); },
 };
 /** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
 const runPrune = (): void => {

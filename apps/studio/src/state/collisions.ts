@@ -35,6 +35,10 @@ export const sharedPick = (rows: readonly CollisionView[], picks: Picks): Collis
 export const choicesToPost = (rows: readonly CollisionView[], picks: Picks): CollisionChoices | null =>
   allChosen(rows, picks) ? Object.fromEntries(rows.map((r) => [r.key, picks[r.key]])) : null;
 
+/** What the panel posts (the review of #3518): the choices the refusal says that apply already used, then this list's.
+ *  So a Rename onto a name someone else holds asks only for the new name, and the apply can finish. */
+export const withEarlier = (earlier: CollisionChoices | null, choices: CollisionChoices): CollisionChoices => ({ ...(earlier ?? {}), ...choices });
+
 /** DRAFT copy (#1909), the owner's call, listed in the PR body. */
 export const COLLISION_COPY = {
   title: 'Already in this file',

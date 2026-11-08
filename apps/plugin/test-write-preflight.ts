@@ -478,7 +478,7 @@ const KEYS = ['collection:color', `variable:color:${VAR}`, 'effect style:shadow/
 const choose = (c: 'skip' | 'rename'): CollisionChoices => Object.fromEntries(KEYS.map((k) => [k, c]));
 const applyWith = async (f: FileShim, choices: CollisionChoices) => {
   try { return await runApplyTheme(PRISM3, f as any, undefined, undefined, choices); }
-  catch (e) { return { guarded: { ok: false as const, conflicts: [], threw: (e as Error).message }, chose: null } as any; }
+  catch (e) { return { guarded: { ok: false as const, conflicts: [], threw: (e as Error).message }, chose: null, applied: {} } as any; }
 };
 const foreignSnap = (x: ReturnType<typeof foreignFile>): string => JSON.stringify({
   col: { name: x.col.name, modes: x.col.modes, data: [...x.col.data] },
@@ -548,6 +548,39 @@ const foreignSnap = (x: ReturnType<typeof foreignFile>): string => JSON.stringif
   const { guarded: g } = await applyWith(x.f, choose('rename'));
   ok(!g.ok && snapshot(x.f) === before && x.f.writes.length === 0 && g.conflicts.some((c: any) => c.name === 'shadow/xs (Prism3)'),
     `Q112 rename collides: refused, nothing written, \`shadow/xs (Prism3)\` named (${g.ok ? 'applied' : g.conflicts.map((c: any) => c.name).join(' | ')})`);
+}
+
+// ── THE RENAMED NAME IS TAKEN: the person answers it once and the apply finishes (the review of #3518, finding 1) ──
+// A file holding hand-made `color` and `color (Prism3)`. Rename `color` → refused, naming `color (Prism3)` alone, and the
+// refusal carries the Rename already chosen (`applied`). Posting that back with a choice for the new row applies; before
+// the fix the first list came back unchosen and the two lists alternated for ever. Literals throughout.
+for (const second of ['skip', 'rename'] as const) {
+  const tag = `Q112 rename taken, then ${second}`;
+  const f = new FileShim();
+  const a = f.addCollection('color');
+  const b = f.addCollection('color (Prism3)');
+  f.writes = [];
+  const before = snapshot(f);
+  const r1 = await applyWith(f, { 'collection:color': 'rename' });
+  const keys1 = r1.guarded.ok ? [] : r1.guarded.conflicts.map(conflictKey);
+  ok(!r1.guarded.ok && JSON.stringify(keys1) === '["collection:color (Prism3)"]' && snapshot(f) === before && f.writes.length === 0,
+    `${tag}: the first answer is refused, naming \`color (Prism3)\` alone, nothing written (${keys1.join(' | ')})`);
+  ok(JSON.stringify(r1.applied) === '{"collection:color":"rename"}',
+    `${tag}: the refusal carries the Rename already chosen (${JSON.stringify(r1.applied)})`);
+  const r2 = await applyWith(f, { ...r1.applied, 'collection:color (Prism3)': second });
+  ok(r2.guarded.ok, `${tag}: posted back with a choice for the new row, the apply finishes${r2.guarded.ok ? '' : ` — ${'threw' in r2.guarded ? `threw: ${r2.guarded.threw}` : r2.guarded.conflicts.map(conflictKey).join(' | ')}`}`);
+  ok(f.collections.filter((c) => c.name === 'color').length === 1 && f.collections.filter((c) => c.name === 'color (Prism3)').length === 1
+    && !a.data.get('prism3/modes:owned') && !b.data.get('prism3/modes:owned'),
+    `${tag}: both hand-made collections are left as they were, one of each name`);
+  const third = f.collections.find((c) => c.name === 'color (Prism3) (Prism3)');
+  if (second === 'skip') {
+    ok(!third && !f.vars.some((v) => v.name.startsWith('pds3/color/')), `${tag}: Prism3's color collection is not written anywhere`);
+    ok(!!r2.chose && choiceNote(r2.chose) === '2 collisions: 1 skipped, 1 renamed', `${tag}: the result line counts both answers ("${r2.chose ? choiceNote(r2.chose) : ''}")`);
+  } else {
+    ok(!!third && f.vars.some((v) => v.name === VAR && v.variableCollectionId === third.id),
+      `${tag}: Prism3's color is written as \`color (Prism3) (Prism3)\`, holding \`${VAR}\``);
+    ok(!!r2.chose && choiceNote(r2.chose) === '2 collisions: 2 renamed', `${tag}: the result line counts both answers ("${r2.chose ? choiceNote(r2.chose) : ''}")`);
+  }
 }
 
 // ── A VARIABLE IN PRISM3'S OWN COLLECTION: references follow a Rename and let go of a Skip ──

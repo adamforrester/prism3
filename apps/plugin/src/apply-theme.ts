@@ -20,7 +20,11 @@ import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { guardApply, preflightApply, preflightPlanOf, COLOR_NAMES } from './preflight';
-import { resolveCollisions, type CollisionChoices, type ChoiceTally } from './collision-choice';
+import { conflictKey, resolveCollisions, type CollisionChoices, type ChoiceTally } from './collision-choice';
+
+/** How many times one apply resolves the person's choices before the guarded pre-flight decides (#1909). Each pass needs
+ *  a choice for a collision the last pass made, which only a renamed name already taken does; this bounds it. */
+const RESOLVE_PASSES = 8;
 import { preloadFonts } from './preload-fonts';
 import { persistInput, restoreInput } from './persist-figma';
 import { emissionOf, stampEmission } from './theme-emission';
@@ -75,13 +79,24 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
   // THE COLLISION CHOICE (#1909, Q112 A): with the person's Skip or Rename for every collision, the plans below are the
   // ones the choice made, and the pre-flight runs again over them. Without a choice for each, they stay as built, so the
   // pre-flight refuses exactly as before: refusal is the default. The choice is this apply's alone; nothing keeps it.
+  // A choice that makes a new collision (a renamed name someone else holds) is resolved again when the choices answer it
+  // too, up to `RESOLVE_PASSES`; when they do not, the guarded pre-flight below refuses, naming it, and `applied` (the
+  // choices already used) rides the refusal so the panel posts them back beside the new one (the review of #3518).
   let exec = { color: plans.colorPlan, float: plans.floatPlan, font: plans.fontPlan, motion: plans.motionPlan, styles: plans.stylesPlan, grid: plans.gridPlan, text: plans.textPlan };
   let names = COLOR_NAMES;
-  let chose: ChoiceTally | null = null;
+  let chose = null as ChoiceTally | null;
+  const applied: Record<string, 'skip' | 'rename'> = {};
   if (choices && Object.keys(choices).length) {
-    const first = await preflightApply(preflightPlanOf(exec), preflightApiOf(host));
-    const r = resolveCollisions(exec, first, choices);
-    if (r.ok && first.length) { exec = r.plans; names = r.names; chose = r.tally; }
+    for (let pass = 0; pass < RESOLVE_PASSES; pass++) {
+      const found = await preflightApply(preflightPlanOf(exec, names), preflightApiOf(host));
+      if (!found.length) break;
+      const r = resolveCollisions(exec, found, choices, names);
+      if (!r.ok) break;
+      exec = r.plans; names = r.names;
+      const was: ChoiceTally = chose ?? { skipped: 0, renamed: 0 };
+      chose = { skipped: was.skipped + r.tally.skipped, renamed: was.renamed + r.tally.renamed };
+      for (const c of found) applied[conflictKey(c)] = choices[conflictKey(c)];
+    }
   }
   const { text: textPlan, color: colorPlan, float: floatPlan, font: fontPlan, motion: motionPlan, styles: stylesPlan, grid: gridPlan } = exec;
   // FONTS FIRST (#680), before ANY variable write. Writing a `font/family/*` variable makes Figma
@@ -158,5 +173,5 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       return { mig, r, f, s, gs, tv, ts, mv };
     },
   );
-  return { plans, pf, guarded, before, chose, exec, names };
+  return { plans, pf, guarded, before, chose, exec, names, applied };
 };

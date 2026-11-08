@@ -371,7 +371,11 @@ export type MainToUi =
     lines: string[];
     /** #1909: a refused apply's collisions, one per conflict, so the panel can ask Skip or Rename for each. The panel's
      *  refusal only; absent on a clean apply and on an agent's result. `key` is what a choice is posted back under. */
-    collisions?: { key: string; kind: string; name: string; detail: string }[] }
+    collisions?: { key: string; kind: string; name: string; detail: string }[];
+    /** #1909, the review of #3518: with `collisions`, the choices this apply already used, when a choice (a Rename onto a
+     *  name someone else holds) made the collisions listed. The panel posts them back with the new choices, so it never
+     *  asks the earlier list again. Absent when the apply used none. */
+    chosen?: Record<string, 'skip' | 'rename'> }
   /** Result of a `build-components` write (#483) — the same `{ok, headline, summary}` shape as
    *  `apply-result`, and a DISTINCT variant for the same reason `seed-info` is: one kind per fact.
    *

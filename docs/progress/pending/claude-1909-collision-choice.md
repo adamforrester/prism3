@@ -10,7 +10,10 @@ refusal stays the default and nothing is remembered in v1. This builds it.
   collection for a variable, name). `apply-theme` takes an optional `collisions` map back. `runApplyTheme` runs the
   pre-flight, applies the choices to the seven plans (`resolveCollisions`, `collision-choice.ts`, pure), then runs the
   pre-flight **again over the resolved plans** before any write. A collision with no choice leaves the plans as built,
-  so the refusal is exactly #1906's. A renamed name someone else already holds is refused there, before any write.
+  so the refusal is exactly #1906's. A renamed name someone else already holds is a collision there, before any write.
+  With a choice for it too, the plans are resolved again (at most eight passes); without one, the refusal names it and
+  carries `chosen`, the choices already used, which the panel posts back with the new row's (`withEarlier`). Before the
+  review of #3518 caught it, the first list came back unchosen and the two lists alternated for ever.
 - **Skip** drops the item, and every reference to a skipped variable lets go (alias targets, the wash's opacity,
   `aliasByMode`, gradient stops, the glass blur radius, a text style's three bound fields), so nothing binds to the
   foreign variable. A skipped `core` or `color` collection is `null` in the color executor's new `names` argument, so it
@@ -32,3 +35,6 @@ refusal stays the default and nothing is remembered in v1. This builds it.
   30,000 still cuts the float aliases into six scripts. The public guides now say what the choice does.
 - **Not covered, stated:** later runs (component builds, updates, prune) find items by their usual names, so after a
   Rename they find the item the person kept. Q112 A asks for this apply alone; the follow-up is the owner's.
+- **Skip's references, one arm each** (the review of #3518): the glass blur radius and a text style's font size, family
+  and style each fail by name when Skip stops releasing them. A Rename no longer touches `fontSizeCollection`, which no
+  writer reads.

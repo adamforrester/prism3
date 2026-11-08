@@ -37,9 +37,9 @@ const drops = (label: string, data: unknown): void => {
 };
 
 accepts('apply-result', { type: 'apply-result', ok: true, headline: '✓ 12 written', summary: 'counts' },
-  { kind: 'apply-result', ok: true, headline: '✓ 12 written', summary: 'counts' , lines: null, collisions: null });
+  { kind: 'apply-result', ok: true, headline: '✓ 12 written', summary: 'counts' , lines: null, collisions: null, chosen: null });
 accepts('apply-result without a headline (older host)', { type: 'apply-result', ok: false, summary: 'x' },
-  { kind: 'apply-result', ok: false, headline: '✗ apply failed', summary: 'x' , lines: null, collisions: null });
+  { kind: 'apply-result', ok: false, headline: '✗ apply failed', summary: 'x' , lines: null, collisions: null, chosen: null });
 // `completed` (UI redesign S8.2, owner decision C1): carried as the host sends it, and never inferred from `ok`: a
 // post without it (a contract break, since `messages.ts` requires it) reads as a build that did not finish.
 accepts('component-result', { type: 'component-result', ok: true, completed: true, headline: '✓ 48 built', summary: 's' },
@@ -73,7 +73,7 @@ accepts('style-guide-result', { type: 'style-guide-result', ok: true, headline: 
 // #2177: a verdict's items, one line each in the Activity drawer. Every entry a string, or the list is dropped whole and
 // the drawer shows the summary as its one line.
 accepts('apply-result with its lines', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 'b'] },
-  { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 'b'], collisions: null });
+  { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 'b'], collisions: null, chosen: null });
 // #3326: a verdict's causes, each field checked; a list with one malformed entry is dropped whole, and an empty list kept.
 const CAUSE = { kind: 'warn', subject: 'badge', what: 'built with problems', reasons: ['No usage panels drawn.'] };
 accepts('component-result with its causes', { type: 'component-result', ok: false, completed: true, headline: '⚠ built', summary: 's', lines: ['s'], causes: [CAUSE, { kind: 'bad', subject: null, what: 'check failed', reasons: [], todo: 'Run it again.' }] },
@@ -97,7 +97,7 @@ accepts('component-result with its lines', { type: 'component-result', ok: true,
 accepts('style-guide-result with its lines', { type: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'] },
   { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'], retired: [] });
 accepts('apply-result with a malformed lines leaves them off', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 2] },
-  { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: null, collisions: null });
+  { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: null, collisions: null, chosen: null });
 accepts('style-guide-result without a headline', { type: 'style-guide-result', ok: true, summary: 't' },
   { kind: 'style-guide-result', ok: true, headline: '✓ style guide written', summary: 't' , lines: null, retired: [] });
 // #3189: an agent's Capture baseline and Adopt readings reach the strip; an unknown run is dropped.

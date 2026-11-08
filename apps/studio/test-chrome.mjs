@@ -21219,6 +21219,22 @@ if (runs('1909')) {
     const w2 = await takeWrites(page);
     const gone2 = await page.evaluate(() => !document.querySelector('[data-p3="collisions-dialog"]'));
     ok(gone2 && w2.length === 0, `#1909 ${where}: Escape closes the list and posts nothing (${w2.length} posts)`);
+    // The review of #3518 (finding 1): a Rename onto a name someone else holds. The refusal names the new row alone and
+    // carries the Rename already chosen; the panel posts that back with the new row's choice, so the person is not asked
+    // the first list again and the apply can finish. MUTATION: `withEarlier` dropped from the lend's submit (`main.ts`)
+    // → this arm, by name.
+    step = 'renamed name taken';
+    await postMsg(page, { ...refusal, headline: '✗ 1 conflict', collisions: [{ key: 'collection:color (Prism3)', kind: 'collection', name: 'color (Prism3)', detail: 'already in this file, not created by Prism3' }],
+      chosen: { 'collection:color': 'rename' } });
+    await hooks.need(page, '[data-p3="collisions-dialog"]', WAIT);
+    const rows3 = await page.evaluate(() => [...document.querySelectorAll('[data-p3="collisions-row"] .p3-upd-setname')].map((n) => n.textContent));
+    await page.locator('[data-p3="collisions-choice"]').nth(0).selectOption('skip');
+    await takeWrites(page);
+    await hooks.click(page.locator('[data-p3="collisions-go"]'), WAIT);
+    const w3 = await takeWrites(page);
+    const want3 = { 'collection:color': 'rename', 'collection:color (Prism3)': 'skip' };
+    ok(JSON.stringify(rows3) === JSON.stringify(['collection color (Prism3)']) && w3.length === 1 && w3[0].type === 'apply-theme' && canon(w3[0].collisions) === canon(want3),
+      `#1909 ${where}: a renamed name already taken asks for that row alone, and Apply posts it with the Rename already chosen (rows ${JSON.stringify(rows3)}, posted ${JSON.stringify(w3.map((m) => m.collisions))})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);

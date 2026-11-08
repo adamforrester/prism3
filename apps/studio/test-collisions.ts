@@ -11,9 +11,11 @@
  * Mutations that fail here by name: `allChosen` true with a row unchosen → `Q112 default: Apply stays off …`;
  * `choicesToPost` posting before every row has a choice → `Q112 default: nothing is posted …`; `pickAll` covering the
  * first row only → `Q112 apply to all: …`; the validator keeping a malformed list → `wire: a list with one malformed …`;
- * `reduce` keeping the collisions after a clean apply → `session: a clean apply clears …`.
+ * `reduce` keeping the collisions after a clean apply → `session: a clean apply clears …`; `reduce` dropping the refusal's
+ * `chosen` → `session: a refusal that carries the choices already used keeps them …`; `withEarlier` posting this list's
+ * choices alone → `the review of #3518: the choices already used are posted back …`.
  */
-import { allChosen, choicesToPost, pickAll, sharedPick } from './src/state/collisions';
+import { allChosen, choicesToPost, pickAll, sharedPick, withEarlier } from './src/state/collisions';
 import { toHostMessage, type CollisionView } from './src/write-adapter';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -65,6 +67,22 @@ const after = reduce(refused, toHostMessage({ pluginMessage: { type: 'apply-resu
 ok(after.collisions === null, 'session: a clean apply clears the list');
 const plain = reduce(refused, toHostMessage({ pluginMessage: { type: 'apply-result', ok: false, headline: '✗', summary: 'The write failed.', lines: ['x'] } })!);
 ok(plain.collisions === null, 'session: a failure with no collisions clears it too');
+
+// ── the review of #3518 (finding 1): a renamed name someone else holds asks only for the new row ──
+const TAKEN: CollisionView[] = [{ key: 'collection:color (Prism3)', kind: 'collection', name: 'color (Prism3)', detail: 'already in this file, not created by Prism3' }];
+const again = wire({ collisions: TAKEN, chosen: { 'collection:color': 'rename' } });
+ok(!!again && again.kind === 'apply-result' && same(again.chosen, { 'collection:color': 'rename' }), 'wire: a refusal carries the choices that apply already used');
+const badChosen = wire({ collisions: TAKEN, chosen: { 'collection:color': 'keep' } });
+ok(!!badChosen && badChosen.kind === 'apply-result' && badChosen.chosen === null, 'wire: a chosen map with a value that is not skip or rename is dropped');
+ok(!!got && got.kind === 'apply-result' && got.chosen === null, 'wire: a first refusal carries no chosen');
+const refusedAgain = reduce(initialHostSession(), again!);
+ok(same(refusedAgain.collisions, TAKEN) && same(refusedAgain.collisionsChosen, { 'collection:color': 'rename' }),
+  'session: a refusal that carries the choices already used keeps them beside its list');
+ok(reduce(refusedAgain, toHostMessage({ pluginMessage: { type: 'apply-result', ok: true, headline: '✓', summary: 's', lines: ['s'] } })!).collisionsChosen === null,
+  'session: a clean apply clears the choices already used, with the list');
+ok(same(withEarlier({ 'collection:color': 'rename' }, choicesToPost(TAKEN, { 'collection:color (Prism3)': 'skip' })!), { 'collection:color': 'rename', 'collection:color (Prism3)': 'skip' }),
+  'the review of #3518: the choices already used are posted back with the new row\'s');
+ok(same(withEarlier(null, mixed), mixed), 'the review of #3518: with none already used, the list\'s choices alone are posted');
 
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ collision choice: all checks passed');
 process.exit(failed ? 1 : 0);

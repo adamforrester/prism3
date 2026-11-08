@@ -388,14 +388,17 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     // The write sequence — fonts first, pre-flight, then the guarded executor calls — lives in
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
     // global `figma` is the host; everything below this line (the report) is unchanged.
-    const { plans, pf, guarded, before, chose, exec, names } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink), choices);
+    const { plans, pf, guarded, before, chose, exec, names, applied } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink), choices);
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
       const conflicts = conflictSummary(guarded.conflicts);
       // #1909: the panel's refusal carries each collision with its key, so the panel can offer Skip or Rename for it.
       // An agent's result is unchanged: it has `conflicts` through `sink.data` already, and `collisions` stays off.
-      const collisions = sink === uiSink ? { collisions: guarded.conflicts.map((c) => ({ key: conflictKey(c), kind: c.kind, name: c.name, detail: c.detail })) } : {};
+      // `chosen` (the review of #3518): the choices this apply already used, when a choice made a new collision, so the
+      // panel posts them back beside the new one and the first list is not asked again.
+      const collisions = sink === uiSink ? { collisions: guarded.conflicts.map((c) => ({ key: conflictKey(c), kind: c.kind, name: c.name, detail: c.detail })),
+        ...(Object.keys(applied).length ? { chosen: applied } : {}) } : {};
       postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts], ...collisions }, sink);
       return;
     }

@@ -15,8 +15,11 @@
  * v1**: the choice rides one `apply-theme` message and is gone after it, so the next apply asks again.
  *
  * PURE: plans in, plans out, nothing read from the file. `runApplyTheme` re-runs the pre-flight over the plans this
- * returns, so a choice that does not clear its collision (a renamed name someone else already holds) is refused there,
- * before any write, and named like any other collision.
+ * returns, so a choice that does not clear its collision (a renamed name someone else already holds) is a collision
+ * again. With a choice for it too, the plans are resolved again (Rename adds the suffix once more, Skip drops Prism3's
+ * item); without one, the apply is refused there, before any write, and the refusal carries the choices already made
+ * (`applied`), so the panel posts them back beside the new one and the person is never asked the first again
+ * (the review of #3518, finding 1).
  *
  * Per kind:
  *   · COLLECTION — Rename gives every plan that writes it the new name (the color executor's two collections through
@@ -27,6 +30,11 @@
  *   References are every field a plan uses to name another variable: color and FLOAT alias targets, the wash's
  *   opacity, mixed-type `aliasByMode`, gradient stops, the glass blur's radius, and a text style's three bound fields.
  *   · STYLE (effect, paint, text) — Rename renames the style. Skip drops it. Grid styles never collide (Q234 A).
+ *
+ * BY NAME, ACROSS THE FILE: after a collection Rename, the text-style writer and the wash binder look a variable up by
+ * name in every local collection (`getLocalVariablesAsync` into a `Map`), so where the person's collection holds a
+ * variable of the same name as Prism3's, which one binds is whichever the host lists last. The shim lists Prism3's last;
+ * real Figma's order is not checked (the review of #3518, note 3).
  *
  * NOT covered, stated: Prism3's later runs find their collections, variables and styles by name, as the apply does.
  * After a Rename, a component build or an update binds by the usual name, so it finds the item the person kept, not
@@ -74,12 +82,14 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 /**
  * Apply `choices` to `plans` for the collisions `conflicts` lists. Every collision needs a choice; one without leaves
  * the apply refused (`ok: false`, naming each one). A choice for a collision that is not in `conflicts` does nothing.
+ * `from` is the color executor's two collection names the plans already carry: the defaults, or what an earlier pass
+ * renamed them to (`runApplyTheme` resolves again when a renamed name is itself taken, the review of #3518).
  */
-export const resolveCollisions = (plans: ApplyPlans, conflicts: readonly Conflict[], choices: CollisionChoices): Resolution => {
+export const resolveCollisions = (plans: ApplyPlans, conflicts: readonly Conflict[], choices: CollisionChoices, from: ColorNames = COLOR_NAMES): Resolution => {
   const unchosen = conflicts.filter((c) => choices[conflictKey(c)] !== 'skip' && choices[conflictKey(c)] !== 'rename');
   if (unchosen.length) return { ok: false, unchosen };
   const p = clone(plans);
-  const names: ColorNames = { ...COLOR_NAMES };
+  const names: ColorNames = { ...from };
   const tally: ChoiceTally = { skipped: 0, renamed: 0 };
   /** Variable renames and skips, applied to every reference once the rows are settled. */
   const renamedVars = new Map<string, string>();
@@ -87,14 +97,14 @@ export const resolveCollisions = (plans: ApplyPlans, conflicts: readonly Conflic
 
   // The rows each collection holds, by its planned name. `core` is three plans' rows; `color` is the color plan's.
   const rowsIn = (collection: string): { name: string }[][] => [
-    ...(collection === COLOR_NAMES.core ? [p.color.palette] : []),
-    ...(collection === COLOR_NAMES.color ? [p.color.color.create, p.color.color.aliases] : []),
+    ...(collection === from.core ? [p.color.palette] : []),
+    ...(collection === from.color ? [p.color.color.create, p.color.color.aliases] : []),
     ...p.float.filter((c) => c.name === collection).flatMap((c) => [c.create, c.aliases]),
     ...[...p.font, ...p.motion].filter((c) => c.name === collection).map((c) => c.rows),
   ];
   const dropRows = (collection: string, keep: (name: string) => boolean): void => {
-    if (collection === COLOR_NAMES.core) p.color.palette = p.color.palette.filter((r) => keep(r.name));
-    if (collection === COLOR_NAMES.color) {
+    if (collection === from.core) p.color.palette = p.color.palette.filter((r) => keep(r.name));
+    if (collection === from.color) {
       p.color.color.create = p.color.color.create.filter((r) => keep(r.name));
       p.color.color.aliases = p.color.color.aliases.filter((r) => keep(r.name));
     }
@@ -138,15 +148,14 @@ export const resolveCollisions = (plans: ApplyPlans, conflicts: readonly Conflic
       p.float = p.float.filter((x) => x.name !== c.name);
       p.font = p.font.filter((x) => x.name !== c.name);
       p.motion = p.motion.filter((x) => x.name !== c.name);
-      if (c.name === COLOR_NAMES.core) names.core = null;
-      if (c.name === COLOR_NAMES.color) names.color = null;
+      if (c.name === from.core) names.core = null;
+      if (c.name === from.color) names.color = null;
       tally.skipped++;
     } else {
       const to = renamedOf(c.name);
       for (const x of [...p.float, ...p.font, ...p.motion]) if (x.name === c.name) x.name = to;
-      for (const r of p.text) if (r.fontSizeCollection === c.name) r.fontSizeCollection = to;
-      if (c.name === COLOR_NAMES.core) names.core = to;
-      if (c.name === COLOR_NAMES.color) names.color = to;
+      if (c.name === from.core) names.core = to;
+      if (c.name === from.color) names.color = to;
       tally.renamed++;
     }
   }

@@ -49,10 +49,10 @@ export type ActionSink = {
  *  `summary` (#2177), and without `causes`, the drawer's marks (#3326; an agent reads the same facts as `activity`'s
  *  `problems`, #3309). Destructured, so every other key keeps its place and the envelope is the one agents always had. */
 export const forAgent = (m: MainToUi): MainToUi => {
-  if (!('lines' in m) && !('causes' in m) && !('collisions' in m)) return m;
-  // #1909: `collisions` is the panel's alone (its Skip or Rename list); `main.ts` sends it only to the panel, and this
-  // drops it too, so an agent's verdict keeps its keys whatever posts it.
-  const { lines: _drawerOnly, causes: _marks, collisions: _panelOnly, ...rest } = m as MainToUi & { lines?: unknown; causes?: unknown; collisions?: unknown };
+  if (!('lines' in m) && !('causes' in m) && !('collisions' in m) && !('chosen' in m)) return m;
+  // #1909: `collisions` and `chosen` are the panel's alone (its Skip or Rename list); `main.ts` sends them only to the
+  // panel, and this drops them too, so an agent's verdict keeps its keys whatever posts it.
+  const { lines: _drawerOnly, causes: _marks, collisions: _panelOnly, chosen: _panelChoices, ...rest } = m as MainToUi & { lines?: unknown; causes?: unknown; collisions?: unknown; chosen?: unknown };
   return rest as MainToUi;
 };
 
