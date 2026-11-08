@@ -577,5 +577,44 @@ for (const c of ['skip', 'rename'] as const) {
   }
 }
 
+// ── SKIP RELEASES EVERY REFERENCE KIND (the review of #3518, finding 2) ──
+// The Skip hint promises that nothing Prism3 writes points to a skipped variable. Each reference kind beyond the alias
+// target above, held by its own arm: the glass blur's radius and a text style's three bound fields. A real apply, then
+// each variable retyped by hand (so each is a one-variable collision in Prism3's own collection) and the bindings the
+// first apply made cleared, so only the second apply could bind them again. Names are literals.
+{
+  const BLUR = 'pds3/blur/glass';
+  const SIZE = 'pds3/font-fluid/display/3xl/emphasis';
+  const FAMILY = 'pds3/core/font/family/display';
+  const STYLE = 'pds3/core/font/style/display/emphasis';
+  const f = new FileShim();
+  await apply(f);
+  const retyped = [BLUR, SIZE, FAMILY, STYLE].map((n) => f.vars.find((v) => v.name === n));
+  for (const v of retyped) if (v) { v.resolvedType = v.resolvedType === 'STRING' ? 'BOOLEAN' : 'STRING'; v.valuesByMode = { m: v.resolvedType === 'STRING' ? 'hand-typed' : true }; }
+  for (const st of f.styles.text) st.bound = {};
+  for (const st of f.styles.effect) st.effects = st.effects.map((e: any) => { const { boundVariables: _b, ...plain } = e; return plain; });
+  const g0 = await apply(f);
+  const keys = g0.ok ? [] : g0.conflicts.map(conflictKey).sort();
+  ok(retyped.every(Boolean) && keys.length === 4 && keys.every((k: string) => k.startsWith('variable:')),
+    `Q112 skip references: the four retyped variables are the four collisions (${keys.join(' | ')})`);
+  const { guarded: g } = await applyWith(f, Object.fromEntries(keys.map((k: string) => [k, 'skip' as const])));
+  ok(g.ok, `Q112 skip references: applies${g.ok ? '' : ` — ${'threw' in g ? `threw: ${g.threw}` : conflictSummary(g.conflicts, 3)}`}`);
+  const glass = f.styles.effect.find((x) => x.name === 'glass');
+  const blurBound = (glass?.effects ?? []).filter((e: any) => e.boundVariables?.radius);
+  ok(!!glass && glass.effects.length > 0 && blurBound.length === 0,
+    `Q112 skip blur radius: the glass style keeps its literal radius, bound to nothing (${JSON.stringify(blurBound.map((e: any) => e.boundVariables))})`);
+  const hero = f.styles.text.find((x) => x.name === 'display/3xl/emphasis');
+  ok(!!hero && hero.bound.fontSize === undefined,
+    `Q112 skip text fontSize: display/3xl/emphasis binds no font size (${hero?.bound.fontSize ?? 'none'})`);
+  ok(!!hero && hero.bound.fontFamily === undefined,
+    `Q112 skip text fontFamily: display/3xl/emphasis binds no font family (${hero?.bound.fontFamily ?? 'none'})`);
+  ok(!!hero && hero.bound.fontStyle === undefined,
+    `Q112 skip text fontStyle: display/3xl/emphasis binds no font style (${hero?.bound.fontStyle ?? 'none'})`);
+  // The control: a text style none of the four is bound to still binds, so the arms above are not blind.
+  const other = f.styles.text.find((x) => x.name === 'display/3xl/strong');
+  ok(!!other && other.bound.fontSize === 'pds3/font-fluid/display/3xl/strong',
+    `Q112 skip references (control): display/3xl/strong still binds its own font size (${other?.bound.fontSize ?? 'none'})`);
+}
+
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');
 process.exit(failed ? 1 : 0);
