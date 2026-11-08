@@ -19,7 +19,7 @@ names are brand input under Q116 A, so they are replaced with `[brand]` too.
   stays whole. This widens the short-root rule too (`hf, …` and `hf: …` were the same leak before this PR).
 - `test-report.ts` adds the reviewer's two fixtures as arms, and the review's punctuation fixtures as `#3525 R1` arms. Each mutation fails its arm by name: palette names
   dropped, mode names dropped, either matched by substring, `SEGMENT` narrowed back to the path characters, and
-  `SEGMENT` widened to any non-space character.
+  letters added to `SEGMENT`.
 
 ### Traps for whoever re-verifies
 

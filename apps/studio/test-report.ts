@@ -26,8 +26,8 @@
  * instead of as a whole segment → `#3523 Q147 a palette or mode name inside an ordinary word is left`.
  *
  * #3525 review finding 1 (a name next to `,` `:` `;` `(` `)` leaked): `SEGMENT` narrowed back to `/.\\- "'` → each
- * `#3525 R1 … bounded by punctuation is replaced (…)` arm; `SEGMENT` widened to any non-space character → `#3525 R1 an
- * ordinary word holding a name stays whole next to punctuation`.
+ * `#3525 R1 … bounded by punctuation is replaced (…)` arm; letters added to `SEGMENT` → `#3525 R1 an ordinary word
+ * holding a name stays whole next to punctuation` and `#3525 R1 a short root inside an ordinary word stays whole …`.
  */
 import { brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
 
