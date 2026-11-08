@@ -124,12 +124,14 @@ const punct: readonly [string, string][] = [
   ['→ light, night-watch;', '→ light, [brand];'],
   ['[tidewater] and night-watch! or tidewater?', '[[brand]] and [brand]! or [brand]?'],
   ['palette tidewater.500', 'palette [brand].500'],
+  ['"night-watch" and \'tidewater\'', '"[brand]" and \'[brand]\''],
+  ['“tidewater” ‘night-watch’ `tidewater` {night-watch}', '“[brand]” ‘[brand]’ `[brand]` {[brand]}'],
 ];
 for (const [inp, want] of punct) {
   const got = scrub(inp, PUNCT);
   ok(got === want, `#3525 R1 a palette or mode name bounded by punctuation is replaced (${inp} → ${got})`);
 }
-ok(scrub('overnight-watch, tidewaters: overnight-watchers;', PUNCT) === 'overnight-watch, tidewaters: overnight-watchers;',
+ok(scrub('overnight-watch, tidewaters: overnight-watchers; tidewater2, night-watch9;', PUNCT) === 'overnight-watch, tidewaters: overnight-watchers; tidewater2, night-watch9;',
   '#3525 R1 an ordinary word holding a name stays whole next to punctuation: a letter is never a boundary');
 const ROOT = brandWords(SHORT);
 ok(scrub('hf, then hf: and (hf)', ROOT) === '[brand], then [brand]: and ([brand])',
