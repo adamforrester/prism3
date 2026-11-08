@@ -169,6 +169,9 @@ export type UiToMain =
    *  (`components`) or Update file's run (`update`), as the Activity drawer and the status strip show it. Kept in the
    *  main thread's activity log for the agent link's `activity` command. Writes nothing; never refused. */
   | { type: 'activity-note'; op: 'components' | 'update'; ok: boolean; headline: string; lines: string[] }
+  /** #533 (Q110 A): a run the panel started has ended, and `line` is the Activity drawer's short line for it. The main
+   *  thread shows it through `figma.notify` only while the window is the link strip (`run-notice.ts`). Writes nothing. */
+  | { type: 'run-ended'; line: string }
   /** #2909 Q2909.8 A: the background hand-edit pass, after load. Answered with one `hand-edits` per set the file holds,
    *  then one with `done`. A read; a later request, or a write starting, ends an earlier pass. */
   | { type: 'hand-edits-request' }

@@ -207,6 +207,9 @@ export interface HostCommit {
   /** #3309: the panel's own summary of a run of several writes (`activity-note`), kept by the main thread for the agent
    *  link's `activity` command. Figma only; inert on the web. */
   noteActivity(op: 'components' | 'update', ok: boolean, headline: string, lines: readonly string[]): void;
+  /** #533 (Q110 A): a run the panel started has ended (`run-ended`), with the Activity drawer's short line; the main
+   *  thread shows it only while the window is the link strip. Figma only; inert on the web. */
+  noteRunEnded(line: string): void;
   /** #2909 Q2909.8 A: start the background hand-edit pass (`hand-edits-request`). Figma only; inert on the web. */
   requestHandEdits(): void;
   /** #2909 Q2909.8 A: the full check, scoped to `defs` (`update-check-request`), against the panel's brand `input`
@@ -663,6 +666,9 @@ const figmaCommit = (): HostCommit => ({
   noteActivity(op, ok, headline, lines) {
     post({ type: 'activity-note', op, ok, headline, lines: [...lines] });
   },
+  noteRunEnded(line) {
+    post({ type: 'run-ended', line });
+  },
   requestUpdateCheck(defs, input) {
     post({ type: 'update-check-request', defs: [...defs], input: input as ApplyTheme['input'] });
   },
@@ -714,6 +720,7 @@ const webCommit = (): HostCommit => ({
   requestHandEdits() {/* no file on web (#2909) */},
   postAddQueue() {/* no file on web (#3129 Q3129.12 A) */},
   noteActivity() {/* no main thread on web (#3309) */},
+  noteRunEnded() {/* no main thread on web (#533) */},
   requestUpdateCheck() {/* no file on web (#2909) */},
   postUpdateSets() {/* no file on web (#2909) */},
   postUpdateStop() {/* no file on web (#3170) */},

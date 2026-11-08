@@ -3130,6 +3130,13 @@ const recordPosts = (page) => page.evaluate(() => {
     if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link', 'minimize-ui', 'draw-specs'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
   });
 });
+/** #533 (Q110 A): record every `run-ended` the panel posts toward the main thread, its line, from now (`window.__runEnded`);
+ *  called again, it empties the record. */
+const watchRunEnded = (page) => page.evaluate(() => {
+  if (window.__runEnded) { window.__runEnded.length = 0; return; }
+  window.__runEnded = [];
+  window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'run-ended') window.__runEnded.push(m.line); });
+});
 /** The messages posted since the last call. A post is delivered as a task, so one task is let through first. */
 const takeWrites = (page) => page.evaluate(() => new Promise((r) => setTimeout(() => { const w = window.__writes.slice(); window.__writes.length = 0; r(w); }, 50)));
 const keyOf = (m) => (m.type === 'prune' ? `prune:${m.confirm}` : m.type === 'agent-link' ? `agent-link:${m.on}` : m.type);
@@ -3665,6 +3672,7 @@ for (const host of ['web', 'figma']) {
         // Set up file: the first checklist on a file that is not set up (Q668 A). Its result fails (light) or warns (dark),
         // which ends the run and keeps the drawer open (F2); at 380 it opens the full-pane sheet.
         await openUpdate({ present: [], setUp: false });
+        await watchRunEnded(page);
         const fresh = await items();
         const setupBox = await page.evaluate(() => document.querySelector('[data-p3="update-dialog"] [data-p3="update-check-setup"]')?.getAttribute('aria-checked') ?? null);
         ok(setupBox === 'true', `Update file ${where}: Set up file's box is drawn, ticked (${setupBox})`);
@@ -3689,6 +3697,11 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction((r) => document.querySelector(`${r} [data-p3="op-verdict"]`)?.textContent === 'Stopped at Set up file', runRow, { timeout: 5000 }).catch(() => {});
         const after = await takePosts(page);
         ok(after.length === 0, `Update file ${where}: a step that does not land well ends the run: nothing more is posted (posted ${JSON.stringify(after)})`);
+        // #533 (Q110 A): the run's end reaches the main thread once, as the drawer's short line, without its reason (that
+        // stays in Activity). Literal. MUTATION: `ends.push` dropped from the Update file branch (`activity.ts`) → this arm.
+        const ended = await page.evaluate(() => window.__runEnded.slice());
+        ok(JSON.stringify(ended) === '["Update file failed."]',
+          `#533 ${where}: the stopped run posts one run-ended, "Update file failed." (posted ${JSON.stringify(ended)})`);
         if (w === 1280 || narrow) await sinceMs(page, t1, COLLAPSE_MS + 1000);
         const f = await drawerState(page);
         const fs = f.ops['update'];
@@ -3758,10 +3771,15 @@ for (const host of ['web', 'figma']) {
           // step of Update file's run, so it has a row of its own (Q3390.1 A). MUTATION Mb: `nextSteps` without
           // `!res.agent` (`activity.ts`) → this arm, by name.
           const agentRow = '[data-p3="activity-op"][data-op="filesetup"]';
+          await watchRunEnded(page);
           await postMsg(page, { type: 'agent-started', id: 'ag2', cmd: 'file-setup' });
           await postMsg(page, bad);
           await postMsg(page, { type: 'agent-finished', id: 'ag2', cmd: 'file-setup' });
           await page.waitForFunction((r) => !!document.querySelector(`${r} [data-p3="op-copy"]`), agentRow, { timeout: 5000 }).catch(() => {});
+          // #533 (Q110 A): an agent's command answers the agent, so its end posts no run-ended. MUTATION: the `!n.agent`
+          // test dropped (`activity.ts`) → this arm, by name.
+          const agentEnded = await page.evaluate(() => window.__runEnded.slice());
+          ok(agentEnded.length === 0, `#533 ${where}: an agent's ${kind} posts no run-ended (posted ${JSON.stringify(agentEnded)})`);
           const agentNext = await page.evaluate((r) => ({ next: [...document.querySelectorAll(`${r} [data-p3="op-next"] button`)].map((n) => n.textContent), agent: !document.querySelector(`${r} [data-p3="op-head"] .p3-op-agent`)?.hidden }), agentRow);
           ok(agentNext.agent && JSON.stringify(agentNext.next) === '["Copy details"]',
             `#3126 review ${where}: an agent's ${kind} has its own Set up file row and offers "Copy details" alone (${JSON.stringify(agentNext)})`);

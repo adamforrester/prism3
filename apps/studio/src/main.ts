@@ -1128,7 +1128,9 @@ const mountView = (view: RootView): void => {
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
         activity: { read: activityReading, closeDetail: closeOpenDetail, again: commit.isFigma ? activityAgain : undefined,
           // #3326: a cause names its set by def id; the drawer shows the set's name.
-          nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id },
+          nameOf: (id: string) => entryOf(componentCatalog(), id)?.name ?? id,
+          // #533 (Q110 A): a run's end, for the main thread's notice while minimized to the strip.
+          ended: commit.isFigma ? (line: string) => commit.noteRunEnded(line) : undefined },
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
         documentation: commit.isFigma ? documentationLend : null,

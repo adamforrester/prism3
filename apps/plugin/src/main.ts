@@ -91,6 +91,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { createAgentLink } from './agent-link';
 import { createActivityLog, type ActivityProblem } from './activity-log';
+import { runNotice } from './run-notice';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ReadHost, ContextFacts } from './agent-reads';
 import type { ActionSink, AgentActions } from './agent-dispatch';
@@ -2436,6 +2437,12 @@ onUiMessage((msg: UiToMain) => {
       if ((msg.op === 'components' || msg.op === 'update') && typeof msg.headline === 'string')
         activityLog.note({ op: msg.op, ok: msg.ok === true, headline: msg.headline, lines: Array.isArray(msg.lines) ? msg.lines.filter((x): x is string => typeof x === 'string') : [] });
       return;
+    case 'run-ended': {
+      // #533 (Q110 A): a short completion notice, only while minimized to the strip; the detail stays in Activity.
+      const n = runNotice(msg.line, beforeStrip !== null);
+      if (n) figma.notify(n.message, { timeout: n.timeout, button: { text: n.action, action: () => { setMinimized(false); } } });
+      return;
+    }
     case 'hand-edits-request':
       // #2909 Q2909.8 A: the background pass after load. A read: never guarded; a write starting ends it.
       void handEditsPass();

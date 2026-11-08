@@ -61,6 +61,10 @@
  *   · failures: unknown command, bad version, bad args → failed results; an id-less entry → inboxError
  *   · chunking: a result past the per-entry budget is split and the read snippet reassembles it
  *   · retention: only the last MAILBOX.keep results survive, chunks included
+ *   · run-notice/<arm> (#533, Q110 A): a `run-ended` while minimized to the strip shows one `figma.notify` with the
+ *     panel's line, 6000 ms, not the error style, and Restore as its button, which restores the window; with the full
+ *     window up, or after Restore, nothing is shown (mutation: `runNotice` ignoring `minimized` → run-notice/full-window
+ *     and run-notice/after-restore fail by name).
  *   · strip/<arm> (#2949): minimizing to the link strip resizes the window and nothing else — the link stays on, the
  *     poll stays armed and a command sent while minimized is run; the strip skips the 380×420 floor, is never kept as
  *     the window size, ignores a late drag, and Restore returns to the size from before; Turn off (the link switched
@@ -1117,6 +1121,47 @@ section('strip — minimizing resizes the window and never touches the link or i
   delete host.viewport;
   cs.setAsync = origSet;
   await toUi({ type: 'agent-link', on: true });
+}
+
+/* ── run-notice (#533, Q110 A) ──────────────────────────────────────────────────────────────────────── */
+section('run-notice — a run that ends while minimized shows one short host notice; the detail stays in Activity');
+{
+  // The expected notice is literal: the panel's line, 6000 ms, Restore. Never read from `run-notice.ts`.
+  type Notice = { message: string; timeout?: number; error?: boolean; button?: { text: string; action: () => boolean | void } };
+  const notices: Notice[] = [];
+  host.notify = (message: string, o: Omit<Notice, 'message'> = {}) => { notices.push({ message, ...o }); return { cancel: () => undefined }; };
+  const ui = host.ui as { resize: (w: number, h: number) => void };
+  const origResize = ui.resize;
+  const sizes: [number, number][] = [];
+  ui.resize = (w, h) => { sizes.push([w, h]); };
+  const minimizedPosts = () => posted.filter((m) => m.type === 'ui-minimized').map((m) => m.minimized);
+  posted.length = 0;
+
+  await toUi({ type: 'run-ended', line: 'Update file finished.' });
+  ok(notices.length === 0, `run-notice/full-window: with the full window up, a run's end shows no notice (${notices.length} shown)`);
+
+  await toUi({ type: 'minimize-ui', minimized: true });
+  await toUi({ type: 'run-ended', line: 'Update file failed.' });
+  const n = notices[0];
+  ok(notices.length === 1 && n.message === 'Update file failed.',
+    `run-notice/shown: minimized, a run's end shows one notice with the panel's line (${JSON.stringify(notices.map((x) => x.message))})`);
+  ok(n?.timeout === 6000 && !n?.error, `run-notice/snackbar: the notice stays 6000 ms and is not the host's error style (${JSON.stringify({ timeout: n?.timeout, error: n?.error })})`);
+  ok(n?.button?.text === 'Restore' && typeof n?.button?.action === 'function', `run-notice/action: the notice's one button is Restore (${JSON.stringify(n?.button?.text)})`);
+
+  await toUi({ type: 'run-ended', line: '   ' });
+  await toUi({ type: 'run-ended', line: 42 });
+  ok(notices.length === 1, `run-notice/empty: an empty or non-text line shows nothing (${notices.length} shown)`);
+
+  n?.button?.action();
+  for (let i = 0; i < 20; i++) await settle();
+  ok(JSON.stringify(minimizedPosts()) === '[true,false]' && JSON.stringify(sizes.at(-1)) !== '[480,40]',
+    `run-notice/restore: Restore on the notice brings the full window back and answers ui-minimized false (${JSON.stringify({ posts: minimizedPosts(), last: sizes.at(-1) })})`);
+
+  await toUi({ type: 'run-ended', line: 'Set up file finished.' });
+  ok(notices.length === 1, `run-notice/after-restore: once restored, a run's end shows no notice (${notices.length} shown)`);
+
+  ui.resize = origResize;
+  delete host.notify;
 }
 
 /* ── strip-place (#3327) ─────────────────────────────────────────────────────────────────────────────── */
