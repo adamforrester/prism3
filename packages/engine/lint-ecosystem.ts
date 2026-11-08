@@ -105,7 +105,7 @@ const PLUGIN_UI_ENTRY = 'apps/plugin/src/ui/entry.ts';
  *  from the data: a new message fails until it is claimed by a feature or added to this list on purpose. */
 const PLUMBING = ['ui-ready', 'agent-command', 'agent-bridge', 'agent-bridge-paired', 'agent-bridge-unpaired', 'style-guide-catalog-request', 'file-sets-request', 'style-guide-cancel', 'resize-ui', 'set-theme-pref', 'set-activity-height', 'open-docs',
   // #3309: the panel's summary of a run of several writes, kept for the agent's `activity`; no feature of its own.
-  'activity-note'];
+  'activity-note', 'run-ended'];
 
 const LANES = ['web', 'figma', 'agent'] as const;
 type LaneId = (typeof LANES)[number];

@@ -64,7 +64,7 @@ One exception: a grid style whose name is taken is skipped for that breakpoint, 
 Two more cases stop the theme before it starts:
 
 - Another theme write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:39-43 -->
-- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1822 -->
+- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1824 -->
 
 ## Writing it again
 
