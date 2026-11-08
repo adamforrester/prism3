@@ -3651,10 +3651,24 @@ for (const host of ['web', 'figma']) {
         ok(pv.summary === '3 stale items: 3 variables.' && pv.label === 'Delete 3 items', `Clean up ${where}: the preview's sentence and "Delete 3 items" show in the tab (${JSON.stringify(pv)})`);
         const mcl = await measure(page, `${where} / Clean up open`, host, w);
         check(mcl, `${where} / Clean up open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="clean-prune-confirm"]'] });
+        await watchRunEnded(page);
         await hooks.click(page.locator('[data-p3="clean-prune-confirm"]'), WAIT);
         const wd = await takePosts(page);
         ok(JSON.stringify(wd) === JSON.stringify(['prune:true']), `Clean up ${where}: Delete posts the confirmed prune — posted ${JSON.stringify(wd)}`);
+        // #533 (Q110 A), the review of #3520 (findings 1 and 3): an ordinary op's run, the panel's confirmed prune, ends while
+        // an agent's build still runs. Nothing is told yet; once the agent's command ends too, the prune's end is told once,
+        // as its short line. Literals. MUTATIONS: the operations branch's `pendingEnds.push` disabled (`activity.ts`) → both
+        // arms' second, by name; the ends kept per reading again (emptied at each `onHost`) → the second, by name.
+        await postMsg(page, { type: 'agent-started', id: 'ag533', cmd: 'build-components' });
         await postMsg(page, { type: 'prune-result', ok: true, applied: true, count: 3, summary: 'Removed 3 stale items.' });
+        await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="prune"] [data-p3="op-verdict"]')?.textContent ?? '') !== '', null, { timeout: 5000 }).catch(() => {});
+        const endedDuring = await page.evaluate(() => window.__runEnded.slice());
+        ok(endedDuring.length === 0, `#533 ${where}: a prune that ends while an agent's build runs is not told yet (posted ${JSON.stringify(endedDuring)})`);
+        await postMsg(page, { type: 'agent-finished', id: 'ag533', cmd: 'build-components' });
+        await page.waitForFunction(() => window.__runEnded.length > 0, null, { timeout: 5000 }).catch(() => {});
+        const endedAfter = await page.evaluate(() => window.__runEnded.slice());
+        ok(JSON.stringify(endedAfter) === '["Prune stale finished."]',
+          `#533 ${where}: once the agent's build ends too, the prune's end posts one run-ended, "Prune stale finished." (posted ${JSON.stringify(endedAfter)})`);
         await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
         // #3467 (Q3 A, Q4 A): a set-up file whose read lists something Set up file owns is offered Set up file, unticked, its
         // line naming what the file lacks; a set-up file whose read lists nothing is not. Literals. (mutation: the shell's

@@ -46,6 +46,7 @@ import type { Cause } from '../../../plugin/src/messages';
 import type { Host } from './pages';
 import { armEnter, enterMark, glyph, h, hook, leave, tile } from './dom';
 import { runTime } from './run-time';
+import { worstEnd } from './run-ended';
 
 /** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
  *  "agent link on" while it is). The plugin's Agent tile (`apps/plugin/src/agent-link-ui.ts`) reports each state the
@@ -975,15 +976,16 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     rec.result = null;
   };
 
+  /** #533 (Q110 A): the runs the panel started that ended since the last notice. An agent's command answers the agent, so
+   *  it is not one. Kept across readings: a run that ends while another still runs (an agent's command beside a panel
+   *  write) is told once nothing runs, not lost with the reading it ended in. */
+  const pendingEnds: { readonly k: RowKey; readonly kind: Kind }[] = [];
   /** Compare the host's reading with the last one, and act on what moved (F2). */
   const onHost = (): void => {
     const cur = read();
     let started = false, settledOk = false, settledBad = false, landedOk = false, ended = false;
     /** What this reading says on the status line when a run finishes (Q194), in the order the runs are read. */
     const said: string[] = [];
-    /** #533: the runs the panel started that ended in this reading, for `ActivityLend.ended`. An agent's command answers
-     *  the agent, so it is not one. */
-    const ends: { readonly k: RowKey; readonly kind: Kind }[] = [];
     // A quiet operation (S11.2) is recorded like any other, but opens nothing by itself.
     const loud = (k: OpKey): boolean => !opts.quiet?.(k);
     /** Quiet operations whose result landed in this reading: the verdict's own request to show it is not by hand. */
@@ -1028,7 +1030,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         // result marks the drawer unread, never opens it (S11.2).
         if (n.state === 'bad') { expanded.add(k); if (loud(k)) settledBad = true; else { quietlySettled.add(k); if (!open) unread = true; } } else { settledOk = true; expanded.delete(k); }
         said.push(finishLine(k, n));
-        if (!n.agent) ends.push({ k, kind: n.state === 'bad' ? kindOf(false, n.verdict, n.failed) : 'ok' });
+        if (!n.agent) pendingEnds.push({ k, kind: n.state === 'bad' ? kindOf(false, n.verdict, n.failed) : 'ok' });
         continue;
       }
       if (n.state === 'idle' || (n.state === p.state && n.ref === p.ref)) continue;
@@ -1065,7 +1067,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         if (kind !== 'ok') { expanded.add('update'); settledBad = true; } else { settledOk = true; expanded.delete('update'); }
         const firstBad = u.steps.find((st) => st.state === 'bad' || st.state === 'warn');
         said.push(finishLine('update', { state: kind === 'ok' ? 'ok' : 'bad', verdict: u.verdict, summary: null, lines: firstBad ? [firstBad.words, ...firstBad.lines] : null, causes }, kind));
-        ends.push({ k: 'update', kind });
+        pendingEnds.push({ k: 'update', kind });
       }
     }
     // A request the main thread declined (#1957, the owner's call): straight into the row's earlier results,
@@ -1086,11 +1088,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const reveal = cur.detail !== null && cur.detail !== last.detail && !quietlySettled.has(cur.detail) ? cur.detail : null;
     last = cur;
     const stillRunning = counts(cur).running > 0;
-    // #533 (Q110 A): one notice once nothing runs, the worst of what ended (a failure, then a warning, then the first).
-    if (ends.length && !stillRunning) {
-      const worst = ends.find((e) => e.kind === 'bad') ?? ends.find((e) => e.kind === 'warn') ?? ends[0];
-      opts.lend.ended?.(noticeLine(worst.k, worst.kind));
-    }
+    // #533 (Q110 A): one notice once nothing runs, the worst of what ended since the last one (`worstEnd`).
+    const worst = stillRunning ? null : worstEnd(pendingEnds);
+    if (worst) { pendingEnds.length = 0; opts.lend.ended?.(noticeLine(worst.k, worst.kind)); }
     // Q194 (#2487, amending decision #4 on #1956): a run's finish is announced too, so a reader knows the file is safe
     // to use again: a success briefly, a failure with its reason. The line then stands until the next start, whose
     // words differ from it; a later reading with nothing to say (`closeDetail` brings one at once) leaves it. A run that

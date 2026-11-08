@@ -15,7 +15,9 @@ and never while the full window is up, where it would repeat what Activity shows
 - **The panel knows when a run ends.** The Activity drawer reads one result per run, even for a build of several sets
   (the queue records each set before its topics fire) and for Update file's steps. So `shell/activity.ts` calls a new
   `ActivityLend.ended` with a short line once nothing else runs: the worst of what ended, in the status line's words
-  without the reason (`noticeLine`). An agent's command answers the agent, so it is not reported.
+  without the reason (`noticeLine`). An agent's command answers the agent, so it is not reported. The ends are kept
+  across readings until nothing runs (the review: a panel run that ended beside an agent's command was otherwise lost),
+  and `shell/run-ended.ts` `worstEnd` picks the one the line names.
 - **The main thread knows whether the window is the strip,** and only it can call `figma.notify`. The panel posts
   `run-ended`; `main.ts` asks `run-notice.ts` and shows the notice only while minimized.
 
@@ -33,3 +35,6 @@ error style and the notice lines are listed in the PR as proposals for the owner
   window.
 - `test:chrome` section 10 reads every `run-ended` the panel posts: one, "Update file failed.", when the panel's Update
   file run stops; none for an agent's command.
+  The review added two arms there: the panel's confirmed prune, ending while an agent's build runs, is told only once
+  the build ends too, as "Prune stale finished.". `apps/studio/test-run-ended.ts` holds `worstEnd` to literals: a
+  failure, else a warning, else the first.
