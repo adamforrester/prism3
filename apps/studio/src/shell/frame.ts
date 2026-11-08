@@ -58,6 +58,7 @@ import { glyph, h, hook, linkTile, menuButton, tile } from './dom';
 import { mountRail } from './rail';
 import { mountDocumentation, type DocumentationLend } from './documentation';
 import { mountUpdateFile, type UpdateFileLend } from './update-file';
+import { mountReport, type ReportLend } from './report';
 import { mountCollisions, type CollisionsLend } from './collisions';
 import { mountStatusStrip, type StatusLend } from './status-strip';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
@@ -207,6 +208,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly activity: ActivityLend | null;
   /** #2909 IA v2 phase 1: Update file's reads and writes, or null where there is no Figma file (the studio). */
   readonly updateFile: UpdateFileLend | null;
+  /** #2069: Report a problem's reads and its link opener, or null for none. */
+  readonly report: ReportLend | null;
   /** #1909: the collision choice a refused Apply Theme opens, or null where there is no Figma file. */
   readonly collisions: CollisionsLend | null;
   /** #2909: Documentation's reads and writes, or null where there is no Figma file. */
@@ -438,8 +441,10 @@ export const mountFrame = (app: HTMLElement, opts: {
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
   // S11.2 (P1, variant 1): while the Build style guides page shows its run, the drawer does not open by itself for it.
   // Since #2909 no page shows a style guide's run (Documentation holds settings only), so the drawer is never quiet.
+  // #2069: Report a problem opens from the drawer's foot, in its own layer over everything.
   // #3011 (Q121 A): plugin only. The studio runs no write and has no door to the drawer since Q2909.9 A, so it mounts none.
-  const activity = opts.activity ? mountActivity({ lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: () => false,
+  const report = opts.report ? mountReport(opts.report, cleanups) : null;
+  const activity = opts.activity ? mountActivity({ lend: report ? { ...opts.activity, report: (from) => report.open(from) } : opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: () => false,
     // #2176: the open drawer grows up to just under the preview header (or Inspect's, in its place; or, on a page of
     // the shell's own, the head). A region not drawn measures 0, so the lowest bottom is the one shown.
     room: { frame: root, ceiling: () => Math.max(...[head, previewHead, inspectHead].map((n) => n.getBoundingClientRect().bottom)) } }, cleanups) : null;
@@ -495,6 +500,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   root.dataset.shell = 'rail';
   previewHead.insertBefore(verdict, previewHead.children[1] ?? null);
   if (update) root.append(update.layer);
+  if (report) root.append(report.layer);
   // #1909: over Update file's, since a refused theme step can open it while that run ends.
   if (collisions) root.append(collisions.layer);
   const barMain = mountBar(opts.bar, { agent, update: update?.button ?? null, exportPage }, cleanups);

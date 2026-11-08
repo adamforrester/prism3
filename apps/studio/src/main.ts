@@ -33,8 +33,10 @@ import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
 import type { StyleGuidesLend } from './shell/style-guides';
-import { kindOf, type ActivityLend, type ActivityReading, type OpReading, type UpdateReading } from './shell/activity';
+import { kindOf, OP_TITLE, type ActivityLend, type ActivityReading, type OpReading, type UpdateReading } from './shell/activity';
 import type { UpdateFileLend } from './shell/update-file';
+import type { ReportLend } from './shell/report';
+import { ENGINE_VERSION } from '@prism3/engine/version';
 import type { CollisionsLend } from './shell/collisions';
 import { withEarlier } from './state/collisions';
 import type { StatusLend } from './shell/status-strip';
@@ -1136,6 +1138,9 @@ const mountView = (view: RootView): void => {
           ended: (line: string) => commit.noteRunEnded(line) } : null,
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
+        // #2069 (Q116 A): Report a problem, from the Activity drawer, which only the plugin draws (the web's placement is
+        // the owner's to decide).
+        report: commit.isFigma ? reportLend : null,
         collisions: commit.isFigma ? collisionsLend : null,
         documentation: commit.isFigma ? documentationLend : null,
         status: commit.isFigma ? statusLend : null,
@@ -2204,6 +2209,19 @@ const statusLend: StatusLend = {
 };
 
 /** Update file's reads and writes, lent to the shell (`shell/update-file.ts`). */
+/** #2069 (Q116 A): Report a problem's inputs: the build, the engine, the host, each operation's latest result, and the
+ *  brand the panel holds (included only if the person opts in; read either way, so its words can be taken out). */
+const reportLend: ReportLend = {
+  read: () => {
+    const r = activityReading();
+    return {
+      stamp: PRISM3_BUILD, engine: ENGINE_VERSION, host: commit.isFigma ? 'figma' : 'web',
+      activity: (Object.keys(r.ops) as (keyof typeof r.ops)[]).map((k) => ({ title: OP_TITLE[k], verdict: r.ops[k].verdict, lines: r.ops[k].lines ?? (r.ops[k].summary ? [r.ops[k].summary!] : []), agent: r.ops[k].agent })),
+      brand: lastGoodInput as unknown as Record<string, unknown>,
+    };
+  },
+  openUrl: (url) => commit.openIssue(url),
+};
 const updateFileLend: UpdateFileLend = {
   read: () => ({
     fileSets: host.fileSets, liveDue: liveShown() ? host.liveDue : null, catalog: componentCatalog(), run: updateRun, stopped: updateStopped, off: writeOff(),

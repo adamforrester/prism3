@@ -21,6 +21,7 @@
 import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
+import { isIssueUrl } from '../../studio/src/state/report';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import { restorePlacement, stripPlacement } from './window-place';
@@ -2502,6 +2503,10 @@ onUiMessage((msg: UiToMain) => {
     case 'open-docs':
       // #2637 Q384 — the bar's Docs. A read of nothing and a write to nothing in the file: never guarded.
       figma.openExternal(DOCS_URL);
+      return;
+    case 'open-issue':
+      // #2069 Q116 A — Report a problem's prefilled issue. Only the issue form on this repo opens; anything else is dropped.
+      if (isIssueUrl(msg.url)) figma.openExternal(msg.url);
       return;
     case 'file-setup':
       // #1554 — scaffold the page skeleton + build the two template assets. Its own action.

@@ -21322,6 +21322,59 @@ if (runs('1909')) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 1909
+// #2069 (Q116 A): REPORT A PROBLEM. The Activity drawer's foot opens a dialog showing the diagnostic bundle, with the
+// brand's settings off by default (its token prefix shown as [brand]), Copy, and "Open a prefilled issue", which asks the
+// main thread to open GitHub's issue form. Expected words are literals; the house brand's prefix is `pds3`.
+// MUTATIONS (each after a `wip:` commit): the box starting ticked → `#2069 … the brand's settings are off by default`;
+// `issueUrl` skipped (the bare form posted) → `#2069 … posts open-issue with the issue form, prefilled`.
+if (runs('2069')) {
+  console.log(`\nActivity: Report a problem (#2069, Q116 A)\n${'='.repeat(78)}`);
+  const where = '2069 figma light 1280';
+  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+  let step = 'premise';
+  try {
+    await page.evaluate(() => { window.__issues = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'open-issue') window.__issues.push(m); }); });
+    step = 'a failed apply';
+    await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ 1 conflict', summary: 'Nothing was written.', lines: ['Nothing was written. 1 conflict with existing content: variable "pds3/color/background/primary" is STRING in "color"'] });
+    await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, WAIT);
+    step = 'open';
+    await hooks.click(page.locator('[data-p3="activity-report"]'), WAIT);
+    await hooks.need(page, '[data-p3="report-dialog"]', WAIT);
+    const d0 = await page.evaluate(() => ({ modal: document.querySelector('[data-p3="report-dialog"]')?.getAttribute('aria-modal'),
+      box: document.querySelector('[data-p3="report-brand"]')?.checked, text: document.querySelector('[data-p3="report-text"]')?.value ?? '',
+      focusIn: !!document.activeElement?.closest('[data-p3="report-dialog"]') }));
+    ok(d0.modal === 'true' && d0.focusIn, `#2069 ${where}: Report a problem opens a modal with focus inside it (${JSON.stringify({ modal: d0.modal, focusIn: d0.focusIn })})`);
+    ok(d0.box === false && !d0.text.includes('### Brand settings') && !d0.text.includes('pds3') && d0.text.includes('[brand]/color/background/primary'),
+      `#2069 ${where}: the brand's settings are off by default, and its prefix reads [brand] (box ${d0.box})`);
+    ok(d0.text.includes('- Host: Figma plugin') && d0.text.includes('- Theme: ✗ 1 conflict') && /- Engine: \d+\.\d+\.\d+/.test(d0.text),
+      `#2069 ${where}: the report shows the host, the engine and the failed apply${d0.text.includes('- Theme: ✗ 1 conflict') ? '' : ` — ${JSON.stringify(d0.text.slice(0, 600))}`}`);
+    step = 'opt in';
+    await hooks.click(page.locator('[data-p3="report-brand"]'), WAIT);
+    const t1 = await page.evaluate(() => document.querySelector('[data-p3="report-text"]')?.value ?? '');
+    ok(t1.includes('### Brand settings (included by the reporter)') && t1.includes('pds3/color/background/primary'), `#2069 ${where}: ticked, the brand's settings join the report as they are`);
+    await (SHOTS ? page.screenshot({ path: join(SHOTS, 's2069-plugin-light-1280-report.png') }) : null);
+    step = 'open issue';
+    await hooks.click(page.locator('[data-p3="report-open-issue"]'), WAIT);
+    await page.waitForFunction(() => window.__issues.length > 0, null, WAIT).catch(() => {});
+    const posts = await page.evaluate(() => window.__issues);
+    const body = posts.length ? decodeURIComponent(String(posts[0].url).split('&body=')[1] ?? '') : '';
+    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && body === t1,
+      `#2069 ${where}: Open a prefilled issue posts open-issue with the issue form, prefilled with the report shown (${posts.length} posts)`);
+    step = 'escape';
+    await page.keyboard.press('Escape');
+    await settle(page);
+    const back = await page.evaluate(() => ({ gone: !document.querySelector('[data-p3="report-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+    ok(back.gone && back.focus === 'activity-report', `#2069 ${where}: Escape closes it and focus returns to Report a problem (${JSON.stringify(back)})`);
+    step = 'again';
+    await hooks.click(page.locator('[data-p3="activity-report"]'), WAIT);
+    const box2 = await page.evaluate(() => document.querySelector('[data-p3="report-brand"]')?.checked);
+    ok(box2 === false, `#2069 ${where}: opened again, the box is off again (nothing is remembered)`);
+    await page.keyboard.press('Escape');
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 2069
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
