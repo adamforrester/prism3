@@ -247,9 +247,12 @@ await section('slicing', async () => {
   const A = fresh();
   await runApplyTheme(input, A as any);
   const B = fresh();
-  const scripts = number(themeScripts(input, { sliceCeiling: 29_500 })).filter((s) => s.phase === 'preflight' || s.phase === 'theme');
+  // 30,000 since #1909: the color executor's `names` argument grew its one-item script past 29,500 less the numbering
+  // slack, where it had about 100 characters to spare. 30,000 still cuts the aliases into six scripts, so the arm below
+  // keeps its point, and sits about 500 over the largest one-item script.
+  const scripts = number(themeScripts(input, { sliceCeiling: 30_000 })).filter((s) => s.phase === 'preflight' || s.phase === 'theme');
   const floatAliasScripts = scripts.filter((s) => s.label.startsWith('float aliases')).length;
-  ok(floatAliasScripts >= 3, `slicing/${id}: a 29,500-character slice ceiling cuts the float aliases into ${floatAliasScripts} scripts (${scripts.length} in all)`);
+  ok(floatAliasScripts >= 3, `slicing/${id}: a 30,000-character slice ceiling cuts the float aliases into ${floatAliasScripts} scripts (${scripts.length} in all)`);
   const res = await runAll(scripts, B);
   ok(res.every((r) => r.ok), `slicing/${id}: every step of the finely-cut run is ok${res.filter((r) => !r.ok).slice(0, 2).map((r) => ` — ${r.label}: ${r.threw ?? J(r.misses).slice(0, 120)}`).join('')}`);
   for (const [name, pass, why] of arms(snapshot(A), snapshot(B), themePlans(input))) ok(pass, `slicing/${id}: ${name}${why}`);

@@ -36,7 +36,10 @@ export type UiToMain =
   | { type: 'ui-ready' }
   /** Materialise this brand into `figma.variables` (#108). Carries the live `BrandInput` from the
    *  shared UI's knobs; the main thread rebuilds the plan + runs the executor. */
-  | { type: 'apply-theme'; input: BrandInput }
+  | { type: 'apply-theme'; input: BrandInput;
+    /** #1909 (Q112 A): the person's Skip or Rename for each collision the last refusal named, keyed as that refusal's
+     *  `collisions` keyed them. Absent, or missing one, and an apply that collides is refused as before. Never stored. */
+    collisions?: Record<string, 'skip' | 'rename'> }
   /** Materialise a COMPONENT SET into this file (#483) — the component tier's own action.
    *
    *  A SEPARATE ACTION FROM `apply-theme`, NOT a flag on it, and that is the decision rather than a
@@ -365,7 +368,14 @@ export type MainToUi =
      *  the builder joins them (per axis, per note), without the joining separator. Built from the one list `summary`
      *  is joined from (`fromClauses` in `apply-summary.ts`), so the drawer never re-parses the prose. The agent link's
      *  result leaves it out (`agent-dispatch.ts`), so what an agent reads is unchanged, its keys in their order. */
-    lines: string[] }
+    lines: string[];
+    /** #1909: a refused apply's collisions, one per conflict, so the panel can ask Skip or Rename for each. The panel's
+     *  refusal only; absent on a clean apply and on an agent's result. `key` is what a choice is posted back under. */
+    collisions?: { key: string; kind: string; name: string; detail: string }[];
+    /** #1909, the review of #3518: with `collisions`, the choices this apply already used, when a choice (a Rename onto a
+     *  name someone else holds) made the collisions listed. The panel posts them back with the new choices, so it never
+     *  asks the earlier list again. Absent when the apply used none. */
+    chosen?: Record<string, 'skip' | 'rename'> }
   /** Result of a `build-components` write (#483) — the same `{ok, headline, summary}` shape as
    *  `apply-result`, and a DISTINCT variant for the same reason `seed-info` is: one kind per fact.
    *
