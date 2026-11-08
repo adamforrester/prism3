@@ -11,8 +11,8 @@
  * order or the kinds the subject reads.
  *
  * Mutations that fail here by name (each after a `wip:` commit):
- *   · the last run in place of the worst (`ends[ends.length - 1]`) → `#533 a clean run then a failed one: the failed`
- *     and its siblings;
+ *   · the last run in place of the worst (`ends[ends.length - 1]`) → `#533 a failed run then a clean one: the failed`,
+ *     `#533 a warning among clean runs: the warning` and `#533 two clean runs: the first`;
  *   · warnings before failures → `#533 a warning then a failure: the failure`.
  */
 import { worstEnd } from './src/shell/run-ended';
