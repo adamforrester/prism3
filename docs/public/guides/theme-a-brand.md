@@ -32,7 +32,7 @@ A lever is one brand setting, such as the primary color, the type scale or the c
 | **Type** | A typeface library, a font family for each text type, and the scale. <!-- src: apps/studio/src/shell/pages.ts:281-290 --> |
 | **Shape** | **Density**, **Radius** and the base radius. <!-- src: apps/studio/src/shell/pages.ts:336-342 --> |
 | **Depth & motion** | **Elevation**, **Motion** and the shadow tint. <!-- src: apps/studio/src/shell/pages.ts:353-357 --> |
-| **Layout** | **Breakpoints**, **Grid** and **Containers**. <!-- src: apps/studio/src/shell/pages.ts:365-370 --> |
+| **Layout** | **Grid**, **Breakpoints** and **Containers**. <!-- src: apps/studio/src/shell/pages.ts:365-370 --> |
 
 Component settings, such as how buttons place their icons, are in the **Components** area, beside the list of component sets. See [Build components](build-components.md). <!-- src: apps/studio/src/shell/pages.ts:383-422 -->
 

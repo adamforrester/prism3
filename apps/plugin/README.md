@@ -426,7 +426,7 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   fast. The mailbox polls so either route works; the first live run confirms it.
 - ✅ **Transport B, the local desktop bridge** — `tools/figma-bridge/server.ts` (a stdio MCP server plus a
   hand-rolled RFC 6455 WebSocket server on `ws://localhost:17331`) and `src/agent-bridge-relay.ts`: while
-  the link is on, the UI iframe holds the socket (the main thread has no network) and relays each command
+  the link is on, the UI iframe holds the socket (the main thread has no WebSocket; docs/18 §1) and relays each command
   to the same dispatcher the mailbox uses. It streams progress and console lines back. Since #3147 the
   relay ships in the network build ("Prism3 Studio"), whose manifest lists that one origin in
   `networkAccess.allowedDomains`; "Prism3 Studio Offline" carries no socket and offers the mailbox only.
