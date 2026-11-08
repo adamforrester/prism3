@@ -37,6 +37,8 @@ import { kindOf, OP_TITLE, type ActivityLend, type ActivityReading, type OpReadi
 import type { UpdateFileLend } from './shell/update-file';
 import type { ReportLend } from './shell/report';
 import { ENGINE_VERSION } from '@prism3/engine/version';
+import type { CollisionsLend } from './shell/collisions';
+import { withEarlier } from './state/collisions';
 import type { StatusLend } from './shell/status-strip';
 import { agentHeard, heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
@@ -1137,6 +1139,7 @@ const mountView = (view: RootView): void => {
         // #2069 (Q116 A): Report a problem, from the Activity drawer, which only the plugin draws (the web's placement is
         // the owner's to decide).
         report: commit.isFigma ? reportLend : null,
+        collisions: commit.isFigma ? collisionsLend : null,
         documentation: commit.isFigma ? documentationLend : null,
         status: commit.isFigma ? statusLend : null,
         // #2637 Q384: the bar's Docs. In the plugin the main thread opens the docs in the browser; on the web it is a link.
@@ -1827,7 +1830,19 @@ const RESTORE_OFF_HINT = "Off until a brand loads. This file's saved brand didn'
  *  the state. */
 const runApply = (): void => {
   if (applyBusy()) return;
-  setHost({ applyState: 'pending', openDetail: null }); hostChanged(); commit.postTheme(lastGoodInput);
+  setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput);
+};
+/** #1909 (Q112 A): the collision choice. Apply runs Apply Theme again with a choice for every collision the refusal
+ *  named; Cancel closes the list and the refusal stands. Nothing is kept: the choices ride this one post. */
+const collisionsLend: CollisionsLend = {
+  read: () => host.collisions,
+  submit: (choices) => {
+    if (applyBusy()) return;
+    // The review of #3518: with the choices this attempt already used, so a renamed name someone else holds asks only once.
+    const all = withEarlier(host.collisionsChosen, choices);
+    setHost({ applyState: 'pending', openDetail: null, collisions: null, collisionsChosen: null }); hostChanged(); commit.postTheme(lastGoodInput, all);
+  },
+  cancel: () => { setHost({ collisions: null, collisionsChosen: null }); hostChanged(); },
 };
 /** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
 const runPrune = (): void => {

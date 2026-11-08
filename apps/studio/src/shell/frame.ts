@@ -59,6 +59,7 @@ import { mountRail } from './rail';
 import { mountDocumentation, type DocumentationLend } from './documentation';
 import { mountUpdateFile, type UpdateFileLend } from './update-file';
 import { mountReport, type ReportLend } from './report';
+import { mountCollisions, type CollisionsLend } from './collisions';
 import { mountStatusStrip, type StatusLend } from './status-strip';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
@@ -209,6 +210,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly updateFile: UpdateFileLend | null;
   /** #2069: Report a problem's reads and its link opener, or null for none. */
   readonly report: ReportLend | null;
+  /** #1909: the collision choice a refused Apply Theme opens, or null where there is no Figma file. */
+  readonly collisions: CollisionsLend | null;
   /** #2909: Documentation's reads and writes, or null where there is no Figma file. */
   readonly documentation: DocumentationLend | null;
   /** #3170 part 2: the status strip's reading and its Stop, or null where there is no Figma file. */
@@ -473,6 +476,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   // plugin's rail foot (Q731), and the plugin's entry fills it; Update file is the plugin's too. The web has neither (Q2909.9 A).
   const minimize = host === 'figma' ? hook(h('div', 'p3-agent-slot p3-min-slot'), 'rail-minimize') : null;
   const update = opts.updateFile ? mountUpdateFile(opts.updateFile, cleanups) : null;
+  const collisions = opts.collisions ? mountCollisions(opts.collisions, cleanups) : null;
   const exportPage = hook(h('div', 'p3-export-host'), 'export-host');
   let lastTheme: PageKey = isMenuPage(page) || page === 'components' ? pageOfTab('brand') : page;
   const goArea = (a: AreaId): void => {
@@ -497,6 +501,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   previewHead.insertBefore(verdict, previewHead.children[1] ?? null);
   if (update) root.append(update.layer);
   if (report) root.append(report.layer);
+  // #1909: over Update file's, since a refused theme step can open it while that run ends.
+  if (collisions) root.append(collisions.layer);
   const barMain = mountBar(opts.bar, { agent, update: update?.button ?? null, exportPage }, cleanups);
   barSlot.append(barMain);
 

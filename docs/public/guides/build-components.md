@@ -25,13 +25,13 @@ On a file that isn't set up yet, the same run sets it up first. See [Set up a fi
 
 ## What a build does
 
-For each set, the plugin: <!-- src: apps/plugin/src/main.ts:867-990#34f3a25b -->
+For each set, the plugin: <!-- src: apps/plugin/src/main.ts:878-1001#34f3a25b -->
 
 - builds any set the chosen one contains first, such as the icon and focus ring inside a button;
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:955-956#03cbfa05 -->
+- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:966-967#03cbfa05 -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:150-151#7bb3ec74 -->
 

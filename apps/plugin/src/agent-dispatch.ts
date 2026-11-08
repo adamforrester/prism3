@@ -28,6 +28,7 @@
  */
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { AGENT_PROTOCOL_VERSION, READ_COMMANDS, parseCommand, failedResult } from './agent-protocol';
+import type { CollisionChoices } from './collision-choice';
 import type { ActivityArgs, UpdateChoiceArgs } from './agent-protocol';
 import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd, DevCmd } from './agent-protocol';
 import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
@@ -48,14 +49,18 @@ export type ActionSink = {
  *  `summary` (#2177), and without `causes`, the drawer's marks (#3326; an agent reads the same facts as `activity`'s
  *  `problems`, #3309). Destructured, so every other key keeps its place and the envelope is the one agents always had. */
 export const forAgent = (m: MainToUi): MainToUi => {
-  if (!('lines' in m) && !('causes' in m)) return m;
-  const { lines: _drawerOnly, causes: _marks, ...rest } = m as MainToUi & { lines?: unknown; causes?: unknown };
+  if (!('lines' in m) && !('causes' in m) && !('collisions' in m) && !('chosen' in m)) return m;
+  // #1909: `collisions` and `chosen` are the panel's alone (its Skip or Rename list); `main.ts` sends them only to the
+  // panel, and this drops them too, so an agent's verdict keeps its keys whatever posts it.
+  const { lines: _drawerOnly, causes: _marks, collisions: _panelOnly, chosen: _panelChoices, ...rest } = m as MainToUi & { lines?: unknown; causes?: unknown; collisions?: unknown; chosen?: unknown };
   return rest as MainToUi;
 };
 
 /** The main-thread handlers the UI's buttons reach — built by `main.ts` from its own functions. */
 export type AgentActions = {
-  applyTheme(input: BrandInput, sink: ActionSink): Promise<void>;
+  /** `choices` (#1909): the panel's Skip or Rename per collision, before the sink (every action's sink is its last
+   *  argument, which the run guard reads). The agent link passes none, so an agent's apply that collides is refused. */
+  applyTheme(input: BrandInput, choices: CollisionChoices | undefined, sink: ActionSink): Promise<void>;
   /** `options.docBlock`: Update file's sets step (#3308 Q3308.3 A) and the agent's build (#3467 Q1 A) both pass it, so a
    *  first build on a themed file builds `_Doc-block` first, as the panel's first run does. */
   buildComponents(def: string | undefined, sink: ActionSink, options?: { readonly docBlock?: boolean }): Promise<void>;
@@ -175,7 +180,7 @@ const readHost = (d: Deps): ReadHost => {
 type Route = (c: ValidCommand, a: AgentActions, sink: ActionSink, d: Deps) => Promise<void>;
 export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   status: async (_c, _a, sink, d) => { sink.data(await d.status()); },
-  'apply-theme': (c, a, sink) => a.applyTheme((c as Extract<ValidCommand, { cmd: 'apply-theme' }>).args.input, sink),
+  'apply-theme': (c, a, sink) => a.applyTheme((c as Extract<ValidCommand, { cmd: 'apply-theme' }>).args.input, undefined, sink),
   // #3467 Q1 A: the same `docBlock` ask as Update file's sets step (`apps/studio/src/main.ts`), through the same handler.
   'build-components': (c, a, sink) => a.buildComponents((c as Extract<ValidCommand, { cmd: 'build-components' }>).args.def, sink, { docBlock: true }),
   'file-setup': (_c, a, sink) => a.fileSetup(sink),
