@@ -6,11 +6,11 @@ Prose only, no behavior change.
 
 - **`apps/plugin/src/agent-protocol.ts` header (#2686.1).** "NO EVAL … nothing in an envelope is ever executed"
   predated #2544. A development build adds `run-code`, which runs its `code` in the main thread. The rule now holds
-  for the release build only, and the header names the dev-only command, the `PRISM3_DEV` branch it sits behind and
+  for the release build only, and the header names the dev-only command and
   `lint-release-bundle.ts`, which checks it is absent from `release/`. `dev-commands.ts` already said so.
 - **`docs/45` status line (#2686.2).** "Phase 3 specified here, not built" now says what shipped: border width and
   opacity (#2353), the Effect and Gradient style tables (#2584) and the Grids table (#3171), all in `PHASE_TYPES`.
-  It also says what is still a later phase (`LATER_KIND`): motion, font style, paragraph spacing and indent, and
+  It also says what is still a later phase (`LATER_KIND`): motion, unbound font-style variables, paragraph spacing and indent, and
   effect or gradient variables.
 - **`docs/18` §1 network row (#2999).** The main thread *has* a network global: Figma's own `fetch`, declared in
   `@figma/plugin-typings` 1.141.0 and documented as a global in Figma's reference. The row and the sentence under the
