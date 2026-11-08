@@ -1714,6 +1714,23 @@ npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHI
                                           # `--pds3-` (Q98 A) in `:root` and each promised
                                           # `[data-theme]` block. The contract, prefix and mode list
                                           # are the oracle, never read off the build
+npm run check:generated -w @prism3/css      # #3408 S2, Q96 A: button.css and demo.html are what
+                                          # packages/css/generate.ts writes from the emission
+                                          # (specs.json + component-defs.json); both are committed
+npm run check:raw-values -w @prism3/css     # the agent-adherence scorer's own R2 (and R1), imported:
+                                          # no hex, rgb(), non-zero px or primitive in the package's
+                                          # CSS, one documented exception (the derived min-width px
+                                          # specs.json states), planted mutants named
+npm run check:parity -w @prism3/css         # needs Chromium. specs.json + components.ai.json against
+                                          # what the browser COMPUTES for markup written from the
+                                          # check's own copy of the contract, each token a unique
+                                          # sentinel so a value decodes to one name; four mutants
+                                          # (token, state, prop value in CSS and in the contract)
+                                          # must fail by name
+npm run test:browser -w @prism3/css         # needs Chromium; builds @prism3/tokens first. demo.html
+                                          # on light and dark: computed values equal the scorer
+                                          # oracle's resolved tokens, focus-visible on keyboard and
+                                          # not on mouse, the accessibility tree holds
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component

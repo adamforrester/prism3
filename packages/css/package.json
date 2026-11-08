@@ -1,0 +1,26 @@
+{
+  "name": "@prism3/css",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Prism3 components as plain HTML and CSS: the styles and markup patterns, built on the token CSS from @prism3/tokens.",
+  "type": "module",
+  "style": "./button.css",
+  "exports": {
+    "./button.css": "./button.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "button.css",
+    "README.md"
+  ],
+  "scripts": {
+    "generate": "npx --yes tsx@4 generate.ts",
+    "check:generated": "npx --yes tsx@4 generate.ts --check",
+    "check:raw-values": "npx --yes tsx@4 check-raw-values.ts",
+    "check:parity": "npx --yes tsx@4 check-parity.ts",
+    "test:browser": "npm run -w @prism3/tokens build && npx --yes tsx@4 check-browser.ts"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

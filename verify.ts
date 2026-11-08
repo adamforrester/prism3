@@ -948,6 +948,18 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/tokens', 'check:package'),
   },
   {
+    // #3408 S2 — button.css and demo.html are generated from the emission and committed; reads no build.
+    id: 'css-generated',
+    ciStep: '@prism3/css matches what its generator writes from the emission (#3408 S2)',
+    cmd: ws('@prism3/css', 'check:generated'),
+  },
+  {
+    // #3408 S2 — the adherence scorer's own R2 (and R1) over button.css and the demo; needs no browser.
+    id: 'css-raw-values',
+    ciStep: '@prism3/css reads tokens, never raw values (#3408 S2)',
+    cmd: ws('@prism3/css', 'check:raw-values'),
+  },
+  {
     id: 'lint-skills',
     ciStep: 'Skills gate (shipped skills make true claims)',
     cmd: engine('lint-skills.ts'),
@@ -1285,6 +1297,20 @@ export const GATES: Gate[] = [
     after: ['build-web'],
     why: 'it drives the built dist/main.js in a browser',
     // One of the TWO gates here that need a browser — see `chromiumPrecondition`.
+    precondition: chromiumPrecondition,
+  },
+  {
+    // #3408 S2 — renders button.css in Chromium with a sentinel per token; reads no build, needs a browser.
+    id: 'css-parity',
+    ciStep: '@prism3/css binds the tokens specs.json names, in every part, size and state (#3408 S2)',
+    cmd: ws('@prism3/css', 'check:parity'),
+    precondition: chromiumPrecondition,
+  },
+  {
+    // #3408 S2 — the demo with the real token CSS; its script builds @prism3/tokens first.
+    id: 'css-browser',
+    ciStep: '@prism3/css demo renders the resolved tokens on light and dark (#3408 S2)',
+    cmd: ws('@prism3/css', 'test:browser'),
     precondition: chromiumPrecondition,
   },
 ];
