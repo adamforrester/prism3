@@ -12,7 +12,7 @@ It is the first item of the **Update file** checklist, **Set up file**, listed w
 3. Choose **Set up and update**. <!-- src: apps/studio/src/state/update-file.ts:392 -->
 
 Once the file is set up, the checklist lists the setup item again only while the file lacks something setup builds, such as a deleted template. The item then starts unticked and names what is missing. <!-- src: apps/studio/src/shell/update-file.ts:259#ea4392b9 -->
-Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:95-102#4882125b --> If a setup failed, the run stops there, and the Activity drawer offers **Update again**, which opens Update file again. <!-- src: apps/studio/src/shell/activity.ts:240 -->
+Setting up again is safe: it adds only what is missing, matched by name. <!-- src: apps/plugin/src/file-setup.ts:95-102#4882125b --> If a setup failed, the run stops there, and the Activity drawer offers **Update again**, which opens Update file again. <!-- src: apps/studio/src/shell/activity.ts:239 -->
 
 ## The pages it creates
 
