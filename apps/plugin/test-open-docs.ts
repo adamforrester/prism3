@@ -11,6 +11,10 @@
  * INDEPENDENCE (docs/34): the expected address is a literal typed here; the actual side is what `main.ts` handed to
  * `openExternal`.
  *
+ * #2069 (Q116 A): `open-issue`, Report a problem's link, opens only this repo's issue form. Mutations: the `isIssueUrl`
+ * check dropped → `#2069 open-issue opens nothing but this repo's issue form`; the case dropped → `#2069 open-issue opens
+ * the prefilled issue form in the browser`.
+ *
  * Mutations this fails by name: the `open-docs` case dropped from `main.ts` → `open-docs opens the docs landing page
  * in the browser`; `DOCS_URL` pointed anywhere else → the same arm, naming the address it opened.
  */
@@ -69,6 +73,19 @@ ok(JSON.stringify(opened) === JSON.stringify([EXPECTED]), `open-docs opens the d
 send({ type: 'open-docs', url: 'https://example.com/' });
 await settle();
 ok(JSON.stringify(opened) === JSON.stringify([EXPECTED, EXPECTED]), `an address sent with open-docs is ignored, and the docs page opens again (opened ${JSON.stringify(opened)})`);
+
+// ── #2069 (Q116 A): Report a problem's prefilled issue. The panel builds the address; the main thread opens it only when
+// it is the issue form on this repo. The prefix is a literal typed here.
+const ISSUE = 'https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=Build%3A%20x';
+opened.length = 0;
+send({ type: 'open-issue', url: ISSUE });
+await settle();
+ok(JSON.stringify(opened) === JSON.stringify([ISSUE]), `#2069 open-issue opens the prefilled issue form in the browser (opened ${JSON.stringify(opened)})`);
+for (const bad of ['https://example.com/collect?d=1', 'https://github.com/someone-else/repo/issues/new?body=x', 'javascript:alert(1)', 42, undefined]) {
+  send({ type: 'open-issue', url: bad });
+}
+await settle();
+ok(JSON.stringify(opened) === JSON.stringify([ISSUE]), `#2069 open-issue opens nothing but this repo's issue form (opened ${JSON.stringify(opened)})`);
 
 console.log(`\n${executed - failed}/${executed} open-docs assertions passed.`);
 if (failed) process.exit(1);

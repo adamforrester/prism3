@@ -171,6 +171,9 @@ export interface HostCommit {
    *  bar's Docs is a link). Carries no address: the main thread holds it (`messages.ts` `open-docs`), so the iframe
    *  cannot point `figma.openExternal` anywhere else. */
   openDocs(): void;
+  /** #2069 (Q116 A): open a prefilled GitHub issue (`state/report.ts`'s `issueUrl`) in the browser. The plugin's main
+   *  thread opens only an issue form on this repo (`isIssueUrl`); the web opens a tab. */
+  openIssue(url: string): void;
   /** Ask the host to draw the style-guide tables (#259; Figma only, no-op on web, which has no canvas). The
    *  options are the panel's Customize fields, every one optional. Its result is `style-guide-result`, its own
    *  kind and slot for the one-kind-per-fact reason above. */
@@ -632,6 +635,9 @@ const figmaCommit = (): HostCommit => ({
   openDocs() {
     post({ type: 'open-docs' });
   },
+  openIssue(url) {
+    post({ type: 'open-issue', url });
+  },
   postStyleGuide(options) {
     const msg: Extract<UiToMain, { type: 'style-guide' }> = options ? { type: 'style-guide', options } : { type: 'style-guide' };   // typed local, as above
     post(msg);
@@ -702,6 +708,7 @@ const webCommit = (): HostCommit => ({
   postComponents() {/* no canvas on web — the component tier is a Figma-only write */},
   postFileSetup() {/* no canvas on web — file scaffolding is a Figma-only action (#1558) */},
   openDocs() {/* the web bar's Docs is a link to the site's own /docs/ (#2637 Q384) */},
+  openIssue(url) { window.open(url, '_blank', 'noopener'); },
   postStyleGuide() {/* no canvas on web — the style guide is drawn in Figma (#259) */},
   requestStyleGuideCatalog() {/* no file on web (S11.2) */},
   cancelStyleGuide() {/* no style guide runs on web (S11.2) */},

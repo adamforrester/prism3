@@ -83,6 +83,10 @@ export type UiToMain =
    *  main thread calls `figma.openExternal` on `DOCS_URL`, the studio's web `/docs/`. Carries no address, so the UI
    *  cannot point it anywhere else. Needs no network permission: `openExternal` hands the address to the browser. */
   | { type: 'open-docs' }
+  /** #2069 (Q116 A): open a prefilled GitHub issue for Report a problem. The main thread opens `url` with
+   *  `figma.openExternal` only when it is the issue form on this repo (`isIssueUrl`); anything else is dropped. The
+   *  bundle rides in the address because the plugin sends nothing over the network itself. */
+  | { type: 'open-issue'; url: string }
   /** Draw the style-guide tables (#259, phase 1: color) — one table per palette on `↳ Primitive tokens` and one
    *  per role family on `↳ Semantic tokens`, from the file's own variables. Its own action for the #652 reason.
    *  Updates tables already drawn in place; never creates a page or moves a cell set. */

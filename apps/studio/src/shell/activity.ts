@@ -45,6 +45,7 @@ import type { OpKey } from '../state/host-session';
 import type { Cause } from '../../../plugin/src/messages';
 import type { Host } from './pages';
 import { armEnter, enterMark, glyph, h, hook, leave, tile } from './dom';
+import { REPORT_COPY } from '../state/report';
 import { runTime } from './run-time';
 
 /** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
@@ -129,7 +130,7 @@ export const restoreActivityHeight = (v: unknown): void => {
  */
 /** Copy text from a Figma plugin's iframe, which may refuse the async clipboard: then a selected textarea and
  *  `execCommand('copy')`. Whether it was copied. */
-const copyText = async (text: string): Promise<boolean> => {
+export const copyText = async (text: string): Promise<boolean> => {
   try { await navigator.clipboard.writeText(text); return true; } catch { /* the iframe refused it: try the textarea */ }
   const ta = document.createElement('textarea');
   ta.value = text;
@@ -230,7 +231,9 @@ export type ActivitySource = () => ActivityReading;
 export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void;
   /** #3326: a cause's subject (a def id) in the panel's words, the set's name. Absent, the id is shown. */
   readonly nameOf?: (id: string) => string;
-  readonly again?: { readonly can: (k: RowKey) => boolean; readonly run: (k: RowKey) => void } };
+  readonly again?: { readonly can: (k: RowKey) => boolean; readonly run: (k: RowKey) => void };
+  /** #2069 (Q116 A): open Report a problem, from the button at the foot of the open drawer. Absent, no button. */
+  readonly report?: (opener: HTMLElement) => void };
 
 /** Q3113.4 A: a bad result's next step that runs it again, by operation (DRAFT wording). The boot read-back has none:
  *  nothing in the panel asks for it. */
@@ -397,6 +400,15 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   linkDetail.append(glyph('agent'), linkDot, linkText);
   sheetHead.append(close, h('b', 'p3-drawer-title', 'Activity'), h('span', 'p3-spacer'), sheetCounts);
   body.append(sheetHead, linkDetail, rows, note);
+  // #2069 (Q116 A): Report a problem, the drawer's last line, where the session's results are. DRAFT placement and words.
+  if (opts.lend.report) {
+    const report = opts.lend.report;
+    const rep = hook(h('button', 'p3-btn p3-btn-page p3-drawer-report'), 'activity-report');
+    rep.type = 'button';
+    rep.textContent = REPORT_COPY.open;
+    rep.onclick = () => report(rep);
+    body.append(rep);
+  }
   drawer.append(toggle, body);
   // A write's control says it is busy while the write runs, panel or agent, and a polite status line says
   // so once, when it starts (owner decision #4 on #1956, the engine Button's `isPending` aria note), and again when it
