@@ -21,11 +21,11 @@ Every visual, layout, naming or copy choice below is **the owner's call**. Each 
 - **Data:** `resolveAllModes(theme)` per mode (`main.ts:871-872`). The current mode plus its opposite (`:873-874`). No ratio badges (`badges:false`, `:876`; `preview/sections/kit.ts:206-207`). Only a "!" appears when a role misses its floor (`kit.ts:268`, `:289`).
 - **Ground picker:** Page, Page second tier or Inverse (`kit.ts:173-178`, `main.ts:889-923`).
 - **Sections, in order (`main.ts:927-938`).** They are cards and specimens, not tables:
-  1. Type sample (#1942): one display style plus title, body, label and caption, each a pangram at the real resolved size (`preview/sections/type-sample.ts:137-174`).
-  2. Radius and shadow sample: a panel holding a field, a button, a checkbox and a tag at their bound radii (`radius-sample.ts:206-247`).
+  1. Type sample (#1942): one display style plus title, body, label and caption, each a pangram at the real resolved size (`preview/sections/type-sample.ts:22-35`, `:55-92`).
+  2. Radius and shadow sample: a panel holding a field, a button, a checkbox and a tag at their bound radii (`radius-sample.ts:28`, `:32-73`).
   3. Background, Foreground, Text color, Border, Icon (`COLOR_SECTIONS`, `sections/index.ts:78-80`). **Text color is the one grid of rows** (`text-color.ts:25-66`).
   4. Disabled (`disabled.ts:11-22`).
-  5. Interactive, with Primary, Neutral and Destructive in rest, hover and pressed (`interactive.ts:31`, `:41-44`).
+  5. Interactive, with Primary, Neutral and Destructive in rest, hover and pressed (`interactive.ts:31`, `:46`).
 - **Reuse:** Surfaces & fills (`preview/surfaces.ts:70-94`) and Color › Interactive (`preview/interactive.ts:53-62`) draw the same sections, with badges. **A condensed Brand preview has to keep those consumers working.**
 - **Why #1941 exists:** it reads as a reference page, not a preview (#1941 body; `docs/superpowers/ui-redesign/decisions-2026-10-01-qa.md:21`, Q6). Concept v6's product-style specimen page was more compact, but the owner didn't love it as drawn (`concept-v6.md:212`, `:223-226`).
 
@@ -92,7 +92,7 @@ Every visual, layout, naming or copy choice below is **the owner's call**. Each 
   - `test-cover-frame.ts`.
 - **Studio:**
   - `test-smoke.mjs`: section order and markers, and the type sample held to the emission (`:1739`, `:1764-1777`, `:1998-1999`).
-  - `test-chrome.mjs`: specimen ground on `background.primary` (`:325-343`; `STYLE_GUIDE_ROOTS` `:4149`).
+  - `test-chrome.mjs`: specimen ground on `background.primary` (`:325-343`; `STYLE_GUIDE_ROOTS` `:4160`).
   - `lint-contrast.mjs` checks the studio chrome, **not** the style guide.
 
 ## 2. Prior art in issues
@@ -136,7 +136,7 @@ Pages were read through text fetches, so images are known only by caption. Mater
    - Atlassian pairs each surface token with its shadow token; in dark, surfaces lighten as they rise (<https://atlassian.design/foundations/elevation>).
    - Fluent 2 gives a shadow ramp whose number is the blur, with separate light and dark usage (<https://fluent2.microsoft.design/elevation>).
 7. **Names stay constant across modes; values vary.** Two patterns are common:
-   - one value column per mode (Carbon themes; the Variables Documentation plugin, <https://figma-web.pages.dev/plugins/1493511839808963998>);
+   - one value column per mode (Carbon themes; the Variables Documentation plugin, <https://www.figma.com/community/plugin/1493511839808963998>);
    - a page-level mode switch that rebinds live (Tokens Studio's "apply active theme", <https://docs.tokens.studio/figma/generate-documentation>).
 
    The second scales past 3–4 modes; the first does not (our #2807).
