@@ -364,9 +364,9 @@ export const DOMAINS = [
     // descriptions are the owner's, and each is also its preview section's (Q23). APPROVED (owner, S10 scope, D11–D17).
     id: 'layout', label: 'Layout', home: 'layout', intro: 'Breakpoints, the grid and content widths.',
     sections: [
-      { title: 'Breakpoints', desc: BREAKPOINTS_DESC, rows: [{ ctl: 'breakpoints', keys: ['layout.breakpoints'] }] },
-      // D12: each breakpoint's gutter and margin sit beside its columns, as Auto or a spacing step. Schema inputs.
+      // D12: each breakpoint's gutter and margin sit beside its columns, as Auto or a spacing step. Schema inputs. Grid first (#683, Q111 A).
       { title: 'Grid', desc: GRID_DESC, rows: [{ ctl: 'columns', keys: ['layout.columns'] }, { ctl: 'gridOverrides', schemaOnly: ['layout.columnOverrides', 'layout.gutterOverrides', 'layout.marginOverrides'] }] },
+      { title: 'Breakpoints', desc: BREAKPOINTS_DESC, rows: [{ ctl: 'breakpoints', keys: ['layout.breakpoints'] }] },
       { title: 'Containers', desc: CONTAINERS_DESC, rows: [{ ctl: 'slider', keys: ['layout.containerMax'] }, { ctl: 'slider', keys: ['layout.containerNarrow'] }] },
     ],
     // S10: moved. Its levers are `domains/layout.ts`, its preview `preview/layout.ts`.
