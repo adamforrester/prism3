@@ -3235,8 +3235,8 @@ for (const host of ['web', 'figma']) {
         // Idle: nothing has run. #2909: the rail shell draws no Activity tile (the drawer's own row is Activity), on both
         // hosts since Q2909.9 A, so only the drawer is read. #3113 (Q3113.9 A): the plugin draws its bar row from launch,
         // closed, reading "Activity"; at 380 the strip waits for the first run (Q3113.15, #2105's room for the levers); the
-        // studio runs no write, so its drawer is not drawn.
-        // MUTATION: `opts.host === 'figma'` dropped from `data-ever` in `activity.ts` → the plugin arm, by name.
+        // studio runs no write, so it mounts no drawer (#3011, Q121 A).
+        // MUTATION: `data-ever` reading `recs.size > 0` alone in `activity.ts` → the plugin arm, by name.
         const idle = await drawerState(page);
         if (host === 'web' || narrow) ok(!idle.shown && !idle.open && idle.name === null, `F2 ${where}: before anything runs the drawer is not drawn${narrow && host === 'figma' ? ' at 380 (Q3113.15)' : ''}, and ${host === 'web' ? 'the studio' : 'the plugin'} draws no Activity tile (#2909) (${JSON.stringify({ shown: idle.shown, name: idle.name })})`);
         else ok(idle.shown && !idle.open && idle.pinned && idle.name === null && (idle.last ?? '').startsWith('Activity') && Object.keys(idle.ops).length === 0,
@@ -3246,6 +3246,10 @@ for (const host of ['web', 'figma']) {
           // The studio runs no write, so its drawer never draws (its old Activity tile went with the bar's, Q2909.9 A).
           await shot('drawer-idle');
           const bar = await page.locator('[data-p3="top-bar"]').count();
+          // #3011 (Q121 A): with no door to it and nothing to report, the studio mounts no drawer at all: no drawer, no handle,
+          // no status line. MUTATION: `main.ts` lending the drawer on the web too (`activity:` not gated on `commit.isFigma`) → this arm, by name.
+          const mounted = await page.evaluate(() => ['activity-drawer', 'activity-grip', 'activity-note', 'activity-status'].filter((k) => document.querySelector(`[data-p3="${k}"]`)));
+          hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, mounted.length === 0, `#3011 ${where}: the studio mounts no Activity drawer (mounted ${JSON.stringify(mounted)})`);
           hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('.p3-figma-wrap').count() === 0, `${where}: the studio offers no Figma menu`);
           hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="bar-agent"]').count() === 0 && await page.locator('[data-p3="agent-toggle"]').count() === 0, `${where}: the studio renders no Agent slot or tile`);
           ok(errors.length === 0, `${where} Activity: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -14654,13 +14658,13 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
 } // 2232
 
 // =============================================================================================
-// 32. #2176 (the owner's AD1–AD3, 2026-10-05): drag the Activity drawer's top edge to make it taller. Both hosts, both
-//     themes, at 1280 (the drag) and at 380 (no handle).
+// 32. #2176 (the owner's AD1–AD3, 2026-10-05): drag the Activity drawer's top edge to make it taller. The plugin, both
+//     themes, at 1280 (the drag) and at 380 (no handle); the studio mounts no drawer (#3011, Q121 A).
 // =============================================================================================
 // AD1: at the wide tier, while the drawer is open, a handle on its top edge. A window splitter (WAI-ARIA): `role=
 // "separator"`, `aria-orientation="horizontal"`, `aria-valuenow`/`-min`/`-max`; Arrow Up and Arrow Down step it, Home and End
 // go to the least and the most. The height runs from today's open height up to just under the preview header, clamped at
-// both ends, and is kept per person under `prism3:activity-height` (web `localStorage`; the plugin posts it to the main
+// both ends, and is kept per person under `prism3:activity-height` (the plugin posts it to the main
 // thread, which keeps it in `figma.clientStorage` and answers `ui-ready` with it, held on that side by
 // `apps/plugin/test-activity-height.ts`). The owner's change from the mock: the pill sits INSIDE the drawer, below its
 // top border, and is wider than the mock's 32px. AD2: no handle at 380. AD3: its accessible name is "Resize Activity".
@@ -14684,8 +14688,6 @@ const GRIP_NAME = 'Resize Activity';
 const GRIP_STEP = 24;
 /** The mock's pill was 32px; the owner asked for a little wider. Literal. */
 const MOCK_PILL_W = 32;
-/** The kept height's key, on both hosts. Literal. */
-const HEIGHT_KEY = 'prism3:activity-height';
 const GRIP = '[data-p3="activity-grip"]';
 /** The drawer, the handle, the pill and the preview header, measured as rendered. */
 const gripState = (page) => page.evaluate(() => {
@@ -14750,7 +14752,7 @@ for (const host of ['figma']) for (const theme of ['light', 'dark']) {
   const where = `32 ${host} ${theme} 1280`;
   const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
   try {
-    if (host === 'figma') await page.evaluate(() => { window.__heightPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'set-activity-height') window.__heightPosts.push(m.px); }); });
+    await page.evaluate(() => { window.__heightPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'set-activity-height') window.__heightPosts.push(m.px); }); });
     // Closed, the handle is not drawn (AD1: only while the drawer is open).
     const c0 = await gripState(page);
     hooks.absent(ok, { seen: !!c0.drawer, state: 'the drawer in the frame' }, !c0.open && !c0.gripShown, `${where}: with the drawer closed, no handle is drawn (open ${c0.open}, handle ${c0.gripShown})`);
@@ -14814,12 +14816,7 @@ for (const host of ['figma']) for (const theme of ['light', 'dark']) {
     // Kept per person: three steps up, then a reload.
     for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp');
     const want = Math.round(least + 3 * GRIP_STEP);
-    if (host === 'web') {
-      const kept = await page.evaluate((k) => localStorage.getItem(k), HEIGHT_KEY);
-      ok(kept === String(want), `${where}: the height is kept in localStorage under ${HEIGHT_KEY} (kept ${JSON.stringify(kept)}, want "${want}")`);
-      await page.reload({ waitUntil: 'networkidle' });
-      await hooks.need(page, '[data-p3="frame"]');
-    } else {
+    {
       const posted = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__heightPosts.slice()), 50)));
       ok(posted.at(-1) === want, `${where}: the height is kept: posted to the main thread as set-activity-height (posted ${JSON.stringify(posted)}, want last ${want})`);
       // A reload: the main thread answers ui-ready with what it kept (its half: apps/plugin/test-activity-height.ts).
@@ -14840,10 +14837,10 @@ for (const host of ['figma']) for (const theme of ['light', 'dark']) {
 // AD2: at 380 the open drawer is the full-pane sheet, with no handle, a kept height or not (the plugin's; Q2909.9 A).
 for (const host of ['figma']) for (const theme of ['light', 'dark']) {
   const where = `32 ${host} ${theme} 380`;
-  const { ctx, page, errors } = await open({ host, theme, w: 380, h: 420, store: host === 'web' ? { [HEIGHT_KEY]: '200' } : undefined });
+  const { ctx, page, errors } = await open({ host, theme, w: 380, h: 420 });
   try {
     await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
-    if (host === 'figma') await postMsg(page, { type: 'activity-height', px: 200 });
+    await postMsg(page, { type: 'activity-height', px: 200 });
     await openDrawer(page);
     const s = await gripState(page);
     const sheet = await page.evaluate(() => { const b = document.querySelector('[data-p3="activity-body"]'); return !!b && !b.hidden && b.getBoundingClientRect().height > 0; });
