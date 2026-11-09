@@ -7,8 +7,9 @@
  * both actions take it from there.
  *
  * LAYOUT: Update file's dialog shape (`update-file.ts`): a modal over a scrim, a body, the actions in the foot. Opened
- * from the Activity drawer, where the session's results are (`activity.ts`, its `report` lend). The placement and
- * every string are DRAFT (#2069: the owner's call).
+ * from the Activity drawer in the plugin, where the session's results are (`activity.ts`, its `report` lend), and from
+ * the rail beside Help on the web, which has no drawer (#3524, `frame.ts`). The placement and every string are DRAFT
+ * (#2069, #3524: the owner's call).
  *
  * DIALOG: modal (`aria-modal`); focus goes in as it opens and back to the opener as it closes; Escape and a click on the
  * scrim close it; Tab stays inside (`trapTab`).

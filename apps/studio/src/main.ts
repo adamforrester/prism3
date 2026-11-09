@@ -1138,9 +1138,9 @@ const mountView = (view: RootView): void => {
           ended: (line: string) => commit.noteRunEnded(line) } : null,
         // #2909 IA v2 phase 1: Apply Theme and the Figma menu went into Update file, the plugin's one global write.
         updateFile: commit.isFigma ? updateFileLend : null,
-        // #2069 (Q116 A): Report a problem, from the Activity drawer, which only the plugin draws (the web's placement is
-        // the owner's to decide).
-        report: commit.isFigma ? reportLend : null,
+        // #2069 (Q116 A): Report a problem, from the Activity drawer, which only the plugin draws. #3524: on the web, from
+        // the rail, beside Help (DRAFT placement, the owner's call).
+        report: reportLend,
         collisions: commit.isFigma ? collisionsLend : null,
         documentation: commit.isFigma ? documentationLend : null,
         status: commit.isFigma ? statusLend : null,

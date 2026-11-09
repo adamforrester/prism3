@@ -851,7 +851,8 @@ const FIGMA_RAIL = [...FIGMA_RAIL_AREAS, ...FIGMA_RAIL_FOOT];
  *  and Appearance at its foot (no Agent: the web has no link). Its bar holds the brand switcher alone (no Update file,
  *  no Minimize: no file to write, no window to shrink), and the levers header its search. Authored from the decision. */
 const WEB_RAIL_AREAS = ['[data-p3="rail-theme"]', '[data-p3="rail-components"]', '[data-p3="rail-export"]'];
-const WEB_RAIL_FOOT = ['[data-p3="docs-open"]', '[data-p3="theme-toggle"]'];
+// #3524 (DRAFT, the owner's call): Report a problem beside Help, since the web has no Activity drawer to hold it.
+const WEB_RAIL_FOOT = ['[data-p3="docs-open"]', '[data-p3="report-open"]', '[data-p3="theme-toggle"]'];
 const WEB_RAIL = [...WEB_RAIL_AREAS, ...WEB_RAIL_FOOT];
 const WEB_BAR = ['[data-p3="brand-switcher"]', '[data-p3="search-open"]'];
 // Q731 (2026-10-26): the Agent tile is on the top bar, in the place Minimize held; Minimize is at the rail's foot.
@@ -1986,11 +1987,13 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         // plugin's foot opens with Minimize, where the Agent tile was. MUTATION: `agent` back in the rail's `foot` and
         // `minimize` back on the bar in `frame.ts` → this arm, by name, at every plugin width and theme.
         const web = host === 'web';
-        const ORDER = web ? ['rail-theme', 'rail-components', 'rail-export', 'docs-open', 'theme-toggle']
+        // #3524 (DRAFT): the web's foot holds Report a problem after Help. MUTATION: `reportTile` left out of the rail's
+        // `foot` in `frame.ts` → this arm, by name, at every web width and theme.
+        const ORDER = web ? ['rail-theme', 'rail-components', 'rail-export', 'docs-open', 'report-open', 'theme-toggle']
           : ['rail-theme', 'rail-components', 'rail-documentation', 'rail-export', 'agent-minimize', 'docs-open', 'theme-toggle'];
-        const NAMES = web ? ['Theme', 'Components', 'Export', 'Help'] : ['Theme', 'Components', 'Documentation', 'Export', 'Minimize', 'Help'];
+        const NAMES = web ? ['Theme', 'Components', 'Export', 'Help', 'Report a problem'] : ['Theme', 'Components', 'Documentation', 'Export', 'Minimize', 'Help'];
         ok(rl.rail && rl.width === 60 && rl.left === 0 && rl.frameLeft >= 60, `rail ${where}: the left rail is drawn at the window's left edge, 60px wide, and the frame starts after it (${JSON.stringify({ rail: rl.rail, width: rl.width, left: rl.left, frameLeft: rl.frameLeft })})`);
-        ok(JSON.stringify(rl.order) === JSON.stringify(ORDER), web ? `rail ${where}: Theme, Components, Export, then Help and Appearance, in that order: no Documentation and no Agent on the web (Q2909.9 A) (${rl.order.join(', ')})`
+        ok(JSON.stringify(rl.order) === JSON.stringify(ORDER), web ? `rail ${where}: Theme, Components, Export, then Help, Report a problem (#3524) and Appearance, in that order: no Documentation and no Agent on the web (Q2909.9 A) (${rl.order.join(', ')})`
           : `rail ${where}: Theme, Components, Documentation, Export, then Minimize at the foot where Agent was (Q731), Help and Appearance, in that order (${rl.order.join(', ')})`);
         ok(JSON.stringify(rl.names.slice(0, NAMES.length)) === JSON.stringify(NAMES) && /^Appearance: /.test(rl.names[NAMES.length] ?? ''),
           `rail ${where}: each tile is named in full (${rl.names.join(', ')})`);
@@ -2001,7 +2004,8 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         // chooses each in turn. The web (Q2909.9 A) draws five of the tiles, and its default is System, also a monitor.
         // MUTATION: the fixed half-filled circle back (`glyph(cur.glyph)` → `glyph('halfmoon')` in
         // `frame.ts` `themeToggle`) → this arm and the sweep's, by name, at every width and theme.
-        const Q2909_19_A = web ? ['swatches', 'diamonds', 'send', 'help', 'system'] : ['swatches', 'diamonds', 'page', 'send', 'collapse', 'help', 'system'];
+        // #3524 (DRAFT): Report a problem draws Tabler's message-report (`report`), a speech bubble with an exclamation mark.
+        const Q2909_19_A = web ? ['swatches', 'diamonds', 'send', 'help', 'report', 'system'] : ['swatches', 'diamonds', 'page', 'send', 'collapse', 'help', 'system'];
         ok(JSON.stringify(rl.icons) === JSON.stringify(Q2909_19_A),
           `rail ${where}: each tile draws its Q2909.19 A icon by name, Appearance the current choice's (${web ? 'System' : 'Match Figma'}, a monitor; Q2995.3 B) (${rl.order.map((o, i) => `${o}=${rl.icons[i]}`).join(', ')})`);
         // #3164 (the owner, 2026-10-30: "Change the icon for Theme to IconColorSwatch"): the Theme tile draws Tabler's
@@ -2041,7 +2045,7 @@ if (runs('1')) for (const host of ['web', 'figma']) {
           `rail ${where}: Appearance draws the current choice's glyph by name, its name and tooltip the choice (Q2995.3 B): ${Q2995_3_B.map(([, n, g], k) => `${n} wants ${g}, drew ${looks[k]?.icon} ("${looks[k]?.name}")`).join('; ')}`);
         // #3083 (the owner, 2026-10-28): the foot's Minimize, Help and Appearance show no label, so the labeled tiles are the
         // areas alone. Literal, from the decision: the foot's tiles by hook, never read from `dom.ts`'s bare class.
-        const BARE = web ? ['docs-open', 'theme-toggle'] : ['agent-minimize', 'docs-open', 'theme-toggle'];
+        const BARE = web ? ['docs-open', 'report-open', 'theme-toggle'] : ['agent-minimize', 'docs-open', 'theme-toggle'];
         const labeled = rl.order.map((o, i) => [o, i]).filter(([o]) => !BARE.includes(o)).map(([, i]) => i);
         ok(labeled.length === ORDER.length - BARE.length && labeled.every((i) => rl.labels[i]), `rail ${where}: every area tile shows its label, at this width too (Q2909.16 A) (${JSON.stringify(labeled.map((i) => [rl.order[i], rl.labels[i]]))})`);
         // Q732 A (the owner, 2026-10-26): no manual hyphen in a rail label; "Components" reads whole ("Appearance" shows no
@@ -2055,7 +2059,7 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         // written here from the decision. Read as drawn: the tile's own visible text, its box and its icon's box, then the
         // tooltip under a real hover. MUTATION: `tile('theme-toggle', null)` back to `tile('theme-toggle', label)` in
         // `frame.ts` → this arm, by name, at every width and theme on both hosts.
-        const FOOT_NAMES = { 'agent-minimize': /^Minimize$/, 'docs-open': /^Help$/, 'theme-toggle': /^Appearance: / }, HIT_FLOOR = 24;
+        const FOOT_NAMES = { 'agent-minimize': /^Minimize$/, 'docs-open': /^Help$/, 'report-open': /^Report a problem$/, 'theme-toggle': /^Appearance: / }, HIT_FLOOR = 24;
         const bare = [];
         for (const hk of BARE) {
           const sel = `[data-p3="rail-foot"] [data-p3="${hk}"]`;
@@ -2071,6 +2075,8 @@ if (runs('1')) for (const host of ['web', 'figma']) {
               tip: tip?.textContent ?? null, tipShown: !!tip && tip.getClientRects().length > 0 && getComputedStyle(tip).display !== 'none' };
           }, sel);
           const at = await read();
+          // A tile not drawn fails the arm below by name (`bare` short), rather than stopping the run on a hover (#3524).
+          if (!at) continue;
           await page.locator(sel).hover();
           const hov = await read();
           await page.mouse.move(w - 1, h - 1);
@@ -2080,7 +2086,7 @@ if (runs('1')) for (const host of ['web', 'figma']) {
           || b.tip !== b.name || !b.tipOnHover || b.tipHover !== b.name || b.w < HIT_FLOOR || b.h < HIT_FLOOR
           || b.dx === null || Math.abs(b.dx) > 0.5 || Math.abs(b.dy) > 0.5);
         ok(bare.length === BARE.length && badBare.length === 0,
-          `#3083 rail ${where}: ${web ? 'Help and Appearance' : 'Minimize, Help and Appearance'} show no visible label, keep their accessible name and a tooltip in the same words, stay at least ${HIT_FLOOR} × ${HIT_FLOOR}, and center their icon (${JSON.stringify(badBare.length ? badBare : bare.map((b) => `${b.hk} ${b.w}×${b.h}`))})`);
+          `#3083 rail ${where}: ${web ? 'Help, Report a problem and Appearance' : 'Minimize, Help and Appearance'} show no visible label, keep their accessible name and a tooltip in the same words, stay at least ${HIT_FLOOR} × ${HIT_FLOOR}, and center their icon (${JSON.stringify(badBare.length ? badBare : bare.map((b) => `${b.hk} ${b.w}×${b.h}`))})`);
         // The rail polish (the owner's hands-on look, 2026-10-26, #2909). Literals, from the owner's words, never read from
         // `chrome.css` or the token map. MUTATIONS, each failing its arm by name: the label rule's `font-size` back to
         // `--p3-fs-12` → `… every rail label renders at 9px …`; its `letter-spacing` dropped → `… at -0.01em …`; the icon rule
@@ -2996,11 +3002,13 @@ for (const theme of ['light', 'dark']) {
       const t = document.querySelector('[data-p3="rail-foot"] [data-p3="docs-open"]');
       const next = t?.nextElementSibling;
       return t ? { tag: t.tagName.toLowerCase(), href: t.getAttribute('href'), target: t.getAttribute('target'), rel: t.getAttribute('rel'), name: t.getAttribute('aria-label'),
-        beforeExport: !!next?.querySelector(':scope > [data-p3="theme-toggle"]'), shown: t.getClientRects().length > 0 } : null;
+        beforeExport: !!next?.querySelector(':scope > [data-p3="theme-toggle"]'), beforeReport: next?.getAttribute('data-p3') === 'report-open',
+        shown: t.getClientRects().length > 0 } : null;
     });
     if (host === 'web') {
-      ok(tileOf?.tag === 'a' && tileOf.href === LANDING && tileOf.target === '_blank' && tileOf.rel === 'noopener' && tileOf.name === 'Help' && tileOf.beforeExport && tileOf.shown,
-        `web: the rail's Help (the old Docs, Q2909.9 A) is a link to ${LANDING} in a new tab, in the rail's foot just before Appearance — read ${JSON.stringify(tileOf)}`);
+      ok(tileOf?.tag === 'a' && tileOf.href === LANDING && tileOf.target === '_blank' && tileOf.rel === 'noopener' && tileOf.name === 'Help' && tileOf.beforeReport && tileOf.shown,
+        // #3524 (DRAFT): on the web, Report a problem sits between Help and Appearance.
+        `web: the rail's Help (the old Docs, Q2909.9 A) is a link to ${LANDING} in a new tab, in the rail's foot just before Report a problem (#3524) — read ${JSON.stringify(tileOf)}`);
       const before = page.url();
       const [tab] = await Promise.all([ctx.waitForEvent('page'), hooks.click(page.locator('[data-p3="docs-open"]'))]);
       ok(new URL(tab.url()).pathname === LANDING && page.url() === before,
@@ -21374,6 +21382,43 @@ if (runs('2069')) {
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
+  // #3524 (Q151 A follow-up, DRAFT placement): the web has no Activity drawer (#3011), so Report a problem opens from the
+  // rail beside Help, the same dialog. The web opens the issue in a new tab (`window.open`), stubbed here so the run
+  // reaches no network. MUTATIONS (each after a `wip:` commit): `report: reportLend` back to plugin-only in `main.ts`, or
+  // `reportTile` left out of the rail's `foot` in `frame.ts` → section 1's `rail … Help, Report a problem (#3524) and
+  // Appearance, in that order` at every web width and theme, and here `3524 web light 1280: the case stopped at "open"`;
+  // the web adapter's `openIssue` opening the bare form → `#3524 … opens the issue form in a new tab, prefilled`.
+  {
+    const where = '3524 web light 1280';
+    const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+    let step = 'premise';
+    try {
+      await page.evaluate(() => { window.__opened = []; window.open = (u, t, f) => { window.__opened.push({ u: String(u), t, f }); return null; }; });
+      step = 'open';
+      await hooks.click(page.locator('[data-p3="rail-foot"] [data-p3="report-open"]'), WAIT);
+      await hooks.need(page, '[data-p3="report-dialog"]', WAIT);
+      const d0 = await page.evaluate(() => ({ modal: document.querySelector('[data-p3="report-dialog"]')?.getAttribute('aria-modal'),
+        box: document.querySelector('[data-p3="report-brand"]')?.checked, text: document.querySelector('[data-p3="report-text"]')?.value ?? '',
+        focusIn: !!document.activeElement?.closest('[data-p3="report-dialog"]') }));
+      ok(d0.modal === 'true' && d0.focusIn && d0.box === false && d0.text.includes('- Host: Web studio') && d0.text.includes('- Nothing has run in this session.'),
+        `#3524 ${where}: the rail's Report a problem opens the dialog, modal, focus inside, the brand's settings off, the host the web studio (${JSON.stringify({ modal: d0.modal, focusIn: d0.focusIn, box: d0.box })})`);
+      step = 'open issue';
+      await hooks.click(page.locator('[data-p3="report-open-issue"]'), WAIT);
+      await page.waitForFunction(() => window.__opened.length > 0, null, WAIT).catch(() => {});
+      const opened = await page.evaluate(() => window.__opened);
+      const body = opened.length ? decodeURIComponent(opened[0].u.split('&body=')[1] ?? '') : '';
+      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === d0.text,
+        `#3524 ${where}: Open a prefilled issue opens the issue form in a new tab, prefilled with the report shown (${opened.length} opened)`);
+      step = 'escape';
+      await page.keyboard.press('Escape');
+      await settle(page);
+      const back = await page.evaluate(() => ({ gone: !document.querySelector('[data-p3="report-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+      ok(back.gone && back.focus === 'report-open', `#3524 ${where}: Escape closes it and focus returns to the rail's Report a problem (${JSON.stringify(back)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
 } // 2069
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
