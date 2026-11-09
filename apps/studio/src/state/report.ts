@@ -8,7 +8,7 @@
  * default). **No file names and no keys**: the panel never holds the Figma file's name, and `scrub` takes out of every
  * line what could still carry one or a key — a Figma file URL, a long hex or token-shaped run (a key, a token, a
  * hash), and, while the brand is not included, the brand's own words (its `id`, `name` and `root`, which every token
- * name carries as its first segment). Built from these fields alone, never from a dump of the session.
+ * name carries as its first segment, and its palette and mode names, #3523). Built from these fields alone, never from a dump of the session.
  *
  * Every string is a DRAFT placeholder (#2069: the placement and copy are the owner's call), in `REPORT_COPY`.
  */
@@ -35,23 +35,42 @@ const REDACTED = '[removed]';
 /** Under this length a brand word is matched only as a whole segment (`SEGMENT`), so ordinary words keep their letters. */
 const SHORT_WORD = 3;
 
-/** The brand's own words: its `id`, display `name` and token `root`, longest first so a word inside another goes second.
- *  A word of any length counts (a root can be one letter, `root: 'g'`); `scrub` matches the short ones only as a whole
- *  segment. The product's own name is never one. */
-export const brandWords = (brand: Readonly<Record<string, unknown>> | null): string[] => {
+/** One brand word. A plain string is matched by its length (`SHORT_WORD`); `{ whole }` only ever as a whole segment. */
+export type BrandWord = string | { readonly whole: string };
+
+const wordText = (w: BrandWord): string => (typeof w === 'string' ? w : w.whole);
+
+/** The brand's own words, longest first so a word inside another goes second: its `id`, display `name` and token
+ *  `root`, and (#3523, Q147 A) each `brandColors[].name` and `customModes[].name`. A word of any length counts (a root
+ *  can be one letter, `root: 'g'`); `scrub` matches the short ones only as a whole segment, and a palette or mode name
+ *  always so (`{ whole }`), since those are often ordinary words (`tidewater`, `night-watch`). The product's own name is
+ *  never one. */
+export const brandWords = (brand: Readonly<Record<string, unknown>> | null): BrandWord[] => {
   if (!brand) return [];
   // The product's own name is never the client's: the house brand is named for it, and every result line says it.
-  const words = ['id', 'name', 'root'].map((k) => brand[k]).filter((v): v is string => typeof v === 'string' && v.trim().length > 0 && !/^prism3$/i.test(v.trim())).map((v) => v.trim());
-  return [...new Set(words)].sort((a, b) => b.length - a.length);
+  const keep = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0 && !/^prism3$/i.test(v.trim());
+  const words = ['id', 'name', 'root'].map((k) => brand[k]).filter(keep).map((v) => v.trim());
+  const names = (k: string): string[] => (Array.isArray(brand[k]) ? (brand[k] as unknown[]) : [])
+    .map((e) => (e && typeof e === 'object' ? (e as Record<string, unknown>).name : undefined)).filter(keep).map((v) => v.trim());
+  const seen = new Set(words.map((w) => w.toLowerCase()));
+  const whole: BrandWord[] = [];
+  for (const n of [...names('brandColors'), ...names('customModes')]) {
+    if (seen.has(n.toLowerCase())) continue;
+    seen.add(n.toLowerCase());
+    whole.push({ whole: n });
+  }
+  return [...new Set(words), ...whole].sort((a, b) => wordText(b).length - wordText(a).length);
 };
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** What bounds a short brand word as a whole segment: the start or end, `/`, `.`, `-`, a space or a quote. */
-const SEGMENT = `/.\\- "'`;
+/** What bounds a brand word as a whole segment: the start or end, `/`, `.`, `-`, a space, a quote, or the punctuation
+ *  prose puts next to a name — `,` `:` `;` `!` `?` and brackets (#3525 review: `(light, dark, night-watch)`, `→ light,
+ *  night-watch;`). A letter or digit never does, so an ordinary word that holds the name stays whole (`tidewaters`). */
+const SEGMENT = `/.\\- "'\`“”‘’,:;!?()\\[\\]{}`;
 
 /** Take out of one line what could carry a file name or a key. `words`: the brand's words to take out too. */
-export const scrub = (text: string, words: readonly string[] = []): string => {
+export const scrub = (text: string, words: readonly BrandWord[] = []): string => {
   let t = text
     // A Figma file or design link names the file and carries its key, with or without its scheme.
     .replace(/(?:https?:\/\/)?(?:www\.)?figma\.com\/\S+/gi, REDACTED)
@@ -66,8 +85,9 @@ export const scrub = (text: string, words: readonly string[] = []): string => {
     .replace(/\b(?=[A-Za-z0-9_-]*[0-9])(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{20,}\b/g, REDACTED)
     // A Figma file key with no digit: 22 letters, upper and lower case. A token name never matches: it is lower case.
     .replace(/\b(?=[A-Za-z]*[A-Z])(?=[A-Za-z]*[a-z])[A-Za-z]{22}\b/g, REDACTED);
-  for (const w of words) {
-    t = w.length < SHORT_WORD
+  for (const bw of words) {
+    const w = wordText(bw);
+    t = typeof bw !== 'string' || w.length < SHORT_WORD
       ? t.replace(new RegExp(`(^|[${SEGMENT}])${escapeRe(w)}(?=$|[${SEGMENT}])`, 'gi'), '$1[brand]')
       : t.replace(new RegExp(escapeRe(w), 'gi'), '[brand]');
   }
