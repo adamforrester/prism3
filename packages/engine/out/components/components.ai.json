@@ -7810,7 +7810,7 @@
         "generationPriority": 9
       },
       "motion": {
-        "enter": "None. On selection the underline slides from the previous tab to this one, about 150–200ms.",
+        "enter": "None. On selection the underline slides from the previous tab to this one, on motion.transition.default.",
         "exit": "None.",
         "reduceMotion": "The underline snaps to the selected tab; the panel swaps with no transition."
       },
@@ -8021,7 +8021,7 @@
         "generationPriority": 2
       },
       "motion": {
-        "enter": "None. On a change, the underline slides to the new tab and the panel cross-fades, about 150–200ms.",
+        "enter": "None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.",
         "exit": "The outgoing panel fades out under the incoming one. Panels never slide sideways.",
         "reduceMotion": "The underline snaps and the panel swaps with no transition."
       },
@@ -13241,7 +13241,7 @@
       },
       "motion": {
         "enter": "Fades in. A banner inserted at the top of a page reserves its space, so the content below does not jump.",
-        "exit": "Collapses its height and fades (about 150 to 200ms, motion.transition.exit), so the content below moves up smoothly.",
+        "exit": "Collapses its height and fades on motion.transition.exit, so the content below moves up smoothly.",
         "reduceMotion": "Under prefers-reduced-motion it appears and goes instantly."
       },
       "composition": {
