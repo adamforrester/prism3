@@ -269,7 +269,8 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { adoptions, applyComponentPlan, memberStamp, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
-import { EXECUTOR_REACH } from './src/executor-reach';
+import { EXECUTOR_REACH, reaches } from './src/executor-reach';
+import { EXECUTOR_REVISION } from './src/executor-revision';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY, UPDATING_KEY } from './src/member-baseline';
 import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
@@ -278,6 +279,9 @@ import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict as applyVerdictOf, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
+import { readFileSync } from 'node:fs';
+import { parseDesignMd } from '@prism3/engine/design-md';
+import type { BrandInput } from '@prism3/engine/theme';
 
 let failed = 0;
 let executed = 0;
@@ -4298,6 +4302,74 @@ section('what the host draws — after an update in place, every bound paint sho
 }
 
 {
+  // #3527: a SOLID-TINT brand's outline hover and pressed members read as hand-edited after a theme moved the tinted
+  // wash. The plan binds `interactive.<c>.subtle-fill.<state>` there; the host keeps the variable's alpha as the bound
+  // paint's opacity, and writes it again when Apply Theme rewrites the variable. The as-built record hashed that
+  // opacity, so Keep held 48 members per set on the old minimum width. Built here under `solid-tint`, the wash rewritten
+  // as Apply Theme would, then updated with Keep to a new min-width ratio: nothing is hand-edited, and both sets verify.
+  // The house example brand, with the lever set here. Mutations: `baselineDiff` comparing the whole node hash again (the
+  // `tint` branch dropped) → `tint/not hand-edited`, `tint/updated`; `finishUpdated` recording a kept node's `tint` hash
+  // from the host → `tint/kept still reported`.
+  const brand = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/prism3.design.md', import.meta.url), 'utf8')).input as BrandInput;
+  const tint = { ...brand, outlineInteraction: 'solid-tint' } as BrandInput;
+  const ids = ['button', 'button-destructive'];
+  const plansFor = (input: BrandInput): AnatomyPlan[][] => ids.map((id) => figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === id)!, input), { swapTarget: SWAP_TARGET }));
+  const was = plansFor(tint);
+  const next = plansFor({ ...tint, buttonMinWidthMultiplier: 2.5 } as BrandInput);
+  const every = [...was, ...next].flat();
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...every.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(every.flatMap((p) => planTextStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...every.flatMap((p) => planComps(p.root))])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const plans of was) {
+    const built = await applyComponentPlan(plans, api);
+    if (built.misses.length) throw new Error(`premise: solid-tint button built with ${built.misses.length} miss(es): ${built.misses[0]}`);
+  }
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  const sets = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
+  const washed = (m: Node): boolean => ((m.fills as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? []).some((f) => /subtle-fill/.test(f.boundVariables?.color?.id ?? ''));
+  const washMembers = sets().flatMap((s) => membersOf(s).filter(washed));
+  // Apply Theme rewrites each wash with the step the brand now has: the host stores its alpha as the bound paint's opacity.
+  for (const v of await api.variables.getLocalVariablesAsync()) if (/subtle-fill/.test(v.name)) v.setValueForMode('m', { r: 0.2, g: 0.3, b: 0.9, a: 0.2 });
+  const moved = washMembers.filter((m) => (m.fills as { opacity?: number }[])[0]?.opacity === 0.2).length;
+  ok(washMembers.length >= 96 && moved === washMembers.length,
+    `premise: every outline hover and pressed member binds a subtle-fill wash, and the rewrite moved its paint opacity (${moved} of ${washMembers.length})`);
+  const targets = ids.map((def, i) => ({ def, plans: next[i] }));
+  const pre = await previewUpdate(host, targets);
+  const edited = pre.sets.map((p) => `${p.set} ${p.counts.handEdited}`);
+  ok(pre.sets.length === 2 && pre.sets.every((p) => p.counts.handEdited === 0 && p.handEdits.length === 0),
+    `tint/not hand-edited: no button or button-destructive member reads as edited by hand after the wash moved (${edited.join(', ')})`);
+  const res = await applyUpdate(host, api, targets, previewHashOf(pre), { choices: { handEdits: 'keep' } });
+  const v = applyVerdict(res);
+  const kept = res.outcomes.reduce((a, o) => a + o.kept.length + o.skipped.length, 0);
+  ok(v.ok && res.outcomes.length === 2 && kept === 0 && res.outcomes.every((o) => o.updated.length === pre.sets.find((p) => p.set === o.set)!.counts.update),
+    `tint/updated: with Keep, every member the new min width reaches is updated, none kept or skipped, and both sets verify (${v.headline}; ${kept} kept or skipped)`);
+  const again = await previewUpdate(host, targets);
+  ok(again.sets.every((p) => p.counts.current === p.counts.members) && previewVerdict(again).headline === '✓ All sets up to date',
+    `tint/converges: the next dry run reads every member current (${previewVerdict(again).headline})`);
+  // The opacity is left out, never the binding: a wash swapped for another variable by hand is still a hand edit.
+  const m = membersOf(sets()[0]).find(washed)!;
+  const other = (await api.variables.getLocalVariablesAsync()).find((x: { name: string }) => x.name.endsWith('/color/interactive/primary/fill/rest'));
+  // Stored on the variable's own color, as the host draws a rebound paint, so it reads as an edit and not as damage.
+  const { r, g, b } = other.resolveForConsumer(m).value as { r: number; g: number; b: number };
+  m.fills = [api.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r, g, b } }, 'color', other)];
+  const swapped = await previewUpdate(host, targets);
+  ok(!!other && swapped.sets[0].counts.handEdited === 1 && swapped.sets[0].handEdits.some((h) => h.member === m.name && h.path === '.'),
+    `tint/binding still seen: a wash member rebound to another variable by hand reads as hand-edited (${swapped.sets[0].counts.handEdited})`);
+  // And kept, it stays reported: an update that rewrites the member around it keeps the node's recorded hash, this one
+  // included, or the edit would be recorded as built and go quiet.
+  const back = ids.map((def, i) => ({ def, plans: was[i] }));
+  const pre2 = await previewUpdate(host, back);
+  await applyUpdate(host, api, back, previewHashOf(pre2), { choices: { handEdits: 'keep' } });
+  const post = (await previewUpdate(host, back)).sets[0];
+  ok(post.handEdits.length === 1 && post.handEdits[0].member === m.name && post.handEdits[0].path === '.',
+    `tint/kept still reported: after an update that kept it, the next dry run still reports the rebound wash (${JSON.stringify(post.handEdits)})`);
+}
+
+{
   // #2369: a member ROOT the plan gives no fill keeps the fill it was built with. Button under "Text button hover:
   // Fill" washes its text hover and pressed members on the member root; under the default "Text & icon only" the
   // plan gives those roots no fill. The update must clear it, and its verify must see it when it does not.
@@ -4668,18 +4740,21 @@ section('tag style — a Tag set built in one Tag style is redrawn in place in t
 
 section('reach — a member stamped under an older revision is to update only when a revision since redraws its set (#3101)');
 {
-  // Revision 43 redrew the sign-in button alone (`executor-reach.json`). A Tag set whose members carry 42 is current
-  // under 43; the same set stamped below the record's floor is to update, as every member was before #3101. Read off
-  // the dry run of the host's own members; the stamps are rewritten on the host, as an older plugin left them.
+  // No revision since 42 redrew the accordion's indicator (`executor-reach.json`; Tag was the set here until revision 56,
+  // #3527, named it). A set whose members carry 42 is current under today's revision; the same set stamped below the
+  // record's floor is to update, as every member was before #3101. Read off the dry run of the host's own members; the
+  // stamps are rewritten on the host, as an older plugin left them.
+  const QUIET = '_accordion-indicator';
+  ok(!reaches(QUIET, 42, EXECUTOR_REVISION), `reach premise: no revision since 42 names ${QUIET}`);
   for (const [rev, want] of [[42, 'current'], [EXECUTOR_REACH.floor - 1, 'update']] as const) {
-    const w = await world(TAG);
+    const w = await world(QUIET);
     for (const m of membersOf(w.set())) {
       const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
       (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, `|${rev}`));
     }
     const n = membersOf(w.set()).length;
-    const c = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0].counts;
-    ok(c[want] === n, `reach/dry run ${rev}: a Tag set stamped under revision ${rev} reads all ${n} members ${want === 'current' ? 'current' : 'to update'} (${JSON.stringify(c)})`);
+    const c = (await previewUpdate(w.host, [{ def: QUIET, plans: w.plans }])).sets[0].counts;
+    ok(c[want] === n, `reach/dry run ${rev}: a ${QUIET} set stamped under revision ${rev} reads all ${n} members ${want === 'current' ? 'current' : 'to update'} (${JSON.stringify(c)})`);
   }
 }
 

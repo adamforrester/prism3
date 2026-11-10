@@ -3164,6 +3164,11 @@ const writeComponentSet = async (
         if (prior?.own?.[p] !== undefined) now.own = { ...(now.own ?? {}), [p]: prior.own[p] };
         else if (now.own?.[p] !== undefined) { const { [p]: _gone, ...rest } = now.own; now.own = Object.keys(rest).length ? rest : undefined; }
       }
+      // And a node's hash without its bound paints' opacity (#3527), for the same reason: compared in place of the node's.
+      if (!entry.accept) for (const p of entry.keep) {
+        if (prior?.tint?.[p] !== undefined) now.tint = { ...(now.tint ?? {}), [p]: prior.tint[p] };
+        else if (now.tint?.[p] !== undefined) { const { [p]: _gone, ...rest } = now.tint; now.tint = Object.keys(rest).length ? rest : undefined; }
+      }
       m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
     } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }
     // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.

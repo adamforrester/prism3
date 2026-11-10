@@ -415,16 +415,24 @@ ok(JSON.stringify(fsT?.due?.badge) === JSON.stringify({ state: 'current' }) && !
 await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
 ok(ledger().badge?.engine === asRecorded.engine && ledger().badge?.print?.plan === asRecorded.print!.plan,
   `q811/migrate: the next write gives a print-less entry under today's engine its print (${JSON.stringify({ engine: ledger().badge?.engine, plan: ledger().badge?.print?.plan ?? null })})`);
-// #3101: an entry recorded under revision 42. Revision 43 redrew the sign-in button alone (`executor-reach.json`), so
-// Badge reads current, the read records nothing, and the next write records it under today's revision. Recorded below
-// the record's floor it is due for the executor, as every set was before #3101.
+// #3101: an entry recorded under revision 42. Revision 56 (#3527) names Badge (`executor-reach.json`), so under the
+// record as committed Badge is due for the executor. Under the same record with Badge left out of every entry since 42,
+// no revision since redrew it: Badge reads current, the read records nothing, and the next write records it under
+// today's revision. The record is the module's own object, swapped for the two reads and put back. Recorded below the
+// record's floor it is due for the executor, as every set was before #3101.
 pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, rev: 42 } } }));
+const fsD = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
+ok(JSON.stringify(fsD?.due?.badge) === JSON.stringify({ state: 'due', reason: 'executor' }),
+  `reach/due: recorded under 42, Badge is due for the executor, since revision 56 redrew it (${JSON.stringify(fsD?.due?.badge)})`);
+const committedReach = EXECUTOR_REACH.reach;
+(EXECUTOR_REACH as { reach: typeof committedReach }).reach = Object.fromEntries(Object.entries(committedReach).map(([k, v]) => [k, Number(k) > 42 && v !== 'all' ? v.filter((id) => id !== 'badge') : v]));
 const fsR = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(JSON.stringify(fsR?.due?.badge) === JSON.stringify({ state: 'current' }) && ledger().badge?.rev === 42,
-  `reach/load: recorded under 42, Badge reads current under 43, which did not redraw it, and the read records nothing (${JSON.stringify({ due: fsR?.due?.badge, rev: ledger().badge?.rev })})`);
+  `reach/load: recorded under 42, with no revision since naming Badge, it reads current and the read records nothing (${JSON.stringify({ due: fsR?.due?.badge, rev: ledger().badge?.rev })})`);
 await runAction((sink) => ACTIONS.buildComponents('divider', sink as never));
 ok(ledger().badge?.rev === asRecorded.rev && ledger().badge?.print?.plan === asRecorded.print!.plan,
   `reach/restamp: the next write records it under today's revision, its print kept (${JSON.stringify({ rev: ledger().badge?.rev, plan: ledger().badge?.print?.plan })})`);
+(EXECUTOR_REACH as { reach: typeof committedReach }).reach = committedReach;
 pluginData.set('prism3:asBuilt', JSON.stringify({ v: 1, sets: { badge: { ...asRecorded, rev: EXECUTOR_REACH.floor - 1 } } }));
 const fsF = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(JSON.stringify(fsF?.due?.badge) === JSON.stringify({ state: 'due', reason: 'executor' }),

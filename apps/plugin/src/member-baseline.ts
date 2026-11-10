@@ -56,6 +56,16 @@
  * before it existed holds no `own` and is compared whole, as it always was. One limit stays: the main is named by name
  * (v3), so a RENAME of the nested component still moves the host's hash.
  *
+ * AND EACH NODE THAT HOLDS A BOUND PAINT, WITH THAT PAINT'S OPACITY LEFT OUT (#3527), as one hash per node beside the
+ * nodes' (`Baseline.tint`). A bound paint's opacity is the host's, not the designer's: the executor stores the
+ * variable's alpha there, and the host writes it again on a combine and whenever Apply Theme rewrites the variable. So
+ * a theme that moved a `solid-tint` wash's step changed the opacity on every outline hover and pressed member, and the
+ * whole hash read that as a hand edit: Keep then held those members on the old minimum width. It is the binding rule
+ * above, kept for the one value the host derives from a binding. Where both records hold it, `baselineDiff` compares
+ * this hash in place of the node's. Beside the node hashes for `reactions`' reason: the node hashes are unchanged, so
+ * `v` holds, and a record written before it existed holds no `tint` and is compared whole, as it always was. One
+ * limit: a designer who sets a bound paint's opacity by hand is not seen.
+ *
  * `v` is the format's version. A change to what is hashed changes every hash, so it raises `v`, and a
  * dry run that reads an older `v` reports the member as having no baseline rather than as hand-edited.
  *
@@ -91,7 +101,7 @@ export type SnapNode = Record<string, unknown> & { name: string; type: string; c
  *  beside the node hashes rather than in the root's, so a record written before reactions existed hashes every node
  *  as it did and reads unchanged: a record without the field makes no claim about reactions either way, and the
  *  same `v` reads both. Absent too where the host has no reactions to read. */
-export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string; art?: Record<string, string>; own?: Record<string, string> };
+export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string; art?: Record<string, string>; own?: Record<string, string>; tint?: Record<string, string> };
 
 /** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
  *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
@@ -298,23 +308,26 @@ const AS_IS = [
   'targetAspectRatio', 'isExposedInstance',
 ] as const;
 
-const paintSig = (p: unknown): unknown => {
+const boundIdOf = (p: unknown): string | null => idOf(((p as Record<string, unknown> | null)?.boundVariables as Record<string, unknown> | undefined)?.color);
+
+/** `lean` (#3527): a bound paint's opacity reads as 1, since the host derives it from the variable (see the header). */
+const paintSig = (p: unknown, lean = false): unknown => {
   const q = p as Record<string, unknown>;
-  const bound = idOf((q.boundVariables as Record<string, unknown> | undefined)?.color);
+  const bound = boundIdOf(p);
   const stops = Array.isArray(q.gradientStops)
     ? (q.gradientStops as Record<string, unknown>[]).map((s) => {
       const sid = idOf((s.boundVariables as Record<string, unknown> | undefined)?.color);
       return [round(s.position), sid ? `@${sid}` : JSON.stringify(s.color, (_k, v) => round(v))];
     })
     : undefined;
-  return [q.type, q.visible ?? true, bound ? `@${bound}` : JSON.stringify(q.color ?? null, (_k, v) => round(v)), round(q.opacity ?? 1), q.blendMode ?? 'NORMAL', stops];
+  return [q.type, q.visible ?? true, bound ? `@${bound}` : JSON.stringify(q.color ?? null, (_k, v) => round(v)), lean && bound ? 1 : round(q.opacity ?? 1), q.blendMode ?? 'NORMAL', stops];
 };
 
 /** The signature of one node: the string its hash is taken over. Exported for the tests, which assert
  *  what moves it and what does not. */
 export const nodeSignature = (n: SnapNode): string => JSON.stringify(signatureOf(n));
 
-const signatureOf = (n: SnapNode): Record<string, unknown> => {
+const signatureOf = (n: SnapNode, lean = false): Record<string, unknown> => {
   const bv = (n.boundVariables ?? {}) as Record<string, unknown>;
   const sig: Record<string, unknown> = { type: n.type, kids: (n.children ?? []).map((c) => c.name) };
   for (const k of AS_IS) if (n[k] !== undefined) sig[k] = round(n[k]);
@@ -326,7 +339,7 @@ const signatureOf = (n: SnapNode): Record<string, unknown> => {
   for (const k of BOUND_ONLY) { const b = idOf(bv[k]); if (b) sig[k] = `@${b}`; }
   for (const k of ['fills', 'strokes'] as const) {
     const v = n[k];
-    if (Array.isArray(v)) sig[k] = v.map(paintSig);
+    if (Array.isArray(v)) sig[k] = v.map((p) => paintSig(p, lean));
     else if (v !== undefined) { const b = (bv[k] as unknown[] | undefined)?.map(idOf); sig[k] = b ?? v; }
   }
   if (typeof n.textStyleId === 'string' && n.textStyleId) sig.textStyle = n.textStyleName ?? n.textStyleId;
@@ -344,6 +357,12 @@ const signatureOf = (n: SnapNode): Record<string, unknown> => {
     if (props) sig.props = Object.entries(props).map(([k, p]) => [k, p?.type, p?.value]).sort(([a], [b]) => (String(a) < String(b) ? -1 : 1));
   }
   return sig;
+};
+
+/** THE SIGNATURE WITH EACH BOUND PAINT'S OPACITY LEFT OUT (#3527), or `null` for a node that holds no bound paint. */
+export const tintSignature = (n: SnapNode): string | null => {
+  const bound = (['fills', 'strokes'] as const).some((k) => Array.isArray(n[k]) && (n[k] as unknown[]).some((p) => boundIdOf(p)));
+  return bound ? JSON.stringify(signatureOf(n, true)) : null;
 };
 
 /** The signature keys an instance's MAIN can hand it, each with the override fields (`InstanceNode.overrides`) that
@@ -403,14 +422,17 @@ export const baselineOf = (snap: SnapNode): Baseline => {
   const nodes: Record<string, string> = {};
   const art: Record<string, string> = {};
   const own: Record<string, string> = {};
+  const tint: Record<string, string> = {};
   for (const [path, n] of nodesByPath(snap)) {
     nodes[path] = fnv(nodeSignature(n));
+    const t = tintSignature(n);
+    if (t !== null) tint[path] = fnv(t);
     const o = ownSignature(n);
     if (o !== null) own[path] = fnv(o);
     const sig = artworkSignature(n);
     if (sig !== null) art[path] = fnv(sig);
   }
-  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}), ...(Object.keys(art).length ? { art } : {}), ...(Object.keys(own).length ? { own } : {}) };
+  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}), ...(Object.keys(art).length ? { art } : {}), ...(Object.keys(own).length ? { own } : {}), ...(Object.keys(tint).length ? { tint } : {}) };
 };
 
 /** The ARTWORK a node holds (#2343 PR 2): the geometry of its VECTOR children, in order, or `null` for a node that
@@ -461,6 +483,8 @@ export const baselineDiff = (stored: Baseline, now: Baseline): { changed: string
     if (!(p in now.nodes)) removed.push(p);
     // An instance both records hold its own part of (#3474): what the host set on it, and nothing its main hands it.
     else if (stored.own?.[p] !== undefined && now.own?.[p] !== undefined) { if (now.own[p] !== stored.own[p]) changed.push(p); }
+    // A node with a bound paint both records hold (#3527): everything but that paint's opacity, which the host derives.
+    else if (stored.tint?.[p] !== undefined && now.tint?.[p] !== undefined) { if (now.tint[p] !== stored.tint[p]) changed.push(p); }
     else if (now.nodes[p] !== h) changed.push(p);
   }
   for (const p of Object.keys(now.nodes)) if (!(p in stored.nodes)) added.push(p);
