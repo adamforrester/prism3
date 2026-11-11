@@ -53,7 +53,7 @@ import { partRenames, type ComponentRename } from '@prism3/engine/component-rena
 import { applyComponentPlan, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { NS } from './persist-figma';
 import { UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
-import { drawnFaults, faultAt, faultLine, varsById } from './drawn';
+import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { emptiedLine, pageMovesLine, relocateSets, relocateTables, type PageMove, type TableMove } from './page-moves';
 import { blockHeadersLines, placeBlockHeaders, type BlockHeaderApi, type BlockHeaderDue } from './page-header';
@@ -693,7 +693,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
       if (d.field === 'member') continue;
       const at = rel(d.path);
       if ([...keep].some((k) => at === k || at.startsWith(`${k}/`))) continue;
-      out.content.push(`${faultAt(name, at)}.${d.field}: ${d.actual} (the plan says ${d.expected})`);
+      out.content.push(`${name}/${at}.${d.field}: ${d.actual} (the plan says ${d.expected})`);
     }
     // A PAINT THE PLAN DOES NOT GIVE (#2369). `diffAnatomy` reads the paints a plan declares, so a node the plan
     // leaves unpainted is never checked, and a fill a superseded plan gave it would pass. Read here off the live
@@ -702,8 +702,8 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
       if (!hn || pn.type !== 'FRAME' || [...keep].some((k) => at === k || at.startsWith(`${k}/`))) return;
       const shown = (ps: unknown): number => (Array.isArray(ps) ? ps.filter((x) => (x as { visible?: boolean })?.visible !== false).length : 0);
       // A literal paint (`literalPaints`, #2343 PR 5; WalletButton's ground since #3174) is a paint the plan gives too.
-      if (!pn.paints?.fills && !pn.gradientFill && !pn.literalPaints?.fills && shown(hn.fills)) out.content.push(`${faultAt(name, at)}.fills: ${shown(hn.fills)} paint(s) (the plan says none)`);
-      if (!pn.paints?.strokes && !pn.literalPaints?.strokes && shown(hn.strokes)) out.content.push(`${faultAt(name, at)}.strokes: ${shown(hn.strokes)} paint(s) (the plan says none)`);
+      if (!pn.paints?.fills && !pn.gradientFill && !pn.literalPaints?.fills && shown(hn.fills)) out.content.push(`${name}/${at}.fills: ${shown(hn.fills)} paint(s) (the plan says none)`);
+      if (!pn.paints?.strokes && !pn.literalPaints?.strokes && shown(hn.strokes)) out.content.push(`${name}/${at}.strokes: ${shown(hn.strokes)} paint(s) (the plan says none)`);
       const kids = (hn.children ?? []) as (LiveNode & { fills?: unknown; strokes?: unknown })[];
       for (const c of pn.children ?? []) unpainted(c, kids.find((k) => String(k.name ?? '') === c.name), at === '.' ? c.name : `${at}/${c.name}`);
     };

@@ -99,9 +99,5 @@ export const drawnFaults = (root: unknown, vars: ReadonlyMap<string, DrawVar>, s
   return out;
 };
 
-/** Where a content line's field sits: `<member>/<part>`, or the member alone for its own root (part `.`), so a
- *  root fault reads `<member>.strokes`, not `<member>/..strokes` (owner Q135 A, #2675). */
-export const faultAt = (member: string, part: string): string => (part === '.' ? member : `${member}/${part}`);
-
 /** A fault as one content line, the form verify's other content lines take. */
-export const faultLine = (member: string, f: DrawnFault): string => `${faultAt(member, f.part)}.${f.field}: ${f.file} (the plan says ${f.want})`;
+export const faultLine = (member: string, f: DrawnFault): string => `${member}/${f.part}.${f.field}: ${f.file} (the plan says ${f.want})`;

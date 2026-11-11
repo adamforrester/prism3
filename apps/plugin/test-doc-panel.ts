@@ -710,10 +710,11 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '5  Message (optional) — ',
   ], 'the six cells, one run, captioned by the cell\'s summary');
   // Pagination: no item is like its neighbor on the specimen, so each keeps its number and its own note. Item 4 is page 5.
+  // Previous, Next and their labeled buttons cite an owner decision ("(Q414 A)"), so their notes are held back (#3552 N2).
   want('pagination', [
     '1  Container — The navigation landmark: one row of controls.',
     '2  Row — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
-    '3  Previous — The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A).',
+    '3  Previous — ',
     '4  Items — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.',
     '5  Item 1 — The first page, 1.',
     '6  Item 2 — An ellipsis for pages 2 and 3.',
@@ -723,10 +724,10 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '10  Item 6 — An ellipsis for pages 7 to 9.',
     '11  Item 7 — The last page, 10.',
     '12  Status — The position, "Page 5 of 10", between the previous and next buttons.',
-    '13  Next — The next cell: a Pagination.Item with a right chevron (Q414 A).',
+    '13  Next — ',
     '14  Simple row — The simple row: Previous at the start and Next at the end.',
-    '15  Previous button — Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).',
-    '16  Next button — Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).',
+    '15  Previous button — ',
+    '16  Next button — ',
   ], 'Item 1 to Item 7, each with its own note');
   // Tabs: the selected tab alone, then the two unselected ones as a run. Their notes differ ("A second tab.", "A third
   // tab."), so the run takes the tab's summary, never the second tab's note.
