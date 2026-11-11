@@ -89,8 +89,7 @@ Page titles in sentence case, matching each page heading. "Home" for the root.
 ## Related components
 
 - **Built from:** `breadcrumb-item`, `link`
-- **Instead, consider:** `link`, `tabs`, `page-nav`
-- **Often used with:** `tabs`
+- **Instead, consider:** `tabs`, `page-nav`
 - **Replaces:**
   - links separated by typed ">" or "/" characters
   - a history trail of visited pages

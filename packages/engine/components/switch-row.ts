@@ -259,7 +259,12 @@ export const switchRow: ComponentDef = {
       label: {
         kind: 'text',
         type: 'size.{size}.text',
-        note: 'The accessible name AND the second half of the hit target. Names the SETTING as a stable noun phrase and does not change on toggle — a label flipping between Enable and Disable is this component\'s most common copy bug. Rich content in code; a plain text node in Figma. Must NOT become hardcoded "On"/"Off" text beside the name, which duplicates the screen-reader output and does not localize.',
+        // Maintainer detail, out of the reader caption (#3610): The accessible name AND the second half of the hit
+        // target. Names the SETTING as a stable noun phrase and does not change on toggle — a label flipping between
+        // Enable and Disable is this component's most common copy bug. Rich content in code; a plain text node in
+        // Figma. Must NOT become hardcoded "On"/"Off" text beside the name, which duplicates the screen-reader output
+        // and does not localize.
+        note: 'The setting\'s name, and part of what a person clicks; it stays the same when the switch changes.',
       },
       // THE ALIGNMENT BOX (#1201). One line of the label tall (`size.{size}.control-box` → the baked
       // `body.{rung}` line-box), centering the control on its cross axis. Draws nothing — it gives the
@@ -294,7 +299,11 @@ export const switchRow: ComponentDef = {
         nests: 'switch-control',
         height: 'size.{size}.control',
         nesting: { kind: 'nest-exposed', variant: { selection: 'off', state: 'rest', status: 'default' }, expose: ['selection', 'state', 'showStateLabel'], follow: ['size', 'status'] },
-        note: 'An in-flow instance of `switch-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection, state and showStateLabel (the consumer drives them from the Row), follows the Row\'s size and status, and pins its own height so it is centered within the taller wrapper rather than stretched to fill it.',
+        // Maintainer detail, out of the reader caption (#3610): An in-flow instance of `switch-control` taking the
+        // control cell inside the line-box wrapper. It EXPOSES the control's selection, state and showStateLabel (the
+        // consumer drives them from the Row), follows the Row's size and status, and pins its own height so it is
+        // centered within the taller wrapper rather than stretched to fill it.
+        note: 'The switch, centered on the label\'s first line; it follows the row\'s size, status and selection.',
       },
     },
     codeOnly: [

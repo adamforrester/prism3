@@ -283,6 +283,14 @@ console.log('\nselection and options, saved in the file (P2–P5, H4–H9, Q2909
     `Q2909.23 A: the change is kept in the file, the whole record: both switches as the file had them, the tables by key, the defaults (${JSON.stringify(lastSave(st))})`);
   ok(JSON.stringify(st.groupsShown) === JSON.stringify(['all', 'dimension', 'font', 'text']) && st.rem === false,
     `options: with no color selected, no Color group; REM shows for the lengths (${st.groupsShown})`);
+  // #3553 Q-UI5 A: with every kind cleared, the summary says what will appear there and what produces it, in the owner's
+  // words. The three kinds are then checked again, so the record below is the one the color case left.
+  for (const sel of ['[data-p3="sg-kind-dimension"]', '[data-p3="sg-kind-font"]', '[data-p3="sg-kind-text"]']) await hooks.click(page.locator(sel));
+  st = await read(page);
+  ok(st.summary === 'Pick a collection or a kind to see the tables Update file will draw.', `#3553 Q-UI5 A: an empty selection says what produces the tables (${JSON.stringify(st.summary)})`);
+  for (const sel of ['[data-p3="sg-kind-dimension"]', '[data-p3="sg-kind-font"]', '[data-p3="sg-kind-text"]']) await hooks.click(page.locator(sel));
+  st = await read(page);
+  ok(st.summary?.startsWith('3 tables'), `#3553 Q-UI5 A: premise, checking the three kinds again restores the 3 tables (${JSON.stringify(st.summary)})`);
   await hooks.click(page.locator(groupBox('C:color:color/pds3/color')));
   await hooks.click(page.locator(groupBox('C:core:core/pds3/core')));
   await hooks.click(page.locator(groupBox('C:core:core/pds3/core')));

@@ -28,7 +28,7 @@ Shown on the default member: expansion `collapsed`, iconPosition `leading`, indi
 7. **Label** — The section title. It fills the row and wraps onto more lines rather than truncating.
 8. **Trailing indicator** — The indicator after the title: as tall as the title row, with the glyph at its top, beside the title's first line.
 9. **Trailing glyph** — The open and closed glyph, after the title.
-10. **Focus ring**
+10. **Focus ring** — The shared focus ring, drawn inside the header row's edge on keyboard focus, so it never overlaps the divider or gets clipped.
 11. **Content** — The panel, present only while the section is open: a slot that holds whatever content the section needs. Its inline inset matches the header.
 12. **Placeholder** — Placeholder content. Replace it with the text or components the section holds.
 13. **Divider** (optional) — The rule under the section, separating it from the next. It spans the section's width.
@@ -100,7 +100,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 
 - **Built from:** `_accordion-indicator`, `focus-ring`, `divider`
 - **Instead, consider:** `tabs`, `dialog`
-- **Often used with:** `tabs`, `icon`, `button`, `text-field`
+- **Often used with:** `icon`, `button`, `text-field`
 - **Replaces:**
   - a show/hide div with no aria-expanded or heading
   - a tablist used for vertical sections that open together

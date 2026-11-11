@@ -231,7 +231,7 @@ export const checkboxGroup: ComponentDef = {
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
-        note: 'The first Checkbox.Row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width. Its checked state is derived from the group\'s value array, not wired here.',
+        note: 'The first Checkbox.Row — always present. Nests the labeled row (which nests the control), following the group\'s size and status. Fills the group\'s width. Its checked state is derived from the group\'s value array, not wired here.',
       },
       row2: {
         kind: 'nest',

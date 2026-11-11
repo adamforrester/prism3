@@ -222,7 +222,10 @@ export const icon: ComponentDef = {
         // path data — see `PartDef.glyph`: the name is the contract surface `icon.name` already types,
         // so a glyph that leaves the set is a projection failure rather than an invisible gap.
         glyph: '{name}',
-        note: 'The glyph outline itself, drawn on the set\'s square artboard and scaled to whatever box it is instanced into. The geometry comes from the set (`ICON_PATHS`) by name, so this def references the vocabulary without authoring it.',
+        // Maintainer detail, out of the reader caption (#3610): The glyph outline itself, drawn on the set's square
+        // artboard and scaled to whatever box it is instanced into. The geometry comes from the set (`ICON_PATHS`) by
+        // name, so this def references the vocabulary without authoring it.
+        note: 'The glyph\'s outline, drawn on a square and scaled to the box it is placed in.',
       },
     },
     // The ceilings. Every entry is structure the brief states and the Figma leg provably cannot hold.
