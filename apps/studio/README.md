@@ -26,14 +26,14 @@ render preserved.
 ## Run
 
 ```bash
-npm install          # from the repo root (workspaces) or from web/
+npm ci               # from the repo root (workspaces)
 npm run dev          # esbuild dev server on http://127.0.0.1:5173 (build.mjs --dev)
 npm run build        # bundle to apps/studio/dist/ (build.mjs)
 npm run typecheck    # tsc --noEmit
 ```
 
 The engine core stays **buildless** (run via `tsx`); only this adapter bundles it.
-Imports reach the engine by relative path (`../../packages/engine/…`) and pull in
+Imports reach the engine by name (`@prism3/engine/…`) and pull in
 **pure modules only** — never the I/O shells (`nb-fixture`, `emit-*`, `cli`), which
 touch `node:` and would not bundle for the browser.
 
@@ -166,12 +166,13 @@ to diagnose. Every branch in it normalizes to one of those two codes, and any un
 clone with no `HEAD^`, a bad ref) resolves toward *building*.
 
 What can change the site is measured, not assumed: Vercel runs `build:site`, whose bundle takes only
-`packages/engine/**` and `packages/engine/schema/**` from outside `apps/studio/`. The Figma plugin is **not** part of
-this build, so `plugin/**` deliberately does not trigger a deploy.
+`packages/engine/**`, `packages/engine/schema/**` and one plugin file, `apps/plugin/src/causes.ts` (#3326), from
+outside `apps/studio/`, and copies `docs/public/` to `/docs` (#2637). The rest of the Figma plugin is **not** part of
+this build, so the rest of `apps/plugin/**` deliberately does not trigger a deploy.
 
-Only 13 of the engine's 44 `.ts` files are actually imported by that bundle, so the script names the
-other 31 as exclusions rather than naming the 13 as inclusions. That direction is the point: a new
-engine file is unlisted, so it triggers a build it may not need — wasteful but safe. Naming the 13
+Only some of the engine's `.ts` files are actually imported by that bundle, so the script names the
+others as exclusions rather than naming the imported ones as inclusions. That direction is the point: a new
+engine file is unlisted, so it triggers a build it may not need — wasteful but safe. Naming the imported ones
 would fail the other way, with a newly imported file missing from the list and its changes quietly
 shipping nothing. `npm run -w @prism3/studio check:ignore` gates the list against esbuild's real
 metafile and runs in CI, so an excluded file that later becomes a bundle input fails there instead
@@ -182,19 +183,20 @@ npm run build:site --workspace @prism3/studio   # what Vercel runs → apps/stud
 ```
 
 `build:site` (`build-site.mjs`) bundles with the same options as `build` (`build.mjs`), then assembles
-`apps/studio/public/` containing exactly `index.html` + `dist/main.js` + `.map` — and **fails
+`apps/studio/public/` containing exactly `index.html` + `dist/main.js` + `.map`, the `docs/public/` copy and the
+guide pages drawn from it (#3176) — and **fails
 non-zero if the output is anything else**, so an emitted-but-unreferenced asset can't ship a
 broken site on a green build. `dev` and `build` are unchanged and remain the local workflow;
 `apps/studio/public/` is gitignored.
 
 **Vercel's Root Directory must stay the repo root — not `apps/studio/`.** `src/main.ts` imports
-`../../packages/engine/*` and `../../packages/engine/schema/example-brands.json`, which a `apps/studio/`-scoped
-build cannot resolve.
+`@prism3/engine/*`, which resolves through the root workspace install, and an `apps/studio/`-scoped
+build cannot resolve it.
 
-Only `apps/studio/src`, `apps/studio/chrome` and `packages/engine/{*,schema}` are **read by the build**,
-plus two emitted files: the chrome plugin (`chrome/esbuild-plugin.mjs`, UI redesign S1.1) reads
+Only `apps/studio/src`, `apps/studio/chrome`, `packages/engine/{*,schema}`, `apps/plugin/src/causes.ts` and
+`docs/public/` are **read by the build**, plus two emitted files: the chrome plugin (`chrome/esbuild-plugin.mjs`, UI redesign S1.1) reads
 `packages/engine/out/prism3.tokens.json` and `prism3.dark.overlay.tokens.json` to generate the shell's
-`--p3-*` variables. `apps/plugin/`, `reference/` and the rest of `packages/engine/out/` are neither read
+`--p3-*` variables. The rest of `apps/plugin/`, `reference/` and the rest of `packages/engine/out/` are neither read
 nor served. Install is a different matter — it runs
 at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
 `@figma/plugin-typings`. Two consequences: the build needs devDependencies, so
