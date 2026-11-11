@@ -510,6 +510,10 @@
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. The card is
    pinned light, so this reads the light value in either chrome theme. */
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
+/* #3553 M5 A: in the Style guide's galleries an inverse token pill shares its inline-flex wrap with its `inverse` badge. In a
+   narrow card the pill shrank below its longest segment and broke inside it, per character. The wrap wraps, so the
+   badge goes above the pill where the two do not fit side by side. */
+.p3-legacy-card .sg-pills .tpill-wrap { flex-wrap: wrap; }
 /* QA-I2, on Surfaces & fills (S4f): a ratio badge's mark in the chrome's status icon colors, a pass in the success
    icon and a miss in the danger icon, from the chrome theme `preview/badge-marks.ts` stamps on the mark (the one that
    contrasts most with the ground under it). An unstamped mark (no theme reaches 3:1 there) keeps the badge's ink. */
