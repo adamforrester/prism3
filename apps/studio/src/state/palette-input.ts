@@ -67,21 +67,26 @@ export const cascadeRename = (prev: string, next: string): void => {
   // A column with no explicit `name` is named by its palette (`name ?? palette`), so the rename renames the column too,
   // and every key that names the column by it follows (#3448): its per-mode anchor (`modeAnchors[mode][col]`) and its
   // role overrides (`interactive.<col>.…`, `inverse.interactive.<col>.…`). Left on the old name the engine ignores them,
-  // and the column's anchor and overrides go back to Auto without a word. A key already on the new name is kept.
+  // and the column's anchor and overrides go back to Auto without a word. The old name wins: a key already on the new
+  // name belongs to no live column (a rename onto a name another palette holds is refused), so it is a leftover, and
+  // it is dropped first (a removed column's keys stay behind, #3549). Kept, it would bring back a value the user
+  // removed and drop the one they just set.
   const renamesColumn = !!brandState.interactivePalettes?.some((e) => e.name === undefined && e.palette === prev);
   brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
   if (renamesColumn) {
     for (const m of Object.values(brandState.modeAnchors ?? {})) {
-      if (m && prev in m && !(next in m)) { m[next] = m[prev]; delete m[prev]; }
+      if (!m) continue;
+      delete m[next];
+      if (prev in m) { m[next] = m[prev]; delete m[prev]; }
     }
     const heads = [[`interactive.${prev}.`, `interactive.${next}.`], [`inverse.interactive.${prev}.`, `inverse.interactive.${next}.`]];
     for (const m of Object.values(brandState.overrides ?? {})) {
       if (!m) continue;
+      for (const key of Object.keys(m)) if (heads.some(([, to]) => key.startsWith(to))) delete m[key];
       for (const key of Object.keys(m)) {
         const head = heads.find(([from]) => key.startsWith(from));
         if (!head) continue;
         const to = head[1] + key.slice(head[0].length);
-        if (to in m) continue;
         (m as Record<string, unknown>)[to] = m[key];
         delete m[key];
       }

@@ -404,6 +404,18 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
     `#3448 named column: its keys stay on its name, only the override's palette value follows (${JSON.stringify(store.brandState.modeAnchors)} ${JSON.stringify(store.brandState.overrides!.light)})`);
   const nfill = pathOf('dark', FILL('named'));
   ok(nfill.endsWith('.palette.accent-m.300'), `#3448 named column: its Dark anchor still holds, ${FILL('named')} resolves to accent-m 300 (${nfill})`);
+
+  // THE OLD NAME WINS (#3545 review). A key already on the new name belongs to no live column (a rename onto a taken
+  // name is refused), so it is a leftover, as a removed column leaves behind (#3549). The fixture puts a stale Dark
+  // anchor and a stale border override on `accent-z` before `accent-y` is renamed onto it; the live values must win.
+  store.brandState.modeAnchors!.dark!['accent-z'] = 300;
+  store.brandState.overrides!.light![BORDER('accent-z')] = { palette: 'accent-m', step: '200' };
+  store.brandState.overrides!.light![BORDER('accent-y')] = { palette: 'accent-y', step: '700' };
+  const k = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-y');
+  ok(P.renameBrandColor(k, 'accent-z'), 'the rename onto a name with stale keys is taken');
+  const zfill = pathOf('dark', FILL('accent-z')), zborder = pathOf('light', BORDER('accent-z'));
+  ok(zfill.endsWith('.palette.accent-z.400'), `#3545 old name wins: a stale Dark anchor on the new name does not beat the live one, ${FILL('accent-z')} resolves to accent-z 400 in dark (${zfill})`);
+  ok(zborder.endsWith('.palette.accent-z.700'), `#3545 old name wins: a stale border override on the new name does not beat the live one, ${BORDER('accent-z')} resolves to accent-z 700 in light (${zborder})`);
 }
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
