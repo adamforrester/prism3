@@ -576,11 +576,11 @@
     },
     "list-item": {
       "members": 12,
-      "sha256": "7d9ecec7b537abcffc70bf4278a35c875d3183274e6b16e8894d289dcaecd076",
+      "sha256": "089e83fb25da650afae18b70ea66a8bd8598f59b1ac17be88877b4e427c7c433",
       "properties": [
+        "label:TEXT",
         "number:TEXT",
-        "swap icon:INSTANCE_SWAP",
-        "text:TEXT"
+        "swap icon:INSTANCE_SWAP"
       ]
     },
     "list": {
@@ -705,7 +705,7 @@
     },
     "counter": {
       "members": 18,
-      "sha256": "b7b708fc1c078c1f43df06153206b749955bf0f80fa3bcf8e3846b5e335b58c7",
+      "sha256": "22458d4468f5d356c0b6dc607f8049443d6b5a6f026e91983feb8484bab63e47",
       "properties": [
         "label:BOOLEAN",
         "message:BOOLEAN",
