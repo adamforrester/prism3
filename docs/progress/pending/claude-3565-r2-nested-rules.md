@@ -18,3 +18,7 @@ rule) and `R2/nested-inner` (a px in the nested rule itself: 1). 86 assertions r
 
 Mutation: `declarations` put back to the innermost-body regex → `R2/nested` and `R2/nested-px` fail by name (R2 = 0),
 and every other arm stays green.
+
+Review round: `R2/nested-prelude` pins the selector cut for a nested `@media (min-width: 640px) { … }` and a nested
+`&:hover` (R2 = 0). 87 assertions run, all pass. Mutation: the selector-cut line removed → `R2/nested-prelude` fails by
+name (`R2: 640px in @media (min-width)`), and every other arm stays green.
