@@ -10424,7 +10424,8 @@
           "button"
         ],
         "alternativeTo": [
-          "text-field"
+          "text-field",
+          "code-input"
         ],
         "supersedes": [],
         "supersededBy": [],

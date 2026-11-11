@@ -195,7 +195,7 @@ export const passwordField: ComponentDef = makeTextField({
 
   composition: {
     composesWith: ['field-label', 'field-message', 'button'],
-    alternativeTo: ['text-field'],
+    alternativeTo: ['text-field', 'code-input'],
     replacesPatterns: ['eye icon inside a password field', 'password field with no way to show the characters', 'autocomplete="off" on a password'],
   },
 

@@ -8,7 +8,8 @@ match the def or the platform; no API, variant, visual or token changed.
 - **C3, "not built yet" for built components.** PasswordField sent a code in boxes to "a code input, not built yet"
   (CodeInput ships), CardNumberField sent wallets to "a wallet button, not built yet" (WalletButton ships), CodeInput sent a
   quantity to "a number input, not built yet" (Counter is the stepper), and ImagePlaceholder called a legibility scrim
-  unbuilt (that is Veil). Each names the component; the play overlay stays "not built yet", because it is.
+  unbuilt (that is Veil). Each names the component; the play overlay stays "not built yet", because it is. PasswordField
+  also lists `code-input` in its `alternativeTo` (#3555 MB4).
 - **C4, FocusRing** said it is nested by every focusable component and listed text-field, textarea and select as
   partners. Fields draw their own 2px focus edge and nest no ring, so the description says so and the three are out of
   `commonPartners`. The `avoidWhen` sentence is Q-MD6 and is left alone.
@@ -23,10 +24,13 @@ match the def or the platform; no API, variant, visual or token changed.
 ### A new arm: "not built yet" names nothing built
 
 `lint-component-docs.ts` arm H reads every string in the committed `components.ai.json`, takes the one to three words
-before ", not built yet" or " (not built yet", drops leading articles, and fails when what remains is a registered
+before ", not built yet" or " (not built yet", splits them at capitals and lowercases them (the registry side's
+transform, so "CodeInput" reads `code input`), drops leading articles, and fails when what remains is a registered
 def's id, name or alias. The registry is the oracle, so a component that ships later turns each stale claim about it into
 a named failure. Mutation: PasswordField's and CardNumberField's old phrases restored in the committed JSON fail three
-times by name (`NOT BUILT YET, BUT BUILT: password-field description calls "a code input" …`).
+times by name (`NOT BUILT YET, BUT BUILT: password-field description calls "a code input" …`). A second mutation,
+PasswordField's description written "(CodeInput, not built yet)" in the def and regenerated, fails `NOT BUILT YET, BUT
+BUILT: password-field description calls "CodeInput" not built yet, and code-input is a registered component`.
 
 ### Skipped, and why
 

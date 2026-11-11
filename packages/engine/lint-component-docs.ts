@@ -823,8 +823,9 @@ for (const [id, e] of Object.entries<any>(entries)) walkStrings(e, '', (text, pa
   for (const m of text.matchAll(/([A-Za-z][\w-]*(?:\s+[A-Za-z][\w-]*){0,2})(?:,\s*| \()not built yet/g)) {
     unbuiltChecked++;
     // The whole phrase, articles and joining words dropped: "a code input" is `code input`, but "a toggle button" is a
-    // toggle button, not Button, so a bare head noun never matches on its own.
-    const phrase = m[1].toLowerCase().split(/\s+/).filter((w, i, all) => !(all.slice(0, i + 1).every((x) => /^(a|an|the|or|and|with)$/.test(x)))).join(' ');
+    // toggle button, not Button, so a bare head noun never matches on its own. The phrase is split at capitals before it
+    // is lowercased, the registry side's transform, so "(CodeInput, not built yet)" reads `code input` too.
+    const phrase = m[1].replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split(/\s+/).filter((w, i, all) => !(all.slice(0, i + 1).every((x) => /^(a|an|the|or|and|with)$/.test(x)))).join(' ');
     {
       const hit = builtPhrases.get(phrase);
       if (hit) note(`NOT BUILT YET, BUT BUILT: \`${id}\` ${path} calls "${m[1]}" not built yet, and \`${hit}\` is a registered component — name it instead`);

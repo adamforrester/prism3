@@ -96,7 +96,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 ## Related components
 
 - **Built from:** `field-label`, `field-message`, `button`
-- **Instead, consider:** `text-field`
+- **Instead, consider:** `text-field`, `code-input`
 - **Often used with:** `list`
 - **Replaces:**
   - eye icon inside a password field
