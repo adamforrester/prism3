@@ -426,6 +426,10 @@ export type TextStyleRow = {
   fontFamilyPrimary: string;     // the primary face (loadFontAsync + fontName.family)
   fontSizeVar: string;
   fontSizeCollection: string;    // the `core` collection, or `type-sets` for a fluid size
+  /** #3557 — never emitted: set only by the plugin's collision choice when Skip lets go of `fontSizeVar`. The size
+   *  that variable's first mode resolves to, written as the style's literal size so it never falls to the host's
+   *  default 12. */
+  fontSizePx?: number;
   fontStyleVar: string;          // '<root>/core/font/style/<cat>/<role>[-italic]' — the bound STRING cut (#1485)
   fontStyle: string;             // resolved cut style-name (loadFontAsync + fontName.style fallback)
   lineHeightPct: number;

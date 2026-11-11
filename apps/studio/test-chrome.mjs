@@ -13249,7 +13249,8 @@ const HT = (() => {
   };
   const num = (name) => {
     const v = walk('light', `${root}.${HEADING_TOKEN_PATHS[name]}`);
-    if (typeof v === 'number') return v;
+    // Letter spacing is a `number` multiplier of the font size since #2434, read here as the em it renders at.
+    if (typeof v === 'number') return HEADING_TOKEN_PATHS[name].includes('letter-spacing') ? { em: v } : v;
     const m = /^(-?[\d.]+)(px|rem|em)?$/.exec(String(v ?? ''));
     if (!m) throw new Error(`TY2 A: ${name} (${HEADING_TOKEN_PATHS[name]}) resolves to ${JSON.stringify(v)} in the emission, not a number`);
     if (m[2] === 'em') return { em: Number(m[1]) };
@@ -13831,7 +13832,7 @@ console.log(`\nThe view and card titles (#2322)\n${'='.repeat(78)}`);
   const root = base.$extensions?.prism3?.root;
   const at = (path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), base);
   const deref = (path, hops = 0) => { const v = at(path)?.$value; const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v); return m && hops < 16 ? deref(m[1], hops + 1) : v; };
-  ok(deref(`${root}.core.font.letter-spacing-role.tightest`) === '-0.04em' && deref(`${root}.core.font.letter-spacing-role.open`) === '0.01em' && deref(`${root}.core.font.weight.700`) === 700,
+  ok(deref(`${root}.core.font.letter-spacing-role.tightest`) === -0.04 && deref(`${root}.core.font.letter-spacing-role.open`) === 0.01 && deref(`${root}.core.font.weight.700`) === 700,
     `#2322: the emission carries tightest −4%, open +1% and weight 700 (${[deref(`${root}.core.font.letter-spacing-role.tightest`), deref(`${root}.core.font.letter-spacing-role.open`), deref(`${root}.core.font.weight.700`)].join(', ')})`);
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host: 'web', theme, w: 1280, h: 900 });
