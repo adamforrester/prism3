@@ -21682,15 +21682,16 @@ if (runs('3553-m1')) {
 // above the pill where the two don't fit side by side. Held: no pill segment (the text between two `<wbr>`s) breaks
 // anywhere but after a hyphen. M6: the five-column fill cards were 61px at 1024 and their titles clipped ("Succes"); `.sg-g5` now reflows
 // to columns of at least 90px and never more than five. Held: every five-grid card's title is whole inside its card,
-// and at 1280 the grids keep five columns. M7: the alpha ramps' 8-digit hexes ellipsized by about 5px at 1280; the alpha
+// and at 1280 and 1600 the grids keep five columns (1600, where a 90px floor alone gives six, holds the cap). M7: the alpha ramps' 8-digit hexes ellipsized by about 5px at 1280; the alpha
 // ramps go five to a strip below a 760px preview. Held at web and plugin 1280: every alpha key is whole; at 1600 they
-// stay ten to a strip. Web 1024 and 1280 (M5, M6) on Brand and Surfaces & fills, both themes. MUTATIONS (each after a
+// stay ten to a strip. Web 1024, 1280 and 1600 (M5, M6) on Brand and Surfaces & fills, both themes. MUTATIONS (each after a
 // `wip:` commit): the `.p3-legacy-card .sg-pills .tpill-wrap` rule dropped from `chrome.css` → `#3553 M5 … no token pill
 // breaks inside a segment`; `.sg-g5` back to `repeat(5,1fr)` → `#3553 M6 … every five-column card's title is whole`; `ALPHA_SLIM_MAX` set to
-// `SLIM_MAX`'s 560 → `#3553 M7 … every alpha key's hex is whole`.
+// `SLIM_MAX`'s 560 → `#3553 M7 … every alpha key's hex is whole`; `.sg-g5` to `repeat(auto-fill,minmax(90px,1fr))`, its
+// fifth dropped → `#3553 M6 … a wide ground keeps five columns, never more`.
 if (runs('3553-mc')) {
   console.log(`\nThe preview's specimens (#3553 M5, M6, M7)\n${'='.repeat(78)}`);
-  for (const [w, h] of [[1024, 768], [1280, 900]]) for (const theme of ['light', 'dark']) {
+  for (const [w, h] of [[1024, 768], [1280, 900], [1600, 900]]) for (const theme of ['light', 'dark']) {
     const where = `3553-mc web ${theme} ${w}`;
     const { ctx, page, errors } = await open({ host: 'web', theme, w, h });
     let step = 'open';
@@ -21719,14 +21720,23 @@ if (runs('3553-mc')) {
             const cr = c.getBoundingClientRect(); const lr = document.createRange(); lr.selectNodeContents(lab); const tr = lr.getBoundingClientRect();
             if (lab.scrollWidth > lab.clientWidth + 0.5 || tr.right > cr.right + 0.5) cut.push(lab.textContent);
           }
-          const cols = [...document.querySelectorAll('.sg-g5')].filter((g) => g.getClientRects().length > 0).map((g) => getComputedStyle(g).gridTemplateColumns.split(' ').length);
-          return { pills: pills.length, broken, cards: cards.length, cut, cols };
+          const grids = [...document.querySelectorAll('.sg-g5')].filter((g) => g.getClientRects().length > 0);
+          const cols = grids.map((g) => getComputedStyle(g).gridTemplateColumns.split(' ').length);
+          // How many 90px columns the ground would take with no cap: at 1600 this must exceed five, or the cap is not measured.
+          const fit90 = grids.map((g) => { const cs = getComputedStyle(g); const gap = parseFloat(cs.columnGap) || 0; return Math.floor((g.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + gap) / (90 + gap)); });
+          return { pills: pills.length, broken, cards: cards.length, cut, cols, fit90 };
         });
         const at = `${where} ${place}`;
         ok(m.pills > 0 && m.cards > 0, `${at}: premise, the style guide draws token pills and five-column cards (${m.pills}, ${m.cards})`);
         ok(m.broken.length === 0, `#3553 M5 ${at}: no token pill breaks inside a segment (${m.broken.length}: ${JSON.stringify(m.broken.slice(0, 3))})`);
         ok(m.cut.length === 0, `#3553 M6 ${at}: every five-column card's title is whole inside its card (${JSON.stringify(m.cut.slice(0, 5))})`);
         if (w === 1280) ok(m.cols.length > 0 && m.cols.every((n) => n === 5), `#3553 M6 ${at}: at 1280 every five-column grid keeps five columns (${JSON.stringify(m.cols)})`);
+        // The cap half of M6 A (review of #3651): at 1600 a 90px floor alone would give six or more, so five here is the
+        // "never more than five" rule measured, not the floor.
+        if (w === 1600) {
+          ok(m.fit90.length > 0 && m.fit90.every((n) => n >= 6), `${at}: premise, the ground is wide enough for six 90px columns (${JSON.stringify(m.fit90)})`);
+          ok(m.cols.length > 0 && m.cols.every((n) => n === 5), `#3553 M6 ${at}: a wide ground keeps five columns, never more (${JSON.stringify(m.cols)})`);
+        }
         if (SHOTS && theme === 'light' && w === 1024) await page.screenshot({ path: join(SHOTS, `s3553-mc-web-${w}-${place}.png`), fullPage: true });
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
