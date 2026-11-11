@@ -28620,7 +28620,7 @@
                 "minWidth": {
                   "px": 64,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28703,7 +28703,7 @@
                 "minWidth": {
                   "px": 56,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28786,7 +28786,7 @@
                 "minWidth": {
                   "px": 88,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28869,7 +28869,7 @@
                 "minWidth": {
                   "px": 64,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28963,7 +28963,7 @@
                 "minWidth": {
                   "px": 56,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -29057,7 +29057,7 @@
                 "minWidth": {
                   "px": 88,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -33242,7 +33242,7 @@
       ],
       "properties": [
         {
-          "name": "text",
+          "name": "label",
           "type": "TEXT",
           "default": "List item"
         },
@@ -41491,11 +41491,12 @@
           "parts": [
             {
               "part": "container/control",
+              "fill": "color.disabled.fill",
               "stroke": "color.disabled.border"
             },
             {
               "part": "container/control/entry/value",
-              "ink": "color.disabled.text"
+              "ink": "color.disabled.on-fill"
             }
           ]
         },
