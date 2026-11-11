@@ -52,10 +52,19 @@
  *             numbers by hand, or delete the old fingerprint and stamp again once you have read the block.
  *             LIMIT: a fingerprint proves the cited lines have not changed since they were stamped, not that they
  *             were the right lines then. That judgment is review's, as the migration's content audit was (#3417).
- *   SELF-CHECK  Each gap CITE and FINGERPRINT once had is planted in a small in-memory tree and run through the
+ *   ORDER (#3519)  A claim that lists two or more **bold labels** joined only by commas and "and" (a page's sections,
+ *             a dialog's tabs) says what order the code holds them in, and CITE alone cannot see a reorder: every
+ *             anchor is still in the range, and a quoting claim carries no fingerprint (#3517 swapped two sections
+ *             and the guide's row kept the old order, green). So each label of the list is placed where the cited
+ *             lines hold it as a string of its own (`'Grid'`, `>Grid<`), and each must sit after the one before it.
+ *             The order is read from the cited code, never from the guide. A list whose last join is "or" names
+ *             alternatives and is not checked, whatever its length: the whole run is dropped, not just its last label. LIMIT: a label the lines do not hold as a whole string is not placed, so a list
+ *             is held only as far as its labels are placed; the summary line counts the lists with two or more.
+ *   SELF-CHECK  Each gap CITE, FINGERPRINT and ORDER once had is planted in a small in-memory tree and run through the
  *             function the guides run through: a citation one line past a file's end (#3456), a table's citation after
  *             a blank line whose cited lines hold none of its quotes (#3457), and a range-only citation whose block a
- *             PR moved down a line (#3417). Each must fail by name, and a CONTROL with the same shapes cited correctly
+ *             PR moved down a line (#3417), and a bold list whose cited lines hold every label in another order
+ *             (#3519). Each must fail by name, and a CONTROL with the same shapes cited correctly
  *             must pass, so a gate that fails everything cannot satisfy them.
  *   COUNT     "<n> component sets" in a guide equals `componentDefs.length`, read from the engine. At least one guide
  *             makes the claim, so the arm cannot pass by having nothing to check.
@@ -366,6 +375,54 @@ const anchorIn = (anchor: string, text: string, inRange: readonly Lit[]): boolea
   return inRange.some((l) => { const re = patternOf(l); return re !== null && re.test(s); });
 };
 
+/** ORDER (#3519): the runs of two or more **bold labels** in a claim joined only by `, `, ` and ` or `, and `. A run
+ *  like that reads as the code's order (a page's sections, a dialog's tabs), so it can go stale by a reorder alone,
+ *  which every anchor surviving cannot see. A list whose last join is "or" (`, or `, ` or `) names alternatives, not an
+ *  order, and is dropped whole, not just its last label (#3542 review: `build-components.md:18`'s statuses). */
+const SEQ_SEP = /^(?:,\s*|,?\s+and\s+)$/;
+const OR_SEP = /^,?\s+or\s+$/;
+const sequencesOf = (claim: string): string[][] => {
+  const c = claim.replace(/<!--[\s\S]*?-->/g, ' ');
+  const out: string[][] = [];
+  let run: string[] = [];
+  let alt = false;  // the run's last join was "or"
+  const flush = (): void => { if (run.length > 1 && !alt) out.push(run); run = []; alt = false; };
+  let end = -1;
+  for (const m of c.matchAll(BOLD)) {
+    const label = m[1].trim();
+    const at = m.index ?? 0;
+    const sep = end >= 0 && !/[.:]$/.test(label) ? c.slice(end, at) : null;
+    const or = sep !== null && OR_SEP.test(sep);
+    if (!(or || (sep !== null && SEQ_SEP.test(sep)))) flush();
+    else alt = or;
+    if (!/[.:]$/.test(label)) run.push(label);
+    end = at + m[0].length;
+  }
+  flush();
+  return out;
+};
+/** Where the cited lines hold each label of a run as a string of its own (`'Grid'`, `>Grid<`), walked in the claim's
+ *  order: each label must sit after the one before it. Returns the first pair found the other way round, or null. A
+ *  label the lines do not hold as a whole string is not placed (whether every anchor is held is a different question
+ *  from order), and neither is one with a placeholder. This reads the cited code, never the claim, for the order. */
+const outOfOrder = (seq: readonly string[], text: string): { placed: number; wrong: [string, string] | null } => {
+  let pos = -1;
+  let placed = 0;
+  let prev: string | null = null;
+  for (const label of seq) {
+    if (hasPlaceholder(label)) continue;
+    const re = new RegExp(`(?<=['"\`>])${reEsc(norm(label))}(?=['"\`<])`, 'g');
+    const at = [...text.matchAll(re)].map((m) => m.index ?? 0);
+    if (!at.length) continue;
+    const next = at.find((i) => i > pos);
+    if (next === undefined) return { placed: placed + 1, wrong: [prev!, label] };
+    pos = next;
+    prev = label;
+    placed++;
+  }
+  return { placed, wrong: null };
+};
+
 /** The claim of a citation on a line of its own: the block above it, up to a blank line or a heading. One blank line
  *  between them is stepped over (#3457): a citation set under a table after a blank line cites the table, and read
  *  without the step its claim was empty, so the table's quotes were never held to the cited lines. */
@@ -377,7 +434,7 @@ const blockAbove = (lines: readonly string[], k: number): string => {
   return block.join('\n');
 };
 
-type CiteStats = { cites: number; unanchored: number; fingerprinted: number };
+type CiteStats = { cites: number; unanchored: number; fingerprinted: number; ordered: number };
 type Fail = (arm: string, msg: string) => void;
 
 /** CITE and FINGERPRINT for the citations on one line of a guide. The guides and the SELF-CHECK fixtures run
@@ -426,13 +483,18 @@ const citeLine = (rel: string, lines: readonly string[], k: number, r: Reader, s
     const text = norm(r.codeLinesOf(path).slice(first - 1, end).join('\n'));
     const inRange = r.litsOf(path).filter((l) => l.line >= first && l.line <= end);
     if (!anchors.some((x) => anchorIn(x, text, inRange))) fail('CITE', `${at}: ${path}:${a}${b ? `-${b}` : ''} holds none of what the claim quotes (${anchors.map((x) => JSON.stringify(x)).join(', ')}). The code moved: cite where it is now, or correct the claim.`);
+    for (const seq of sequencesOf(claim)) {
+      const { placed, wrong } = outOfOrder(seq, text);
+      if (placed > 1) stats.ordered++;
+      if (wrong) fail('ORDER', `${at}: ${range} lists ${seq.map((x) => `**${x}**`).join(', ')}, but the cited lines hold **${wrong[1]}** before **${wrong[0]}**. Write the list in the order the code holds it.`);
+    }
   }
 };
 
 // ── SELF-CHECK: each gap CITE and FINGERPRINT once had, planted, and the failure that must name it ──────────────
 //
 // Every fixture runs through `citeLine`, the function the guides run through, over a small in-memory tree. Each gap
-// fixture is a case the gate once passed; the CONTROL holds the same three shapes written correctly and must pass,
+// fixture is a case the gate once passed; the CONTROL holds the same four shapes written correctly and must pass,
 // so a gate that fails everything cannot satisfy the gap fixtures. The cited files and their fingerprints are
 // written here by hand (the hashes by `printf '%s' <line> | sha256sum`), never computed by the gate (`docs/34`).
 const FIXTURE_FILES: Record<string, string> = {
@@ -441,6 +503,11 @@ const FIXTURE_FILES: Record<string, string> = {
   'fixture/tools.ts': "export const tools = ['list_levers'];\n",
   // `figma.on('close', done);` was line 2 when it was stamped (#8ac7ac65); a PR has since inserted line 1.
   'fixture/shift.ts': "// a line a PR inserted above the cited block\nconst x = 1;\nfigma.on('close', done);\n",
+  // A page's sections, which a PR reordered from Breakpoints, Grid, Containers (#3517).
+  'fixture/order.ts': "const sections = [\n  { title: 'Grid' },\n  { title: 'Breakpoints' },\n  { title: 'Containers' },\n];\n",
+  // A lookup map of a set's statuses, whose key order means nothing: a guide that lists them joined by "or" names
+  // alternatives, so it is not held to this order (#3542 review).
+  'fixture/status.ts': "const label = {\n  due: 'Due',\n  needed: 'Needed',\n  kept: 'Kept edits',\n};\n",
 };
 const fixtureReader = readerOf({ tracked: (p) => p in FIXTURE_FILES, read: (p) => FIXTURE_FILES[p] });
 const FIXTURES: readonly { readonly name: string; readonly gap: string; readonly guide: readonly string[]; readonly want: RegExp | null }[] = [
@@ -460,7 +527,12 @@ const FIXTURES: readonly { readonly name: string; readonly gap: string; readonly
     want: /^FINGERPRINT: fixture\/3417\.md:1: fixture\/shift\.ts:2#8ac7ac65 now hashes to #[0-9a-f]{8}, .* The block now sits at fixture\/shift\.ts:3: cite that\.$/,
   },
   {
-    name: 'control', gap: 'the same three shapes, cited correctly',
+    name: '3519', gap: 'a bold list whose cited lines hold every label, in another order',
+    guide: ['| **Layout** | **Breakpoints**, **Grid** and **Containers**. <!-- src: fixture/order.ts:2-4 -->'],
+    want: /^ORDER: fixture\/3519\.md:1: fixture\/order\.ts:2-4 lists \*\*Breakpoints\*\*, \*\*Grid\*\*, \*\*Containers\*\*, but the cited lines hold \*\*Grid\*\* before \*\*Breakpoints\*\*\./,
+  },
+  {
+    name: 'control', gap: 'the same four shapes, cited correctly, and an "or" list of three in an order its lines do not hold',
     guide: [
       '`const b` is the second line. <!-- src: fixture/end.ts:1-2 -->',
       '',
@@ -469,24 +541,30 @@ const FIXTURES: readonly { readonly name: string; readonly gap: string; readonly
       '<!-- src: fixture/tools.ts:1#4eedf20f -->',
       '',
       'The plugin stops when its window closes. <!-- src: fixture/shift.ts:3#8ac7ac65 -->',
+      '',
+      '| **Layout** | **Grid**, **Breakpoints** and **Containers**. <!-- src: fixture/order.ts:2-4 -->',
+      '',
+      'A set reads **Needed**, **Due** or **Kept edits**. <!-- src: fixture/status.ts:2-4 -->',
     ],
     want: null,
   },
 ];
 for (const f of FIXTURES) {
   const got: string[] = [];
-  const st: CiteStats = { cites: 0, unanchored: 0, fingerprinted: 0 };
+  const st: CiteStats = { cites: 0, unanchored: 0, fingerprinted: 0, ordered: 0 };
   f.guide.forEach((_, k) => citeLine(`fixture/${f.name}.md`, f.guide, k, fixtureReader, st, (arm, msg) => got.push(`${arm}: ${msg}`), false));
   const seen = got.length ? got.join(' | ') : 'no failure';
   if (f.want && !got.some((g) => f.want!.test(g))) fail('SELF-CHECK', `#${f.name} (${f.gap}) was not named. Expected ${f.want}; got ${seen}.`);
   // The control's table citation must count as quoting (`list_levers`): read as quoting nothing, it is #3457 again.
-  if (!f.want && (got.length || st.cites !== 3 || st.unanchored !== 1)) fail('SELF-CHECK', `the control (${f.gap}) must pass with 3 citations, 1 of them quoting nothing; got ${seen}, ${st.cites} citations, ${st.unanchored} quoting nothing.`);
+  // Its list must be placed and checked (`ordered`): a list the arm never placed would pass in any order. Its "or"
+  // list must not be (#3542 review): checked, it fails ORDER, as its head did when only its last label was dropped.
+  if (!f.want && (got.length || st.cites !== 5 || st.unanchored !== 1 || st.ordered !== 1)) fail('SELF-CHECK', `the control (${f.gap}) must pass with 5 citations, 1 of them quoting nothing and 1 list checked for order; got ${seen}, ${st.cites} citations, ${st.unanchored} quoting nothing, ${st.ordered} lists checked.`);
 }
 
 // ── THE GUIDES, through the same arms ───────────────────────────────────────────────────────────────
 
 const repo = readerOf({ tracked: (p) => tracked.has(p), read: (p) => readFileSync(join(ROOT, p), 'utf8') });
-const stats: CiteStats = { cites: 0, unanchored: 0, fingerprinted: 0 };
+const stats: CiteStats = { cites: 0, unanchored: 0, fingerprinted: 0, ordered: 0 };
 let labels = 0;
 const counts: { file: string; n: number }[] = [];
 
@@ -537,6 +615,7 @@ if (STAMP) {
 
 // COUNT
 const defs = componentDefs.length;
+if (!stats.ordered) fail('SCOPE', 'no guide lists two or more bold labels the ORDER arm could place in their cited lines, so it checked nothing.');
 if (!counts.length) fail('COUNT', `no guide says how many component sets the engine defines, so this arm checked nothing (componentDefs holds ${defs}).`);
 for (const c of counts) if (c.n !== defs) fail('COUNT', `${c.file}: says ${c.n} component sets; componentDefs holds ${defs}.`);
 
@@ -544,4 +623,4 @@ if (fails.length) {
   console.error(`❌ ${TAG}: ${fails.length} failure${fails.length === 1 ? '' : 's'}\n${fails.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}).`);
+console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}).`);

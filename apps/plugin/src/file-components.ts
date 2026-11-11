@@ -57,6 +57,7 @@ export interface FNode {
   paragraphSpacing?: unknown;
   fills?: unknown;
   strokes?: unknown;
+  dashPattern?: unknown;
   strokeAlign?: unknown;
   strokeWeight?: unknown;
   strokeTopWeight?: unknown;
@@ -212,6 +213,25 @@ const setFixedWidthHugHeight = (node: FNode, width: number): void => {
  * already-built set on idempotent reuse, so this corrects FRESH builds only — an existing file must be
  * rebuilt to pick it up.
  */
+/**
+ * FIGMA'S VARIANT-SET BORDER, WRITTEN (#1713, owner Q130 A). `combineAsVariants` hands back a set with the dash
+ * rhythm but no stroke paint (`strokes: []`, probed live 2026-09-27), so the set draws no border: the editor's
+ * purple outline is painted only on a set the editor itself creates. The projected sets write it in
+ * `claimDefaults` (#1714, `SET_BORDER` in `write-components.ts`); these two template sets do not pass through
+ * there, so they write the same values here: one SOLID #9747FF stroke, 1px, inside, a 10/5 dash, a 5px radius.
+ * A set the host already stroked keeps its own, as `claimDefaults` does. Kept apart from the executor's constant
+ * on purpose: importing it would make this file part of the executor and its stamp (`lint-executor-revision.ts`).
+ */
+const SET_BORDER = { color: { r: 0x97 / 255, g: 0x47 / 255, b: 1 }, strokeWeight: 1, strokeAlign: 'INSIDE', dashPattern: [10, 5], radius: 5 } as const;
+export const paintSetBorder = (set: FNode): void => {
+  if (Array.isArray(set.strokes) && set.strokes.length > 0) return;
+  set.strokes = [{ type: 'SOLID', color: { ...SET_BORDER.color } }];
+  set.strokeWeight = SET_BORDER.strokeWeight;
+  set.strokeAlign = SET_BORDER.strokeAlign;
+  set.dashPattern = [...SET_BORDER.dashPattern];
+  set.cornerRadius = SET_BORDER.radius;
+};
+
 const SET_ITEM_SPACING = 80;
 const SET_PADDING = 40;
 export const stackVariants = (set: FNode, members: readonly FNode[]): void => {
@@ -285,6 +305,7 @@ const buildSectionHeader = (
   const propId = set.addComponentProperty?.('Description', 'BOOLEAN', true);
   if (propId) for (const m of members) m.desc.componentPropertyReferences = { visible: propId };
   stackVariants(set, members.map((m) => m.root)); // #1600 — stack, don't overlap
+  paintSetBorder(set); // #1713 — the variant-set border the API does not paint
   return set;
 };
 
@@ -359,6 +380,7 @@ const buildHeadings = (
   const propId = set.addComponentProperty?.('Description', 'BOOLEAN', true);
   if (propId) for (const m of members) m.desc.componentPropertyReferences = { visible: propId };
   stackVariants(set, members.map((m) => m.root)); // #1600 — stack, don't overlap
+  paintSetBorder(set); // #1713 — the variant-set border the API does not paint
   return set;
 };
 

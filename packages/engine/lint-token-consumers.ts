@@ -119,7 +119,7 @@ export const UNREAD_BY_DESIGN: readonly Unread[] = [
     reason: '`container.fluid` and `container.max`: page layout widths for consumers\' own layouts. Components fill their container; only the floor (`container.min`) is bound.' },
   { match: 'grid.**', count: 5,
     reason: 'The layout grid\'s columns, gutter and margin per breakpoint: for consumers\' page layouts. No component lays out a page grid.' },
-  { match: 'motion.**', count: 13,
+  { match: 'motion.**', count: 12,
     reason: 'Steps of the motion scale (durations, reduced-motion durations, easing, springs, stagger, transitions) no component names. Emitted whole for consumers\' own motion.' },
   { match: 'opacity.*', count: 11,
     reason: 'Steps of the opacity scale no component or role uses. Emitted whole for consumers.' },

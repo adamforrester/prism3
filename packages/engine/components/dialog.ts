@@ -367,7 +367,7 @@ export const dialog: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, every placement opens and closes at once, with no movement and no fade: `motion.duration-reduced.moderate` is 0ms. Figma shows the panel at rest.',
+          'motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, every placement and the backdrop fade only, with no slide and no scale, on `motion.duration-reduced.normal` to open and to close. Figma shows the panel at rest.',
       },
       {
         class: 'visual-treatment',
@@ -486,7 +486,7 @@ export const dialog: ComponentDef = {
   motion: {
     enter: 'A centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge (motion.duration.moderate, motion.easing-role.enter). The backdrop fades in.',
     exit: 'The reverse, on motion.easing-role.exit.',
-    reduceMotion: 'Under prefers-reduced-motion every placement opens and closes at once, with no movement and no fade: motion.duration-reduced.moderate is 0ms.',
+    reduceMotion: 'Under prefers-reduced-motion every placement and the backdrop fade only, with no slide and no scale, on motion.duration-reduced.normal to open and to close. A fade is not movement, and it keeps the cue that a layer opened or closed.',
   },
 
   notes: {
@@ -507,6 +507,7 @@ export const dialog: ComponentDef = {
       'Owner QA (2026-10-19): the close button takes the flush shape, not round. The X is the bare glyph with no edge or fill, and its 44×44px hit area is drawn in code.',
       'Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads "Cancel" and Save "Save"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog\'s own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A).',
       'Owner decision Q483 A (2026-10-20, #2877), amending Q303.1: a side placement, as a value of `placement` and not a new component, for a sign-in or filter panel that slides in from the edge. Q488 A: it is `end`, the writing direction\'s end edge. Q489 A: one width, 480px, and no size, so 18 members. Q490 A: every corner square. Q491 A: reduced motion stays instant at every placement, and the contract no longer calls it a fade. Q492 A: the existing footers (an equal-width footer is #2880). Q493 A: the aliases side-sheet and drawer. Still a modal dialog with the scrim behind it.',
+      'Owner decision Q-M5 A (2026-11-07, #3413; #3488), amending Q491 A: under reduced motion every placement and the backdrop fade only, on `motion.duration-reduced.normal`, instead of opening and closing at once. A fade is not vestibular motion, and an instant swap of a full-screen layer loses the cue that a new layer opened. The movement is substituted, not deleted (`prism3-motion` R7), as Toast already does.',
       'Owner decision Q721 A (2026-10-27, #3049; Q3049.1 C, Q3049.2 A, Q3049.3 A, Q3049.4): the panel fills with its own role, `color.foreground.raised`, not the card surface. It holds the card surface unless the brand sets `raisedSurface` to `page` or `white`, which acts in light and hc-light only, so every dialog keeps its lift in dark.',
       'Owner decision Q492 B (2026-10-20, on #2877), built on #2880 with every recommendation accepted (2026-10-21): a fourth footer, `fill`, in the order inline, stacked, fill, none, that nests the Button group at `layout=fill` on every placement. The halves stay equal at every width and a long label wraps inside its button; nothing switches to stacked by itself, and the docs say to pick stacked for long labels. One to three buttons, as the `actions` slot allows, two being the case it is for. The defaults are Cancel then Save, with Cancel a Button.Neutral where the file has it.',
     ],

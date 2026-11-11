@@ -93,7 +93,7 @@ The owner grouped the guides by hand in a test file and asked Prism3 to draw tha
 
 - **The group table is the engine's** (`packages/engine/style-guide-groups.ts`, decision 1), so every surface reads one definition. A guide's group comes from its **type** and **tier** (primitive or semantic), and for a semantic dimension from whether every row is a radius. It never comes from a family name, so another brand's `accent` ramp lands in Palettes because it is a primitive color family. *Primitive tokens:* Palettes (every color), Dimensions (dimension, opacity, border width), Fonts (the font kinds). *Semantic tokens:* Semantic colors (every color but inverse), Inverse colors (every inverse family, since 2026-10-19: see below), Space & size (space, size, icon size, control, opacity), Borders (border width, and a guide of radii), Fonts (font weight roles, text styles). A type with no group stands alone (Q6 A). ~~Effect styles and gradient styles today.~~ Superseded 2026-10-28 (#3135): each has a group of its own, Effect styles and Gradient styles, stacked last on the semantic page.
 - **Inverse splits per family** (the owner's change, 2026-10-16). An inverse family is its own guide, "Inverse text", keyed by its full path (`…/inverse/text`), so it can sit under the family it restates. The one Inverse table of earlier builds is reported as replaced, and deleted when unedited. A role directly under `inverse` keeps an "Inverse" guide.
-- **A group** is a top-level frame, `Style guides — <title>`: a vertical auto layout with no fill (Q7 A), padded 88 on top (the middle of the measured 80–96), 160 on the sides and bottom. It holds a `_Section-header` Size=Large with the title only (decision 2, Q3 A), then, 80 below, a GRID of guides 160 apart with every track HUG. ~~Semantic colors' grid has two rows, default surface on top and inverse under it, aligned by column.~~ Superseded 2026-10-19: inverse has its own group, Inverse colors, directly below Semantic colors (see below).
+- **A group** is a top-level frame, `Style guides — <title>`: a vertical auto layout, padded 88 on top (the middle of the measured 80–96), 160 on the sides and bottom. It holds a `_Section-header` Size=Large with the title only (decision 2, Q3 A), then, 80 below, a GRID of guides 160 apart with every track HUG. ~~No fill (Q7 A).~~ Superseded 2026-10-23 (#2953, the owner's reference file): a group Prism3 drew is painted while it has no paint, a fill bound to `color/foreground/primary`, a 1px inside stroke bound to `color/border/secondary` and a corner of 2 (`GROUP_FILL_ROLE`, `GROUP_STROKE_ROLE` in `style-guide.ts`). A group with a designer's paint is never repainted; a file without both roles leaves the group bare, and the run's note says which role is missing. ~~Semantic colors' grid has two rows, default surface on top and inverse under it, aligned by column.~~ Superseded 2026-10-19: inverse has its own group, Inverse colors, directly below Semantic colors (see below).
 - **Groups stack** down the page in the table's order, left-aligned, 320 apart (Q1 A, Q2 A). Ungrouped guides go below the last group, left-aligned, in decision 16's rows (Q8 A).
 - **Membership is read from the canvas on every run** (decision 3), never from stored defaults. A guide inside any group stays there, redrawn in place, wherever a designer put it. A reordered guide keeps its cell, and a guide moved into another group stays there. The table decides only where a guide goes that is in no group yet:
   - a new guide joins its group's home at the end, or for an inverse guide, in Inverse colors under its counterpart's column when that cell is free;
@@ -196,18 +196,18 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 | fontWeight | 11 | by the alias rule (prism3: Semantic, since `weight-role/*` aliases `weight/*`) | "Abc 123", `fontWeight` bound | numeric weight + style name (`600 · Semi Bold`) | — | **2 (built)** |
 | lineHeight, letterSpacing | 0 in prism3 | by the alias rule | "Abc 123", that property bound | px and REM | — | **2 (built)** |
 | number | 31 | by collection | none, or the scale's bar where it is a ratio | the number | the unit the name implies (opacity %) — **proposed** | 3 |
-| shadow | 7 | Semantic | a card with the effect style applied | offset · blur · spread · color | — | 3 |
-| gradient (paint styles) | — | Semantic | a swatch filled with the style | stops, as values with their aliases | — | 3 |
+| shadow | 7 | Semantic | a card with the effect style applied | offset · blur · spread · color | — | **built (#2584)** |
+| gradient (paint styles) | — | Semantic | a swatch filled with the style | stops, as values with their aliases | — | **built (#2584)** |
 | duration | 24 | Semantic | none (**proposed**: a bar at the duration's length) | ms | — | 3 |
 | cubicBezier | 10 | Semantic | the curve, drawn on a unit square — **proposed** | the four control points | — | 3 |
 | transition | 4 | Semantic | none | duration · easing, each an alias chip | — | 3 |
 | spring | 3 | Semantic | none | stiffness · damping · mass | — | 3 |
 | strokeStyle | 1 | Semantic | a line in the style | the dash pattern | — | 3 |
-| opacity | (within number) | Semantic | the transparency swatch at that opacity | % | — | 3 |
-| border width | (within dimension) | Semantic | the radius example's stroke at the width (#2506) | px | — | 3 |
+| opacity | (within number) | Semantic | the transparency swatch at that opacity | % | — | **built (#2490)** |
+| border width | (within dimension) | Semantic | the radius example's stroke at the width (#2506) | px | — | **built (#2490, #2514)** |
 | breakpoints / grid styles | one row per breakpoint | Grids & layouts, in Grids (#3171) | the style's column grid at 1:8, the content cap shaded past `container/max` | min width · columns · gutter · margin · max width, each from the variables, with link and mismatch chips | Column: the width the style gives a column | **built (#3171)** |
 | container widths | (within dimension) | Grids & layouts, in Containers (#3171) | the spacing cell at the value's width | px, and REM | — | **built (#3171)** |
-| icon sizes | (within dimension) | Semantic | the icon glyph at the size | px | — | 3 |
+| icon sizes | (within dimension) | Semantic | the spacing cell at the value's width, as a row of the dimension table titled "Icon size" (an icon glyph at the size was the earlier proposal, not built) | px, and REM | — | **built (#2490)** |
 
 ## 5. Phase plan
 
