@@ -6,8 +6,10 @@ same tools. A run session gets MCP servers by default, so a C0 run could read `s
 through `mcp__github__get_file_contents` and be scored as clean. The `CLAUDE.md` pattern was also case-sensitive, so
 `cat $(find / -iname claude.md)` passed.
 
-Now any `mcp__<server>__<tool>` call is judged like the read tools, in JSON transcripts and in the text form, and the
-`CLAUDE.md` pattern ignores case. Prose is still never matched (`contamination/prose-mention` and
+Now any `mcp__<server>__<tool>` call is judged like the read tools, and the `CLAUDE.md` pattern ignores case. In a
+text transcript, an MCP call is read in the form Claude Code prints it, `<server> - <tool>(<args>) (MCP)`, never as the
+`mcp__…` name (the review found the first version tested a line no transcript contains). A server name with a space is
+not read in the text form. Prose is still never matched (`contamination/prose-mention` and
 `contamination/json-u-escaped` stay green). The README's contamination paragraph says the same.
 
 Not changed: a GitHub MCP call that names the repository only by its `owner` and `repo` fields, with a path outside
@@ -23,3 +25,10 @@ of a `README.md` stays clean). 87 assertions run, all pass.
 Mutations, each failing by name with every other arm green: `readsFiles` back to `READ_TOOLS` alone, and `mcp__`
 dropped from the text regex → `contamination/mcp`, `contamination/mcp-text`; the `CLAUDE.md` pattern case-sensitive
 again → `contamination/claude-md-case`.
+
+Review round: `contamination/mcp-text` now feeds the real `⏺ github - get_file_contents(…) (MCP)` line, and
+`contamination/mcp-text-prose` (sentences naming an MCP call mid-line, one ending in `(MCP)`) and
+`contamination/mcp-hyphen` (`mcp__prism3-figma__figma_run` in JSON) are added. 89 assertions run, all pass. Mutations,
+each failing by name with every other arm green: the text form back to the `mcp__…(` line → `contamination/mcp-text`;
+its line-start anchor dropped → `contamination/mcp-text-prose`; `MCP_RE` refusing a hyphen →
+`contamination/mcp-hyphen`.
