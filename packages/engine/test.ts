@@ -9579,7 +9579,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       const wantDesc = k.endsWith('-link') ? `${XS_DESC} Underlined (link — pair with text.link.* color).` : XS_DESC;
       if (c.$description !== wantDesc) bad.push(`${where}: $description "${c.$description}"`);
       const meta = aiType[`type.body.xs.${k}`];
-      if (meta?.$description !== XS_DESC) bad.push(`${where}: .ai.json $description "${meta?.$description}"`);
+      // The sidecar copies the token's own description (#3555 G2), so its link variants carry Q117 A's link guidance too.
+      if (meta?.$description !== wantDesc) bad.push(`${where}: .ai.json $description "${meta?.$description}"`);
       if (!k.endsWith('-link') && !(meta?.avoid_when ?? '').includes('`type.caption.lg`')) bad.push(`${where}: .ai.json avoid_when does not send standalone small print to caption.lg ("${meta?.avoid_when}")`);
     }
   }
@@ -10383,7 +10384,9 @@ arm: {
 // (docs/34: a gate whose expected value comes from its subject cannot fail). The color math below is this
 // block's own; `regen --check` is what keeps the two committed files in step.
 {
-  const BRANDS = ['aurora', 'harbor', 'nb', 'wendys'];
+  // Every committed sidecar, prism3 included (#3555 G3: it was left out of both gates while the schema gate's message
+  // claimed every committed out/*.ai.json).
+  const BRANDS = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
   type C4 = { r: number; g: number; b: number; a: number };
   const parseColor = (v: string): C4 => {
     const m = v.match(/^rgba?\(([^)]+)\)$/);
@@ -10410,7 +10413,7 @@ arm: {
   const RELS = ['sits_on', 'carries', 'tracks'];
   // Real acronyms the guidance may use. A new all-caps word fails until it is either lower-cased or added
   // here as the term it is.
-  const ACRONYMS = new Set(['UI', 'DOM', 'SC', 'WCAG', 'AA', 'AAA', 'HC']);
+  const ACRONYMS = new Set(['UI', 'DOM', 'SC', 'WCAG', 'AA', 'AAA', 'HC', 'CSS']);
   // The exact names the consume skill hands an agent, read from the SHIPPED skill — the oracle for "every
   // name the skill tells you to use has an entry". Backticked, dotted, lower-case, at most one wildcard
   // segment; file names (`.json`) and the private primitives it names only as the wrong choice are out.
@@ -10472,6 +10475,18 @@ arm: {
       if (!hit) pathBad.push(`${b} consume skill names \`${n}\`, which has no sidecar entry`);
     }
     for (const [k, e] of Object.entries<any>(ai.gradient ?? {})) { miss('gradient key', k); for (const v of e.resolves_to ?? []) refMiss(`${k}.resolves_to`, v); }
+    // #3555 G2: an entry's `$description` IS the token's own, copied (AI/A-22), in every tier. The typography, weight-role
+    // and gradient entries regenerated theirs and lost the face, the fluid range and "underlined". The key is the tree
+    // path (color roles gain back their `color.` segment), and the expected text is read off the tree, never the sidecar.
+    for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) {
+      const own = at(tier === 'color' ? `color.${k}` : k)?.$description;
+      // AI/C-3 reaches `$description` too (#3555 V1): "PAGE" shipped in nine overlay descriptions per brand, and the
+      // capitals check below read every field but this one. Capitals only: the copied prose's bare names are Q-MD2's.
+      const shoutD = (String(e.$description ?? '').replace(/`[^`]*`/g, '').match(/\b[A-Z]{2,}\b/g) ?? []).filter((w) => !ACRONYMS.has(w));
+      capsChecked++;
+      if (shoutD.length) pathBad.push(`${b} ${tier}.${k}.$description: capitals for emphasis ${[...new Set(shoutD)].join(', ')}`);
+      if (typeof own === 'string' && e.$description !== own) pathBad.push(`${b} ${tier}.${k}.$description is not the token's own ("${String(e.$description).slice(0, 60)}" vs "${own.slice(0, 60)}")`);
+    }
     for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
       const t: string = e[f]; if (typeof t !== 'string') continue;
       // AI/C-3: no capitals for emphasis in generated guidance — an agent can read `INVERSE` as an enum or
@@ -10684,7 +10699,9 @@ arm: {
 // state a constraint nothing checks.
 {
   const schema = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8'));
-  const BRANDS = ['aurora', 'harbor', 'nb', 'wendys'];
+  // Every committed sidecar, prism3 included (#3555 G3: it was left out of both gates while the schema gate's message
+  // claimed every committed out/*.ai.json).
+  const BRANDS = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
   const docs = BRANDS.map((b) => ({ b, ai: JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8')) }));
   const bad = docs.flatMap(({ b, ai }) => validateJsonSchema(schema, ai).map((e) => `${b} ${e}`));
   let entries = 0;
