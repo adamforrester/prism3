@@ -214,8 +214,9 @@ export const radioGroup: ComponentDef = {
       // AND for radio would be wrong — exactly one row is selected at a time, a constraint no independent
       // per-row axis can express) — a designer overrides each row instance's exposed `selection`/`state` in
       // place, and a code consumer derives them from the single scalar value. `variant: { size: 'medium' }` is
-      // the fallback the follow overrides per member; `radio-row` projects only `size`, so that one axis is
-      // the whole coordinate. Three rows by default in the `items` slot stand in for the code's `items` (#2649).
+      // the fallback the follow overrides per member. Since owner Q354 (#2751) each row also follows the group's
+      // `status`; radio-row projects `size` and `status`, the whole coordinate. Three rows by default in the
+      // `items` slot stand in for the code's `items` (#2649).
       //
       // `crossAxisFill: true` (#1503) — each row STRETCHES to the group's width (`layoutAlign: STRETCH`),
       // reproducing Prism 2's `radioButtonRow: FILL`, mirroring `checkbox-group` exactly (the two match by
@@ -242,7 +243,7 @@ export const radioGroup: ComponentDef = {
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
-        note: 'The first Radio.Row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width. Its checked state is derived from the group\'s scalar value (`checked = value === row.value`), not wired here.',
+        note: 'The first Radio.Row — always present. Nests the labeled row (which nests the control), following the group\'s size and status. Fills the group\'s width. Its checked state is derived from the group\'s scalar value (`checked = value === row.value`), not wired here.',
       },
       row2: {
         kind: 'nest',
