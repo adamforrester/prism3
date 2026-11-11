@@ -19,6 +19,18 @@
  * Mapping a contract key to a CSS name is stock Style Dictionary's `name/kebab` over the `pds3` root:
  * `color.text.primary` → `--pds3-color-text-primary`. Written out here as `.` → `-`, not by calling
  * Style Dictionary, so the build's naming is checked rather than repeated.
+ *
+ * [VALUE] (#3563): every guaranteed name's declaration in each block equals the engine's value for that
+ * mode. Names alone passed a dark block built from the hc-dark overlay, and every color rewritten to red.
+ * The expected values come from `packages/engine/out/prism3.tokens.json`, the full tree with each leaf's
+ * per-mode values under `$extensions.prism3.modes`. The build reads the base and overlay projections and
+ * never this file, so the two are separate emissions of the same engine run. A mode the leaf does not
+ * list takes its base `$value`, which is what an overlay that omits the leaf leaves in place.
+ * The comparison is loose on spelling and strict on content: both sides are cut into atoms (a `{a.b}`
+ * alias is `var(--pds3-a-b)`, a composite's fields are its atoms, a color is its rounded RGBA however it is
+ * written, quotes and `cubic-bezier( )` are dropped), and the two sorted lists must be equal. A typography
+ * value is compared on the fields the CSS `font` shorthand carries, written down here (`FONT_SHORTHAND`);
+ * `letterSpacing` and `textDecoration` cannot ride in it.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
@@ -30,6 +42,10 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(here, '../..');
 const CONTRACT = resolve(REPO, 'packages/engine/schema/token-contract.json');
+/** The [VALUE] oracle: the engine's full tree, per-mode values included. The build never reads it. */
+const TREE = resolve(REPO, 'packages/engine/out/prism3.tokens.json');
+/** The fields the CSS `font` shorthand carries (CSS Fonts 4 §2.8), so a typography value is compared on these. */
+const FONT_SHORTHAND = ['fontStyle', 'fontWeight', 'fontSize', 'lineHeight', 'fontFamily'];
 
 /** The decided prefix (Q98 A): stock Style Dictionary's root-prefixed names. */
 const PREFIX = '--pds3-';
@@ -56,6 +72,37 @@ const readBlocks = (css) => {
     blocks.set(m[1].trim(), vars);
   }
   return blocks;
+};
+
+/** A value as a sorted list of atoms, so spelling differences fall away and content differences stay. */
+const rgba = (r, g, b, a) => `rgba:${[r, g, b].map((x) => Math.round(Number(x))).join('_')}_${Math.round(Number(a) * 100) / 100}`;
+const atom = (x) => {
+  const t = x.replace(/^['"]|['"]$/g, '');
+  const h = /^#([0-9a-f]{3,8})$/i.exec(t)?.[1];
+  if (!h || ![3, 4, 6, 8].includes(h.length)) return t.toLowerCase();
+  const full = h.length <= 4 ? [...h].map((c) => c + c).join('') : h;
+  const n = (i) => parseInt(full.slice(i, i + 2), 16);
+  return rgba(n(0), n(2), n(4), full.length === 8 ? n(6) / 255 : 1);
+};
+/** The engine's side: a `{a.b}` alias is `var(--pds3-a-b)`, a number its digits, a composite its fields' atoms. */
+const expectedAtoms = (v) => {
+  if (typeof v === 'number') return [String(v)];
+  if (typeof v === 'string') {
+    const alias = /^\{([^}]+)\}$/.exec(v);
+    return alias ? [`var(--${alias[1].replaceAll('.', '-')})`] : v.split(/\s+/).filter(Boolean);
+  }
+  if (Array.isArray(v)) return v.flatMap(expectedAtoms);
+  if (v && typeof v === 'object') return Object.values(v).flatMap(expectedAtoms);
+  return [String(v)];
+};
+/** The CSS side: `rgb[a]( )` read as one color, `cubic-bezier( )` as its numbers, split on space, `,` and `/`. */
+const cssAtoms = (s) => s
+  .replace(/rgba?\(([^)]*)\)/g, (_, a) => { const [r, g, b, al = '1'] = a.split(/[\s,/]+/).filter(Boolean); return rgba(r, g, b, al); })
+  .replace(/cubic-bezier\(([^)]*)\)/g, '$1')
+  .split(/[\s,/]+/).filter(Boolean);
+const sameValue = (want, got) => {
+  const a = expectedAtoms(want).map(atom).sort().join(' '), b = cssAtoms(got).map(atom).sort().join(' ');
+  return a === b;
 };
 
 console.log('\nPackage gate — pack @prism3/tokens, install the tarball outside the repo, read the CSS\n');
@@ -99,6 +146,8 @@ try {
   console.log(`\n  contract: ${expected.length} guaranteed names with a DTCG type; not projected (#642): ${excluded.join(', ') || 'none'}\n`);
   ok(expected.length > 0, 'the contract names a non-empty guaranteed surface — the check is not vacuous');
 
+  const tree = JSON.parse(readFileSync(TREE, 'utf8'));
+  ok(Boolean(tree.pds3), 'the [VALUE] oracle, out/prism3.tokens.json, has the pds3 root');
   const blocks = readBlocks(readFileSync(main, 'utf8'));
   console.log(`  blocks: ${[...blocks.keys()].join(' · ')}\n`);
   ok(blocks.size === PROMISED_BLOCKS.length, `the CSS holds exactly the ${PROMISED_BLOCKS.length} promised blocks (got ${blocks.size})`);
@@ -112,6 +161,23 @@ try {
       `[NAMES] \`${sel}\` defines every guaranteed name under \`${PREFIX}\` (${expected.length - missing.length}/${expected.length})${missing.length ? ` — missing e.g. ${missing.slice(0, 5).join(', ')}` : ''}`);
     const off = Object.keys(vars).filter((n) => !n.startsWith(PREFIX));
     ok(off.length === 0, `[PREFIX] every name in \`${sel}\` starts \`${PREFIX}\`${off.length ? ` — e.g. ${off.slice(0, 3).join(', ')}` : ''}`);
+    // [VALUE] (#3563): each guaranteed declaration holds the engine's value for this block's mode.
+    const mode = sel === ':root' ? null : sel.match(/"(.+)"/)[1];
+    const wrong = [];
+    let compared = 0;
+    for (const [key, type] of Object.entries(contract)) {
+      if (!DTCG_TYPES.has(type)) continue;
+      const name = PREFIX + key.replaceAll('.', '-');
+      if (!(name in vars)) continue;
+      const leaf = key.split('.').reduce((n, k) => n?.[k], tree.pds3);
+      const base = mode ? leaf?.$extensions?.prism3?.modes?.[mode]?.$value ?? leaf?.$value : leaf?.$value;
+      const want = type === 'typography' && base && typeof base === 'object'
+        ? Object.fromEntries(FONT_SHORTHAND.filter((f) => f in base).map((f) => [f, base[f]])) : base;
+      compared++;
+      if (want === undefined || !sameValue(want, vars[name])) wrong.push(`${name}: ${vars[name]} (the engine's ${mode ?? 'base'} value is ${JSON.stringify(want)})`);
+    }
+    ok(compared === expected.length - missing.length && wrong.length === 0,
+      `[VALUE] \`${sel}\` holds the engine's ${mode ?? 'base'} value for every guaranteed name (${compared - wrong.length}/${compared})${wrong.length ? ` — e.g. ${wrong.slice(0, 3).join('; ')}` : ''}`);
     if (sel !== ':root') {
       const differs = expected.some((n) => n in vars && vars[n] !== root[n]);
       ok(differs, `[MODE] \`${sel}\` changes at least one guaranteed value from \`:root\` — it is a theme, not a copy`);
@@ -133,4 +199,4 @@ if (fail.length) {
   console.log(`\n✗ ${fail.length} check(s) failed:\n${fail.map((f) => `    - ${f}`).join('\n')}\n`);
   process.exit(1);
 }
-console.log('\n✓ the packed @prism3/tokens installs and defines every guaranteed name in every mode block\n');
+console.log('\n✓ the packed @prism3/tokens installs and defines every guaranteed name, with the engine\'s value, in every mode block\n');

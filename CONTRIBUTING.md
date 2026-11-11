@@ -1716,7 +1716,10 @@ npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHI
                                           # every guaranteed name in token-contract.json under
                                           # `--pds3-` (Q98 A) in `:root` and each promised
                                           # `[data-theme]` block. The contract, prefix and mode list
-                                          # are the oracle, never read off the build
+                                          # are the oracle, never read off the build. [VALUE]
+                                          # (#3563): each name holds the engine's value for its
+                                          # mode, read from out/prism3.tokens.json, which the
+                                          # build never reads
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component
