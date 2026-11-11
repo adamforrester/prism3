@@ -78,6 +78,10 @@ const CONFIRMED_WRITE_CMDS = new Set(['prune', 'update-components', 'panels-clea
  */
 const MUTATION = /\.(?:[a-zA-Z_]\w*)\s*(?:\*\*|<<|>>>|>>|&&|\|\||\?\?|[-+*/%&|^])?=(?!=)|\.(?:remove|detachInstance|swapComponent|appendChild|insertChild|setBoundVariable|setProperties|resize|resizeWithoutConstraints|resetOverrides|createInstance|clone|setPluginData|setSharedPluginData|setFillStyleIdAsync|setStrokeStyleIdAsync|setEffectStyleIdAsync|setTextStyleIdAsync|setValueForMode|setVariableValue|setExplicitVariableModeForCollection|addMode|renameMode|removeMode|setVariableCodeSyntax|insertCharacters|deleteCharacters|setRange\w+)\s*\(|figma\.(?:create\w+|group|flatten|union|subtract|intersect|exclude)\s*\(|\bvariables\.create\w+\s*\(|\.[a-zA-Z_]\w*\s*(?:\+\+|--)|(?:\+\+|--)\s*[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+|\[\s*(['"`])[^'"`]*\1\s*\]\s*(?:\*\*|<<|>>>|>>|&&|\|\||\?\?|[-+*/%&|^])?=(?![=>])|\bObject\.assign\s*\(/;
 const VERSION_SAVE = /saveVersionHistoryAsync\s*\(/;
+/** A call's code with its comments blanked, same length, so a save only written in a comment is not a save (#3568). A
+ *  `//` after `:` (a URL in a string) is not a comment. */
+const uncommented = (code: string): string =>
+  code.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' ')).replace(/(^|[^:\\])\/\/[^\n]*/gm, (m, pre: string) => pre + ' '.repeat(m.length - pre.length));
 
 /* ── shapes ─────────────────────────────────────────────────────────────────────────────────────────── */
 
@@ -321,8 +325,11 @@ export const score = (run: FigmaRun): Score => {
   /* R7 — V1 above; V7 version first */
   const firstWrite = attempts.find(isWrite);
   if (firstWrite) {
-    const saved = attempts.some((c) => c.seq < firstWrite.seq && String(c.cmd) === 'run-code' && VERSION_SAVE.test(String(c.args?.code ?? '')))
-      || (String(firstWrite.cmd) === 'run-code' && (() => { const code = String(firstWrite.args?.code ?? ''); const s = code.search(VERSION_SAVE); const w = code.replace(/saveVersionHistoryAsync\s*\([^)]*\)/g, (m) => ' '.repeat(m.length)).search(MUTATION); return s >= 0 && s < w; })());
+    // A save counts only from a call whose outcome is `ok`, and only outside a comment (#3568): a save that threw, or a
+    // `// TODO: saveVersionHistoryAsync(…)`, saved no version.
+    const savedOk = (c: Call) => outcome.get(c.seq)?.outcome === 'ok';
+    const saved = attempts.some((c) => c.seq < firstWrite.seq && String(c.cmd) === 'run-code' && savedOk(c) && VERSION_SAVE.test(uncommented(String(c.args?.code ?? ''))))
+      || (String(firstWrite.cmd) === 'run-code' && savedOk(firstWrite) && (() => { const code = uncommented(String(firstWrite.args?.code ?? '')); const s = code.search(VERSION_SAVE); const w = code.replace(/saveVersionHistoryAsync\s*\([^)]*\)/g, (m) => ' '.repeat(m.length)).search(MUTATION); return s >= 0 && s < w; })());
     if (!saved) why.V7.push(`call ${firstWrite.seq} (${String(firstWrite.cmd)}) writes before any named version was saved`);
   }
 
