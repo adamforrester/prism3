@@ -19550,7 +19550,8 @@ arm: {
   // field by field rather than dropping `ai` / `docs` / `composition` whole: the shared remainder of each
   // (usage, dont, primaryPurpose, composesWith, …) must still stay byte-identical.
   const sharedPart = (d: ComponentDef, field: string): unknown => {
-    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, ...rest } = d.ai; return rest; }
+    // #3555 Q-MD14 A: `primaryPurpose` is per-sibling too, one imperative line each; the Q-MD5 arm below holds it.
+    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, primaryPurpose, ...rest } = d.ai; return rest; }
     if (field === 'docs') return { ...d.docs, do: undefined };
     if (field === 'composition') return { ...d.composition, alternativeTo: undefined };
     return (d as Record<string, unknown>)[field];
@@ -20489,6 +20490,21 @@ arm: {
     const ref = JSON.stringify(sharedPart(iconButton, field));
     const diverged = iconButtonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #3555 Q-MD5 A and Q-MD14 A. A summary is the Figma set description a designer reads, so it names other components in
+  // plain words, never by a code name (`Checkbox.Row`), and carries no build instruction. And each sibling of an action
+  // family states its own primaryPurpose. The oracle for a code name is the registry's dotted names, not the summary.
+  {
+    const mdBad: string[] = [];
+    const dotted = componentDefs.map((d) => d.name).filter((n) => n.includes('.'));
+    for (const d of componentDefs) {
+      const s = d.summary ?? '';
+      for (const n of dotted) if (n !== d.name && s.includes(n)) mdBad.push(`${d.id} summary names ${n}`);
+      if (/\bbuild\b/i.test(s)) mdBad.push(`${d.id} summary carries a build instruction: "${s}"`);
+    }
+    for (const fam of [[button, buttonDestructive, buttonNeutral], [iconButton, iconButtonDestructive, iconButtonNeutral], [flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral]])
+      if (new Set(fam.map((d) => d.ai.primaryPurpose)).size !== 3) mdBad.push(`${fam[0].id} family shares a primaryPurpose`);
+    ok(mdBad.length === 0 && dotted.length > 10, `#3555 Q-MD5 summaries name components in plain words with no build instruction, and action siblings each state their own primaryPurpose${mdBad.length ? ` — ${mdBad.join(' | ')}` : ''}`);
   }
   // #1697 DECISION 2, icon-only half.
   for (const [a, b] of [[iconButton, iconButtonDestructive], [iconButton, iconButtonNeutral], [iconButtonDestructive, iconButtonNeutral]])

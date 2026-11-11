@@ -136,7 +136,7 @@ export const switchControl: ComponentDef = {
   aliases: ['switch-track', 'toggle-control', 'switch-atom'],
   category: 'form',
   status: 'draft',
-  summary: 'Switch track, thumb, state glyph and focus ring. Nested by Switch.Row; no label.',
+  summary: 'Switch track, thumb, state glyph and focus ring. Nested by a switch row; no label.',
   description:
     'The atomic switch control — the painted pill track, its traveling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labeled Switch.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb position is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.',
 

@@ -617,7 +617,7 @@
       ],
       "category": "foundations",
       "status": "draft",
-      "summary": "Keyboard-focus ring nested by focusable components. Build first; don't place alone.",
+      "summary": "Keyboard-focus ring nested by focusable components. Don't place it alone.",
       "description": "The shared keyboard-focus indicator: a stroke drawn outside its host's bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control's own border and the ring; 0 at the field offset, where the host's own border supplies the separation). Authored once and nested by every focusable control rather than re-drawn per host; fields draw their own 2px focus edge and nest no ring — the ring belongs to no single component, which is why its tokens are top-level families.",
       "props": [
         {
@@ -860,7 +860,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked."
+          "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked."
         },
         {
           "name": "leadingVisual",
@@ -980,10 +980,10 @@
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
         ],
-        "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound i18n expansion."
+        "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound text expansion in translation."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action in place.",
+        "primaryPurpose": "Trigger an action in place, in the brand's primary style.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
         "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
         "commonPartners": [
@@ -1186,7 +1186,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked."
+          "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked."
         },
         {
           "name": "leadingVisual",
@@ -1307,10 +1307,10 @@
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
         ],
-        "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound i18n expansion."
+        "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound text expansion in translation."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action in place.",
+        "primaryPurpose": "Trigger an action in place that deletes or removes something.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
         "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
         "commonPartners": [
@@ -1514,7 +1514,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked."
+          "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked."
         },
         {
           "name": "leadingVisual",
@@ -1634,10 +1634,10 @@
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
         ],
-        "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound i18n expansion."
+        "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound text expansion in translation."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action in place.",
+        "primaryPurpose": "Trigger an action in place that carries no brand emphasis.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
         "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
         "commonPartners": [
@@ -2268,7 +2268,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree."
+          "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -2346,7 +2346,7 @@
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action with an icon alone, no visible label.",
+        "primaryPurpose": "Trigger an action with an icon alone, no visible label, in the brand's primary style.",
         "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).",
         "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action deletes or removes something → use IconButton.Destructive. It carries no brand emphasis (most toolbar and row actions, a close affordance) → use IconButton.Neutral.",
         "commonPartners": [
@@ -2526,7 +2526,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree."
+          "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -2605,7 +2605,7 @@
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action with an icon alone, no visible label.",
+        "primaryPurpose": "Trigger an action that deletes or removes something with an icon alone, no visible label.",
         "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).",
         "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action is not destructive → use IconButton, or IconButton.Neutral for one with no brand emphasis.",
         "commonPartners": [
@@ -2785,7 +2785,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree."
+          "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -2863,7 +2863,7 @@
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action with an icon alone, no visible label.",
+        "primaryPurpose": "Trigger an action that carries no brand emphasis with an icon alone, no visible label.",
         "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).",
         "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action carries the brand → use IconButton. It deletes or removes something → use IconButton.Destructive.",
         "commonPartners": [
@@ -3083,7 +3083,7 @@
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
+        "primaryPurpose": "Trigger a brand action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
         "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
         "avoidWhen": "The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
@@ -3297,7 +3297,7 @@
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
+        "primaryPurpose": "Trigger a destructive action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
         "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
         "avoidWhen": "The action is not destructive (use FlushIconButton, or FlushIconButton.Neutral for one with no brand emphasis). It stands on its own in a toolbar or a header (use IconButton.Destructive, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
@@ -3510,7 +3510,7 @@
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
+        "primaryPurpose": "Trigger an action with no brand emphasis inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
         "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
         "avoidWhen": "The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
@@ -4160,7 +4160,7 @@
         ],
         "keyboard": "Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are separate tab stops with their own accessible names. Escape clears when clearable.",
         "focus": ":focus-visible draws the 2px focus edge in place of the border: from the field's outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.",
-        "aria": "The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir=\"auto\" on the input so content direction can differ from UI direction."
+        "aria": "The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the most frequent real accessibility failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir=\"auto\" on the input so content direction can differ from UI direction."
       },
       "content": {
         "labelPattern": "Noun phrase, sentence case, ≤3 words, no trailing colon; never the placeholder (see field-label).",
@@ -4638,7 +4638,7 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.",
+      "summary": "Checkbox box with check/dash glyph and focus ring. Nested by a checkbox row; no label.",
       "description": "The atomic checkbox control — the painted square with its check or dash glyph and its focus ring, and nothing else. Nested by the labeled Checkbox.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the three-value selection axis (unchecked / checked / indeterminate) whose mark is a real part gated on the coordinate, the per-rung clamped corner, and the 2px control border.",
       "props": [
         {
@@ -4945,7 +4945,7 @@
           "3.3.7 Redundant Entry (repeated consents)"
         ],
         "keyboard": "Each checkbox is its own Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. Never override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.",
-        "focus": ":focus-visible ring on the control, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row wrapper (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.",
+        "focus": ":focus-visible ring on the control, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row wrapper (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 or 48 on touch. The label sits inline-end of the control, not above it.",
         "aria": "Prefer the styled native input — appearance: none plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a role=\"checkbox\" div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, role=\"group\" plus aria-labelledby is the default over fieldset/legend — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the group and announce once; a row inside a group never owns its own required or error — the group sets its status. A standalone row (a consent line) is the one that sets its own: status=error with aria-invalid on the input and the host's message in its aria-describedby. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label."
       },
       "content": {
@@ -5305,7 +5305,7 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.",
+      "summary": "Outlined radio ring; dot and brand ring on select. Nested by a radio row; no label.",
       "description": "The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring's diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.",
       "props": [
         {
@@ -5481,7 +5481,7 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "One labeled option inside a Radio.Group. The whole row is the hit target.",
+      "summary": "One labeled option inside a radio group. The whole row is the hit target.",
       "description": "A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
       "inherits": "checkbox-row",
       "props": [
@@ -5950,7 +5950,7 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Switch track, thumb, state glyph and focus ring. Nested by Switch.Row; no label.",
+      "summary": "Switch track, thumb, state glyph and focus ring. Nested by a switch row; no label.",
       "description": "The atomic switch control — the painted pill track, its traveling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labeled Switch.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb position is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.",
       "props": [
         {
@@ -6255,7 +6255,7 @@
         ],
         "keyboard": "Each switch is its own tab stop — like Checkbox.Row, unlike Radio.Row, and there is no group to traverse. Space toggles, which is the canonical W3C activation; some systems also accept Enter. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.",
         "focus": ":focus-visible ring on the track, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch stays in the tab order and stays focusable; a disabled one is removed from it.",
-        "aria": "Three roles are easily confused: checkbox is role=\"checkbox\" (announced \"checked\"), switch is role=\"switch\" (announced \"on\"/\"off\"), and a toggle button is role=\"button\" + aria-pressed (announced \"pressed\"). Putting aria-pressed on a switch is a recurring and severe error that corrupts the announcement. Prefer the styled native input — <input type=\"checkbox\" role=\"switch\"> keeps focus, activation and the a11y tree for free. Announce the immediate effect: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3); on a failed change, set status=error and announce the message, since the danger border alone says nothing. If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. two implementation traps: the IA2 quirk, where both aria-pressed buttons and role=\"switch\" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native <label> does not associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly."
+        "aria": "Three roles are easily confused: checkbox is role=\"checkbox\" (announced \"checked\"), switch is role=\"switch\" (announced \"on\"/\"off\"), and a toggle button is role=\"button\" + aria-pressed (announced \"pressed\"). Putting aria-pressed on a switch is a recurring and severe error that corrupts the announcement. Prefer the styled native input — <input type=\"checkbox\" role=\"switch\"> keeps focus, activation and the accessibility tree for free. Announce the immediate effect: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3); on a failed change, set status=error and announce the message, since the danger border alone says nothing. If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. Two implementation traps: some platform accessibility layers map aria-pressed buttons and role=\"switch\" to the same toggle-button role — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native <label> does not associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly."
       },
       "content": {
         "labelPattern": "Names the setting, not the state and not the action — \"Airplane mode\", \"Location services\"; not \"Airplane mode is on\" and not \"Turn on airplane mode\". A stable noun or adjective phrase that does not change on toggle: a label flipping between Enable and Disable is disorienting and is a common bug. Positive framing is mandatory — the on state is the affirmative, so off never means a double negative. Sentence case, no terminal punctuation. Long labels wrap; the fixed-width track does not shrink. And reject hardcoded adjacent \"On\"/\"Off\" text, which is the label rule this control has and its siblings do not: it competes with the track state, produces duplicative screen-reader output, and does not localize. The track plus the role=\"switch\" announcement already carries it; where legibility genuinely demands more, use the thumb glyph affordance (showStateLabel) rather than words.",
@@ -6884,7 +6884,7 @@
       },
       "ai": {
         "primaryPurpose": "Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.",
-        "whenToUse": "A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the marker property off so the \"no image\" marker does not draw over it.",
+        "whenToUse": "A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it.",
         "avoidWhen": "The surface is a decorative wash over an existing photo (that is the veil component), the image is already present and fixed (place it directly), or the space needs a play button over the media (not built yet — this is the core empty-state frame only) or a legibility scrim over it (the veil component).",
         "commonPartners": [
           "icon",
@@ -7029,7 +7029,7 @@
       },
       "ai": {
         "primaryPurpose": "Show that work is in progress with no known end, inside the control or region that is waiting.",
-        "whenToUse": "A short indeterminate wait of about 200ms to 5s (Material 3's bands) inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.",
+        "whenToUse": "A short indeterminate wait of about 200ms to 5s inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.",
         "avoidWhen": "The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (Progress: a bar, or a ring in a small space), or is a task that ends in complete or error (a Progress ring, indeterminate until the amount is known), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.",
         "commonPartners": [
           "button",
@@ -7120,7 +7120,7 @@
       ],
       "category": "foundations",
       "status": "draft",
-      "summary": "A static status label, count or dot. Nothing to click, and color is never the only signal.",
+      "summary": "A static status label, count or dot. Nothing to click; color is not meant to be the only signal.",
       "description": "A small, static marker of one of three types. A status label is short text in the flow of content, such as a lifecycle state, a keyword or a file size, and it announces its own text. A count is a number over a host, such as unread messages on an icon button, capped at a maximum. A dot is a contentless mark over a host for presence or unread state. A count or dot is hidden from assistive technology, and its meaning goes in the host's accessible name. A badge has no hover, focus or pressed state. Anything a user can click, toggle or remove is a tag.",
       "props": [
         {
@@ -7267,7 +7267,7 @@
       "accessibility": {
         "role": "none. A status label is plain text and announces itself; a count or dot is aria-hidden and its meaning is in the host's accessible name.",
         "wcag": [
-          "1.4.1 Use of Color (the text carries the meaning; a tone, or a dot, is never the only signal)",
+          "1.4.1 Use of Color, as intent (the text carries the meaning, so a tone or a dot is not the only signal)",
           "1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands; an inline label clears 4.5:1 against the page and card surfaces)",
           "1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page, measured in every mode of the example brands. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label's 1px edge and every bold fill clear 3:1 against the page in the same measurement. The same holds for the inline style's dot: its label says the same thing, so 1.4.11 does not require 3:1, and the dot clears 3:1 against the page and card surfaces as design intent)",
           "4.1.2 Name, Role, Value (a count or dot joins its host's accessible name, so the host says what it means)",
@@ -7791,7 +7791,7 @@
         "contentGuidelines": "One or two words, a noun, sentence case."
       },
       "ai": {
-        "primaryPurpose": "One trigger inside Tabs that shows its panel in place when selected.",
+        "primaryPurpose": "Show one panel in place when selected, as one trigger inside Tabs.",
         "whenToUse": "Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.",
         "avoidWhen": "Changing the page or the address (a PageNav.Item inside PageNav), or switching a value within the current view (SegmentedControl).",
         "commonPartners": [
@@ -8296,7 +8296,7 @@
       ],
       "category": "navigation",
       "status": "draft",
-      "summary": "The open or closed glyph inside an Accordion header: a chevron or a plus and minus.",
+      "summary": "The open or closed glyph inside an accordion header: a chevron or a plus and minus.",
       "description": "The glyph an Accordion header shows to say whether its section is open: a chevron that points down when closed and up when open, or a plus that becomes a minus. It lives inside the Accordion and is never placed on its own. Choose chevron or plus-minus on the Accordion; the open or closed glyph follows the Accordion's state. The glyph is decorative: the header button's expanded state carries the meaning.",
       "props": [
         {
@@ -8784,7 +8784,7 @@
         "contentGuidelines": "One phrase or sentence per item, sentence case, parallel with the items around it."
       },
       "ai": {
-        "primaryPurpose": "One item inside a List: a marker in a fixed column, then text that wraps under itself.",
+        "primaryPurpose": "Set one item inside a List: a marker in a fixed column, then text that wraps under itself.",
         "whenToUse": "Only as a child of a List. Generate a List, which places its items and sets their marker type and size.",
         "avoidWhen": "Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).",
         "commonPartners": [
@@ -8957,7 +8957,7 @@
         "contentGuidelines": "One phrase or sentence per item, sentence case, every item the same grammatical shape."
       },
       "ai": {
-        "primaryPurpose": "A short run of text items, each after a bullet, a number or an icon, laid out with bound spacing and markers.",
+        "primaryPurpose": "Lay out a short run of text items, each after a bullet, a number or an icon, with bound spacing and markers.",
         "whenToUse": "A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.",
         "avoidWhen": "Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).",
         "commonPartners": [
@@ -9140,7 +9140,7 @@
         "contentGuidelines": "One or two words, a noun, sentence case."
       },
       "ai": {
-        "primaryPurpose": "One option inside a segmented control.",
+        "primaryPurpose": "Offer one option inside a segmented control.",
         "whenToUse": "Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.",
         "avoidWhen": "Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.",
         "commonPartners": [
@@ -9618,7 +9618,7 @@
         "contentGuidelines": "Descriptive text that stands alone, sentence case. Front-load the words that name the destination. File links state format and size."
       },
       "ai": {
-        "primaryPurpose": "Text that navigates to a URL, a fragment or a file, rendered as a real <a href>.",
+        "primaryPurpose": "Navigate from text to a URL, a fragment or a file, rendered as a real <a href>.",
         "whenToUse": "The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.",
         "avoidWhen": "The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button's weight, such as \"Continue to checkout\", is a Button given an href, which renders an <a>. Switching panels in place is Tabs.",
         "commonPartners": [
@@ -10765,7 +10765,7 @@
         "contentGuidelines": "The separator holds no copy."
       },
       "ai": {
-        "primaryPurpose": "The mark between two steps of a Breadcrumbs trail, a chevron or a slash.",
+        "primaryPurpose": "Mark the break between two steps of a Breadcrumbs trail with a chevron or a slash.",
         "whenToUse": "Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.",
         "avoidWhen": "Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.",
         "commonPartners": [
@@ -10926,7 +10926,7 @@
         "contentGuidelines": "Page titles, sentence case, as each page titles itself."
       },
       "ai": {
-        "primaryPurpose": "One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.",
+        "primaryPurpose": "Show one step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.",
         "whenToUse": "Only as a child of Breadcrumbs. Generate Breadcrumbs, which places each step and sets the separator and size for all of them.",
         "avoidWhen": "You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).",
         "commonPartners": [
@@ -11710,7 +11710,7 @@
         "contentGuidelines": "Numbers only on a page. The accessible name adds \"Page\". Previous and next read \"Previous\" and \"Next\", sentence case."
       },
       "ai": {
-        "primaryPurpose": "One page number, the ellipsis, or previous or next, inside a pagination row.",
+        "primaryPurpose": "Show one page number, the ellipsis, or previous or next, inside a pagination row.",
         "whenToUse": "Only as a child of Pagination. Generate Pagination, which places the pages, the gap marker, previous and next, and sets which page is current.",
         "avoidWhen": "Anywhere outside Pagination: a single action is a Button, and a choice between a few views is a segmented control or tabs.",
         "commonPartners": [
@@ -13338,7 +13338,7 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "The thumb a Slider moves: an ink disc that sits on the track. Used only inside a Slider.",
+      "summary": "The thumb a slider moves: an ink disc that sits on the track. Used only inside a slider.",
       "description": "The handle a Slider moves along its track: a disc in neutral ink that sits on the track with no gap. A light halo grows around it at hover and wider while pressed, and it shows the focus ring while it has keyboard focus. It comes in the Slider's three sizes. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.",
       "props": [
         {
@@ -13411,7 +13411,7 @@
         "contentGuidelines": "No copy of its own."
       },
       "ai": {
-        "primaryPurpose": "The handle a Slider moves, inside a Slider only.",
+        "primaryPurpose": "Give a Slider the handle the user moves, inside a Slider only.",
         "whenToUse": "Only as a child of a Slider. Generate a Slider, which places one thumb for a single value and two for a range, and sets their size and state.",
         "avoidWhen": "Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.",
         "commonPartners": [
@@ -14399,7 +14399,7 @@
         "contentGuidelines": "Page titles, sentence case, as each page titles itself."
       },
       "ai": {
-        "primaryPurpose": "One link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current=\"page\".",
+        "primaryPurpose": "Show one link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current=\"page\".",
         "whenToUse": "Only as a child of PageNav. Generate PageNav, which places one item per sibling page and marks the current one.",
         "avoidWhen": "Anywhere outside PageNav: a link on its own is Link, and a tab that shows a panel in place is Tab.Item inside Tabs.",
         "commonPartners": [

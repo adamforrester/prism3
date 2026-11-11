@@ -12,7 +12,7 @@
 
 An icon-only trigger for a destructive action — delete, remove, discard — in the destructive color, so the consequence reads before the click. Same anatomy as IconButton; the color is the whole difference, and the accessible name is still mandatory (a bare trash glyph is not a name). For a quiet destructive icon action, use appearance=ghost on this component.
 
-- **Purpose:** Trigger an action with an icon alone, no visible label.
+- **Purpose:** Trigger an action that deletes or removes something with an icon alone, no visible label.
 - **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).
 - **Avoid when:** The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action is not destructive → use IconButton, or IconButton.Neutral for one with no brand emphasis.
 
@@ -110,7 +110,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the icon button sits on, as on Button. default for a normal page; inverse for a dark or brand-filled band, where the control binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon button takes the shared white-inverse treatment with the icon as the ink: a white fill and a per-family icon ink derived to clear AA on white. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
 | `isPending` | boolean | `false` | no | Swaps the icon for a spinner after a short delay, keeps focus (aria-disabled, not native disabled), suppresses re-fire, and announces busy through a polite live region. The square keeps its size. |
 | `isInactive` | boolean | `false` | no | Focusable disabled for relevant-but-blocked actions — retains tab order and surfaces the blockage reason on focus. |
-| `disabled` | boolean | `false` | no | Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree. |
+| `disabled` | boolean | `false` | no | Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree. |
 
 ## Specs
 

@@ -307,7 +307,7 @@ export const segmentedControlSegment: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One option inside a segmented control.',
+    primaryPurpose: 'Offer one option inside a segmented control.',
     whenToUse: 'Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.',
     avoidWhen: 'Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.',
     commonPartners: ['segmented-control', 'icon'],

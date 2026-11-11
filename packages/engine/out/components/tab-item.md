@@ -11,7 +11,7 @@
 
 One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline in the color of its label, and the label is set in the emphasis weight, so the state never rests on color alone. Every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.
 
-- **Purpose:** One trigger inside Tabs that shows its panel in place when selected.
+- **Purpose:** Show one panel in place when selected, as one trigger inside Tabs.
 - **Use when:** Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.
 - **Avoid when:** Changing the page or the address (a PageNav.Item inside PageNav), or switching a value within the current view (SegmentedControl).
 

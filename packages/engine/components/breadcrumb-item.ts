@@ -235,7 +235,7 @@ export const breadcrumbItem: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.',
+    primaryPurpose: 'Show one step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.',
     whenToUse: 'Only as a child of Breadcrumbs. Generate Breadcrumbs, which places each step and sets the separator and size for all of them.',
     avoidWhen: 'You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).',
     commonPartners: ['breadcrumbs'],

@@ -11,7 +11,7 @@
 
 One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron or a slash. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.
 
-- **Purpose:** One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.
+- **Purpose:** Show one step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.
 - **Use when:** Only as a child of Breadcrumbs. Generate Breadcrumbs, which places each step and sets the separator and size for all of them.
 - **Avoid when:** You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).
 

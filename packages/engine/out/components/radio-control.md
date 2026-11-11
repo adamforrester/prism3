@@ -1,6 +1,6 @@
 # Radio.Control
 
-> Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.
+> Outlined radio ring; dot and brand ring on select. Nested by a radio row; no label.
 
 - **ID:** `radio-control`
 - **Category:** form

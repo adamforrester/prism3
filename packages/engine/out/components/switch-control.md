@@ -1,6 +1,6 @@
 # Switch.Control
 
-> Switch track, thumb, state glyph and focus ring. Nested by Switch.Row; no label.
+> Switch track, thumb, state glyph and focus ring. Nested by a switch row; no label.
 
 - **ID:** `switch-control`
 - **Category:** form

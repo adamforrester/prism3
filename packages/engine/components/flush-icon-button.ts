@@ -288,7 +288,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   },
 
   ai: {
-    primaryPurpose: 'Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.',
+    primaryPurpose: `Trigger ${{ primary: 'a brand action', destructive: 'a destructive action', neutral: 'an action with no brand emphasis' }[family]} inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.`,
     whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.',
     avoidWhen: `${sibling.avoidWhen} ${AVOID_WHEN}`,
     commonPartners: ['icon', 'focus-ring', 'counter'],
