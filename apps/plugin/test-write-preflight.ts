@@ -47,6 +47,9 @@ import { applyTextStylePlan } from './src/write-text-styles';
 import { guardApply, preflightPlanOf, conflictSummary, type PreflightPlan } from './src/preflight';
 import { runApplyTheme } from './src/apply-theme';
 import { conflictKey, choiceNote, renamedOf, type CollisionChoices } from './src/collision-choice';
+import { computePrunePlan, type PruneInput } from './src/prune-figma';
+import { ownedModeIds } from './src/write-figma';
+import { rootOf } from '@prism3/engine/figma-names';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -652,6 +655,59 @@ for (const c of ['skip', 'rename'] as const) {
   const other = f.styles.text.find((x) => x.name === 'display/3xl/strong');
   ok(!!other && other.bound.fontSize === 'pds3/font-fluid/display/3xl/strong',
     `Q112 skip references (control): display/3xl/strong still binds its own font size (${other?.bound.fontSize ?? 'none'})`);
+}
+
+// ── PRUNE AFTER A RENAME (#3558) ──
+// A hand-made `color`, renamed on apply: Prism3's variables are in `color (Prism3)`. Prune then reads the file the way
+// `main.ts`'s `prune` does: the same plan builders, and each collection's `ownedModeIds`. Expected: no collection is
+// offered for deletion, and the person's `color` is judged for nothing. Names are literals.
+{
+  const f = new FileShim();
+  const theirs = f.addCollection('color');
+  f.addVar('pds3/color/brand/hero', theirs, 'COLOR');
+  f.writes = [];
+  const { guarded: g } = await applyWith(f, { 'collection:color': 'rename' });
+  const renamed = f.collections.find((c) => c.name === 'color (Prism3)');
+  ok(g.ok && !!renamed && ownedModeIds(renamed).length > 0 && ownedModeIds(theirs).length === 0,
+    `#3558 premise: the apply renames Prism3's color to "color (Prism3)", stamped, and the person's color is not (${f.collections.map((c) => c.name).join(', ')})`);
+  // The prune's input, as `main.ts` assembles it.
+  const theme = brandTheme(PRISM3);
+  const colorFiles = buildFigmaColor(theme);
+  const wp = buildWritePlan(colorFiles);
+  const floatPlan = buildFloatWritePlan(theme);
+  const varPlans = [...buildFontVarPlan(theme), ...buildMotionVarPlan(theme)];
+  const plannedVariables = [...wp.palette.map((r) => r.name), ...wp.color.create.map((r) => r.name), ...floatPlan.flatMap((p) => p.create.map((r) => r.name)), ...varPlans.flatMap((p) => p.rows.map((r) => r.name))];
+  const input: PruneInput = {
+    collections: f.collections.map((c) => ({ name: c.name, variableNames: f.vars.filter((v) => v.variableCollectionId === c.id).map((v) => v.name), modes: c.modes, ownedModeIds: ownedModeIds(c) })),
+    styles: { text: [], effect: [], paint: [], grid: [] },
+    plannedVariables,
+    plannedCollections: [colorFiles.palette.$collection, ...colorFiles.color.map((c) => c.$collection), ...floatPlan.map((p) => p.name), ...varPlans.map((p) => p.name)],
+    plannedStyles: { text: [], effect: [], paint: [], grid: [] },
+    plannedModes: [
+      ...[...new Set(colorFiles.color.map((c) => c.$collection))].map((collection) => ({ collection, modes: wp.color.modes })),
+      ...floatPlan.map((p) => ({ collection: p.name, modes: p.modes })),
+      ...varPlans.map((p) => ({ collection: p.name, modes: p.modes })),
+    ],
+    root: rootOf(plannedVariables[0] ?? ''),
+  };
+  const plan = computePrunePlan(input);
+  ok(plan.collections.length === 0, `#3558 prune after rename: no collection is offered for deletion (${JSON.stringify(plan.collections)})`);
+  ok(!plan.variables.some((x) => x.collection === 'color') && !plan.modes.some((x) => x.collection === 'color'),
+    `#3558 prune after rename: the person's color is judged for no orphan and no mode (${JSON.stringify([...plan.variables.filter((x) => x.collection === 'color'), ...plan.modes.filter((x) => x.collection === 'color')])})`);
+  // The control: an orphan Prism3 left in its renamed collection is still found there.
+  f.addVar('pds3/color/retired/role', renamed, 'COLOR');
+  input.collections = f.collections.map((c) => ({ name: c.name, variableNames: f.vars.filter((v) => v.variableCollectionId === c.id).map((v) => v.name), modes: c.modes, ownedModeIds: ownedModeIds(c) }));
+  const plan2 = computePrunePlan(input);
+  ok(JSON.stringify(plan2.variables) === JSON.stringify([{ collection: 'color (Prism3)', names: ['pds3/color/retired/role'] }]),
+    `#3558 prune after rename (control): an orphan in "color (Prism3)" is still offered there (${JSON.stringify(plan2.variables)})`);
+  // The mode control: one planned color mode dropped from the plan, so the mode Prism3 wrote into `color (Prism3)` is
+  // stale and stamped as Prism3's. It is offered there, and nothing in the person's `color`. Mutation: the planned-modes
+  // remap in `computePrunePlan` dropped (`own.of(pm.collection)` → `pm.collection`) → `#3558 prune after rename (mode control)`.
+  const dropped = wp.color.modes[wp.color.modes.length - 1];
+  const plan3 = computePrunePlan({ ...input, plannedModes: input.plannedModes.map((pm) => (pm.collection === 'color' ? { ...pm, modes: pm.modes.filter((m) => m !== dropped) } : pm)) });
+  const offered = plan3.modes.map((x) => [x.collection, x.modes.map((m) => m.name)]);
+  ok(wp.color.modes.length > 1 && JSON.stringify(offered) === JSON.stringify([['color (Prism3)', [dropped]]]),
+    `#3558 prune after rename (mode control): a stale Prism3 mode in "color (Prism3)" is offered there, and nothing in the person's color (${dropped}; ${JSON.stringify(offered)})`);
 }
 
 // ── A SKIPPED SIZE KEEPS THE STYLE'S SIZE (#3557) ──

@@ -863,7 +863,7 @@
             "source": "apps/plugin/src/dev-commands.ts#runCode"
           },
           {
-            "message": "run-code takes args.timeoutMs: milliseconds from 1 to ${MAX_TIMEOUT_MS}",
+            "message": "run-code takes args.timeoutMs: milliseconds from 1 to 600000",
             "source": "apps/plugin/src/dev-commands.ts#runCode"
           }
         ],

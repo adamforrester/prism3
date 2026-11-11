@@ -1914,7 +1914,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const overlayColors = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
-        const ratio = contrast(contentRgb, composite(baseRgb, overlayBase, step / 100));
+        // At the alpha that ships (#3555 F4): the hex dialect emits 10% as 26/255, so the nominal 0.10 overstated the ratio.
+        const ratio = contrast(contentRgb, composite(baseRgb, overlayBase, emittedAlpha(step / 100, theme.colorFormat)));
         // `putWash`, not `put` (#963): `against` is the GROUND this composites over — the page — and
         // `legibleFor` is the ink that must survive on the result, which is what `cfg.secondaryMin`
         // bounds. Until #963 those were the same argument, so `against` read `text.primary` and every
@@ -1923,7 +1924,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         // shape the type forbids.
         putWash(`interactive.${color}.overlay.${st}`,
           { path: `${ns}.${overlayPal}.${step}`, rgb: overlayBase, ratio },
-          `${color} interactive overlay — ${st} (${step}% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.${color}.overlay.${st})`,
+          `${color} interactive overlay — ${st} (${step}% neutral wash for the page ground; the dark-band twin is inverse.interactive.${color}.overlay.${st})`,
           'background.primary', 'text.primary', cfg.secondaryMin, step / 100);
       }
     }
@@ -1945,7 +1946,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const invContentRgb = asGround('inverse.text.primary', pickMostExtreme(textCands, invRgb).rgb);   // the strongest ink on the band
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
-        const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, step / 100));
+        const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, emittedAlpha(step / 100, theme.colorFormat)));
         // `putWash` since #963 — see the page twin above. `inverse.text.primary` moves from the
         // `against` slot to `legibleFor`, which is the slot it always meant.
         //
@@ -2033,7 +2034,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // disabled.border — those compose from generic families, so only rest/hover live in field.*.
   const fieldGroundRgb = asGround('background.secondary', cfg.bg.secondary.rgb);
   const fieldRest = pickMinPass(ramp, fieldGroundRgb, cfg.nonTextMin);
-  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against the darkest permissible ground (\`background.secondary\`), not the page alone`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against \`background.secondary\`, the ground it is gated on, not the page alone`, 'background.secondary', cfg.nonTextMin);
   // Hover is a STATE DELTA expressed as a step offset from rest, not a second absolute ratio.
   //
   // It used to target `secondaryMin` — a TEXT constant — which is the same category error the bold
@@ -2052,7 +2053,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // step is a far weaker cue on 1px of chrome than on a filled button.
   const FIELD_HOVER_STEPS = 4;
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
-  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on \`background.secondary\`. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'background.secondary', cfg.nonTextMin);
   // `secondaryTextGround: 'page'` (owner Q-TXT1 A) fits the page's secondary ink on `background.primary`, the same
   // ground `text.primary` names, so it is the lightest secondary that still clears its bar on the page. Light and
   // dark only (owner Q3212.3 B): high contrast keeps its floor fit, because HC is for maximum legibility and the
@@ -2070,7 +2071,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('field.placeholder', pickMinPass(textCands, pageSecondary.rgb, cfg.secondaryMin),
     placeholderOnPage
       ? `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on background.primary, the same ink as text.secondary (not a sub-AA placeholder)`
-      : `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)`,
+      : `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on \`background.secondary\` behind the transparent fill (not a sub-AA placeholder)`,
     pageSecondary.name, cfg.secondaryMin);
 
   // The same four, for a field sitting on a dark hero / inverse band (#892). GENERATED against the
@@ -2096,10 +2097,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // that direction reverses. The same idiom the inverse interactive column already uses.
   const fieldInvGroundRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
   const fieldInvRest = pickMinPass(ramp, fieldInvGroundRgb, cfg.nonTextMin);
-  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against the darkest permissible inverse ground`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against \`inverse.background.secondary\`, the ground it is gated on`, 'inverse.background.secondary', cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
-  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, FIELD_HOVER_STEPS, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'inverse.background.secondary', cfg.nonTextMin);
-  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible inverse ground behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
+  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, FIELD_HOVER_STEPS, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on \`inverse.background.secondary\`. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a readable hint, ${cfg.secondaryMin}:1 on \`inverse.background.secondary\` behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
   // Ink. Built from a floor PROFILE so `text` (4.5:1) and `icon` can diverge: with
