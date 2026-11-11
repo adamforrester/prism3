@@ -548,7 +548,7 @@ export const codeInput: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture a short one-time code in one input, drawn as a row of cells.',
     whenToUse: 'A step whose job is a fixed-length code of four to eight characters sent by text message, email or an authenticator app.',
-    avoidWhen: 'The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (a number input, not built yet).',
+    avoidWhen: 'The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).',
     commonPartners: ['code-input-cell', 'field-label', 'field-message', 'button', 'link'],
     triggerKeywords: ['code input', 'otp input', 'one-time code', 'verification code', 'pin input', '2fa code'],
     generationPriority: 2,
