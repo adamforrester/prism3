@@ -9,11 +9,11 @@
 
 ## Overview
 
-A single-line field for a secret the user types — a sign-in password, a new password, a PIN typed as text. TextField's anatomy and contract with one added action: a Show/Hide button at the end of the label row that switches the input between masked and plain text. Not for a one-time code in separate boxes (a code input, not built yet), and not for any other single-line text (TextField).
+A single-line field for a secret the user types — a sign-in password, a new password, a PIN typed as text. TextField's anatomy and contract with one added action: a Show/Hide button at the end of the label row that switches the input between masked and plain text. Not for a one-time code in separate boxes (CodeInput), and not for any other single-line text (TextField).
 
 - **Purpose:** Capture a password or other typed secret, with a button that shows or hides the characters.
 - **Use when:** Sign-in, sign-up, change-password and PIN fields: any single-line secret the user types.
-- **Avoid when:** The text is not a secret (TextField), the code is entered in separate boxes (a code input, not built yet), or the value comes from a known set (Select).
+- **Avoid when:** The text is not a secret (TextField), the code is entered in separate boxes (CodeInput), or the value comes from a known set (Select).
 
 ## Anatomy
 
@@ -96,7 +96,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 ## Related components
 
 - **Built from:** `field-label`, `field-message`, `button`
-- **Instead, consider:** `text-field`
+- **Instead, consider:** `text-field`, `code-input`
 - **Often used with:** `list`
 - **Replaces:**
   - eye icon inside a password field

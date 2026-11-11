@@ -602,6 +602,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   type Stamped = { getSharedPluginData?(ns: string, k: string): string };
   const dataOf = (name: string, key: string): string => (before.get(name)?.ref as Stamped | undefined)?.getSharedPluginData?.(NS, key) ?? '';
   const stampWas = new Map([...work.members.keys()].map((m) => [m, dataOf(m, STAMP_KEY)] as const));
+  // And whether it was still marked in progress (#3559): a member a stop left between its stamp and its marker's clear
+  // (#3539) carries the planned stamp already, so only the marker coming off says this pass finished it.
+  const markedWas = new Set([...work.members.keys()].filter((m) => !!dataOf(m, UPDATING_KEY)));
   let r: ComponentApplyResult;
   try {
     r = await applyComponentPlan(t.plans, api, {
@@ -618,14 +621,18 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   } catch (err) {
     out.stopped = (err as Error)?.message ?? String(err);
     // A STOPPED SET COUNTS THE MEMBERS IT FINISHED (#3449). The pass returned nothing, so they are read off the host: a
-    // member is finished when it carries its planned stamp, which it did not before, and no in-progress marker. The
-    // stamp is written last (§7), so this is what the next dry run reads as current, with one exception: a stop on the
-    // marker's clear, the write after the stamp, leaves a member the dry run reads as current but this does not count,
-    // since its update did not complete. Before this the count was always 0, even when the pass had stamped members.
+    // member is finished when it ends with its planned stamp and no in-progress marker, and the host shows this pass did
+    // it: its stamp changed, or it was marked in progress before the pass and the marker came off (#3559). The second
+    // is a member a stop on the marker's clear left stamped and marked (#3539): the dry run reads it as to update, and
+    // the next run finishes it, so that run counts it. A stop on the marker's clear itself leaves the member marked,
+    // and it is not counted: its update did not complete, and the dry run reads it as to update too.
+    // NOT COUNTED, stated: a member updated for a reason that leaves its stamp as it was (a nested-instance fault, drawn
+    // damage, reactions that differ) and that was not marked before the pass. The host after a stop looks the same
+    // whether the pass finished it or never reached it, so it is left out rather than guessed (#3594).
     out.updated = [...stampWas].filter(([m, was]) => {
       const pl = plans.get(m);
       const want = pl ? memberStamp(pl) : '';
-      return !!want && was !== want && dataOf(m, STAMP_KEY) === want && !dataOf(m, UPDATING_KEY);
+      return !!want && dataOf(m, STAMP_KEY) === want && !dataOf(m, UPDATING_KEY) && (was !== want || markedWas.has(m));
     }).map(([m]) => m);
     return out;
   }
