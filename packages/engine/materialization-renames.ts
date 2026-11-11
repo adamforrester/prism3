@@ -601,8 +601,9 @@ type EmittedFile = { $collection?: unknown; variables?: unknown };
  *
  * Deliberately tolerant of a file that carries no `variables` array: three of the eighteen collections
  * (`text-styles`, `shadow-styles`, `gradient-styles`) hold ZERO variables because they are Figma
- * STYLES — a different API and a different rename operation, excluded by `docs/44` §6.4. An empty
- * array from those is correct rather than a parse failure to report.
+ * STYLES — a different API and a different rename operation (`docs/44` §6.4). An empty array from
+ * those is correct rather than a parse failure to report: since #1040 their names are read by
+ * `styleKeysFromEmittedFile` and accounted for against `STYLE_RENAMES`, a register of their own.
  *
  * A file with no `$collection` IS a failure and throws: the collection is half the key, so a file that
  * cannot name itself would contribute keys that silently collide with another collection's.
@@ -820,3 +821,151 @@ export const materializationRulesSrc = (): string =>
     const { id, since } = r;
     return 'Object.assign(' + JSON.stringify({ id, since }) + ',{domain:' + r.domain.toString() + ',map:' + r.map.toString() + '})';
   }).join(',') + '];})()';
+
+// ---- STYLES: the same record, for the three style collections (#1040) -----------------------------
+
+/**
+ * THE STYLE COLLECTIONS a style rename record covers, spelled literally (`docs/44` §10.1).
+ *
+ * `text-styles`, `shadow-styles` and `gradient-styles` are the `$collection` of the three emitted style files.
+ * They hold zero variables, so `keysFromEmittedFile` reads nothing from them, and until #1040 nothing recorded a
+ * rename there: the writers find a style by name, so a renamed style was created fresh and its predecessor left
+ * behind, still carrying every layer and every library consumer that used it. The owner decided (#1040, Q173 A)
+ * that a style rename is recorded and the plugin renames the existing style IN PLACE, keeping its id.
+ *
+ * `grid-styles` is NOT here, on purpose: its one rename so far (#2467, `Grid / <bp>` → `<bp>`) is handled inside
+ * its own writer with an ownership guard and a client-collision skip, and #1040 scoped this record to the three
+ * kinds above. A grid rename after this one should join this list rather than add a second writer-local rename.
+ */
+export const STYLE_COLLECTIONS: readonly string[] = ['text-styles', 'shadow-styles', 'gradient-styles'];
+
+/**
+ * One style rename, the same shape as `MaterializationRule` minus the root.
+ *
+ * NO ROOT, and the reason is a fact about the emission rather than a convenience: a style name carries no brand
+ * namespace. #1097 gave every VARIABLE name the brand root and deliberately left styles on the transform they
+ * already had (`docs/10`), so `display/xl/strong` is the same name under every brand. A style rule that took a root
+ * would be offered a value it must not use. A `StyleRule` is still assignable to `MaterializationRule` (a function
+ * of fewer parameters is), which is what lets `accountFor` run it unchanged: one accounting, two registers.
+ *
+ * `domain` and `map` take the COLLECTION as well as the name, because the three collections are three namespaces:
+ * `shadow/xs` in `shadow-styles` and a `shadow/xs` text style would be two styles. `map` returns the NAME only; a
+ * style never moves between collections (they are three different Figma style types).
+ */
+export type StyleRule = {
+  id: string;
+  /** As `MaterializationRule.since`: a new rule writes the quoted {{ENGINE_VERSION}} placeholder and the fold
+   *  fills it (#1816, `fold-stamps.ts`, which already reads this file). */
+  since: string;
+  why: string;
+  domain: (collection: string, name: string) => boolean;
+  map: (collection: string, name: string) => string;
+};
+
+/**
+ * THE STYLE RENAME RECORD. Ships EMPTY, for #1039's reason: no style has been renamed since #1040, and authoring
+ * an entry here would take a naming decision by shipping it. Empty is checkable. Check 1
+ * (`lint-materialization-renames.ts`) reads the style files at the merge base and in the working tree and fails
+ * a style name that left the emission with no rule or deletion claiming it, so the first PR that renames a style
+ * cannot land without its entry. Check 2 (`test.ts`) keeps an entry from going stale afterwards.
+ *
+ * Written the way `MATERIALIZATION_RENAMES` is: literal transformations, no emitter in scope (`docs/34` shape 11).
+ */
+export const STYLE_RENAMES: StyleRule[] = [
+];
+
+/** A style DELETED from the emission, with no image: the style twin of `MaterializationDeletion`. A deleted style
+ *  needs no apply-side step; Clean up offers a style the engine stopped emitting. Ships empty. */
+export type StyleDeletion = {
+  id: string;
+  since: string;
+  why: string;
+  domain: (collection: string, name: string) => boolean;
+};
+
+export const STYLE_DELETIONS: StyleDeletion[] = [
+];
+
+/** The shape of one emitted style file: `$collection` plus a `styles` array of named entries. */
+type EmittedStyleFile = { $collection?: unknown; styles?: unknown };
+
+/**
+ * Pull `(collection, name)` keys out of one emitted STYLE file. Returns `[]` for a file whose `$collection` is not
+ * one of `STYLE_COLLECTIONS` (every variable file, and `grid-styles`).
+ *
+ * A file that IS a style collection and carries no `styles` array throws rather than yielding nothing: a reader
+ * that finds nothing accounts for everything (`docs/34` shape 9), and the style accounting would then report
+ * total over a collection it never read. An empty array is fine (two brands emit no gradients).
+ */
+export const styleKeysFromEmittedFile = (parsed: unknown, whence: string): VarKey[] => {
+  const f = parsed as EmittedStyleFile;
+  if (typeof f?.$collection !== 'string' || !STYLE_COLLECTIONS.includes(f.$collection)) return [];
+  if (!Array.isArray(f.styles))
+    throw new Error(`${whence}: a ${f.$collection} file with no \`styles\` array — the style accounting would read nothing and call it total`);
+  return f.styles.map((s, i) => {
+    const name = (s as { name?: unknown })?.name;
+    if (typeof name !== 'string' || !name) throw new Error(`${whence}: styles[${i}] has no name`);
+    return varKey(f.$collection as string, name);
+  });
+};
+
+/**
+ * Why a recorded style rename was or was not applied to one style in a file.
+ *
+ *   rename              the existing style takes the new name in place: same id, so every layer and library
+ *                       consumer that used it follows.
+ *   target-exists       the file already holds a style under the new name. Renaming would put two styles under
+ *                       one name, so the old one is left as it is; the writer reuses the existing target, and
+ *                       Clean up can offer the old one once the brand stops emitting it.
+ *   target-not-planned  the rule's image is not a style this apply writes. Refused: a rename onto a name the
+ *                       writer will not touch leaves a style nobody maintains under a name nobody asked for.
+ *   duplicate-target    two existing styles map onto one image. Neither is renamed, for the same reason as
+ *                       `target-exists`, and nothing here can say which of the two the designer meant.
+ */
+export type StyleRenameStatus = 'rename' | 'target-exists' | 'target-not-planned' | 'duplicate-target';
+export type StyleRenameStep = { collection: string; from: string; to: string; rules: string[]; status: StyleRenameStatus };
+
+/**
+ * PLAN the style renames for one collection: which existing style becomes which planned name. Pure; the plugin
+ * applies the `rename` rows (`apps/plugin/src/rename-styles.ts`).
+ *
+ * A name walks the rules until no rule claims it, so a file several renames behind lands on the current name in
+ * one apply (the variable side's `materialize` chain, for the same reason). The walk stops on a self-map and is
+ * bounded by the rule count, so a rule that claims its own image cannot spin.
+ *
+ * `existing` is the file's own style names in this collection; `planned` is what this apply writes. Both come
+ * from the caller, never from the emitter: this module has no emitter in scope.
+ */
+export const planStyleRenames = (
+  collection: string,
+  existing: readonly string[],
+  planned: readonly string[],
+  rules: readonly StyleRule[] = STYLE_RENAMES,
+): StyleRenameStep[] => {
+  const plannedSet = new Set(planned);
+  const existingSet = new Set(existing);
+  const walked: Array<{ from: string; to: string; rules: string[] }> = [];
+  for (const from of existing) {
+    let name = from;
+    const via: string[] = [];
+    for (let hop = 0; hop <= rules.length; hop++) {
+      const rule = rules.find((r) => r.domain(collection, name));
+      if (!rule) break;
+      const next = rule.map(collection, name);
+      if (next === name) break;
+      via.push(rule.id);
+      name = next;
+    }
+    if (via.length) walked.push({ from, to: name, rules: via });
+  }
+  const byTarget = new Map<string, number>();
+  for (const w of walked) byTarget.set(w.to, (byTarget.get(w.to) ?? 0) + 1);
+  return walked.map((w) => ({
+    collection,
+    ...w,
+    status: !plannedSet.has(w.to) ? 'target-not-planned'
+      : (byTarget.get(w.to) ?? 0) > 1 ? 'duplicate-target'
+      : existingSet.has(w.to) ? 'target-exists'
+      : 'rename',
+  }));
+};
