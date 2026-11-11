@@ -21660,6 +21660,20 @@ if (runs('3553-cards')) {
         await hooks.need(page, `[data-p3="${inner}"]`);
         const open = await inCard(`[data-p3="${inner}"]`);
         ok(closed === card && open === card, `#3553 Q-UI14 ${where} ${place}: Show advanced sits in its card, ${card}, and opens there (button in ${JSON.stringify(closed)}, opened lever in ${JSON.stringify(open)})`);
+        // Moving Base radius out of its own section moved its approved words with it (review of #3646): the line under
+        // the lever and its ⓘ, typed here as the owner approved them (BG1 A's PROMOTED entry held the ⓘ before Q-UI14),
+        // as D8 A holds Shadow tint's line inside Elevation.
+        if (place === 'shape') {
+          const words = await page.evaluate(() => {
+            const lv = document.querySelector('[data-p3="base-radius-pick"]')?.closest('.p3-lever');
+            const btn = lv?.querySelector('.p3-lever-head [aria-describedby], .p3-lever-head [aria-controls]');
+            const tipId = btn?.getAttribute('aria-describedby') ?? btn?.getAttribute('aria-controls');
+            return { line: lv?.querySelector('.p3-lever-ctl')?.textContent ?? null, tip: (tipId && document.getElementById(tipId)?.textContent) || lv?.querySelector(':scope > [id^="p3-tip-"]')?.textContent || null };
+          });
+          const LINE = 'The medium radius at standard softness. Every other radius size is a multiple of it.';
+          const TIP = 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.';
+          ok(!!words.line?.includes(LINE) && !!words.tip?.includes(TIP), `#3553 Q-UI14 ${where} shape: Base radius, opened in Radius, carries its approved line and its ⓘ (line ${JSON.stringify(words.line?.slice(0, 90))}, ⓘ ${JSON.stringify(words.tip?.slice(0, 110))})`);
+        }
         await hooks.click(page.locator(`[data-p3="${fold}"]`));
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
