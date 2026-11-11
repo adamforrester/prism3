@@ -34727,7 +34727,7 @@
       }
     },
     "badge": {
-      "digest": "3677dd33",
+      "digest": "4df9d55d",
       "def": {
         "id": "badge",
         "name": "Badge",
@@ -34950,9 +34950,9 @@
           "generationPriority": 3
         },
         "motion": {
-          "enter": "A count or dot scales in from zero, from the corner it is anchored to. When a count changes, only the number animates, not the pill. A status label appears with no motion. A dot pulses only for a critical alert.",
-          "exit": "A count or dot scales out to its anchor corner.",
-          "reduceMotion": "Under prefers-reduced-motion every change is instant: no scale, no pulse."
+          "enter": "A count or dot fades in and scales up from a little under full size, from the corner it is anchored to, on motion.transition.enter. When a count changes, only the number changes, on motion.transition.default; the pill does not move. A status label appears with no motion.",
+          "exit": "A count or dot fades out and scales down toward its anchor corner on motion.transition.exit.",
+          "reduceMotion": "Under prefers-reduced-motion a count or dot fades in and out with no scale, on motion.duration-reduced.normal both ways, and a changed count's number fades on the same role."
         },
         "composition": {
           "composesWith": [],
