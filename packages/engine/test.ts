@@ -16430,7 +16430,7 @@ arm: {
   // grow into a hole. The child-only arm holds the two whenToUse templates and resolves the host each names
   // against the anatomy of the OTHER defs, so a template naming a host that does not nest the part fails.
   {
-    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HIG', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
+    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
     const consumerStrings = (d: ComponentDef): [string, string][] => {
       const out: [string, string][] = [];
       const walk = (path: string, v: unknown): void => {
