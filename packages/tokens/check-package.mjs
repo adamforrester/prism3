@@ -26,11 +26,16 @@
  * per-mode values under `$extensions.prism3.modes`. The build reads the base and overlay projections and
  * never this file, so the two are separate emissions of the same engine run. A mode the leaf does not
  * list takes its base `$value`, which is what an overlay that omits the leaf leaves in place.
- * The comparison is loose on spelling and strict on content: both sides are cut into atoms (a `{a.b}`
- * alias is `var(--pds3-a-b)`, a composite's fields are its atoms, a color is its rounded RGBA however it is
- * written, quotes and `cubic-bezier( )` are dropped), and the two sorted lists must be equal. A typography
- * value is compared on the fields the CSS `font` shorthand carries, written down here (`FONT_SHORTHAND`);
- * `letterSpacing` and `textDecoration` cannot ride in it.
+ * The comparison ignores spelling, not content or order. Both sides are cut into atoms (a `{a.b}` alias is
+ * `var(--pds3-a-b)`, a color is its rounded RGBA however it is written, quotes and `cubic-bezier( )` are
+ * dropped, and the CSS is split on space, `,` and `/`), and the two lists must be equal IN ORDER. So the
+ * engine's side is laid out in the order CSS writes each composite, written down here (`CSS_ORDER`):
+ * a cubic-bezier's four numbers as they stand, each shadow layer in turn as `[inset] offsetX offsetY blur
+ * spread color`, a transition as `duration timingFunction delay`, a border as `width style color`, and a
+ * typography value as the `font` shorthand, `fontStyle fontWeight fontSize/lineHeight fontFamily`
+ * (`FONT_SHORTHAND`; `letterSpacing` and `textDecoration` cannot ride in it). A composite type with no
+ * order written down, or a field the order does not name, fails rather than being compared loosely.
+ * What the split still loses: the separators themselves (`,` between shadow layers, `/` in the shorthand).
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
@@ -44,8 +49,15 @@ const REPO = resolve(here, '../..');
 const CONTRACT = resolve(REPO, 'packages/engine/schema/token-contract.json');
 /** The [VALUE] oracle: the engine's full tree, per-mode values included. The build never reads it. */
 const TREE = resolve(REPO, 'packages/engine/out/prism3.tokens.json');
-/** The fields the CSS `font` shorthand carries (CSS Fonts 4 §2.8), so a typography value is compared on these. */
+/** The fields the CSS `font` shorthand carries (CSS Fonts 4 §2.8), in the shorthand's order, so a typography value is compared on these. */
 const FONT_SHORTHAND = ['fontStyle', 'fontWeight', 'fontSize', 'lineHeight', 'fontFamily'];
+/** Each composite DTCG type's fields in the order its CSS value writes them. A shadow's `inset` is a keyword, not a value. */
+const CSS_ORDER = {
+  shadow: ['inset', 'offsetX', 'offsetY', 'blur', 'spread', 'color'],
+  transition: ['duration', 'timingFunction', 'delay'],
+  border: ['width', 'style', 'color'],
+  typography: FONT_SHORTHAND,
+};
 
 /** The decided prefix (Q98 A): stock Style Dictionary's root-prefixed names. */
 const PREFIX = '--pds3-';
@@ -74,7 +86,7 @@ const readBlocks = (css) => {
   return blocks;
 };
 
-/** A value as a sorted list of atoms, so spelling differences fall away and content differences stay. */
+/** A value as an ordered list of atoms, so spelling differences fall away and content and order differences stay. */
 const rgba = (r, g, b, a) => `rgba:${[r, g, b].map((x) => Math.round(Number(x))).join('_')}_${Math.round(Number(a) * 100) / 100}`;
 const atom = (x) => {
   const t = x.replace(/^['"]|['"]$/g, '');
@@ -84,15 +96,23 @@ const atom = (x) => {
   const n = (i) => parseInt(full.slice(i, i + 2), 16);
   return rgba(n(0), n(2), n(4), full.length === 8 ? n(6) / 255 : 1);
 };
-/** The engine's side: a `{a.b}` alias is `var(--pds3-a-b)`, a number its digits, a composite its fields' atoms. */
-const expectedAtoms = (v) => {
+/**
+ * The engine's side, in CSS order: a `{a.b}` alias is `var(--pds3-a-b)`, a number its digits, a list its
+ * items in turn (cubic-bezier numbers, shadow layers, a font stack), a composite its fields in `CSS_ORDER`.
+ */
+const expectedAtoms = (v, type) => {
   if (typeof v === 'number') return [String(v)];
   if (typeof v === 'string') {
     const alias = /^\{([^}]+)\}$/.exec(v);
     return alias ? [`var(--${alias[1].replaceAll('.', '-')})`] : v.split(/\s+/).filter(Boolean);
   }
-  if (Array.isArray(v)) return v.flatMap(expectedAtoms);
-  if (v && typeof v === 'object') return Object.values(v).flatMap(expectedAtoms);
+  if (Array.isArray(v)) return v.flatMap((x) => expectedAtoms(x, type));
+  if (v && typeof v === 'object') {
+    const order = CSS_ORDER[type];
+    const unnamed = Object.keys(v).filter((f) => !order?.includes(f));
+    if (!order || unnamed.length) return [`<no CSS order for ${type} field(s) ${unnamed.join(', ')}>`];
+    return order.filter((f) => f in v).flatMap((f) => (f === 'inset' ? (v.inset ? ['inset'] : []) : expectedAtoms(v[f])));
+  }
   return [String(v)];
 };
 /** The CSS side: `rgb[a]( )` read as one color, `cubic-bezier( )` as its numbers, split on space, `,` and `/`. */
@@ -100,8 +120,9 @@ const cssAtoms = (s) => s
   .replace(/rgba?\(([^)]*)\)/g, (_, a) => { const [r, g, b, al = '1'] = a.split(/[\s,/]+/).filter(Boolean); return rgba(r, g, b, al); })
   .replace(/cubic-bezier\(([^)]*)\)/g, '$1')
   .split(/[\s,/]+/).filter(Boolean);
-const sameValue = (want, got) => {
-  const a = expectedAtoms(want).map(atom).sort().join(' '), b = cssAtoms(got).map(atom).sort().join(' ');
+/** Equal atom for atom, in order: a reversed curve, a swapped size and line-height, or reordered layers differ. */
+const sameValue = (want, got, type) => {
+  const a = expectedAtoms(want, type).map(atom).join(' '), b = cssAtoms(got).map(atom).join(' ');
   return a === b;
 };
 
@@ -174,7 +195,7 @@ try {
       const want = type === 'typography' && base && typeof base === 'object'
         ? Object.fromEntries(FONT_SHORTHAND.filter((f) => f in base).map((f) => [f, base[f]])) : base;
       compared++;
-      if (want === undefined || !sameValue(want, vars[name])) wrong.push(`${name}: ${vars[name]} (the engine's ${mode ?? 'base'} value is ${JSON.stringify(want)})`);
+      if (want === undefined || !sameValue(want, vars[name], type)) wrong.push(`${name}: ${vars[name]} (the engine's ${mode ?? 'base'} value is ${JSON.stringify(want)})`);
     }
     ok(compared === expected.length - missing.length && wrong.length === 0,
       `[VALUE] \`${sel}\` holds the engine's ${mode ?? 'base'} value for every guaranteed name (${compared - wrong.length}/${compared})${wrong.length ? ` — e.g. ${wrong.slice(0, 3).join('; ')}` : ''}`);
