@@ -42,7 +42,7 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 | --- | --- | --- | --- |
 | `type` | `numbered`, `compact`, `simple` | once, when authored | numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next only. A numbered row switches to compact when its container is narrower than the row. |
 | `style` | `border`, `underline` | once, when authored | How the current page is marked in a numbered row: a border around it, or a 2px line under its number. |
-| `size` | `medium`, `small`, `large` | once, when authored | The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density. |
+| `size` | `medium`, `small`, `large` | once, when authored | The size of every cell and button, matching the icon button sizes. Medium clears 44px on comfortable and spacious density. |
 
 ## Usage guidelines
 
@@ -124,7 +124,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 | `renderItem` | slot | — | no | Renders a page as your router's link, keeping its address and aria-current. |
 | `type` | enum: 'numbered' \| 'compact' \| 'simple' | `numbered` | no | numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next only. A numbered row switches to compact when its container is narrower than the row. |
 | `style` | enum: 'border' \| 'underline' | `border` | no | How the current page is marked in a numbered row: a border around it, or a 2px line under its number. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The size of every cell and button, matching the icon button sizes. Medium clears 44px on comfortable and spacious density. |
 | `siblingCount` | number | `1` | no | How many pages show on each side of the current page. |
 | `boundaryCount` | number | `1` | no | How many pages show at each end. |
 | `label` | string | `Pagination` | no | The accessible name of the navigation landmark. Give two pagination rows on one page the same name, or a name each ("Pagination, top"). |
