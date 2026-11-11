@@ -31,7 +31,7 @@ export const passwordField: ComponentDef = makeTextField({
   aliases: ['password-input', 'password'],
   summary: 'Password field: a text field with a Show button on its label row that reveals the characters.',
   description:
-    'A single-line field for a secret the user types — a sign-in password, a new password, a PIN typed as text. TextField\'s anatomy and contract with one added action: a Show/Hide button at the end of the label row that switches the input between masked and plain text. Not for a one-time code in separate boxes (CodeInput), and not for any other single-line text (TextField).',
+    'A single-line field for a secret the user types — a sign-in password, a new password, a PIN typed as text. TextField\'s anatomy and contract with one added action: a Show/Hide button at the end of the label row that switches the input between masked and plain text. Not for a one-time code in separate boxes (a code input, not built yet), and not for any other single-line text (TextField).',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label (rendered as FieldLabel), usually "Password" or "New password". Required. Never the placeholder.' },
@@ -187,7 +187,7 @@ export const passwordField: ComponentDef = makeTextField({
   ai: {
     primaryPurpose: 'Capture a password or other typed secret, with a button that shows or hides the characters.',
     whenToUse: 'Sign-in, sign-up, change-password and PIN fields: any single-line secret the user types.',
-    avoidWhen: 'The text is not a secret (TextField), the code is entered in separate boxes (CodeInput), or the value comes from a known set (Select).',
+    avoidWhen: 'The text is not a secret (TextField), the code is entered in separate boxes (a code input, not built yet), or the value comes from a known set (Select).',
     commonPartners: ['field-label', 'field-message', 'button', 'list'],
     triggerKeywords: ['password field', 'password input', 'show password', 'sign in', 'PIN'],
     generationPriority: 2,
@@ -195,7 +195,7 @@ export const passwordField: ComponentDef = makeTextField({
 
   composition: {
     composesWith: ['field-label', 'field-message', 'button'],
-    alternativeTo: ['text-field', 'code-input'],
+    alternativeTo: ['text-field'],
     replacesPatterns: ['eye icon inside a password field', 'password field with no way to show the characters', 'autocomplete="off" on a password'],
   },
 

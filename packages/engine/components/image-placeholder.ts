@@ -254,7 +254,7 @@ export const imagePlaceholder: ComponentDef = {
       'Treat the "no image" marker as the image\'s description — it is a placeholder affordance, turned off when a photograph arrives',
       'Leave the marker on over a supplied image — the frame cannot tell that a fill is a photo, so the marker property is how the marker goes away',
       'Reach for an image placeholder as a decorative wash over a photo — that is the veil component (a follow-up may compose the two)',
-      'Expect a play overlay yet — that is not built yet; this is the core empty-state frame (a legibility scrim over media is the veil component)',
+      'Expect a play or scrim overlay yet — those are not built yet; this is the core empty-state frame',
     ],
     contentGuidelines: 'The frame holds no copy. Where its ratio surfaces in a UI, name the proportion ("16:9", "Square"), not a pixel size — the frame holds a ratio, not a fixed dimension.',
   },
@@ -262,7 +262,7 @@ export const imagePlaceholder: ComponentDef = {
   ai: {
     primaryPurpose: 'Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.',
     whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the marker property off so the "no image" marker does not draw over it.',
-    avoidWhen: 'The surface is a decorative wash over an existing photo (that is the veil component), the image is already present and fixed (place it directly), or the space needs a play button over the media (not built yet — this is the core empty-state frame only) or a legibility scrim over it (the veil component).',
+    avoidWhen: 'The surface is a decorative wash over an existing photo (that is the veil component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).',
     // `veil` sits over an image this frame holds; it is not nested, so it is a partner, not a part (#1700).
     commonPartners: ['icon', 'veil'],
     triggerKeywords: ['image placeholder', 'media frame', 'photo frame', 'aspect ratio', '16:9', '4:3', '3:2', '3:4', '4:5', '2:3', 'portrait image', 'product image', 'square image', 'empty image', 'image slot', 'no image', 'media slot'],

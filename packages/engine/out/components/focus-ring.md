@@ -9,7 +9,7 @@
 
 ## Overview
 
-The shared keyboard-focus indicator: a stroke drawn outside its host's bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control's own border and the ring; 0 at the field offset, where the host's own border supplies the separation). Authored once and nested by every focusable control rather than re-drawn per host; fields draw their own 2px focus edge and nest no ring — the ring belongs to no single component, which is why its tokens are top-level families.
+The shared keyboard-focus indicator: a stroke drawn outside its host's bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control's own border and the ring; 0 for fields, whose own border supplies the separation). Authored once and nested by every focusable component rather than re-drawn per host — the ring belongs to no single component, which is why its tokens are top-level families.
 
 - **Purpose:** Render the shared keyboard-focus indicator for a focusable control.
 - **Use when:** Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.
@@ -67,7 +67,7 @@ The ring carries no text of its own. The accessible name and any message shown o
 
 ## Related components
 
-- **Often used with:** `button`, `button-destructive`, `button-neutral`, `icon-button`, `icon-button-destructive`, `icon-button-neutral`, `checkbox-control`, `radio-control`, `switch-control`, `link`, `counter`
+- **Often used with:** `button`, `button-destructive`, `button-neutral`, `icon-button`, `icon-button-destructive`, `icon-button-neutral`, `text-field`, `textarea`, `select`, `checkbox-control`, `radio-control`, `switch-control`, `link`, `counter`
 - **Replaces:**
   - a per-component focus border
   - a box-shadow focus glow

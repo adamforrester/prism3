@@ -225,7 +225,7 @@ export const cardNumberField: ComponentDef = makeTextField({
   ai: {
     primaryPurpose: 'Capture a payment card\'s number, showing the detected card network\'s tile and stating the network in text.',
     whenToUse: 'The card number in a checkout or a saved-card form, beside text fields for the expiration date and the security code.',
-    avoidWhen: 'The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (WalletButton). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).',
+    avoidWhen: 'The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (a wallet button, not built yet). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).',
     commonPartners: ['text-field', 'provider-logo', 'field-label', 'field-message', 'button', 'wallet-button'],
     triggerKeywords: ['card number', 'credit card field', 'payment card', 'card details', 'checkout card'],
     generationPriority: 2,

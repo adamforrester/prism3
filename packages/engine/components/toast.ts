@@ -298,7 +298,7 @@ export const toast: ComponentDef = {
       '2.1.1 Keyboard (F6 reaches the action and the close button; the action also exists elsewhere on the page)',
       '2.4.3 Focus Order (focus enters the region only when the user moves it there, and Escape returns it)',
       '2.4.11 Focus Not Obscured (Minimum) (the page keeps a focused control clear of the toast)',
-      '2.5.8 Target Size (Minimum) (the close button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)',
+      '2.5.8 Target Size (Minimum) (the close button is a 36px box, above 24px; targets 2.5.5 at 44×44 in code)',
     ],
     keyboard: 'F6 moves focus into the notifications region, to the newest toast\'s first control. Tab moves between the action and the close button. Escape or Shift+F6 returns focus to where it was. Enter and Space act on the focused button.',
     focus: 'Showing a toast never moves focus. Focus enters only by F6, and Escape returns it.',

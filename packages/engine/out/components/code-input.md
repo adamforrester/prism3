@@ -13,7 +13,7 @@ A field for a short one-time code sent by text message, email or an authenticato
 
 - **Purpose:** Capture a short one-time code in one input, drawn as a row of cells.
 - **Use when:** A step whose job is a fixed-length code of four to eight characters sent by text message, email or an authenticator app.
-- **Avoid when:** The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).
+- **Avoid when:** The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (a number input, not built yet).
 
 ## Anatomy
 

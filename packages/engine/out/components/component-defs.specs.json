@@ -41933,7 +41933,7 @@
             "com.prism3": {
               "type": "enum: 'small' | 'medium' | 'large'",
               "required": false,
-              "description": "Passed to every option. Medium is a button's height, which clears 44px on comfortable and spacious density."
+              "description": "Passed to every option. Medium is a button's height, 44px on comfortable and spacious density."
             }
           }
         },
@@ -52441,7 +52441,7 @@
             "com.prism3": {
               "type": "enum: 'small' | 'medium' | 'large'",
               "required": false,
-              "description": "The size of every cell and button, matching the icon button sizes. Medium clears 44px on comfortable and spacious density."
+              "description": "The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density."
             }
           }
         },
