@@ -32,10 +32,12 @@
  * pattern is no row, not an empty one. What is missing is returned in `gaps` instead, for the maintainer
  * record (`schema/component-maintainer.json`), never for a reader.
  *
- * ANATOMY CAPTIONS AND THE MAINTAINER REGISTER. A part `note` is the caption (Q406 follow-up 4, A), but
- * 64 of them are written for maintainers: issue numbers, doc paths, owner-decision ids, code spans. Until those are rewritten
- * (a follow-up the owner split out), such a part is listed by name with no caption, and its note is a gap.
- * So is a note that names a tool (Figma, a plugin, an exporter): consumer prose names none (#2411).
+ * ANATOMY CAPTIONS AND THE MAINTAINER REGISTER. A part `note` is the caption (Q406 follow-up 4, A). A note
+ * written for maintainers (issue numbers, doc paths, owner-decision ids, code spans) is held back: the part is
+ * listed by name with no caption, and its note is a gap. So is a note that names a tool (Figma, a plugin, an
+ * exporter): consumer prose names none (#2411). Since #3610 (owner decision Q-UG1 A) every note in the library is
+ * a reader caption, its maintainer half in a code comment beside the part, and a held-back note fails by name
+ * (`lint-component-docs.ts` `UNCAPTIONED PART`, `test-doc-panel.ts` `anatomy/uncaptioned`).
  *
  * THEMING NEEDS A BRAND. The modes come from the brand, not the def, so the section is drawn only when
  * the caller passes them. The Markdown page is brand-independent (#1701), so it passes none and has no

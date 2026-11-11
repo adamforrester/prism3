@@ -11,7 +11,10 @@
  *                   `present/<def>` (Theming missing).
  *   no data/…       a def with its Content guidelines and its Accessibility rows emptied draws neither section.
  *   anatomy/…       no held-back part note (maintainer register or a tool's name) is anywhere in a drawn panel's text,
- *                   on every def; each reader-ready caption is. Mutation: the raw note as the caption → `anatomy/held back`.
+ *                   on every def and on a probe def whose note is held back; each reader-ready caption is. Mutation: the
+ *                   raw note as the caption → `anatomy/held back`. Since #3610 every part note on every def is a caption,
+ *                   so `anatomy/uncaptioned` fails, naming the def and the entry, on any legend entry the plan draws with
+ *                   no caption. Mutation: one part's note given an issue number (held back again) → `anatomy/uncaptioned`.
  *   legacy/…        a panel printed the old way, before `printView`, its set rebuilt since (#2968): Tag's panel and the
  *                   Buttons page (the lead's panel and the three members' own) are replaced, one panel per page and no
  *                   "(edited)" one; a line rewritten on an old-print panel (Tag's, or Button.Neutral's) still keeps that
@@ -667,8 +670,31 @@ section('anatomy/… — held-back part notes never reach a panel');
       else { shown++; if (!all.includes(first) && !(run && all.includes(lede(run)))) leaks.push(`${def.id}.${id} (missing)`); }
     }
   }
-  ok(heldBack >= 30 && !leaks.some((l) => !l.endsWith('(missing)')), `anatomy/held back: none of ${heldBack} held-back notes is in a panel`, leaks.filter((l) => !l.endsWith('(missing)')).slice(0, 5).join(', '));
+  // Since #3610 the library holds no held-back note, so a probe keeps the hold-back checked: Button with its label's
+  // note in the maintainer register, typed here. Its first sentence must not reach the drawn panel.
+  {
+    const button = componentDefs.find((d) => d.id === 'button')!;
+    const probe = structuredClone(button) as ComponentDef;
+    const held = 'Its own node, so truncation can be set apart from the row (see #848). A second sentence.';
+    (probe.anatomy!.parts as Record<string, { note?: string }>).label.note = held;
+    const p = page('↳ a held-back probe');
+    await drawDocPanel(host([p]), fakeSet(p, button.id), probe, { names });
+    heldBack++;
+    if (texts(panelsOn(p)[0]).join('\n').includes('Its own node, so truncation')) leaks.push('probe button.label');
+  }
+  ok(heldBack >= 1 && !leaks.some((l) => !l.endsWith('(missing)')), `anatomy/held back: none of ${heldBack} held-back notes is in a panel`, leaks.filter((l) => !l.endsWith('(missing)')).slice(0, 5).join(', '));
   ok(shown >= 100 && !leaks.some((l) => l.endsWith('(missing)')), `anatomy/captions: all ${shown} reader-ready captions are`, leaks.filter((l) => l.endsWith('(missing)')).slice(0, 5).join(', '));
+
+  // Every legend entry the plan draws, on every def with an anatomy (family leads on a panel, the rest on their pages),
+  // carries a caption (#3610, owner decision Q-UG1 A). An entry with nothing after its dash is a part whose note is held
+  // back: rewrite the note for a reader, and keep the maintainer half in a code comment beside the part.
+  const bare: string[] = [];
+  let entries = 0;
+  for (const def of componentDefs) {
+    const a = planDocPanel(def, { modes: ['light', 'dark'], names }).sections.find((x) => x.id === 'anatomy');
+    for (const b of a?.blocks ?? []) if (b.type === 'Field') { entries++; if (!b.text.trim()) bare.push(`${def.id}: "${b.label}"`); }
+  }
+  ok(entries >= 300 && bare.length === 0, `anatomy/uncaptioned: all ${entries} legend entries carry a caption`, `${bare.length} without: ${bare.slice(0, 6).join(', ')}`);
 }
 
 /** The numbers the drawn Anatomy lists: each Field label there that starts with one. */
@@ -717,20 +743,20 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
   };
   // Written out by hand from each def's part notes and its nested component's summary, owner decisions Q3265.1 A and
   // Q3265.2 A. Code input: the six cells rest alike on the default member; their notes differ ("Cell n of the default
-  // six."), so the run takes the cell's summary. Its message's note is held back, so it has no caption.
+  // six."), so the run takes the cell's summary.
   want('code-input', [
     '1  Container — The field: label, the row of cells and the message, as wide as the widest of the three.',
     '2  Label — The accessible name, composed.',
     '3  Cell slot — The cells: a native slot of Cell instances, six by default, four at least and eight at most.',
     '4  Cells 1–6 — One cell of a code input: a box holding one character of the code.',
-    '5  Message (optional) — ',
+    '5  Message (optional) — Helper or error text, hidden until the field has something to say; it takes the field\'s status.',
   ], 'the six cells, one run, captioned by the cell\'s summary');
   // Pagination: no item is like its neighbor on the specimen, so each keeps its number and its own note. Item 4 is page 5.
-  // Previous, Next and their labeled buttons cite an owner decision ("(Q414 A)"), so their notes are held back (#3552 N2).
+  // Previous, Next and their labeled buttons carry the captions approved on #3610 (their notes were held back before).
   want('pagination', [
     '1  Container — The navigation landmark: one row of controls.',
     '2  Row — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
-    '3  Previous — ',
+    '3  Previous — The previous cell, a left chevron the size of the page cells; on the first page it stays in place and does nothing.',
     '4  Item slot — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.',
     '5  Item 1 — The first page, 1.',
     '6  Item 2 — An ellipsis for pages 2 and 3.',
@@ -740,10 +766,10 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '10  Item 6 — An ellipsis for pages 7 to 9.',
     '11  Item 7 — The last page, 10.',
     '12  Status — The position, "Page 5 of 10", between the previous and next buttons.',
-    '13  Next — ',
+    '13  Next — The next cell, a right chevron; on the last page it stays in place and does nothing.',
     '14  Simple row — The simple row: Previous at the start and Next at the end.',
-    '15  Previous button — ',
-    '16  Next button — ',
+    '15  Previous button — Previous: a left chevron and the word "Previous".',
+    '16  Next button — Next: the word "Next" and a right chevron.',
   ], 'Item 1 to Item 7, each with its own note');
   // Tabs: the selected tab alone, then the two unselected ones as a run. Their notes differ ("A second tab.", "A third
   // tab."), so the run takes the tab's summary, never the second tab's note.

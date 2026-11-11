@@ -20,7 +20,7 @@ A slider picks an approximate value, or a range between two values, by moving a 
 Shown on the default member: size `medium`, type `single`.
 
 1. **Container** — The slider: the field (label, value, track and milestones), then the optional inputs and message. It fills its column.
-2. **Field**
+2. **Field** — The header, the track and the milestones, with no space between them.
 3. **Header** — The label at the start and the value text at the end.
 4. **Label** (optional) — The visible label, naming the dimension being set; it fills the room the value leaves.
 5. **Value single** (optional) — The current value, formatted as the thumb announces it.
@@ -32,9 +32,9 @@ Shown on the default member: size `medium`, type `single`.
 11. **Bar** — The selected part of the track, in ink at the track's own thickness: from the start to the thumb, or between the two thumbs of a range. Square-ended, so it meets the disc with no gap.
 12. **Thumb** — The thumb of a single value, or the maximum thumb of a range. It shows the state.
 13. **Space end** — The track after the thumb, outside the selected value or range. Paints nothing: the track shows through.
-14. **Milestones** (optional)
+14. **Milestones** (optional) — Labels under the track for the minimum, a value between and the maximum, evenly spaced; off by default, with no tick marks.
 15. **Min label** — The minimum value, under the start of the track.
-16. **Milestone**
+16. **Milestone** — A milestone between the ends, halfway along the track.
 17. **Max label** — The maximum value, under the end of the track.
 18. **Inputs** (optional) — Paired number inputs for exact entry: one for a single value, two for a range. Off by default.
 19. **Input single** — The number input of a single value.
