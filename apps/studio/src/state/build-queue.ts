@@ -27,8 +27,10 @@ import { entryOf, GROUPS_COPY } from './component-groups';
 /** What started a run: the action bar's selection, or the Subcomponents section's "Build all" (call 10 A). */
 export type RunKind = 'selection' | 'subcomponents';
 
-/** `causes` (#3326): the set's own build verdict's causes, as the plugin sent them; absent when it sent none. */
-export type RunResult = { readonly id: string; readonly result: SetBuild; readonly headline: string; readonly causes?: readonly Cause[] | null };
+/** `causes` (#3326): the set's own build verdict's causes, as the plugin sent them; absent when it sent none.
+ *  `alsoBuilt` (#3359): the sets its build made first (#1633, `component-result`'s own field); absent when it sent none.
+ *  `builtBy` (#3359): set on a queued set the run never posted, because the set named built it earlier in the run. */
+export type RunResult = { readonly id: string; readonly result: SetBuild; readonly headline: string; readonly causes?: readonly Cause[] | null; readonly alsoBuilt?: readonly string[]; readonly builtBy?: string };
 
 export type BuildRun = {
   readonly kind: RunKind;
@@ -76,10 +78,24 @@ export const startRun = (kind: RunKind, ids: readonly string[], catalog: Catalog
 /** The set the run is building now, or null when it is done. */
 export const currentOf = (r: BuildRun): string | null => (r.done ? null : r.ids[r.results.length] ?? null);
 
-/** The run after the current set's result. It ends when every set has one, or after a stop. */
+/**
+ * The run after the current set's result. It ends when every set has one, or after a stop.
+ *
+ * #3359: A QUEUED SET AN EARLIER BUILD IN THE RUN ALREADY MADE IS NOT POSTED AGAIN. `depsFirst` orders the queue so no
+ * set is built before a queued set it nests, but a set can also be built first for a reason the catalog's nesting does
+ * not show: Update file's sets step builds `_Doc-block`'s sets first (#3308), so the first of Badge, Tag, List item and
+ * Divider builds the others the file lacks. Posted again, each answered "already built", and its detail carried one
+ * ALREADY PRESENT miss per member. So each set the run's results report under `alsoBuilt` is recorded here as built by
+ * that set, with the result the repeat post recorded (`ok`), and the run moves past it. It is recorded on a stop too:
+ * it was built, so the run must not list it as not built.
+ */
 export const record = (r: BuildRun, x: RunResult): BuildRun => {
   if (r.done) return r;
   const results = [...r.results, x];
+  const by = new Map<string, string>();
+  for (const y of results) for (const id of y.alsoBuilt ?? []) if (!by.has(id)) by.set(id, y.id);
+  for (let next = r.ids[results.length]; next !== undefined && by.has(next); next = r.ids[results.length])
+    results.push({ id: next, result: 'ok', headline: '', builtBy: by.get(next) });
   return { ...r, results, done: r.stopping || results.length >= r.ids.length };
 };
 

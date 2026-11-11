@@ -1073,7 +1073,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
           ['. ', alsoBuiltItem(alsoBuilt)], ['. ', builtDocBlockItem(docBlock)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
           ...furnitureItems(furniture, 'build').map((x) => ['. ', x] as const), ['. ', docBlockLine(furniture, 'build', fix)],
         ]),
-        causes: buildCauses,
+        causes: buildCauses, ...(alsoBuilt.length ? { alsoBuilt: alsoBuilt.map((d) => d.id) } : {}), // #3359: so the panel's run skips them
       }, furniture, 'build', fix), sink);
       verdictPosted = true;
       // #3309: the sets this run left not clean, and why, by the rule its `ok` reads: a miss that is not a skipped or
