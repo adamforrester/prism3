@@ -21,7 +21,7 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 
 1. **Container** — The navigation landmark: one row of controls. It hugs its row; a simple pagination is built wider so its two cells sit at opposite ends.
 2. **Row** — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.
-3. **Previous** — The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A). On the first page it stays in place and does nothing.
+3. **Previous**
 4. **Items** — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.
 5. **Item1** — The first page, 1.
 6. **Item2** — An ellipsis for pages 2 and 3.
@@ -31,10 +31,10 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 10. **Item6** — An ellipsis for pages 7 to 9.
 11. **Item7** — The last page, 10.
 12. **Status** — The position, "Page 5 of 10", between the previous and next buttons.
-13. **Next** — The next cell: a Pagination.Item with a right chevron (Q414 A). On the last page it stays in place and does nothing.
+13. **Next**
 14. **Simple row** — The simple row: Previous at the start and Next at the end.
-15. **Previous button** — Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).
-16. **Next button** — Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).
+15. **Previous button**
+16. **Next button**
 
 ## Styles
 

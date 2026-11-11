@@ -314,11 +314,25 @@ export type RunScore = {
 };
 
 const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, ' ');
-/** Innermost `{…}` bodies: declaration lists. An `@media (…)` prelude sits outside them, so its px is never read. */
+/** Every `{…}` body's own declarations, at every nesting level (#3565). A body that holds a nested rule (native CSS
+ *  nesting, `.card { outline: …; & h1 { … } }`) keeps its own declarations: the nested block is cut out of it, and so is
+ *  the nested rule's selector, the text after the body's last `;` or `}` before the `{`. An `@media (…)` prelude is a
+ *  selector the same way, and top-level text is never read, so a prelude's px is never read. */
 const declarations = (css: string): { prop: string; value: string }[] => {
   const out: { prop: string; value: string }[] = [];
-  for (const m of stripComments(css).matchAll(/\{([^{}]*)\}/g))
-    for (const d of m[1].split(';')) { const i = d.indexOf(':'); if (i > 0) out.push({ prop: d.slice(0, i).trim(), value: d.slice(i + 1).trim() }); }
+  const read = (body: string): void => {
+    for (const d of body.split(';')) { const i = d.indexOf(':'); if (i > 0) out.push({ prop: d.slice(0, i).trim(), value: d.slice(i + 1).trim() }); }
+  };
+  const stack: string[] = [''];
+  for (const ch of stripComments(css)) {
+    if (ch === '{') {
+      const top = stack.length - 1;
+      stack[top] = stack[top].slice(0, Math.max(stack[top].lastIndexOf(';'), stack[top].lastIndexOf('}')) + 1);
+      stack.push('');
+    } else if (ch === '}') {
+      if (stack.length > 1) { read(stack.pop()!); stack[stack.length - 1] += ';'; }
+    } else stack[stack.length - 1] += ch;
+  }
   return out;
 };
 const VAR_RE = /var\(\s*--([A-Za-z0-9_-]+)/g;

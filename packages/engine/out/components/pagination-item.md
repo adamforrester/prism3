@@ -20,7 +20,7 @@ One cell in a pagination row: a page number, the gap marker, three dots, that st
 Shown on the default member: type `page`, selection `unselected`, style `border`, labeled `false`, size `medium`.
 
 1. **Container** — The cell: as tall as an icon button and at least as wide as it is tall, and the whole pointer target. The current page has a light gray border in the border style; another page and an unlabeled previous or next take a light neutral wash at hover and press. A labeled previous or next has no fill.
-2. **Previous glyph** — The previous cell's left chevron (Q414 A), at the gap icon's size, one rung under the icon button's glyph (Q428 A).
+2. **Previous glyph**
 3. **Previous text** — The word "Previous" after the chevron, on a labeled cell only (Pagination's simple type).
 4. **Label box** — Holds the number at the width of its emphasis weight, so the current page is as wide as any other, and the underline under it.
 5. **Balance** — An empty 2px frame above the number, as tall as the underline below it and zero wide, so the underlined number sits on the same line as its neighbors.
@@ -30,9 +30,9 @@ Shown on the default member: type `page`, selection `unselected`, style `border`
 9. **Underline** — The 2px line under the current page's number, in the underline style: as wide as the number, not the cell, in a gray that stands out from the page at 3:1.
 10. **Underline reserve** — A zero-height frame that clips a copy of the number, so the underline takes the number's width and shows only its own color.
 11. **Underline label** — The number again, in the emphasis weight, never seen: it sets the underline's width.
-12. **Gap glyph** — The gap marker: the more-horizontal icon, three dots, decorative and hidden from assistive technology (Q404 A). It is not a control.
+12. **Gap glyph**
 13. **Next text** — The word "Next" before the chevron, on a labeled cell only (Pagination's simple type).
-14. **Next glyph** — The next cell's right chevron (Q414 A).
+14. **Next glyph**
 15. **Focus ring** — The shared focus ring, around the cell while it has keyboard focus.
 
 ## Styles
