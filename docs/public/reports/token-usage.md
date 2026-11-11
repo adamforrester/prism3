@@ -305,7 +305,7 @@ Type: color. Bound by 22 component(s).
 
 ### `color.disabled.fill`
 
-Type: color. Bound by 17 component(s).
+Type: color. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -315,6 +315,7 @@ Type: color. Bound by 17 component(s).
 | card-number-field | `disabled.fill` | control | state: disabled (12 of 84) |
 | checkbox-control | `disabled.fill` | control | selection: checked, indeterminate · state: disabled (12 of 90) |
 | code-input-cell | `disabled.fill` | container | state: disabled (8 of 48) |
+| counter | `disabled.fill` | control | appearance: outline · state: disabled (3 of 18) |
 | icon-button | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-destructive | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
@@ -357,7 +358,7 @@ Type: color. Bound by 15 component(s).
 
 ### `color.disabled.on-fill`
 
-Type: color. Bound by 11 component(s).
+Type: color. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -373,6 +374,7 @@ Type: color. Bound by 11 component(s).
 | card-number-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
 |  |  | placeholder | state: disabled (12 of 84) |
 | checkbox-control | `disabled.icon.on-fill` | glyph | selection: checked, indeterminate · state: disabled (12 of 90) |
+| counter | `disabled.label.on-fill` | value | appearance: outline · state: disabled (3 of 18) |
 | password-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
 |  |  | placeholder | state: disabled (12 of 84) |
 | search-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
@@ -398,7 +400,7 @@ Type: color. Bound by 14 component(s).
 | button-destructive | `disabled.label` | label | appearance: outline, text · state: disabled · surface: default (36 of 576) |
 | button-neutral | `disabled.label` | label | appearance: outline, text · state: disabled · surface: default (36 of 576) |
 | checkbox-row | `disabled.indicator`, `disabled.label` | (not drawn) | — |
-| counter | `disabled.label` | value | state: disabled (6 of 18) |
+| counter | `disabled.label` | value | appearance: ghost · state: disabled (3 of 18) |
 | field-label | `disabled.indicator`, `disabled.label` | indicator | state: disabled (12 of 24) |
 |  |  | label | state: disabled (12 of 24) |
 | pagination-item | `disabled.label` | nextText | labeled: true · selection: unselected · state: disabled · style: border · type: next (3 of 87) |
@@ -3828,9 +3830,9 @@ Declared, not drawn: `color.disabled.text`
 
 ### counter
 
-21 token(s); 18 design-file member(s).
+23 token(s); 18 design-file member(s).
 
-`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.text`, `color.field.border.rest`, `color.field.fill`, `color.text.primary`, `focus.ring.offset`, `focus.ring.width`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.disabled.text`, `color.field.border.rest`, `color.field.fill`, `color.text.primary`, `focus.ring.offset`, `focus.ring.width`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### dialog
 

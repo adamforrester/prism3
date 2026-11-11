@@ -50619,6 +50619,10 @@
           "elements": {
             "control": {
               "styles": {
+                "backgroundColor": {
+                  "$token": "color.disabled.fill",
+                  "$type": "color"
+                },
                 "strokes": {
                   "$token": "color.disabled.border",
                   "$type": "color"
@@ -50628,7 +50632,7 @@
             "value": {
               "styles": {
                 "textColor": {
-                  "$token": "color.disabled.text",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }

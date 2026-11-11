@@ -426,7 +426,10 @@ export const codeInput: ComponentDef = {
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         optional: true,
         // NOT STRETCHED (#2928), for the label's reason above.
-        note: 'Helper or error text, composed. Its status follows the field\'s. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to say.',
+        // Maintainer detail, out of the reader caption (#3610): Helper or error text, composed. Its status follows
+        // the field's. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to
+        // say.
+        note: 'Helper or error text, hidden until the field has something to say; it takes the field\'s status.',
       },
     },
     codeOnly: [
