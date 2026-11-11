@@ -30,6 +30,7 @@ import { leverManifest, leverGroups, buildLeverManifest, identityFields } from '
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
+import { exportComponentDefs } from './component-defs-export';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
@@ -25908,7 +25909,7 @@ arm: {
         const NUM = 'number#7:2', SWAP = 'swap icon#7:3';
         const lOpts = (props: boolean, comps = ['list-item']) => ({
           vars: lg.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: lg.flatMap((pl) => planTextStyles(pl.root)), comps,
-          ...(props ? { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' }, [SWAP]: { type: 'INSTANCE_SWAP', defaultValue: '73:37' } } } } : {}),
+          ...(props ? { componentProps: { 'list-item': { 'label#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' }, [SWAP]: { type: 'INSTANCE_SWAP', defaultValue: '73:37' } } } } : {}),
         });
         const lJs = planSetToPluginJs(lg);
         const tagJs = planSetToPluginJs(figmaAnatomySet(componentDefs.find((d) => d.id === 'tag')!, { swapTarget: 'FPO-default-icon' }));
@@ -39019,8 +39020,8 @@ arm: {
   ok(li.tokens.icon === 'color.icon.primary' && li.tokens.indicator === 'color.icon.primary' && li.tokens.label === 'color.text.primary',
     `#2319 list-item inks: the bullet (indicator) and the icon on color.icon.primary, the number and text (label) on color.text.primary (Q273.8, #1471) (got ${li.tokens.indicator}, ${li.tokens.icon}, ${li.tokens.label})`);
   const props = planSetProperties(liPlans);
-  ok(JSON.stringify(props) === JSON.stringify([{ name: 'text', type: 'TEXT', default: 'List item' }, { name: 'number', type: 'TEXT', default: '1.' }, { name: 'swap icon', type: 'INSTANCE_SWAP', swapTarget: 'icon/check' }]),
-    `#2319 list-item properties: text "List item", number "1." and the icon swap defaulting to icon/check, with no presence toggle (Q273.3) (got ${JSON.stringify(props)})`);
+  ok(JSON.stringify(props) === JSON.stringify([{ name: 'label', type: 'TEXT', default: 'List item' }, { name: 'number', type: 'TEXT', default: '1.' }, { name: 'swap icon', type: 'INSTANCE_SWAP', swapTarget: 'icon/check' }]),
+    `#2319 #3554 list-item properties: label "List item" (Q-CC19 A, the layer's name), number "1." and the icon swap defaulting to icon/check, with no presence toggle (Q273.3) (got ${JSON.stringify(props)})`);
 
   // THE LIST (Q273.2; #2649, owner decision Q307 A): an "items" slot of three List.Items stretched across the list,
   // every item following the list's type and size, the item gap on the slot. No item toggles remain.
@@ -41223,6 +41224,29 @@ arm: {
   const stale = [...TEXT_CARET].filter((x) => !caretSeen.has(x));
   ok(shapeNodes > 1000 && shapeOnText.size === 0 && stale.length === 0,
     `#3346 no shape binds a text role: no box part fills or strokes with a text role on either band (${shapeNodes} box nodes; ${shapeOnText.size} off — ${[...shapeOnText].slice(0, 3).join('; ') || 'none'}; ${stale.length} stale caret exemption(s) ${stale.join(', ')})`);
+}
+
+// #3555 C10 — A DERIVED SPEC RULE STATES ITS OWN ARITHMETIC. Tag's Specs rows read "64px (derived: height × 1.5)" while
+// 44 × 1.5 is 66: the rule left out that `ratioMinWidth` rounds to the nearest 8px. Each derived `minWidth` whose rule
+// names a numeric ratio is recomputed here from the SAME row's height px, as each example brand's component-defs export
+// resolves it, by the rounding the rule states in words (none, "rounded to the nearest 8px", "rounded up to 8px").
+// The arithmetic is this block's own, never `ratioMinWidth`'s.
+{
+  const bad: string[] = [];
+  let checked = 0;
+  for (const id of EXAMPLE_IDS) {
+    const x = exportComponentDefs(componentDefs, { brand: exampleBrands()[id] as BrandInput }) as any;
+    for (const [cid, c] of Object.entries<any>(x.components ?? {})) for (const r of c.spec?.redlines ?? []) for (const p of r.parts ?? []) {
+      const mw = p.values?.minWidth, h = p.values?.height?.px;
+      const m = typeof mw?.rule === 'string' ? /^height × (\d+(?:\.\d+)?)(?:, rounded (to the nearest|up to) 8px)?$/.exec(mw.rule) : null;
+      if (!m || typeof h !== 'number') continue;
+      checked++;
+      const raw = h * +m[1];
+      const want = m[2] === 'to the nearest' ? Math.round(raw / 8) * 8 : m[2] === 'up to' ? Math.ceil(raw / 8) * 8 : raw;
+      if (Math.abs(want - mw.px) > 1e-6) bad.push(`${id} ${cid} ${JSON.stringify(r.where)} ${p.part}: "${mw.rule}" on a ${h}px height is ${want}px, the row says ${mw.px}px`);
+    }
+  }
+  ok(checked >= 9 && bad.length === 0, `#3555 C10: every derived minWidth rule with a numeric ratio states the arithmetic that gives its px (${checked} rows across ${EXAMPLE_IDS.length} brands)${bad.length ? ` — ${bad.slice(0, 4).join('; ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- report
