@@ -152,7 +152,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5) | — |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.100` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.075` | — | — | — | — |
@@ -162,7 +162,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5) | — |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.100` / `space.0` / `space.100` | `space.075` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.050` | — | — | — | — |
@@ -172,7 +172,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5) | — |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.150` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.100` | — | — | — | — |
@@ -182,7 +182,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5) | — |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.150` | `space.050` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.075` | — | — | — | — |
@@ -193,7 +193,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5) | — |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.100` | `space.025` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.050` | — | — | — | — |
@@ -204,7 +204,7 @@ Keyed by `size`, `type`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5) | — |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5, rounded to the nearest 8px) | — |
 | `container/content` | `space.0` / `space.0` / `space.0` / `space.200` | `space.050` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.100` | — | — | — | — |

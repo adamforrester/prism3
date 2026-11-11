@@ -252,7 +252,7 @@ Keyed by `type`.
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `text` | text | `List item` |
+| `label` | text | `List item` |
 | `number` | text | `1.` |
 | `swap icon` | instance swap | — |
 
