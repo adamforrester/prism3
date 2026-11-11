@@ -14924,10 +14924,10 @@ arm: {
 // freezes NB colour + typography); the gate is that (a) every axis produces
 // output with the right shape, (b) every alias resolves WITHIN each brand's
 // own emitted collections, (c) since #1097 the namespace transform CARRIES the
-// brand's own root (read off each brand's theme, `theme.root`, never written here
-// as a literal: #3315, this line once named two brands' roots wrongly, and an arm
-// that trusted it would select nothing) exactly once and with no other brand's
-// root anywhere, and (d) the aurora
+// brand's own root (the arms select by each brand's theme, `theme.root`: #3315,
+// this line once named two brands' roots wrongly, and an arm that trusted it would
+// select nothing; the doubled-root check in (e) still tests against a hardcoded
+// root list, #3575) exactly once and with no other brand's root anywhere, and (d) the aurora
 // gradient axis actually ships alias-driven stops that resolve to palette leaves
 // in the aurora tree (the alias-driven Paint Style form parked in the shadow +
 // gradient PR now materialises through the generalise pass).
@@ -15014,9 +15014,9 @@ arm: {
     // old form was satisfied by an emitter that dropped the root, and by one that never had it.
     //
     // Two halves, and the second is where the idempotence lives. Every name must start with THIS brand's
-    // own root, read off the theme rather than spelled — `prism` is a default a brief can move, and a
-    // literal here would pass for the two brands that take the default and be wrong for the one that does
-    // not, which is the Prism2 hardcoded-`pds/` bug in a gate instead of in a read path. Then no name's
+    // own root, read off the theme rather than spelled — `prism` is only a default a brief can move, and
+    // neither brand this arm walks takes it (#3315), so a literal `prism/` would select nothing, which is
+    // the Prism2 hardcoded-`pds/` bug in a gate instead of in a read path. Then no name's
     // TAIL may start with a root segment: that catches a DOUBLED root (`prism/prism/color/…`, what a
     // second pass over its own output produces) and cross-brand leakage in one predicate, and neither is
     // visible to a check that only looks at segment 0.
