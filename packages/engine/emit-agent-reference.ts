@@ -144,6 +144,21 @@ const docAbove = (src: string[], i: number): string => {
   return src.slice(s, i).join(' ').replace(/\/\*\*|\*\//g, '').replace(/^\s*\*\s?/gm, '').replace(/\s*\*\s+/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
+/** #3555 Q-MD13 A: a doc comment that opens with its tracker reference (`#2265:`, `#3147 Phase 2a.`, `#3137 Q3137.7 A:`)
+ *  ships it to the agent as the description's first words. The issue number and the tracker qualifiers after it (a
+ *  phase, an owner-question id, an answer letter) are maintainer history, so they are dropped with their separator, and
+ *  the rest keeps its words: `#2530, dev builds only: the body …` reads `Dev builds only: the body …`. */
+export const stripTrackerLead = (text: string): string => {
+  const m = /^#\d+(?:\s+(?:[Pp]hase\s+\w+|Q[\d.]+|[A-Z]))*\s*[:.,]\s*/.exec(text);
+  if (!m) return text;
+  const rest = text.slice(m[0].length);
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
+};
+
+/** Each agent-link command whose description still opens with a tracker reference. */
+export const trackerLeads = (ref: { agentLink: { commands: Array<{ name: string; description: string }> } }): string[] =>
+  ref.agentLink.commands.filter((c) => /^#\d/.test(c.description)).map((c) => `${c.name}: ${c.description.slice(0, 60)}`);
+
 /** One `AgentArgs` member: its args type as written and its doc comment. */
 const argsOf = (cmd: string): { args: string; description: string; source: string } => {
   const src = lines(PROTOCOL);
@@ -152,7 +167,7 @@ const argsOf = (cmd: string): { args: string; description: string; source: strin
   const re = new RegExp(`^\\s*(?:'${esc(cmd)}'|${esc(cmd)}): (.+);\\s*$`);
   for (let i = start + 1; i < end; i++) {
     const m = re.exec(src[i]);
-    if (m) return { args: m[1], description: docAbove(src, i), source: anchor(PROTOCOL, `AgentArgs.${cmd}`) };
+    if (m) return { args: m[1], description: stripTrackerLead(docAbove(src, i)), source: anchor(PROTOCOL, `AgentArgs.${cmd}`) };
   }
   throw new Error(`emit-agent-reference: AgentArgs has no member for '${cmd}' in ${PROTOCOL}`);
 };
@@ -250,7 +265,7 @@ const agentLink = () => {
       {
         name: RUN_CODE,
         args: '{ code: string; timeoutMs?: number }',
-        description: docAbove(lines(PROTOCOL), lines(PROTOCOL).findIndex((l) => l.includes(`'${RUN_CODE}': RunCodeArgs`))),
+        description: stripTrackerLead(docAbove(lines(PROTOCOL), lines(PROTOCOL).findIndex((l) => l.includes(`'${RUN_CODE}': RunCodeArgs`)))),
         source: at(DEV, /export type RunCodeArgs/, 'RunCodeArgs'),
         writes: WRITES[RUN_CODE],
         refuses: runCodeRefusals(),
@@ -469,6 +484,12 @@ if (isMain) {
   if (templates.length) {
     console.error(`❌ the agent reference would ship an unevaluated template literal — resolve it at the source:`);
     for (const h of templates) console.error(`    ${h}`);
+    process.exit(1);
+  }
+  const leads = trackerLeads(JSON.parse(fresh));
+  if (leads.length) {
+    console.error(`❌ the agent reference would open a command description with a tracker id — reword the doc comment, or extend stripTrackerLead:`);
+    for (const h of leads) console.error(`    ${h}`);
     process.exit(1);
   }
   if (process.argv.includes('--check')) {
