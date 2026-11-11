@@ -1349,6 +1349,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-fill-name { display: grid; gap: var(--p3-space-025); min-width: 0; }
 .p3-fill-label { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-fill-tok { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+/* #3553 M3 A: a token that wraps at its dots (`tokenLabel`'s `wrap`, a `<wbr>` after each), so the part that tells
+   rows apart is never the part cut: the easing roles all ellipsized to "motion.easing-ro…" at the plugin's 380. */
+.p3-fill-tok.p3-fill-tok-wrap { overflow: visible; white-space: normal; }
 /* #2217 (heading pass 2): a label stacked over its control, with nothing on its right, puts its token flush right on the
    label's own line, and the token wraps under the label when the two do not fit; at the narrow tier it always does. */
 .p3-fill-name.p3-fill-name-online { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--p3-space-200); row-gap: var(--p3-space-025); }
@@ -1389,6 +1392,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
    its % (its name still says percent). */
 .p3-levers[data-fit="snug"] .p3-glassctl { padding-inline-start: 0; }
 .p3-levers[data-fit="snug"] .p3-glassctl .p3-colorfield-meta { display: none; }
+/* #3553 M4 A: every snug color field drops its OKLCH readout, as the glass control does: at the plugin's 380 it was cut to
+   "OKLCH 0.471 0.300…". A percent field's unit (`.p3-numfield`) stays. */
+.p3-levers[data-fit="snug"] .p3-colorfield:not(.p3-numfield) .p3-colorfield-meta { display: none; }
 /* #3106 (Q827 A): the name of the glass fill being added, its Add and Cancel, the token it makes, and why it can't be used. */
 .p3-glassdraft { display: grid; gap: var(--p3-space-050); }
 .p3-glassdraft-btns { display: flex; gap: var(--p3-space-100); }
