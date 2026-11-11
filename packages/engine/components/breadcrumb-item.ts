@@ -25,12 +25,11 @@
  *   - Call 7 A — sizes small and medium (14 / 16px body).
  *   - Call 8 A, 14 A — the overflow item nests FlushIconButton.Neutral, flush, small, showing `more-horizontal-filled`.
  *
- * NO `_` PREFIX, HELD FOR THE OWNER. Owner rule Q349 (2026-10-15) gives a part used only inside its parent the `_`
- * prefix, which makes Figma leave the set out of a published library. But a designer adds steps by inserting this
- * set into the Breadcrumbs `items` slot, which offers it as its preferred item, and a file using the library cannot
- * insert a set the library does not publish: the projection refuses a `_` id in a slot's `preferred` for that reason
- * (`slotPreferredOf` in `anatomy-figma.ts`). So the item keeps a plain id until the owner rules between the prefix
- * and the slot's preferred item (#2783).
+ * NO `_` PREFIX, BY OWNER DECISION Q394 A (on #2783). Owner rule Q349 (2026-10-15) gives a part used only inside its
+ * parent the `_` prefix, which makes Figma leave the set out of a published library. But a designer adds steps by
+ * inserting this set into the Breadcrumbs `items` slot, which offers it as its preferred item, and a file using the
+ * library cannot insert a set the library does not publish: the projection refuses a `_` id in a slot's `preferred`
+ * for that reason (`slotPreferredOf` in `anatomy-figma.ts`). Q394 A ruled that a slot item keeps a plain id.
  *
  * SIZE ORDER (owner decisions Q347 A and Q359 B on #2752, 2026-10-16): Figma's first member equals the code default
  * on every axis, and every size axis leads with `medium`. The proposal listed small first; the later rule wins, so
