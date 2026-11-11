@@ -33239,7 +33239,7 @@
       ],
       "properties": [
         {
-          "name": "text",
+          "name": "label",
           "type": "TEXT",
           "default": "List item"
         },
