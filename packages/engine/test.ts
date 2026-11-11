@@ -19298,10 +19298,10 @@ arm: {
 
     // (2b) #2926 (owner decision on #2926, item 1): EVERY field's message defaults OFF. The family is written out
     //     here rather than read from the defs, and the defs are checked against it both ways: a def that gains a
-    //     `showMessage` boolean (Code input #2789, Search #2912) must join this list, and so take the same
+    //     `showMessage` boolean (Code input #2789, Search #2912, Slider #3554 Q-CC6) must join this list, and so take the same
     //     default. The expected `false` is the owner's answer, not a value read off any def (docs/34).
     {
-      const MESSAGE_OFF_FAMILY = ['card-number-field', 'code-input', 'counter', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
+      const MESSAGE_OFF_FAMILY = ['card-number-field', 'code-input', 'counter', 'password-field', 'search-field', 'select', 'slider', 'text-field', 'textarea'];
       const withMsg = componentDefs.filter((d) => d.figmaProperties?.booleans?.showMessage).map((d) => d.id).sort();
       ok(JSON.stringify(withMsg) === JSON.stringify(MESSAGE_OFF_FAMILY),
         `#2926 the defs with a showMessage boolean are exactly the message-off family ${JSON.stringify(MESSAGE_OFF_FAMILY)} (got ${JSON.stringify(withMsg)}) — a new one joins the list and takes its default`);
