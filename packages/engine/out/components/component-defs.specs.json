@@ -33848,7 +33848,7 @@
             "com.prism3": {
               "type": "string",
               "required": false,
-              "description": "The accessible name of the spinner's role=\"status\" wrapper, visually hidden and announced politely. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
+              "description": "The text announced when the spinner shows, written into a polite role=\"status\" region that is present and empty before it shows, and visually hidden. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
             }
           }
         }
