@@ -77,9 +77,11 @@ npx tsx tools/agent-adherence/score-code.ts <runs-dir>         # results.json an
 ```
 
 `capture` records each output's sha256 and voids a run whose transcript shows a tool call that loads a prism3 skill,
-or a `Read`, `WebFetch`, `Bash`, `Grep`, `Glob` or sub-agent (`Agent`, `Task`) call whose input names a CLAUDE.md, `skills/prism3-*` or the repository. Only tool calls
+or a `Read`, `WebFetch`, `Bash`, `Grep`, `Glob`, sub-agent (`Agent`, `Task`) or MCP (`mcp__…`) call whose input names a CLAUDE.md (in any case), `skills/prism3-*` or the repository. Only tool calls
 are read, never prose: the C1 packet itself names `skills/prism3-rebind/…`, so matching prose would void C1 runs that
-C0 runs can't reach. The transcript can be JSON, JSONL or a terminal transcript with one call per line. The scorer refuses an output with
+C0 runs can't reach. The transcript can be JSON, JSONL or a terminal transcript with one call per line. In a terminal transcript an MCP call
+is read in the form Claude Code prints, `<server> - <tool>(<args>) (MCP)`; a server name that contains a space is not read
+there. The scorer refuses an output with
 no record, one edited after capture, or one recorded at another pin. To move the pin, `orchestrate.ts pin <commit>`,
 then `packets.ts`, and score only runs planned after it.
 

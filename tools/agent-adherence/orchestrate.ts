@@ -19,7 +19,7 @@
  *
  * CONTAMINATION (proposal §2, "checked on every run rather than assumed"): `capture` voids a run whose transcript shows
  * a TOOL CALL that loads a prism3 skill (`Skill`), or a `Read` / `WebFetch` / `Bash` / `Grep` / `Glob` / `Agent` /
- * `Task` whose input names a CLAUDE.md, * `skills/prism3-*` or the repository. Prose is never matched: the C1 packet itself names `skills/prism3-rebind/…`, so
+ * `Task` or any MCP (`mcp__…`) call whose input names a CLAUDE.md (any case), `skills/prism3-*` or the repository (#3567). Prose is never matched: the C1 packet itself names `skills/prism3-rebind/…`, so
  * a free-text match voided C1 runs that C0 runs could not reach (review S1, selection bias). A void run is recorded,
  * reported, and never scored.
  */
@@ -45,13 +45,17 @@ export const extractFiles = (message: string): Record<string, string> => {
 
 /** Literals, fixed before any run. Each names what it found, so a void says why. Matched against TOOL-CALL INPUTS only. */
 const CONTAMINATION: [RegExp, string][] = [
-  [/CLAUDE\.md/, 'a CLAUDE.md appears'],
+  [/CLAUDE\.md/i, 'a CLAUDE.md appears'],   // any case: `find / -iname claude.md` reaches the file too (#3567)
   [/skills\/prism3-/, 'a read of skills/prism3-*'],
   [/github\.com\/adamforrester\/prism3|raw\.githubusercontent\.com\/adamforrester\/prism3|api\.github\.com\/repos\/adamforrester\/prism3/i, 'a fetch of the repository'],
 ];
 /** The tools whose input can reach the repo, a CLAUDE.md or a skill file. A `Skill` call is judged by its skill name. */
 /** `Grep`, `Glob` and a sub-agent (`Agent`, `Task`) can reach a skill file too (delta review nit). */
 const READ_TOOLS = ['Read', 'WebFetch', 'Bash', 'Grep', 'Glob', 'Agent', 'Task'];
+/** Any MCP tool (`mcp__<server>__<tool>`) is a read too (#3567): a run session gets MCP servers by default, and the
+ *  GitHub server's `get_file_contents` reaches a skill file as well as `Read` does. */
+const MCP_RE = /^mcp__[\w-]+$/;
+const readsFiles = (name: string): boolean => READ_TOOLS.includes(name) || MCP_RE.test(name);
 const SKILL_RE = /prism3-/i;
 
 /** One tool call, however the transcript spells it: its tool name and its input as text. */
@@ -63,6 +67,9 @@ type ToolCall = { name: string; input: string };
  *     at any depth. Parsing undoes every escape spelling (`\uXXXX` included), so no spelling of the packet matters.
  *   · Text: a line that starts (after bullets or symbols) with `Skill(` or one of `READ_TOOLS` and `(`, and ends at
  *     its closing `)`, as a terminal transcript prints a call. A sentence that names a tool mid-line is prose.
+ *     Claude Code prints an MCP call as `<server> - <tool>(<args>) (MCP)` (its `userFacingName`, the ` (MCP)` moved
+ *     after the arguments), never as the `mcp__…` name; such a line is read as `mcp__<server>__<tool>`, the server
+ *     name normalized the way the JSON name is (#3567 review). A server name with a space is not read (see the README).
  */
 export const toolCalls = (transcript: string): ToolCall[] => {
   const calls: ToolCall[] = [];
@@ -81,7 +88,9 @@ export const toolCalls = (transcript: string): ToolCall[] => {
     const ev = line.trim().startsWith('{') ? json(line) : undefined;
     if (ev !== undefined) { walk(ev); continue; }
     const m = /^[^\p{L}\p{N}]*(Skill|Read|WebFetch|Bash|Grep|Glob|Agent|Task)\((.*)\)\s*$/u.exec(line);
-    if (m) calls.push({ name: m[1], input: m[2] });
+    if (m) { calls.push({ name: m[1], input: m[2] }); continue; }
+    const mcp = /^[^\p{L}\p{N}]*([\w.-]+) - ([\w-]+)\((.*)\) \(MCP\)\s*$/u.exec(line);
+    if (mcp) calls.push({ name: `mcp__${mcp[1].replace(/[^\w-]/g, '_')}__${mcp[2]}`, input: mcp[3] });
   }
   return calls;
 };
@@ -92,7 +101,7 @@ export const probeContamination = (transcript: string, packet: string): string[]
     // A tool input that quotes the packet (a heredoc of it, say) is not a read of what the packet names.
     const input = c.input.split(packet).join(' ').split(JSON.stringify(packet).slice(1, -1)).join(' ');
     if (c.name === 'Skill') { if (SKILL_RE.test(input)) found.add('a prism3- skill was loaded'); continue; }
-    if (!READ_TOOLS.includes(c.name)) continue;
+    if (!readsFiles(c.name)) continue;
     for (const [re, why] of CONTAMINATION) if (re.test(input)) found.add(why);
   }
   return [...found];
