@@ -445,6 +445,43 @@ ok(JSON.stringify(startRun('selection', ['checkbox-group', 'checkbox-control'], 
 ok(JSON.stringify(startRun('selection', ['badge', 'link', 'badge'], catalog).ids) === JSON.stringify(['badge', 'link']),
   'queue/deps-first: sets that nest nothing queued keep the list\'s order, and a set listed twice runs once');
 
+// #3359: a queued set an earlier build in the run already made is recorded as built by it, never posted again. The
+// reviewer's queue on #3351: Tag's build made Badge, Divider and List item first (Update file's sets step, `_Doc-block`'s
+// sets, #3308), which the catalog's nesting does not show, so `depsFirst` keeps the list's order. Each of the three
+// is skipped, recorded `ok` and built by Tag, and the run posts Link next. Literal.
+// (mutation: `record` ignoring `alsoBuilt` → `queue/also built`)
+let alsoRun = startRun('selection', ['tag', 'badge', 'divider', 'list-item', 'link'], catalog);
+ok(currentOf(alsoRun) === 'tag', `queue/also built premise: the run starts at Tag (${JSON.stringify(alsoRun.ids)})`);
+alsoRun = record(alsoRun, { id: 'tag', result: 'ok', headline: '✓ built 24 variants', alsoBuilt: ['badge', 'divider', 'list-item'] });
+ok(currentOf(alsoRun) === 'link' && positionOf(alsoRun).at === 5 && !alsoRun.done
+  && JSON.stringify(alsoRun.results.slice(1).map((x) => [x.id, x.result, x.builtBy])) === JSON.stringify([['badge', 'ok', 'tag'], ['divider', 'ok', 'tag'], ['list-item', 'ok', 'tag']]),
+  `queue/also built: the sets Tag's build made first are recorded as built by it, and the run posts Link next, 5 of 5 (${currentOf(alsoRun)}; ${JSON.stringify(alsoRun.results.map((x) => [x.id, x.builtBy ?? null]))})`);
+alsoRun = record(alsoRun, { id: 'link', result: 'ok', headline: '' });
+const av = runVerdict(alsoRun, catalog);
+ok(alsoRun.done && av.ok && av.headline === 'Built 5 sets', `queue/also built: the run ends clean with all 5 built (${av.headline}; ${JSON.stringify(av.lines)})`);
+// Stopped while Tag builds: the sets it made are built, so the stop leaves only Link unbuilt.
+let alsoStop = stopRun(startRun('selection', ['tag', 'badge', 'divider', 'list-item', 'link'], catalog));
+alsoStop = record(alsoStop, { id: 'tag', result: 'ok', headline: '', alsoBuilt: ['badge', 'divider', 'list-item'] });
+const asv = runVerdict(alsoStop, catalog);
+ok(alsoStop.done && asv.headline === 'Stopped after 4 of 5 sets' && asv.lines.at(-1) === 'Not built: Link.',
+  `queue/also built stop: a stop leaves unbuilt only the sets no build made (${asv.headline}; ${JSON.stringify(asv.lines)})`);
+// #3547 review: stopped while Tag builds, with the set Tag made first queued PAST a set no build made. Badge is built,
+// so the stop leaves only Link unbuilt, in the verdict's line and in its causes. Literal.
+// (mutation: `record` recording only the queued sets next in line on a stop → `queue/also built stop, not next`)
+let stopLater = stopRun(startRun('selection', ['tag', 'link', 'badge'], catalog));
+stopLater = record(stopLater, { id: 'tag', result: 'ok', headline: '', alsoBuilt: ['badge'] });
+const slv = runVerdict(stopLater, catalog);
+ok(stopLater.done && slv.headline === 'Stopped after 2 of 3 sets' && slv.lines.at(-1) === 'Not built: Link.'
+  && JSON.stringify(slv.causes.map((c) => [c.subject, c.what])) === JSON.stringify([['link', 'not built']])
+  && stopLater.results.at(-1)?.id === 'badge' && stopLater.results.at(-1)?.builtBy === 'tag',
+  `queue/also built stop, not next: a stop leaves only Link unbuilt when Tag built Badge, queued after Link (${slv.headline}; ${JSON.stringify(slv.lines)}; ${JSON.stringify(slv.causes.map((c) => [c.subject, c.what]))})`);
+// A set built first that the queue reaches later, past a set no build made: skipped when the run gets there.
+let later = startRun('selection', ['tag', 'link', 'badge'], catalog);
+later = record(later, { id: 'tag', result: 'ok', headline: '', alsoBuilt: ['badge'] });
+ok(currentOf(later) === 'link', `queue/also built later: a set no build made is still posted (${currentOf(later)})`);
+later = record(later, { id: 'link', result: 'ok', headline: '' });
+ok(later.done && later.results.at(-1)?.builtBy === 'tag', `queue/also built later: and the set built earlier in the run is skipped when the run reaches it (${JSON.stringify(later.results.map((x) => [x.id, x.builtBy ?? null]))})`);
+
 console.log('\nT. The four tiers (#2909 Q2909.17 A; Q659 A, working names)');
 // The owner's tiers, in order, typed. Each set's tier is its page's section in the plugin's file taxonomy, read from
 // `file-taxonomy.ts` itself (the file's structure, the oracle), never from the grouping: the Components section is the

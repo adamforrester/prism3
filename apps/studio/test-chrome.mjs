@@ -3935,6 +3935,30 @@ for (const host of ['web', 'figma']) {
           ok(JSON.stringify(dbAlso) === JSON.stringify(want.also) && canon([...dbW1, ...dbW2]) === canon(want.posts) && !dbU.busy,
             `${where}: #3308, #3306: panels ${panels ? 'on' : 'off'}, a file with no _Doc-block: To add's one Also adds line names ${panels ? "the _Doc-block sets with the sets Link needs" : "only the sets Link needs"}, and the sets step posts ${panels ? 'the queued Badge first' : 'the queue in its order'}, each asking for the template first (also ${JSON.stringify(dbAlso)}, posted ${JSON.stringify([...dbW1, ...dbW2])}, Update file ${JSON.stringify(dbU)})`);
         }
+        // #3359: a queued set an earlier build in the run already made is not posted again. Panels on, no `_Doc-block`, and
+        // Badge, Tag and Link queued: the run posts Tag first (`runOrderOf`), and Tag's build answers that it built Badge first
+        // (`alsoBuilt`, as the plugin sends it), so the run posts Link next, never Badge, and ends at Link's result.
+        // (mutations: `runAfterResult` not passing `m.alsoBuilt` to `record` → this arm, by name)
+        {
+          if ((await drawerState(page)).open) await hooks.click(page.locator(narrow ? '[data-p3="activity-close"]' : '[data-p3="activity-toggle"]'), WAIT);
+          await postMsg(page, { type: 'doc-settings', settings: { panels: true, cover: true, styleGuide: null } });
+          const abLacks = { present: [], setUp: true, queued: ['link', 'badge', 'tag'], docBlockLacks: ['badge', 'tag', 'list-item', 'divider'] };
+          await openUpdate(abLacks);
+          await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+          await postMsg(page, { type: 'file-sets', ...abLacks });
+          await hooks.need(page, '[data-p3="update-add-row"]', WAIT);
+          await takeWrites(page);
+          await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+          const abW1 = (await takeWrites(page)).filter((m) => m.type === 'build-components');
+          await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 1', summary: 'built', lines: ['built'], alsoBuilt: ['badge', 'list-item', 'divider'] });
+          const abW2 = (await takeWrites(page)).filter((m) => m.type === 'build-components');
+          await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 1', summary: 'built', lines: ['built'] });
+          await settle(page);
+          const abW3 = (await takeWrites(page)).filter((m) => m.type === 'build-components');
+          const abU = await updBtn();
+          ok(canon([...abW1, ...abW2, ...abW3].map((m) => m.def)) === canon(['tag', 'link']) && !abU.busy,
+            `${where}: #3359: a queued set an earlier build in the run made first is not posted again: Tag's build made Badge, so the run posts Tag then Link, and ends (posted ${JSON.stringify([...abW1, ...abW2, ...abW3])}, Update file ${JSON.stringify(abU)})`);
+        }
         await postMsg(page, { type: 'doc-settings', settings: { panels: true, cover: true, styleGuide: null } });
         // #3308: the owner's first run, in small. Set up file, then two queued sets, each built with problems (completed,
         // not ok), and Style guides ticked: the run goes on to the style guides (it asks for a fresh catalog) instead of stopping at To add,

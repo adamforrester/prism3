@@ -32,8 +32,8 @@ Shown on the default member: tone `info`, edge `contained`.
 11. **Link** (optional) — The inline link: a Link, inline, default weight, medium, after the body's last word. Off by default, and never shown with the action.
 12. **Rich body** (optional) — The rich body: an empty slot for content a sentence cannot hold, such as a short list. Off by default; turn the body off when it is on.
 13. **Actions** (optional) — The action's row under the body, so the space above it hides with it. Off by default.
-14. **Action** — The one action: a Button, text, small; Button.Neutral when the file has it (Q386). Q533.1: one text action, never two.
-15. **Dismiss** (optional) — The dismiss button: a FlushIconButton.Neutral, flush, small (the bare glyph, no edge or fill, as Dialog's close; owner QA 2026-10-19), always the close glyph, with no swap (Q386). Off by default.
+14. **Action**
+15. **Dismiss** (optional)
 
 ## Styles
 

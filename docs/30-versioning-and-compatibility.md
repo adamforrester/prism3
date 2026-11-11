@@ -370,10 +370,14 @@ Every bump after 14.0.0 has added guaranteed paths and removed or retyped none, 
 | 14.5.0 | #2349 (#2324) | `type.label.{sm,md,lg}.emphasis-link` |
 | 14.6.0 | #2528 | `type.label.{sm,md,lg}.default` and `-link`: labels always ship the default weight |
 | 14.7.0 | #2590 (#2586) | `type.label.{sm,md,lg}.line-box` |
+| 14.8.0 | #2791 (#2670) | `motion.duration.sweep`, `motion.duration-reduced.sweep` and the primitive `motion.duration-ms.1600`: the progress bar's indeterminate sweep |
 | 14.9.0 | #2973 (#2971) | `container.min`, the 320px narrowest column Banner's width floor binds |
 | 14.10.0 | #2792 (#2669) | `border-width.x-heavy`, the 6px track of the large Slider |
+| 14.11.0 | #3019 (#2869) | `blur.glass` and `color.glass.surface`, the glass treatment's blur radius and translucent fill |
 | 14.12.0 | #3049 | `color.foreground.raised`, the panel over the scrim that Dialog binds: the card surface unless the brand's `raisedSurface` says otherwise |
 | 14.13.0 | #3153 | `type.body.{xs,sm,md,lg}.line-box` and `control.size.{sm,md,lg}.label-inset`: an option row's control cell follows its label's own line box, and the label sets down where the control is taller |
+| 14.14.0 | #3402 (#3346) | `color.interactive.{primary,neutral,destructive}.indicator.{rest,hover,pressed}` and their `color.inverse.interactive.*` twins: the selection mark |
+| 14.15.0 | #3501 (#3475) | `type.caption.{md,lg}.line-box`, the caption twin of the label and body line boxes |
 
 ### Letter spacing becomes a number, and `container.fluid` leaves (15.0.0, #2434 with #2423)
 
