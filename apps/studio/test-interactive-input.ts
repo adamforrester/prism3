@@ -439,6 +439,30 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   const wfill = pathOf('light', FILL('accent-w')), wtext = pathOf('light', TEXT('accent-w'));
   ok(wfill.endsWith(`.palette.accent-w.${autoFill}`), `#3545 old name wins, no counterpart: a stale Light anchor on the new name is dropped, ${FILL('accent-w')} resolves to Auto (accent-w ${autoFill}) in light (${wfill})`);
   ok(wtext.endsWith(`.palette.accent-w.${autoText}`), `#3545 old name wins, no counterpart: a stale text override on the new name is dropped, ${TEXT('accent-w')} resolves to Auto (accent-w ${autoText}) in light (${wtext})`);
+
+  // A RENAME ONTO A COLUMN NAME ON THE SAME PALETTE IS REFUSED (#3545 third review). `accent-s` carries an unnamed
+  // column and a column named `same`. Renaming `accent-s` to `same` would rename the unnamed column onto `same`, and
+  // the drop above would delete `same`'s Dark anchor and border override as leftovers. A palette with no unnamed
+  // column renames no column, so the same rename there is taken and the named column's keys stay put.
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'accent-s', oklch: { l: 0.55, c: 0.15, h: 235 } }, { name: 'accent-t', oklch: { l: 0.55, c: 0.15, h: 40 } });
+  store.brandState.interactivePalettes = [{ palette: 'accent-s' }, { name: 'same', palette: 'accent-s' }, { name: 'solo', palette: 'accent-t' }];
+  store.brandState.modeAnchors = { dark: { 'accent-s': 400, same: 300, solo: 300 } };
+  store.brandState.overrides = { light: { [BORDER('same')]: { palette: 'accent-s', step: '700' }, [BORDER('solo')]: { palette: 'accent-t', step: '700' } } };
+  store.rebuild();
+  const sbefore = [pathOf('dark', FILL('same')), pathOf('light', BORDER('same'))];
+  ok(sbefore[0].endsWith('.palette.accent-s.300') && sbefore[1].endsWith('.palette.accent-s.700'),
+    `premise: the engine takes a palette with an unnamed column and a column named \`same\`, and honors \`same\`'s 300 / 700 (${sbefore.join(', ')})`);
+  const s = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-s');
+  ok(!P.renameBrandColor(s, 'same'), '#3545 a rename onto a column name on the same palette, which has an unnamed column, is refused');
+  const sfill = pathOf('dark', FILL('same')), sborder = pathOf('light', BORDER('same'));
+  ok(sfill.endsWith('.palette.accent-s.300') && sborder.endsWith('.palette.accent-s.700'),
+    `#3545 refused same-palette rename: \`same\`'s Dark anchor and border override survive, accent-s 300 / 700 (${sfill}, ${sborder})`);
+  const t = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-t');
+  ok(P.renameBrandColor(t, 'solo'), '#3545 a palette with no unnamed column may take its own column\'s name: no column is renamed');
+  const tfill = pathOf('dark', FILL('solo')), tborder = pathOf('light', BORDER('solo'));
+  ok(tfill.endsWith('.palette.solo.300') && tborder.endsWith('.palette.solo.700'),
+    `#3545 no unnamed column: \`solo\`'s Dark anchor and border override stay on it, solo 300 / 700 (${tfill}, ${tborder})`);
 }
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);

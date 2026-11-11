@@ -155,15 +155,19 @@ export const addBrandColor = (): string => {
   return nm;
 };
 /** Rename brand color `i`. Refused (returns false, nothing changes) when the name is empty, unchanged, or
- *  another palette's: a collision would merge two ramps in the alias graph. Also refused when it is another
- *  interactive column's explicit `name` (#3545 re-review): the renamed palette's unnamed column would take that name,
- *  the engine refuses a duplicate column name, and `cascadeRename` would drop the named column's keys as leftovers. */
+ *  another palette's: a collision would merge two ramps in the alias graph. Also refused when the palette has an
+ *  unnamed interactive column and the name is any column's explicit `name`, on any palette, this one included
+ *  (#3545 re-reviews): the unnamed column would take that name, the engine refuses a duplicate column name, and
+ *  `cascadeRename` would drop the named column's keys as leftovers. A palette with no unnamed column renames no
+ *  column, so nothing collides and nothing is dropped, and that rename is not refused. */
 export const renameBrandColor = (i: number, raw: string): boolean => {
   const list = brandState.brandColors ?? [];
   const bc = list[i];
   const next = raw.trim();
   if (!bc || !next || next === bc.name) return false;
-  const columnNames = (brandState.interactivePalettes ?? []).filter((e) => e.palette !== bc.name).map((e) => e.name).filter((n): n is string => n !== undefined);
+  const cols = brandState.interactivePalettes ?? [];
+  const ownsUnnamed = cols.some((e) => e.palette === bc.name && e.name === undefined);
+  const columnNames = ownsUnnamed ? cols.map((e) => e.name).filter((n): n is string => n !== undefined) : [];
   const taken = new Set(['primary', 'neutral', ...list.filter((_, j) => j !== i).map((b) => b.name), ...columnNames]);
   if (taken.has(next)) return false;
   const prev = bc.name;
