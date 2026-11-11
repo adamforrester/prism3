@@ -1,0 +1,7 @@
+## (2026-11-11) — The guides say one usage panel per family, beside its lead (UG-M3, part of #3552)
+
+Two designer guides said every set gets its own usage panel. `build-components.md` said the plugin "draws its usage panel beside it", and `update-a-file-safely.md` said each set comes "with its usage panel". The code draws one panel per family, beside the family's lead set (#2927; `leadsPanel`, `apps/plugin/src/doc-panel.ts`). A member like Checkbox.Control gets none of its own, and the three single-component defs (icon, spinner, provider logo) never get one. `lint-guide-claims` stayed green because the cited lines still held what the old claim quoted. The claim was just broader than the code. This was class N3 of the 2026-11-11 usage-guide scan.
+
+**The fix:** both guides now say "the family's usage panel, beside its lead". `build-components.md` also names the single components that get none, and cites `leadsPanel` with a fingerprint (`doc-panel.ts:185-186#b6f87a5f`). The table cell in `update-a-file-safely.md` carries no second citation, because a cell's claim quotes the row's bold labels and `leadsPanel` holds none of them. The cell links to Build components, where the claim is cited.
+
+**The gate:** `lint-guide-claims`' FINGERPRINT arm. Mutation: `leadsPanel` made true for every member of a family → `FINGERPRINT: docs/public/guides/build-components.md:34` fails by name. The guides are still DRAFT for owner review.

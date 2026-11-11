@@ -36,6 +36,9 @@
  * root hard-coded to `'pds3'` → `oracle/other-root` (1 of 78: the two scoring arms need its oracle). 80 assertions run.
  * The #3502 review's M5: `rootOf` taking the first of several top-level keys instead of throwing → `oracle/two-roots`,
  * `oracle/two-roots-base` (2 of 83); `rootOf` accepting an empty tree → `oracle/no-root` (1 of 83). 83 assertions run.
+ * #3565: `declarations` back to the innermost-body regex → `R2/nested`, `R2/nested-px` (2 of 86). 86 assertions run.
+ * #3565 review: the nested rule's selector no longer cut from its parent's body → `R2/nested-prelude` (1 of 87). 87
+ * assertions run.
  * #3567: `readsFiles` back to `READ_TOOLS` alone → `contamination/mcp`, `contamination/mcp-text` (with the text regex's `mcp__` dropped too);
  * the CLAUDE.md pattern case-sensitive again → `contamination/claude-md-case`. 87 assertions run.
  * #3567 review: the text form back to the `mcp__…(` line no transcript prints → `contamination/mcp-text`; the text
@@ -250,6 +253,15 @@ if (o) {
   fails('R2/bad-px', await run(edit('padding: var(--pds3-space-500);', 'padding: 40px;')), 'R2', 1, '40px in padding');
   fails('R2/bad-primitive', await run(edit('gap: var(--pds3-space-300);', 'gap: var(--pds3-core-dimension-24);')), 'R2', 1, 'primitive core.dimension.24 in gap');
   fails('R2/style-attr', await run(edit('<h1>Sign in</h1>', '<h1 style="margin-bottom: 8px">Sign in</h1>')), 'R2', 1, '8px in margin-bottom');
+  // #3565: a rule that holds a nested rule (native CSS nesting) keeps its own declarations, and the nested rule's too.
+  const nested = await run(edit('.card { max-width', '.card { outline: 3px solid #ff0000; & h1 { letter-spacing: 0; } max-width'));
+  fails('R2/nested', nested, 'R2', 2, 'hex #ff0000 in outline');
+  fails('R2/nested-px', nested, 'R2', 2, '3px in outline');
+  fails('R2/nested-inner', await run(edit('.card { max-width', '.card { & h1 { margin-block: 12px; } max-width')), 'R2', 1, '12px in margin-block');
+  // #3565 review: a nested rule's selector is cut from its parent's body, so a nested `@media (…)` prelude's px, and a
+  // nested selector's `:`, are never read as a declaration.
+  const nestedPrelude = await run(edit('.card { max-width', '.card { @media (min-width: 640px) { letter-spacing: 0; } &:hover { letter-spacing: 0; } max-width'));
+  ok(nestedPrelude.counts.R2 === 0, `R2/nested-prelude: a nested @media prelude's px is not counted (${brief(nestedPrelude)})`);
   const media = await run(edit('@media (min-width: 600px)', '@media (min-width: 640px)'));
   ok(media.counts.R2 === 0, `R2/media-prelude: a px in an @media prelude is not counted (${brief(media)})`);
 

@@ -587,6 +587,9 @@ const STATUS_DEFAULTS: Record<'success' | 'warning' | 'danger' | 'info', OKLCH &
 // silently replace the brandColor — gates stay green on corrupted output (CR-03). Includes the
 // tree.ts base swatches (`white`/`black`/`transparent`/`*-alpha`).
 const RESERVED_PALETTES = new Set(['primary', 'neutral', 'success', 'warning', 'info', 'danger', 'white', 'black', 'transparent', 'black-alpha', 'white-alpha']);
+/** Whether `name` is a palette the engine always mints, so a brand color may not take it (#3562: the studio's
+ *  rename checks this rather than keeping its own list). */
+export const isReservedPalette = (name: string): boolean => RESERVED_PALETTES.has(name);
 // A brandColor name is a palette slug: it becomes a `{root.palette.<name>.<step>}` alias path,
 // so it must be a single lowercase kebab segment — no dots (break alias paths), spaces, or
 // symbols (also closes the CR-07 XSS vector at the source: an HTML-metachar name can't validate).
