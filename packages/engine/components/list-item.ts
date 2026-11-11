@@ -166,7 +166,9 @@ export const listItem: ComponentDef = {
         kind: 'text',
         type: 'size.{size}.text',
         presentWhen: { type: ['ordered'] },
-        note: 'The number, in the item\'s own type and the text color. Typed per item in Figma; counted by the list in code.',
+        // Maintainer detail, out of the reader caption (#3610): The number, in the item's own type and the text
+        // color. Typed per item in Figma; counted by the list in code.
+        note: 'The item\'s number, in the item\'s text style and color; the list counts it.',
       },
       icon: {
         kind: 'slot',
