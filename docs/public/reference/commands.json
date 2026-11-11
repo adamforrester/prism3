@@ -661,7 +661,7 @@
       {
         "name": "update-components",
         "args": "{ def?: string; confirm: false } | { def?: string; confirm: true; previewHash: string; choices?: UpdateChoiceArgs }",
-        "description": "#2265: the in-place update. `confirm: false` (or absent) checks and writes nothing, and its result carries a `previewHash`; `confirm: true` applies the update that check described, and must echo that `previewHash` (PR 2). The plugin reads the file again and refuses when it no longer hashes the same. No `def` means every def that projects a set.",
+        "description": "The in-place update. `confirm: false` (or absent) checks and writes nothing, and its result carries a `previewHash`; `confirm: true` applies the update that check described, and must echo that `previewHash` (PR 2). The plugin reads the file again and refuses when it no longer hashes the same. No `def` means every def that projects a set.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.update-components",
         "writes": "With confirm: false (or none), nothing: a check whose result carries a previewHash. With confirm: true and that previewHash, updates the sets in place; refused when the file no longer hashes the same.",
         "refuses": [
@@ -687,7 +687,7 @@
       {
         "name": "capture-baseline",
         "args": "{ def?: string }",
-        "description": "#2265: record the as-built baseline on members built before it existed. No `def` means every set.",
+        "description": "Record the as-built baseline on members built before it existed. No `def` means every set.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.capture-baseline",
         "writes": "Plugin data only: the as-built record on members built before it existed.",
         "refuses": [
@@ -701,7 +701,7 @@
       {
         "name": "adopt-members",
         "args": "{ def?: string }",
-        "description": "#2283: the one-time Adopt (§10 Q4). Records and stamps members Prism3 did not build, so an update can bring them to the plan in place. No `def` means every set.",
+        "description": "The one-time Adopt (§10 Q4). Records and stamps members Prism3 did not build, so an update can bring them to the plan in place. No `def` means every set.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.adopt-members",
         "writes": "Plugin data only: records and stamps members Prism3 did not build, so an update can bring them to the plan.",
         "refuses": [
@@ -715,7 +715,7 @@
       {
         "name": "draw-specs",
         "args": "{ def?: string }",
-        "description": "#2830 phase 2: draw the spec panel beside each family's usage panel. No `def` means every family whose lead's set is in the file; a `def` draws that def's family.",
+        "description": "Draw the spec panel beside each family's usage panel. No `def` means every family whose lead's set is in the file; a `def` draws that def's family.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.draw-specs",
         "writes": "Canvas frames only: a spec panel beside each family's usage panel, replacing its earlier unedited one and keeping an edited one aside as \"(edited)\". Never a component set, a variable or a style.",
         "refuses": [
@@ -729,7 +729,7 @@
       {
         "name": "inspect",
         "args": "{ ids: string[]; depth?: number; fields?: Array<'props' | 'bindings' | 'styles' | 'layout' | 'text'>; maxNodes?: number }",
-        "description": "#3147 Phase 2a. Writes nothing. Each listed node and its descendants to `depth` (0 to 3, default 1), depth first, at most `maxNodes` (1 to 2000, default 500) entries, each { id, parentId, type, name, page, size, locked, mainComponent: { key, name, remote, set } | null, childCount } plus, per `fields` (default all): `props` componentProperties, `bindings` boundVariables (variable names), `styles` textStyle, `layout` layout, `text` characters. Result data: { nodes, unreadable: [{ id, error }], truncated }.",
+        "description": "Writes nothing. Each listed node and its descendants to `depth` (0 to 3, default 1), depth first, at most `maxNodes` (1 to 2000, default 500) entries, each { id, parentId, type, name, page, size, locked, mainComponent: { key, name, remote, set } | null, childCount } plus, per `fields` (default all): `props` componentProperties, `bindings` boundVariables (variable names), `styles` textStyle, `layout` layout, `text` characters. Result data: { nodes, unreadable: [{ id, error }], truncated }.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.inspect",
         "writes": "Nothing. Reads the listed nodes and their descendants; pages are loaded, never switched to.",
         "refuses": [
@@ -755,7 +755,7 @@
       {
         "name": "component-keys",
         "args": "{ names?: string[]; sets?: boolean }",
-        "description": "#3147 Phase 2a. Writes nothing. Every local component set and standalone component, page by page: [{ name, key, kind: set | component, published, variantProperties, members? }]; `names` keeps only those names, `sets: true` lists each set's members with their keys. Result data: { components, missing, unreadable }.",
+        "description": "Writes nothing. Every local component set and standalone component, page by page: [{ name, key, kind: set | component, published, variantProperties, members? }]; `names` keeps only those names, `sets: true` lists each set's members with their keys. Result data: { components, missing, unreadable }.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.component-keys",
         "writes": "Nothing. Reads every local component set and component, page by page.",
         "refuses": [
@@ -773,7 +773,7 @@
       {
         "name": "audit-frames",
         "args": "{ ids: string[]; legacy?: { textStyles?: string[]; components?: string[]; variablePrefixes?: string[] }; nameRule?: string }",
-        "description": "#3147 Phase 2a, the done check. Writes nothing. Per frame { id, counts: { legacyInstances, unstyledText, rawFills, standInDividers, badName }, layers: { <count>: ids } }; `legacy` lists the brand's old text styles, components and variable-name prefixes, `nameRule` is a regular expression frame names must match. Result data: { frames, unreadable, truncated }.",
+        "description": "The done check. Writes nothing. Per frame { id, counts: { legacyInstances, unstyledText, rawFills, standInDividers, badName }, layers: { <count>: ids } }; `legacy` lists the brand's old text styles, components and variable-name prefixes, `nameRule` is a regular expression frame names must match. Result data: { frames, unreadable, truncated }.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.audit-frames",
         "writes": "Nothing. Reads the listed frames and the layers in them.",
         "refuses": [
@@ -795,7 +795,7 @@
       {
         "name": "snapshot",
         "args": "{ id: string; scale?: number }",
-        "description": "#3147 Phase 2a. Writes nothing. One node rendered to PNG in this session at `scale` (0.5 to 2, default 1). Result data: { png (base64), width, height, local: true }.",
+        "description": "Writes nothing. One node rendered to PNG in this session at `scale` (0.5 to 2, default 1). Result data: { png (base64), width, height, local: true }.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.snapshot",
         "writes": "Nothing. Renders one node to PNG in this session.",
         "refuses": [
@@ -813,7 +813,7 @@
       {
         "name": "activity",
         "args": "{ since?: number; limit?: number }",
-        "description": "#3309. Writes nothing. The Activity drawer's runs this session, newest first, from the main thread's memory (`activity-log.ts`): each { seq, op, by: panel | agent, cmd, at, verdict: { type, ok }, headline, summary, lines, problems: [{ set, reasons }], built: { commit, build } }. `since` keeps the runs after that seq; `limit` (1 to 50, default all) caps them. Result data: { runs, total, latest }.",
+        "description": "Writes nothing. The Activity drawer's runs this session, newest first, from the main thread's memory (`activity-log.ts`): each { seq, op, by: panel | agent, cmd, at, verdict: { type, ok }, headline, summary, lines, problems: [{ set, reasons }], built: { commit, build } }. `since` keeps the runs after that seq; `limit` (1 to 50, default all) caps them. Result data: { runs, total, latest }.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.activity",
         "writes": "Nothing. Reads the Activity drawer's runs this session from the plugin's memory; nothing is kept in the file.",
         "refuses": [
@@ -831,7 +831,7 @@
       {
         "name": "panels-clean",
         "args": "{ confirm?: boolean }",
-        "description": "#3137 Q3137.7 A: the usage panels Update file › Clean up offers while Documentation has panels off. `confirm: false` (or absent) counts them; `confirm: true` removes each live panel that still holds what was drawn, never an edited one.",
+        "description": "The usage panels Update file › Clean up offers while Documentation has panels off. `confirm: false` (or absent) counts them; `confirm: true` removes each live panel that still holds what was drawn, never an edited one.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.panels-clean",
         "writes": "With confirm: false (or none), nothing: a count of the live usage panels and how many still hold what was drawn. With confirm: true, removes each of those, re-read now; a panel edited by hand is never removed.",
         "refuses": [
@@ -845,7 +845,7 @@
       {
         "name": "context",
         "args": "Record<string, never>",
-        "description": "#3300 B. Writes nothing. What the open file is, for an agent's first read: { file { name, currentPage, pages }, prism3 { source: local | none | unreadable, brand { id, name, modes } | null, engine { plugin, lastBuilt }, collections, themed }, sets { present, due: [{ set, why }], queued, partial: true }, protected { finalPages, locked, originals: [{ id, name, page }], counts, note }, commands { read, write }, readFirst, engineMcp { server, for, tools }, unreadable, truncated }. `protected` lists what Q3147.11 protects by default: pages whose name contains FINAL, locked nodes, `Original · …` copies. The page walk is capped (`truncated`); the set counts come from the as-built ledger alone (`partial`).",
+        "description": "Writes nothing. What the open file is, for an agent's first read: { file { name, currentPage, pages }, prism3 { source: local | none | unreadable, brand { id, name, modes } | null, engine { plugin, lastBuilt }, collections, themed }, sets { present, due: [{ set, why }], queued, partial: true }, protected { finalPages, locked, originals: [{ id, name, page }], counts, note }, commands { read, write }, readFirst, engineMcp { server, for, tools }, unreadable, truncated }. `protected` lists what Q3147.11 protects by default: pages whose name contains FINAL, locked nodes, `Original · …` copies. The page walk is capped (`truncated`); the set counts come from the as-built ledger alone (`partial`).",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.context",
         "writes": "Nothing. Reads the stored brand, the variable collections, the as-built ledger and every page for its protected nodes; pages are loaded, never switched to.",
         "refuses": [],
@@ -854,7 +854,7 @@
       {
         "name": "run-code",
         "args": "{ code: string; timeoutMs?: number }",
-        "description": "#2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`).",
+        "description": "Dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`).",
         "source": "apps/plugin/src/dev-commands.ts#RunCodeArgs",
         "writes": "Whatever the code writes. Dev builds only; a release build answers unknown-command.",
         "refuses": [
