@@ -373,14 +373,12 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'separator type a glyph, and no value would mean the same thing on both defs. The item picks it by its own '
       + '`separator` axis, which holds the same two values.',
   },
-  // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
-  // the same shape the `intent` note below records. field-label carried a three-way
-  // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
-  // projected to Figma. The owner decision (2026-09-13) reconciled it into Prism 2's `Required` BOOLEAN
-  // (default true) — a node-visibility toggle, not a variant axis — so no def declares `indicator` as a
-  // variant axis any more, and a register entry no def uses is what ARM B fails as stale. Removed, the
-  // register is true again; the marker's presence now lives on `figmaProperties.booleans`, which this
-  // register (a VARIANT-axis census) does not cover.
+  // field-label's `indicator` axis left the register (#1338). It carried a three-way `[none/required/optional]`
+  // axis whose most important value was ABSENCE, which is exactly why it never projected to Figma. The owner
+  // decision (2026-09-13) reconciled it into Prism 2's `Required` BOOLEAN (default true) — a node-visibility toggle,
+  // not a variant axis — and the marker's presence now lives on `figmaProperties.booleans`, which this register (a
+  // VARIANT-axis census) does not cover. The axis NAME came back later for a different job: the accordion's
+  // chevron or plus-minus indicator, registered below with its own entry.
   //
   // `intent` IS GONE FROM THE REGISTER (#1225), and its absence is the point rather than an omission.
   // #1223 made Button's intents three COMPONENTS and left `icon-button` carrying `intent` as an axis of
