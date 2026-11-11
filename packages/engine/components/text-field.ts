@@ -559,7 +559,10 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         height: 'size.{size}.caret-height',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
         presentWhen: { state: ['focus-visible'] },
-        note: 'The insertion point on the focused empty field, immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-color`.',
+        // Maintainer detail, out of the reader caption (#3610): The insertion point on the focused empty field,
+        // immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-
+        // color`.
+        note: 'The insertion point in a focused, empty field, right before the placeholder, in the value color.',
       },
       // THE END CARET (#2318, owner decision Q166 C, 2026-10-09): the focused field that holds a value draws its insertion
       // point AFTER the value, where it is. The same bar as `caret`, in its own `caret-end` slot (two parts cannot share
@@ -589,7 +592,10 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         kind: 'text',
         type: 'size.{size}.type',
         presentWhen: { state: ['filled', 'focus-visible-filled', 'read-only', 'pending'] },
-        note: 'The entered value, in the value ink. Shown on the filled, focused filled and read-only field. One line, never ellipsized (#1758): in code it scrolls with the caret, and in Figma a long value clips at the value row\'s edge.',
+        // Maintainer detail, out of the reader caption (#3610): The entered value, in the value ink. Shown on the
+        // filled, focused filled and read-only field. One line, never ellipsized (#1758): in code it scrolls with the
+        // caret, and in Figma a long value clips at the value row's edge.
+        note: 'The entered value, on one line: shown when the field is filled or read-only, and a long value scrolls rather than ending in an ellipsis.',
       },
       // THE TRAILING AFFIX — the clear-button / password-reveal edge control that select's chevron slot is
       // NOT. Modeled exactly as the leading glyph (an optional swap slot painted the `icon` ink, its presence
@@ -639,7 +645,11 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         // FILLS the field's width (#1757, owner: parity with select and textarea): the message stretches across
         // the field's column, so a long message wraps at the field's width. One size at every field size (Q8).
         crossAxisFill: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to say. Fills the field\'s width, so a long message wraps.',
+        // Maintainer detail, out of the reader caption (#3610): Helper or validation text, composed rather than re-
+        // declared. Its status follows the field's validation by name, so error / warning / success reach the message
+        // without a value mapping. Hidden by default (#2926); the `showMessage` boolean shows it where the field has
+        // something to say. Fills the field's width, so a long message wraps.
+        note: 'Helper or validation text, hidden until the field has something to say; it takes the field\'s status and width, and a long message wraps.',
       },
     },
     codeOnly: spec.codeOnly,
