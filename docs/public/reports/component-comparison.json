@@ -1903,7 +1903,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -1970,6 +1971,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -1992,7 +1997,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -2059,6 +2065,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -2081,7 +2091,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -2148,6 +2159,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -5629,6 +5644,9 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral"
@@ -7426,6 +7444,18 @@
       },
       {
         "id": "button-neutral",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-neutral",
         "default": false
       },
       {
@@ -9881,7 +9911,7 @@
       "components": [
         "flush-icon-button"
       ],
-      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9889,7 +9919,7 @@
       "components": [
         "flush-icon-button-destructive"
       ],
-      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9897,7 +9927,7 @@
       "components": [
         "flush-icon-button-neutral"
       ],
-      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9950,6 +9980,30 @@
         "code-input"
       ],
       "detail": "code-input declares the state pending, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button",
+      "components": [
+        "flush-icon-button"
+      ],
+      "detail": "flush-icon-button declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button-destructive",
+      "components": [
+        "flush-icon-button-destructive"
+      ],
+      "detail": "flush-icon-button-destructive declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button-neutral",
+      "components": [
+        "flush-icon-button-neutral"
+      ],
+      "detail": "flush-icon-button-neutral declares the state inactive, which the design-file state axis does not draw"
     },
     {
       "kind": "state not drawn",
