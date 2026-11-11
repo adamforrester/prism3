@@ -21605,6 +21605,84 @@ if (runs('3553-me')) {
     } finally { await ctx.close(); }
   }
 } // 3553-me
+// #3553 M2, M3 AND M4 (batch M-B; the owner's M2 A, M3 A and M4 A): THE LEVERS ROWS IN A PANE BETWEEN 360 AND 480.
+// M2: at web 1024 the levers pane is 404px, above the old snug line (360), and a fill row's step picker squeezed its
+// name to 20–40px ("Hover" read "Ho"); the line is now 480, so from 1024 to 1200 the picker sits under the name. Held on
+// Surfaces & fills and Interactive at 1024, 1100 and 1200: the pane is snug, and every drawn fill row's name column is at
+// least 90px with its label on one line. At 1280 (511px) the pane stays full: the few rows that still wrap there are
+// the accepted cost of A. M3: the easing-role tokens all ellipsized to "motion.easing-ro…" at the plugin's 380; they now
+// wrap at their dots, held whole at 380 and 1280. M4: the OKLCH readout of a snug color field drops, as the glass
+// control's does; held on Palettes at the plugin's 380: no readout is drawn cut. Both themes. MUTATIONS (each after a
+// `wip:` commit): `LEVERS_SNUG_MAX` back to 360 → `#3553 M2 … the pane is snug` and `… every fill row keeps its name`;
+// the easing rows' `{ wrap: true }` dropped → `#3553 M3 … every easing-role token is shown whole`; the snug
+// `.p3-colorfield:not(.p3-numfield) .p3-colorfield-meta` rule dropped → `#3553 M4 … no color field's readout is cut`.
+const MB_NAME_MIN = 90;
+if (runs('3553-mb')) {
+  console.log(`\nThe levers rows between 360 and 480 (#3553 M2, M3, M4)\n${'='.repeat(78)}`);
+  const rowsRead = (page) => page.evaluate(() => {
+    const pane = document.querySelector('[data-p3="levers-pane"]');
+    const levers = pane?.querySelector('.p3-levers') ?? pane?.closest('.p3-levers') ?? document.querySelector('.p3-levers');
+    const lines = (n) => { const r = document.createRange(); r.selectNodeContents(n); return new Set([...r.getClientRects()].map((b) => Math.round(b.top))).size; };
+    const rows = [...(pane?.querySelectorAll('.p3-fillrow') ?? [])].filter((r) => r.getClientRects().length > 0 && r.getBoundingClientRect().height > 0);
+    const bad = rows.map((r) => {
+      const name = r.querySelector('.p3-fill-name'); const label = name?.querySelector('.p3-fill-label');
+      return { label: label?.textContent ?? '', w: name ? Math.round(name.getBoundingClientRect().width) : 0, lines: label ? lines(label) : 0 };
+    }).filter((x) => x.w < 90 || x.lines > 1);
+    return { fit: levers?.dataset.fit ?? null, paneW: Math.round(levers?.clientWidth ?? 0), rows: rows.length, bad };
+  });
+  for (const [w, h] of [[1024, 768], [1100, 800], [1200, 800], [1280, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mb web ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme, w, h });
+    let step = 'open';
+    try {
+      for (const place of ['color-fills', 'color-interactive']) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        const m = await rowsRead(page);
+        ok(m.rows > 0 && m.paneW > 0, `${where} ${place}: premise, the levers pane draws fill rows (${m.rows} in ${m.paneW}px)`);
+        if (w < 1280) {
+          ok(m.fit === 'snug', `#3553 M2 ${where} ${place}: the ${m.paneW}px pane is snug (read ${m.fit})`);
+          ok(m.bad.length === 0, `#3553 M2 ${where} ${place}: every fill row keeps its name at least ${MB_NAME_MIN}px wide, its label on one line (${m.bad.length} of ${m.rows} do not: ${JSON.stringify(m.bad.slice(0, 4))})`);
+        } else ok(m.fit === 'full', `#3553 M2 ${where} ${place}: the ${m.paneW}px pane stays full (read ${m.fit})`);
+        if (SHOTS && theme === 'light' && w === 1024) await page.screenshot({ path: join(SHOTS, `s3553-mb-web-${w}-${place}.png`) });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mb figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h });
+    let step = 'depth';
+    try {
+      await goPlace(page, 'depth');
+      await hooks.need(page, '[data-p3="easing-rows"]');
+      await settle(page);
+      const e = await page.evaluate(() => [...document.querySelectorAll('[data-p3="easing-rows"] [data-p3="easing-row"] .p3-fill-tok')].map((t) => ({
+        text: t.textContent, whole: t.scrollWidth <= t.clientWidth + 0.5,
+        inRow: t.getBoundingClientRect().right <= t.closest('[data-p3="easing-row"]').getBoundingClientRect().right + 0.5 })));
+      ok(e.length >= 4 && e.every((t) => /^motion\.easing-role\.[a-z-]+$/.test(t.text)), `${where}: premise, the easing rows draw each role's token (${JSON.stringify(e.map((t) => t.text))})`);
+      ok(e.length > 0 && e.every((t) => t.whole && t.inRow), `#3553 M3 ${where}: every easing-role token is shown whole, inside its row (${JSON.stringify(e.filter((t) => !t.whole || !t.inRow).map((t) => t.text))})`);
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-mb-plugin-${w}-easing.png`) });
+      step = 'palettes';
+      await goPlace(page, 'color-palettes');
+      await settle(page);
+      const c = await page.evaluate(() => {
+        const metas = [...document.querySelectorAll('[data-p3="levers-pane"] .p3-colorfield-meta')].filter((n) => n.getClientRects().length > 0);
+        return { drawn: metas.length, cut: metas.filter((n) => n.scrollWidth > n.clientWidth + 0.5).map((n) => n.textContent),
+          fields: document.querySelectorAll('[data-p3="levers-pane"] .p3-colorfield').length };
+      });
+      ok(c.fields > 0, `${where}: premise, Palettes draws color fields (${c.fields})`);
+      ok(c.cut.length === 0, `#3553 M4 ${where}: no color field's readout is cut (${JSON.stringify(c)})`);
+      if (w === 1280) ok(c.drawn > 0, `#3553 M4 ${where}: at full width the readout is still drawn (${c.drawn})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-mb
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
