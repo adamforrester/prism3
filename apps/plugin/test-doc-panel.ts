@@ -113,6 +113,12 @@
  *                   (by settings, wherever a repeat stands, labelled "Item ×4") → `legend/pagination`, `legend/every def`;
  *                   a run's shared note replaced by the summary → `legend/shared note` (`anatomyEntry` called directly,
  *                   since no run in today's library shares a note).
+ *   quote/…         (#3552 N1) Progress', Card number field's and Code input's Content › Errors lines, typed by hand: each
+ *                   keeps its quoted example whole, its quote closed; and over every lead, no planned string carries an odd
+ *                   count of `"`; and Textarea's and Switch row's, whose quotes close inside the cut, keep exactly their two
+ *                   sentences. Mutations: the open-quote extension dropped from `firstSentences` → `quote/progress`,
+ *                   `quote/card-number-field`, `quote/code-input`, `quote/every lead`; the cut extended past any quote,
+ *                   open or closed → `quote/textarea-count`, `quote/switch-row-count`.
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -710,10 +716,11 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '5  Message (optional) — ',
   ], 'the six cells, one run, captioned by the cell\'s summary');
   // Pagination: no item is like its neighbor on the specimen, so each keeps its number and its own note. Item 4 is page 5.
+  // Previous, Next and their labeled buttons cite an owner decision ("(Q414 A)"), so their notes are held back (#3552 N2).
   want('pagination', [
     '1  Container — The navigation landmark: one row of controls.',
     '2  Row — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
-    '3  Previous — The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A).',
+    '3  Previous — ',
     '4  Items — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.',
     '5  Item 1 — The first page, 1.',
     '6  Item 2 — An ellipsis for pages 2 and 3.',
@@ -723,10 +730,10 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '10  Item 6 — An ellipsis for pages 7 to 9.',
     '11  Item 7 — The last page, 10.',
     '12  Status — The position, "Page 5 of 10", between the previous and next buttons.',
-    '13  Next — The next cell: a Pagination.Item with a right chevron (Q414 A).',
+    '13  Next — ',
     '14  Simple row — The simple row: Previous at the start and Next at the end.',
-    '15  Previous button — Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).',
-    '16  Next button — Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).',
+    '15  Previous button — ',
+    '16  Next button — ',
   ], 'Item 1 to Item 7, each with its own note');
   // Tabs: the selected tab alone, then the two unselected ones as a run. Their notes differ ("A second tab.", "A third
   // tab."), so the run takes the tab's summary, never the second tab's note.
@@ -783,6 +790,38 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     }
   }
   ok(bad.length === 0, 'legend/every def: no label glued to its number or carrying ×, and each repeat\'s entries cover its parts once, in order', bad.slice(0, 4).join('; '));
+}
+
+/* ── quote: a caption is never cut inside a quoted example (#3552 N1) ─────────────────────────────────────── */
+section('quote/… — a planned line never ends inside an open "…" (#3552 N1)');
+{
+  const errorsLine = (id: string): string | undefined => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections
+    .find((x) => x.id === 'content')?.blocks.flatMap((b) => (b.type === 'Field' && b.label === 'Errors' ? [b.text] : []))[0];
+  // Typed by hand from each def's `errorPattern`: the quoted example of two sentences stays whole, its quote closed.
+  const want = (id: string, line: string): void => {
+    const got = errorsLine(id);
+    ok(got === line, `quote/${id}: Content › Errors keeps its quoted example whole`, `got "${got}"`);
+  };
+  want('progress', 'Name what failed and the next step: "Upload failed. The connection dropped. Try again." Not a bare "Error".');
+  want('card-number-field', 'What is wrong and how to fix it: "Enter the card number." · "Check the card number. It doesn\'t match a valid card." · "This card type isn\'t accepted. Use Visa, Mastercard or American Express." (the accepted list, from the app).');
+  want('code-input', 'Say which case it is: "Enter all 6 digits", "That code is wrong. Check the latest message and try again", "That code has expired. We sent a new one".');
+  // Typed by hand from each def's `errorPattern`: a quoted example closed inside the cut still counts each of its
+  // sentences toward the two, so the line is the cut it always was and gains no sentence after the quote.
+  const keeps = (id: string, line: string): void => {
+    const got = errorsLine(id);
+    ok(got === line, `quote/${id}-count: Content › Errors keeps its two-sentence cut, a closed quote extends nothing`, `got "${got}"`);
+  };
+  keeps('textarea', 'What is wrong and how to fix it, with the number: "Description must be under 500 characters. Remove 24 to continue." (SC 3.3.3).');
+  keeps('switch-row', 'An outcome failure, not a validation failure: say what did not happen and that it reverted — "Couldn\'t turn on notifications. Try again." Near the control, as a status message rather than a field error.');
+  // Over every lead, every string any planned block carries: an even count of straight quotes.
+  const strings = (v: unknown): string[] => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(strings) : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : []);
+  const bad: string[] = [];
+  for (const def of componentDefs) {
+    if (!leadsPanel(def.id)) continue;
+    for (const sec of planDocPanel(def, { modes: ['light', 'dark'], names }).sections)
+      for (const t of strings(sec.blocks)) if ((t.match(/"/g) ?? []).length % 2 === 1) bad.push(`${def.id} › ${sec.id}: ${t}`);
+  }
+  ok(bad.length === 0, 'quote/every lead: no planned line carries an odd count of "', bad.slice(0, 4).join('; '));
 }
 
 /* ── markers: on their parts, by the host's own layout ─────────────────────────────────────────────────── */

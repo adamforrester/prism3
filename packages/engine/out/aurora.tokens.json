@@ -4561,9 +4561,9 @@
         },
         "letter-spacing": {
           "0": {
-            "$type": "dimension",
-            "$value": "0em",
-            "$description": "letter spacing 0em (ladder step 0)",
+            "$type": "number",
+            "$value": 0,
+            "$description": "letter spacing 0 × the font size, 0em in CSS (ladder step 0)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4578,9 +4578,9 @@
             }
           },
           "10": {
-            "$type": "dimension",
-            "$value": "0.01em",
-            "$description": "letter spacing 0.01em (ladder step 10)",
+            "$type": "number",
+            "$value": 0.01,
+            "$description": "letter spacing 0.01 × the font size, 0.01em in CSS (ladder step 10)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4595,9 +4595,9 @@
             }
           },
           "20": {
-            "$type": "dimension",
-            "$value": "0.02em",
-            "$description": "letter spacing 0.02em (ladder step 20)",
+            "$type": "number",
+            "$value": 0.02,
+            "$description": "letter spacing 0.02 × the font size, 0.02em in CSS (ladder step 20)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4612,9 +4612,9 @@
             }
           },
           "50": {
-            "$type": "dimension",
-            "$value": "0.05em",
-            "$description": "letter spacing 0.05em (ladder step 50)",
+            "$type": "number",
+            "$value": 0.05,
+            "$description": "letter spacing 0.05 × the font size, 0.05em in CSS (ladder step 50)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4629,9 +4629,9 @@
             }
           },
           "neg-40": {
-            "$type": "dimension",
-            "$value": "-0.04em",
-            "$description": "letter spacing -0.04em (ladder step neg-40)",
+            "$type": "number",
+            "$value": -0.04,
+            "$description": "letter spacing -0.04 × the font size, -0.04em in CSS (ladder step neg-40)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4646,9 +4646,9 @@
             }
           },
           "neg-30": {
-            "$type": "dimension",
-            "$value": "-0.03em",
-            "$description": "letter spacing -0.03em (ladder step neg-30)",
+            "$type": "number",
+            "$value": -0.03,
+            "$description": "letter spacing -0.03 × the font size, -0.03em in CSS (ladder step neg-30)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4663,9 +4663,9 @@
             }
           },
           "neg-20": {
-            "$type": "dimension",
-            "$value": "-0.02em",
-            "$description": "letter spacing -0.02em (ladder step neg-20)",
+            "$type": "number",
+            "$value": -0.02,
+            "$description": "letter spacing -0.02 × the font size, -0.02em in CSS (ladder step neg-20)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4680,9 +4680,9 @@
             }
           },
           "neg-15": {
-            "$type": "dimension",
-            "$value": "-0.015em",
-            "$description": "letter spacing -0.015em (ladder step neg-15)",
+            "$type": "number",
+            "$value": -0.015,
+            "$description": "letter spacing -0.015 × the font size, -0.015em in CSS (ladder step neg-15)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4697,9 +4697,9 @@
             }
           },
           "neg-10": {
-            "$type": "dimension",
-            "$value": "-0.01em",
-            "$description": "letter spacing -0.01em (ladder step neg-10)",
+            "$type": "number",
+            "$value": -0.01,
+            "$description": "letter spacing -0.01 × the font size, -0.01em in CSS (ladder step neg-10)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -4716,9 +4716,9 @@
         },
         "letter-spacing-role": {
           "tightest": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.neg-40}",
-            "$description": "letter-spacing role 'tightest' → -0.04em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'tightest' → -0.04 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4727,9 +4727,9 @@
             }
           },
           "tighter": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.neg-30}",
-            "$description": "letter-spacing role 'tighter' → -0.03em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'tighter' → -0.03 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4738,9 +4738,9 @@
             }
           },
           "tight": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.neg-20}",
-            "$description": "letter-spacing role 'tight' → -0.02em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'tight' → -0.02 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4749,9 +4749,9 @@
             }
           },
           "snugger": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.neg-15}",
-            "$description": "letter-spacing role 'snugger' → -0.015em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'snugger' → -0.015 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4760,9 +4760,9 @@
             }
           },
           "snug": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.neg-10}",
-            "$description": "letter-spacing role 'snug' → -0.01em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'snug' → -0.01 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4771,9 +4771,9 @@
             }
           },
           "normal": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.0}",
-            "$description": "letter-spacing role 'normal' → 0em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'normal' → 0 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4782,9 +4782,9 @@
             }
           },
           "open": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.10}",
-            "$description": "letter-spacing role 'open' → 0.01em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'open' → 0.01 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4793,9 +4793,9 @@
             }
           },
           "wide": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.20}",
-            "$description": "letter-spacing role 'wide' → 0.02em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'wide' → 0.02 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4804,9 +4804,9 @@
             }
           },
           "wider": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{ads.core.font.letter-spacing.50}",
-            "$description": "letter-spacing role 'wider' → 0.05em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$description": "letter-spacing role 'wider' → 0.05 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5664,7 +5664,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.450}",
-          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5952,7 +5952,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.primary.450}",
-          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6000,7 +6000,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.success.450}",
-          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6048,7 +6048,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.warning.450}",
-          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6096,7 +6096,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.danger.450}",
-          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6144,7 +6144,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.info.450}",
-          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -9040,12 +9040,12 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.10}",
-              "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.hover)",
+              "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.hover)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "ads.core.palette.black-alpha.10",
-                  "contrast": 15.49,
+                  "contrast": 15.42,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "text.primary",
@@ -9054,7 +9054,7 @@
                     "dark": {
                       "$value": "{ads.core.palette.white-alpha.10}",
                       "aliasOf": "ads.core.palette.white-alpha.10",
-                      "contrast": 14.26,
+                      "contrast": 14.17,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -9063,7 +9063,7 @@
                     "hc-light": {
                       "$value": "{ads.core.palette.black-alpha.10}",
                       "aliasOf": "ads.core.palette.black-alpha.10",
-                      "contrast": 16.75,
+                      "contrast": 16.67,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -9072,7 +9072,7 @@
                     "hc-dark": {
                       "$value": "{ads.core.palette.white-alpha.10}",
                       "aliasOf": "ads.core.palette.white-alpha.10",
-                      "contrast": 17.49,
+                      "contrast": 17.4,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -9094,7 +9094,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.20}",
-              "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)",
+              "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9148,7 +9148,7 @@
             "selected": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.20}",
-              "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.selected)",
+              "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.selected)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10118,12 +10118,12 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.10}",
-              "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)",
+              "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "ads.core.palette.black-alpha.10",
-                  "contrast": 15.49,
+                  "contrast": 15.42,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "text.primary",
@@ -10132,7 +10132,7 @@
                     "dark": {
                       "$value": "{ads.core.palette.white-alpha.10}",
                       "aliasOf": "ads.core.palette.white-alpha.10",
-                      "contrast": 14.26,
+                      "contrast": 14.17,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -10141,7 +10141,7 @@
                     "hc-light": {
                       "$value": "{ads.core.palette.black-alpha.10}",
                       "aliasOf": "ads.core.palette.black-alpha.10",
-                      "contrast": 16.75,
+                      "contrast": 16.67,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -10150,7 +10150,7 @@
                     "hc-dark": {
                       "$value": "{ads.core.palette.white-alpha.10}",
                       "aliasOf": "ads.core.palette.white-alpha.10",
-                      "contrast": 17.49,
+                      "contrast": 17.4,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -10172,7 +10172,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.20}",
-              "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)",
+              "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10226,7 +10226,7 @@
             "selected": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.20}",
-              "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)",
+              "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11102,12 +11102,12 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.10}",
-              "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)",
+              "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "ads.core.palette.black-alpha.10",
-                  "contrast": 15.49,
+                  "contrast": 15.42,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "text.primary",
@@ -11116,7 +11116,7 @@
                     "dark": {
                       "$value": "{ads.core.palette.white-alpha.10}",
                       "aliasOf": "ads.core.palette.white-alpha.10",
-                      "contrast": 14.26,
+                      "contrast": 14.17,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -11125,7 +11125,7 @@
                     "hc-light": {
                       "$value": "{ads.core.palette.black-alpha.10}",
                       "aliasOf": "ads.core.palette.black-alpha.10",
-                      "contrast": 16.75,
+                      "contrast": 16.67,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -11134,7 +11134,7 @@
                     "hc-dark": {
                       "$value": "{ads.core.palette.white-alpha.10}",
                       "aliasOf": "ads.core.palette.white-alpha.10",
-                      "contrast": 17.49,
+                      "contrast": 17.4,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "text.primary",
@@ -11156,7 +11156,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.20}",
-              "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)",
+              "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11210,7 +11210,7 @@
             "selected": {
               "$type": "color",
               "$value": "{ads.core.palette.black-alpha.20}",
-              "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)",
+              "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11977,7 +11977,7 @@
           "rest": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.450}",
-            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible ground (`background.secondary`), not the page alone",
+            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against `background.secondary`, the ground it is gated on, not the page alone",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -11999,7 +11999,7 @@
                     "contrast": 4.54,
                     "against": "background.secondary",
                     "min": 4.5,
-                    "description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 4.5:1 against the darkest permissible ground (`background.secondary`), not the page alone"
+                    "description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 4.5:1 against `background.secondary`, the ground it is gated on, not the page alone"
                   },
                   "hc-dark": {
                     "$value": "{ads.core.palette.neutral.500}",
@@ -12007,7 +12007,7 @@
                     "contrast": 4.63,
                     "against": "background.secondary",
                     "min": 4.5,
-                    "description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 4.5:1 against the darkest permissible ground (`background.secondary`), not the page alone"
+                    "description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 4.5:1 against `background.secondary`, the ground it is gated on, not the page alone"
                   }
                 },
                 "figma": {
@@ -12025,7 +12025,7 @@
           "hover": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.650}",
-            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer",
+            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on `background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -12047,7 +12047,7 @@
                     "contrast": 9.85,
                     "against": "background.secondary",
                     "min": 4.5,
-                    "description": "Form field hover border — four ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
+                    "description": "Form field hover border — four ramp steps stronger than rest, gated at 4.5:1 on `background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer"
                   },
                   "hc-dark": {
                     "$value": "{ads.core.palette.neutral.300}",
@@ -12055,7 +12055,7 @@
                     "contrast": 8.75,
                     "against": "background.secondary",
                     "min": 4.5,
-                    "description": "Form field hover border — four ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
+                    "description": "Form field hover border — four ramp steps stronger than rest, gated at 4.5:1 on `background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer"
                   }
                 },
                 "figma": {
@@ -12074,7 +12074,7 @@
         "placeholder": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.550}",
-          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
+          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on `background.secondary` behind the transparent fill (not a sub-AA placeholder)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -12096,7 +12096,7 @@
                   "contrast": 8.12,
                   "against": "neutral.050",
                   "min": 7,
-                  "description": "Form field placeholder ink — a readable hint, 7:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
+                  "description": "Form field placeholder ink — a readable hint, 7:1 on `background.secondary` behind the transparent fill (not a sub-AA placeholder)"
                 },
                 "hc-dark": {
                   "$value": "{ads.core.palette.neutral.300}",
@@ -12104,7 +12104,7 @@
                   "contrast": 7.46,
                   "against": "neutral.900",
                   "min": 7,
-                  "description": "Form field placeholder ink — a readable hint, 7:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
+                  "description": "Form field placeholder ink — a readable hint, 7:1 on `background.secondary` behind the transparent fill (not a sub-AA placeholder)"
                 }
               },
               "figma": {
@@ -12929,7 +12929,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.550}",
-            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13217,7 +13217,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.primary.550}",
-            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13265,7 +13265,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.success.550}",
-            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13313,7 +13313,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.warning.550}",
-            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13361,7 +13361,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.danger.550}",
-            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13409,7 +13409,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.info.550}",
-            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -15831,7 +15831,7 @@
                   "prism3": {
                     "role": "semantic",
                     "aliasOf": "ads.core.palette.white-alpha.10",
-                    "contrast": 14.26,
+                    "contrast": 14.17,
                     "against": "inverse.background.primary",
                     "contrastModel": "ink-on-composite",
                     "legibleFor": "inverse.text.primary",
@@ -15840,7 +15840,7 @@
                       "dark": {
                         "$value": "{ads.core.palette.black-alpha.10}",
                         "aliasOf": "ads.core.palette.black-alpha.10",
-                        "contrast": 14.48,
+                        "contrast": 14.41,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -15849,7 +15849,7 @@
                       "hc-light": {
                         "$value": "{ads.core.palette.white-alpha.10}",
                         "aliasOf": "ads.core.palette.white-alpha.10",
-                        "contrast": 17.49,
+                        "contrast": 17.4,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -15858,7 +15858,7 @@
                       "hc-dark": {
                         "$value": "{ads.core.palette.black-alpha.10}",
                         "aliasOf": "ads.core.palette.black-alpha.10",
-                        "contrast": 16.75,
+                        "contrast": 16.67,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -16835,7 +16835,7 @@
                   "prism3": {
                     "role": "semantic",
                     "aliasOf": "ads.core.palette.white-alpha.10",
-                    "contrast": 14.26,
+                    "contrast": 14.17,
                     "against": "inverse.background.primary",
                     "contrastModel": "ink-on-composite",
                     "legibleFor": "inverse.text.primary",
@@ -16844,7 +16844,7 @@
                       "dark": {
                         "$value": "{ads.core.palette.black-alpha.10}",
                         "aliasOf": "ads.core.palette.black-alpha.10",
-                        "contrast": 14.48,
+                        "contrast": 14.41,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -16853,7 +16853,7 @@
                       "hc-light": {
                         "$value": "{ads.core.palette.white-alpha.10}",
                         "aliasOf": "ads.core.palette.white-alpha.10",
-                        "contrast": 17.49,
+                        "contrast": 17.4,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -16862,7 +16862,7 @@
                       "hc-dark": {
                         "$value": "{ads.core.palette.black-alpha.10}",
                         "aliasOf": "ads.core.palette.black-alpha.10",
-                        "contrast": 16.75,
+                        "contrast": 16.67,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -17839,7 +17839,7 @@
                   "prism3": {
                     "role": "semantic",
                     "aliasOf": "ads.core.palette.white-alpha.10",
-                    "contrast": 14.26,
+                    "contrast": 14.17,
                     "against": "inverse.background.primary",
                     "contrastModel": "ink-on-composite",
                     "legibleFor": "inverse.text.primary",
@@ -17848,7 +17848,7 @@
                       "dark": {
                         "$value": "{ads.core.palette.black-alpha.10}",
                         "aliasOf": "ads.core.palette.black-alpha.10",
-                        "contrast": 14.48,
+                        "contrast": 14.41,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -17857,7 +17857,7 @@
                       "hc-light": {
                         "$value": "{ads.core.palette.white-alpha.10}",
                         "aliasOf": "ads.core.palette.white-alpha.10",
-                        "contrast": 17.49,
+                        "contrast": 17.4,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -17866,7 +17866,7 @@
                       "hc-dark": {
                         "$value": "{ads.core.palette.black-alpha.10}",
                         "aliasOf": "ads.core.palette.black-alpha.10",
-                        "contrast": 16.75,
+                        "contrast": 16.67,
                         "against": "inverse.background.primary",
                         "contrastModel": "ink-on-composite",
                         "legibleFor": "inverse.text.primary",
@@ -18273,7 +18273,7 @@
             "rest": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.550}",
-              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground",
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against `inverse.background.secondary`, the ground it is gated on",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -18295,7 +18295,7 @@
                       "contrast": 4.63,
                       "against": "inverse.background.secondary",
                       "min": 4.5,
-                      "description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 4.5:1 against the darkest permissible inverse ground"
+                      "description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 4.5:1 against `inverse.background.secondary`, the ground it is gated on"
                     },
                     "hc-dark": {
                       "$value": "{ads.core.palette.neutral.500}",
@@ -18303,7 +18303,7 @@
                       "contrast": 4.54,
                       "against": "inverse.background.secondary",
                       "min": 4.5,
-                      "description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 4.5:1 against the darkest permissible inverse ground"
+                      "description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 4.5:1 against `inverse.background.secondary`, the ground it is gated on"
                     }
                   },
                   "figma": {
@@ -18321,7 +18321,7 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.350}",
-              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer",
+              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on `inverse.background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -18343,7 +18343,7 @@
                       "contrast": 8.75,
                       "against": "inverse.background.secondary",
                       "min": 4.5,
-                      "description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
+                      "description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 4.5:1 on `inverse.background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer"
                     },
                     "hc-dark": {
                       "$value": "{ads.core.palette.neutral.700}",
@@ -18351,7 +18351,7 @@
                       "contrast": 9.85,
                       "against": "inverse.background.secondary",
                       "min": 4.5,
-                      "description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
+                      "description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 4.5:1 on `inverse.background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer"
                     }
                   },
                   "figma": {
@@ -18370,7 +18370,7 @@
           "placeholder": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.450}",
-            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
+            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on `inverse.background.secondary` behind the transparent fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -18392,7 +18392,7 @@
                     "contrast": 7.49,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Form field placeholder ink on an inverse surface — a readable hint, 7:1 on the darkest permissible inverse ground behind the transparent fill"
+                    "description": "Form field placeholder ink on an inverse surface — a readable hint, 7:1 on `inverse.background.secondary` behind the transparent fill"
                   },
                   "hc-dark": {
                     "$value": "{ads.core.palette.neutral.650}",
@@ -18400,7 +18400,7 @@
                     "contrast": 8.14,
                     "against": "inverse.background.secondary",
                     "min": 7,
-                    "description": "Form field placeholder ink on an inverse surface — a readable hint, 7:1 on the darkest permissible inverse ground behind the transparent fill"
+                    "description": "Form field placeholder ink on an inverse surface — a readable hint, 7:1 on `inverse.background.secondary` behind the transparent fill"
                   }
                 },
                 "figma": {
@@ -22459,16 +22459,6 @@
           "prism3": {
             "generated": true,
             "px": 320
-          }
-        }
-      },
-      "fluid": {
-        "$type": "dimension",
-        "$value": "100%",
-        "$description": "container fluid — full width with margins (the default)",
-        "$extensions": {
-          "prism3": {
-            "generated": true
           }
         }
       }

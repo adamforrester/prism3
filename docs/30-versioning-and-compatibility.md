@@ -370,10 +370,31 @@ Every bump after 14.0.0 has added guaranteed paths and removed or retyped none, 
 | 14.5.0 | #2349 (#2324) | `type.label.{sm,md,lg}.emphasis-link` |
 | 14.6.0 | #2528 | `type.label.{sm,md,lg}.default` and `-link`: labels always ship the default weight |
 | 14.7.0 | #2590 (#2586) | `type.label.{sm,md,lg}.line-box` |
+| 14.8.0 | #2791 (#2670) | `motion.duration.sweep`, `motion.duration-reduced.sweep` and the primitive `motion.duration-ms.1600`: the progress bar's indeterminate sweep |
 | 14.9.0 | #2973 (#2971) | `container.min`, the 320px narrowest column Banner's width floor binds |
 | 14.10.0 | #2792 (#2669) | `border-width.x-heavy`, the 6px track of the large Slider |
+| 14.11.0 | #3019 (#2869) | `blur.glass` and `color.glass.surface`, the glass treatment's blur radius and translucent fill |
 | 14.12.0 | #3049 | `color.foreground.raised`, the panel over the scrim that Dialog binds: the card surface unless the brand's `raisedSurface` says otherwise |
 | 14.13.0 | #3153 | `type.body.{xs,sm,md,lg}.line-box` and `control.size.{sm,md,lg}.label-inset`: an option row's control cell follows its label's own line box, and the label sets down where the control is taller |
+| 14.14.0 | #3402 (#3346) | `color.interactive.{primary,neutral,destructive}.indicator.{rest,hover,pressed}` and their `color.inverse.interactive.*` twins: the selection mark |
+| 14.15.0 | #3501 (#3475) | `type.caption.{md,lg}.line-box`, the caption twin of the label and body line boxes |
+
+### Letter spacing becomes a number, and `container.fluid` leaves (15.0.0, #2434 with #2423)
+
+Owner decision Q175 A (2026-11-11). The engine emitted two `dimension` tokens in units DTCG 2025.10
+doesn't allow (the spec allows `px` and `rem`): the letter-spacing ladder in `em` and `container.fluid` as
+`100%`. Stock native transforms read `-0.04em` as rem and wrote an absolute `-0.64`, which is right only
+at a 16px font size.
+
+- The 18 guaranteed `core.font.letter-spacing.*` steps and `core.font.letter-spacing-role.*` roles keep
+  their names and change `$type` to `number`, a multiplier of the font size (`-0.04em` → `-0.04`). A
+  retype is MAJOR. Each platform applies the multiplier itself (`packages/tokens/README.md`).
+- `container.fluid` is removed with no replacement path. Full width is a layout's default, not a value to
+  bind. No `DEPRECATIONS` entry: there is no one path to point at, the 14.0.0 precedent.
+
+`CONTRACT_VERSION` 14.15.0 → 15.0.0, accepted with `token-contract.ts --accept` after the bump. The Figma
+half of the decision (#2423, the same primitives as Figma number variables) moves no DTCG name, so it
+lands without a second bump.
 
 ## Change classification
 

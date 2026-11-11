@@ -193,10 +193,27 @@ const errorCodes = () => {
   return out;
 };
 
-const runCodeRefusals = () => lines(DEV).flatMap((l) => {
-  const m = /return (['`])(run-code[^'`]*)\1;/.exec(l);
-  return m ? [{ message: m[2], source: anchor(DEV, 'runCode') }] : [];
-});
+// A refusal written as a template literal interpolates a constant (#3555 R1): `${MAX_TIMEOUT_MS}` shipped verbatim, so an
+// agent read a placeholder where the limit belongs. Each `${NAME}` resolves to the literal of a top-level `const NAME`
+// in the same file; one that does not resolve stays as written, and `templateHits` below refuses the reference.
+const runCodeRefusals = () => {
+  const src = read(DEV);
+  const constant = (name: string): string | undefined => {
+    const m = new RegExp(`^const ${name} = ([0-9_]+|'[^']*');`, 'm').exec(src);
+    if (!m) return undefined;
+    return m[1].startsWith("'") ? m[1].slice(1, -1) : m[1].replace(/_/g, '');
+  };
+  return src.split('\n').flatMap((l) => {
+    const m = /return (['`])(run-code[^'`]*)\1;/.exec(l);
+    if (!m) return [];
+    const message = m[1] === '`' ? m[2].replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (whole, name) => constant(name) ?? whole) : m[2];
+    return [{ message, source: anchor(DEV, 'runCode') }];
+  });
+};
+
+/** Every `${` left in the serialized reference: an interpolation that was copied, not evaluated (#3555 R1). */
+export const templateHits = (text: string): string[] =>
+  [...text.matchAll(/[^"\n]{0,40}\$\{[^}\n]*\}?[^"\n]{0,20}/g)].map((m) => m[0]);
 
 const agentLink = () => {
   const cmds = [...AGENT_COMMANDS, RUN_CODE] as string[];
@@ -446,6 +463,12 @@ if (isMain) {
   if (legacy.length) {
     console.error(`❌ the agent reference would ship a legacy brand namespace as an example — change it at the source:`);
     for (const h of legacy) console.error(`    ${h}`);
+    process.exit(1);
+  }
+  const templates = templateHits(fresh);
+  if (templates.length) {
+    console.error(`❌ the agent reference would ship an unevaluated template literal — resolve it at the source:`);
+    for (const h of templates) console.error(`    ${h}`);
     process.exit(1);
   }
   if (process.argv.includes('--check')) {

@@ -33,7 +33,7 @@
  * record (`schema/component-maintainer.json`), never for a reader.
  *
  * ANATOMY CAPTIONS AND THE MAINTAINER REGISTER. A part `note` is the caption (Q406 follow-up 4, A), but
- * 64 of them are written for maintainers: issue numbers, doc paths, code spans. Until those are rewritten
+ * 64 of them are written for maintainers: issue numbers, doc paths, owner-decision ids, code spans. Until those are rewritten
  * (a follow-up the owner split out), such a part is listed by name with no caption, and its note is a gap.
  * So is a note that names a tool (Figma, a plugin, an exporter): consumer prose names none (#2411).
  *
@@ -61,9 +61,10 @@ export const DOC_SECTIONS = [
 ] as const;
 export type DocSectionId = (typeof DOC_SECTIONS)[number]['id'];
 
-/** A part note in the maintainer register: it cites an issue, a doc path or a section sign, or carries a
- *  code span. Such a note is a gap until it is rewritten for a reader. */
-export const MAINTAINER_REGISTER = /`|#\d|docs\/|§|prism\s*2/i;
+/** A part note in the maintainer register: it cites an issue, a doc path, a section sign or an owner decision
+ *  (`Q414 A`, `owner QA 2026-10-19`; #3552 N2), or carries a code span. Such a note is a gap until it is rewritten
+ *  for a reader. */
+export const MAINTAINER_REGISTER = /`|#\d|docs\/|§|prism\s*2|\bQ\d+\b|owner\s+QA\s+\d{4}/i;
 /** A part note that names a design or delivery tool. Consumer prose names none (#2411), so such a note is
  *  a gap too, until its tool-specific half moves to `notes.projection`. */
 export const NAMES_A_TOOL = /\b(?:figma|figjam|dev\s+mode|code\s+connect|style\s+dictionary|tokens\s+studio|tokenpress|penpot|sketch|plugin\s+api|plugins?|exporters?|mcp|prism\s?3)\b/i;

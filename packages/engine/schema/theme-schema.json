@@ -20,7 +20,7 @@
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",
       "default": "prism",
-      "description": "The single, mode-invariant token namespace segment. Every token emits under `<root>.*` (color primitives at `<root>.palette`, semantic roles at `<root>.color`). Per-engagement/brand; defaults to the placeholder 'prism'. One segment only — no dots (two-segment namespaces are intentionally unsupported)."
+      "description": "The single, mode-invariant token namespace segment. Every token emits under `<root>.*` (color primitives at `<root>.core.palette`, semantic roles at `<root>.color`). Per-engagement/brand; defaults to the placeholder 'prism'. One segment only — no dots (two-segment namespaces are intentionally unsupported)."
     },
     "modes": {
       "type": "array",

@@ -19,6 +19,7 @@ import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration 
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
+import { renameStylesForPlan, renameTextStylesForPlan } from './rename-styles';
 import { guardApply, preflightApply, preflightPlanOf, COLOR_NAMES } from './preflight';
 import { conflictKey, resolveCollisions, type CollisionChoices, type ChoiceTally } from './collision-choice';
 
@@ -146,6 +147,9 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
       await pace?.stage('styles', 2);
+      // THE STYLE RENAME PASS (#1040): a style the engine renamed takes its new name in place first, so the writer
+      // finds it under that name and the layers using it follow. A no-op while the record is empty.
+      const sr = await renameStylesForPlan(stylesPlan, host);
       const s = await applyStylesPlan(stylesPlan, host, pace?.tick);
       // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`sm`, …; renamed in place from `Grid / sm`, #2467), sourced from
       // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
@@ -160,6 +164,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig, pace?.tick);
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
       await pace?.stage('text-styles', 5);
+      const tr = await renameTextStylesForPlan(textPlan, textApiOf(host));   // #1040, as for the styles above
       const ts = await applyTextStylePlan(textPlan, textApiOf(host), pace?.tick);
       // MOTION (#2412): TIMING durations + EASING curves, roles and springs, through the same mixed-type
       // executor. Independent of every other axis: nothing aliases into or out of `motion`.
@@ -170,7 +175,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWr
       persistInput(host.root, input);
       // #3422 Q44.1 A: and the print of what was written, so the recount can tell an engine update apart (`theme-emission.ts`).
       stampEmission(host.root, emissionOf(plans));
-      return { mig, r, f, s, gs, tv, ts, mv };
+      return { mig, r, f, s, gs, tv, ts, mv, styleRenames: [...sr, ...tr] };
     },
   );
   return { plans, pf, guarded, before, chose, exec, names, applied };
