@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (116)
+## Findings (118)
 
 ### axis values
 
@@ -141,7 +141,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 - **variant family: CodeInput** — no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled, error]
 - **role peers: *.Row** — switch-row differs from the group's common set [disabled, focus-visible, hover, pressed, read-only, rest] — adds pending
-- **role peers: *.Item** — no state set is shared by most of the group — list-item []; page-nav-item []; pagination-item [rest, hover, pressed, focus-visible, disabled]; tab-item [rest, hover, pressed, focus-visible, disabled]
+- **role peers: *.Item** — pagination-item differs from the group's common set [] — adds rest, hover, pressed, focus-visible, disabled
+- **role peers: *.Item** — tab-item differs from the group's common set [] — adds rest, hover, pressed, focus-visible, disabled
 - **substrate: button** — flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
 - **substrate: button-destructive** — flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
 - **substrate: button-neutral** — flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
@@ -149,6 +150,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### variant axes
 
+- **variant family: Breadcrumbs** — _breadcrumb-separator's variant axes differ from the family's common set
 - **variant family: CodeInput** — code-input-cell's variant axes differ from the family's common set
 - **variant family: Slider** — _slider-thumb's variant axes differ from the family's common set
 
@@ -156,6 +158,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 | Grouping | Name | Members |
 |---|---|---|
+| variant family | Breadcrumbs | _breadcrumb-separator, breadcrumbs |
 | variant family | Button | button, button-destructive, button-neutral |
 | variant family | CodeInput | code-input, code-input-cell |
 | variant family | FlushIconButton | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
@@ -164,7 +167,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | role peers | *.Control | checkbox-control, radio-control, switch-control |
 | role peers | *.Row | checkbox-row, radio-row, switch-row |
 | role peers | *.Group | button-group, checkbox-group, radio-group |
-| role peers | *.Item | list-item, page-nav-item, pagination-item, tab-item |
+| role peers | *.Item | breadcrumb-item, list-item, page-nav-item, pagination-item, tab-item |
 | substrate | button | button, flush-icon-button, icon-button |
 | substrate | button-destructive | button-destructive, flush-icon-button-destructive, icon-button-destructive |
 | substrate | button-neutral | button-neutral, flush-icon-button-neutral, icon-button-neutral |
@@ -425,6 +428,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tab-item | — | — |
 | current | link | false | — |
 |  | page-nav-item | false | — |
+|  | pagination-item | false | — |
 | defaultValue | card-number-field | — | — |
 |  | checkbox-group | — | — |
 |  | code-input | — | — |
@@ -685,8 +689,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | select | false | — |
 |  | text-field | false | — |
 |  | textarea | false | — |
-| selected | pagination-item | false | — |
-|  | segmented-control-segment | false | — |
+| selected | segmented-control-segment | false | — |
 |  | tab-item | false | — |
 |  | tag | false | — |
 | separator | breadcrumb-item | chevron | chevron, slash |

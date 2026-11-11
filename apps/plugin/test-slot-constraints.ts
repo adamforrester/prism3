@@ -60,7 +60,7 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // limit and no preferred component. The plain sentence is the body text property now.
   'banner.richBody': {},
   // Constrained (#2666, the approved proposal's properties table): at least two steps, an ancestor and the current page,
-  // and BreadcrumbItem the only component the slot offers.
+  // and Breadcrumbs.Item the only component the slot offers.
   'breadcrumbs.items': { slotSettings: { minChildren: 2, allowPreferredValuesOnly: true }, preferred: ['breadcrumb-item'] },
   // #3345 (Q8 A): two pages at least, six at most, a PageNav.Item only.
   'page-nav.items': { slotSettings: { minChildren: 2, maxChildren: 6, allowPreferredValuesOnly: true }, preferred: ['page-nav-item'] },

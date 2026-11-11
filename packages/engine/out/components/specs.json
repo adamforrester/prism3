@@ -40267,7 +40267,7 @@
     },
     "_breadcrumb-separator": {
       "id": "_breadcrumb-separator",
-      "name": "BreadcrumbSeparator",
+      "name": "Breadcrumbs.Separator",
       "members": 2,
       "axes": [
         {
@@ -40405,7 +40405,7 @@
     },
     "breadcrumb-item": {
       "id": "breadcrumb-item",
-      "name": "BreadcrumbItem",
+      "name": "Breadcrumbs.Item",
       "members": 10,
       "axes": [
         {
@@ -40470,7 +40470,7 @@
           }
         },
         {
-          "part": "container/current",
+          "part": "container/label",
           "kind": "text",
           "members": 2,
           "when": {
@@ -40535,7 +40535,7 @@
           },
           "parts": [
             {
-              "part": "container/current",
+              "part": "container/label",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -40546,7 +40546,7 @@
           },
           "parts": [
             {
-              "part": "container/current",
+              "part": "container/label",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -40578,7 +40578,7 @@
           },
           "parts": [
             {
-              "part": "container/current",
+              "part": "container/label",
               "ink": "color.text.primary"
             }
           ]

@@ -95,7 +95,7 @@ const WIRE_LINKS: [string, string[]][] = [['Link', ['Link']]];
 // one row holds them, as Code input's row holds its cell.
 const WIRE_RADIOS: [string, string[]][] = [['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']]];
 const WIRE_COMPONENTS: [string, string[]][] = [
-  ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Breadcrumbs', ['BreadcrumbItem', 'Breadcrumbs', 'BreadcrumbSeparator']],
+  ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Breadcrumbs', ['Breadcrumbs', 'Breadcrumbs.Item', 'Breadcrumbs.Separator']],
   ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['List', ['List', 'List.Item']],
   // Pagination (#2665) joins after the wireframe: its own page, the row and its item, a family.

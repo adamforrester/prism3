@@ -1,5 +1,5 @@
 /**
- * BreadcrumbItem — one step in a Breadcrumbs trail: a link to an ancestor page, the current page, or the collapsed
+ * Breadcrumbs.Item — one step in a Breadcrumbs trail: a link to an ancestor page, the current page, or the collapsed
  * steps, held in the Breadcrumbs `items` slot and never placed on its own (#2666).
  *
  * KB brief: `components/breadcrumbs.md`
@@ -47,7 +47,7 @@ import { ComponentDef } from '../component-schema';
 
 export const breadcrumbItem: ComponentDef = {
   id: 'breadcrumb-item',
-  name: 'BreadcrumbItem',
+  name: 'Breadcrumbs.Item',
   aliases: ['crumb', 'breadcrumb-step'],
   category: 'navigation',
   status: 'draft',
@@ -96,7 +96,7 @@ export const breadcrumbItem: ComponentDef = {
         // `target` because the schema requires exactly one — NOT an interaction claim: the targets are the nested
         // Link and flush icon button.
         role: 'target',
-        children: ['crumb', 'current', 'overflow', 'separator', 'separatorSlash'],
+        children: ['crumb', 'label', 'overflow', 'separator', 'separatorSlash'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
         note: 'The item: a row that hugs its link, text or button and the separator after it, with no padding and no fill.',
@@ -108,7 +108,7 @@ export const breadcrumbItem: ComponentDef = {
         nesting: { kind: 'nest-exposed', variant: { style: 'inline', weight: 'default', size: 'medium', surface: 'default', selection: 'unselected', state: 'rest' }, expose: ['state'], follow: ['size'] },
         note: 'An ancestor: a Link, inline and default weight, underlined at every state, at the item\'s size. Its state is set on the item.',
       },
-      current: {
+      label: {
         kind: 'text',
         presentWhen: { kind: ['current'] },
         type: 'size.{size}.type',
@@ -195,7 +195,7 @@ export const breadcrumbItem: ComponentDef = {
     // The current page has no separator, so it has no slash member.
     excludeCoordinates: [{ kind: ['current'], separator: ['slash'] }],
     // The current page's own text. An ancestor's text is the nested Link's `label`, set on the exposed Link.
-    texts: { label: { part: 'current', default: 'Current page' } },
+    texts: { label: { part: 'label', default: 'Current page' } },
     booleans: {},
   },
 
@@ -265,6 +265,7 @@ export const breadcrumbItem: ComponentDef = {
     evolution: [
       '2026-10-16 (#2666): built from the approved wireframe, every numbered call A. Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal\'s small-first order.',
       '2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries.',
+      '2026-11-11 (#3554 Q-CC16 A, Q-CC17 A; #3555 Q-MD7 A): the display name is Breadcrumbs.Item, dotted like every other child, and the current page\'s text part is `label`, the main-text name, renamed in place through `COMPONENT_RENAMES`.',
     ],
   },
 };

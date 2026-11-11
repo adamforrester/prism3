@@ -1447,7 +1447,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   },
   {
     "id": "_breadcrumb-separator",
-    "name": "BreadcrumbSeparator",
+    "name": "Breadcrumbs.Separator",
     "category": "navigation",
     "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
     "unit": "variants",
@@ -1463,7 +1463,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   },
   {
     "id": "breadcrumb-item",
-    "name": "BreadcrumbItem",
+    "name": "Breadcrumbs.Item",
     "category": "navigation",
     "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
     "unit": "variants",
@@ -1544,7 +1544,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "pagination-item",
     "name": "Pagination.Item",
     "category": "navigation",
-    "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
+    "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is marked.",
     "unit": "variants",
     "spacing": [],
     "page": "Pagination",

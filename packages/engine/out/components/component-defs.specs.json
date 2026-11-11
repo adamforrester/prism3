@@ -49329,7 +49329,7 @@
       ]
     },
     "_breadcrumb-separator": {
-      "title": "BreadcrumbSeparator",
+      "title": "Breadcrumbs.Separator",
       "anatomy": {
         "frame": {
           "type": "container"
@@ -49434,7 +49434,7 @@
       ]
     },
     "breadcrumb-item": {
-      "title": "BreadcrumbItem",
+      "title": "Breadcrumbs.Item",
       "anatomy": {
         "container": {
           "type": "container"
@@ -49451,7 +49451,7 @@
           "type": "instance",
           "instanceOf": "_breadcrumb-separator"
         },
-        "current": {
+        "label": {
           "type": "text"
         },
         "overflow": {
@@ -49541,7 +49541,7 @@
               "crumb",
               "separator",
               "separatorSlash",
-              "current",
+              "label",
               "overflow"
             ]
           }
@@ -49555,7 +49555,7 @@
               }
             }
           },
-          "current": {
+          "label": {
             "styles": {
               "typography": {
                 "$token": "type.body.md.default",
@@ -49579,7 +49579,7 @@
                 }
               }
             },
-            "current": {
+            "label": {
               "styles": {
                 "typography": {
                   "$token": "type.body.sm.default",
@@ -49595,7 +49595,7 @@
             "separator": "chevron"
           },
           "elements": {
-            "current": {
+            "label": {
               "styles": {
                 "textColor": {
                   "$token": "color.text.primary",
@@ -50771,14 +50771,14 @@
             }
           }
         },
-        "selected": {
+        "current": {
           "type": "boolean",
           "default": false,
           "$extensions": {
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row."
+              "description": "Whether this is the current page: the mark and aria-current=\"page\". Set by Pagination; do not set it on a cell inside a pagination row."
             }
           }
         },

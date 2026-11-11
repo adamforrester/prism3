@@ -19,7 +19,7 @@
  *     round(0.5 × the title's width), centered; Full is the title's width. `applyCurrentIndicator` writes it onto Link's bar, so every
  *     current link in a brand draws the same bar (Q-scope on the PR).
  *   - One axis the designer sets, `selection`, passed to Link's own `selection` by `variantWhen`, rather than two Link
- *     axes (style and selection) set by hand. Link's `state` is exposed, as BreadcrumbItem exposes it.
+ *     axes (style and selection) set by hand. Link's `state` is exposed, as Breadcrumbs.Item exposes it.
  *   - Weight `default` on both values (Q8 A): a constant weight, so making a page current never moves its neighbors.
  *   - Sizes medium and small (Q8 A), Breadcrumbs' pair: the 16px and 14px body type.
  */

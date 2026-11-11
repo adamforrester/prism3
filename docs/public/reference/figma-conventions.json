@@ -2662,7 +2662,7 @@
       },
       {
         "id": "_breadcrumb-separator",
-        "name": "BreadcrumbSeparator",
+        "name": "Breadcrumbs.Separator",
         "figmaName": "_breadcrumb-separator",
         "kind": "component set",
         "private": true,
@@ -2683,7 +2683,7 @@
       },
       {
         "id": "breadcrumb-item",
-        "name": "BreadcrumbItem",
+        "name": "Breadcrumbs.Item",
         "figmaName": "breadcrumb-item",
         "kind": "component set",
         "page": "↳ Breadcrumbs",

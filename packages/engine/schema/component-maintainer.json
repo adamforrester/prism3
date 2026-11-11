@@ -5254,7 +5254,8 @@
         ],
         "evolution": [
           "2026-10-16 (Q382 A): split out of BreadcrumbItem as its own part, with a slash beside the chevron.",
-          "2026-10-22 (Q531 A): the slash is drawn for this project and the name stays BreadcrumbSeparator, matching BreadcrumbItem. The owner then made the slash a permanent icon in the set, which the part nests."
+          "2026-10-22 (Q531 A): the slash is drawn for this project and the name stays BreadcrumbSeparator, matching BreadcrumbItem. The owner then made the slash a permanent icon in the set, which the part nests.",
+          "2026-11-11 (#3554 Q-CC16 A, #3555 Q-MD7 A): the display name is Breadcrumbs.Separator, dotted like every other child."
         ],
         "projection": []
       },
@@ -5366,7 +5367,8 @@
         "unverified": [],
         "evolution": [
           "2026-10-16 (#2666): built from the approved wireframe, every numbered call A. Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal's small-first order.",
-          "2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries."
+          "2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries.",
+          "2026-11-11 (#3554 Q-CC16 A, Q-CC17 A; #3555 Q-MD7 A): the display name is Breadcrumbs.Item, dotted like every other child, and the current page's text part is `label`, the main-text name, renamed in place through `COMPONENT_RENAMES`."
         ],
         "projection": []
       },
@@ -5858,7 +5860,7 @@
         {
           "class": "implementation",
           "disposition": "REFUSED",
-          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with selected and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
+          "description": "A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
         }
       ],
       "notes": {

@@ -1,6 +1,6 @@
 # Pagination.Item
 
-> A pagination cell: a page, the gap marker, previous or next. The current page is outlined.
+> A pagination cell: a page, the gap marker, previous or next. The current page is marked.
 
 - **ID:** `pagination-item`
 - **Category:** navigation
@@ -111,7 +111,7 @@ Numbers only on a page. The accessible name adds "Page". Previous and next read 
 | `label` | string | — | yes | The page number as shown, such as "4". Pagination sets it, through the locale's number format. |
 | `page` | number | — | no | The page this cell opens. Absent on an ellipsis. |
 | `href` | string | — | no | The address of the page. Present, the cell is a link; absent, it is a button that changes the page in place. |
-| `selected` | boolean | `false` | no | Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row. |
+| `current` | boolean | `false` | no | Whether this is the current page: the mark and aria-current="page". Set by Pagination; do not set it on a cell inside a pagination row. |
 | `type` | enum: 'page' \| 'ellipsis' \| 'previous' \| 'next' | `page` | no | page: a page number the user can open. ellipsis: the three-dot icon that stands for two or more pages not shown. previous and next: the cell with a left or right chevron that opens the page before or after the current one. |
 | `labeled` | boolean | `false` | no | On previous and next only: true shows the word beside the chevron, as Pagination's simple type does. Passed down by Pagination. |
 | `previousLabel` | string | `Previous` | no | The word a labeled previous cell shows, "Previous" by default. Pass the translated word. |

@@ -758,7 +758,7 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
   }
   want('breadcrumbs', [
     '1  Container — The navigation: a row that hugs the trail, or the one link up to the parent, with no padding and no fill.',
-    '2  Items — The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.',
+    '2  Items — The trail: a native slot holding Breadcrumbs.Item instances in a row, two ancestors and the current page by default.',
     '3  Items 1–2 — One step in a breadcrumb trail: a link, the current page, or the collapsed steps.',
     '4  Item 3 — The current page, last and not a link.',
     '5  Back glyph — The parent path: a 16px chevron pointing up the trail, in the link icon color, before the link.',

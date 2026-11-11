@@ -162,6 +162,9 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   // first, so a member built at `width=full` lands on `edge=full-bleed` and keeps its id and every placed instance.
   { def: 'banner', kind: 'axis', from: 'width', to: 'edge', issue: 3392 },
   { def: 'banner', kind: 'value', axis: 'edge', from: 'full', to: 'full-bleed', issue: 3392 },
+  // #3554 Q-CC17 A (owner decision 2026-11-11): Breadcrumbs.Item's current-page text is the main-text `label` (Q350), so
+  // the layer is renamed in place and a placed current page keeps the text a designer typed into it.
+  { def: 'breadcrumb-item', kind: 'part', from: 'current', to: 'label', issue: 3554 },
 ];
 
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */

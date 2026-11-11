@@ -95,7 +95,7 @@ export const paginationItem: ComponentDef = {
   aliases: ['page-item', 'pagination-page'],
   category: 'navigation',
   status: 'draft',
-  summary: 'A pagination cell: a page, the gap marker, previous or next. The current page is outlined.',
+  summary: 'A pagination cell: a page, the gap marker, previous or next. The current page is marked.',
   description:
     'One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in a gray that stands out from the page at 3:1. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.',
 
@@ -103,7 +103,7 @@ export const paginationItem: ComponentDef = {
     { name: 'label', type: 'string', required: true, description: 'The page number as shown, such as "4". Pagination sets it, through the locale\'s number format.' },
     { name: 'page', type: 'number', required: false, description: 'The page this cell opens. Absent on an ellipsis.' },
     { name: 'href', type: 'string', required: false, description: 'The address of the page. Present, the cell is a link; absent, it is a button that changes the page in place.' },
-    { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row.' },
+    { name: 'current', type: 'boolean', default: false, required: false, description: 'Whether this is the current page: the mark and aria-current="page". Set by Pagination; do not set it on a cell inside a pagination row.' },
     { name: 'type', type: "enum: 'page' | 'ellipsis' | 'previous' | 'next'", values: ['page', 'ellipsis', 'previous', 'next'], default: 'page', required: false, description: 'page: a page number the user can open. ellipsis: the three-dot icon that stands for two or more pages not shown. previous and next: the cell with a left or right chevron that opens the page before or after the current one.' },
     { name: 'labeled', type: 'boolean', default: false, required: false, description: 'On previous and next only: true shows the word beside the chevron, as Pagination\'s simple type does. Passed down by Pagination.' },
     { name: 'previousLabel', type: 'string', default: 'Previous', required: false, description: 'The word a labeled previous cell shows, "Previous" by default. Pass the translated word.' },
@@ -727,7 +727,7 @@ export const pagination: ComponentDef = {
         class: 'implementation',
         disposition: 'refused',
         description:
-          'A headless usePagination — returning the item list (page, ellipsis, previous, next, with selected and disabled) — is the brief\'s shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component.',
+          'A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief\'s shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component.',
       },
     ],
   },

@@ -1,4 +1,4 @@
-# BreadcrumbSeparator
+# Breadcrumbs.Separator
 
 > The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.
 
@@ -12,7 +12,7 @@
 The mark between two steps of a Breadcrumbs trail, after every step but the current page. A chevron that points toward the current page, or a slash. Breadcrumbs chooses one for the whole trail. It is 16px at both breadcrumb sizes, in the secondary icon color, and decorative: it is never read aloud or focused.
 
 - **Purpose:** The mark between two steps of a Breadcrumbs trail, a chevron or a slash.
-- **Use when:** Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.
+- **Use when:** Only as a child of Breadcrumbs.Item. Generate Breadcrumbs.Item, which shows the separator in the look its Breadcrumbs sets.
 - **Avoid when:** Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.
 
 ## Anatomy
@@ -31,7 +31,7 @@ Shown on the default member: type `chevron`.
 
 ## Usage guidelines
 
-Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.
+Part of a Breadcrumbs.Item. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.
 
 ### Do
 

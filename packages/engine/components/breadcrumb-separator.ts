@@ -1,5 +1,5 @@
 /**
- * BreadcrumbSeparator — the mark between two steps of a Breadcrumbs trail: a chevron or a slash (#2666).
+ * Breadcrumbs.Separator — the mark between two steps of a Breadcrumbs trail: a chevron or a slash (#2666).
  *
  * KB brief: `components/breadcrumbs.md`
  *
@@ -8,11 +8,11 @@
  * default, and both looks stay in the secondary icon color. It replaces the fixed `chevron-right` glyph each item drew
  * (call 6 A), keeping that glyph's size (16px, `icon.size.xs`, at both item sizes) and role (`color.icon.secondary`).
  *
- * A `_` BUILDING BLOCK (Q349): used only inside a BreadcrumbItem, never placed on its own and never a slot's preferred
+ * A `_` BUILDING BLOCK (Q349): used only inside a Breadcrumbs.Item, never placed on its own and never a slot's preferred
  * item, so the prefix costs nothing here (#2783 is about slot items).
  *
  * HOW THE SETTING REACHES IT. `follow` passes an axis by its own name, and Q382 names this axis `type` and the
- * Breadcrumbs setting `separator`. So Breadcrumbs and BreadcrumbItem both carry a `separator` axis, Breadcrumbs passes
+ * Breadcrumbs setting `separator`. So Breadcrumbs and Breadcrumbs.Item both carry a `separator` axis, Breadcrumbs passes
  * it to every item, and the item nests this set twice, the chevron at `separator=chevron` and the slash at
  * `separator=slash` (`presentWhen`). No engine change.
  *
@@ -25,7 +25,7 @@ import { ComponentDef } from '../component-schema';
 
 export const breadcrumbSeparator: ComponentDef = {
   id: '_breadcrumb-separator',
-  name: 'BreadcrumbSeparator',
+  name: 'Breadcrumbs.Separator',
   aliases: ['breadcrumb-divider', 'crumb-separator'],
   category: 'navigation',
   status: 'draft',
@@ -109,7 +109,7 @@ export const breadcrumbSeparator: ComponentDef = {
   },
 
   docs: {
-    usage: 'Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.',
+    usage: 'Part of a Breadcrumbs.Item. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.',
     do: [
       'Choose the look once, on Breadcrumbs',
     ],
@@ -122,7 +122,7 @@ export const breadcrumbSeparator: ComponentDef = {
 
   ai: {
     primaryPurpose: 'The mark between two steps of a Breadcrumbs trail, a chevron or a slash.',
-    whenToUse: 'Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.',
+    whenToUse: 'Only as a child of Breadcrumbs.Item. Generate Breadcrumbs.Item, which shows the separator in the look its Breadcrumbs sets.',
     avoidWhen: 'Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.',
     commonPartners: ['breadcrumb-item', 'breadcrumbs'],
     triggerKeywords: ['breadcrumb separator', 'breadcrumb slash', 'breadcrumb chevron'],
@@ -154,6 +154,7 @@ export const breadcrumbSeparator: ComponentDef = {
     evolution: [
       '2026-10-16 (Q382 A): split out of BreadcrumbItem as its own part, with a slash beside the chevron.',
       '2026-10-22 (Q531 A): the slash is drawn for this project and the name stays BreadcrumbSeparator, matching BreadcrumbItem. The owner then made the slash a permanent icon in the set, which the part nests.',
+      '2026-11-11 (#3554 Q-CC16 A, #3555 Q-MD7 A): the display name is Breadcrumbs.Separator, dotted like every other child.',
     ],
   },
 };

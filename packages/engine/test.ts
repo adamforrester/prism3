@@ -21488,7 +21488,7 @@ arm: {
   {
     const itemDef = componentDefs.find((d) => d.id === 'breadcrumb-item');
     const trailDef = componentDefs.find((d) => d.id === 'breadcrumbs');
-    ok(!!itemDef && !!trailDef, '#2666 breadcrumbs: Breadcrumbs and BreadcrumbItem are registered');
+    ok(!!itemDef && !!trailDef, '#2666 breadcrumbs: Breadcrumbs and Breadcrumbs.Item are registered');
     if (itemDef && trailDef) {
       type BN = { name: string; type: string; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; nestOverrides?: { property: string; type: string; value: string }[]; descendantFills?: string; textStyle?: string; characters?: string; paints?: { fills?: string }; bound?: Record<string, string>; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; children: BN[] };
       const all = (n: BN): BN[] => [n, ...n.children.flatMap(all)];
@@ -21509,7 +21509,7 @@ arm: {
         && itemPlans[0].kind === 'ancestor' && itemPlans[0].size === 'medium' && trailPlans[0].path === 'full' && trailPlans[0].size === 'medium'
         && itemDef.states.length === 0 && trailDef.states.length === 0 && !itemDef.figmaProperties?.stateAxis && !trailDef.figmaProperties?.stateAxis
         && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'size')?.default === 'medium'),
-        `#2666 breadcrumbs/members (Q382 A): BreadcrumbItem kind [ancestor, current, overflow] × separator [chevron, slash] × size [medium, small] less the current page's slash = 10, Breadcrumbs path [full, parent] × separator × size less the parent's slash = 6, chevron by default, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
+        `#2666 breadcrumbs/members (Q382 A): Breadcrumbs.Item kind [ancestor, current, overflow] × separator [chevron, slash] × size [medium, small] less the current page's slash = 10, Breadcrumbs path [full, parent] × separator × size less the parent's slash = 6, chevron by default, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
 
       // THE CRUMB (calls 3 A, 4 A): Link, inline (underlined at every state), default weight, default surface, at the
       // item's size, its state exposed. Only on an ancestor. Never the current page (#2872's `selection`): the current
@@ -21524,7 +21524,7 @@ arm: {
 
       // THE CURRENT PAGE (calls 2 A, 4 A, 5 A): text, not a link, in text.primary at the default body weight. Only on current.
       const curOff = itemPlans.filter((p) => {
-        const t = find(p.root, 'current');
+        const t = find(p.root, 'label');
         if (p.kind !== 'current') return !!t;
         return !(t && t.type === 'TEXT' && t.paints?.fills === 'color/text/primary' && t.textStyle === `body/${RUNG[p.size]}/default` && t.characters === 'Current page'
           && !all(p.root).some((n) => n.nestTarget === 'link'));
@@ -21538,7 +21538,7 @@ arm: {
         if (p.kind === 'current') return seps.length > 0;
         return !(seps.length === 1 && JSON.stringify(seps[0].nestVariant) === JSON.stringify({ type: p.sep }) && p.root.children[p.root.children.length - 1] === seps[0]);
       });
-      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A, Q382 A): one BreadcrumbSeparator in the member's own look (chevron or slash) ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A, Q382 A): one Breadcrumbs.Separator in the member's own look (chevron or slash) ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
 
       // THE SEPARATOR'S TWO LOOKS (Q382 A): a 16px (icon.size.xs) chevron-right or slash in color/icon/secondary, the
       // chevron first (the default). The slash is the set's own glyph, typed here (a 2px stroke on the 24px grid).
@@ -21550,7 +21550,7 @@ arm: {
         return [String((p.coord as Record<string, string>).type), g.length, g[0]?.name, g[0]?.nestTarget, g[0]?.descendantFills, g[0]?.bound?.width, g[0]?.bound?.height];
       });
       const slashPath = (ICON_PATHS as Record<string, string | undefined>)['slash'];
-      ok(!!sepDef && sepDef.name === 'BreadcrumbSeparator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'chevronGlyph', 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'slashGlyph', 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
+      ok(!!sepDef && sepDef.name === 'Breadcrumbs.Separator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'chevronGlyph', 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'slashGlyph', 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
         && slashPath !== undefined && canonicalShape(slashPath) === canonicalShape(SLASH),
         `#2666 breadcrumbs/separator-looks (Q382 A): _breadcrumb-separator is a 16px chevron-right or slash in color/icon/secondary, chevron first, and the set's slash is the 2px stroke typed here (got ${JSON.stringify(looks)}, slash ${slashPath ?? 'not in the set'})`);
 
@@ -21563,7 +21563,7 @@ arm: {
       });
       ok(ovOff.length === 0, `#2666 breadcrumbs/overflow (calls 8 A, 14 A): the overflow step nests FlushIconButton.Neutral, flush and small on the default surface, showing more-horizontal-filled, state exposed${ovOff.length ? ` — OFF: ${ovOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
 
-      // THE ITEMS SLOT (call 1 A, the proposal's properties table): at least two, BreadcrumbItem only, two ancestors and
+      // THE ITEMS SLOT (call 1 A, the proposal's properties table): at least two, Breadcrumbs.Item only, two ancestors and
       // the current page by default at the trail's size. Only on the trail.
       const slotOff = trailPlans.filter((p) => {
         const s = find(p.root, 'items');
@@ -21572,7 +21572,7 @@ arm: {
           && JSON.stringify(s.slotPreferred) === '["breadcrumb-item"]'
           && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.kind, c.nestVariant?.separator, c.nestVariant?.size])) === JSON.stringify([['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'current', 'chevron', p.size]]));
       });
-      ok(slotOff.length === 0, `#2666 breadcrumbs/slot: the trail holds a native items slot, at least 2, BreadcrumbItem only, defaulting to ancestor, ancestor, current at its own size, the ancestors in the trail's separator (Q382 A)${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.path}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+      ok(slotOff.length === 0, `#2666 breadcrumbs/slot: the trail holds a native items slot, at least 2, Breadcrumbs.Item only, defaulting to ancestor, ancestor, current at its own size, the ancestors in the trail's separator (Q382 A)${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.path}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
 
       // THE PARENT LAYOUT (call 11 A): a 16px chevron-left in the link icon role, then Link inline, default weight,
       // reading "Parent page", state exposed. Only on parent.
@@ -21599,7 +21599,7 @@ arm: {
       const prop = (n: string) => trailDef.props.find((p) => p.name === n);
       ok(prop('maxItems')?.default === 5 && prop('itemsBeforeCollapse')?.default === 1 && prop('itemsAfterCollapse')?.default === 2
         && prop('collapse')?.default === 'expand' && prop('responsive')?.default === true && prop('label')?.default === 'Breadcrumb'
-        && trailDef.name === 'Breadcrumbs' && trailDef.category === 'navigation' && itemDef.name === 'BreadcrumbItem' && itemDef.category === 'navigation'
+        && trailDef.name === 'Breadcrumbs' && trailDef.category === 'navigation' && itemDef.name === 'Breadcrumbs.Item' && itemDef.category === 'navigation'
         && JSON.stringify(trailDef.aliases) === '["breadcrumb","breadcrumb-trail","breadcrumb-list"]'
         && trailDef.summary === 'The path to the current page as links, with the current page last and not a link. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.'
         && itemDef.summary === 'One step in a breadcrumb trail: a link, the current page, or the collapsed steps.'
@@ -22349,7 +22349,7 @@ arm: {
       { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 4, weight: 2, style: 2, selection: 1, state: 2 } },
       // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
       // member.
-      { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'current', axes: { size: 2 }, at: { kind: 'current' } },
+      { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'label', axes: { size: 2 }, at: { kind: 'current' } },
       // Pagination (#2665): the item's number by selection (the current page's emphasis weight) and size, its bold reserve
       // by size alone, and the compact text by size. The ellipsis is an icon (Q404 A), so it binds no type.
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'label', axes: { selection: 2, size: 3 } },

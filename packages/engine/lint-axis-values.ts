@@ -1031,7 +1031,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     reason:
       'Which mark stands between the steps of a trail (owner decision Q382 A): a chevron or a slash, one setting for the '
       + 'whole trail. `chevron` LEADS because it is the code default and Figma\'s default member. Shared by Breadcrumbs and '
-      + 'BreadcrumbItem because the trail passes it to every ancestor (`follow`), so the two must hold one set. The same '
+      + 'Breadcrumbs.Item because the trail passes it to every ancestor (`follow`), so the two must hold one set. The same '
       + 'two values as `_breadcrumb-separator`\'s `type`, which the item picks by them. Distinct from `indicator` and '
       + '`style`, argued in `VARIANT_AXES`.',
   },
