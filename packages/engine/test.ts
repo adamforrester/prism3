@@ -19529,7 +19529,9 @@ arm: {
   // field by field rather than dropping `ai` / `docs` / `composition` whole: the shared remainder of each
   // (usage, dont, primaryPurpose, composesWith, …) must still stay byte-identical.
   const sharedPart = (d: ComponentDef, field: string): unknown => {
-    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, ...rest } = d.ai; return rest; }
+    // #3555 C2: `whenToUse` joined the per-sibling fields for the icon-only families (a counter's minus and plus, a card's
+    // close and a close affordance are the neutral sibling's). The C2 arm below holds what still has to agree.
+    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, whenToUse, ...rest } = d.ai; return rest; }
     if (field === 'docs') return { ...d.docs, do: undefined };
     if (field === 'composition') return { ...d.composition, alternativeTo: undefined };
     return (d as Record<string, unknown>)[field];
@@ -19976,11 +19978,11 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
-      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
+      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
-      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'pagination-item': 9, '_slider-thumb': 9,
+      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'radio-row': 9, 'pagination-item': 9, '_slider-thumb': 9,
       // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
       breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
       'page-nav': 2, 'page-nav-item': 9,
@@ -20466,6 +20468,22 @@ arm: {
     const ref = JSON.stringify(sharedPart(iconButton, field));
     const diverged = iconButtonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #3555 C2: a sibling's whenToUse never recommends it for a case its own avoidWhen sends to another sibling. The examples
+  // (a counter's minus and plus, a card's close, a close affordance) are the neutral sibling's, and each icon-only family's
+  // avoidWhen routes them there. The labeled Button family still shares one whenToUse, and its icon-only redirect names
+  // the IconButton of the same color.
+  {
+    const c2Bad: string[] = [];
+    const NEUTRAL_EXAMPLES = /\bcounter\b|\bclose\b/i;
+    for (const d of [iconButton, iconButtonDestructive, flushIconButton, flushIconButtonDestructive])
+      if (NEUTRAL_EXAMPLES.test(d.ai.whenToUse)) c2Bad.push(`${d.id} whenToUse names a neutral-only example: "${d.ai.whenToUse.slice(0, 70)}"`);
+    for (const d of [iconButtonNeutral, flushIconButtonNeutral])
+      if (!NEUTRAL_EXAMPLES.test(d.ai.whenToUse)) c2Bad.push(`${d.id} whenToUse lost the examples the other siblings send it`);
+    if (new Set([button, buttonDestructive, buttonNeutral].map((d) => d.ai.whenToUse)).size !== 1) c2Bad.push('the Button family no longer shares one whenToUse');
+    for (const [d, ib] of [[button, 'IconButton'], [buttonDestructive, 'IconButton.Destructive'], [buttonNeutral, 'IconButton.Neutral']] as const)
+      if (!new RegExp(`Icon-only with no visible text → use ${ib.replace('.', '\\.')} \\(`).test(d.ai.avoidWhen)) c2Bad.push(`${d.id} does not send icon-only to ${ib}`);
+    ok(c2Bad.length === 0, `#3555 C2 sibling whenToUse agrees with its avoidWhen, and Button sends icon-only to its own color's IconButton${c2Bad.length ? ` — ${c2Bad.join(' | ')}` : ''}`);
   }
   // #1697 DECISION 2, icon-only half.
   for (const [a, b] of [[iconButton, iconButtonDestructive], [iconButton, iconButtonNeutral], [iconButtonDestructive, iconButtonNeutral]])

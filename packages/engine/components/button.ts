@@ -150,6 +150,9 @@ type ButtonSibling = {
   do: string[];
 };
 
+/** #3555 C2: icon-only is sent to the IconButton of the same color, so Button.Destructive does not recommend the brand one. */
+const ICON_BUTTON_OF: Record<IntentFamily, string> = { primary: 'IconButton', destructive: 'IconButton.Destructive', neutral: 'IconButton.Neutral' };
+
 const makeButton = (id: string, name: string, summary: string, description: string, family: IntentFamily, sibling: ButtonSibling): ComponentDef => ({
   id,
   name,
@@ -760,7 +763,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   ai: {
     primaryPurpose: 'Trigger an action in place.',
     whenToUse: 'The user needs to act on this surface — submit, confirm, open, apply, or start async work.',
-    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
+    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
     commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group'],

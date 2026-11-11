@@ -477,10 +477,9 @@ library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of 
 …". The prefixed set is `_accordion-indicator`, `_breadcrumb-separator` and `_slider-thumb`. A native slot's preferred item never takes the prefix
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
 unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
-`list-item`, `segmented-control-segment`, `breadcrumb-item`, `pagination-item`, `page-nav-item` and
-`code-input-cell`. The checkbox and radio controls (`checkbox-control`,
-`radio-control`) stay unprefixed because they may be used on their own, and so does Radio row: it is a
-whole option, not a part.
+`list-item`, `segmented-control-segment`, `breadcrumb-item`, `pagination-item`, `page-nav-item`,
+`code-input-cell` and `radio-row`. The checkbox and radio controls (`checkbox-control`,
+`radio-control`) stay unprefixed because they may be used on their own.
 
 **Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the
 properties panel is lowercase: each `figmaName` (or the key, when there is none), and each variant axis

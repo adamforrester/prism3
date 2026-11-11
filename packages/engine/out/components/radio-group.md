@@ -9,11 +9,11 @@
 
 ## Overview
 
-A labeled set for choosing exactly one from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).
+A labeled set for choosing exactly one from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).
 
 - **Purpose:** Choose exactly one from a bounded set via a labeled stack of Radio.Row options, with the group owning the shared name, the single scalar value, group-level required and all validation.
-- **Use when:** A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to about 7 options aids the choice and the group needs one label, one required rule and one validation message.
-- **Avoid when:** Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).
+- **Use when:** A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to 7 options aids the choice and the group needs one label, one required rule and one validation message.
+- **Avoid when:** Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).
 
 ## Anatomy
 
@@ -35,7 +35,7 @@ Shown on the default member: size `medium`, status `default`.
 
 ## Usage guidelines
 
-Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.
+Use to choose exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.
 
 ### Do
 
@@ -51,7 +51,7 @@ Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible option
 - Set checked, onChange or name on an individual option — all three belong to the group, and an option setting its own name breaks exclusivity outright
 - Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure
 - Model an any-number choice as a radio group — that is Checkbox.Group
-- Reach for a radio group past about 7 options or in tight vertical space — that is a Select
+- Reach for a radio group past 7 options or in tight vertical space — that is a Select
 - Override Enter to select — Enter submits the form, and that expectation is universal
 
 ## Accessibility
