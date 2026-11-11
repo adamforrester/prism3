@@ -539,7 +539,7 @@
     },
     "tab-item": {
       "members": 30,
-      "sha256": "df176822a97730cc1f2ab0b1b40622d9ed1fe7bb81cdd0d27ad9093a8c724519",
+      "sha256": "44874f0a382628c9eaae50322ea5a2dadad95b10b8c372aa4ae3dd23e02dd114",
       "properties": [
         "count:BOOLEAN",
         "label:TEXT",
@@ -787,7 +787,7 @@
     },
     "banner": {
       "members": 10,
-      "sha256": "0375ad23cbadca62e44e4818511c76dda199a2ea838baa2de2f0cb1d9ebd9cf2",
+      "sha256": "338b4131710b459489885a753196826ea090d673e7fa0e6d0c8c1426052b2687",
       "properties": [
         "actions:BOOLEAN",
         "body text:TEXT",
