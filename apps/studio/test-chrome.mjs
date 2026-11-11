@@ -21766,7 +21766,9 @@ if (runs('3553-mb')) {
 // every drawn segmented choice (`.p3-choice`) and single-choice chip row (`.p3-chips-one`) of Interactive, Shape, Type
 // and Components: its options sit on one row, or one to a row, never anything between. Web at 1280 and 1024, the plugin
 // at 380, both themes. MUTATION (after a `wip:` commit): `stackWhenWrapped(el)` dropped from `choice` and `chipChoice` →
-// `#3553 Q-UI2 … no single choice wraps to an orphan`.
+// `#3553 Q-UI2 … no single choice wraps to an orphan`. A stacked choice also unstacks when its column widens: a page
+// opened at 1024 and widened to 1600 stacks exactly the choices a fresh 1600 page does, and narrowed back stacks them
+// again. MUTATION: `delete el.dataset.stack;` dropped from `fit` → `#3553 Q-UI2 … widened … stacks what a fresh page does`.
 if (runs('3553-q2')) {
   console.log(`\nA single choice never wraps to an orphan (#3553 Q-UI2)\n${'='.repeat(78)}`);
   for (const [host, w, h] of [['web', 1280, 900], ['web', 1024, 768], ['figma', 380, 420]]) for (const theme of ['light', 'dark']) {
@@ -21793,6 +21795,45 @@ if (runs('3553-q2')) {
       }
       ok(seen >= 6, `${where}: premise, the sweep read the pages' single choices (${seen}, ${stacked} stacked)`);
       if (w === 380) ok(stacked > 0, `${where}: premise, at 380 some choice is too wide for one row and is stacked (${stacked})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  const stackRead = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-p3="levers-pane"] :is(.p3-choice, .p3-chips-one)')]
+    .filter((g) => g.getClientRects().length > 0).map((g, i) => [g.dataset.p3 ?? g.getAttribute('aria-label') ?? String(i), g.dataset.stack === 'true'])));
+  const diff = (a, b) => Object.keys({ ...a, ...b }).filter((k) => a[k] !== b[k]);
+  for (const theme of ['light', 'dark']) {
+    const where = `3553-q2 web ${theme} resize`;
+    const fresh = {};
+    const wide = await open({ host: 'web', theme, w: 1600, h: 900 });
+    let step = 'fresh 1600';
+    try {
+      for (const place of ['color-interactive', 'components']) { step = `fresh 1600 ${place}`; await goPlace(wide.page, place); await settle(wide.page); await settle(wide.page); fresh[place] = await stackRead(wide.page); }
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await wide.ctx.close(); }
+    const { ctx, page, errors } = await open({ host: 'web', theme, w: 1024, h: 768 });
+    try {
+      for (const place of ['color-interactive', 'components']) {
+        step = `1024 ${place}`;
+        await page.setViewportSize({ width: 1024, height: 768 });
+        await goPlace(page, place);
+        await settle(page); await settle(page);
+        const narrow = await stackRead(page);
+        ok(Object.values(narrow).some(Boolean), `${where} ${place}: premise, at 1024 some choice is stacked (${JSON.stringify(narrow)})`);
+        ok(fresh[place] && Object.keys(fresh[place]).length > 0 && diff(narrow, fresh[place]).length > 0, `${where} ${place}: premise, a fresh 1600 page stacks differently from 1024 (${JSON.stringify(fresh[place])})`);
+        step = `widen ${place}`;
+        await page.setViewportSize({ width: 1600, height: 900 });
+        await settle(page); await settle(page);
+        const widened = await stackRead(page);
+        ok(diff(widened, fresh[place] ?? {}).length === 0, `#3553 Q-UI2 ${where} ${place}: widened from 1024 to 1600, it stacks what a fresh page does (differs on ${JSON.stringify(diff(widened, fresh[place] ?? {}))})`);
+        step = `narrow ${place}`;
+        await page.setViewportSize({ width: 1024, height: 768 });
+        await settle(page); await settle(page);
+        const back = await stackRead(page);
+        ok(diff(back, narrow).length === 0, `#3553 Q-UI2 ${where} ${place}: narrowed back to 1024, it stacks what it did before (differs on ${JSON.stringify(diff(back, narrow))})`);
+      }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
