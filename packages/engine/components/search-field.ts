@@ -233,7 +233,11 @@ export const searchField: ComponentDef = {
       ...built.anatomy!.parts,
       message: {
         ...message,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to say. Fills the field\'s width, so a long message wraps.',
+        // Maintainer detail, out of the reader caption (#3610): Helper or validation text, composed rather than re-
+        // declared. Its status follows the field's validation by name, so error / warning / success reach the message
+        // without a value mapping. Hidden by default (#2926); the `showMessage` boolean shows it where the field has
+        // something to say. Fills the field's width, so a long message wraps.
+        note: 'Helper or validation text, hidden until the field has something to say; it takes the field\'s status and width, and a long message wraps.',
       },
     },
   },
