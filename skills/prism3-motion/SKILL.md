@@ -19,7 +19,7 @@ when_to_use: >-
 You're animating UI that sits on a generated Prism3 token system. The brand's motion lives in its
 `motion.*` tokens: a duration ramp, easing roles, springs, transition composites and a stagger
 interval. **The values behind those names change per brand**: the brand's tempo
-(`motionPersonality.tempo`) scales the whole duration ramp. So a number you type is right for one
+(`motionPersonality.tempo`) scales the duration ramp, all but the two loop periods. So a number you type is right for one
 brand at most, and wrong for the next one the same code runs on. Name the token and the brand
 supplies the value.
 
