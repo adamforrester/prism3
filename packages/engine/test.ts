@@ -7916,6 +7916,28 @@ arm: {
   }
 }
 
+// ---- #3554 Q-CC24 A, Q-CC25 A: SPINNER'S ANNOUNCEMENT — the region exists first; a spinner is not a progressbar ----
+// The phrases are the OWNER'S decisions, typed here rather than read from the def: the region is present and
+// empty before the spinner shows and the label is its content, not its name (Q-CC25 A); a spinner is not a
+// progressbar, with no screen-reader claim, while Progress keeps its indeterminate role="progressbar" (Q-CC24 A).
+{
+  const a = spinner.accessibility as { role: string; aria: string; wcag: string[] };
+  const labelDesc = spinner.props.find((p) => p.name === 'label')?.description ?? '';
+  const ann = (spinner.anatomy.codeOnly ?? []).find((c) => c.class === 'announcement')?.description ?? '';
+  const fields: Record<string, string> = { role: a.role, aria: a.aria, wcag: a.wcag.join(' | '), 'label prop': labelDesc, 'codeOnly announcement': ann, description: spinner.description };
+  const stale = Object.entries(fields).filter(([, v]) => /named by|keep(s)? announcing|is the name|missing value/i.test(v)).map(([k]) => k);
+  ok(stale.length === 0,
+    `#3554 Q-CC25 A spinner: no field names the region by its label or repeats the screen-reader claim Q-CC24 A dropped (no "named by", "keep announcing", "is the name", "missing value")${stale.length ? ` — STALE in: ${stale.join(', ')}` : ''}`);
+  ok(a.aria.includes('is present and empty before the spinner shows') && a.aria.includes("The label is the region's content, not its accessible name") && ann.includes('empty before the spinner shows'),
+    `#3554 Q-CC25 A spinner: aria and the codeOnly announcement say the region is present and empty before the spinner shows, and the label is its content, not its name`);
+  const dont = (spinner.docs?.dont ?? []).join(' | ');
+  ok(a.aria.includes('a spinner is not a progressbar') && dont.includes('a spinner is not a progressbar'),
+    `#3554 Q-CC24 A spinner: aria and the dont list both say "a spinner is not a progressbar"`);
+  const pa = (progress.accessibility as { aria: string }).aria;
+  ok(/Indeterminate: role="progressbar" with no value attributes/.test(pa),
+    `#3554 Q-CC24 A progress: the indeterminate bar keeps role="progressbar" with no value attributes`);
+}
+
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
 // Expectations are the OWNER'S (2026-09-26), written here rather than read from the def or the geometry
 // module: the icon ladder 16 / 20 / 24 / 32, a button slot one rung below its size (#1350), 0.8s per turn

@@ -59,7 +59,7 @@ Use a spinner for a short wait with no known end — about 200ms to 5s — insid
 
 ### WCAG
 
-- 1.1.1 Non-text Content (the drawing is aria-hidden; the status text is the name)
+- 1.1.1 Non-text Content (the drawing is aria-hidden; the status text carries the meaning)
 - 1.4.11 Non-text Contrast (the arc takes its host's icon ink, meant to clear 3:1; the track is decorative and exempt)
 - 4.1.3 Status Messages (the polite "Loading" status when it stands alone; the host's own announcement when the host hides it)
 
