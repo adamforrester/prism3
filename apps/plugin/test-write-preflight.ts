@@ -708,6 +708,32 @@ for (const c of ['skip', 'rename'] as const) {
   ok(keys.length === 1 && keys[0] === `variable:opacity:${op.name}` && g2.ok, `#3556 skip opacity variable: the one collision is ${op.name}, and the apply goes ahead (${keys.join(' | ')})`);
   ok(g2.ok && literalWash(modesOf(h).filter((_, i) => i === 0)),
     `#3556 skip opacity variable: ${WASH}'s first mode, whose opacity is ${op.name}, keeps its literal at its opacity (${show(modesOf(h))})`);
+  // The Rename controls: a renamed opacity follows the rename, and the wash stays a wash in every mode. Without these,
+  // dropping the color on any collision, or on a rename, would turn every wash into an unbound literal unseen (#3556 review).
+  const isWash = (x: any): boolean => x?.color?.type === 'VARIABLE_ALIAS' && x?.opacity?.type === 'VARIABLE_ALIAS';
+  const opVarOf = (f: FileShim, x: any): any => f.vars.find((v) => v.id === x?.opacity?.id);
+  const colName = (f: FileShim, v: any): string | undefined => f.collections.find((c: any) => c.id === v?.variableCollectionId)?.name;
+  // A hand-made `opacity` collection, renamed: Prism3 writes its own opacity collection under the renamed name.
+  const rc = new FileShim();
+  rc.addCollection('opacity');
+  rc.writes = [];
+  const { guarded: gr } = await applyWith(rc, { 'collection:opacity': 'rename' });
+  const rcModes = modesOf(rc);
+  ok(gr.ok && rcModes.length > 0 && rcModes.every((x) => isWash(x) && colName(rc, opVarOf(rc, x)) === renamedOf('opacity')),
+    `#3556 rename opacity collection: ${WASH} stays a wash in every mode, its opacity in ${renamedOf('opacity')} (${gr.ok ? show(rcModes) + ' in ' + JSON.stringify(rcModes.map((x) => colName(rc, opVarOf(rc, x)))) : 'refused'})`);
+  // One opacity variable retyped by hand, renamed: every mode's opacity alias names the renamed variable.
+  const rv = new FileShim();
+  await apply(rv);
+  const rop = rv.vars.find((v) => v.id === (Object.values(rv.vars.find((v) => v.name === WASH)!.valuesByMode)[0] as any).opacity.id);
+  const ropName = rop.name;
+  rop.resolvedType = 'STRING';
+  rop.valuesByMode = { m: 'hand-typed' };
+  const r0 = await apply(rv);
+  const rkeys = r0.ok ? [] : r0.conflicts.map(conflictKey);
+  const { guarded: gr2 } = await applyWith(rv, Object.fromEntries(rkeys.map((k: string) => [k, 'rename' as const])));
+  const rvModes = modesOf(rv);
+  ok(rkeys.length === 1 && gr2.ok && rvModes.length > 0 && rvModes.every((x) => isWash(x) && opVarOf(rv, x)?.name === renamedOf(ropName)),
+    `#3556 rename opacity variable: ${WASH} stays a wash in every mode, its opacity alias on ${renamedOf(ropName)} (${gr2.ok ? show(rvModes) + ' on ' + JSON.stringify(rvModes.map((x) => opVarOf(rv, x)?.name)) : 'refused'})`);
 }
 
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');

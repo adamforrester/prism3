@@ -25,3 +25,9 @@ the first pass wrote: the fill at its opacity. A renamed opacity still follows t
 Mutation: the color target kept when the opacity is skipped (`r.targetsByMode = r.targetsByMode.map(ref)`, as
 before) → `#3556 skip opacity collection` and `#3556 skip opacity variable: … keeps its literal at its opacity` fail by
 name.
+
+Review round: two Rename controls pin "a renamed opacity stays a wash". `#3556 rename opacity collection` renames a
+hand-made `opacity` collection, and the wash stays a color alias plus an opacity alias into `opacity (Prism3)` in every
+mode. `#3556 rename opacity variable` renames one retyped opacity variable, and every mode's opacity alias names the
+renamed variable. Mutations: the wash dropped on any collision (`return !!o;`) → both rename arms fail by name; the
+wash dropped on a rename too (`ref(o.name) !== o.name`) → `#3556 rename opacity variable` fails by name.
