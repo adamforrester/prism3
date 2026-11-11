@@ -7083,14 +7083,14 @@ for (const host of ['web', 'plugin']) {
 // button set a card of its own after it (`EXPECT_SET_CARDS`). The preview keeps its one Interactive section, which those
 // cards together drive; Disabled and Links still pair one for one.
 const EXPECT_INTERACTIVE_SECTIONS = [
-  ['Interactive Settings', 'Every button set, in every mode.'],
+  ['Interactive settings', 'Every button set, in every mode.'],   // #3553 Q-UI3 A: sentence case, as every other card title
   ['Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.'],
   ['Links', 'The link color in each state, on the page and on the inverse fill.'],
 ];
 /** Which section each lever sits in (Q51), by hook. */
 const EXPECT_PREVIEW_SECTIONS = ['Interactive', 'Disabled', 'Links'];
-const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary Interactive Colors'], ['outlineInteraction', 'Interactive Settings'], ['outlineWash.hover', 'Interactive Settings'],
-  ['neutralEmphasis', 'Neutral Interactive Colors'], ['strictInteractiveContrast', 'Interactive Settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
+const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary Interactive Colors'], ['outlineInteraction', 'Interactive settings'], ['outlineWash.hover', 'Interactive settings'],
+  ['neutralEmphasis', 'Neutral Interactive Colors'], ['strictInteractiveContrast', 'Interactive settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
   ['linkPalette', 'Links'], ['linkStateRungs', 'Links']];
 const EVERY_SET = 'Every button set is shown, including ones you added.';
 const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
@@ -10398,7 +10398,8 @@ const COMPONENTS_COPY = {
   web: 'Building sets needs the Figma plugin.',
   // #2909 (Q2909.5 A): the plugin's line, a DRAFT (Q2909.10 A).
   plugin: 'Sets not in this file are added from Update file.',
-  intro: (n) => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
+  // #3553 Q-UI6 A: the web's intro has no file sentence (the web has no file and builds nothing).
+  intro: (n) => `The ${n} component sets the engine defines, in families.`,
   build: 'Build', buildOne: 'Build 1 set', busy: 'Building 1 of 1…',
   nothing: 'Select sets to build them.',
 };
@@ -11930,7 +11931,7 @@ if (runs('28')) console.log(`\nThe start window (S12)\n${'='.repeat(78)}`);
 const START = {
   heading: { web: 'Start a brand', figma: 'Start a brand in this file' },                   // G17
   order: ['Start from your color', 'Explore an example', 'Import a design.md'],   // S8, then N1 A (Blank folded into the color card)
-  colorDesc: 'Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray.',   // N1 A
+  colorDesc: 'Your primary brand color; everything else starts from defaults you can tune. No color yet? Start blank with a neutral gray.',   // N1 A, then #3553 Q-UI4 A (no "smart")
   go: 'Start from this color',                                                                  // S1
   badHex: 'Enter a hex color as #rrggbb.',                                                      // S3
   emptyPaste: 'Paste a design.md brief or choose a file first.',                                // S2
@@ -13295,7 +13296,7 @@ const EXPECT_HEADINGS = {
   'color-interactive': {
     // #3335 (the owner's Q3335.1 A and Q3335.7 A): the settings card, then a card per button set at L1, each opening on its
     // lever (Primary Action Palette, Neutral emphasis) at L2 and its state groups' small titles at L2.
-    L1: ['Interactive Settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
+    L1: ['Interactive settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
     L2: ['Outline hover', 'Wash opacity', 'Strict interactive contrast', 'Primary Action Palette', 'Neutral emphasis', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states',
       'Fill', 'Fill · inverse', 'Text', 'Text · inverse', 'Border', 'Border · inverse', 'Overlay wash', 'On-fill text', 'On-fill text · inverse'],
     L3: ['Hover', 'Pressed', 'Hover', 'Pressed', 'Visited'],
