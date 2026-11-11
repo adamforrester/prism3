@@ -12,7 +12,8 @@ column leaves behind (#3549). It is dropped before the carry, so it cannot bring
 the one they just set. For that to hold, a rename onto a name another palette holds is refused, as before, and
 so, new here, is a rename of a palette that has an unnamed column onto any column's explicit `name`, on any palette,
 its own included. Otherwise the drop would delete that column's live keys. A palette with no unnamed column renames no
-column, so that rename is not refused. No new copy: nothing is lost, so there is nothing to
+column, so that rename is not refused. Nor does any key move when another column carries the explicit `name` equal to
+the old name: the keys on it name that column as much as the renamed one. No new copy: nothing is lost, so there is nothing to
 say.
 
 ### Gate
@@ -49,3 +50,8 @@ unnamed column, is refused` fails.
 
 Mutation (fourth review): make the refusal ignore whether the palette has an unnamed column (`ownsUnnamed = true`), and
 `#3545 rule: acc-n → own-u (another palette's named column, no unnamed column) is taken …` fails, with its siblings.
+
+Mutations (fifth review): drop the `!cols.some((e) => e.name === prev)` condition, and `#3545 rename back off a named
+column's name: \`own-n\` keeps its Dark anchor and border override …` fails. The no-counterpart arm also puts a stale
+`inverse.interactive.accent-w.text.rest` on the new name: limit the drop loop to the plain head, and `#3545 old name
+wins, no counterpart: a stale inverse override on the new name is dropped …` fails.

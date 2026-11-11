@@ -70,8 +70,11 @@ export const cascadeRename = (prev: string, next: string): void => {
   // and the column's anchor and overrides go back to Auto without a word. The old name wins: a key already on the new
   // name belongs to no live column (`renameBrandColor` refuses every rename that would make it one), so it is a leftover, and
   // it is dropped first (a removed column's keys stay behind, #3549). Kept, it would bring back a value the user
-  // removed and drop the one they just set.
-  const renamesColumn = !!brandState.interactivePalettes?.some((e) => e.name === undefined && e.palette === prev);
+  // removed and drop the one they just set. When another column carries the explicit `name` equal to the old name, the
+  // keys on it name that column too, and nothing says which column they belong to, so none of them moves (#3545 fifth
+  // review): a palette renamed onto a column's name, given a column, then renamed back must not take that column's keys.
+  const cols = brandState.interactivePalettes ?? [];
+  const renamesColumn = cols.some((e) => e.name === undefined && e.palette === prev) && !cols.some((e) => e.name === prev);
   brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
   if (renamesColumn) {
     for (const m of Object.values(brandState.modeAnchors ?? {})) {
