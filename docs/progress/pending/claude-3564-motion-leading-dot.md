@@ -9,8 +9,8 @@ join the curve shapes beside `ease-*`.
 
 Not changed: a bare `linear` keyword. The skill names the `motion.easing.linear` primitive, and lists `linear` among
 the easing shapes, as a token name. A bare-keyword shape would need allowances for those token names, a different
-kind of allowance than the one the list holds today, so it is left out of this fix. The stale header note about #3487
-is listed separately in #3569.
+kind of allowance than the one the list holds today, so it is left out of this fix and filed as #3592. The stale
+header note about #3487 is listed separately in #3569.
 
 ### Gate
 
