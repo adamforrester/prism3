@@ -83,7 +83,7 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions follow text-field's ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.
+- **Reduced motion:** State transitions follow text-field's: motion.duration.fast with motion.easing-role.default. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under motion.duration.fast and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.
 
 ## Content guidelines
 

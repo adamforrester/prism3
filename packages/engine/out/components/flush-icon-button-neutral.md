@@ -72,7 +72,7 @@ Use inside another component where the icon is itself the control: the minus and
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** The glyph color change, and the round shape's fill, are meant to run about 100–150ms through the brand's motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly.
+- **Reduced motion:** The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast.
 
 ## Content guidelines
 

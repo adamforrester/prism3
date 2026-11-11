@@ -258,7 +258,7 @@ export const link: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps.',
+          'The color transition — on motion.duration.fast with motion.easing-role.default, on color and the underline at hover and focus; under prefers-reduced-motion it runs on motion.duration-reduced.fast.',
       },
       {
         class: 'right-to-left',
@@ -351,9 +351,9 @@ export const link: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. At hover and focus the color changes over about 150ms, and a standalone link shows its underline.',
+    enter: 'None. At hover and focus the color changes on motion.duration.fast, and a standalone link shows its underline.',
     exit: 'None.',
-    reduceMotion: 'The color and underline change at once, with no transition.',
+    reduceMotion: 'The color and underline change on motion.duration-reduced.fast.',
   },
 
   notes: {

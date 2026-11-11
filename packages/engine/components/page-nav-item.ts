@@ -189,9 +189,9 @@ export const pageNavItem: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. The link\'s color changes over about 150ms at hover and focus.',
+    enter: 'None. The link\'s color changes on motion.duration.fast at hover and focus.',
     exit: 'None.',
-    reduceMotion: 'The color changes at once, with no transition.',
+    reduceMotion: 'The color changes on motion.duration-reduced.fast.',
   },
 
   notes: {

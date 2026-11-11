@@ -782,9 +782,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    // #1697 — the brief's ~100–150ms is carried as the target, not as a fact: this def binds no motion
-    // token, so "runs via motion tokens" was a claim nothing made true. Recorded in `notes.unverified`.
-    reduceMotion: 'State transitions (background, border, shadow) are meant to run ~100–150ms through the brand\'s motion tokens; this component binds none yet, so the timing is code-side. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    // Q-MD4 A (#3555): the brief's ~100–150ms maps to motion.duration.fast, named in prose. `motion` is prose, so
+    // nothing gates it; recorded in `notes.unverified`.
+    reduceMotion: 'State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
@@ -812,7 +812,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // #1697 — narrowed. The ring's 3:1 against the PAGE is gated (focus-ring.ts wcag, per mode, 4.5:1 in
       // high contrast); what stays open is its contrast against the host's own edge.
       'FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host\'s own edge or fill is not measured — the offset is what makes it achievable, not what proves it.',
-      'motion timing — the brief\'s ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.',
+      'motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
     ],
   },
 });
