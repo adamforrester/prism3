@@ -28,7 +28,8 @@
  *   stop/count     a stopped set's line counts the members the pass finished, read off the host's stamps: 0 when it
  *                  stopped before any stamp, 9 when the 10th stamp write or the 10th marker clear throws (#3449).
  *                  Mutations: the count not read off the host on a stop → `stop/count finished`; the in-progress
- *                  marker ignored → `stop/count marker`.
+ *                  marker ignored → `stop/count marker`; the dry run reading a marked member as current (#3497) →
+ *                  `stop/count marker dry run`.
  *   version/…      a named version is saved once, before the first write; refused, nothing is written.
  *                  Mutation: the version not saved → `version/once`, `version/refused`.
  *   fonts/…        a text style whose typeface will not load refuses the set before anything is written.
@@ -1125,9 +1126,11 @@ section('stop/count — a set stopped after some members finished counts them');
 {
   // The host throws on the 10th member's MARKER clear, the write after its stamp (`finishUpdated`): that member carries
   // its new stamp and still its in-progress marker, so it is not finished, and 9 are. The premise is read off the host:
-  // 10 members stamped (the dry run reads 10 current, since it does not hold a marker against the stamp) and exactly
-  // one still marked. Mutation: the in-progress marker left out of the stopped set's count (`!dataOf(m, UPDATING_KEY)` dropped) →
-  // `stop/count marker`.
+  // 10 members stamped and exactly one still marked. The dry run is the second witness (#3497): it holds the marker
+  // against the stamp, so it reads 9 current and the marked member to update, and the next run finishes it.
+  // Mutations: the in-progress marker left out of the stopped set's count (`!dataOf(m, UPDATING_KEY)` dropped) →
+  // `stop/count marker`; the dry run reading a marked member by its stamp alone (`unfinished` dropped from the member's
+  // state in `update-plan.ts`) → `stop/count marker dry run`.
   const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
   const next = moveGap(w.plans);
   let clears = 0;
@@ -1145,10 +1148,17 @@ section('stop/count — a set stopped after some members finished counts them');
   const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
   const restamped = membersOf(w.set()).filter((m: any) => pd(m, STAMP_KEY) !== stampBefore.get(m.id));
   const marked = restamped.filter((m: any) => pd(m, UPDATING_KEY)).length;
-  ok(restamped.length === 10 && mid.counts.current === 10 && marked === 1,
-    `stop/count marker premise: 10 members carry the new stamp (the dry run reads ${mid.counts.current} current) and ${marked} of them is still marked in progress`);
+  ok(restamped.length === 10 && marked === 1,
+    `stop/count marker premise: 10 members carry the new stamp and ${marked} of them is still marked in progress (${restamped.length} restamped)`);
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
   ok(line.includes('). 9 members updated; '), `stop/count marker: a member stamped but still marked in progress is not counted finished (${line.slice(0, 160)})`);
+  const markedName = String(restamped.find((m: any) => pd(m, UPDATING_KEY))?.name ?? '');
+  ok(mid.counts.current === 9 && mid.counts.update === 36 && mid.states.some((s) => s.member === markedName && s.state === 'update'),
+    `stop/count marker dry run: the dry run reads the member still marked in progress as to update, not current, and agrees with the line's 9 (${JSON.stringify(mid.counts)}; ${markedName})`);
+  const { res: again } = await confirm(w, [{ def: TAG, plans: next }]);
+  const post = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
+  ok(applyVerdict(again).ok && post.counts.current === 45 && membersOf(w.set()).every((m: any) => !pd(m, UPDATING_KEY)),
+    `stop/count marker finished: the next run finishes the marked member and clears its marker (${applyVerdict(again).headline}; ${JSON.stringify(post.counts)})`);
 }
 
 /* ── version ─────────────────────────────────────────────────────────────────────────────────────────── */
