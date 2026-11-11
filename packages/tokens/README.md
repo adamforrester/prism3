@@ -264,8 +264,8 @@ It asserts four things, each labeled in its output:
   `.d.ts` declares every export, and the dark overlay moves the page background on every native
   platform.
 - **`[VALUE]`**: literals per brand, typed by hand: the brand's primary hex (and its `UIColor`,
-  Android and Compose forms), `16px`, `1rem`, the brand's normal duration in ms, a `1.5` line height
-  and the display typeface.
+  Android and Compose forms), `16px`, `1rem`, the brand's normal duration in ms, a `1.5` line height,
+  the `-0.04` letter-spacing multiplier and the display typeface.
 - **`[VERDICT]`**: per platform × DTCG `$type`, the worst outcome any token had, pinned.
 - **`[GAP #N]`**: where stock Style Dictionary writes a wrong or uncompilable value, the `[VALUE]`
   literal is that measured value, tagged with the issue tracking it.
@@ -287,9 +287,10 @@ The full tables are in [`sd-version-matrix.md`](sd-version-matrix.md). In short:
   `[object Object]` (#2432); Android refuses `<integer>1.5</integer>` (#2433); Android and Compose
   write font sizes in `dp`, not `sp`, so text ignores the user's system font scale (#2613). Each is
   stock Style Dictionary's gap, not a DTCG defect.
-- **One finding is ours:** letter spacing in `em` and the fluid container in `%` are dimension
-  tokens in units DTCG 2025.10 does not allow (#2434). On native, `-0.04em` becomes an absolute
-  `-0.64`, pinned as a `[GAP]` literal beside the font size.
+- **One finding was ours, and is fixed (#2434, `CONTRACT_VERSION` 15.0.0):** letter spacing was in
+  `em` and the fluid container in `%`, units DTCG 2025.10 doesn't allow in a `dimension`. On native,
+  `-0.04em` became an absolute `-0.64`. Letter spacing is now a `number`, a multiplier of the font
+  size, and `container.fluid` is gone from the token layer. See "Letter spacing" below.
 
 ### What this means for native consumers (#2426)
 
@@ -299,13 +300,31 @@ compiles, and the gaps above are not fixed. A native consumer needs their own si
 composite transforms:
 
 - **Sizes:** a transform that reads the unit, since `px` and `rem` are both emitted (#2430). Convert
-  Android and Compose font sizes to `sp` (#2613) and resolve `em` letter spacing against the font
-  size (#2434).
+  Android and Compose font sizes to `sp` (#2613).
 - **Quoting:** durations, font families, stroke styles and cubic beziers, so Swift and Kotlin accept
   them (#2431).
 - **Composites:** typography, shadow, transition and gradient. Read them from the JavaScript or JSON
   output until a format models them (#2432).
 - **Android numbers:** non-integer values as `<item type="dimen" format="float">` (#2433).
+
+### Letter spacing: a multiplier of the font size (#2434)
+
+`core.font.letter-spacing.*` and `core.font.letter-spacing-role.*` are DTCG `number` tokens. `-0.04`
+means 0.04 of the font size, tighter: the value `-0.04em` used to spell. Every platform's output
+carries the bare number (CSS `-0.04`, Swift `-0.04`, Compose `-0.04`), and the consumer applies it
+where the text's size is set:
+
+| Platform | How to apply `-0.04` |
+|---|---|
+| CSS / SCSS | `letter-spacing: calc(var(--<root>-core-font-letter-spacing-neg-40) * 1em)`. A bare number is not a valid `letter-spacing`. |
+| JavaScript | `${value}em` on web, or `value × fontSize` in px where a style takes an absolute size. |
+| iOS | `value × pointSize`, set as `kern` (UIKit) or `tracking` (SwiftUI). |
+| Android (views) | `android:letterSpacing` takes em already: set the number as it is. |
+| Compose | `letterSpacing = (-0.04).em`. |
+
+The typography composites (`type.*`) alias a letter-spacing role, so they carry the same multiplier.
+The CSS `font` shorthand the stock `css` group writes for a composite has no letter-spacing field, so
+on web, set `letter-spacing` from the role beside it. Composites on native are #2432's gap.
 
 The no-custom-code rule stands. The gate runs built-in transform groups and formats only, so no
 reference production config with custom transforms ships for now, and the `[GAP]` pins stay as the

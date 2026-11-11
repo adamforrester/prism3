@@ -263,8 +263,8 @@ Get those two right and you match the engine's own compliance contract.
 Web is whole: a stock Style Dictionary 4 or later build reads the base and overlay set and writes CSS,
 SCSS and JavaScript that carry every type usably, apart from gradients on CSS and SCSS. Native is not
 covered yet. A stock build for Swift, Android resource XML or Compose reaches every token, but several
-types come out wrong or uncompilable. `packages/tokens/` pins each as a `[GAP]`. The first five are
-stock Style Dictionary's gaps, not defects in the DTCG; the sixth, #2434, is ours:
+types come out wrong or uncompilable. `packages/tokens/` pins each as a `[GAP]`. Each is stock Style
+Dictionary's gap, not a defect in the DTCG:
 
 - **Sizes (#2430).** The stock native transforms multiply every dimension by 16, so `16px` becomes
   `CGFloat(256.00)` or `256.00.dp`. Our literals mix `px` and `rem`, and no stock transform reads the
@@ -278,14 +278,27 @@ stock Style Dictionary's gaps, not defects in the DTCG; the sixth, #2434, is our
   Read them from the JavaScript or JSON output, or write a format that models each one.
 - **Android numbers (#2433).** `<integer>1.5</integer>` is refused by `aapt2`. Write non-integer
   numbers as `<item type="dimen" format="float">`.
-- **Letter spacing and the fluid container (#2434).** `em` and `%` are not DTCG 2025.10 dimension
-  units, and native writes them as absolute values: `-0.04em` becomes `-0.64`. Resolve letter spacing
-  against the font size yourself, and give `container.fluid` no absolute value.
 
 So on native, supply your own size, quoting and composite handling, and take composites from the
 JavaScript or JSON output until that is done. The no-custom-code rule stands: the gate admits no
 custom transforms, and no reference production config with custom transforms ships for now. Do not
 look for one, and do not describe native output as supported or compiled when you hand off work.
+
+## Letter spacing is a multiplier of the font size
+
+`core.font.letter-spacing.*` and `core.font.letter-spacing-role.*` are DTCG `number` tokens (#2434): `-0.04`
+means 0.04 of the font size, tighter. No stock transform turns that into a platform unit, so apply it
+where you set the text's size:
+
+- **CSS:** `letter-spacing: calc(var(--<root>-core-font-letter-spacing-role-tight) * 1em);`. A bare
+  number is not a valid `letter-spacing`.
+- **iOS:** multiply by the font's point size and set the result as `kern` (UIKit) or `tracking`
+  (SwiftUI).
+- **Android:** `android:letterSpacing` already takes em, so set the number as it is.
+- **Compose:** `letterSpacing = (-0.04).em`.
+
+A type style (`type.*`) names its letter spacing by role. Apply it from the same type style as the
+font size, so the two can't drift apart.
 
 ## Checking rebuilt Figma pages for consistency
 
