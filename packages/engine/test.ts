@@ -25909,7 +25909,7 @@ arm: {
         const NUM = 'number#7:2', SWAP = 'swap icon#7:3';
         const lOpts = (props: boolean, comps = ['list-item']) => ({
           vars: lg.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: lg.flatMap((pl) => planTextStyles(pl.root)), comps,
-          ...(props ? { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' }, [SWAP]: { type: 'INSTANCE_SWAP', defaultValue: '73:37' } } } } : {}),
+          ...(props ? { componentProps: { 'list-item': { 'label#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' }, [SWAP]: { type: 'INSTANCE_SWAP', defaultValue: '73:37' } } } } : {}),
         });
         const lJs = planSetToPluginJs(lg);
         const tagJs = planSetToPluginJs(figmaAnatomySet(componentDefs.find((d) => d.id === 'tag')!, { swapTarget: 'FPO-default-icon' }));
@@ -39020,8 +39020,8 @@ arm: {
   ok(li.tokens.icon === 'color.icon.primary' && li.tokens.indicator === 'color.icon.primary' && li.tokens.label === 'color.text.primary',
     `#2319 list-item inks: the bullet (indicator) and the icon on color.icon.primary, the number and text (label) on color.text.primary (Q273.8, #1471) (got ${li.tokens.indicator}, ${li.tokens.icon}, ${li.tokens.label})`);
   const props = planSetProperties(liPlans);
-  ok(JSON.stringify(props) === JSON.stringify([{ name: 'text', type: 'TEXT', default: 'List item' }, { name: 'number', type: 'TEXT', default: '1.' }, { name: 'swap icon', type: 'INSTANCE_SWAP', swapTarget: 'icon/check' }]),
-    `#2319 list-item properties: text "List item", number "1." and the icon swap defaulting to icon/check, with no presence toggle (Q273.3) (got ${JSON.stringify(props)})`);
+  ok(JSON.stringify(props) === JSON.stringify([{ name: 'label', type: 'TEXT', default: 'List item' }, { name: 'number', type: 'TEXT', default: '1.' }, { name: 'swap icon', type: 'INSTANCE_SWAP', swapTarget: 'icon/check' }]),
+    `#2319 #3554 list-item properties: label "List item" (Q-CC19 A, the layer's name), number "1." and the icon swap defaulting to icon/check, with no presence toggle (Q273.3) (got ${JSON.stringify(props)})`);
 
   // THE LIST (Q273.2; #2649, owner decision Q307 A): an "items" slot of three List.Items stretched across the list,
   // every item following the list's type and size, the item gap on the slot. No item toggles remain.

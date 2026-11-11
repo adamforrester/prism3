@@ -41316,7 +41316,7 @@
       }
     },
     "list-item": {
-      "digest": "72c7932a",
+      "digest": "946342dd",
       "def": {
         "id": "list-item",
         "name": "List.Item",
@@ -42195,7 +42195,7 @@
         ],
         "properties": [
           {
-            "name": "text",
+            "name": "label",
             "type": "TEXT",
             "default": "List item"
           },
