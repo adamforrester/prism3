@@ -45,6 +45,7 @@ import { renameMap, validateRenameMap, planVariableRenames, planCollectionRename
 import {
   MATERIALIZATION_RENAMES, MATERIALIZATION_DELETIONS, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
   recollect, recollectAll, ACCOUNTING_COLLECTION_MOVES,
+  STYLE_COLLECTIONS, STYLE_RENAMES, STYLE_DELETIONS, styleKeysFromEmittedFile, planStyleRenames, type StyleRule,
   type MaterializationRule, type VarKey,
 } from './materialization-renames';
 import { buildContract, corpus as contractCorpus, pathsOf, MINIMAL_BRAND, MINIMAL_COMPACT_BRAND, readBaseline } from './token-contract';
@@ -14133,8 +14134,8 @@ arm: {
 // VIEWPORT (composes independently with the colour light/dark collection).
 // No fixtures — gate structurally: 5 mode files, same variable names across
 // modes, per-mode alias resolution into space/*, scopes per family, breakpoint
-// + container values invariant across modes, container/fluid intentionally
-// skipped (no Figma primitive for percentage-of-parent).
+// + container values invariant across modes, no container/fluid (dropped from the
+// token layer, #2434).
 {
   const theme = nbTheme();
   const { tree } = buildTree(theme);
@@ -14248,15 +14249,54 @@ arm: {
   ok(minBad.length === 0 && brand.container?.min?.$value === '320px',
     `figma layout (#2971): container/min is a plain 320 WIDTH_HEIGHT float in every mode, mirroring DTCG container.min = 320px (DTCG ${brand.container?.min?.$value})${minBad.length ? ` — ${minBad.join('; ')}` : ''}`);
 
-  // (h) container/fluid is INTENTIONALLY SKIPPED — Figma has no FLOAT primitive
-  // for `100%` (percentage-of-parent). Same class of "no Figma primitive" skip
-  // as focus.ring.style in the dims axis. This is a load-bearing skip: it
-  // documents the intentional omission so a future contributor doesn't add it
-  // back by mistake.
+  // (h) container.fluid is DROPPED from the token layer (#2434, owner Q175 A): `100%` is no DTCG 2025.10
+  // `dimension` unit, and "full width" is a layout's default, not a value to bind. Asserted on the DTCG
+  // (the source) and on the Figma layout (which never carried it), so neither can bring it back alone.
   // Rooted for the same reason as the dims axis's `focus/ring/style` arm: a negative assertion against a
-  // name the emission can no longer spell passes without testing the skip.
+  // name the emission can no longer spell passes without testing the drop.
   const hasFluid = layout.some((l) => l.variables.some((v) => v.name === nbVar('container/fluid')));
-  ok(!hasFluid, `figma layout: container/fluid (100%) is intentionally skipped (no Figma primitive for percentage-of-parent; stays code-side)`);
+  ok(!hasFluid && brand.container?.fluid === undefined && brand.container?.max !== undefined,
+    `[#2434] container.fluid (100%) is not in the token layer — absent from the DTCG container group (${Object.keys(brand.container ?? {}).join(', ')}) and from the Figma layout collection`);
+
+  // (#2434) DTCG 2025.10 CONFORMANCE OF `dimension` UNITS — every emitted `dimension` leaf, in every committed
+  // tree (canonical, base and overlay, every brand), is a `px` or `rem` literal or a `{…}` alias. The unit
+  // set is the spec's, typed here as a literal, never read from the emitter. Before #2434 the letter-spacing
+  // ladder held `em` and `container.fluid` held `%`; a stock native transform read `-0.04em` as rem and wrote
+  // an absolute -0.64. Letter spacing is a `number` now — a multiplier of the font size — asserted below on
+  // every brand's ladder AND role tier, since a role that kept `dimension` over a number step would pass the
+  // unit scan (an alias has no unit) while still lying about its type.
+  {
+    const DTCG_DIMENSION_UNITS = ['px', 'rem'];
+    const files = readdirSync(resolve(HERE, './out')).filter((f) => f.endsWith('.tokens.json')).sort();
+    const offUnit: string[] = [];
+    const lsNotNumber: string[] = [];
+    const lsSeen = new Set<string>();   // the canonical trees whose letter-spacing leaves were walked
+    let stem = '';   // the token file being walked: `prism3`, `prism3.base`, `prism3.dark.overlay`
+    const walk = (n: any, path: string, inherited?: string): void => {
+      if (!n || typeof n !== 'object') return;
+      const type = n.$type ?? inherited;
+      if ('$value' in n) {
+        const v = n.$value;
+        if (type === 'dimension') {
+          const unit = typeof v === 'string' ? (/^\{.+\}$/.test(v) ? 'alias' : /^-?\d+(?:\.\d+)?([a-z%]+)$/.exec(v)?.[1]) : v?.unit;
+          if (unit !== 'alias' && !DTCG_DIMENSION_UNITS.includes(unit)) offUnit.push(`${path} = ${JSON.stringify(v)}`);
+        }
+        if (/\.core\.font\.letter-spacing(-role)?\./.test(path)) lsSeen.add(stem);
+        if (/\.core\.font\.letter-spacing(-role)?\./.test(path)
+          && !(type === 'number' && (typeof v === 'number' || (typeof v === 'string' && /^\{.+\}$/.test(v)))))
+          lsNotNumber.push(`${path}: ${type} ${JSON.stringify(v)}`);
+        return;
+      }
+      for (const [k, c] of Object.entries(n)) if (!k.startsWith('$')) walk(c, `${path}.${k}`, type);
+    };
+    for (const f of files) { stem = f.replace('.tokens.json', ''); walk(JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8')), stem); }
+    const canonical = files.filter((f) => !/\.(base|[\w-]+\.overlay)\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+    const lsMissing = canonical.filter((b) => !lsSeen.has(b));
+    ok(files.length > 0 && offUnit.length === 0,
+      `[#2434] every emitted DTCG \`dimension\` is in px or rem (DTCG 2025.10) across ${files.length} token files${offUnit.length ? ` — ${offUnit.length} off: ${offUnit.slice(0, 4).join('; ')}` : ''}`);
+    ok(canonical.length > 0 && lsMissing.length === 0 && lsNotNumber.length === 0,
+      `[#2434] every letter-spacing step and role is a DTCG \`number\` (a multiplier of the font size), in every brand (${canonical.join(', ')})${lsMissing.length ? ` — no letter-spacing walked in ${lsMissing.join(', ')}` : ''}${lsNotNumber.length ? ` — ${lsNotNumber.length} not: ${lsNotNumber.slice(0, 4).join('; ')}` : ''}`);
+  }
 
   // (i) A variable count sanity — the exact shape a Figma-MCP materialiser
   // will import: 11 vars × 5 modes (5 breakpoint + 3 grid + 3 container: max, narrow, min since #2971).
@@ -35772,6 +35812,95 @@ arm: {
       && both.multiplyClaimed[0].rules.join(',') === 'fixture-gap-rename,delete:size-spacing-removed-spacing-model',
       `materialization deletions: a name both renamed and deleted is claimed twice and fails (${JSON.stringify(both.multiplyClaimed)})`);
   }
+  // ---- #1040: THE STYLE RENAME RECORD (`docs/44` §10.1) ----
+  //
+  // Text, effect and gradient styles hold no variables, so the variable record never reached them. #1040 (Q173 A)
+  // gives them their own register in the same module, read by the same accounting. Check 1 is the gate's style
+  // arm; this block is check 2 for the register, the reader's floor, and the accounting and the planner driven
+  // with literal fixtures.
+  {
+    /** The committed style emission for one brand, as `collection :: name` keys. */
+    const styleEmissionOf = (brand: string): Set<VarKey> => {
+      const out = new Set<VarKey>();
+      const dir = resolve(figmaRoot, brand);
+      for (const f of readdirSync(dir).filter((n) => n.endsWith('.json')).sort())
+        for (const k of styleKeysFromEmittedFile(JSON.parse(readFileSync(resolve(dir, f), 'utf8')), `${brand}/${f}`)) out.add(k);
+      return out;
+    };
+    // THE FLOOR, REPRESENTED NOT COUNTED (`docs/34` shape 13): every brand yields text and shadow styles, and the
+    // three collections each appear somewhere. A reader that silently stopped reading one collection would
+    // otherwise pass every arm below over the other two.
+    const perBrand = brands.map((b) => [b, styleEmissionOf(b)] as const);
+    const total = perBrand.reduce((n, [, ks]) => n + ks.size, 0);
+    const seen = new Set(perBrand.flatMap(([, ks]) => [...ks].map((k) => parseVarKey(k).collection)));
+    const thin = perBrand.filter(([, ks]) => ![...ks].some((k) => k.startsWith('text-styles :: ')) || ![...ks].some((k) => k.startsWith('shadow-styles :: ')));
+    ok(total >= 150 && STYLE_COLLECTIONS.every((c) => seen.has(c)) && thin.length === 0,
+      `#1040: the style reader finds every style collection (${[...seen].sort().join(', ')}) and text and shadow styles in every brand — ${total} style keys across ${brands.length} brands, floor 150${thin.length ? `; no text or shadow styles read for ${thin.map(([b]) => b).join(', ')}` : ''}`);
+    // The reader refuses a style file it cannot read, rather than returning nothing.
+    let threw = '';
+    try { styleKeysFromEmittedFile({ $collection: 'text-styles' }, 'fixture'); } catch (e) { threw = (e as Error).message; }
+    ok(threw.includes('no `styles` array') && styleKeysFromEmittedFile({ $collection: 'grid-styles', styles: [{ name: 'sm' }] }, 'fixture').length === 0
+      && styleKeysFromEmittedFile({ $collection: 'color', variables: [{ name: 'x' }] }, 'fixture').length === 0,
+      `#1040: the style reader throws on a style file with no \`styles\` array (${threw || 'did not throw'}) and reads nothing from grid styles or variable files`);
+
+    // SHIPS EMPTY, for #1039's reason, and the arm pins it so the first real entry changes this line on purpose.
+    // When you add the first rule: replace this arm with one pinning the ids and their stamps, as `EXPECTED_SINCE`
+    // does for the variable rules, and add `STYLE_RENAMES` to `rename-stamp-audit.ts`'s tables. Not done while the
+    // register is empty: the audit reads the merge base too, and a base without the table is a CANNOT RUN.
+    ok(STYLE_RENAMES.length === 0 && STYLE_DELETIONS.length === 0,
+      `#1040: the style register ships empty (rules: ${STYLE_RENAMES.map((r) => r.id).join(', ') || 'none'}; deletions: ${STYLE_DELETIONS.map((d) => d.id).join(', ') || 'none'})`);
+
+    // CHECK 2 for the register: no rule's domain member is still emitted, every image is, and no deletion's name
+    // is emitted. Vacuous while the register is empty, which is why the floor above is asserted first.
+    const stale: string[] = [];
+    for (const [brand, keys] of perBrand)
+      for (const key of keys) {
+        const { collection, name } = parseVarKey(key);
+        for (const r of STYLE_RENAMES) {
+          if (!r.domain(collection, name)) continue;
+          stale.push(`[${r.id}] ${brand} ${key} is still emitted`);
+          if (!keys.has(varKey(collection, r.map(collection, name)))) stale.push(`[${r.id}] ${brand} ${key} → its image is not emitted`);
+        }
+        for (const d of STYLE_DELETIONS) if (d.domain(collection, name)) stale.push(`[delete:${d.id}] ${brand} ${key} is still emitted`);
+      }
+    ok(stale.length === 0, `#1040 check 2: no style rule or deletion points at a live name, and every style image is emitted${stale.length ? ` — ${stale.slice(0, 4).join(' · ')}` : ''}`);
+
+    // THE ACCOUNTING OVER STYLES, on literal fixtures: a rename with no rule is an unaccounted removal by name; the
+    // rule makes it total; an over-claiming rule is contradicted. Root '' because a style rule takes none.
+    const T = (n: string) => varKey('shadow-styles', n);
+    const before = new Set([T('shadow/xs'), T('shadow/sm')]);
+    const after = new Set([T('elevation/xs'), T('shadow/sm')]);
+    const RULE: StyleRule = { id: 'fixture-elevation', since: '0.0.0', why: 'fixture', domain: (c, n) => c === 'shadow-styles' && n === 'shadow/xs', map: () => 'elevation/xs' };
+    const OVER: StyleRule = { id: 'fixture-over', since: '0.0.0', why: 'fixture', domain: (c, n) => c === 'shadow-styles' && n.startsWith('shadow/'), map: (_c, n) => n.replace('shadow/', 'elevation/') };
+    const bare = accountFor(before, after, [], parseVarKey, '');
+    const ruled = accountFor(before, after, [RULE], parseVarKey, '');
+    const over = accountFor(before, after, [OVER], parseVarKey, '');
+    ok(!isTotal(bare) && bare.unaccountedRemovals.join() === T('shadow/xs') && isTotal(ruled)
+      && !isTotal(over) && over.contradictedClaims.map((c) => c.from).join() === T('shadow/sm'),
+      `#1040: the accounting over styles — an unrecorded rename is named (${bare.unaccountedRemovals.join(', ')}), the rule makes it total (${isTotal(ruled)}), an over-claim is contradicted (${over.contradictedClaims.map((c) => c.from).join(', ')})`);
+
+    // THE PLANNER, one literal case per status, plus the chain.
+    const A: StyleRule = { id: 'a', since: '0.0.0', why: 'fixture', domain: (c, n) => c === 'text-styles' && n.startsWith('heading/'), map: (_c, n) => n.replace('heading/', 'title/') };
+    const B: StyleRule = { id: 'b', since: '0.0.0', why: 'fixture', domain: (c, n) => c === 'text-styles' && n.startsWith('title/'), map: (_c, n) => n.replace('title/', 'display/') };
+    const show = (xs: ReturnType<typeof planStyleRenames>) => xs.map((x) => `${x.from}→${x.to}:${x.status}[${x.rules.join('+')}]`).join(' ');
+    const plain = planStyleRenames('text-styles', ['heading/lg', 'body/md'], ['title/lg', 'body/md'], [A]);
+    const exists = planStyleRenames('text-styles', ['heading/lg', 'title/lg'], ['title/lg'], [A]);
+    const unplanned = planStyleRenames('text-styles', ['heading/lg'], ['body/md'], [A]);
+    const chain = planStyleRenames('text-styles', ['heading/lg'], ['display/lg'], [A, B]);
+    const dup = planStyleRenames('text-styles', ['heading/lg', 'title/lg'], ['display/lg'], [A, B]);
+    const other = planStyleRenames('shadow-styles', ['heading/lg'], ['title/lg'], [A]);
+    const SELF: StyleRule = { id: 'self', since: '0.0.0', why: 'fixture', domain: () => true, map: (_c, n) => n };
+    const spin = planStyleRenames('text-styles', ['heading/lg'], ['heading/lg'], [SELF]);
+    ok(show(plain) === 'heading/lg→title/lg:rename[a]'
+      && show(exists) === 'heading/lg→title/lg:target-exists[a]'
+      && show(unplanned) === 'heading/lg→title/lg:target-not-planned[a]'
+      && show(chain) === 'heading/lg→display/lg:rename[a+b]'
+      && show(dup) === 'heading/lg→display/lg:duplicate-target[a+b] title/lg→display/lg:duplicate-target[b]'
+      && other.length === 0 && spin.length === 0
+      && planStyleRenames('text-styles', ['heading/lg'], ['title/lg']).length === 0,
+      `#1040: planStyleRenames — rename (${show(plain)}), target-exists (${show(exists)}), target-not-planned (${show(unplanned)}), a chain (${show(chain)}), duplicate-target (${show(dup)}), another collection untouched (${other.length}), a self-map ends (${spin.length}), and the shipped register plans nothing`);
+  }
+
   // ---- #1013: THE ARTIFACT'S FIRST REAL ENTRIES ----
   //
   // #1039 shipped this empty and `test.ts` asserted the emptiness, because `docs/44` §8 left open whether

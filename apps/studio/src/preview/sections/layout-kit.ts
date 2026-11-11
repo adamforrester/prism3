@@ -47,7 +47,8 @@ export const tinted = (x: LayoutCtx, cls: string, hex: string, text?: string): H
 export const layoutLabel = (label: string, token: string, value: string, read?: [string, string]): HTMLElement => {
   const w = el('div', 'lyv-lab');
   const name = el('div', 'lyv-name');
-  name.append(el('b', 'lyv-label', label), tokenPillSpan(token));
+  name.append(el('b', 'lyv-label', label));
+  if (token) name.append(tokenPillSpan(token));   // '' = no token behind the row (full width, #2434)
   const v = el('span', 'lyv-val mono', value);
   if (read) v.dataset[read[0]] = read[1];
   w.append(name, v);

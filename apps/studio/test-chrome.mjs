@@ -13249,7 +13249,8 @@ const HT = (() => {
   };
   const num = (name) => {
     const v = walk('light', `${root}.${HEADING_TOKEN_PATHS[name]}`);
-    if (typeof v === 'number') return v;
+    // Letter spacing is a `number` multiplier of the font size since #2434, read here as the em it renders at.
+    if (typeof v === 'number') return HEADING_TOKEN_PATHS[name].includes('letter-spacing') ? { em: v } : v;
     const m = /^(-?[\d.]+)(px|rem|em)?$/.exec(String(v ?? ''));
     if (!m) throw new Error(`TY2 A: ${name} (${HEADING_TOKEN_PATHS[name]}) resolves to ${JSON.stringify(v)} in the emission, not a number`);
     if (m[2] === 'em') return { em: Number(m[1]) };
@@ -13831,7 +13832,7 @@ console.log(`\nThe view and card titles (#2322)\n${'='.repeat(78)}`);
   const root = base.$extensions?.prism3?.root;
   const at = (path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), base);
   const deref = (path, hops = 0) => { const v = at(path)?.$value; const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v); return m && hops < 16 ? deref(m[1], hops + 1) : v; };
-  ok(deref(`${root}.core.font.letter-spacing-role.tightest`) === '-0.04em' && deref(`${root}.core.font.letter-spacing-role.open`) === '0.01em' && deref(`${root}.core.font.weight.700`) === 700,
+  ok(deref(`${root}.core.font.letter-spacing-role.tightest`) === -0.04 && deref(`${root}.core.font.letter-spacing-role.open`) === 0.01 && deref(`${root}.core.font.weight.700`) === 700,
     `#2322: the emission carries tightest −4%, open +1% and weight 700 (${[deref(`${root}.core.font.letter-spacing-role.tightest`), deref(`${root}.core.font.letter-spacing-role.open`), deref(`${root}.core.font.weight.700`)].join(', ')})`);
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host: 'web', theme, w: 1280, h: 900 });
@@ -21481,6 +21482,129 @@ if (runs('2069')) {
     } finally { await ctx.close(); }
   }
 } // 2069
+// #3553 M8 AND M9 (batch M-D): THE EXPORT PAGE. M8: at the plugin's 380 the artifact switcher ("Design tokens | Brand brief
+// | Component specs") was wider than its column, and "Component specs" ran past the panel's edge to x=401; the option rows
+// below already wrapped (`.p3-export-oseg`), and now the switcher does too. M9: Export draws its captions ("You get 4
+// files", "Import") and its Import action ("↑ Brand brief…") with the menu's classes, and they kept the menu's inner
+// padding, 12px right of the files, the code and the notes they label. EVERY caption directly in `.p3-export-out` ("You
+// get 4 files" and "A few tokens, shaped by these settings") is held, not just the first. Held on the plugin at 380 and 1280 and the web at
+// 1280, both themes: every switcher tab lies inside the column, and each caption's and the action's text starts where
+// the content it labels starts. MUTATIONS (each after a `wip:` commit): `.p3-export-seg` dropped from the wrap rule →
+// `#3553 M8 … every artifact tab lies inside its column`, at 380; the captions' `padding-inline: 0` dropped → `#3553 M9
+// … "You get 4 files" starts at the files' edge` and `… "Import" starts at its note's edge`; the action's negative margin
+// dropped → `#3553 M9 … "↑ Brand brief…" starts at its note's edge`; the caption rule narrowed to
+// `.p3-menu-cap:is(:has(+ .p3-export-files), :first-child)` → `#3553 M9 … "A few tokens, shaped by these settings"
+// starts at the files' edge`.
+if (runs('3553-md')) {
+  console.log(`\nExport: the switcher fits, and its captions align (#3553 M8, M9)\n${'='.repeat(78)}`);
+  for (const [host, w, h] of [['figma', 380, 420], ['figma', 1280, 900], ['web', 1280, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-md ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'premise';
+    try {
+      step = 'export';
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '[data-p3="export-page"] [data-p3="export-artifact"]');
+      await settle(page);
+      const m = await page.evaluate(() => {
+        const page = document.querySelector('[data-p3="export-page"]');
+        const textLeft = (n) => { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; };
+        const contentBox = (n) => { const r = n.getBoundingClientRect(); const cs = getComputedStyle(n); return { l: r.left + parseFloat(cs.paddingLeft), r: r.right - parseFloat(cs.paddingRight) }; };
+        const seg = page.querySelector('.p3-export-seg');
+        const col = contentBox(seg.parentElement);
+        const tabs = [...seg.querySelectorAll('[data-p3="export-artifact"]')].map((t) => { const r = t.getBoundingClientRect(); return { t: t.textContent, l: r.left, r: r.right }; });
+        const out = page.querySelector('.p3-export-out');
+        const capIn = (box, text) => [...box.querySelectorAll(':scope > .p3-menu-cap')].find((c) => c.textContent.startsWith(text));
+        const files = out.querySelector('.p3-export-files');
+        const imp = page.querySelector('.p3-bardlg-import');
+        const caps = [...out.querySelectorAll(':scope > .p3-menu-cap')];
+        const icap = imp && capIn(imp, 'Import');
+        const act = imp?.querySelector('[data-p3="export-import"]');
+        const inote = imp?.querySelector('.p3-bardlg-note');
+        return {
+          col, tabs,
+          files: files && caps.length ? { caps: caps.map((c) => ({ text: c.textContent, l: textLeft(c) })), edge: textLeft(files) } : null,
+          imp: icap && act && inote ? { cap: textLeft(icap), act: textLeft(act), actText: act.textContent, edge: textLeft(inote) } : null,
+        };
+      });
+      ok(m.tabs.length === 3, `${where}: premise, the switcher draws three artifact tabs (${m.tabs.map((t) => t.t).join(' | ')})`);
+      const out = m.tabs.filter((t) => t.l < m.col.l - ALIGN_TOLERANCE || t.r > m.col.r + ALIGN_TOLERANCE);
+      ok(out.length === 0, `#3553 M8 ${where}: every artifact tab lies inside its column (${Math.round(m.col.l)}–${Math.round(m.col.r)}; outside ${JSON.stringify(out.map((t) => [t.t, Math.round(t.l), Math.round(t.r)]))})`);
+      ok(!!m.files && m.files.caps.some((c) => c.text.startsWith('You get')) && m.files.caps.some((c) => c.text.startsWith('A few tokens')), `${where}: premise, Export shows its files list and both captions, "You get…" and "A few tokens…" (${JSON.stringify(m.files)})`);
+      if (m.files) for (const c of m.files.caps) ok(Math.abs(c.l - m.files.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "${c.text}" starts at the files' edge (caption ${c.l.toFixed(1)}, files ${m.files.edge.toFixed(1)})`);
+      ok(!!m.imp, `${where}: premise, Export shows Import, its action and its note (${JSON.stringify(m.imp)})`);
+      if (m.imp) {
+        ok(Math.abs(m.imp.cap - m.imp.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "Import" starts at its note's edge (caption ${m.imp.cap.toFixed(1)}, note ${m.imp.edge.toFixed(1)})`);
+        ok(Math.abs(m.imp.act - m.imp.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "${m.imp.actText}" starts at its note's edge (label ${m.imp.act.toFixed(1)}, note ${m.imp.edge.toFixed(1)})`);
+      }
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-md-${host}-${w}-export.png`) });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-md
+// #3553 M10, M11 AND M12 (batch M-E): REPORT A PROBLEM AND DOCUMENTATION. M10: the Report dialog's intro carried
+// `p3-upd-sub`, whose indent hangs a hint under a checkbox, but it comes before the checkbox, so it sat 32px right of the
+// checkbox row and the textarea. M11: with no collection open, Documentation › Style guides drew its empty groups tree
+// as a bordered pill about 8px tall. M12: at the plugin's 380, the narrow tier's padding for the guide outranked
+// Documentation's `padding: 0`, so its body sat 12px inside the title and the section select. Held: M10 on the web at
+// 1280 and 380; M11 on the plugin at 1280 and 380; M12 at 380; both themes. MUTATIONS (each after a `wip:` commit): the
+// intro given `p3-upd-sub` again → `#3553 M10 … the intro starts where the checkbox row starts`; the `.p3-sg-tree:empty`
+// rule dropped → `#3553 M11 … no groups tree is drawn while it has no rows`; the narrow `.p3-docs-body > .p3-sg` rule
+// dropped → `#3553 M12 … the guide's body starts at the title's edge`.
+if (runs('3553-me')) {
+  console.log(`\nReport a problem and Documentation align (#3553 M10, M11, M12)\n${'='.repeat(78)}`);
+  for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-me web ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme, w, h });
+    let step = 'report';
+    try {
+      await hooks.click(page.locator('[data-p3="report-open"]'));
+      await hooks.need(page, '[data-p3="report-dialog"] [data-p3="report-intro"]');
+      await settle(page);
+      const m = await page.evaluate(() => {
+        const textLeft = (sel) => { const n = document.querySelector(sel); if (!n) return null; const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; };
+        return { intro: textLeft('[data-p3="report-intro"]'), row: document.querySelector('[data-p3="report-brand-row"]')?.getBoundingClientRect().left ?? null,
+          text: document.querySelector('[data-p3="report-text"]')?.getBoundingClientRect().left ?? null };
+      });
+      ok(m.row !== null && Math.abs(m.row - m.text) <= ALIGN_TOLERANCE, `${where}: premise, the checkbox row and the textarea share an edge (${JSON.stringify(m)})`);
+      ok(m.intro !== null && Math.abs(m.intro - m.row) <= ALIGN_TOLERANCE, `#3553 M10 ${where}: the intro starts where the checkbox row starts (intro ${m.intro?.toFixed(1)}, row ${m.row?.toFixed(1)})`);
+      await page.keyboard.press('Escape');
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-me figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h });
+    let step = 'documentation';
+    try {
+      await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+      await hooks.need(page, '.p3-docs-body > .p3-sg');
+      await settle(page);
+      const m = await page.evaluate(() => {
+        const textLeft = (sel) => { const n = document.querySelector(sel); if (!n) return null; const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; };
+        const tree = document.querySelector('[data-p3="sg-tree"]');
+        const docs = document.querySelector('.p3-docs');
+        const title = docs?.querySelector('.p3-docs-head');
+        return {
+          tree: tree ? { rows: tree.children.length, drawn: tree.getClientRects().length > 0 && tree.getBoundingClientRect().height > 0 } : null,
+          title: title ? textLeft('.p3-docs-head') : null,
+          intro: textLeft('.p3-docs-body > .p3-sg .p3-sg-intro'),
+        };
+      });
+      ok(!!m.tree, `${where}: premise, Style guides draws its groups tree (${JSON.stringify(m.tree)})`);
+      if (m.tree) ok(m.tree.rows > 0 || !m.tree.drawn, `#3553 M11 ${where}: no groups tree is drawn while it has no rows (${JSON.stringify(m.tree)})`);
+      if (w === 380) ok(m.title !== null && m.intro !== null && Math.abs(m.intro - m.title) <= ALIGN_TOLERANCE, `#3553 M12 ${where}: the guide's body starts at the title's edge (intro ${m.intro?.toFixed(1)}, title ${m.title?.toFixed(1)})`);
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-me-plugin-${w}-docs.png`) });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-me
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
