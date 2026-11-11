@@ -16,7 +16,8 @@
  *
  * Mutations, each failing here by name: drop `renameStylesForPlan` from `apply-theme.ts` (the effect and paint arms
  * of "Apply Theme"); drop `renameTextStylesForPlan` from it (the text arm); drop either from `mcp-steps.ts` (the
- * "paste" arms); make `renameStyles` ignore ownership (the client-style arm).
+ * "paste" arms); make `renameStyles` ignore ownership (the client-style arm); drop the client-at-target guard in
+ * `renameStyles` (the "client at target" arm).
  *
  * Run: `npx tsx apps/plugin/test-style-renames.ts`
  */
@@ -27,6 +28,8 @@ import { runApplyTheme, themePlans } from './src/apply-theme';
 import { pack, runStyles, runText } from './src/mcp-steps';
 import { brandFromDesignMd } from './mcp-paste';
 import { FileShim } from './file-shim';
+import { renameStyles } from './src/rename-styles';
+import { isMarkedOwned, markOwned } from './src/provenance';
 
 let failed = 0;
 let passed = 0;
@@ -133,6 +136,36 @@ ok(plans.stylesPlan.paints.length > 0, `the fixture brand emits gradient paint s
   } finally {
     delete (globalThis as any).figma;
   }
+}
+
+/* ── a client's style under a rule's TARGET name ───────────────────────────────────────────────────── */
+// `planStyleRenames` is offered only Prism3's own names, so its `target-exists` arm cannot see a client's style
+// sitting under the target. The plugin-side guard in `renameStyles` is the only thing that refuses that rename;
+// without it both styles end up under one name and the writer's by-name map picks one of them.
+{
+  const marks = new Map<string, Map<string, string>>();
+  const style = (id: string, name: string, description: string) => ({
+    id, name, description,
+    getSharedPluginData: (ns: string, key: string) => marks.get(id)?.get(`${ns}/${key}`) ?? '',
+    setSharedPluginData: (ns: string, key: string, v: string) => {
+      if (!marks.has(id)) marks.set(id, new Map());
+      marks.get(id)!.set(`${ns}/${key}`, v);
+    },
+  });
+  const target = plans.stylesPlan.effects[0].name;
+  const prism = style('S:prism', `${OLD}${target}`, '');
+  markOwned(prism);
+  const client = style('S:client', target, 'our own shadow');
+  const live = [prism, client];
+  const out = renameStyles('shadow-styles', 'effect', live, plans.stylesPlan.effects.map((r) => r.name), [fixture('shadow-styles')]);
+  const row = out.find((o) => o.from === `${OLD}${target}`);
+  ok(isMarkedOwned(prism) && !isMarkedOwned(client), 'client at target: the fixture marks only the Prism3 style (control)');
+  ok(row?.status === 'target-exists' && row.applied === false
+    && prism.name === `${OLD}${target}` && prism.id === 'S:prism'
+    && client.name === target && client.id === 'S:client'
+    && new Set(live.map((s) => s.name)).size === live.length,
+    `client at target: a rename onto a client's style is refused as target-exists and both styles keep their names and ids `
+    + `(status ${row?.status ?? 'none'}, applied ${row?.applied}; names ${live.map((s) => `${s.id}=${s.name}`).join(', ')})`);
 }
 
 console.log(`\n${failed ? '✗' : '✓'} style renames: ${passed} passed, ${failed} failed`);
