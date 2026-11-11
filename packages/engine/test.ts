@@ -9576,7 +9576,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       // The weight, italic and underline match body.sm's same-named variant: only the size differs.
       for (const f of ['fontWeight', 'fontStyle', 'textDecoration']) if (v[f] !== ref[f]) bad.push(`${where}: ${f} ${v[f]} where body.sm.${k} has ${ref[f]}`);
       // Its link variants keep the link guidance beside the owner's words (Q117 A); the others carry the words alone.
-      const wantDesc = k.endsWith('-link') ? `${XS_DESC} Underlined (link — pair with text.link.* color).` : XS_DESC;
+      const wantDesc = k.endsWith('-link') ? `${XS_DESC} Underlined (link — pair with \`text.link.*\` color).` : XS_DESC;
       if (c.$description !== wantDesc) bad.push(`${where}: $description "${c.$description}"`);
       const meta = aiType[`type.body.xs.${k}`];
       if (meta?.$description !== XS_DESC) bad.push(`${where}: .ai.json $description "${meta?.$description}"`);
@@ -10410,7 +10410,7 @@ arm: {
   const RELS = ['sits_on', 'carries', 'tracks'];
   // Real acronyms the guidance may use. A new all-caps word fails until it is either lower-cased or added
   // here as the term it is.
-  const ACRONYMS = new Set(['UI', 'DOM', 'SC', 'WCAG', 'AA', 'AAA', 'HC']);
+  const ACRONYMS = new Set(['UI', 'DOM', 'SC', 'WCAG', 'AA', 'AAA', 'HC', 'CSS']);
   // The exact names the consume skill hands an agent, read from the SHIPPED skill — the oracle for "every
   // name the skill tells you to use has an entry". Backticked, dotted, lower-case, at most one wildcard
   // segment; file names (`.json`) and the private primitives it names only as the wrong choice are out.
@@ -10472,7 +10472,9 @@ arm: {
       if (!hit) pathBad.push(`${b} consume skill names \`${n}\`, which has no sidecar entry`);
     }
     for (const [k, e] of Object.entries<any>(ai.gradient ?? {})) { miss('gradient key', k); for (const v of e.resolves_to ?? []) refMiss(`${k}.resolves_to`, v); }
-    for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
+    // #3555 Q-MD2 A: `$description` is held too. It is copied from the tree, and the schema's prose promise (every token
+    // name backticked, every backticked name resolves) covers it like every other prose field.
+    for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['$description', 'meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
       const t: string = e[f]; if (typeof t !== 'string') continue;
       // AI/C-3: no capitals for emphasis in generated guidance — an agent can read `INVERSE` as an enum or
       // a keyword. Acronyms that are real terms stay; a path meant as a path is backticked.
@@ -14842,7 +14844,7 @@ arm: {
     for (const d of dots(theme)) {
       const gap = (d.height - d.dot) / 2;
       const p = d.leaf.$extensions?.prism3 ?? {};
-      ok(d.dot * 2 === d.height && d.leaf.$description.startsWith(`control.size.${d.rung} dot — ${d.dot}px inner mark for a radio's dot (half the ${d.height}px box edge, leaving a ${gap}px gap to the boundary).`)
+      ok(d.dot * 2 === d.height && d.leaf.$description.startsWith(`\`control.size.${d.rung}\` dot — ${d.dot}px inner mark for a radio's dot (half the ${d.height}px box edge, leaving a ${gap}px gap to the boundary).`)
         && !('share' in p) && !('offScale' in p),
         `#3086 G2: ${id.split(' ')[0]} ${d.rung}: at the default the radio dot is half the box, with the #910 line and no share (${d.dot} of ${d.height}; ${JSON.stringify(p)})`);
     }
