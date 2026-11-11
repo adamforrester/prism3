@@ -844,7 +844,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error'],
-    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group', 'code-input'],
+    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group', 'code-input', 'code-input-cell'],
     relation: 'subset',
     reason:
       'The choice controls\' validation outcome (owner Q354, #2751): every control that can be invalid takes the '
@@ -853,7 +853,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'field, which is what lets a group follow its `status` into its rows and its nested `field-message` by '
       + 'name. The canonical set became `canonical` (from `sole`) when this one joined. Code input (#2428, owner '
       + 'decision Q321.9 A) carries the same two: a one-time code is right or wrong, and a right code moves the user '
-      + 'on, so success is the page\'s to announce and warning has no case.',
+      + 'on, so success is the page\'s to announce and warning has no case. Its cell carries the same two since Q-CC1 A '
+      + '(#3554): error left the cell\'s state axis, and the field follows its `status` into its default cells by name.',
   },
   {
     axis: 'status',

@@ -459,15 +459,18 @@
       ],
       "state": [
         "disabled",
-        "error",
         "filled",
         "focus-visible",
         "focus-visible-filled",
         "hover",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 28,
+    "members": 48,
     "properties": {
       "digit": "TEXT"
     }

@@ -699,14 +699,14 @@
     },
     "code-input-cell": {
       "set": {
-        "members": 28,
-        "assignments": 72,
-        "sha256": "d6151ba2b14c4870422f0b433d072f62dba28cd371b6c3590f2e833a3d1813f3"
+        "members": 48,
+        "assignments": 120,
+        "sha256": "71a30ce3f2b876f7d5f3fe3c5373578093b960ea63be63f49287c544f5f95828"
       },
       "grid": {
-        "members": 28,
-        "assignments": 72,
-        "sha256": "20fdd6fb747dd50bb447c5e55e3b662a229e8c0947da4feb0a5848c0913b33ba"
+        "members": 48,
+        "assignments": 120,
+        "sha256": "627db2c92fd957cfdf6e354ba0105d9a24847a19ca051f548e1d471b4b4f5909"
       }
     },
     "code-input": {

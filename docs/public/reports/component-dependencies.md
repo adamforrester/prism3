@@ -150,12 +150,12 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row2 | nest | checkbox-row | nest-fixed | size=medium, status=default | size, status | — |
 | checkbox-group | row3 | nest | checkbox-row | nest-fixed | size=medium, status=default | size, status | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest, status=default | size, status | selection, state |
-| code-input | cell1 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell2 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell3 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell4 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell5 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
-| code-input | cell6 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell1 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell2 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell3 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell4 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell5 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
+| code-input | cell6 | nest | code-input-cell | nest-fixed | size=medium, status=default, state=rest | size, status | — |
 | code-input | label | nest | field-label | nest-exposed | size=medium, emphasis=primary, weight=regular, state=rest | — | emphasis, weight |
 | code-input | message | nest | field-message | nest-fixed | status=default | status | — |
 | counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, surface=default, state=rest | size | state |

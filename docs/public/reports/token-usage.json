@@ -123,7 +123,6 @@
         "code-input-cell": {
           "keys": [
             "border-width.disabled",
-            "border-width.error",
             "border-width.filled",
             "border-width.hover",
             "border-width.rest",
@@ -131,7 +130,7 @@
           ],
           "parts": {
             "caret": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "state": [
                   "focus-visible"
@@ -139,11 +138,10 @@
               }
             },
             "container": {
-              "members": 20,
+              "members": 32,
               "where": {
                 "state": [
                   "disabled",
-                  "error",
                   "filled",
                   "hover",
                   "rest"
@@ -1187,13 +1185,24 @@
         },
         "code-input-cell": {
           "keys": [
-            "border.error"
+            "error.border.filled",
+            "error.border.focus-visible",
+            "error.border.focus-visible-filled",
+            "error.border.hover",
+            "error.border.rest"
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 20,
               "where": {
                 "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "rest"
+                ],
+                "status": [
                   "error"
                 ]
               }
@@ -1483,6 +1492,9 @@
                 "state": [
                   "focus-visible",
                   "focus-visible-filled"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -2671,7 +2683,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "state": [
                   "disabled"
@@ -3105,7 +3117,7 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "state": [
                   "disabled"
@@ -4449,6 +4461,9 @@
               "where": {
                 "state": [
                   "hover"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -4625,6 +4640,9 @@
                 "state": [
                   "filled",
                   "rest"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -4825,10 +4843,9 @@
           ],
           "parts": {
             "container": {
-              "members": 24,
+              "members": 40,
               "where": {
                 "state": [
-                  "error",
                   "filled",
                   "focus-visible",
                   "focus-visible-filled",
@@ -15520,7 +15537,7 @@
           ],
           "parts": {
             "caret": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "state": [
                   "focus-visible"
@@ -15528,10 +15545,9 @@
               }
             },
             "digit": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "state": [
-                  "error",
                   "filled",
                   "focus-visible-filled"
                 ]
@@ -18307,7 +18323,7 @@
           ],
           "parts": {
             "container": {
-              "members": 8,
+              "members": 16,
               "where": {
                 "state": [
                   "focus-visible",
@@ -19127,7 +19143,7 @@
           ],
           "parts": {
             "caret": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "large"
@@ -19860,7 +19876,7 @@
           ],
           "parts": {
             "caret": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -20391,7 +20407,7 @@
           ],
           "parts": {
             "caret": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "xlarge"
@@ -20732,7 +20748,7 @@
           ],
           "parts": {
             "caret": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -21079,7 +21095,7 @@
           ],
           "parts": {
             "container": {
-              "members": 7,
+              "members": 12,
               "where": {
                 "size": [
                   "xlarge"
@@ -21618,7 +21634,7 @@
           ],
           "parts": {
             "container": {
-              "members": 21,
+              "members": 36,
               "where": {
                 "size": [
                   "large",
@@ -23244,7 +23260,7 @@
           ],
           "parts": {
             "content": {
-              "members": 28,
+              "members": 48,
               "where": {}
             }
           }
@@ -26703,13 +26719,12 @@
           ],
           "parts": {
             "digit": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "size": [
                   "small"
                 ],
                 "state": [
-                  "error",
                   "filled",
                   "focus-visible-filled"
                 ]
@@ -29926,13 +29941,12 @@
           ],
           "parts": {
             "digit": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "size": [
                   "xlarge"
                 ],
                 "state": [
-                  "error",
                   "filled",
                   "focus-visible-filled"
                 ]
@@ -29951,13 +29965,12 @@
           ],
           "parts": {
             "digit": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "size": [
                   "large"
                 ],
                 "state": [
-                  "error",
                   "filled",
                   "focus-visible-filled"
                 ]
@@ -29976,13 +29989,12 @@
           ],
           "parts": {
             "digit": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "size": [
                   "medium"
                 ],
                 "state": [
-                  "error",
                   "filled",
                   "focus-visible-filled"
                 ]
@@ -30904,7 +30916,7 @@
       "drawnNotDeclared": []
     },
     "code-input-cell": {
-      "members": 28,
+      "members": 48,
       "axes": {
         "size": [
           "large",
@@ -30914,12 +30926,15 @@
         ],
         "state": [
           "disabled",
-          "error",
           "filled",
           "focus-visible",
           "focus-visible-filled",
           "hover",
           "rest"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [

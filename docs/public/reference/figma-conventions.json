@@ -3334,8 +3334,15 @@
         "kind": "component set",
         "page": "↳ Code input",
         "section": "Components",
-        "members": 28,
+        "members": 48,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -3353,8 +3360,7 @@
               "filled",
               "focus-visible",
               "focus-visible-filled",
-              "disabled",
-              "error"
+              "disabled"
             ]
           }
         ],

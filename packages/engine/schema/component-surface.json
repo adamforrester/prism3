@@ -823,15 +823,15 @@
       ]
     },
     "code-input-cell": {
-      "members": 28,
-      "sha256": "f8d119c11f9a3f6a1ef57949760412eb5f5120b1039a273386f35bb0f2df734b",
+      "members": 48,
+      "sha256": "9f1f53b013b2b498656ad4dbaad0b93455784c1608b592d889e6b92c4ac29566",
       "properties": [
         "digit:TEXT"
       ]
     },
     "code-input": {
       "members": 48,
-      "sha256": "fdff824f37d4f05c11c312d928203931f90fd61c036fd5419384079eaeb2e5ed",
+      "sha256": "f57679b212f65957bfc3bf5362cefff349a8a20caeb9756ad5f5426423d9b124",
       "properties": [
         "items:SLOT",
         "message:BOOLEAN"

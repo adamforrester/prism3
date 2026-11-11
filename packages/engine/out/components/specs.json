@@ -49566,8 +49566,17 @@
     "code-input-cell": {
       "id": "code-input-cell",
       "name": "CodeInput.Cell",
-      "members": 28,
+      "members": 48,
       "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "variant"
+        },
         {
           "name": "size",
           "figmaName": "size",
@@ -49588,8 +49597,7 @@
             "filled",
             "focus-visible",
             "focus-visible-filled",
-            "disabled",
-            "error"
+            "disabled"
           ],
           "kind": "state"
         }
@@ -49599,29 +49607,28 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 28
+          "members": 48
         },
         {
           "part": "container/content",
           "kind": "frame",
-          "members": 28
+          "members": 48
         },
         {
           "part": "container/content/digit",
           "kind": "text",
-          "members": 12,
+          "members": 16,
           "when": {
             "state": [
               "filled",
-              "focus-visible-filled",
-              "error"
+              "focus-visible-filled"
             ]
           }
         },
         {
           "part": "container/content/caret",
           "kind": "frame",
-          "members": 4,
+          "members": 8,
           "when": {
             "state": [
               "focus-visible"
@@ -49892,11 +49899,13 @@
         }
       ],
       "colorKey": [
+        "status",
         "state"
       ],
       "colors": [
         {
           "where": {
+            "status": "default",
             "state": "rest"
           },
           "parts": [
@@ -49909,6 +49918,7 @@
         },
         {
           "where": {
+            "status": "default",
             "state": "hover"
           },
           "parts": [
@@ -49921,6 +49931,7 @@
         },
         {
           "where": {
+            "status": "default",
             "state": "filled"
           },
           "parts": [
@@ -49937,6 +49948,7 @@
         },
         {
           "where": {
+            "status": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -49953,6 +49965,7 @@
         },
         {
           "where": {
+            "status": "default",
             "state": "focus-visible-filled"
           },
           "parts": [
@@ -49969,6 +49982,7 @@
         },
         {
           "where": {
+            "status": "default",
             "state": "disabled"
           },
           "parts": [
@@ -49981,7 +49995,34 @@
         },
         {
           "where": {
-            "state": "error"
+            "status": "error",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "filled"
           },
           "parts": [
             {
@@ -49992,6 +50033,53 @@
             {
               "part": "container/content/digit",
               "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/content/caret",
+              "fill": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/content/digit",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
             }
           ]
         }
@@ -50352,6 +50440,7 @@
           "component": "code-input-cell",
           "variant": {
             "size": "medium",
+            "status": "default",
             "state": "rest"
           },
           "when": {
@@ -50374,7 +50463,8 @@
             }
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -50384,6 +50474,7 @@
           "component": "code-input-cell",
           "variant": {
             "size": "medium",
+            "status": "default",
             "state": "rest"
           },
           "when": {
@@ -50406,7 +50497,8 @@
             }
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -50416,6 +50508,7 @@
           "component": "code-input-cell",
           "variant": {
             "size": "medium",
+            "status": "default",
             "state": "rest"
           },
           "when": {
@@ -50438,7 +50531,8 @@
             }
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -50448,6 +50542,7 @@
           "component": "code-input-cell",
           "variant": {
             "size": "medium",
+            "status": "default",
             "state": "rest"
           },
           "when": {
@@ -50470,7 +50565,8 @@
             }
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -50480,6 +50576,7 @@
           "component": "code-input-cell",
           "variant": {
             "size": "medium",
+            "status": "default",
             "state": "rest"
           },
           "when": {
@@ -50502,7 +50599,8 @@
             }
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -50512,6 +50610,7 @@
           "component": "code-input-cell",
           "variant": {
             "size": "medium",
+            "status": "default",
             "state": "rest"
           },
           "when": {
@@ -50534,7 +50633,8 @@
             }
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
