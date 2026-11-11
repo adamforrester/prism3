@@ -18,6 +18,7 @@ The self-check gains four firing samples (`.2s`, `150MS`, `step-end`, `step-star
 versions (`v1.2s`, `0.238.5s`). No allowance was added: the skill has no new findings.
 
 Mutations, each failing by name: the duration shape put back as it was → `SELF-CHECK: DURATION LITERAL no longer
-fires on "transition: opacity .2s"`, and, with "Use `transition: opacity .2s` here." added to the skill, `DURATION
-LITERAL: skills/prism3-motion/SKILL.md:… ".2s"`; the step-keyword shape removed → `SELF-CHECK: CURVE LITERAL no
-longer fires on "animation-timing-function: step-end"`.
+fires on "transition: opacity .2s"` (and on `150MS`); the step-keyword shape removed → `SELF-CHECK: CURVE LITERAL no
+longer fires on "animation-timing-function: step-end"` (and on `step-start`). End to end, with the fix, "Use
+`transition: opacity .2s` here." added to the skill fails `DURATION LITERAL: skills/prism3-motion/SKILL.md:235 ".2s"`;
+before the fix the same line passed with 0 literals.
