@@ -20,9 +20,9 @@ A Button whose entire content is a single icon, with no visible text label, in t
 
 Shown on the default member: appearance `ghost`, size `medium`, shape `square`, surface `default`.
 
-1. **Icon**
-2. **Spinner**
-3. **Focus ring**
+1. **Icon** — The one icon and the whole content, hidden from screen readers because the button carries the name; it matches a standalone icon at the same size.
+2. **Spinner** — Takes the icon's place while the button is busy, at the icon's size, so the button keeps its size.
+3. **Focus ring** — The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.
 
 ## Styles
 

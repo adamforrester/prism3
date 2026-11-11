@@ -3114,6 +3114,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "disabled.fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "icon-button": {
           "keys": [
             "disabled.fill"
@@ -3941,6 +3959,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "disabled.label.on-fill"
+          ],
+          "parts": {
+            "value": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "icon-button": {
           "keys": [
             "disabled.icon.on-fill"
@@ -4247,8 +4283,11 @@
           ],
           "parts": {
             "value": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "appearance": [
+                  "ghost"
+                ],
                 "state": [
                   "disabled"
                 ]
@@ -31114,6 +31153,8 @@
         "border-width.hairline",
         "color.border.focus",
         "color.disabled.border",
+        "color.disabled.fill",
+        "color.disabled.on-fill",
         "color.disabled.text",
         "color.field.border.rest",
         "color.field.fill",

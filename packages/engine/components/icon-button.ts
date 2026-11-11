@@ -343,7 +343,13 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
         kind: 'slot',
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
-        note: 'The single icon, and the entire content. Rendered aria-hidden — the IconButton owns the accessible name, so the glyph is decorative even though it is the only thing visible. Bound to the `icon.size.*` ladder (#324\'s 1:1 rule), so an IconButton\'s glyph matches a standalone `<Icon>` at the same size — the identity the text-bearing Button family deliberately gives up one rung of (owner-decided, #1350): a medium IconButton\'s glyph is 24 where a medium Button\'s leading visual is 20.',
+        // Maintainer detail, out of the reader caption (#3610): The single icon, and the entire content. Rendered
+        // aria-hidden — the IconButton owns the accessible name, so the glyph is decorative even though it is the
+        // only thing visible. Bound to the `icon.size.*` ladder (#324's 1:1 rule), so an IconButton's glyph matches a
+        // standalone `<Icon>` at the same size — the identity the text-bearing Button family deliberately gives up
+        // one rung of (owner-decided, #1350): a medium IconButton's glyph is 24 where a medium Button's leading
+        // visual is 20.
+        note: 'The one icon and the whole content, hidden from screen readers because the button carries the name; it matches a standalone icon at the same size.',
       },
       // THE PENDING SPINNER PROJECTS (#1697), as Button's has since #1677/#1670. Before this the def
       // admitted it as a code-tier ceiling, on the reasoning that an overlay replacing the ONLY part had no
@@ -359,7 +365,11 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
         replaces: ['icon'],
         when: 'pending',
         size: 'size.{size}.icon',
-        note: 'Takes the icon\'s own cell while pending, at the icon\'s size, so the square keeps its size. The accessible name stays on the control (aria-label), and the busy state is announced through a polite live region, with `aria-hidden="true"` on the spinner so it does not announce its own "Loading" as well.',
+        // Maintainer detail, out of the reader caption (#3610): Takes the icon's own cell while pending, at the
+        // icon's size, so the square keeps its size. The accessible name stays on the control (aria-label), and the
+        // busy state is announced through a polite live region, with `aria-hidden="true"` on the spinner so it does
+        // not announce its own "Loading" as well.
+        note: 'Takes the icon\'s place while the button is busy, at the icon\'s size, so the button keeps its size.',
       },
       focusRing: {
         kind: 'absolute',
@@ -379,7 +389,11 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
         // the exact one line Button carries — #1427 added icon-button's own `surface` axis, closing the
         // "icon-button has no surface axis of its own yet" gap this note used to record (docs/20 §9.8).
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] },
-        note: 'The same absolutely-positioned sibling nesting the same shared `focus-ring` as Button, at the same bound offset. Its own stroke is the point: an icon-only control is the most likely to be `appearance=outline` in a dense toolbar, and a ring drawn on the target would have to win that border\'s single stroke away from it.',
+        // Maintainer detail, out of the reader caption (#3610): The same absolutely-positioned sibling nesting the
+        // same shared `focus-ring` as Button, at the same bound offset. Its own stroke is the point: an icon-only
+        // control is the most likely to be `appearance=outline` in a dense toolbar, and a ring drawn on the target
+        // would have to win that border's single stroke away from it.
+        note: 'The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.',
       },
     },
     derived: {
