@@ -3458,8 +3458,8 @@
     "interactive.primary.overlay.hover": {
       "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.hover)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral hover wash for outline/text primary controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.10}",
         "dark": "{hds.core.palette.white-alpha.10}",
@@ -3482,8 +3482,8 @@
     "interactive.primary.overlay.pressed": {
       "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral pressed wash for outline/text primary controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3506,8 +3506,8 @@
     "interactive.primary.overlay.selected": {
       "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.selected)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral selected wash for outline/text primary controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3530,8 +3530,8 @@
     "interactive.neutral.overlay.hover": {
       "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral hover wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.10}",
         "dark": "{hds.core.palette.white-alpha.10}",
@@ -3554,8 +3554,8 @@
     "interactive.neutral.overlay.pressed": {
       "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral pressed wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3578,8 +3578,8 @@
     "interactive.neutral.overlay.selected": {
       "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral selected wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3602,8 +3602,8 @@
     "interactive.destructive.overlay.hover": {
       "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral hover wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.10}",
         "dark": "{hds.core.palette.white-alpha.10}",
@@ -3626,8 +3626,8 @@
     "interactive.destructive.overlay.pressed": {
       "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral pressed wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3650,8 +3650,8 @@
     "interactive.destructive.overlay.selected": {
       "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
-      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
+      "when_to_use": "A translucent neutral selected wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.20}",
         "dark": "{hds.core.palette.white-alpha.20}",
@@ -3674,8 +3674,8 @@
     "inverse.interactive.primary.overlay.hover": {
       "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.hover`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral hover wash for outline/text primary controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.hover`. Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.10}",
         "dark": "{hds.core.palette.black-alpha.10}",
@@ -3698,8 +3698,8 @@
     "inverse.interactive.primary.overlay.pressed": {
       "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.pressed`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral pressed wash for outline/text primary controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.pressed`. Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3722,8 +3722,8 @@
     "inverse.interactive.primary.overlay.selected": {
       "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.selected`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral selected wash for outline/text primary controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.selected`. Do not use as an opaque fill (use `interactive.primary.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3746,8 +3746,8 @@
     "inverse.interactive.neutral.overlay.hover": {
       "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.hover`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral hover wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.hover`. Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.10}",
         "dark": "{hds.core.palette.black-alpha.10}",
@@ -3770,8 +3770,8 @@
     "inverse.interactive.neutral.overlay.pressed": {
       "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.pressed`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral pressed wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.pressed`. Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3794,8 +3794,8 @@
     "inverse.interactive.neutral.overlay.selected": {
       "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.selected`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral selected wash for outline/text neutral controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.selected`. Do not use as an opaque fill (use `interactive.neutral.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3818,8 +3818,8 @@
     "inverse.interactive.destructive.overlay.hover": {
       "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.hover`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral hover wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.hover`. Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.10}",
         "dark": "{hds.core.palette.black-alpha.10}",
@@ -3842,8 +3842,8 @@
     "inverse.interactive.destructive.overlay.pressed": {
       "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.pressed`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral pressed wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.pressed`. Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -3866,8 +3866,8 @@
     "inverse.interactive.destructive.overlay.selected": {
       "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.selected`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
+      "when_to_use": "A translucent neutral selected wash for outline/text destructive controls and hover/pressed/selected rows, menus, cards. Only on an `inverse.*` ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.selected`. Do not use as an opaque fill (use `interactive.destructive.fill.*`), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`inverse.field.border.hover`).",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.20}",
         "dark": "{hds.core.palette.black-alpha.20}",
@@ -4335,10 +4335,10 @@
       ]
     },
     "text.tertiary": {
-      "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{hds.core.palette.neutral.500}",
         "dark": "{hds.core.palette.neutral.550}",
@@ -4360,7 +4360,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.secondary"
       },
@@ -4499,10 +4499,10 @@
       ]
     },
     "text.brand-subtle": {
-      "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.brand` (4.5:1). For safety-critical brand messaging use the bold `text.brand`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.brand` (4.5:1). For safety-critical brand messaging use the bold `text.brand`.",
       "mode_overrides": {
         "light": "{hds.core.palette.primary.450}",
         "dark": "{hds.core.palette.primary.350}",
@@ -4522,7 +4522,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.brand"
       },
@@ -4536,10 +4536,10 @@
       ]
     },
     "text.success-subtle": {
-      "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.success` (4.5:1). For safety-critical success messaging use the bold `text.success`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.success` (4.5:1). For safety-critical success messaging use the bold `text.success`.",
       "mode_overrides": {
         "light": "{hds.core.palette.success.450}",
         "dark": "{hds.core.palette.success.350}",
@@ -4559,7 +4559,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.success"
       },
@@ -4573,10 +4573,10 @@
       ]
     },
     "text.warning-subtle": {
-      "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.warning` (4.5:1). For safety-critical warning messaging use the bold `text.warning`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.warning` (4.5:1). For safety-critical warning messaging use the bold `text.warning`.",
       "mode_overrides": {
         "light": "{hds.core.palette.warning.450}",
         "dark": "{hds.core.palette.warning.350}",
@@ -4596,7 +4596,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.warning"
       },
@@ -4610,10 +4610,10 @@
       ]
     },
     "text.danger-subtle": {
-      "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.danger` (4.5:1). For safety-critical danger messaging use the bold `text.danger`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.danger` (4.5:1). For safety-critical danger messaging use the bold `text.danger`.",
       "mode_overrides": {
         "light": "{hds.core.palette.danger.450}",
         "dark": "{hds.core.palette.danger.350}",
@@ -4633,7 +4633,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.danger"
       },
@@ -4647,10 +4647,10 @@
       ]
     },
     "text.info-subtle": {
-      "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info text and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.info` (4.5:1). For safety-critical info messaging use the bold `text.info`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.info` (4.5:1). For safety-critical info messaging use the bold `text.info`.",
       "mode_overrides": {
         "light": "{hds.core.palette.info.450}",
         "dark": "{hds.core.palette.info.350}",
@@ -4670,7 +4670,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.info"
       },
@@ -4989,7 +4989,7 @@
       "$description": "Tertiary icon — 3:1 on background.secondary",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{hds.core.palette.neutral.500}",
         "dark": "{hds.core.palette.neutral.550}",
@@ -5011,7 +5011,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.secondary"
       },
@@ -5153,7 +5153,7 @@
       "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.brand` (4.5:1). For safety-critical brand messaging use the bold `icon.brand`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.brand` (4.5:1). For safety-critical brand messaging use the bold `icon.brand`.",
       "mode_overrides": {
         "light": "{hds.core.palette.primary.450}",
         "dark": "{hds.core.palette.primary.350}",
@@ -5173,7 +5173,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.brand"
       },
@@ -5190,7 +5190,7 @@
       "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.success` (4.5:1). For safety-critical success messaging use the bold `icon.success`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.success` (4.5:1). For safety-critical success messaging use the bold `icon.success`.",
       "mode_overrides": {
         "light": "{hds.core.palette.success.450}",
         "dark": "{hds.core.palette.success.350}",
@@ -5210,7 +5210,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.success"
       },
@@ -5227,7 +5227,7 @@
       "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.warning` (4.5:1). For safety-critical warning messaging use the bold `icon.warning`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.warning` (4.5:1). For safety-critical warning messaging use the bold `icon.warning`.",
       "mode_overrides": {
         "light": "{hds.core.palette.warning.450}",
         "dark": "{hds.core.palette.warning.350}",
@@ -5247,7 +5247,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.warning"
       },
@@ -5264,7 +5264,7 @@
       "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.danger` (4.5:1). For safety-critical danger messaging use the bold `icon.danger`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.danger` (4.5:1). For safety-critical danger messaging use the bold `icon.danger`.",
       "mode_overrides": {
         "light": "{hds.core.palette.danger.450}",
         "dark": "{hds.core.palette.danger.350}",
@@ -5284,7 +5284,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.danger"
       },
@@ -5301,7 +5301,7 @@
       "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info icons and quiet accents. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.info` (4.5:1). For safety-critical info messaging use the bold `icon.info`.",
+      "avoid_when": "Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.info` (4.5:1). For safety-critical info messaging use the bold `icon.info`.",
       "mode_overrides": {
         "light": "{hds.core.palette.info.450}",
         "dark": "{hds.core.palette.info.350}",
@@ -5321,7 +5321,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "text.info"
       },
@@ -5643,10 +5643,10 @@
       ]
     },
     "inverse.text.tertiary": {
-      "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{hds.core.palette.neutral.550}",
         "dark": "{hds.core.palette.neutral.450}",
@@ -5668,7 +5668,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.secondary"
       },
@@ -5807,10 +5807,10 @@
       ]
     },
     "inverse.text.brand-subtle": {
-      "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Brand identity (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis brand text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.brand-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.brand` (4.5:1). For safety-critical brand messaging use the bold `inverse.text.brand`.",
+      "avoid_when": "Do not use on the page ground; that is `text.brand-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.brand` (4.5:1). For safety-critical brand messaging use the bold `inverse.text.brand`.",
       "mode_overrides": {
         "light": "{hds.core.palette.primary.550}",
         "dark": "{hds.core.palette.primary.650}",
@@ -5832,7 +5832,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.brand"
       },
@@ -5846,10 +5846,10 @@
       ]
     },
     "inverse.text.success-subtle": {
-      "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.success-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.success` (4.5:1). For safety-critical success messaging use the bold `inverse.text.success`.",
+      "avoid_when": "Do not use on the page ground; that is `text.success-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.success` (4.5:1). For safety-critical success messaging use the bold `inverse.text.success`.",
       "mode_overrides": {
         "light": "{hds.core.palette.success.550}",
         "dark": "{hds.core.palette.success.650}",
@@ -5871,7 +5871,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.success"
       },
@@ -5885,10 +5885,10 @@
       ]
     },
     "inverse.text.warning-subtle": {
-      "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.warning-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.warning` (4.5:1). For safety-critical warning messaging use the bold `inverse.text.warning`.",
+      "avoid_when": "Do not use on the page ground; that is `text.warning-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.warning` (4.5:1). For safety-critical warning messaging use the bold `inverse.text.warning`.",
       "mode_overrides": {
         "light": "{hds.core.palette.warning.550}",
         "dark": "{hds.core.palette.warning.650}",
@@ -5910,7 +5910,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.warning"
       },
@@ -5924,10 +5924,10 @@
       ]
     },
     "inverse.text.danger-subtle": {
-      "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.danger-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.danger` (4.5:1). For safety-critical danger messaging use the bold `inverse.text.danger`.",
+      "avoid_when": "Do not use on the page ground; that is `text.danger-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.danger` (4.5:1). For safety-critical danger messaging use the bold `inverse.text.danger`.",
       "mode_overrides": {
         "light": "{hds.core.palette.danger.550}",
         "dark": "{hds.core.palette.danger.650}",
@@ -5949,7 +5949,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.danger"
       },
@@ -5963,10 +5963,10 @@
       ]
     },
     "inverse.text.info-subtle": {
-      "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
+      "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.info-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.info` (4.5:1). For safety-critical info messaging use the bold `inverse.text.info`.",
+      "avoid_when": "Do not use on the page ground; that is `text.info-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.info` (4.5:1). For safety-critical info messaging use the bold `inverse.text.info`.",
       "mode_overrides": {
         "light": "{hds.core.palette.info.550}",
         "dark": "{hds.core.palette.info.650}",
@@ -5988,7 +5988,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.info"
       },
@@ -6192,7 +6192,7 @@
       "$description": "Tertiary icon on an inverse surface — 3:1 on inverse.background.secondary",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's inverseSecondary setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{hds.core.palette.neutral.550}",
         "dark": "{hds.core.palette.neutral.450}",
@@ -6214,7 +6214,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.secondary"
       },
@@ -6356,7 +6356,7 @@
       "$description": "Muted brand icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Brand identity (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis brand icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.brand-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.brand` (4.5:1). For safety-critical brand messaging use the bold `inverse.icon.brand`.",
+      "avoid_when": "Do not use on the page ground; that is `icon.brand-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.brand` (4.5:1). For safety-critical brand messaging use the bold `inverse.icon.brand`.",
       "mode_overrides": {
         "light": "{hds.core.palette.primary.550}",
         "dark": "{hds.core.palette.primary.650}",
@@ -6378,7 +6378,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.brand"
       },
@@ -6395,7 +6395,7 @@
       "$description": "Muted success icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.success-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.success` (4.5:1). For safety-critical success messaging use the bold `inverse.icon.success`.",
+      "avoid_when": "Do not use on the page ground; that is `icon.success-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.success` (4.5:1). For safety-critical success messaging use the bold `inverse.icon.success`.",
       "mode_overrides": {
         "light": "{hds.core.palette.success.550}",
         "dark": "{hds.core.palette.success.650}",
@@ -6417,7 +6417,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.success"
       },
@@ -6434,7 +6434,7 @@
       "$description": "Muted warning icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.warning-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.warning` (4.5:1). For safety-critical warning messaging use the bold `inverse.icon.warning`.",
+      "avoid_when": "Do not use on the page ground; that is `icon.warning-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.warning` (4.5:1). For safety-critical warning messaging use the bold `inverse.icon.warning`.",
       "mode_overrides": {
         "light": "{hds.core.palette.warning.550}",
         "dark": "{hds.core.palette.warning.650}",
@@ -6456,7 +6456,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.warning"
       },
@@ -6473,7 +6473,7 @@
       "$description": "Muted danger icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.danger-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.danger` (4.5:1). For safety-critical danger messaging use the bold `inverse.icon.danger`.",
+      "avoid_when": "Do not use on the page ground; that is `icon.danger-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.danger` (4.5:1). For safety-critical danger messaging use the bold `inverse.icon.danger`.",
       "mode_overrides": {
         "light": "{hds.core.palette.danger.550}",
         "dark": "{hds.core.palette.danger.650}",
@@ -6495,7 +6495,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.danger"
       },
@@ -6512,7 +6512,7 @@
       "$description": "Muted info icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.info-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.info` (4.5:1). For safety-critical info messaging use the bold `inverse.icon.info`.",
+      "avoid_when": "Do not use on the page ground; that is `icon.info-subtle`. Large text (24px and up, or 18.67px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.info` (4.5:1). For safety-critical info messaging use the bold `inverse.icon.info`.",
       "mode_overrides": {
         "light": "{hds.core.palette.info.550}",
         "dark": "{hds.core.palette.info.650}",
@@ -6534,7 +6534,7 @@
         "body_text_floor": "4.5:1",
         "large_text": {
           "min_px": 24,
-          "bold_min_px": 18.66
+          "bold_min_px": 18.67
         },
         "body_text_alternative": "inverse.text.info"
       },
@@ -10956,7 +10956,7 @@
     },
     "core.dimension.0": {
       "$description": "0px — dimension primitive",
-      "meaning": "0px grid primitive",
+      "meaning": "0px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -10968,7 +10968,7 @@
     },
     "core.dimension.1": {
       "$description": "1px — dimension primitive",
-      "meaning": "1px grid primitive",
+      "meaning": "1px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -10978,7 +10978,7 @@
     },
     "core.dimension.2": {
       "$description": "2px — dimension primitive",
-      "meaning": "2px grid primitive",
+      "meaning": "2px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -10994,7 +10994,7 @@
     },
     "core.dimension.3": {
       "$description": "3px — dimension primitive",
-      "meaning": "3px grid primitive",
+      "meaning": "3px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11003,7 +11003,7 @@
     },
     "core.dimension.4": {
       "$description": "4px — dimension primitive",
-      "meaning": "4px grid primitive",
+      "meaning": "4px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11015,7 +11015,7 @@
     },
     "core.dimension.5": {
       "$description": "5px — dimension primitive",
-      "meaning": "5px grid primitive",
+      "meaning": "5px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11024,7 +11024,7 @@
     },
     "core.dimension.6": {
       "$description": "6px — dimension primitive",
-      "meaning": "6px grid primitive",
+      "meaning": "6px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11035,7 +11035,7 @@
     },
     "core.dimension.8": {
       "$description": "8px — dimension primitive",
-      "meaning": "8px grid primitive",
+      "meaning": "8px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11046,7 +11046,7 @@
     },
     "core.dimension.10": {
       "$description": "10px — dimension primitive",
-      "meaning": "10px grid primitive",
+      "meaning": "10px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11055,7 +11055,7 @@
     },
     "core.dimension.12": {
       "$description": "12px — dimension primitive",
-      "meaning": "12px grid primitive",
+      "meaning": "12px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11066,7 +11066,7 @@
     },
     "core.dimension.16": {
       "$description": "16px — dimension primitive",
-      "meaning": "16px grid primitive",
+      "meaning": "16px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11081,7 +11081,7 @@
     },
     "core.dimension.18": {
       "$description": "18px — dimension primitive",
-      "meaning": "18px grid primitive",
+      "meaning": "18px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11090,7 +11090,7 @@
     },
     "core.dimension.20": {
       "$description": "20px — dimension primitive",
-      "meaning": "20px grid primitive",
+      "meaning": "20px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11101,7 +11101,7 @@
     },
     "core.dimension.24": {
       "$description": "24px — dimension primitive",
-      "meaning": "24px grid primitive",
+      "meaning": "24px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11118,7 +11118,7 @@
     },
     "core.dimension.28": {
       "$description": "28px — dimension primitive",
-      "meaning": "28px grid primitive",
+      "meaning": "28px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11127,7 +11127,7 @@
     },
     "core.dimension.30": {
       "$description": "30px — dimension primitive",
-      "meaning": "30px grid primitive",
+      "meaning": "30px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11136,7 +11136,7 @@
     },
     "core.dimension.32": {
       "$description": "32px — dimension primitive",
-      "meaning": "32px grid primitive",
+      "meaning": "32px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11149,7 +11149,7 @@
     },
     "core.dimension.36": {
       "$description": "36px — dimension primitive",
-      "meaning": "36px grid primitive",
+      "meaning": "36px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11158,7 +11158,7 @@
     },
     "core.dimension.40": {
       "$description": "40px — dimension primitive",
-      "meaning": "40px grid primitive",
+      "meaning": "40px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11169,7 +11169,7 @@
     },
     "core.dimension.44": {
       "$description": "44px — dimension primitive",
-      "meaning": "44px grid primitive",
+      "meaning": "44px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11179,7 +11179,7 @@
     },
     "core.dimension.48": {
       "$description": "48px — dimension primitive",
-      "meaning": "48px grid primitive",
+      "meaning": "48px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11190,13 +11190,13 @@
     },
     "core.dimension.52": {
       "$description": "52px — dimension primitive",
-      "meaning": "52px grid primitive",
+      "meaning": "52px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.56": {
       "$description": "56px — dimension primitive",
-      "meaning": "56px grid primitive",
+      "meaning": "56px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11206,13 +11206,13 @@
     },
     "core.dimension.60": {
       "$description": "60px — dimension primitive",
-      "meaning": "60px grid primitive",
+      "meaning": "60px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.64": {
       "$description": "64px — dimension primitive",
-      "meaning": "64px grid primitive",
+      "meaning": "64px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11222,7 +11222,7 @@
     },
     "core.dimension.68": {
       "$description": "68px — dimension primitive",
-      "meaning": "68px grid primitive",
+      "meaning": "68px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11231,7 +11231,7 @@
     },
     "core.dimension.72": {
       "$description": "72px — dimension primitive",
-      "meaning": "72px grid primitive",
+      "meaning": "72px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11240,13 +11240,13 @@
     },
     "core.dimension.76": {
       "$description": "76px — dimension primitive",
-      "meaning": "76px grid primitive",
+      "meaning": "76px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.80": {
       "$description": "80px — dimension primitive",
-      "meaning": "80px grid primitive",
+      "meaning": "80px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11256,13 +11256,13 @@
     },
     "core.dimension.84": {
       "$description": "84px — dimension primitive",
-      "meaning": "84px grid primitive",
+      "meaning": "84px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.88": {
       "$description": "88px — dimension primitive",
-      "meaning": "88px grid primitive",
+      "meaning": "88px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11271,13 +11271,13 @@
     },
     "core.dimension.92": {
       "$description": "92px — dimension primitive",
-      "meaning": "92px grid primitive",
+      "meaning": "92px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.96": {
       "$description": "96px — dimension primitive",
-      "meaning": "96px grid primitive",
+      "meaning": "96px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -11286,49 +11286,49 @@
     },
     "core.dimension.100": {
       "$description": "100px — dimension primitive",
-      "meaning": "100px grid primitive",
+      "meaning": "100px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.104": {
       "$description": "104px — dimension primitive",
-      "meaning": "104px grid primitive",
+      "meaning": "104px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.108": {
       "$description": "108px — dimension primitive",
-      "meaning": "108px grid primitive",
+      "meaning": "108px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.112": {
       "$description": "112px — dimension primitive",
-      "meaning": "112px grid primitive",
+      "meaning": "112px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.116": {
       "$description": "116px — dimension primitive",
-      "meaning": "116px grid primitive",
+      "meaning": "116px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.120": {
       "$description": "120px — dimension primitive",
-      "meaning": "120px grid primitive",
+      "meaning": "120px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.124": {
       "$description": "124px — dimension primitive",
-      "meaning": "124px grid primitive",
+      "meaning": "124px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus."
     },
     "core.dimension.128": {
       "$description": "128px — dimension primitive",
-      "meaning": "128px grid primitive",
+      "meaning": "128px dimension primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
@@ -12238,43 +12238,43 @@
       "$description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient)",
       "meaning": "Shadow / elevation composite — xs (2-layer, mode-aware)",
       "tier": "primitive",
-      "consume": "Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation)."
+      "consume": "Consumable — apply the elevation step directly (mode-aware: a lighter shadow in dark, where surface lift carries elevation)."
     },
     "shadow.sm": {
       "$description": "shadow sm — elevation 2 of 6, 2-layer (key+ambient)",
       "meaning": "Shadow / elevation composite — sm (2-layer, mode-aware)",
       "tier": "primitive",
-      "consume": "Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation)."
+      "consume": "Consumable — apply the elevation step directly (mode-aware: a lighter shadow in dark, where surface lift carries elevation)."
     },
     "shadow.md": {
       "$description": "shadow md — elevation 3 of 6, 2-layer (key+ambient)",
       "meaning": "Shadow / elevation composite — md (2-layer, mode-aware)",
       "tier": "primitive",
-      "consume": "Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation)."
+      "consume": "Consumable — apply the elevation step directly (mode-aware: a lighter shadow in dark, where surface lift carries elevation)."
     },
     "shadow.lg": {
       "$description": "shadow lg — elevation 4 of 6, 2-layer (key+ambient)",
       "meaning": "Shadow / elevation composite — lg (2-layer, mode-aware)",
       "tier": "primitive",
-      "consume": "Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation)."
+      "consume": "Consumable — apply the elevation step directly (mode-aware: a lighter shadow in dark, where surface lift carries elevation)."
     },
     "shadow.xl": {
       "$description": "shadow xl — elevation 5 of 6, 2-layer (key+ambient)",
       "meaning": "Shadow / elevation composite — xl (2-layer, mode-aware)",
       "tier": "primitive",
-      "consume": "Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation)."
+      "consume": "Consumable — apply the elevation step directly (mode-aware: a lighter shadow in dark, where surface lift carries elevation)."
     },
     "shadow.2xl": {
       "$description": "shadow 2xl — elevation 6 of 6, 2-layer (key+ambient)",
       "meaning": "Shadow / elevation composite — 2xl (2-layer, mode-aware)",
       "tier": "primitive",
-      "consume": "Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation)."
+      "consume": "Consumable — apply the elevation step directly (mode-aware: a lighter shadow in dark, where surface lift carries elevation)."
     },
     "shadow.inset": {
       "$description": "shadow inset — inner shadow for wells / pressed states / inputs",
-      "meaning": "Shadow / elevation composite — inset (2-layer, mode-aware)",
+      "meaning": "Shadow / elevation composite — inset (1-layer, mode-aware)",
       "tier": "primitive",
-      "consume": "Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation)."
+      "consume": "Consumable — apply the inner shadow directly (mode-aware: a stronger shadow in dark)."
     },
     "breakpoint.sm": {
       "$description": "breakpoint sm — min-width 0px (mobile-first)",

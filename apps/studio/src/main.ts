@@ -1901,7 +1901,11 @@ const stopSets = (): void => { if (!run) return; run = stopRun(run); invalidate(
  *  build as still running, and sees one result when the run ends. A run of one set keeps the plugin's own verdict. */
 const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'component-result' }>, posted: string | null): void => {
   if (!run || posted === null || currentOf(run) !== posted) return;
-  run = record(run, { id: posted, result: host.setBuilds.get(posted) ?? (m.ok ? 'ok' : m.completed ? 'issues' : 'failed'), headline: m.headline, causes: m.causes });
+  const had = run.results.length;
+  run = record(run, { id: posted, result: host.setBuilds.get(posted) ?? (m.ok ? 'ok' : m.completed ? 'issues' : 'failed'), headline: m.headline, causes: m.causes, ...(m.alsoBuilt ? { alsoBuilt: m.alsoBuilt } : {}) });
+  // #3359: a queued set this run's builds already made is recorded, not posted (`record`); its row reads built too.
+  const skipped = run.results.slice(had + 1);
+  if (skipped.length) setHost({ setBuilds: new Map([...host.setBuilds, ...skipped.map((x) => [x.id, x.result] as const)]) });
   if (!run.done) { postCurrent(); return; }
   const ended = run;
   run = null;

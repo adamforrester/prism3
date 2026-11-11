@@ -1436,7 +1436,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.500}",
-          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "brand": {
           "$type": "color",
@@ -1466,27 +1466,27 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.450}",
-          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "success-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.success.450}",
-          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "warning-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.warning.450}",
-          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "danger-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.danger.450}",
-          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "info-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.info.450}",
-          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "on-brand": {
           "$type": "color",
@@ -2283,7 +2283,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.550}",
-            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "brand": {
             "$type": "color",
@@ -2313,27 +2313,27 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.550}",
-            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "success-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.success.550}",
-            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "warning-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.550}",
-            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "danger-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.550}",
-            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "info-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.info.550}",
-            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "link": {
             "default": {

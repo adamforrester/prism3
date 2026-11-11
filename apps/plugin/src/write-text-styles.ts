@@ -216,6 +216,9 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     // `materialise-to-figma.ts` paste path would have written it and the plugin would not.
     s.description = row.description;
     s.fontName = { family: row.fontFamilyPrimary, style };   // the RESOLVED style — must match what was loaded
+    // #3557: a size variable the person chose to Skip leaves no binding, so the style takes the literal size that
+    // variable resolved to (`fontSizePx`, set by the collision choice) rather than the host's default 12.
+    if (!row.fontSizeVar && typeof row.fontSizePx === 'number') s.fontSize = row.fontSizePx;
     s.lineHeight = { unit: 'PERCENT', value: row.lineHeightPct };
     s.letterSpacing = { unit: 'PERCENT', value: row.letterSpacingPct };
     s.textCase = row.textCase;
