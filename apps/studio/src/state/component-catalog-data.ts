@@ -1778,7 +1778,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 28,
+    "members": 48,
     "nests": []
   },
   {
