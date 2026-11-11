@@ -35,7 +35,7 @@ export const ICONS_DESC = 'The icon color set by the icon contrast floor: matche
 export const DISABLED_DESC = 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.';
 /** The Interactive levers section's intro (owner decision Q53, APPROVED). */
 /** Color › Interactive's settings card (#3335, the owner's Q3335.1 A). DRAFT, for the owner's final read. */
-export const INTERACTIVE_SETTINGS_COPY = { title: 'Interactive Settings', desc: 'Every button set, in every mode.' } as const;
+export const INTERACTIVE_SETTINGS_COPY = { title: 'Interactive settings', desc: 'Every button set, in every mode.' } as const;
 /** Surfaces & fills' Background copy (S4f), shared by the levers' Background fills section and the preview's
  *  Background section there (Q23): the owner's Q26 intro, APPROVED, now that the scrim has its own section
  *  (QA-B10). The Style guide's own Background section keeps its longer sentence, scrim included. */
@@ -380,7 +380,7 @@ export const DOMAINS = [
     // sections stay in this data so every lever keeps one home (`test-pages.ts`): Button's keys are drawn in the preview
     // pane's Buttons block, Field's and Search's in the Fields section's two blocks and
     // Tag's in the Tag section's (#2905, #2952), the sets by the list.
-    id: 'components', label: 'Components', home: 'comps', intro: 'The component sets the engine defines, in families. A build places each on its page in this file.',
+    id: 'components', label: 'Components', home: 'comps', intro: 'The component sets the engine defines, in families.',
     sections: [
       // #2909 Q2909.4 A (v2's lever-home table): the shared block, first. Control shape's one home; Density shows as its
       // read-only line, its home Theme › Shape (`domains/shared-options.ts`).

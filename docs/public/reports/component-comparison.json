@@ -5346,7 +5346,7 @@
           ]
         },
         {
-          "name": "type",
+          "name": "wording",
           "default": "plain"
         }
       ],
@@ -9529,10 +9529,6 @@
           "search",
           "password"
         ]
-      },
-      {
-        "id": "wallet-button",
-        "default": "plain"
       }
     ],
     "validation": [
@@ -9827,6 +9823,10 @@
       {
         "id": "sign-in-button",
         "default": "continue"
+      },
+      {
+        "id": "wallet-button",
+        "default": "plain"
       }
     ]
   },
@@ -10669,6 +10669,15 @@
         "slider"
       ],
       "detail": "max defaults differ over the same values — 100 in progress, slider; 99 in badge"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop wording",
+      "components": [
+        "sign-in-button",
+        "wallet-button"
+      ],
+      "detail": "wording defaults differ over the same values — continue in sign-in-button; plain in wallet-button"
     },
     {
       "kind": "axis without prop",

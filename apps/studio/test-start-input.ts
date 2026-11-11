@@ -107,7 +107,7 @@ console.log('\nImport errors name their line (S7)\n');
 
   // Each fixture's line is counted by hand: the opening --- is line 1.
   const cases: [string, string, number | null, RegExp][] = [
-    ['no front matter', 'id: x\nprimary: { l: 0.5, c: 0.1, h: 200 }\n', 1, /must open with a '---'/],
+    ['no front matter', 'id: x\nprimary: { l: 0.5, c: 0.1, h: 200 }\n', 1, /opens with a '---' YAML front matter fence/],
     ['a repeated key', '---\nid: x\nid: y\n---\n', 3, /duplicate key 'id'/],
     ['a line that does not fit its block', '---\nid: x\n   primary: 3\n  foo: 2\n---\n', 3, /unparseable frontmatter/],
     ['a bare #hex color', '---\nname: x\ncolors:\n  primary: #3366ff\n---\n', 4, /color 'primary' has no value/],
@@ -128,6 +128,13 @@ console.log('\nImport errors name their line (S7)\n');
     ok(!/\bat line \d+/.test(shown), `${what}: the parser's own "at line N" (counted inside the front matter) is not left to contradict it`);
   }
 
+  // #3553 Q-UI4 A: the missing-fence refusal, verbatim (the owner's words), as two sentences: no second colon, no
+  // lowercase clause after one. Held for both dialects' parsers, each of which throws its own message.
+  for (const [what, text] of [['no front matter', 'id: x\nprimary: { l: 0.5, c: 0.1, h: 200 }\n'], ['a standard-dialect brief with no fence', 'name: x\ncolors:\n  primary: "#3366ff"\n']] as const) {
+    const r = S.validatePaste(text);
+    const shown = 'error' in r ? S.importErrorText(r.error) : '(accepted)';
+    ok(shown === "Line 1: That doesn't read as a design.md. A design.md opens with a '---' YAML front matter fence on its first line.", `#3553 Q-UI4 A ${what}: the refusal reads in the owner's words ("${shown}")`);
+  }
   ok(S.PASTE_EMPTY === 'Paste a design.md brief or choose a file first.', 'S2: the empty-box sentence is the approved one');
   for (const empty of ['', '   \n  ']) {
     const r = S.validatePaste(empty);

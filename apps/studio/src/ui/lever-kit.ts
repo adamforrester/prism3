@@ -250,11 +250,15 @@ export const subLine = (text: string): HTMLElement => h('p', 'p3-sub', text);
  *  Q68 order with it). A `forId` makes it the control's `<label>`. `onLine` (#2217, heading pass 2): a label stacked
  *  over its control, with nothing on its right, puts the token flush right on its own line, wrapping under it when the
  *  two do not fit (and always at the narrow tier); the DOM order stays label, then token. */
-export const tokenLabel = (token: string, label: string, forId?: string, opts: { onLine?: boolean } = {}): HTMLElement => {
+export const tokenLabel = (token: string, label: string, forId?: string, opts: { onLine?: boolean; wrap?: boolean } = {}): HTMLElement => {
   const l = h(forId ? 'label' : 'div', opts.onLine ? 'p3-fill-name p3-fill-name-online' : 'p3-fill-name');
   if (forId && l instanceof HTMLLabelElement) l.htmlFor = forId;
   l.dataset.role = token;
-  l.append(h('b', 'p3-fill-label', label), h('span', 'p3-fill-tok', token));
+  // `wrap` (#3553 M3 A): the token wraps at its dots rather than ellipsizing, with a `<wbr>` after each dot (the Style
+  // guide pills' pattern), which adds nothing to `textContent`.
+  const tok = h('span', opts.wrap ? 'p3-fill-tok p3-fill-tok-wrap' : 'p3-fill-tok', opts.wrap ? undefined : token);
+  if (opts.wrap) token.split('.').forEach((seg, i, all) => { tok.append(i < all.length - 1 ? `${seg}.` : seg); if (i < all.length - 1) tok.append(h('wbr')); });
+  l.append(h('b', 'p3-fill-label', label), tok);
   return l;
 };
 

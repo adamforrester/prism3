@@ -7092,14 +7092,14 @@ for (const host of ['web', 'plugin']) {
 // button set a card of its own after it (`EXPECT_SET_CARDS`). The preview keeps its one Interactive section, which those
 // cards together drive; Disabled and Links still pair one for one.
 const EXPECT_INTERACTIVE_SECTIONS = [
-  ['Interactive Settings', 'Every button set, in every mode.'],
+  ['Interactive settings', 'Every button set, in every mode.'],   // #3553 Q-UI3 A: sentence case, as every other card title
   ['Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.'],
   ['Links', 'The link color in each state, on the page and on the inverse fill.'],
 ];
 /** Which section each lever sits in (Q51), by hook. */
 const EXPECT_PREVIEW_SECTIONS = ['Interactive', 'Disabled', 'Links'];
-const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary Interactive Colors'], ['outlineInteraction', 'Interactive Settings'], ['outlineWash.hover', 'Interactive Settings'],
-  ['neutralEmphasis', 'Neutral Interactive Colors'], ['strictInteractiveContrast', 'Interactive Settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
+const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary Interactive Colors'], ['outlineInteraction', 'Interactive settings'], ['outlineWash.hover', 'Interactive settings'],
+  ['neutralEmphasis', 'Neutral Interactive Colors'], ['strictInteractiveContrast', 'Interactive settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
   ['linkPalette', 'Links'], ['linkStateRungs', 'Links']];
 const EVERY_SET = 'Every button set is shown, including ones you added.';
 const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
@@ -10411,7 +10411,8 @@ const COMPONENTS_COPY = {
   web: 'Building sets needs the Figma plugin.',
   // #2909 (Q2909.5 A): the plugin's line, a DRAFT (Q2909.10 A).
   plugin: 'Sets not in this file are added from Update file.',
-  intro: (n) => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
+  // #3553 Q-UI6 A: the web's intro has no file sentence (the web has no file and builds nothing).
+  intro: (n) => `The ${n} component sets the engine defines, in families.`,
   build: 'Build', buildOne: 'Build 1 set', busy: 'Building 1 of 1…',
   nothing: 'Select sets to build them.',
 };
@@ -11943,7 +11944,7 @@ if (runs('28')) console.log(`\nThe start window (S12)\n${'='.repeat(78)}`);
 const START = {
   heading: { web: 'Start a brand', figma: 'Start a brand in this file' },                   // G17
   order: ['Start from your color', 'Explore an example', 'Import a design.md'],   // S8, then N1 A (Blank folded into the color card)
-  colorDesc: 'Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray.',   // N1 A
+  colorDesc: 'Your primary brand color; everything else starts from defaults you can tune. No color yet? Start blank with a neutral gray.',   // N1 A, then #3553 Q-UI4 A (no "smart")
   go: 'Start from this color',                                                                  // S1
   badHex: 'Enter a hex color as #rrggbb.',                                                      // S3
   emptyPaste: 'Paste a design.md brief or choose a file first.',                                // S2
@@ -13308,7 +13309,7 @@ const EXPECT_HEADINGS = {
   'color-interactive': {
     // #3335 (the owner's Q3335.1 A and Q3335.7 A): the settings card, then a card per button set at L1, each opening on its
     // lever (Primary Action Palette, Neutral emphasis) at L2 and its state groups' small titles at L2.
-    L1: ['Interactive Settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
+    L1: ['Interactive settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
     L2: ['Outline hover', 'Wash opacity', 'Strict interactive contrast', 'Primary Action Palette', 'Neutral emphasis', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states',
       'Fill', 'Fill · inverse', 'Text', 'Text · inverse', 'Border', 'Border · inverse', 'Overlay wash', 'On-fill text', 'On-fill text · inverse'],
     L3: ['Hover', 'Pressed', 'Hover', 'Pressed', 'Visited'],
@@ -21680,6 +21681,84 @@ if (runs('3553-m1')) {
     } finally { await ctx.close(); }
   }
 } // 3553-m1
+// #3553 M2, M3 AND M4 (batch M-B; the owner's M2 A, M3 A and M4 A): THE LEVERS ROWS IN A PANE BETWEEN 360 AND 480.
+// M2: at web 1024 the levers pane is 404px, above the old snug line (360), and a fill row's step picker squeezed its
+// name to 20–40px ("Hover" read "Ho"); the line is now 480, so from 1024 to 1200 the picker sits under the name. Held on
+// Surfaces & fills and Interactive at 1024, 1100 and 1200: the pane is snug, and every drawn fill row's name column is at
+// least 90px with its label on one line. At 1280 (511px) the pane stays full: the few rows that still wrap there are
+// the accepted cost of A. M3: the easing-role tokens all ellipsized to "motion.easing-ro…" at the plugin's 380; they now
+// wrap at their dots, held whole at 380 and 1280. M4: the OKLCH readout of a snug color field drops, as the glass
+// control's does; held on Palettes at the plugin's 380: no readout is drawn cut. Both themes. MUTATIONS (each after a
+// `wip:` commit): `LEVERS_SNUG_MAX` back to 360 → `#3553 M2 … the pane is snug` and `… every fill row keeps its name`;
+// the easing rows' `{ wrap: true }` dropped → `#3553 M3 … every easing-role token is shown whole`; the snug
+// `.p3-colorfield:not(.p3-numfield) .p3-colorfield-meta` rule dropped → `#3553 M4 … no color field's readout is cut`.
+const MB_NAME_MIN = 90;
+if (runs('3553-mb')) {
+  console.log(`\nThe levers rows between 360 and 480 (#3553 M2, M3, M4)\n${'='.repeat(78)}`);
+  const rowsRead = (page) => page.evaluate(() => {
+    const pane = document.querySelector('[data-p3="levers-pane"]');
+    const levers = pane?.querySelector('.p3-levers') ?? pane?.closest('.p3-levers') ?? document.querySelector('.p3-levers');
+    const lines = (n) => { const r = document.createRange(); r.selectNodeContents(n); return new Set([...r.getClientRects()].map((b) => Math.round(b.top))).size; };
+    const rows = [...(pane?.querySelectorAll('.p3-fillrow') ?? [])].filter((r) => r.getClientRects().length > 0 && r.getBoundingClientRect().height > 0);
+    const bad = rows.map((r) => {
+      const name = r.querySelector('.p3-fill-name'); const label = name?.querySelector('.p3-fill-label');
+      return { label: label?.textContent ?? '', w: name ? Math.round(name.getBoundingClientRect().width) : 0, lines: label ? lines(label) : 0 };
+    }).filter((x) => x.w < 90 || x.lines > 1);
+    return { fit: levers?.dataset.fit ?? null, paneW: Math.round(levers?.clientWidth ?? 0), rows: rows.length, bad };
+  });
+  for (const [w, h] of [[1024, 768], [1100, 800], [1200, 800], [1280, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mb web ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme, w, h });
+    let step = 'open';
+    try {
+      for (const place of ['color-fills', 'color-interactive']) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        const m = await rowsRead(page);
+        ok(m.rows > 0 && m.paneW > 0, `${where} ${place}: premise, the levers pane draws fill rows (${m.rows} in ${m.paneW}px)`);
+        if (w < 1280) {
+          ok(m.fit === 'snug', `#3553 M2 ${where} ${place}: the ${m.paneW}px pane is snug (read ${m.fit})`);
+          ok(m.bad.length === 0, `#3553 M2 ${where} ${place}: every fill row keeps its name at least ${MB_NAME_MIN}px wide, its label on one line (${m.bad.length} of ${m.rows} do not: ${JSON.stringify(m.bad.slice(0, 4))})`);
+        } else ok(m.fit === 'full', `#3553 M2 ${where} ${place}: the ${m.paneW}px pane stays full (read ${m.fit})`);
+        if (SHOTS && theme === 'light' && w === 1024) await page.screenshot({ path: join(SHOTS, `s3553-mb-web-${w}-${place}.png`) });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mb figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h });
+    let step = 'depth';
+    try {
+      await goPlace(page, 'depth');
+      await hooks.need(page, '[data-p3="easing-rows"]');
+      await settle(page);
+      const e = await page.evaluate(() => [...document.querySelectorAll('[data-p3="easing-rows"] [data-p3="easing-row"] .p3-fill-tok')].map((t) => ({
+        text: t.textContent, whole: t.scrollWidth <= t.clientWidth + 0.5,
+        inRow: t.getBoundingClientRect().right <= t.closest('[data-p3="easing-row"]').getBoundingClientRect().right + 0.5 })));
+      ok(e.length >= 4 && e.every((t) => /^motion\.easing-role\.[a-z-]+$/.test(t.text)), `${where}: premise, the easing rows draw each role's token (${JSON.stringify(e.map((t) => t.text))})`);
+      ok(e.length > 0 && e.every((t) => t.whole && t.inRow), `#3553 M3 ${where}: every easing-role token is shown whole, inside its row (${JSON.stringify(e.filter((t) => !t.whole || !t.inRow).map((t) => t.text))})`);
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-mb-plugin-${w}-easing.png`) });
+      step = 'palettes';
+      await goPlace(page, 'color-palettes');
+      await settle(page);
+      const c = await page.evaluate(() => {
+        const metas = [...document.querySelectorAll('[data-p3="levers-pane"] .p3-colorfield-meta')].filter((n) => n.getClientRects().length > 0);
+        return { drawn: metas.length, cut: metas.filter((n) => n.scrollWidth > n.clientWidth + 0.5).map((n) => n.textContent),
+          fields: document.querySelectorAll('[data-p3="levers-pane"] .p3-colorfield').length };
+      });
+      ok(c.fields > 0, `${where}: premise, Palettes draws color fields (${c.fields})`);
+      ok(c.cut.length === 0, `#3553 M4 ${where}: no color field's readout is cut (${JSON.stringify(c)})`);
+      if (w === 1280) ok(c.drawn > 0, `#3553 M4 ${where}: at full width the readout is still drawn (${c.drawn})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-mb
 // #3553 Q-UI2 (the owner's Q-UI2 A): A SINGLE CHOICE NEVER WRAPS TO AN ORPHAN. Interactive's Outline hover drew 3 + 1 at
 // 1280 ("No hover fill" alone) and 2 + 2 at 1024 and 380; Components' Control shape drew 3 + 1 at the plugin's 380 ("Pill"
 // alone). A, "swap to a select or to a radio list": the list, so each option keeps its button, hook, role and keys. A

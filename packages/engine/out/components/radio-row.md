@@ -95,7 +95,6 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 - **Built from:** `radio-control`
 - **Instead, consider:** `checkbox-row`, `switch-row`, `select`, `segmented-control`
 - **Often used with:** `radio-group`, `field-label`, `field-message`, `focus-ring`
-- **Superseded by:** `select`
 - **Replaces:**
   - a set of checkboxes misused for a mutually exclusive choice
   - a bare \<input type="radio"> set with no group label

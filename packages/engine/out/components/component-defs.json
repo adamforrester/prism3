@@ -11630,7 +11630,7 @@
       }
     },
     "wallet-button": {
-      "digest": "4e2efcbd",
+      "digest": "a2dc1bbd",
       "def": {
         "id": "wallet-button",
         "name": "WalletButton",
@@ -11686,11 +11686,11 @@
             "description": "The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height."
           },
           {
-            "name": "type",
+            "name": "wording",
             "type": "string",
             "default": "plain",
             "required": false,
-            "description": "The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain."
+            "description": "The provider's wording, from its own list, passed to the provider as its button type: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain."
           }
         ],
         "states": [
@@ -39779,7 +39779,7 @@
       }
     },
     "_accordion-indicator": {
-      "digest": "41e121a1",
+      "digest": "62cabcec",
       "def": {
         "id": "_accordion-indicator",
         "name": "Accordion.Indicator",
@@ -39889,6 +39889,11 @@
             "expand collapse glyph"
           ],
           "generationPriority": 9
+        },
+        "motion": {
+          "enter": "On open, a chevron turns to its open position on motion.transition.default; a plus and minus swap glyphs.",
+          "exit": "On close, the chevron turns back on motion.transition.default; a plus and minus swap back.",
+          "reduceMotion": "Under prefers-reduced-motion the indicator swaps to its open or closed glyph without turning."
         },
         "composition": {
           "composesWith": [],
