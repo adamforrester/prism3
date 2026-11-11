@@ -592,11 +592,15 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     // instance on another member than the plan's coordinate is to update, whatever the stamp and record say. A node
     // edited by hand is the designer's, as the apply keeps it by default.
     const nested = nestedMemberFaults(plan.root, snap, new Set((edit?.changed ?? []).map((p) => p.replace(/#\d+$/, ''))));
+    // #3497: A MEMBER STILL MARKED IN PROGRESS IS TO UPDATE, whatever its stamp says. The executor clears the marker after
+    // the stamp (`finishUpdated`), so a member carrying both stopped before its update completed: the next run finishes
+    // it and clears the marker. This is what a stopped set's count holds too (`applySet`, #3449).
+    const unfinished = m.updating != null;
     const state: MemberState = (damaged.length && !structural) || rxv.dangling ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
       // #3101: a member stamped under another revision is to update only when a revision since reaches this set.
-      : planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || rxv.differs || nested.length ? 'update'
+      : unfinished || planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || rxv.differs || nested.length ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
     counts[state]++;

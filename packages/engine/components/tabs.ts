@@ -228,7 +228,7 @@ export const tabs: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. On a change, the underline slides to the new tab and the panel cross-fades, about 150–200ms.',
+    enter: 'None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.',
     exit: 'The outgoing panel fades out under the incoming one. Panels never slide sideways.',
     reduceMotion: 'The underline snaps and the panel swaps with no transition.',
   },
