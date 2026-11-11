@@ -40481,6 +40481,24 @@ arm: {
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
 }
 
+// Q-CC3 A and Q-CC4 A (#3554): Select joins the field family's code surface. Q-CC3: the `style` code axis of one value,
+// `outline`, as every field the Field style setting reaches, with no Figma style axis (the projection stays size ×
+// status × state). Q-CC4: TextField's `defaultValue` and `autoComplete`, in TextField's types, so the SC 1.3.5 claim in
+// its accessibility has a prop behind it. Literals typed here, not read off TextField.
+{
+  const selPlans = figmaAnatomySet(select, {});
+  ok(JSON.stringify(select.variants) === JSON.stringify({ size: ['medium', 'small', 'large'], style: ['outline'], status: ['default', 'error', 'warning', 'success'] })
+    && select.axisKinds?.style === 'authoring'
+    && JSON.stringify(select.figmaProperties?.variantAxes) === JSON.stringify(['size', 'status']) && selPlans.length === 84
+    && (select.anatomy?.codeOnly ?? []).some((c) => c.class === 'not-projected' && c.description.startsWith('style — not projected')),
+    `Q-CC3 select: style is a code axis of one, outline, admitted by a codeOnly style line, and Figma still projects size × status × state = 84 (got ${JSON.stringify(select.variants)}, ${selPlans.length} members)`);
+  const sp = (n: string) => select.props.find((p) => p.name === n);
+  ok(sp('defaultValue')?.type === 'string' && sp('defaultValue')?.required === false
+    && sp('autoComplete')?.type === 'string (WHATWG token)' && sp('autoComplete')?.required === false
+    && (select.accessibility?.wcag ?? []).some((w) => w.startsWith('1.3.5')),
+    `Q-CC4 select: declares defaultValue (string) and autoComplete (string (WHATWG token)), so its 1.3.5 claim has a prop behind it (got ${sp('defaultValue')?.type}, ${sp('autoComplete')?.type})`);
+}
+
 // ------------------------------------------------------------------- #2888: the Search field
 // Each owner decision held against a literal (Q514, Q?1–Q?8 all A): the 84 members (Q?6 A), the properties (the label
 // switch, Q?4 A; the leading search glyph shown; the clear glyph built hidden at close-filled, Q?3 A), no submit button
