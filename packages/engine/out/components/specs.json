@@ -41488,11 +41488,12 @@
           "parts": [
             {
               "part": "container/control",
+              "fill": "color.disabled.fill",
               "stroke": "color.disabled.border"
             },
             {
               "part": "container/control/entry/value",
-              "ink": "color.disabled.text"
+              "ink": "color.disabled.on-fill"
             }
           ]
         },

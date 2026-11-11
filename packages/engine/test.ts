@@ -10629,6 +10629,27 @@ arm: {
       const achromatic = modesOf(k).every((m) => { const c = roleIn(k, m); return Math.abs(c.r - c.g) < 1 && Math.abs(c.g - c.b) < 1; });
       if (achromatic !== (said[1] === 'neutral')) primBad.push(`${b} ${k}: when_to_use says "translucent ${said[1]}", the wash is ${achromatic ? 'neutral in every mode' : 'chromatic'}`);
     }
+    // #3555 Q-MD17 A: an ink with a contrast contract names the surfaces it holds on. The disabled inks carried a 3:1
+    // contract and no `sits_on`, unlike every other ink. (Whether each listed surface really clears is the relation arm's.)
+    for (const [k, e] of Object.entries<any>(ai.color)) {
+      const p = k.replace(/^inverse\./, '');
+      if (/^(text|icon)\.|^disabled\.(text|icon)$/.test(p) && e.contrast_with?.length && !e.sits_on?.length) primBad.push(`${b} ${k}: an ink with a contrast contract and no sits_on`);
+    }
+    // #3555 Q-MD15 A: the veil's ink sentence is an instruction in the owner's stem, and its tail says the veil, like
+    // the ink, holds its polarity in every mode ("as the veil does"), not that the veil is the ink's color.
+    for (const [k, e] of Object.entries<any>(ai.color)) {
+      const v = /^veil\.(dark|light)\.(?!clear$)/.exec(k);
+      if (!v) continue;
+      const want = `Keep the ink ${v[1] === 'dark' ? 'light' : 'dark'} in every mode, as the veil does —`;
+      if (!String(e.when_to_use ?? '').includes(want)) primBad.push(`${b} ${k}: when_to_use lacks "${want}"`);
+    }
+    // #3555 Q-MD3 A: a duration step is a value, not a binding (prism3-motion R1, lint-motion-literals). Every
+    // `motion.duration-ms.*` leaf in the TREE has a primitive entry whose consume does not call it consumable and
+    // points at the duration roles instead.
+    for (const l of leaves) if (l.startsWith('motion.duration-ms.')) {
+      const c = String(ai.primitives[l]?.consume ?? '');
+      if (/^Consumable\b/.test(c) || !c.includes('`motion.duration.*`')) primBad.push(`${b} ${l}: consume "${c}" does not send the step to the motion.duration.* roles`);
+    }
     // Every ramp step the TREE marks with a band gets a usage intent — the tree decides which, not the sidecar.
     for (const l of leaves) if (at(l)?.$extensions?.prism3?.band && !ai.primitives[l]?.intent) primBad.push(`${b} ${l}: banded ramp step without intent`);
     for (const [k, e] of Object.entries<any>(ai.typography)) for (const f of ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to']) if (e[f] === undefined) primBad.push(`${b} typography ${k}: missing ${f}`);
@@ -20313,13 +20334,15 @@ arm: {
       if (control?.bound?.height !== HEIGHT[sz] || control?.bound?.paddingLeft !== INSET[ap][sz] || control?.bound?.paddingRight !== INSET[ap][sz] || entry?.minWidth !== 32)
         offRow.push(`${name}: height ${control?.bound?.height}, insets ${control?.bound?.paddingLeft}/${control?.bound?.paddingRight}, value ${entry?.minWidth} wide`);
       const own = control ? planPaintVars({ ...control, children: [] }) : [];
-      const wantPaint = ap === 'ghost' ? [] : st === 'disabled' ? ['color/disabled/border'] : ['color/field/fill', st === 'focus-visible' ? 'color/border/focus' : 'color/field/border/rest'];
+      // Q-CC10 A (#3554): a disabled outline keeps a box, Text field's disabled fill and edge, literals.
+      const wantPaint = ap === 'ghost' ? [] : st === 'disabled' ? ['color/disabled/fill', 'color/disabled/border'] : ['color/field/fill', st === 'focus-visible' ? 'color/border/focus' : 'color/field/border/rest'];
       // The edge weight (#3399): the hairline, and the focus width while the value has focus. Literals.
       const wantWeight = st === 'focus-visible' ? 'focus/ring/width' : 'border-width/hairline';
       if (control?.bound?.strokeWeight !== wantWeight) offPaint.push(`${name}: edge weight ${control?.bound?.strokeWeight}, want ${wantWeight}`);
       if (JSON.stringify([...own].sort()) !== JSON.stringify([...wantPaint].sort())) offPaint.push(`${name}: box paints [${own.join(', ')}], want [${wantPaint.join(', ')}]`);
       const value = entry?.children.find((c) => c.name === 'value');
-      const ink = st === 'disabled' ? 'color/disabled/text' : 'color/text/primary';
+      // The value on the disabled outline fill takes the on-fill ink (#784); ghost's sits on the page.
+      const ink = st !== 'disabled' ? 'color/text/primary' : ap === 'outline' ? 'color/disabled/on-fill' : 'color/disabled/text';
       if (value?.paints?.fills !== ink) offPaint.push(`${name}: value ${value?.paints?.fills}, want ${ink}`);
       const ring = control?.children.find((c) => c.name === 'focusRing');
       if ((st === 'focus-visible' && RING[ap] !== undefined) !== !!ring || (ring && ring.absoluteInset !== RING[ap])) offRing.push(`${name}: ring ${ring ? ring.absoluteInset : 'absent'}`);
@@ -20327,7 +20350,7 @@ arm: {
     ok(offNest.length === 0, `#2427 counter/nests: both buttons nest FlushIconButton.Neutral exposing [state], outline → flush and ghost → round (Q287 A), at rest unless the Counter is disabled (Q283.7)${offNest.length ? ` — ${offNest.slice(0, 3).join('; ')}` : ''}`);
     ok(offLabel.length === 0, `#2427 counter/label-dims: the nested FieldLabel is primary and regular (#3200) at the Counter's size, disabled on the Counter's disabled members and at rest on the rest${offLabel.length ? ` — ${offLabel.slice(0, 3).join('; ')}` : ''}`);
     ok(offRow.length === 0, `#2427 counter/row: the row is 36 / 44 / 56 tall (Q287 A), inset 12 / 12 / 16 on outline and 0 on ghost, the value at least 32 wide (Q283.13 A)${offRow.length ? ` — ${offRow.slice(0, 3).join('; ')}` : ''}`);
-    ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the focus edge at focus-visible, #3399; the disabled edge at disabled), ghost paints no box at any state, the value full contrast until disabled${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
+    ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the focus edge at focus-visible, #3399; the disabled fill and edge at disabled, Q-CC10 A), ghost paints no box at any state, the value full contrast until disabled, then on-fill ink on outline and page ink on ghost${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
     ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, on ghost only, at the control offset (Q283.10 A); outline draws none, its edge is the focus edge (#3399)${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
     const b = counter.figmaProperties?.booleans ?? {};
     ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
