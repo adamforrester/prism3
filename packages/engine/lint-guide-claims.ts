@@ -57,8 +57,8 @@
  *             anchor is still in the range, and a quoting claim carries no fingerprint (#3517 swapped two sections
  *             and the guide's row kept the old order, green). So each label of the list is placed where the cited
  *             lines hold it as a string of its own (`'Grid'`, `>Grid<`), and each must sit after the one before it.
- *             The order is read from the cited code, never from the guide. A list joined by "or" names alternatives
- *             and is not checked. LIMIT: a label the lines do not hold as a whole string is not placed, so a list
+ *             The order is read from the cited code, never from the guide. A list whose last join is "or" names
+ *             alternatives and is not checked, whatever its length: the whole run is dropped, not just its last label. LIMIT: a label the lines do not hold as a whole string is not placed, so a list
  *             is held only as far as its labels are placed; the summary line counts the lists with two or more.
  *   SELF-CHECK  Each gap CITE, FINGERPRINT and ORDER once had is planted in a small in-memory tree and run through the
  *             function the guides run through: a citation one line past a file's end (#3456), a table's citation after
@@ -377,22 +377,28 @@ const anchorIn = (anchor: string, text: string, inRange: readonly Lit[]): boolea
 
 /** ORDER (#3519): the runs of two or more **bold labels** in a claim joined only by `, `, ` and ` or `, and `. A run
  *  like that reads as the code's order (a page's sections, a dialog's tabs), so it can go stale by a reorder alone,
- *  which every anchor surviving cannot see. A list joined by "or" names alternatives, not an order, and is not a run. */
+ *  which every anchor surviving cannot see. A list whose last join is "or" (`, or `, ` or `) names alternatives, not an
+ *  order, and is dropped whole, not just its last label (#3542 review: `build-components.md:18`'s statuses). */
 const SEQ_SEP = /^(?:,\s*|,?\s+and\s+)$/;
+const OR_SEP = /^,?\s+or\s+$/;
 const sequencesOf = (claim: string): string[][] => {
   const c = claim.replace(/<!--[\s\S]*?-->/g, ' ');
   const out: string[][] = [];
   let run: string[] = [];
+  let alt = false;  // the run's last join was "or"
+  const flush = (): void => { if (run.length > 1 && !alt) out.push(run); run = []; alt = false; };
   let end = -1;
   for (const m of c.matchAll(BOLD)) {
     const label = m[1].trim();
     const at = m.index ?? 0;
-    const joined = end >= 0 && SEQ_SEP.test(c.slice(end, at)) && !/[.:]$/.test(label);
-    if (!joined) { if (run.length > 1) out.push(run); run = []; }
+    const sep = end >= 0 && !/[.:]$/.test(label) ? c.slice(end, at) : null;
+    const or = sep !== null && OR_SEP.test(sep);
+    if (!(or || (sep !== null && SEQ_SEP.test(sep)))) flush();
+    else alt = or;
     if (!/[.:]$/.test(label)) run.push(label);
     end = at + m[0].length;
   }
-  if (run.length > 1) out.push(run);
+  flush();
   return out;
 };
 /** Where the cited lines hold each label of a run as a string of its own (`'Grid'`, `>Grid<`), walked in the claim's
@@ -499,6 +505,9 @@ const FIXTURE_FILES: Record<string, string> = {
   'fixture/shift.ts': "// a line a PR inserted above the cited block\nconst x = 1;\nfigma.on('close', done);\n",
   // A page's sections, which a PR reordered from Breakpoints, Grid, Containers (#3517).
   'fixture/order.ts': "const sections = [\n  { title: 'Grid' },\n  { title: 'Breakpoints' },\n  { title: 'Containers' },\n];\n",
+  // A lookup map of a set's statuses, whose key order means nothing: a guide that lists them joined by "or" names
+  // alternatives, so it is not held to this order (#3542 review).
+  'fixture/status.ts': "const label = {\n  due: 'Due',\n  needed: 'Needed',\n  kept: 'Kept edits',\n};\n",
 };
 const fixtureReader = readerOf({ tracked: (p) => p in FIXTURE_FILES, read: (p) => FIXTURE_FILES[p] });
 const FIXTURES: readonly { readonly name: string; readonly gap: string; readonly guide: readonly string[]; readonly want: RegExp | null }[] = [
@@ -523,7 +532,7 @@ const FIXTURES: readonly { readonly name: string; readonly gap: string; readonly
     want: /^ORDER: fixture\/3519\.md:1: fixture\/order\.ts:2-4 lists \*\*Breakpoints\*\*, \*\*Grid\*\*, \*\*Containers\*\*, but the cited lines hold \*\*Grid\*\* before \*\*Breakpoints\*\*\./,
   },
   {
-    name: 'control', gap: 'the same four shapes, cited correctly',
+    name: 'control', gap: 'the same four shapes, cited correctly, and an "or" list of three in an order its lines do not hold',
     guide: [
       '`const b` is the second line. <!-- src: fixture/end.ts:1-2 -->',
       '',
@@ -534,6 +543,8 @@ const FIXTURES: readonly { readonly name: string; readonly gap: string; readonly
       'The plugin stops when its window closes. <!-- src: fixture/shift.ts:3#8ac7ac65 -->',
       '',
       '| **Layout** | **Grid**, **Breakpoints** and **Containers**. <!-- src: fixture/order.ts:2-4 -->',
+      '',
+      'A set reads **Needed**, **Due** or **Kept edits**. <!-- src: fixture/status.ts:2-4 -->',
     ],
     want: null,
   },
@@ -545,8 +556,9 @@ for (const f of FIXTURES) {
   const seen = got.length ? got.join(' | ') : 'no failure';
   if (f.want && !got.some((g) => f.want!.test(g))) fail('SELF-CHECK', `#${f.name} (${f.gap}) was not named. Expected ${f.want}; got ${seen}.`);
   // The control's table citation must count as quoting (`list_levers`): read as quoting nothing, it is #3457 again.
-  // Its list must be placed and checked (`ordered`): a list the arm never placed would pass in any order.
-  if (!f.want && (got.length || st.cites !== 4 || st.unanchored !== 1 || st.ordered !== 1)) fail('SELF-CHECK', `the control (${f.gap}) must pass with 4 citations, 1 of them quoting nothing and 1 list checked for order; got ${seen}, ${st.cites} citations, ${st.unanchored} quoting nothing, ${st.ordered} lists checked.`);
+  // Its list must be placed and checked (`ordered`): a list the arm never placed would pass in any order. Its "or"
+  // list must not be (#3542 review): checked, it fails ORDER, as its head did when only its last label was dropped.
+  if (!f.want && (got.length || st.cites !== 5 || st.unanchored !== 1 || st.ordered !== 1)) fail('SELF-CHECK', `the control (${f.gap}) must pass with 5 citations, 1 of them quoting nothing and 1 list checked for order; got ${seen}, ${st.cites} citations, ${st.unanchored} quoting nothing, ${st.ordered} lists checked.`);
 }
 
 // ── THE GUIDES, through the same arms ───────────────────────────────────────────────────────────────
