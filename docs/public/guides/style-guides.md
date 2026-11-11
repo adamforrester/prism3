@@ -3,7 +3,7 @@
 <!-- DRAFT for owner review (#2637, lane 4; corrected to Documentation and Update file for #3264). -->
 
 Style guides are tables, one for each group of tokens in the file, drawn from the file's own variables, text styles, effect styles, gradient styles and grid styles. A rerun updates each table in place. <!-- src: apps/studio/src/shell/style-guides.ts:75#46a11854 --> <!-- src: apps/studio/src/shell/style-guides.ts:79#3d2941b6 -->
-They are in the Figma plugin only. You choose what to draw in the **Documentation** area, and **Update file** draws it. <!-- src: apps/studio/src/state/update-file.ts:387-390 -->
+They are in the Figma plugin only. You choose what to draw in the **Docs** area, and **Update file** draws it. <!-- src: apps/studio/src/state/update-file.ts:387-391 --> <!-- src: apps/studio/src/shell/pages.ts:517 -->
 
 Because the tables read the file rather than the studio, they show what the file holds right now, including anything you changed by hand. <!-- src: apps/plugin/src/style-guide.ts:1-40#46e5df6d -->
 
@@ -15,7 +15,7 @@ Write the theme first if you want the color tables to show contrast. The contras
 
 ## Choose what to draw
 
-1. Open **Docs** in the rail, then the **Style guides** tab. <!-- src: apps/studio/src/shell/pages.ts:516 --> <!-- src: apps/studio/src/shell/pages.ts:531-536 -->
+1. Open **Docs** in the rail, then the **Style guides** tab. <!-- src: apps/studio/src/shell/pages.ts:517 --> <!-- src: apps/studio/src/shell/pages.ts:532-537 -->
 2. Under **What to draw**, choose a **Collection** (or **Every collection**) and the **Kinds** to include, then tick the groups you want. One button works on the list in view: it reads **Select all**, or **Deselect all** once anything in view is ticked. <!-- src: apps/studio/src/shell/style-guides.ts:318-363 -->
 3. To draw only some tables, open **Draw by table title** and enter one title per line. Empty draws every table. <!-- src: apps/studio/src/shell/style-guides.ts:382-399 -->
 4. Set the **Options**. <!-- src: apps/studio/src/shell/style-guides.ts:585 --> Documentation keeps your choices in the file. <!-- src: apps/studio/src/shell/documentation.ts:1-10#c1d00ceb -->
