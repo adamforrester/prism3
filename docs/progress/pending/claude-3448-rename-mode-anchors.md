@@ -7,7 +7,8 @@ renames the column, and every key that names the column has to follow. `cascadeR
 and `inverse.interactive.<old>.`. The engine ignores a key that names no column, so after a rename the column's Dark
 anchor and its role overrides went back to Auto without a word. A rename now moves those keys too, in every mode,
 custom modes included, when the column has no explicit `name`. A named column's keys name the column, so they stay.
-The old name wins: a key already on the new name belongs to no live column (a rename onto a taken name is refused),
+The old name wins: a key already on the new name belongs to no live column (a rename onto a name another palette or another column's explicit `name` holds is
+refused; the column-name refusal is new here, since the drop would otherwise delete that column's live keys),
 so it is a leftover, such as a removed column leaves behind (#3549). It is dropped before the carry, so it cannot
 bring back a value the user removed or drop the one they just set. No new copy: nothing is lost, so there is nothing to
 say.
@@ -19,9 +20,17 @@ after the rename, Dark's fill resolves to `accent-y 400`, Light's border overrid
 inverse text override to `accent-y 100`. A second column with an explicit `name` keeps its keys and its Dark anchor.
 A further arm puts a stale Dark anchor and a stale border override on `accent-z`, then renames `accent-y` onto it: the
 column resolves to the live `accent-z 400` and `accent-z 700`.
+A rename onto `named`, another column's explicit name, is refused, and `named` still resolves to 300 / 700. Last, a
+stale Light anchor and a stale text override go on `accent-w` with no live counterpart on `accent-z`, so only the drop
+removes them: after the rename both resolve to Auto.
 
 Mutation: drop the new key-carry block, and `#3448 carry: the column's Dark anchor follows the rename …` fails, along
 with the border and inverse arms.
 
 Mutation (review): restore the "keep a key already on the new name" guards, and `#3545 old name wins: a stale Dark
 anchor on the new name does not beat the live one …` fails, with its border twin.
+
+Mutations (re-review): take column names out of `renameBrandColor`'s refusal, and `#3545 a rename onto another
+interactive column's explicit name is refused` fails. Delete `delete m[next];`, and `#3545 old name wins, no
+counterpart: a stale Light anchor on the new name is dropped …` fails. Delete the override drop loop, and `#3545 old
+name wins, no counterpart: a stale text override on the new name is dropped …` fails.
