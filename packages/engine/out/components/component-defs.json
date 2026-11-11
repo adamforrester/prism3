@@ -64176,7 +64176,7 @@
       }
     },
     "code-input": {
-      "digest": "594c9ec2",
+      "digest": "bf42d488",
       "def": {
         "id": "code-input",
         "name": "CodeInput",
@@ -64301,6 +64301,13 @@
             "description": "auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must."
           },
           {
+            "name": "required",
+            "type": "boolean",
+            "default": false,
+            "required": false,
+            "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
+          },
+          {
             "name": "disabled",
             "type": "boolean",
             "default": false,
@@ -64369,7 +64376,7 @@
           ],
           "keyboard": "One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.",
           "focus": "Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.",
-          "aria": "aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
+          "aria": "aria-describedby names the helper and any error, aria-required is set when the code is required, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
         },
         "content": {
           "labelPattern": "Noun phrase, sentence case: \"Verification code\". Spell it out; never an acronym.",
