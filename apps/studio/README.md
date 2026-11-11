@@ -12,26 +12,14 @@ plugin will, and renders from the shared contracts:
 The point is continuity: a lever added once in the core appears here and in the
 Figma plugin without touching either UI (docs/08 §4).
 
-## Shell — a four-stage build order
+## Shell
 
-Organised as the order a theme actually composes:
+The shell is a rail of areas: Theme · Components · Documentation · Export (#2909, IA v2;
+`src/shell/pages.ts`). Theme holds the levers as a tab row in the order a theme composes:
+Brand, Color, Type, Shape, Depth & motion, Layout. Each page puts its levers beside the live
+preview, which has its own mode selector. What each area holds today: **Scope**, below.
 
-1. **Brand primitives** — the bespoke Stage 1: a scalable brand-colour list (primary
-   pinned + any number of accents), a tunable **neutral cast** with a **Derive⇄Pin**
-   toggle (Pin surfaces the engine's `neutral.anchor` — a pre-defined grey the ramp is
-   built around), and the generated ramps shown as labelled specimens.
-2. **Semantic colours** — the action-palette / status / disabled / icon levers.
-3. **Typography** — the type lever group + a **type-scale specimen** (one composite per
-   group at its resolved size, so a `typeScale`/family/weight change is visible where the
-   small component chips can't show it).
-4. **Form factor** — density / radius / elevation / layout / motion levers.
-
-The **live preview + contrast overlay** (sample components, per-mode selector) render on
-every lever stage (2–4), reflecting that stage's axis — colour on Semantic, type on
-Typography, geometry on Form. The mode selector lives with the preview (modes only matter
-once colour resolves, so it's not global).
-
-Colour-axis edits re-resolve the engine and repaint only the volatile region (ramps or
+Color-axis edits re-resolve the engine and repaint only the volatile region (ramps or
 preview), so knob focus is never lost; a failed combination is caught and the last-good
 render preserved.
 
@@ -106,33 +94,29 @@ Two smaller traps worth inheriting rather than rediscovering:
 
 ## Scope (what's here vs. next)
 
-- ✅ Four-stage shell; the colour axis is the live interactive loop (edit a brand
-  colour / neutral → the engine re-resolves and the ramps + preview repaint).
-- ✅ Stage 1 bespoke: brand-colour list (add / rename / remove), neutral Derive⇄Pin
-  (`neutral.anchor`), generated ramps with the pinned-anchor marker.
-- ✅ Preview colours + contrast overlay resolved live per mode; chips render real
-  geometry/type from the token tree.
-- ✅ **Brand setup** — the selector is a menu: switch example brands, **New brand**
-  (minimal known-good starter), **Import design.md** (pasted `design.md` → `parseDesignMd`
-  → loaded; a parse error or `brandTheme` rejection is surfaced, working brand untouched
-  until both pass), the per-brand **Name** + **Namespace (`root`)** fields (`root`
-  validated inline against `^[a-z][a-z0-9-]*$`), and **Modes** toggles — `Light` is always
-  on; `Dark` / `HC` / `Wireframe` opt-in and write `brandState.modes`, so the preview's mode
-  selector narrows/extends automatically. `Wireframe` is a generated greyscale mode (non-neutral
-  roles → equivalent neutral, radius → 0); the preview reads its per-mode geometry from
-  `resolvePreview`'s `dimOverrides` so corners actually square off. *New brand* starts light-only.
-- ✅ **Export** — an area of the rail (#2909; the export dialog until then): **Brand brief**, the `design.md`
-  (`toDesignMd`, re-imports here — the loop closes), and **Design tokens** (since #2552, the consumer set: `<brand>.base.tokens.json` plus one
-  `<brand>.<mode>.overlay.tokens.json` per mode, with no `$extensions`; *Include build metadata*,
-  internal and off by default, keeps them). The single-file tree is never offered — its other modes
-  live in `$extensions`. Both are pure engine functions; the browser just Blob-downloads them.
-- ✅ **Preview on every lever stage** — Semantic / Typography / Form each show the live
-  component preview + overlay reflecting their axis; Typography also has a type-scale specimen.
-- ⏭ **Next:** promote the engine to a named `@prism3/engine` workspace package so imports
-  read by name instead of relative path; a browser-safe schema-validator export (import
-  validation currently leans on `brandTheme` throwing, since the full validator is node-bound
-  in `emit-dtcg`). *Type specimen:* the visual sample size is capped at 60px for layout — the
-  real px is shown in each row's label.
+- ✅ **The shell (IA v2, #2909):** a rail of areas, Theme · Components · Documentation · Export
+  (`RAIL_AREAS`, `src/shell/pages.ts`). The web hides Documentation, which documents a Figma file
+  (`railAreas`). Theme's pages are a tab row: Brand, Color (Palettes, Surfaces & fills, Interactive),
+  Type, Shape, Depth & motion and Layout (`DOMAINS`, `THEME_TABS`). Every lever edit runs the
+  engine again, and the preview redraws.
+- ✅ **The brand menu** (`src/shell/bar.ts`) switches between the example brands, starts a
+  **+ New brand**, or opens **↑ Import design.md…**. An import is parsed (`parseDesignMd`) and then
+  built (`brandTheme`) before it loads. If either refuses, the menu shows why and the working brand
+  stays as it was (`validateDesignMd`, `src/state/start-input.ts`).
+- ✅ **Theme › Brand** holds the brand's **Identity** (name, and the namespace `root`, checked
+  against `^[a-z][a-z0-9-]*$`), its **Personality**, and its **Modes**
+  (`src/domains/brand.ts`). Light is always generated. Dark, High contrast light, High contrast
+  dark and Wireframe are each a checkbox, and the brand can add custom modes. The checked modes
+  set the preview's mode selector (`MODE_ROWS`, `src/state/brand-input.ts`).
+- ✅ **Export**, a rail area since #2909, offers **Design tokens**, **Brand brief** (the
+  `design.md`, which imports back into Studio) and **Component specs** (`src/export-settings.ts`).
+  Design tokens are the consumer set, since #2552: `<brand>.base.tokens.json` plus one
+  `<brand>.<mode>.overlay.tokens.json` per mode, with no `$extensions`. *Include build metadata*,
+  off by default, keeps them. Studio never offers the single-file tree, because it holds the
+  other modes in `$extensions`. The files are built by pure engine functions, and the browser
+  downloads them as Blobs.
+- ⏭ **Next:** a browser-safe schema validator. Import validation still relies on `brandTheme`
+  refusing, because the full validator runs only under Node (`src/state/start-input.ts`).
 
 ## Deploy
 
