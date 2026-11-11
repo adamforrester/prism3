@@ -57,7 +57,8 @@ export const mountReport = (lend: ReportLend, cleanups: (() => void)[]): { reado
     head.append(x);
 
     const body = hook(h('div', 'p3-bardlg-col p3-upd-body'), 'report-body');
-    body.append(hook(h('p', 'p3-sub p3-upd-sub', REPORT_COPY.intro), 'report-intro'));
+    // #3553 M10: not `p3-upd-sub`, whose indent hangs a hint under a checkbox: the intro comes before the checkbox.
+    body.append(hook(h('p', 'p3-sub', REPORT_COPY.intro), 'report-intro'));
     // The opt-in: a real checkbox, off until the person turns it on, for this opening only.
     const optRow = hook(h('label', 'p3-upd-handsel'), 'report-brand-row');
     const box = hook(h('input'), 'report-brand');

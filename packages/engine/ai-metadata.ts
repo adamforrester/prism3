@@ -582,7 +582,7 @@ const primMeaning = (seg: string[], node?: any): string => {
     if (seg[1] === 'size') return `Font size primitive — ${seg[2]}px (rem)`;
     if (seg[1] === 'weight') return `Font weight primitive — numeric ${seg[2]} (reference tier)`;
     if (seg[1] === 'line-height') return `Line-height multiplier — ${seg[2]} (unitless)`;
-    if (seg[1] === 'letter-spacing') return `Letter-spacing primitive — ${seg[2]} (em)`;
+    if (seg[1] === 'letter-spacing') return `Letter-spacing multiplier — ${seg[2]} (a multiplier of the font size; \`em\` in a stylesheet)`;
     if (seg[1] === 'typeface') return `Typeface primitive — ${seg[2]}`;
     if (seg[1] === 'underline') return `Link underline ${seg[2]} — a share of the font size (unitless; \`em\` in a stylesheet)`;
     return `Typography primitive — ${seg.slice(1).join(' ')}`;
@@ -659,7 +659,7 @@ const thinRole = (path: string): { tier: 'layout' | 'motion' | 'typography'; mea
     const avoid = 'Do not apply it on its own — a type style sets it together with the size and weight it was chosen for.';
     if (s[2] === 'family') return { tier: 'typography', meaning: `Font family role — ${last}`, when: `The typeface stack for ${last} type. Reach for it through a type style (\`type.*\`).`, avoid };
     if (s[2] === 'line-height-role') return { tier: 'typography', meaning: `Line-height role — ${last}`, when: 'A line-height multiplier, named by purpose. Reach for it through a type style (`type.*`).', avoid };
-    if (s[2] === 'letter-spacing-role') return { tier: 'typography', meaning: `Letter-spacing role — ${last}`, when: 'A letter-spacing value, named by purpose. Reach for it through a type style (`type.*`).', avoid };
+    if (s[2] === 'letter-spacing-role') return { tier: 'typography', meaning: `Letter-spacing role — ${last}`, when: 'A letter-spacing multiplier of the font size, named by purpose. Reach for it through a type style (`type.*`).', avoid };
   }
   return undefined;
 };
