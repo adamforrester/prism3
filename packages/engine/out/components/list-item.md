@@ -22,7 +22,7 @@ Shown on the default member: type `unordered`, size `medium`.
 1. **Row** — The item: the marker column, then the text. Top-aligned, so a wrapping item keeps its marker on the first line.
 2. **Marker box** — The marker column: one width per type and one text line tall, so the marker sits on the first line and the text of every item in the list starts at one edge.
 3. **Bullet** — The bullet: a round dot, in the icon color.
-4. **Number**
+4. **Number** — The item's number, in the item's text style and color; the list counts it.
 5. **Icon** — The icon marker, a check by default and swappable, in the icon color. Decorative: the text carries the meaning.
 6. **Label** — The item text. It fills the rest of the row and wraps under itself, never under the marker.
 
@@ -252,7 +252,7 @@ Keyed by `type`.
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `text` | text | `List item` |
+| `label` | text | `List item` |
 | `number` | text | `1.` |
 | `swap icon` | instance swap | — |
 

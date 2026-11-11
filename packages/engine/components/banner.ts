@@ -264,7 +264,9 @@ export const banner: ComponentDef = {
         prefersWhenBuilt: 'button-neutral',
         nesting: { kind: 'nest-fixed', variant: { appearance: 'text', size: 'small', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' } },
         overrides: { texts: { label: 'Action' } },
-        note: 'The one action: a Button, text, small; Button.Neutral when the file has it (Q386). Q533.1: one text action, never two.',
+        // Maintainer detail, out of the reader caption (#3610): The one action: a Button, text, small; Button.Neutral
+        // when the file has it (Q386). Q533.1: one text action, never two.
+        note: 'The one action, a small text button; a banner holds one action at most.',
       },
       close: {
         kind: 'nest',
@@ -272,7 +274,10 @@ export const banner: ComponentDef = {
         optional: true,
         nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'small', surface: 'default', state: 'rest' } },
         overrides: { swaps: { icon: 'close' } },
-        note: 'The close button: a FlushIconButton.Neutral, flush, small (the bare glyph, no edge or fill, as Dialog\'s close; owner QA 2026-10-19), always the close glyph, with no swap (Q386). Off by default.',
+        // Maintainer detail, out of the reader caption (#3610): The close button: a FlushIconButton.Neutral, flush,
+        // small (the bare glyph, no edge or fill, as Dialog's close; owner QA 2026-10-19), always the close glyph,
+        // with no swap (Q386). Off by default.
+        note: 'The close button, a bare close icon with no edge or fill, as on a dialog; off by default.',
       },
     },
     codeOnly: [
