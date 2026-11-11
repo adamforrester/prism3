@@ -5754,7 +5754,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wantDigits = plans.filter((p) => JSON.stringify(p.root).includes('"name":"digit"')).length;
   const off = digits.flatMap((d) => {
     const member = String((d.parent as Node | undefined)?.parent?.name);
-    const size = /size=(\w+)/.exec(member)?.[1] ?? '';
+    const size = /size=([\w-]+)/.exec(member)?.[1] ?? '';
     const style = String(d._textStyleId ?? '').replace(/^S:/, '');
     return style === STYLE[size] && d.leadingTrim === 'NONE' ? [] : [`${member}: ${style || 'no style'}, trim ${String(d.leadingTrim)}`];
   });
