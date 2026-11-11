@@ -31,7 +31,7 @@ For each set, the plugin: <!-- src: apps/plugin/src/main.ts:879-1002#34f3a25b --
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws its usage panel beside it, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:967-968#03cbfa05 -->
+- draws the family's usage panel beside its lead, while Documentation has usage panels on. <!-- src: apps/plugin/src/main.ts:967-968#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:185-186#b6f87a5f -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:150-151#7bb3ec74 -->
 
@@ -50,7 +50,7 @@ The status strip says how the run went, such as "Sets added" or "File updated". 
 | `⚠ N misses` | Something did not resolve or bind, such as a variable the file is missing. |
 | `✗ nothing built` | Nothing was in the file and nothing could be built. |
 
-A run of several sets is summed up in one line, such as "Built 3 sets" or "Built 2 of 3 sets". <!-- src: apps/studio/src/state/build-queue.ts:99-104 -->
+A run of several sets is summed up in one line, such as "Built 3 sets" or "Built 2 of 3 sets". <!-- src: apps/studio/src/state/build-queue.ts:126-131 -->
 
 A set that can't be built for this brand is listed with the reason: "Can't be built yet: …". <!-- src: apps/studio/src/preview/sections/component-sets.ts:26 -->
 

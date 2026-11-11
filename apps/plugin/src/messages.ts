@@ -405,7 +405,10 @@ export type MainToUi =
      *  first, each page header. */
     lines: string[];
     /** #3326: why the build is not clean, as data (`Cause`). Sent by every build verdict; absent from a host older than it. */
-    causes?: Cause[] }
+    causes?: Cause[];
+    /** #3359: the ids of the sets this build made first (#1633, #3308), as the "Also built" line names them, so the
+     *  panel's run does not post a queued one again. Absent where nothing was built first. */
+    alsoBuilt?: string[] }
   /** Result of the in-place update's dry run, or of a baseline capture (#2265) — the `{ok, headline, summary}`
    *  shape, its own kind for the one-kind-per-fact reason: "what would an update change" is not "did my build
    *  land", and must not overwrite the build's verdict on the Components page. Only the agent link sends the
