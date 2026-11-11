@@ -65,8 +65,11 @@ type ToolCall = { name: string; input: string };
  * read, so an agent that only MENTIONS `skills/prism3-rebind/…` (as the C1 packet does) is not void (review S1).
  *   · JSON: the whole file, or one event per line (JSONL). Every object with `type: "tool_use"`, a `name` and an `input`,
  *     at any depth. Parsing undoes every escape spelling (`\uXXXX` included), so no spelling of the packet matters.
- *   · Text: a line that starts (after bullets or symbols) with `Skill(`, one of `READ_TOOLS` or an `mcp__…` name, and `(`, and ends at
+ *   · Text: a line that starts (after bullets or symbols) with `Skill(` or one of `READ_TOOLS` and `(`, and ends at
  *     its closing `)`, as a terminal transcript prints a call. A sentence that names a tool mid-line is prose.
+ *     Claude Code prints an MCP call as `<server> - <tool>(<args>) (MCP)` (its `userFacingName`, the ` (MCP)` moved
+ *     after the arguments), never as the `mcp__…` name; such a line is read as `mcp__<server>__<tool>`, the server
+ *     name normalized the way the JSON name is (#3567 review). A server name with a space is not read (see the README).
  */
 export const toolCalls = (transcript: string): ToolCall[] => {
   const calls: ToolCall[] = [];
@@ -84,8 +87,10 @@ export const toolCalls = (transcript: string): ToolCall[] => {
   for (const line of transcript.split('\n')) {
     const ev = line.trim().startsWith('{') ? json(line) : undefined;
     if (ev !== undefined) { walk(ev); continue; }
-    const m = /^[^\p{L}\p{N}]*(Skill|Read|WebFetch|Bash|Grep|Glob|Agent|Task|mcp__[\w-]+)\((.*)\)\s*$/u.exec(line);
-    if (m) calls.push({ name: m[1], input: m[2] });
+    const m = /^[^\p{L}\p{N}]*(Skill|Read|WebFetch|Bash|Grep|Glob|Agent|Task)\((.*)\)\s*$/u.exec(line);
+    if (m) { calls.push({ name: m[1], input: m[2] }); continue; }
+    const mcp = /^[^\p{L}\p{N}]*([\w.-]+) - ([\w-]+)\((.*)\) \(MCP\)\s*$/u.exec(line);
+    if (mcp) calls.push({ name: `mcp__${mcp[1].replace(/[^\w-]/g, '_')}__${mcp[2]}`, input: mcp[3] });
   }
   return calls;
 };
