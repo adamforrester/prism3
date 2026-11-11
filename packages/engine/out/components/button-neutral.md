@@ -84,7 +84,7 @@ Use for an immediate action in the current context — submit/save/reset a form,
 - 2.5.3 Label in Name (an aria-label starts with the visible label text)
 - 2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)
 - 2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)
-- 4.1.2 Name/Role/Value (native \<button>: the label is the name, the role is button, and state rides aria-disabled, aria-busy and aria-pressed)
+- 4.1.2 Name/Role/Value (native \<button>: the label is the name, the role is button, and state rides aria-disabled and aria-busy, plus aria-pressed on a toggle button only)
 
 ### Motion
 
@@ -97,7 +97,7 @@ Use for an immediate action in the current context — submit/save/reset a form,
 Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound i18n expansion.
 
 - **Labels:** Verb-first, action-specific, sentence case, ≤3 words. "Save changes" / "Delete file" — never "OK", "Submit", or "Click here".
-- **Errors:** Button has no error state — surface failures in an adjacent inline-message / alert (errors belong to the form/field).
+- **Errors:** Button has no error state — surface failures in an adjacent FieldMessage or Banner (errors belong to the form/field).
 - **Dialogs:** Match the destructive verb to the consequence ("Delete", not "Confirm"). Cancel = abort+revert; Close/Dismiss = dismiss info; never "OK" on an error.
 
 ## Related components
