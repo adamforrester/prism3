@@ -998,7 +998,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1107,7 +1107,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1216,7 +1216,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
