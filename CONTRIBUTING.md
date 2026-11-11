@@ -1673,7 +1673,11 @@ npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHI
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component
-                                          # defs' description/note/aria prose actually ships
+                                          # defs' description/note/aria prose actually ships.
+                                          # Both prose gates also read packages/engine/changes/*.md
+                                          # (Q181 A, #3574), so a note is clean before it merges; a
+                                          # release page's carried notes ("In detail") are then the
+                                          # dated record, like CHANGELOG.md, and are not re-read
 npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here.
                                           # NOT the same scope any more: it still has the
                                           # apps/plugin/dist hole #937 closed above (3 violations
