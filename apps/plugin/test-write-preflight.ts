@@ -654,5 +654,41 @@ for (const c of ['skip', 'rename'] as const) {
     `Q112 skip references (control): display/3xl/strong still binds its own font size (${other?.bound.fontSize ?? 'none'})`);
 }
 
+// ── A SKIPPED OPACITY KEEPS THE WASH'S LITERAL (#3556) ──
+// A tinted wash is a color alias plus a per-mode opacity alias. Skipping the opacity (its whole collection, or the one
+// variable) must leave the wash's literal, the fill at its opacity, never a plain alias to the solid fill at 100%. The
+// wash and its opacity variable are literals here. Expected per mode: a literal color whose alpha is below 1.
+{
+  const WASH = 'pds3/color/interactive/primary/subtle-fill/selected';
+  const modesOf = (f: FileShim): any[] => Object.values(f.vars.find((v) => v.name === WASH)?.valuesByMode ?? {});
+  const literalWash = (vs: any[]): boolean => vs.length > 0 && vs.every((x) => typeof x?.r === 'number' && typeof x?.a === 'number' && x.a < 1);
+  const show = (vs: any[]): string => JSON.stringify(vs.map((x) => (x?.type === 'VARIABLE_ALIAS' ? 'alias' : x?.color ? 'wash' : typeof x?.a === 'number' ? `literal a=${Math.round(x.a * 100) / 100}` : x)));
+  // The control: with no collision, every mode is a wash (a color alias with an opacity alias).
+  const clean = new FileShim();
+  await apply(clean);
+  ok(modesOf(clean).length > 0 && modesOf(clean).every((x) => x?.color?.type === 'VARIABLE_ALIAS' && x?.opacity?.type === 'VARIABLE_ALIAS'),
+    `#3556 premise: on a clean apply ${WASH} is a wash in every mode (${show(modesOf(clean))})`);
+  // A hand-made `opacity` collection, skipped whole.
+  const f = new FileShim();
+  f.addCollection('opacity');
+  f.writes = [];
+  const { guarded: g } = await applyWith(f, { 'collection:opacity': 'skip' });
+  ok(g.ok && literalWash(modesOf(f)),
+    `#3556 skip opacity collection: ${WASH} keeps its literal at its opacity in every mode, not a plain alias to the solid fill (${g.ok ? show(modesOf(f)) : 'refused'})`);
+  // One opacity variable retyped by hand in Prism3's own collection, skipped alone.
+  const h = new FileShim();
+  await apply(h);
+  const opName = (Object.values(h.vars.find((v) => v.name === WASH)!.valuesByMode)[0] as any).opacity.id;
+  const op = h.vars.find((v) => v.id === opName);
+  op.resolvedType = 'STRING';
+  op.valuesByMode = { m: 'hand-typed' };
+  const g0 = await apply(h);
+  const keys = g0.ok ? [] : g0.conflicts.map(conflictKey);
+  const { guarded: g2 } = await applyWith(h, Object.fromEntries(keys.map((k: string) => [k, 'skip' as const])));
+  ok(keys.length === 1 && keys[0] === `variable:opacity:${op.name}` && g2.ok, `#3556 skip opacity variable: the one collision is ${op.name}, and the apply goes ahead (${keys.join(' | ')})`);
+  ok(g2.ok && literalWash(modesOf(h).filter((_, i) => i === 0)),
+    `#3556 skip opacity variable: ${WASH}'s first mode, whose opacity is ${op.name}, keeps its literal at its opacity (${show(modesOf(h))})`);
+}
+
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');
 process.exit(failed ? 1 : 0);
