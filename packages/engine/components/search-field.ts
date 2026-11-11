@@ -219,23 +219,6 @@ const built: ComponentDef = makeTextField({
   },
 });
 
-/** THE MESSAGE IS OFF BY DEFAULT (owner decision on #2926, item 1: every field's message defaults off). #2929 moves
- *  the factory's `showMessage` boolean and the message note to off for every field; until it lands, this field
- *  states its own, so it ships consistent either way. Once #2929 is on main this override is a no-op. */
-const message = built.anatomy!.parts.message;
-const booleans = built.figmaProperties!.booleans!;
-const showMessage = booleans.showMessage as Exclude<(typeof booleans)[string], string>;
-export const searchField: ComponentDef = {
-  ...built,
-  anatomy: {
-    ...built.anatomy!,
-    parts: {
-      ...built.anatomy!.parts,
-      message: {
-        ...message,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to say. Fills the field\'s width, so a long message wraps.',
-      },
-    },
-  },
-  figmaProperties: { ...built.figmaProperties!, booleans: { ...booleans, showMessage: { ...showMessage, default: false } } },
-};
+/** The message is off by default (owner decision on #2926, item 1). #2929 moved the factory's `showMessage` boolean and
+ *  the message note to off for every field, so this field takes both from the factory and states neither itself. */
+export const searchField: ComponentDef = built;
