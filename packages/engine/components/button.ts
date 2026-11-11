@@ -466,7 +466,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // def to fix — which is exactly what `swap` says.
       leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
       label: { kind: 'text', optional: false, type: 'size.{size}.{appearance}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
-      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / caret / indicator after the label. Not split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
+      // Maintainer detail, out of the reader caption (#3610): Icon / caret / indicator after the label. Not split
+      // into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own
+      // slot — is already carried by leadingVisual + isPending.
+      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'An icon, caret or indicator after the label.' },
       spinner: {
         kind: 'overlay',
         // THE SPINNER COMPONENT (#1670), swapped in at the member on the slot's own icon rung (a medium
@@ -481,7 +484,19 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         overlaysWhenAbsent: 'label',
         when: 'pending',
         size: 'size.{size}.icon',
-        note: 'Takes a visual cell when there is one (Primer: "the spinner replaces only that visual slot, and the button label remains visible") — width identical, because the cell was already the icon\'s size. With no visual cell at all there is nothing to take, so it goes out of flow, centered on the label, and the label holds the width open at zero opacity (React Aria). Generalized from "the leading visual" to "a visual cell" by #848, and the narrow reading was a real defect rather than a simplification: `replaces` named only `leadingVisual`, so `leading=false, trailing=true` — which has a visual cell — fell through to the label overlay and rendered as spinner + trailing visual with the label at zero opacity, i.e. two icons and no text. Found in a live Figma paste; every gate was green (see #848 and docs/34 shape 16). The older note before that ruled out the label\'s position on the grounds that replacing a centered label collapses the width, which conflated replacing with removing: removing the label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the label-only case for as long as it stood (#612).',
+        // Maintainer detail, out of the reader caption (#3610): Takes a visual cell when there is one (Primer: "the
+        // spinner replaces only that visual slot, and the button label remains visible") — width identical, because
+        // the cell was already the icon's size. With no visual cell at all there is nothing to take, so it goes out
+        // of flow, centered on the label, and the label holds the width open at zero opacity (React Aria).
+        // Generalized from "the leading visual" to "a visual cell" by #848, and the narrow reading was a real defect
+        // rather than a simplification: `replaces` named only `leadingVisual`, so `leading=false, trailing=true` —
+        // which has a visual cell — fell through to the label overlay and rendered as spinner + trailing visual with
+        // the label at zero opacity, i.e. two icons and no text. Found in a live Figma paste; every gate was green
+        // (see #848 and docs/34 shape 16). The older note before that ruled out the label's position on the grounds
+        // that replacing a centered label collapses the width, which conflated replacing with removing: removing the
+        // label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the
+        // label-only case for as long as it stood (#612).
+        note: 'Shown while the button is busy: it takes the place of an icon when there is one, and otherwise sits over the hidden label, so the button keeps its width.',
       },
       focusRing: {
         kind: 'absolute',
@@ -503,7 +518,14 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         // Naming the variant is still #681 — the def CHOOSES rather than inheriting the ring set's first
         // child (creation-order, #656's error one layer out); `follow` only makes the choice per member.
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component. Takes no cell in the row, so no geometry moves, and has its own stroke — which is what dissolves the collision rather than trading a loss: a ring drawn on the target would compete with `appearance=outline`\'s border for the single stroke a Figma node has, at three different palette steps (550 ring / 500 border / 550 rest fill). Shared rather than authored per host because the ring is nobody\'s component — `focus.ring.*` and `color.border.focus` are top-level families and `focus.ring.offset-field` already emits separately.',
+        // Maintainer detail, out of the reader caption (#3610): An absolutely-positioned sibling nesting the shared
+        // `focus-ring` component. Takes no cell in the row, so no geometry moves, and has its own stroke — which is
+        // what dissolves the collision rather than trading a loss: a ring drawn on the target would compete with
+        // `appearance=outline`'s border for the single stroke a Figma node has, at three different palette steps (550
+        // ring / 500 border / 550 rest fill). Shared rather than authored per host because the ring is nobody's
+        // component — `focus.ring.*` and `color.border.focus` are top-level families and `focus.ring.offset-field`
+        // already emits separately.
+        note: 'The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.',
       },
     },
     derived: {

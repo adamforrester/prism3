@@ -19,8 +19,8 @@ The visible, persistent label above a form field — the field's accessible name
 
 Shown on the default member: size `small`, emphasis `primary`, weight `regular`.
 
-1. **Label**
-2. **Indicator** (optional)
+1. **Label** — The field's accessible name; it wraps at a maximum width, so the required marker stays right after it.
+2. **Indicator** (optional) — The required marker (*), shown when the field is required, right after the name; it is never the only sign that a field is required.
 
 ## Styles
 

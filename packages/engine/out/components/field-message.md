@@ -21,10 +21,10 @@ Shown on the default member: status `default`.
 
 1. **Glyph cell** — The status glyph's cell. Where the caption's line is taller than the glyph, it sets the glyph down so the glyph's middle is the first line's middle.
 2. **Caption cell** — The caption's column. It fills the row beside the glyph and, where the glyph is taller than the caption's line, sets the caption down so its first line centers on the glyph.
-3. **Error glyph**
-4. **Warning glyph**
-5. **Success glyph**
-6. **Label**
+3. **Error glyph** — The error icon, an exclamation in a triangle, decorative because the message carries the meaning; the triangle tells error from warning when the colors are hard to tell apart.
+4. **Warning glyph** — The warning icon, an exclamation in a circle, decorative because the message carries the meaning.
+5. **Success glyph** — The success icon, a check in a circle, decorative because the message carries the meaning.
+6. **Label** — The message itself, in the status's text color.
 
 ## Styles
 

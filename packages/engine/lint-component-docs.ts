@@ -48,8 +48,9 @@
  *      committed page's `##` headings are exactly the def's sections, in order, then `Specs` for a def the
  *      committed `specs.json` covers (#2830) (`SECTION PARITY`), and its
  *      Anatomy is the gate's reading of the def: the default member, each noted part's line, and no held-back
- *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), with role and ARIA under
- *      one Screen readers row (`SCREEN READERS`); F5 the
+ *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), and, since every part note
+ *      became a caption (#3610, owner Q-UG1 A), no Anatomy line without one (`UNCAPTIONED PART`), with role and
+ *      ARIA under one Screen readers row (`SCREEN READERS`); F5 the
  *      maintainer record's `docGaps` names every section not drawn and every part note held back.
  *   G  THE COMPONENT-DEFS EXPORT (#3425). `out/components/component-defs.json` validates against the AUTHORED
  *      `schema/component-defs.schema.json`, its `format` names the schema's `$id`, its two version stamps are
@@ -622,6 +623,9 @@ for (const def of componentDefs) {
         const got = lines[i] === undefined ? undefined : unescape(lines[i]);
         anatomyChecked++;
         if (got !== want) note(`ANATOMY LINE (page): out/components/${def.id}.md part ${i + 1} reads ${JSON.stringify(got?.slice(0, 90) ?? null)}; the def gives ${JSON.stringify(want.slice(0, 90))}${reader ? '' : ' (its note is held back)'}`);
+        // Every Anatomy line carries a caption (#3610): a held-back note lists its part bare, so rewrite the note
+        // for a reader and keep the maintainer half in a code comment beside the part.
+        if (!reader) note(`UNCAPTIONED PART (page): out/components/${def.id}.md lists part \`${id}\` with no caption: its note is held back as maintainer prose — rewrite it for a reader`);
       });
     }
     // F4, Screen readers: the wireframe draws \`accessibility.role\` and \`.aria\` under that one label, role first.

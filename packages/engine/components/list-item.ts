@@ -166,7 +166,9 @@ export const listItem: ComponentDef = {
         kind: 'text',
         type: 'size.{size}.text',
         presentWhen: { type: ['ordered'] },
-        note: 'The number, in the item\'s own type and the text color. Typed per item in Figma; counted by the list in code.',
+        // Maintainer detail, out of the reader caption (#3610): The number, in the item's own type and the text
+        // color. Typed per item in Figma; counted by the list in code.
+        note: 'The item\'s number, in the item\'s text style and color; the list counts it.',
       },
       icon: {
         kind: 'slot',
@@ -228,7 +230,7 @@ export const listItem: ComponentDef = {
     variantAxes: ['type', 'size'],
     // The text first, at the top of the panel; the number only on ordered members, the icon swap only on icon members.
     texts: {
-      children: { part: 'label', default: 'List item', figmaName: 'text' },
+      children: { part: 'label', default: 'List item', figmaName: 'label' },
       value: { part: 'number', default: '1.', figmaName: 'number' },
     },
     // A required single icon, with no presence toggle: `swap icon`, with no ↳ (the icon-property canon).

@@ -305,7 +305,10 @@ export const fieldLabel: ComponentDef = {
         // wraps at 316. In code nothing changes: the marker flows inline after the name and the name wraps at
         // whatever width the field gives it.
         wrap: 'hug',
-        note: 'The accessible name. Hugs its text and wraps at a max width — the default field width less the gap before the marker — so the marker sits right after the name. A native <label for> in the code projection; a plain text node in Figma, where the association cannot exist.',
+        // Maintainer detail, out of the reader caption (#3610): The accessible name. Hugs its text and wraps at a max
+        // width — the default field width less the gap before the marker — so the marker sits right after the name. A
+        // native <label for> in the code projection; a plain text node in Figma, where the association cannot exist.
+        note: 'The field\'s accessible name; it wraps at a maximum width, so the required marker stays right after it.',
       },
       indicator: {
         kind: 'text',
@@ -331,7 +334,11 @@ export const fieldLabel: ComponentDef = {
         // `required` boolean below are two halves of one mechanism. Built HIDDEN (the boolean defaults
         // false since #1699), shown when the switch is turned on.
         optional: true,
-        note: 'The required marker ("*"), in the indicator ink right after the name — after its last word on one line, beside the wrapped name on more. Hidden by default (the `required` boolean, off by default) and shown when the field is marked required. Never the sole signal: the field carries required / aria-required.',
+        // Maintainer detail, out of the reader caption (#3610): The required marker ("*"), in the indicator ink right
+        // after the name — after its last word on one line, beside the wrapped name on more. Hidden by default (the
+        // `required` boolean, off by default) and shown when the field is marked required. Never the sole signal: the
+        // field carries required / aria-required.
+        note: 'The required marker (*), shown when the field is required, right after the name; it is never the only sign that a field is required.',
       },
     },
     codeOnly: [
