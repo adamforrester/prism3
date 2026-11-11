@@ -221,7 +221,7 @@ export const tabs: ComponentDef = {
 
   composition: {
     composesWith: ['tab-item'],
-    alternativeTo: ['select', 'accordion', 'segmented-control', 'page-nav'],
+    alternativeTo: ['select', 'accordion', 'segmented-control', 'page-nav', 'breadcrumbs', 'pagination'],
     replacesPatterns: ['show and hide divs with no tab semantics', 'role="tab" on links that change the route'],
     supersededBy: [],
     planned: [],

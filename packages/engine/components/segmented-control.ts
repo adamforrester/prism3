@@ -561,7 +561,7 @@ export const segmentedControl: ComponentDef = {
 
   composition: {
     composesWith: ['field-label', 'segmented-control-segment'],
-    alternativeTo: ['tabs', 'radio-group', 'select', 'switch-row'],
+    alternativeTo: ['tabs', 'radio-group', 'select', 'switch-row', 'radio-row', 'button-group', 'counter', 'slider'],
     replacesPatterns: ['a radio group restyled as a compact switcher for a view that changes at once', 'a row of buttons with a hand-rolled active state and no group semantics'],
     supersededBy: [],
   },

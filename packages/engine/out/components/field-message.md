@@ -79,6 +79,7 @@ Say what is wrong and how to fix it, with the constraint stated: "Enter a valid 
 
 ## Related components
 
+- **Instead, consider:** `toast`, `banner`
 - **Often used with:** `text-field`, `textarea`, `select`, `checkbox-row`, `counter`, `field-label`, `icon`
 
 ## Building it in code

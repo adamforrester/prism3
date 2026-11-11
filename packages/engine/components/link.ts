@@ -344,7 +344,7 @@ export const link: ComponentDef = {
 
   composition: {
     composesWith: ['focus-ring'],
-    alternativeTo: ['button'],
+    alternativeTo: ['button', 'breadcrumbs'],
     replacesPatterns: ['a click handler on a div or span styled as a link', 'an <a> with no href, href="#" or javascript:void(0)', 'a[role=button] used for navigation'],
     supersededBy: [],
     planned: ['menu'],

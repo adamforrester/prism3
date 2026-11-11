@@ -83,7 +83,7 @@ One or two words per tab, nouns, sentence case.
 ## Related components
 
 - **Built from:** `tab-item`
-- **Instead, consider:** `select`, `accordion`, `segmented-control`, `page-nav`
+- **Instead, consider:** `select`, `accordion`, `segmented-control`, `page-nav`, `breadcrumbs`, `pagination`
 - **Often used with:** `badge`, `icon`
 - **Replaces:**
   - show and hide divs with no tab semantics

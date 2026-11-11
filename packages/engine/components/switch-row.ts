@@ -432,7 +432,7 @@ export const switchRow: ComponentDef = {
     // level down. The label is the Row's own text part, not a `field-label`, and an outcome error is a status
     // message, not a `field-message` (#1699).
     composesWith: ['switch-control'],
-    alternativeTo: ['checkbox-row', 'radio-row', 'segmented-control'],
+    alternativeTo: ['checkbox-row', 'radio-row', 'segmented-control', 'button', 'button-destructive', 'button-neutral', 'text-field', 'checkbox-group', 'radio-group', 'slider'],
     replacesPatterns: [
       'a checkbox misused for an immediate-effect setting',
       'two radios standing in for an obvious binary on/off',

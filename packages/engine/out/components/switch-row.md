@@ -93,7 +93,7 @@ The label names the setting and never changes. The description says what turning
 ## Related components
 
 - **Built from:** `switch-control`
-- **Instead, consider:** `checkbox-row`, `radio-row`, `segmented-control`
+- **Instead, consider:** `checkbox-row`, `radio-row`, `segmented-control`, `button`, `button-destructive`, `button-neutral`, `text-field`, `checkbox-group`, `radio-group`, `slider`
 - **Often used with:** `focus-ring`
 - **Replaces:**
   - a checkbox misused for an immediate-effect setting

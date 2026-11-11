@@ -241,7 +241,9 @@
       },
       "composition": {
         "composesWith": [],
-        "alternativeTo": [],
+        "alternativeTo": [
+          "provider-logo"
+        ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
@@ -1015,7 +1017,9 @@
         ],
         "alternativeTo": [
           "icon-button",
-          "switch-row"
+          "switch-row",
+          "tag",
+          "link"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -2374,7 +2378,8 @@
           "spinner"
         ],
         "alternativeTo": [
-          "button"
+          "button",
+          "flush-icon-button"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -2633,7 +2638,8 @@
           "spinner"
         ],
         "alternativeTo": [
-          "button-destructive"
+          "button-destructive",
+          "flush-icon-button-destructive"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -2891,7 +2897,8 @@
           "spinner"
         ],
         "alternativeTo": [
-          "button-neutral"
+          "button-neutral",
+          "flush-icon-button-neutral"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -3882,7 +3889,10 @@
       },
       "composition": {
         "composesWith": [],
-        "alternativeTo": [],
+        "alternativeTo": [
+          "toast",
+          "banner"
+        ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
@@ -4222,7 +4232,11 @@
           "checkbox-row",
           "switch-row",
           "password-field",
-          "search-field"
+          "search-field",
+          "counter",
+          "card-number-field",
+          "slider",
+          "code-input"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -5006,7 +5020,8 @@
         ],
         "alternativeTo": [
           "switch-row",
-          "radio-row"
+          "radio-row",
+          "text-field"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -5243,7 +5258,9 @@
         ],
         "alternativeTo": [
           "radio-group",
-          "switch-row"
+          "switch-row",
+          "select",
+          "tag"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -5883,7 +5900,9 @@
           "checkbox-group",
           "select",
           "switch-row",
-          "segmented-control"
+          "segmented-control",
+          "tag",
+          "slider"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -6319,7 +6338,14 @@
         "alternativeTo": [
           "checkbox-row",
           "radio-row",
-          "segmented-control"
+          "segmented-control",
+          "button",
+          "button-destructive",
+          "button-neutral",
+          "text-field",
+          "checkbox-group",
+          "radio-group",
+          "slider"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -6596,7 +6622,11 @@
           "text-field",
           "radio-group",
           "checkbox-group",
-          "segmented-control"
+          "segmented-control",
+          "textarea",
+          "radio-row",
+          "tabs",
+          "counter"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -8030,7 +8060,9 @@
           "select",
           "accordion",
           "segmented-control",
-          "page-nav"
+          "page-nav",
+          "breadcrumbs",
+          "pagination"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -8625,7 +8657,8 @@
           "divider"
         ],
         "alternativeTo": [
-          "tabs"
+          "tabs",
+          "dialog"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -9384,7 +9417,11 @@
           "tabs",
           "radio-group",
           "select",
-          "switch-row"
+          "switch-row",
+          "radio-row",
+          "button-group",
+          "counter",
+          "slider"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -9652,7 +9689,8 @@
           "focus-ring"
         ],
         "alternativeTo": [
-          "button"
+          "button",
+          "breadcrumbs"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -10089,7 +10127,9 @@
           "button-group"
         ],
         "alternativeTo": [
-          "accordion"
+          "accordion",
+          "toast",
+          "banner"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -11185,7 +11225,8 @@
         ],
         "alternativeTo": [
           "link",
-          "tabs"
+          "tabs",
+          "page-nav"
         ],
         "supersedes": [],
         "supersededBy": [],

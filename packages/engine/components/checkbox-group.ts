@@ -384,7 +384,7 @@ export const checkboxGroup: ComponentDef = {
     // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the label, the rows and, since owner Q354
     // (#2751), the error message under them.
     composesWith: ['checkbox-row', 'field-label', 'field-message'],
-    alternativeTo: ['radio-group', 'switch-row'],
+    alternativeTo: ['radio-group', 'switch-row', 'select', 'tag'],
     replacesPatterns: [
       'a bare set of <input type="checkbox"> with no shared label or group wiring',
       'per-row required / error scattered across the options instead of owned by the group',

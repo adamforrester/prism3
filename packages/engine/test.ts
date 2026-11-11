@@ -16234,6 +16234,13 @@ arm: {
     }
     ok(refsRead > 50, `component-refs: the id lists are live (${refsRead} entries read) — a scan over empty lists asserts nothing`);
 
+    // (a1) #3555 Q-MD10 A: `alternativeTo` is symmetric. If A names B as an alternative, B names A, so an agent reading
+    // either component finds the other. The oracle for each entry is the OTHER def's list, never the one under test.
+    const alts = new Map(componentDefs.map((d) => [d.id, d.composition?.alternativeTo ?? []]));
+    const oneWay: string[] = []; let altPairs = 0;
+    for (const [id, list] of alts) for (const other of list) { altPairs++; if (!(alts.get(other) ?? []).includes(id)) oneWay.push(`${id} → ${other}`); }
+    ok(oneWay.length === 0 && altPairs > 50, `component-refs: composition.alternativeTo is symmetric — each named alternative names the component back (${altPairs} entries)${oneWay.length ? ` — one-way: ${oneWay.join(', ')}` : ''}`);
+
     // (a2) #1238 — `composesWith` FOLLOWS `nests`. Every component a def's anatomy nests is one it composes
     // with. The oracle is `anatomy.parts[*].nests`: derived from the build plan, never from the list under
     // test. Before this, the button family and text-field nested `focus-ring` while leaving it out of

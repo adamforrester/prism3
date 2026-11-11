@@ -596,7 +596,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // #1700 — what the anatomy nests: the ring (absolute) and the pending spinner (an overlay swap). The
     // `icon` the required slot carries is a partner, not a part — a slot names no component (#513).
     composesWith: ['focus-ring', 'spinner'],
-    alternativeTo: [inheritsFrom],
+    alternativeTo: [inheritsFrom, family === 'primary' ? 'flush-icon-button' : `flush-icon-button-${family}`],
     planned: ['tooltip', 'menu', 'popover'],
     replacesPatterns: ['div[role=button] wrapping an icon', 'a <button> holding only an <svg> and no accessible name'],
   },
