@@ -19959,7 +19959,8 @@ arm: {
       ['a literal part on a def with no record', { ...sb, literal: undefined }, /carries no 'literal' record/],
       ['an uppercase color', withEntry({ fill: '#FFFFFF' }), /is not a lowercase #rrggbb/],
       ['an opaque wash', withEntry({ wash: { hover: '#000000' } }), /not a translucent #rrggbbaa/],
-      ['a wash at a state the def lacks', withEntry({ wash: { disabled: '#0000001a' } }), /names a state the def does not have/],
+      // `inactive`, a state SignInButton does not have; `disabled` joined it as code-only (Q-CC23 A).
+      ['a wash at a state the def lacks', withEntry({ wash: { inactive: '#0000001a' } }), /names a state the def does not have/],
       ['a key on an unprojected axis', { ...sb, literal: { ...sb.literal!, key: '{surface}' } }, /not a projected variant axis/],
       ['a line height under the size', withEntry({ font: { family: 'X', style: 'Medium', size: 14, lineHeight: 12, fallback: { family: 'Y', style: 'Medium' } } }), /a line height at least the size/],
     ];
@@ -28858,6 +28859,7 @@ arm: {
       'card-number-field:style', 'card-number-field:pending', 'card-number-field:empty',
       'textarea:style', 'textarea:pending', 'textarea:empty', 'select:style', 'select:pending', 'select:empty', 'code-input:pending',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
+      'sign-in-button:pending', 'sign-in-button:disabled',
     ];
     ok(JSON.stringify([...found].sort()) === JSON.stringify([...EXPECTED_ADMISSIONS].sort()),
       `#2711 codeOnly admissions: the admissions found are exactly the ${EXPECTED_ADMISSIONS.length} listed (got ${found.length}: ${[...found].sort().join(', ')})`);

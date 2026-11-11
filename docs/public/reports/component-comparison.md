@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (117)
+## Findings (118)
 
 ### axis values
 
@@ -134,6 +134,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **password-field** — password-field declares the states pending and empty, which the design-file state axis does not draw
 - **search-field** — search-field declares the states pending and empty, which the design-file state axis does not draw
 - **select** — select declares the states pending and empty, which the design-file state axis does not draw
+- **sign-in-button** — sign-in-button declares the states pending and disabled, which the design-file state axis does not draw
 - **tag** — tag declares the state read-only, which the design-file state axis does not draw
 - **text-field** — text-field declares the states pending and empty, which the design-file state axis does not draw
 - **textarea** — textarea declares the states pending and empty, which the design-file state axis does not draw
@@ -224,7 +225,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | segmented-control | form | — | — |
 | segmented-control-segment | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | select | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
-| sign-in-button | form | rest, hover, pressed, focus-visible | rest, hover, pressed, focus-visible |
+| sign-in-button | form | rest, hover, pressed, pending, focus-visible, disabled | rest, hover, pressed, focus-visible |
 | slider | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | spinner | foundations | — | — |
 | switch-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
@@ -242,7 +243,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 | State | Components |
 |---|---|
-| disabled | _slider-thumb, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
+| disabled | _slider-thumb, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
 | empty | card-number-field, password-field, search-field, select, text-field, textarea |
 | error | code-input-cell |
 | filled | card-number-field, code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
@@ -250,7 +251,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | focus-visible-filled | card-number-field, code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
 | hover | _slider-thumb, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
 | inactive | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral |
-| pending | button, button-destructive, button-neutral, card-number-field, code-input, icon-button, icon-button-destructive, icon-button-neutral, password-field, search-field, select, switch-row, text-field, textarea |
+| pending | button, button-destructive, button-neutral, card-number-field, code-input, icon-button, icon-button-destructive, icon-button-neutral, password-field, search-field, select, sign-in-button, switch-row, text-field, textarea |
 | pressed | _slider-thumb, button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, radio-control, radio-row, segmented-control-segment, sign-in-button, slider, switch-control, switch-row, tab-item, tag |
 | read-only | card-number-field, checkbox-row, password-field, radio-row, search-field, select, switch-row, tag, text-field, textarea |
 | rest | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tag, text-field, textarea, wallet-button |
@@ -468,6 +469,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | false | — |
 |  | segmented-control-segment | false | — |
 |  | select | false | — |
+|  | sign-in-button | false | — |
 |  | slider | false | — |
 |  | switch-control | false | — |
 |  | switch-row | false | — |
@@ -546,6 +548,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | password-field | false | — |
 |  | search-field | false | — |
 |  | select | false | — |
+|  | sign-in-button | false | — |
 |  | switch-row | false | — |
 |  | text-field | false | — |
 |  | textarea | false | — |
