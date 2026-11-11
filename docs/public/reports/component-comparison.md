@@ -63,6 +63,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **prop headingLevel** — headingLevel defaults differ over the same values — 2 in banner; 3 in accordion
 - **prop label** — label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner; Pagination in pagination
 - **prop max** — max defaults differ over the same values — 100 in progress, slider; 99 in badge
+- **prop wording** — wording defaults differ over the same values — continue in sign-in-button; plain in wallet-button
 
 ### size default
 
@@ -818,7 +819,6 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | slider | single | single, range |
 |  | tag | select | select, dismissible |
 |  | text-field | text | text, email, url, tel, search, password |
-|  | wallet-button | plain | — |
 | validation | card-number-field | default | default, error, warning, success |
 |  | checkbox-control | default | default, error |
 |  | checkbox-group | default | default, error |
@@ -871,3 +871,5 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | link | emphasis | emphasis, default |
 | width | code-input | auto | auto, full |
 |  | segmented-control | auto | auto, full |
+| wording | sign-in-button | continue | — |
+|  | wallet-button | plain | — |
