@@ -326,7 +326,7 @@ export const codeInput: ComponentDef = {
   aliases: ['otp-input', 'one-time-code', 'verification-code', 'pin-input'],
   category: 'form',
   status: 'draft',
-  summary: 'Field for a one-time code: one input, shown as a row of cells, one per character.',
+  summary: 'Field for a one-time code: one input, shown as a row of cells, one per character. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A field for a short one-time code sent by text message, email or an authenticator app: four to eight characters. It shows the code as a row of cells, so the user sees how long the code is and how far they have got. Underneath is one input holding one string, so pasting the code or filling it from the message fills every cell. A label names it and a message under it says how many characters to enter and where the code was sent. Not for a code of unknown length or one inside a longer form (TextField with one-time-code autocomplete), and not for a password or a PIN the user keeps (PasswordField).',
 

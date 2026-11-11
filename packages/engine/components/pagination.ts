@@ -69,7 +69,7 @@
  * The owner rules of 2026-10-15/16 (#2706) this file follows: Figma's first member is the code default, sizes medium
  * first (Q347, Q359); Figma property names lowercase (Q345); a part used only inside its parent takes the `_` prefix
  * (Q349), which Q394 A rules does not reach a slot item, so the item is `pagination-item`; no border binds an icon or text role (Q346: the current page's border binds
- * `color.border.tertiary`, a border role);
+ * `color.border.secondary` since Q427, a border role);
  * nested parts reuse the focus ring. Rest carries While hovering and While pressing, Hover
  * carries While pressing (Q344): the plugin derives that chain from the item's rest/hover/pressed states.
  *
@@ -452,7 +452,8 @@ export const paginationItem: ComponentDef = {
       '2.4.4 Link Purpose (In Context) (each page is named "Page N"; previous and next "Previous page" and "Next page")',
       '2.5.3 Label in Name (a labeled cell\'s visible "Previous" or "Next" starts its accessible name)',
       '2.4.7 Focus Visible (the shared focus ring)',
-      '2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)',
+      '2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)',
+      '2.5.5 Target Size (Enhanced) (44×44, as intent — medium and large clear 44px on comfortable and spacious density)',
     ],
     keyboard: 'Each page, previous and next is its own Tab stop; Enter opens it, and Space also does when it is a button. An inactive previous or next keeps its Tab stop and does nothing. Arrow keys do not move between pages. The ellipsis is skipped.',
     focus: 'A focus ring around the cell on :focus-visible, the current page included.',
@@ -538,7 +539,7 @@ export const pagination: ComponentDef = {
   category: 'navigation',
   status: 'draft',
   // Call 16 A.
-  summary: 'Moves between pages of a long list or set of results, and shows which page is open.',
+  summary: 'Moves between pages of a long list or set of results, and shows which page is open. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'Moves between the pages of a long, ordered list or set of results, and shows which page is open. numbered shows the first and last page, the current page and one page on each side of it, with an ellipsis for each gap, between a previous and a next cell; the row always holds seven slots, so it keeps its width as the user pages. compact replaces the numbers with "Page 5 of 10", for a narrow container. simple is a Previous and a Next cell at opposite ends, for an article or a short sequence where the count adds nothing. At the first and last page, the previous or next cell stays in place and does nothing. Not tabs (a few fixed views), not a carousel indicator, and not a load more button.',
 
@@ -754,7 +755,8 @@ export const pagination: ComponentDef = {
       '2.4.4 Link Purpose (In Context) (previous, next and every page have a full name)',
       '2.4.7 Focus Visible (the shared focus ring on every control)',
       '2.5.3 Label in Name (the visible "Previous" and "Next" start each accessible name)',
-      '2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)',
+      '2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)',
+      '2.5.5 Target Size (Enhanced) (44×44, as intent — medium and large clear 44px on comfortable and spacious density)',
       '4.1.2 Name, Role, Value (the landmark, the list and aria-current)',
       '4.1.3 Status Messages (a polite "Page 5 of 10" after an in-place change)',
     ],

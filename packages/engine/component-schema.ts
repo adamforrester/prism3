@@ -2139,8 +2139,15 @@ export const SUMMARY_MAX = 100;
  *  host's size reaches its items. The cap grows by that sentence, so the host's own line keeps the room every
  *  other summary has. `lint-component-docs.ts` holds the sentence itself, as its own literal. */
 export const ITEMS_SIZE_NOTE_LENGTH = " Size applies to the items you haven't edited. After editing an item, select the items and set their size.".length;
-export const summaryMaxOf = (def: Pick<ComponentDef, 'props'>): number =>
-  def.props?.some((p) => p.name === 'items' && p.type === 'slot') && def.props.some((p) => p.name === 'size') ? SUMMARY_MAX + ITEMS_SIZE_NOTE_LENGTH : SUMMARY_MAX;
+// A host is found by its props (an `items` slot beside a `size` prop) OR by its anatomy (#3554 M-D): a native slot whose
+// default items follow the host's `size`. Pagination's code API is count-driven and CodeInput's is a value, so neither has
+// an `items` prop, and both pass their size to the items in the slot.
+const slotItemsFollowSize = (def: Pick<ComponentDef, 'anatomy'>): boolean => {
+  const parts = def.anatomy?.parts ?? {};
+  return Object.values(parts).some((p) => p.contentSlot && (p.children ?? []).some((c) => (parts[c]?.nesting as { follow?: readonly string[] } | undefined)?.follow?.includes('size')));
+};
+export const summaryMaxOf = (def: Pick<ComponentDef, 'props' | 'anatomy'>): number =>
+  (def.props?.some((p) => p.name === 'items' && p.type === 'slot') && def.props.some((p) => p.name === 'size')) || slotItemsFollowSize(def) ? SUMMARY_MAX + ITEMS_SIZE_NOTE_LENGTH : SUMMARY_MAX;
 
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
 /** The states a part's `when` names, one or a list (#2318): empty when it names none. */
@@ -3715,7 +3722,8 @@ export type State = (typeof STATES)[number];
  * clears the bar with the nearest defeated: `indicator` is a glyph that shows a state (open or closed); `style` is a
  * line treatment of the control itself; `type` is a content format. None says "the mark drawn between items", and
  * naming it `style` would put a link's placement and a trail's divider under one name, the #756 failure. An AUTHORING
- * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs, its item and the separator.
+ * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs and its item; the separator picks its mark
+ * by its own `type` axis.
  */
 /*
  * ── `provider`: THE THIRTY-THIRD NAME, FOR WALLETBUTTON (#2343 proposal §2.3, owner decisions Q-B4 A and Q-B5 A) ──

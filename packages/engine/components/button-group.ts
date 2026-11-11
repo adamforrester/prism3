@@ -168,7 +168,8 @@ export const buttonGroup: ComponentDef = {
     wcag: [
       '1.3.2 Meaningful Sequence (the reading and focus order match the visual order in every layout)',
       '2.4.3 Focus Order (focus moves through the buttons in the order they are given)',
-      '2.5.8 Target Size (Minimum) (each medium button meets the target size at the default density)',
+      '2.5.8 Target Size (Minimum) (24×24 — each button is a Button, at least 36px tall at small, 28px at compact density)',
+      '2.5.5 Target Size (Enhanced) (44×44, as intent — each medium button clears 44px at the default density)',
     ],
     keyboard: 'Tab moves through the buttons in order. Enter and Space act on the focused one.',
     focus: 'Each button takes focus in turn and shows the shared focus ring.',

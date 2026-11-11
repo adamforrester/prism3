@@ -736,7 +736,14 @@ const keptInRecord = componentDefs.reduce((n, d) => n + [...codeOnlyText(d.anato
 // a `size` prop), not from a list in this file, so a new host is held without being added anywhere.
 const ITEMS_SIZE_NOTE = "Size applies to the items you haven't edited. After editing an item, select the items and set their size.";
 const ITEMS_SIZE_HOST_FLOOR = 5;
-const itemsSizeHosts = componentDefs.filter((d) => d.props.some((p) => p.name === 'items' && p.type === 'slot') && d.props.some((p) => p.name === 'size'));
+// #3554 M-D: also by ANATOMY, a native slot whose default items follow the host's `size`. Pagination (a count-driven
+// code API) and CodeInput (a value) have no `items` prop, so the props scan never asked them. Written here, not
+// imported from `summaryMaxOf`, so the cap and this arm disagree if either drifts.
+const itemsFollowSize = (d: (typeof componentDefs)[number]): boolean => {
+  const parts = (d.anatomy?.parts ?? {}) as Record<string, { contentSlot?: unknown; children?: readonly string[]; nesting?: { follow?: readonly string[] } }>;
+  return Object.values(parts).some((p) => !!p.contentSlot && (p.children ?? []).some((c) => !!parts[c]?.nesting?.follow?.includes('size')));
+};
+const itemsSizeHosts = componentDefs.filter((d) => (d.props.some((p) => p.name === 'items' && p.type === 'slot') && d.props.some((p) => p.name === 'size')) || itemsFollowSize(d));
 if (itemsSizeHosts.length < ITEMS_SIZE_HOST_FLOOR) note(`ITEMS SIZE NOTE FLOOR: only ${itemsSizeHosts.length} items-slot hosts with a size were found, expected at least ${ITEMS_SIZE_HOST_FLOOR} — the host scan is not reaching the defs`);
 for (const def of itemsSizeHosts) {
   if (!def.summary.endsWith(ITEMS_SIZE_NOTE)) note(`ITEMS SIZE NOTE (def): \`${def.id}\` holds items in a slot and takes a size, but its summary — the Figma description — does not end with the note: "${ITEMS_SIZE_NOTE}"`);
