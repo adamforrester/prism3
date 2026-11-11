@@ -348,6 +348,8 @@ one that bites.
 4. **Styles are excluded.** `text-styles`, `shadow-styles` and `gradient-styles` hold zero variables;
    a rename there is a different API. Consistent with `shadow`'s exclusion from `PROJECTED_ROOTS`,
    and unaddressed.
+   *(Decided 2026-11-11, #1040: text, effect and gradient styles get a rename record of their own,
+   `STYLE_RENAMES`, accounted for by the same check 1 and check 2. §10.1.)*
 5. **The accounting proves the record is complete, not that bindings survived.** It compares names.
    That `.name =` on a preserved id carries bindings is a property of the Figma API, checked in the
    typings and exercised by `test-write.mjs` against a real file. Both are needed and neither implies
@@ -450,3 +452,60 @@ pre-pass from §3 — which is theirs, not the mechanism's.
   real and now partly spent. That is an argument for landing the remaining two **together**, not for
   re-litigating this one.
 - Mode renames (§6.3).
+
+---
+
+## 10. Styles (#1040)
+
+§6.4 named styles as outside the variable mechanism and unaddressed. #1040 asked whether a style rename needs a
+record at all, and checked §6.4's "consistent with `shadow`'s exclusion from `PROJECTED_ROOTS`" rather than
+inheriting it.
+
+### 10.1 Decided (2026-11-11, #1040): text, effect and gradient styles carry a rename record, and the plugin renames the existing style in place
+
+**The decision (owner, Q173 A).** When the engine renames a text, effect (shadow) or gradient paint style, the
+plugin renames the style the file already holds, keeping its id, so every layer using it and every file consuming
+it as a library follows. Before this, the writers found a style by name (`write-text-styles.ts`: find by name,
+reuse and overwrite, else create), so a renamed style was created fresh and the old one was left holding every
+layer.
+
+**Why a record is needed, which is the question #1040 asked first.** A style IS bound in a way a rename breaks:
+a layer and a library consumer hold a style by id, and a writer that matches by name turns a rename into a new
+style beside the old one. That is the variable case exactly (§1), on a different API. `PROJECTED_ROOTS` excludes
+`shadow` for a contract-side reason (no guaranteed path projects into a style), which says nothing about whether
+a style's Figma name can move; the two exclusions only looked consistent.
+
+**The mechanism: the variable record's family, with one difference.** In `packages/engine/materialization-renames.ts`:
+
+- **The record.** `STYLE_RENAMES` (rules: `id`, `since`, `why`, `domain`, `map`) and `STYLE_DELETIONS`, the same
+  shapes as `MATERIALIZATION_RENAMES` and `MATERIALIZATION_DELETIONS`. Rules state their transformation literally,
+  with no emitter in scope (`docs/34` shape 11). Both ship **empty**, for #1039's reason: no style has been renamed
+  since, and an entry would take a naming decision by shipping it.
+- **The difference: no root.** A style name carries no brand namespace (#1097 left styles on their old transform,
+  `docs/10`), so a style rule takes `(collection, name)` and never a root. That is also why style keys are a
+  separate accounting rather than keys mixed into the variable one: every variable rule claims any name lacking
+  the root, so a mixed key space would have the variable rules claiming every style.
+- **Check 1, the forcing function.** `lint-materialization-renames.ts` reads the three style files at the merge
+  base and in the working tree (`styleKeysFromEmittedFile`) and runs the same whole-set `accountFor` over them with
+  the style register. A style name that left the emission with no rule or deletion claiming it fails, by name, in
+  its own report section. A floor (150 style keys; 299 at the time of writing) stops a reader that found nothing
+  from accounting for everything.
+- **Check 2, non-staleness.** `test.ts`: no style rule's domain member is still emitted, every image is, no
+  deletion's name is emitted, and the reader finds all three collections in every brand.
+- **Apply.** `planStyleRenames` plans which existing style takes which planned name, walking the rules so a file
+  several renames behind lands in one apply, and refusing `target-exists`, `target-not-planned` and
+  `duplicate-target`. The plugin's pre-pass (`apps/plugin/src/rename-styles.ts`) applies the `rename` rows before
+  the writer, in both callers, Apply Theme and the paste steps, as `beginMigration` does for variables. It renames
+  only Prism3's own styles (the ownership mark, else the engine's description signature), so a client's style a
+  rule happens to match is reported and left alone.
+- **The proof it reaches the file.** `apps/plugin/test-style-renames.ts` pushes fixture rules into the live
+  register, runs both real call sites against the shared file model, and requires the style under the new name to
+  carry the old style's id with nothing left under the old name. Dropping the pass from any of the four call
+  sites fails it by name.
+
+**What it does not cover.** `grid-styles` keep their own writer-local rename (#2467) and are not in
+`STYLE_COLLECTIONS`; a future grid rename should join this register rather than add a second local one. The
+outcomes are returned as data and printed in no summary line yet, because wording that line is UI copy. And
+`rename-stamp-audit.ts` does not yet read `STYLE_RENAMES`: it also reads the merge base, where the table does not
+exist, so the first real style rule wires it in.
+

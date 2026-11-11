@@ -376,6 +376,13 @@
       "title": "CSS custom properties keep the `--pds3-` prefix",
       "doc": "docs/35-naming-and-packaging.md",
       "section": "9.4"
+    },
+    {
+      "date": "2026-11-11",
+      "issue": 1040,
+      "title": "text, effect and gradient styles carry a rename record, and the plugin renames the existing style in place",
+      "doc": "docs/44-materialization-renames.md",
+      "section": "10.1"
     }
   ]
 }
