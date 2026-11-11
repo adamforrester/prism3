@@ -784,7 +784,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     exit: 'none',
     // Q-MD4 A (#3555): the brief's ~100–150ms maps to motion.duration.fast, named in prose. `motion` is prose, so
     // nothing gates it; recorded in `notes.unverified`.
-    reduceMotion: 'State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    reduceMotion: 'State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {

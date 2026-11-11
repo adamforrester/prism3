@@ -17,3 +17,6 @@ controls (their own PR) and outside IconButton (which travels with its press-sca
   and still ungated, rather than carried as a raw target.
 - Prose only. The component catalog and twelve pages move; the component-surface baseline was re-accepted for
   Link's three sets, whose plans carry the code-only motion text (same member counts).
+- `lint-token-consumers`: Select's prose now names `motion.duration.instant` and `motion.duration-reduced.instant`,
+  so the `motion.**` register's unread count drops from 12 to 10, as the gate asks. Mutation: back at 12, the gate
+  fails by name ("'motion.**' claims 10 unread token(s) and declares 12").

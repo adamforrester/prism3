@@ -72,7 +72,7 @@ Use inside another component where the icon is itself the control: the minus and
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast.
+- **Reduced motion:** The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast.
 
 ## Content guidelines
 

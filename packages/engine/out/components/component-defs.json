@@ -2138,7 +2138,7 @@
       }
     },
     "button": {
-      "digest": "98f91a33",
+      "digest": "1b43c78d",
       "def": {
         "id": "button",
         "name": "Button",
@@ -2393,7 +2393,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+          "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
         },
         "composition": {
           "composesWith": [
@@ -5302,7 +5302,7 @@
       }
     },
     "button-destructive": {
-      "digest": "61d20e3e",
+      "digest": "ec527966",
       "def": {
         "id": "button-destructive",
         "name": "Button.Destructive",
@@ -5559,7 +5559,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+          "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
         },
         "composition": {
           "composesWith": [
@@ -8468,7 +8468,7 @@
       }
     },
     "button-neutral": {
-      "digest": "1dfa2ed2",
+      "digest": "0a0be960",
       "def": {
         "id": "button-neutral",
         "name": "Button.Neutral",
@@ -8721,7 +8721,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+          "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
         },
         "composition": {
           "composesWith": [
@@ -19608,7 +19608,7 @@
       }
     },
     "flush-icon-button": {
-      "digest": "56197f88",
+      "digest": "8f275f6a",
       "def": {
         "id": "flush-icon-button",
         "name": "FlushIconButton",
@@ -19775,7 +19775,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
+          "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -20439,7 +20439,7 @@
       }
     },
     "flush-icon-button-destructive": {
-      "digest": "a71c9b06",
+      "digest": "e0c3bf48",
       "def": {
         "id": "flush-icon-button-destructive",
         "name": "FlushIconButton.Destructive",
@@ -20607,7 +20607,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
+          "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -21271,7 +21271,7 @@
       }
     },
     "flush-icon-button-neutral": {
-      "digest": "bc04f5fe",
+      "digest": "39772c8e",
       "def": {
         "id": "flush-icon-button-neutral",
         "name": "FlushIconButton.Neutral",
@@ -21440,7 +21440,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
+          "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [

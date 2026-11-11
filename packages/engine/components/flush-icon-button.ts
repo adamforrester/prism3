@@ -306,7 +306,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'The glyph color change, and the round shape\'s fill, run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast.',
+    reduceMotion: 'The glyph color change, and the round shape\'s fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast.',
   },
 
   notes: {
