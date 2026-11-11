@@ -801,6 +801,38 @@ for (const [id, setting] of [['tag', 'tagStyle'], ['text-field', 'fieldStyle'], 
 const names = (spec: unknown): string => JSON.stringify(spec, (k, v) => (k === 'px' ? undefined : v));
 if (names(off.components['radio-control']?.spec) !== names(without('radioDot').components['radio-control']?.spec)) note('DEFS SETTINGS: radioDot moved a token NAME on `radio-control`\'s spec — it moves a value, so only px may change');
 
+// ---- ARM H: "not built yet" names nothing that is built (#3555 C3) ------------------------------------------------
+// A shipped field that calls a component unbuilt sends an agent away from one it could use: PasswordField sent a code in
+// separate boxes to "a code input, not built yet" while `code-input` shipped. The one to three words before the phrase,
+// leading articles and joining words dropped, are held against every REGISTERED def's id (dashes as spaces), its name split at capitals, and its aliases. The registry
+// is the oracle and the prose the subject; nothing here reads a list of "unbuilt" names, so a component that ships
+// later turns every stale claim about it into a failure here without anyone remembering to look.
+const builtPhrases = new Map<string, string>();
+for (const d of componentDefs) {
+  if (d.id.startsWith('_')) continue;
+  const forms = [d.id.replace(/-/g, ' '), String(d.name ?? '').replace(/\./g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase(), ...((d as { aliases?: string[] }).aliases ?? []).map((a) => a.replace(/-/g, ' ').toLowerCase())];
+  for (const f of forms) if (f.trim()) builtPhrases.set(f.trim(), d.id);
+}
+let unbuiltChecked = 0;
+const walkStrings = (v: unknown, path: string, fn: (s: string, path: string) => void): void => {
+  if (typeof v === 'string') fn(v, path);
+  else if (Array.isArray(v)) v.forEach((x, i) => walkStrings(x, `${path}[${i}]`, fn));
+  else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walkStrings(x, path ? `${path}.${k}` : k, fn);
+};
+for (const [id, e] of Object.entries<any>(entries)) walkStrings(e, '', (text, path) => {
+  for (const m of text.matchAll(/([A-Za-z][\w-]*(?:\s+[A-Za-z][\w-]*){0,2})(?:,\s*| \()not built yet/g)) {
+    unbuiltChecked++;
+    // The whole phrase, articles and joining words dropped: "a code input" is `code input`, but "a toggle button" is a
+    // toggle button, not Button, so a bare head noun never matches on its own.
+    const phrase = m[1].toLowerCase().split(/\s+/).filter((w, i, all) => !(all.slice(0, i + 1).every((x) => /^(a|an|the|or|and|with)$/.test(x)))).join(' ');
+    {
+      const hit = builtPhrases.get(phrase);
+      if (hit) note(`NOT BUILT YET, BUT BUILT: \`${id}\` ${path} calls "${m[1]}" not built yet, and \`${hit}\` is a registered component — name it instead`);
+    }
+  }
+});
+if (unbuiltChecked < 5) note(`NOT BUILT YET floor: only ${unbuiltChecked} "…, not built yet" phrase(s) found in components.ai.json — the scan has stopped seeing them`);
+
 // ---- report ----------------------------------------------------------------------------------
 if (fail.length) {
   console.error(`\n✗ component docs — ${fail.length} problem(s):\n`);
