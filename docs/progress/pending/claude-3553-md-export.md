@@ -16,8 +16,10 @@ Inside Export, a caption now has no inline padding. The action keeps its own pad
 margin of the same size moves it out, so its label starts at the column's edge.
 
 **Verified.** New test:chrome section `3553-md`, in shard 3. It runs on the plugin at 380 and 1280 and on the web at 1280,
-in both themes. It holds that every artifact tab lies inside its column, and that "You get 4 files", "Import" and the
-Import action each start where the content they label starts (±0.5px). Mutations, each after a `wip:` commit: the
+in both themes. It holds that every artifact tab lies inside its column, and that every caption in the files column
+("You get 4 files" and "A few tokens, shaped by these settings"), "Import" and the Import action each start where the content they label starts (±0.5px). Mutations, each after a `wip:` commit: the
 switcher dropped from the wrap rule fails `#3553 M8 … every artifact tab lies inside its column` at 380. The captions'
 padding rule dropped fails `"You get 4 files" starts at the files' edge` and `"Import" starts at its note's edge`. The
-action's margin dropped fails `"↑ Brand brief…" starts at its note's edge`.
+action's margin dropped fails `"↑ Brand brief…" starts at its note's edge`. The caption rule narrowed to the first
+caption (`.p3-menu-cap:is(:has(+ .p3-export-files), :first-child)`) fails `"A few tokens, shaped by these settings"
+starts at the files' edge`, in all six runs.
