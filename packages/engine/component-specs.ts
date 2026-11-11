@@ -160,7 +160,9 @@ const literalGeometry = (n: FigmaNodePlan, isRoot: boolean, def: ComponentDef, a
   const out: [SpecProperty, SpecValue][] = [];
   if (n.minWidth !== undefined) {
     const ratio = authored.anatomy?.parts[n.name]?.minWidthRatio;
-    out.push(['minWidth', ratio !== undefined ? { px: n.minWidth, source: 'derived', rule: `height × ${ratio}` }
+    // The rounding is part of the rule (#3555 C10): Tag's 44px × 1.5 is 66, and the row shows 64 because `ratioMinWidth`
+    // rounds to the NEAREST 8px, where Button's multiplier rounds UP (`buttonMinWidth`).
+    out.push(['minWidth', ratio !== undefined ? { px: n.minWidth, source: 'derived', rule: `height × ${ratio}, rounded to the nearest 8px` }
       : isRoot && def.anatomy?.derived?.[MIN_WIDTH_DERIVATION] ? { px: n.minWidth, source: 'derived', rule: 'height × multiplier, rounded up to 8px' }
         : { px: n.minWidth, source: 'literal' }]);
   }
