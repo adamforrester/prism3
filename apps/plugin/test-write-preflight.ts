@@ -654,5 +654,25 @@ for (const c of ['skip', 'rename'] as const) {
     `Q112 skip references (control): display/3xl/strong still binds its own font size (${other?.bound.fontSize ?? 'none'})`);
 }
 
+// ── A SKIPPED SIZE KEEPS THE STYLE'S SIZE (#3557) ──
+// A text style whose size variable is skipped binds nothing for its size, so it must carry the size as a literal, never
+// the host's default 12. A hand-made `type-sets` collection, skipped whole: every fluid size is skipped. The expected
+// size is a literal: type-sets' modes are desktop then mobile, and display/3xl/emphasis is 160 on desktop and 48 on
+// mobile. The first mode is the collection's default, what the binding resolved to by default, so 160.
+{
+  const f = new FileShim();
+  f.addCollection('type-sets');
+  f.writes = [];
+  const { guarded: g } = await applyWith(f, { 'collection:type-sets': 'skip' });
+  const hero = f.styles.text.find((x) => x.name === 'display/3xl/emphasis');
+  ok(g.ok && !!hero && hero.bound.fontSize === undefined && hero.fontSize === 160,
+    `#3557 skip type-sets: display/3xl/emphasis binds no size and keeps 160, the size its variable resolved to in the first mode (${g.ok ? `${hero?.fontSize} bound to ${hero?.bound.fontSize ?? 'nothing'}` : 'refused'})`);
+  const stranded = f.styles.text.filter((x) => x.bound.fontSize === undefined && (x.fontSize === undefined || x.fontSize === 12));
+  ok(g.ok && f.styles.text.length > 0 && stranded.length === 0,
+    `#3557 skip type-sets: no text style is left with no size binding at the host default 12 (${stranded.length} of ${f.styles.text.length}: ${stranded.slice(0, 3).map((x) => x.name).join(', ') || 'none'})`);
+  const fluidFree = f.styles.text.find((x) => typeof x.bound.fontSize === 'string');
+  ok(!!fluidFree, `#3557 skip type-sets (control): a style sized from core still binds its size (${fluidFree?.name ?? 'none'} → ${fluidFree?.bound.fontSize ?? 'none'})`);
+}
+
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');
 process.exit(failed ? 1 : 0);
