@@ -198,15 +198,15 @@ export const nameInFamily = (name: string, page: string): string => (name.starts
 const sentence = (s: string): string => { const t = s.replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
 /** Prose as the panel shows it: code spans as plain text, whitespace folded. */
 export const plain = (s: string): string => s.replace(/`/g, '').replace(/\s+/g, ' ').trim();
-/** The first `n` sentences of `s`, the wireframe's cut: a sentence ends at `.` or `)` before a capital or a quote, but
- *  never inside an open `"…"` (#3552 N1): a quoted example of two sentences stays whole, so its closing quote is kept. */
+/** The first `n` sentences of `s`, the wireframe's cut: a sentence ends at `.` or `)` before a capital or a quote. Each
+ *  sentence inside a quoted example still counts toward `n`, but the cut never falls inside an open `"…"` (#3552 N1):
+ *  when the `n`th sentence leaves a quote open, the sentences after it are kept until it closes. */
 export const firstSentences = (s: string, n: number): string => {
-  const out: string[] = [];
-  for (const piece of plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/)) {
-    const open = out.length > 0 && (out[out.length - 1].match(/"/g) ?? []).length % 2 === 1;
-    if (open) out[out.length - 1] += ` ${piece}`; else out.push(piece);
-  }
-  return out.slice(0, n).join(' ');
+  const pieces = plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/);
+  const open = (k: number): boolean => (pieces.slice(0, k).join(' ').match(/"/g) ?? []).length % 2 === 1;
+  let k = Math.min(n, pieces.length);
+  while (k < pieces.length && open(k)) k++;
+  return pieces.slice(0, k).join(' ');
 };
 
 /**

@@ -115,8 +115,10 @@
  *                   since no run in today's library shares a note).
  *   quote/…         (#3552 N1) Progress', Card number field's and Code input's Content › Errors lines, typed by hand: each
  *                   keeps its quoted example whole, its quote closed; and over every lead, no planned string carries an odd
- *                   count of `"`. Mutation: the open-quote guard dropped from `firstSentences` → `quote/progress`,
- *                   `quote/card-number-field`, `quote/code-input`, `quote/every lead`.
+ *                   count of `"`; and Textarea's and Switch row's, whose quotes close inside the cut, keep exactly their two
+ *                   sentences. Mutations: the open-quote extension dropped from `firstSentences` → `quote/progress`,
+ *                   `quote/card-number-field`, `quote/code-input`, `quote/every lead`; the cut extended past any quote,
+ *                   open or closed → `quote/textarea-count`, `quote/switch-row-count`.
  *   markers/…       (#2916) each leader's tip lies inside its part's box, at the part's middle, and each bracket runs
  *                   exactly its part's height with both ticks ending inside it; Breadcrumbs' six entries (the `items`
  *                   slot's among them) on two specimens, pinned by hand in `marks/breadcrumbs`. Mutations: a slot
@@ -802,6 +804,14 @@ section('quote/… — a planned line never ends inside an open "…" (#3552 N1)
   want('progress', 'Name what failed and the next step: "Upload failed. The connection dropped. Try again." Not a bare "Error".');
   want('card-number-field', 'What is wrong and how to fix it: "Enter the card number." · "Check the card number. It doesn\'t match a valid card." · "This card type isn\'t accepted. Use Visa, Mastercard or American Express." (the accepted list, from the app).');
   want('code-input', 'Say which case it is: "Enter all 6 digits", "That code is wrong. Check the latest message and try again", "That code has expired. We sent a new one".');
+  // Typed by hand from each def's `errorPattern`: a quoted example closed inside the cut still counts each of its
+  // sentences toward the two, so the line is the cut it always was and gains no sentence after the quote.
+  const keeps = (id: string, line: string): void => {
+    const got = errorsLine(id);
+    ok(got === line, `quote/${id}-count: Content › Errors keeps its two-sentence cut, a closed quote extends nothing`, `got "${got}"`);
+  };
+  keeps('textarea', 'What is wrong and how to fix it, with the number: "Description must be under 500 characters. Remove 24 to continue." (SC 3.3.3).');
+  keeps('switch-row', 'An outcome failure, not a validation failure: say what did not happen and that it reverted — "Couldn\'t turn on notifications. Try again." Near the control, as a status message rather than a field error.');
   // Over every lead, every string any planned block carries: an even count of straight quotes.
   const strings = (v: unknown): string[] => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(strings) : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : []);
   const bad: string[] = [];
