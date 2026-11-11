@@ -880,7 +880,9 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
 // untracked files that are not ignored) and fails on each line that names a retired skill, unless the line also
 // names the skill that replaced it. That line is a redirect ("`new` was named `old` until #N"), which is the one
 // place the old name belongs. The dated history (the progress log, the changelog and their pending entries, the
-// superpowers working notes) keeps the name the skill had on that date, and is not read.
+// superpowers working notes, and the per-version release notes under `docs/public/releases/`, which carry the
+// folded change notes verbatim and which `lint-release-notes.ts` forbids editing by hand) keeps the name the skill
+// had on that date, and is not read.
 //
 // Independence (docs/34): the old and new names are literals in this register, never read from `skills/`; the
 // subject is the repo's text. The skill directories are checked against the register too: the old one must be
@@ -893,7 +895,7 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
 // WHAT IT CANNOT SEE: a nickname. "The consume skill" in a comment is not the skill's name, and passes.
 type RetiredSkill = { old: string; now: string; issue: string };
 const RETIRED_SKILLS: RetiredSkill[] = [{ old: 'prism3-consume', now: 'prism3-build-ui', issue: '#3412' }];
-const HISTORY = [/^docs\/00-progress\.md$/, /^docs\/progress\//, /^packages\/engine\/CHANGELOG\.md$/, /^packages\/engine\/changes\//, /^docs\/superpowers\//];
+const HISTORY = [/^docs\/00-progress\.md$/, /^docs\/progress\//, /^packages\/engine\/CHANGELOG\.md$/, /^packages\/engine\/changes\//, /^docs\/superpowers\//, /^docs\/public\/releases\//];
 const nameRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9_-])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9_-])`);
 const pathRe = (name: string): RegExp => new RegExp(`(?<![A-Za-z0-9])${name.replace(/[-]/g, '\\-')}(?![A-Za-z0-9])`);
 export const retiredNameFindings = (files: [string, string][], retired: RetiredSkill[], skills: string[]): Finding[] => {
@@ -930,6 +932,8 @@ let retiredSelfRuns = 0, retiredFilesRead = 0;
     ['the new skill missing', retiredNameFindings([], [R], []), 1],
     ['a file named after it', retiredNameFindings([[`docs/${R.old}-eval.md`, 'ok']], [R], live), 1],
     ['a history file named after it', retiredNameFindings([[`docs/progress/archive/${R.old}.md`, 'ok']], [R], live), 0],
+    ['a release-notes page', retiredNameFindings([['docs/public/releases/0.1.0.md', `Read the ${R.old} skill.`]], [R], live), 0],
+    ['another public page', retiredNameFindings([['docs/public/llms.txt', `Read the ${R.old} skill.`]], [R], live), 1],
   ];
   retiredSelfRuns = checks.length;
   const broken = checks.filter(([, f, n]) => f.length !== n);
