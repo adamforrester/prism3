@@ -21,7 +21,7 @@ Some members are updated for a reason that leaves their stamp as it was: a neste
 reactions that differ. If such a member was not marked before the pass, the host looks the same after a stop whether
 the pass finished it or never reached it. It is left out rather than guessed. Counting it needs a record of what the
 pass reached, which only the executor has. That would be an executor change (`EXECUTOR_REVISION`), so it is a separate
-question from this fix. The PR names it.
+question from this fix, filed as #3594.
 
 **Status:** plugin only. No engine change, so no change note. `update-apply.ts` is outside the component executor, so
 `EXECUTOR_REVISION` stays.

@@ -628,7 +628,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     // and it is not counted: its update did not complete, and the dry run reads it as to update too.
     // NOT COUNTED, stated: a member updated for a reason that leaves its stamp as it was (a nested-instance fault, drawn
     // damage, reactions that differ) and that was not marked before the pass. The host after a stop looks the same
-    // whether the pass finished it or never reached it, so it is left out rather than guessed.
+    // whether the pass finished it or never reached it, so it is left out rather than guessed (#3594).
     out.updated = [...stampWas].filter(([m, was]) => {
       const pl = plans.get(m);
       const want = pl ? memberStamp(pl) : '';
