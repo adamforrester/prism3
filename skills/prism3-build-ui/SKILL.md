@@ -35,8 +35,8 @@ brand.
 **If no component or token covers the need, do not build a substitute. Leave it out and name it in
 your report.**
 
-A Prism3 component exists only when the component catalog (`components.ai.json`) has an entry with
-its `id`. A name that appears only in another entry's `planned` list (under `composition`) is not
+A Prism3 component exists only when the component catalog
+(`packages/engine/out/components/components.ai.json`) has an entry with its `id`. A name that appears only in another entry's `planned` list (under `composition`) is not
 built yet: it has no spec, no states, no keyboard behavior and no contrast contract. A stand-in
 assembled from other components, a native element or hand-styled markup ships behavior nobody
 designed or verified, and it reads as part of the system when it isn't. A token is the same: when no
@@ -268,19 +268,20 @@ Web is whole: a stock Style Dictionary 4 or later build reads the base and overl
 SCSS and JavaScript that carry every type usably, apart from gradients on CSS and SCSS. Native is not
 covered yet. A stock build for Swift, Android resource XML or Compose reaches every token, but several
 types come out wrong or uncompilable. `packages/tokens/` pins each as a `[GAP]`. Each is stock Style
-Dictionary's gap, not a defect in the DTCG:
+Dictionary's gap, not a defect in the DTCG, and each is a documented consumer gap: the options for
+closing them are tracked on #2426.
 
-- **Sizes (#2430).** The stock native transforms multiply every dimension by 16, so `16px` becomes
+- **Sizes.** The stock native transforms multiply every dimension by 16, so `16px` becomes
   `CGFloat(256.00)` or `256.00.dp`. Our literals mix `px` and `rem`, and no stock transform reads the
   unit. Write a transform that does.
-- **Font sizes on Android and Compose (#2613).** They come out in `dp`, not `sp`, so text ignores the
+- **Font sizes on Android and Compose.** They come out in `dp`, not `sp`, so text ignores the
   user's system font scale. Convert them to `sp`.
-- **Durations, font families, stroke styles and cubic beziers (#2431).** They are written as bare text
+- **Durations, font families, stroke styles and cubic beziers.** They are written as bare text
   (`= 80ms`, `= Inter`) that does not compile in Swift or Kotlin. Quote or convert them in your own
   transform.
-- **Composites (#2432).** Typography, shadow, transition and gradient tokens become `[object Object]`.
+- **Composites.** Typography, shadow, transition and gradient tokens become `[object Object]`.
   Read them from the JavaScript or JSON output, or write a format that models each one.
-- **Android numbers (#2433).** `<integer>1.5</integer>` is refused by `aapt2`. Write non-integer
+- **Android numbers.** `<integer>1.5</integer>` is refused by `aapt2`. Write non-integer
   numbers as `<item type="dimen" format="float">`.
 
 So on native, supply your own size, quoting and composite handling, and take composites from the

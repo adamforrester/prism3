@@ -234,7 +234,7 @@ export const link: ComponentDef = {
         class: 'semantics',
         disposition: 'refused',
         description:
-          'The current page — current renders aria-current="page" on the current item in a navigation and on a breadcrumb\'s last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar.',
+          'The current page — current renders aria-current="page" on the current item in a navigation; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height). The bar\'s width is the brand\'s Current page indicator: the title\'s width, or half of it centered (inset-inline: 25%). Hover changes the color only: no underline joins the bar.',
       },
       {
         class: 'visual-treatment',
