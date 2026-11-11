@@ -24,7 +24,7 @@ Shown on the default member: selection `unselected`, size `medium`.
 3. **Leading visual** (optional) — An optional icon before the label.
 4. **Label box** — Holds the label at the width of its selected weight: as wide as the widest of the bold reserve and the label, with the label centered.
 5. **Reserve** — A zero-height frame that clips the bold copy of the label: it takes the bold width and shows nothing.
-6. **Label reserve** — The label again, in the selected weight, never seen: it holds every tab at its bold width (Q226 A).
+6. **Label reserve**
 7. **Label** — The tab text, one line: regular when unselected, in the emphasis weight when selected.
 8. **Count** (optional) — An optional count after the label, the shared count badge.
 9. **Indicator** — The 2px bar along the tab's bottom edge. It is always there, so the label sits in the same place in both states. A selected tab paints it in its label's color; an unselected tab paints it in a neutral border color at hover and pressed only, a lighter preview of where the selected bar would go.

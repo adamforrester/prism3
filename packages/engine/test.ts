@@ -10399,11 +10399,9 @@ arm: {
   const PATHISH = /^[a-z][a-z0-9-]*(?:\.[a-z0-9*-]+)+$/;
   // Role-shaped names written OUTSIDE backticks — prose the path arm could not otherwise see.
   const BARE = /\b(?:text|icon|background|foreground|border|interactive|disabled|field|scrim|veil|inverse|type|core|color|font|space|radius|size|motion)\.[a-z0-9*<]/g;
-  // AI/A-11 is IN FLUX under #1614 and deliberately untouched by batch B: the overlay's avoid_when names
-  // `foreground.<color>-subtle`, which no brand emits. Exempt by exact shape, and only while it still
-  // ships — once #1614 rewrites the sentence this exemption fails as STALE, so it cannot outlive its reason.
-  const A11 = /\bforeground\.(?:primary|neutral|destructive|accent)-subtle\b/g;
-  let a11Seen = 0;
+  // The AI/A-11 exemption that stood here (held for #1614) is gone (#3555 S1): #1614 shipped, and the
+  // `foreground.<category>-subtle` names it let through were false in every brand (#3555 F2). Bare names now fail
+  // the BARE arm like any other.
 
   const pathBad: string[] = [], pairBad: string[] = [], primBad: string[] = [];
   let pairsChecked = 0, cwChecked = 0, clausesChecked = 0, tracking = 0, pathsChecked = 0, entriesChecked = 0, skillNamesChecked = 0, capsChecked = 0, limitsChecked = 0;
@@ -10481,8 +10479,7 @@ arm: {
       if (shout.length) pathBad.push(`${b} ${tier}.${k}.${f}: capitals for emphasis ${[...new Set(shout)].join(', ')}`);
       for (const m of t.matchAll(/`([^`]+)`/g)) if (PATHISH.test(m[1])) miss(`${tier}.${k}.${f}`, m[1]);
       const outside = t.replace(/`[^`]*`/g, '');
-      a11Seen += (outside.match(A11) ?? []).length;
-      const bare = outside.replace(A11, '').match(BARE);
+      const bare = outside.match(BARE);
       if (bare) pathBad.push(`${b} ${tier}.${k}.${f}: unquoted ${bare.join(', ')}`);
       // AI/A-14: on an inverse role, a named role that HAS an inverse twin must be named as the twin.
       // The decoration's opening sentence names the page twin on purpose, so it is set aside.
@@ -10575,10 +10572,12 @@ arm: {
       const u = e.usage_limit;
       if (!low) primBad.push(`${b} ${k}: usage_limit on an ink whose floor is ${lowest(k)}:1 in every mode`);
       if (u.floor !== `${lowest(k)}:1`) primBad.push(`${b} ${k}: usage_limit.floor ${u.floor}, tree says ${lowest(k)}:1`);
-      if (u.body_text_floor !== '4.5:1' || u.large_text?.min_px !== 24 || u.large_text?.bold_min_px !== 18.66) primBad.push(`${b} ${k}: usage_limit thresholds are not WCAG's (4.5:1; 24px, or 18.66px bold)`);
+      if (u.body_text_floor !== '4.5:1' || u.large_text?.min_px !== 24 || u.large_text?.bold_min_px !== 18.67) primBad.push(`${b} ${k}: usage_limit thresholds are not WCAG's (4.5:1; 24px, or 18.67px bold)`);
+      // 14pt bold is the WCAG threshold, and a px figure below 14pt is not large text (#3555 F7: 18.66px is 13.995pt).
+      if (!(u.large_text?.bold_min_px * 72 / 96 >= 14)) primBad.push(`${b} ${k}: usage_limit.large_text.bold_min_px ${u.large_text?.bold_min_px}px is below 14pt`);
       if (JSON.stringify(u.use_for) !== JSON.stringify(['large-text', 'icons', 'non-essential-text'])) primBad.push(`${b} ${k}: usage_limit.use_for ${JSON.stringify(u.use_for)}`);
       if (u.body_text_alternative !== undefined && lowest(u.body_text_alternative) < 4.5) primBad.push(`${b} ${k}: body_text_alternative ${u.body_text_alternative} is itself below 4.5:1 in some mode`);
-      if (!String(e.avoid_when).includes('Large text (24px and up, or 18.66px bold), icons and non-essential text only')) primBad.push(`${b} ${k}: usage_limit not stated in avoid_when`);
+      if (!String(e.avoid_when).includes('Large text (24px and up, or 18.67px bold), icons and non-essential text only')) primBad.push(`${b} ${k}: usage_limit not stated in avoid_when`);
     }
     // AI/D-2 (owner decision): the modal over a scrim is a page-polarity surface, not an inverse one; since #3049
     // (Q721 A) it is `foreground.raised`, the modal's own role.
@@ -10600,6 +10599,33 @@ arm: {
         const c = colorIn(k, 'light'), W = { r: 255, g: 255, b: 255, a: 1 }, K = { r: 0, g: 0, b: 0, a: 1 };
         if (ratio(c, W) < 4.5 || ratio(c, K) < 4.5) primBad.push(`${b} ${k}: pivot intent, but ${ratio(c, W).toFixed(2)}:1 on white / ${ratio(c, K).toFixed(2)}:1 on black`);
       }
+    }
+    // #3555 F1, F6: a primitive's meaning and consume state facts about its value, so each is read back off the TREE.
+    // A shadow's layer count is its `$value` array's length, and its dark-mode direction is its layers' alpha, per layer.
+    // A dimension called a grid step sits on the 4px grid.
+    for (const [k, e] of Object.entries<any>(ai.primitives)) {
+      const n = at(k);
+      if (k.startsWith('shadow.')) {
+        const layers: any[] = Array.isArray(n.$value) ? n.$value : [n.$value];
+        const said = /\((\d+)-layer\b/.exec(e.meaning ?? '');
+        if (!said || +said[1] !== layers.length) primBad.push(`${b} ${k}: meaning says ${said ? `${said[1]}-layer` : 'no layer count'}, the tree has ${layers.length}`);
+        const dv = n.$extensions?.prism3?.modes?.dark?.$value;
+        const dark: any[] = dv === undefined ? [] : Array.isArray(dv) ? dv : [dv];
+        const pairs = dark.map((d, i) => [parseColor(String(layers[i].color)).a, parseColor(String(d.color)).a]);
+        const t = `${e.consume ?? ''} ${e.meaning ?? ''}`;
+        if (/lighter|reduced/.test(t) && !(pairs.length && pairs.every(([l, d]) => d < l))) primBad.push(`${b} ${k}: says lighter in dark, alphas light→dark ${pairs.map(([l, d]) => `${l.toFixed(2)}→${d.toFixed(2)}`).join(', ')}`);
+        if (/stronger/.test(t) && !(pairs.length && pairs.every(([l, d]) => d > l))) primBad.push(`${b} ${k}: says stronger in dark, alphas light→dark ${pairs.map(([l, d]) => `${l.toFixed(2)}→${d.toFixed(2)}`).join(', ')}`);
+      }
+      const grid = /(\d+(?:\.\d+)?)px grid\b/.exec(e.meaning ?? '');
+      if (grid && +grid[1] % 4 !== 0) primBad.push(`${b} ${k}: meaning calls ${grid[1]}px a grid step, off the 4px grid`);
+    }
+    // #3555 F3: an overlay wash that names a color names the one it is. Every overlay's own value is read in every mode:
+    // an achromatic wash (black or white at an alpha) is "neutral", whatever its category.
+    for (const [k, e] of Object.entries<any>(ai.color)) if (/(?:^|\.)overlay\./.test(k)) {
+      const said = /\btranslucent (\w+)\b/.exec(e.when_to_use ?? '');
+      if (!said) continue;
+      const achromatic = modesOf(k).every((m) => { const c = roleIn(k, m); return Math.abs(c.r - c.g) < 1 && Math.abs(c.g - c.b) < 1; });
+      if (achromatic !== (said[1] === 'neutral')) primBad.push(`${b} ${k}: when_to_use says "translucent ${said[1]}", the wash is ${achromatic ? 'neutral in every mode' : 'chromatic'}`);
     }
     // Every ramp step the TREE marks with a band gets a usage intent — the tree decides which, not the sidecar.
     for (const l of leaves) if (at(l)?.$extensions?.prism3?.band && !ai.primitives[l]?.intent) primBad.push(`${b} ${l}: banded ramp step without intent`);
@@ -10644,7 +10670,6 @@ arm: {
       `sidecar (${id}): the selected tint's mode_overrides state the fill role at the opacity token in every mode, as the tree's tint does (${wrong.length ? wrong.map(([m, v]) => `${m}: ${JSON.stringify(v)}`).join('; ') : JSON.stringify(ov.light)})`);
   }
 }
-  ok(a11Seen > 0, `sidecar paths: the AI/A-11 exemption (held for #1614) is still live (${a11Seen}) — once it reads 0, delete the exemption`);
   ok(pairBad.length === 0, 'sidecar pairings: every sits_on / carries / contrast_with pair and surface claim clears its stated floor in every mode' + (pairBad.length ? ` — ${pairBad.length}: ${pairBad.slice(0, 5).join(' | ')}` : ''));
   ok(primBad.length === 0, 'sidecar fields: every entry carries its required fields, and every sub-body-text ink its usage_limit' + (primBad.length ? ` — ${primBad.length}: ${primBad.slice(0, 5).join(' | ')}` : ''));
 }
@@ -10687,7 +10712,7 @@ arm: {
     ['a missing required field', (d) => { delete d.color['text.primary'].avoid_when; }],
     ['a malformed ratio', (d) => { d.color['text.primary'].contrast_with[0].min = '7'; }],
     ['a contract without its requirement', (d) => { delete d.color['text.primary'].contrast_with[0].requirement; }],
-    ['an unknown usage_limit scope', (d) => { d.color['text.primary'].usage_limit = { use_for: ['body-text'], floor: '3:1', body_text_floor: '4.5:1', large_text: { min_px: 24, bold_min_px: 18.66 } }; }],
+    ['an unknown usage_limit scope', (d) => { d.color['text.primary'].usage_limit = { use_for: ['body-text'], floor: '3:1', body_text_floor: '4.5:1', large_text: { min_px: 24, bold_min_px: 18.67 } }; }],
     ['a stale schema version', (d) => { d.$schema = 'prism3-ai-metadata/0.2'; }],
     ['an unkeyed tier', (d) => { d.spacing = {}; }],
     ['a relation naming a non-path', (d) => { d.color['text.primary'].sits_on = ['Background Primary']; }],
@@ -40213,11 +40238,16 @@ arm: {
     `#2317 password-field toggle: on every member a nested Button (the primary component), text appearance, flush, default surface, no icons, SMALL at every field size (#2804, Q380 A), "Show", exposed for its label, its label in the emphasis weight (label/sm/emphasis-link, Q301.3 B); disabled at the field's disabled member and rest at every other state, read-only included, whatever the status${toggleBad.length ? ` — WRONG on ${toggleBad.length}: ${toggleBad.slice(0, 2).join(' | ')}` : ''}`);
 
   // THE LABEL ROW'S HEIGHT (#2804, owner decision Q380 A): the row is no taller than the label alone needs. Measured
-  // per member the way a hugging auto-layout row is sized: the tallest in-flow child that does not stretch. The
-  // label's height is one line of its FieldLabel member's type (font size × line height, read off the committed
-  // emission); the toggle's is its Button member's bound height unless it stretches to the row. EXPECTED is typed
-  // here: one body line at 12 / 14 / 16px × 1.5. Before #2804 the row measured 36 / 44 / 56 (the button's height),
-  // so a toggle that stops stretching, or one that follows the field's size again, fails here by name.
+  // per member the way the host sizes a hugging auto-layout row: the tallest in-flow child, where a child that
+  // STRETCHES across the row still floors it at its own content height (#3347, measured in the real file; #3361:
+  // this arm used to leave stretched children out, and passed while the row read 26 on all 84 members). The label's
+  // height is one line of its FieldLabel member's type (font size × line height, read off the committed emission).
+  // The toggle's is its Button member's bound height, or, stretched, its block padding (the instance's own override
+  // first, then its main's) plus its main's tallest in-flow child, a text one line of its style. Written here from
+  // the plans and the emission, not with the round-trip shim's `stretchFloorsHug`, so the two models can disagree
+  // (docs/34). EXPECTED is typed here: one body line at 12 / 14 / 16px × 1.5. Before #2804 the row measured
+  // 36 / 44 / 56 (the button's height); before #3347 it measured 26 (the toggle's 6 + 6 padding around its 13.8
+  // line). So a toggle that stops stretching, follows the field's size again, or loses its zero padding fails here.
   {
     const emitted = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8'));
     const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!];
@@ -40227,7 +40257,7 @@ arm: {
     const varPx = (name: string): number => num(name.split('/').reduce((n: any, k) => n?.[k], eRoot)?.$value);
     const flPlans = figmaAnatomySet(fieldLabel, { swapTarget: 'FPO-default-icon' });
     const flNames = flPlans.map(planComponentName);
-    type MN = PN & { layoutAlign?: string; bound?: Record<string, string> };
+    type MN = PN & { layoutAlign?: string; layoutPositioning?: string; visible?: boolean; bound?: Record<string, string> };
     const textOf = (n: PN): PN | undefined => (n.type === 'TEXT' ? n : n.children.map(textOf).find(Boolean));
     const ROW: Record<string, number> = { small: 18, medium: 21, large: 24 };
     const SHOW_LINE = 12 * 1.15; // one label.sm line, the button's "Show"
@@ -40235,7 +40265,8 @@ arm: {
     const measured: Record<string, number> = {};
     for (const p of pwPlans) {
       const row = find(p.root as PN, 'labelRow') as MN | undefined;
-      const heights = (row?.children ?? []).filter((c) => (c as MN).layoutAlign !== 'STRETCH').map((c): number => {
+      const inFlow = (n: PN): boolean => (n as MN).visible !== false && (n as MN).layoutPositioning !== 'ABSOLUTE';
+      const heights = (row?.children ?? []).filter(inFlow).map((c): number => {
         if (c.name === 'labelCell') {
           const l = find(c, 'label');
           const m = l?.nestVariant ? nestVariantMatch(l.nestVariant, flNames) : null;
@@ -40243,8 +40274,12 @@ arm: {
           return t?.textStyle ? lineBox(t.textStyle) : NaN;
         }
         const m = c.nestVariant ? nestVariantMatch(c.nestVariant, btnNames) : null;
-        const h = m ? (btnPlans[btnNames.indexOf(m)].root as MN).bound?.height : undefined;
-        return h ? varPx(h) : NaN;
+        const main = m ? (btnPlans[btnNames.indexOf(m)].root as MN) : undefined;
+        if (!main) return NaN;
+        if ((c as MN).layoutAlign !== 'STRETCH') return main.bound?.height ? varPx(main.bound.height) : NaN;
+        const pad = (k: 'paddingTop' | 'paddingBottom'): number => { const v = (c as MN).bound?.[k] ?? main.bound?.[k]; return v ? varPx(v) : 0; };
+        const flow = main.children.filter(inFlow).map((k) => (k.type === 'TEXT' ? (k.textStyle ? lineBox(k.textStyle) : NaN) : (k as MN).bound?.height ? varPx((k as MN).bound!.height) : NaN));
+        return pad('paddingTop') + pad('paddingBottom') + Math.max(...flow);
       });
       const h = Math.max(...heights);
       measured[p.size!] = h;
