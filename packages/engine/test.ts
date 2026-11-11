@@ -14924,8 +14924,10 @@ arm: {
 // freezes NB colour + typography); the gate is that (a) every axis produces
 // output with the right shape, (b) every alias resolves WITHIN each brand's
 // own emitted collections, (c) since #1097 the namespace transform CARRIES the
-// brand's own root — aurora=prism (default), wendys=prism (default), NB=nbds —
-// exactly once and with no other brand's root anywhere, and (d) the aurora
+// brand's own root (read off each brand's theme, `theme.root`, never written here
+// as a literal: #3315, this line once named two brands' roots wrongly, and an arm
+// that trusted it would select nothing) exactly once and with no other brand's
+// root anywhere, and (d) the aurora
 // gradient axis actually ships alias-driven stops that resolve to palette leaves
 // in the aurora tree (the alias-driven Paint Style form parked in the shadow +
 // gradient PR now materialises through the generalise pass).
