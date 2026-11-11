@@ -7,8 +7,8 @@ first harness with a gate sibling (`tools/sd-version-matrix/` is the second, its
 `packages/tokens/`), and it lives in a *separate file* from the measurement for exactly that
 reason — `compare.ts` (the tool) and `gate.ts` (the gate) import the same analysis but make different
 promises, and conflating them would make the tool's honest "here's what differs" read as the gate's
-"here's what's wrong." The remaining harnesses below have no gate sibling, each for its own stated
-reason — read the reason, not just the absence, before assuming one is missing by oversight. (Named
+"here's what's wrong." Most harnesses below have no gate sibling, each for its own stated reason (where
+one has a gate, its section names it) — read the reason, not just the absence, before assuming one is missing by oversight. (Named
 rather than counted on purpose: this line once said "three" and went stale as harnesses were added.)
 
 ## `tools/exporter-comparison/`
@@ -16,10 +16,10 @@ rather than counted on purpose: this line once said "three" and went stale as ha
 Runs prism3's own DTCG emitter and TokenPress's over the same brand and classifies every difference
 (#697's Verify bullet). `compare.ts` reports all five categories and always exits 0 — most of what it
 finds is a difference that is *right for its host*. `gate.ts` is the assertable subset, run in CI: it
-fails on the seven arms where a difference means one exporter is *wrong* rather than merely
+fails on the arms where a difference means one exporter is *wrong* rather than merely
 *different*. Its third file, `axes.ts`, is neither tool nor gate — it is #697's recorded **decision**
 about which collections' modes are an axis, wired in so mislabeling one fails a gate rather than
-sitting unchecked in prose. Don't promote a category from `compare.ts`'s five into `gate.ts`'s seven
+sitting unchecked in prose. Don't promote a category from `compare.ts`'s five into `gate.ts`'s arms
 without deciding it is a *defect* rather than a documented disagreement; the categories deliberately
 left out are named in `gate.ts`'s own header, with why.
 
@@ -100,7 +100,7 @@ documentation of a detector to be caught by the detector.
 
 ## `tools/block-capture/`
 
-A fourth harness in this directory, undocumented here until now — see its own `README.md` for what it
+A harness not yet written up to this file's standard — see its own `README.md` for what it
 does and how to run it (records block-layout structure from a real browser for the `docs/37` corpus,
 #693). Filed as #946 to get proper treatment in this file rather than folded in as an afterthought.
 
@@ -122,7 +122,7 @@ lacked. `ledger.ts` holds the one ledger builder both `--ledger` and `--reconcil
 snippet and the reconciler cannot key on different coordinates. Still a tool, not a gate: a live file
 is not in CI, so it answers and exits 0. `reconcile.ts --selftest` is a fixture round-trip built from
 the live ledger (all-correct → MATCH; one wrong → one WRONG-TOKEN; one blank → one UNBOUND; one stray
-→ one UNKNOWN-NODE) — a self-check the author runs, NOT wired into `ci.yml`; the gate count stays 60.
+→ one UNKNOWN-NODE) — a self-check the author runs, NOT wired into `ci.yml`, so it adds no gate.
 
 **#1523 closed three REACH limits** the reconciler had against a live file (all correct-by-hand in the
 NB run — instrument limits, not file defects), each with its own by-name selftest arm: (1) glyph-container
