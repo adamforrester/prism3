@@ -428,7 +428,7 @@
         "large",
         "medium",
         "small",
-        "xlarge"
+        "x-large"
       ],
       "state": [
         "disabled",
@@ -455,7 +455,7 @@
         "large",
         "medium",
         "small",
-        "xlarge"
+        "x-large"
       ],
       "state": [
         "disabled",
@@ -1403,10 +1403,10 @@
     },
     "members": 30,
     "properties": {
-      "helper": "BOOLEAN",
       "inputs": "BOOLEAN",
       "label": "BOOLEAN",
       "max label": "TEXT",
+      "message": "BOOLEAN",
       "milestone": "TEXT",
       "milestones": "BOOLEAN",
       "min label": "TEXT",

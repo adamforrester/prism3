@@ -3321,7 +3321,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "helper",
+            "name": "message",
             "type": "BOOLEAN"
           }
         ],
@@ -3342,7 +3342,7 @@
               "medium",
               "small",
               "large",
-              "xlarge"
+              "x-large"
             ]
           },
           {
@@ -3388,7 +3388,7 @@
               "medium",
               "small",
               "large",
-              "xlarge"
+              "x-large"
             ]
           },
           {

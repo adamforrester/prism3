@@ -162,6 +162,12 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   // first, so a member built at `width=full` lands on `edge=full-bleed` and keeps its id and every placed instance.
   { def: 'banner', kind: 'axis', from: 'width', to: 'edge', issue: 3392 },
   { def: 'banner', kind: 'value', axis: 'edge', from: 'full', to: 'full-bleed', issue: 3392 },
+  // #3554 (owner decisions 2026-11-11). Q-CC2 A: Code input's fourth rung is spelled `x-large`, hyphenated like every
+  // other off-ladder rung (`x-small`), so a member built at `size=xlarge` lands on `size=x-large` and keeps its id. Q-CC6 A:
+  // Slider's message toggle is `message`, as on every other field, so a placed slider keeps whether its message shows.
+  { def: 'code-input', kind: 'value', axis: 'size', from: 'xlarge', to: 'x-large', issue: 3554 },
+  { def: 'code-input-cell', kind: 'value', axis: 'size', from: 'xlarge', to: 'x-large', issue: 3554 },
+  { def: 'slider', kind: 'property-rename', from: 'helper', to: 'message', issue: 3554 },
 ];
 
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */

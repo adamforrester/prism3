@@ -11271,7 +11271,7 @@
       "props": [
         {
           "name": "label",
-          "type": "string",
+          "type": "string | node",
           "required": true,
           "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter only with showLabel."
         },
@@ -11344,8 +11344,8 @@
           "description": "The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size."
         },
         {
-          "name": "message",
-          "type": "string",
+          "name": "helpText",
+          "type": "string | node",
           "required": false,
           "description": "Text below the counter, such as the reason for a limit (\"Limit 5 per order\"). Added to the value's description."
         },
@@ -11354,7 +11354,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Shows the message below the counter. Off by default."
+          "description": "Shows the help text below the counter. Off by default."
         },
         {
           "name": "decrementLabel",
@@ -13486,7 +13486,7 @@
       "props": [
         {
           "name": "label",
-          "type": "string",
+          "type": "string | node",
           "required": true,
           "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
         },
@@ -13612,9 +13612,16 @@
         },
         {
           "name": "helpText",
-          "type": "string",
+          "type": "string | node",
           "required": false,
           "description": "Guidance under the slider, in a field message."
+        },
+        {
+          "name": "showMessage",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error."
         },
         {
           "name": "validation",
@@ -13856,14 +13863,14 @@
         },
         {
           "name": "size",
-          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+          "type": "enum: 'small' | 'medium' | 'large' | 'x-large'",
           "default": "medium",
           "required": false,
           "values": [
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "description": "The cell size and its character size. Set by the code input."
         },
@@ -13904,7 +13911,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "authoring"
         }
@@ -14097,16 +14104,16 @@
         },
         {
           "name": "size",
-          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+          "type": "enum: 'small' | 'medium' | 'large' | 'x-large'",
           "default": "medium",
           "required": false,
           "values": [
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ],
-          "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes."
+          "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, x-large 68×72 with 40px, meant for four-character codes."
         },
         {
           "name": "width",
@@ -14161,7 +14168,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "authoring"
         },

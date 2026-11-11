@@ -593,11 +593,11 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
-    values: ['medium', 'small', 'large', 'xlarge'],
+    values: ['medium', 'small', 'large', 'x-large'],
     defs: ['code-input', 'code-input-cell'],
     relation: 'superset',
     reason:
-      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `xlarge`, the 68×72 display '
+      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `x-large`, the 68×72 display '
       + 'cell with a 40px character meant for four-character codes. Led by `medium`, the code default and so the set\'s '
       + 'first member (owner decisions Q347 and Q359), as every size ladder is (#2752, Q1 B); the code enum keeps the '
       + 'ladder\'s own order (`lint-rung-names.ts` DEFAULT_FIRST). The cell carries the same values, so it follows the '

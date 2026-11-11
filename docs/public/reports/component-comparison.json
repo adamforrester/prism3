@@ -1374,7 +1374,7 @@
           "medium",
           "small",
           "large",
-          "xlarge"
+          "x-large"
         ],
         "status": [
           "default",
@@ -1438,7 +1438,7 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ]
         },
         {
@@ -1468,7 +1468,7 @@
         "medium",
         "small",
         "large",
-        "xlarge"
+        "x-large"
       ],
       "sizeDefault": "medium"
     },
@@ -1499,7 +1499,7 @@
           "medium",
           "small",
           "large",
-          "xlarge"
+          "x-large"
         ]
       },
       "props": [
@@ -1513,7 +1513,7 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ]
         },
         {
@@ -1533,7 +1533,7 @@
         "medium",
         "small",
         "large",
-        "xlarge"
+        "x-large"
       ],
       "sizeDefault": "medium"
     },
@@ -1608,7 +1608,7 @@
           ]
         },
         {
-          "name": "message"
+          "name": "helpText"
         },
         {
           "name": "showMessage",
@@ -4438,6 +4438,10 @@
           "name": "helpText"
         },
         {
+          "name": "showMessage",
+          "default": false
+        },
+        {
           "name": "validation",
           "default": "default",
           "values": [
@@ -6212,7 +6216,7 @@
           "large",
           "medium",
           "small",
-          "xlarge"
+          "x-large"
         ],
         "components": [
           "code-input",
@@ -7175,6 +7179,9 @@
         "id": "code-input"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -7785,9 +7792,6 @@
       }
     ],
     "message": [
-      {
-        "id": "counter"
-      },
       {
         "id": "field-message"
       },
@@ -8554,6 +8558,10 @@
         "default": false
       },
       {
+        "id": "slider",
+        "default": false
+      },
+      {
         "id": "text-field",
         "default": false
       },
@@ -8722,7 +8730,7 @@
           "small",
           "medium",
           "large",
-          "xlarge"
+          "x-large"
         ]
       },
       {
@@ -8732,7 +8740,7 @@
           "small",
           "medium",
           "large",
-          "xlarge"
+          "x-large"
         ]
       },
       {
@@ -10153,7 +10161,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, xlarge] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -10342,7 +10350,7 @@
       "components": [
         "code-input"
       ],
-      "detail": "code-input declares its sizes as [medium, small, large, xlarge], not smallest first"
+      "detail": "code-input declares its sizes as [medium, small, large, x-large], not smallest first"
     },
     {
       "kind": "size order",
@@ -10350,7 +10358,7 @@
       "components": [
         "code-input-cell"
       ],
-      "detail": "code-input-cell declares its sizes as [medium, small, large, xlarge], not smallest first"
+      "detail": "code-input-cell declares its sizes as [medium, small, large, x-large], not smallest first"
     },
     {
       "kind": "size order",

@@ -20387,14 +20387,14 @@
       "components": {
         "code-input-cell": {
           "keys": [
-            "size.xlarge.caret-height"
+            "size.x-large.caret-height"
           ],
           "parts": {
             "caret": {
               "members": 1,
               "where": {
                 "size": [
-                  "xlarge"
+                  "x-large"
                 ],
                 "state": [
                   "focus-visible"
@@ -21075,14 +21075,14 @@
       "components": {
         "code-input-cell": {
           "keys": [
-            "size.xlarge.radius"
+            "size.x-large.radius"
           ],
           "parts": {
             "container": {
               "members": 7,
               "where": {
                 "size": [
-                  "xlarge"
+                  "x-large"
                 ]
               }
             }
@@ -29922,14 +29922,14 @@
       "components": {
         "code-input-cell": {
           "keys": [
-            "size.xlarge.type"
+            "size.x-large.type"
           ],
           "parts": {
             "digit": {
               "members": 3,
               "where": {
                 "size": [
-                  "xlarge"
+                  "x-large"
                 ],
                 "state": [
                   "error",
@@ -30882,7 +30882,7 @@
           "large",
           "medium",
           "small",
-          "xlarge"
+          "x-large"
         ],
         "state": [
           "disabled",
@@ -30910,7 +30910,7 @@
           "large",
           "medium",
           "small",
-          "xlarge"
+          "x-large"
         ],
         "state": [
           "disabled",

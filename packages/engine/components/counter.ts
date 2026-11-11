@@ -82,7 +82,7 @@ export const counter: ComponentDef = {
     'A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is unavailable. Outline draws the field\'s edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.',
 
   props: [
-    { name: 'label', type: 'string', required: true, description: 'What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel.' },
+    { name: 'label', type: 'string | node', required: true, description: 'What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel.' },
     { name: 'showLabel', type: 'boolean', default: false, required: false, description: 'Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way.' },
     { name: 'value', type: 'number', required: false, description: 'Controlled value; pair it with onChange.' },
     { name: 'defaultValue', type: 'number', required: false, description: 'The starting value when the counter manages its own state. Defaults to min.' },
@@ -92,8 +92,8 @@ export const counter: ComponentDef = {
     { name: 'step', type: 'number', default: 1, required: false, description: 'How much one press or one arrow key changes the value.' },
     { name: 'appearance', type: "enum: 'outline' | 'ghost'", values: ['outline', 'ghost'], default: 'outline', required: false, description: 'outline draws the field edge around the row, with the minus and plus glyphs inside it. ghost draws no box, and the minus and plus are light circles at each end.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size.' },
-    { name: 'message', type: 'string', required: false, description: 'Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value\'s description.' },
-    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Shows the message below the counter. Off by default.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value\'s description.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Shows the help text below the counter. Off by default.' },
     { name: 'decrementLabel', type: 'string', required: false, description: 'The minus button\'s accessible name. Defaults to "Decrease" followed by the label, such as "Decrease quantity". In a list of line items, include the item: "Decrease quantity, Trail runner".' },
     { name: 'incrementLabel', type: 'string', required: false, description: 'The plus button\'s accessible name. Defaults to "Increase" followed by the label. In a list of line items, include the item.' },
     { name: 'name', type: 'string', required: false, description: 'The form field name: a hidden input carries the value when the counter sits in a form.' },

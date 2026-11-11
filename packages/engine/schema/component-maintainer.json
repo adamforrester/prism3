@@ -6779,7 +6779,7 @@
         "contested": [
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
           "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
-          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+          "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
           "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
@@ -6915,7 +6915,7 @@
       ],
       "notes": {
         "contested": [
-          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
+          "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
           "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
         ],
         "unverified": [
