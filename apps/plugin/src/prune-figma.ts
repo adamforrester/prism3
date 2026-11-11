@@ -311,10 +311,44 @@ export const isEngineDescription = (
  * Compute what an opt-in prune would remove — pure, namespace-guarded, reusing `orphansOf` and
  * `strandedCollections`. See the module header for the three arms and why each guard is what it is.
  */
+/**
+ * Where Prism3's collections are in this file, after an Apply Theme Rename (#3558, #1909). A Rename writes a planned
+ * collection `P` as `P (Prism3)` (`renamedOf` in `collision-choice.ts`; again on a second pass, so the suffix can
+ * repeat) and leaves the person's `P` alone. So `P` maps to the renamed collection when the file's `P` does not carry
+ * the engine's `modes:owned` stamp and exactly that renamed one does; the person's `P` is then `kept`: never judged for
+ * orphans or modes, never offered as stranded. A stamped `P`, or no stamped rename, keeps `P` as before. The suffix is
+ * spelled here, not imported, because `collision-choice.ts` reaches this module through `preflight.ts`; the end-to-end
+ * arm in `test-write-preflight.ts` (a real Rename, then this) holds the two spellings together.
+ */
+const RENAMED = / \(Prism3\)$/;
+export const ownedCollectionNames = (planned: Iterable<string>, file: readonly FileCollection[]): { of: (name: string) => string; kept: string[] } => {
+  const stamped = (c: FileCollection | undefined): boolean => !!c?.ownedModeIds?.length;
+  const byName = new Map(file.map((c) => [c.name, c] as const));
+  const to = new Map<string, string>();
+  const kept: string[] = [];
+  for (const p of new Set(planned)) {
+    if (stamped(byName.get(p))) continue;
+    const renamed = file.filter((c) => {
+      let n = c.name;
+      if (!RENAMED.test(n)) return false;
+      while (RENAMED.test(n)) n = n.replace(RENAMED, '');
+      return n === p && stamped(c);
+    });
+    if (renamed.length !== 1) continue;
+    to.set(p, renamed[0].name);
+    if (byName.has(p)) kept.push(p);
+  }
+  return { of: (name) => to.get(name) ?? name, kept };
+};
+
 export const computePrunePlan = (input: PruneInput): PrunePlan => {
   const { root } = input;
   const plannedVars = new Set(input.plannedVariables);
-  const ownedCollections = new Set(input.plannedCollections);
+  // #3558: the plan's collection names, read where a Rename put them; the person's own collection under the default
+  // name (`kept`) is neither the plan's nor stranded.
+  const own = ownedCollectionNames(input.plannedCollections, input.collections);
+  const ownedCollections = new Set([...input.plannedCollections].map(own.of));
+  const kept = new Set(own.kept);
 
   // VARIABLES — orphans inside a plan-owned collection, restricted to the engine namespace. `orphansOf`
   // is the exact subtraction the executors' orphan reports use; the `inRoot` filter is the only addition,
@@ -334,6 +368,7 @@ export const computePrunePlan = (input: PruneInput): PrunePlan => {
     input.collections.map((c) => c.name),
     ownedCollections,
   ).filter((name) => {
+    if (kept.has(name)) return false;
     const c = byName.get(name);
     return !!c && c.variableNames.length > 0 && c.variableNames.every((n) => inRoot(n, root));
   });
@@ -344,9 +379,10 @@ export const computePrunePlan = (input: PruneInput): PrunePlan => {
   // collection this plan never wrote and guarantees the survivor Figma requires. See the header's residual.
   const plannedModesBy = new Map<string, Set<string>>();
   for (const pm of input.plannedModes) {
-    const set = plannedModesBy.get(pm.collection) ?? new Set<string>();
+    const at = own.of(pm.collection);
+    const set = plannedModesBy.get(at) ?? new Set<string>();
     for (const m of pm.modes) set.add(m);
-    plannedModesBy.set(pm.collection, set);
+    plannedModesBy.set(at, set);
   }
   const modes: PrunePlan['modes'] = [];
   for (const c of input.collections) {
