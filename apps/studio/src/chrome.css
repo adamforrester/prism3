@@ -357,7 +357,9 @@
 .p3-bardlg-desc { margin: 0; }
 .p3-bardlg-note { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
 .p3-export-seg, .p3-export-oseg { align-self: flex-start; max-width: 100%; }
-.p3-export-oseg { flex-wrap: wrap; }
+/* #3553 M8: the artifact switcher wraps as the option rows below it do: at the plugin's 380 its third tab ran past the
+   panel's edge. */
+.p3-export-seg, .p3-export-oseg { flex-wrap: wrap; }
 .p3-export-oseg .p3-seg-tab { flex: 0 1 auto; padding: 0 var(--p3-space-150); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
 .p3-export-sets { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-rhythm-row); }
 /* #3337 (Q3337.4 A): Export's settings join the rhythm: rows a row apart, an L3 label space-050 above its control, the
@@ -377,6 +379,11 @@
 }
 .p3-bardlg-import { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-bardlg-import > .p3-menu-item { justify-self: start; }
+/* #3553 M9: Export draws its captions and its Import action with the menu's classes, so they kept the menu's inner
+   padding and sat a space-150 right of the files, the code and the notes they label. Here a caption starts at the
+   column's edge, and the action's label does too: the button keeps its own padding and hover fill, moved out by it. */
+:is(.p3-export-out, .p3-bardlg-import) > .p3-menu-cap { padding-inline: 0; }
+.p3-bardlg-import > .p3-menu-item { margin-inline-start: calc(-1 * var(--p3-space-150)); }
 
 /* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
 /* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y

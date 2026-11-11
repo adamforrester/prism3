@@ -21481,6 +21481,65 @@ if (runs('2069')) {
     } finally { await ctx.close(); }
   }
 } // 2069
+// #3553 M8 AND M9 (batch M-D): THE EXPORT PAGE. M8: at the plugin's 380 the artifact switcher ("Design tokens | Brand brief
+// | Component specs") was wider than its column, and "Component specs" ran past the panel's edge to x=401; the option rows
+// below already wrapped (`.p3-export-oseg`), and now the switcher does too. M9: Export draws its captions ("You get 4
+// files", "Import") and its Import action ("↑ Brand brief…") with the menu's classes, and they kept the menu's inner
+// padding, 12px right of the files, the code and the notes they label. Held on the plugin at 380 and 1280 and the web at
+// 1280, both themes: every switcher tab lies inside the column, and each caption's and the action's text starts where
+// the content it labels starts. MUTATIONS (each after a `wip:` commit): `.p3-export-seg` dropped from the wrap rule →
+// `#3553 M8 … every artifact tab lies inside its column`, at 380; the captions' `padding-inline: 0` dropped → `#3553 M9
+// … "You get 4 files" starts at the files' edge` and `… "Import" starts at its note's edge`; the action's negative margin
+// dropped → `#3553 M9 … "↑ Brand brief…" starts at its note's edge`.
+if (runs('3553-md')) {
+  console.log(`\nExport: the switcher fits, and its captions align (#3553 M8, M9)\n${'='.repeat(78)}`);
+  for (const [host, w, h] of [['figma', 380, 420], ['figma', 1280, 900], ['web', 1280, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-md ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'premise';
+    try {
+      step = 'export';
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '[data-p3="export-page"] [data-p3="export-artifact"]');
+      await settle(page);
+      const m = await page.evaluate(() => {
+        const page = document.querySelector('[data-p3="export-page"]');
+        const textLeft = (n) => { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; };
+        const contentBox = (n) => { const r = n.getBoundingClientRect(); const cs = getComputedStyle(n); return { l: r.left + parseFloat(cs.paddingLeft), r: r.right - parseFloat(cs.paddingRight) }; };
+        const seg = page.querySelector('.p3-export-seg');
+        const col = contentBox(seg.parentElement);
+        const tabs = [...seg.querySelectorAll('[data-p3="export-artifact"]')].map((t) => { const r = t.getBoundingClientRect(); return { t: t.textContent, l: r.left, r: r.right }; });
+        const out = page.querySelector('.p3-export-out');
+        const capIn = (box, text) => [...box.querySelectorAll(':scope > .p3-menu-cap')].find((c) => c.textContent.startsWith(text));
+        const files = out.querySelector('.p3-export-files');
+        const imp = page.querySelector('.p3-bardlg-import');
+        const cap = capIn(out, 'You get');
+        const icap = imp && capIn(imp, 'Import');
+        const act = imp?.querySelector('[data-p3="export-import"]');
+        const inote = imp?.querySelector('.p3-bardlg-note');
+        return {
+          col, tabs,
+          files: files && cap ? { cap: textLeft(cap), text: cap.textContent, edge: textLeft(files) } : null,
+          imp: icap && act && inote ? { cap: textLeft(icap), act: textLeft(act), actText: act.textContent, edge: textLeft(inote) } : null,
+        };
+      });
+      ok(m.tabs.length === 3, `${where}: premise, the switcher draws three artifact tabs (${m.tabs.map((t) => t.t).join(' | ')})`);
+      const out = m.tabs.filter((t) => t.l < m.col.l - ALIGN_TOLERANCE || t.r > m.col.r + ALIGN_TOLERANCE);
+      ok(out.length === 0, `#3553 M8 ${where}: every artifact tab lies inside its column (${Math.round(m.col.l)}–${Math.round(m.col.r)}; outside ${JSON.stringify(out.map((t) => [t.t, Math.round(t.l), Math.round(t.r)]))})`);
+      ok(!!m.files, `${where}: premise, Export shows its files caption and list (${JSON.stringify(m.files)})`);
+      if (m.files) ok(Math.abs(m.files.cap - m.files.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "${m.files.text}" starts at the files' edge (caption ${m.files.cap.toFixed(1)}, files ${m.files.edge.toFixed(1)})`);
+      ok(!!m.imp, `${where}: premise, Export shows Import, its action and its note (${JSON.stringify(m.imp)})`);
+      if (m.imp) {
+        ok(Math.abs(m.imp.cap - m.imp.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "Import" starts at its note's edge (caption ${m.imp.cap.toFixed(1)}, note ${m.imp.edge.toFixed(1)})`);
+        ok(Math.abs(m.imp.act - m.imp.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "${m.imp.actText}" starts at its note's edge (label ${m.imp.act.toFixed(1)}, note ${m.imp.edge.toFixed(1)})`);
+      }
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-md-${host}-${w}-export.png`) });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-md
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
