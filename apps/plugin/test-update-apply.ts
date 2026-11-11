@@ -2893,7 +2893,7 @@ section('def rename, single — provider logos built as `brand-mark/…` are ren
   }
   const res = await applyUpdate(host, api, targets, previewHashOf(pre));
   const outOf = (id: string) => res.outcomes.find((o) => o.def === id);
-  const stray = (outOf(NEW)?.content ?? []).filter((c) => ![...misread].some((m) => c.startsWith(`${m}/`)));
+  const stray = (outOf(NEW)?.content ?? []).filter((c) => ![...misread].some((m) => c.startsWith(`${m}/`) || c.startsWith(`${m}.`)));  // `<member>.field` is a fault on the root (#2675)
   ok(!!outOf(NEW) && outOf(NEW)!.updated.length === kept.length && outOf(NEW)!.added === 0 && stray.length === 0 && !outOf(NEW)!.misses.length,
     `def rename, single/verdict: every mark updated in place, none added, and no field differs but the ${misread.size} the shim misreads (${outOf(NEW)?.updated.length}; ${stray.length}: ${stray[0] ?? 'none'})`);
   for (const id of HOSTS) {
@@ -4489,7 +4489,7 @@ section("veil — every directional member's gradient stops store the colors the
     const pre = await previewUpdate(w.host, [{ def: 'veil', plans: w.plans }]);
     const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
     const content = res.outcomes[0]?.content ?? [];
-    const line = `${MEMBER}/..fills: stored #000000 at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
+    const line = `${MEMBER}.fills: stored #000000 at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
     ok(!applyVerdict(res).ok && content.includes(line),
       `veil/verify: a stop the host left black under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => l.startsWith(MEMBER)) ?? content[0] ?? 'no content line'})`);
   }
@@ -4517,7 +4517,7 @@ section("veil — every directional member's gradient stops store the colors the
       `veil/alpha dry run: the 24 members whose stops keep their color at 100% read "to update", each stop named (${toUpdate} to update; ${solid.reduce((n, c) => n + c.members, 0)} stops named, e.g. ${firstTo ? `${first} (the plan says ${firstTo})` : solid[0] ? `${solid[0].from} (the plan says ${solid[0].to})` : 'none'}; ${previewVerdict(pre).headline})`);
     const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
     const content = res.outcomes[0]?.content ?? [];
-    const line = `${MEMBER}/..fills: stored #b64d3c at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
+    const line = `${MEMBER}.fills: stored #b64d3c at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
     ok(!applyVerdict(res).ok && content.includes(line),
       `veil/alpha verify: a stop the host left at 100% under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => l.startsWith(MEMBER)) ?? content[0] ?? 'no content line'})`);
   }
