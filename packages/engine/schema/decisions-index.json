@@ -376,6 +376,13 @@
       "title": "CSS custom properties keep the `--pds3-` prefix",
       "doc": "docs/35-naming-and-packaging.md",
       "section": "9.4"
+    },
+    {
+      "date": "2026-11-11",
+      "issue": 1040,
+      "title": "Prism3 never renames a mode in a built file, custom modes included",
+      "doc": "docs/44-materialization-renames.md",
+      "section": "9.1"
     }
   ]
 }

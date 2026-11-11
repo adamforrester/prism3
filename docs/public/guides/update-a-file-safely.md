@@ -107,6 +107,16 @@ The delete works out the list again from a fresh read of the file before it dele
 
 After a style-guide run that found tables Prism3 no longer draws, **Clean up** lists them too: "2 style-guide tables the generator no longer draws." Choose **Remove *N* tables** to delete them. <!-- src: apps/studio/src/state/update-file.ts:403-404 -->
 
+### When a mode is renamed
+
+Prism3 never renames a mode in a file, and that includes a custom mode renamed in **Custom mode name**. <!-- src: apps/studio/src/domains/brand.ts:200 -->
+The renamed mode arrives as a new mode beside the old one. The old mode keeps the values it last had, and frames set to it still show them. <!-- src: apps/plugin/src/write-figma.ts:371-386#ffc2b3a2 -->
+Removing a mode removes its values from every variable in the collection, so move the frames first: <!-- src: apps/plugin/src/prune-figma.ts:45-53#979f9c19 -->
+
+1. Choose **Update file**, with **Theme** ticked, and run it. The file gets the new mode.
+2. Select each frame set to the old mode. In Figma's right sidebar, change the frame's mode for that collection to the new mode.
+3. Choose **Update file**, then the **Clean up** tab. It lists the old mode by name. Choose **Delete *N* items**.
+
 ## What refuses, and why
 
 | You see | Why | What to do |
