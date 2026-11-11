@@ -22,6 +22,12 @@ action families pin to their own family's alternative (#1697, #2457), is unchang
 entries (129 today). The oracle for each entry is the other def. Mutation: Icon's `provider-logo` was dropped, and the arm
 failed by name with "one-way: provider-logo → icon".
 
+### Where it shows
+
+The plugin's Figma doc panel draws its "Instead, consider" list from `alternativeTo`, so its Related section grows too:
+Checkbox gains TextField, and Buttons gain Tag and Link. `apps/plugin/test-doc-panel.ts` holds those two lists as literals
+from the #2970 wireframe, and they are updated to match. That test failed by name on the change before the update.
+
 ### Not decided here
 
 Symmetry says nothing about order. Each reverse entry sits at the end of its list, and no consumer reads the order beyond
