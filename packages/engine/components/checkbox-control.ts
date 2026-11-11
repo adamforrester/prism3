@@ -240,7 +240,11 @@ export const checkboxControl: ComponentDef = {
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['checkGlyph', 'dashGlyph', 'focusRing'],
-        note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `checkbox-row`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
+        // Maintainer detail, out of the reader caption (#3610): The control square AND the nominal hit-target marker.
+        // The real hit target is the whole labeled ROW, which lives on `checkbox-row`; this square is not
+        // independently clickable. `role: target` is here only because the schema requires exactly one per anatomy —
+        // the same nominal marker `focus-ring`'s `ring` part carries.
+        note: 'The checkbox square; a person clicks the whole labeled row, not the square alone.',
       },
       // THE CHECK. The FRAME is bound to the control box (`size.{size}.control`), and `glyphScale: 0.8`
       // (#1346) places the `icon/check` instance inside it at 0.8 of the box (#2380), so the ~71% of the grid
@@ -252,7 +256,10 @@ export const checkboxControl: ComponentDef = {
         size: 'size.{size}.control',
         glyphScale: 0.8,
         presentWhen: { selection: ['checked'] },
-        note: 'The check, an instance of the check icon inset to 0.8 of the box (#1346). Its ink is `checked.icon`, applied to the outline inside the instance. Its draw transition is stated in `motion`; the Figma members are static.',
+        // Maintainer detail, out of the reader caption (#3610): The check, an instance of the check icon inset to 0.8
+        // of the box (#1346). Its ink is `checked.icon`, applied to the outline inside the instance. Its draw
+        // transition is stated in `motion`; the Figma members are static.
+        note: 'The check mark, shown when the box is checked.',
       },
       // THE DASH. Same geometry and the same `glyphScale: 0.8` inset (an `icon/minus` instance); only the icon differs, which is
       // the whole of what separates `indeterminate` from `checked` in this def's tokens. Prism 2 sizes
@@ -264,7 +271,10 @@ export const checkboxControl: ComponentDef = {
         size: 'size.{size}.control',
         glyphScale: 0.8,
         presentWhen: { selection: ['indeterminate'] },
-        note: 'The mixed-state dash, an instance of the minus icon inset to 0.8 of the box (#1346), the same as the check. Never the sole signal — `aria-checked="mixed"` carries it to assistive tech, which the host row sets.',
+        // Maintainer detail, out of the reader caption (#3610): The mixed-state dash, an instance of the minus icon
+        // inset to 0.8 of the box (#1346), the same as the check. Never the sole signal — `aria-checked="mixed"`
+        // carries it to assistive tech, which the host row sets.
+        note: 'The dash, shown when the box is partly checked; screen readers announce it as mixed.',
       },
       // The focus ring, verbatim from the pre-split checkbox: on the control, offset 2 (`focus.ring.offset`,
       // not the field\'s flush 0), the offsets summing to site the ring at -(2+2) = -4 (#801).
@@ -278,7 +288,9 @@ export const checkboxControl: ComponentDef = {
         // host coordinate to pass through. A `follow` here would be rejected — it names a host axis and
         // this def declares none.
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the control so the ring surrounds the square.',
+        // Maintainer detail, out of the reader caption (#3610): An absolutely-positioned sibling nesting the shared
+        // `focus-ring` component, inset from the control so the ring surrounds the square.
+        note: 'The shared focus ring, drawn around the square on keyboard focus.',
       },
     },
     codeOnly: [
