@@ -70,11 +70,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.glyph.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -270,11 +265,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.ring.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -434,21 +424,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -557,21 +532,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -682,21 +642,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -728,7 +673,7 @@
         {
           "class": "platform-owned",
           "disposition": "REFUSED",
-          "description": "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and type and style through unchanged."
+          "description": "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and wording (as the provider's button type) and style through unchanged."
         },
         {
           "class": "runtime-behavior",
@@ -783,6 +728,7 @@
           "The style artwork, grounds and edges were captured from each provider's public SDK on 2026-10-30 (the records in marks/provenance.json). An SDK that changes its paint later is not seen until the artwork is captured again."
         ],
         "evolution": [
+          "2026-11-11 (#3554 Q-CC21 A): the wording prop is `wording`, as SignInButton names the same job, not `type`, which is the HTML button type on Button, IconButton and FlushIconButton. It still reaches the provider as its button type.",
           "Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A) and the provider's own element in code (Q-B8 A). Built in PR 4 on the owner's logo marks (PR 3).",
           "Q-W1 (the Figma member) was built as A, a layout stand-in with no fill, while the providers' artwork was not in. #3174 took B (Q3174.1–6, all A): a style axis in each SDK's own names, each style drawn from the provider's SDK artwork with its record's ground and edge, and the stand-in kept as the any style, so every member built before is still there at style any.",
           "Q-W2 (heights outside a provider's range): built as A, no member, and kept by Q3174.4 A: PayPal has no large member, because 55 is its documented ceiling.",
@@ -1012,21 +958,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -1121,21 +1052,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -1229,21 +1145,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -1593,16 +1494,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.indicator.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "accessibility",
           "field": "accessibility.keyboard",
           "reason": "empty"
@@ -1700,26 +1591,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.errorGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.warningGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.successGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -1862,21 +1733,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -1993,26 +1849,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.gripGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.counter.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -2080,26 +1916,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.checkGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.dashGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2194,16 +2010,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2390,21 +2196,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.dot.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -2496,16 +2287,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -2518,6 +2299,11 @@
         {
           "section": "related",
           "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
           "reason": "empty"
         },
         {
@@ -2605,11 +2391,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.row1.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -2694,31 +2475,6 @@
         ]
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.track.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.thumb.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.onGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.offGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2819,16 +2575,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -2926,26 +2672,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.chevronGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -3280,11 +3006,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.frame.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -3573,11 +3294,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -3673,11 +3389,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.labelReserve.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -3977,7 +3688,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion."
+          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs, on motion.transition.default both ways, and swaps without turning under prefers-reduced-motion (the prism3-motion accordion recipe). Figma swaps the down and up glyphs, since a variant holds no motion."
         },
         {
           "class": "right-to-left",
@@ -4003,21 +3714,6 @@
         {
           "section": "accessibility",
           "field": "accessibility.keyboard",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.enter",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.exit",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.reduceMotion",
           "reason": "empty"
         },
         {
@@ -4138,11 +3834,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -4226,11 +3917,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.number.note",
-          "reason": "names a tool"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -4547,11 +4233,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -5054,21 +4735,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -5213,6 +4879,11 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "ai.commonPartners",
           "reason": "empty"
         },
         {
@@ -5530,6 +5201,11 @@
         },
         {
           "section": "related",
+          "field": "ai.commonPartners",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
           "field": "composition.supersedes",
           "reason": "empty"
         },
@@ -5737,21 +5413,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.previousGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.gapGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.nextGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -5882,26 +5543,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.previous.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.next.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.previousButton.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.nextButton.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -6155,21 +5796,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -6290,21 +5916,6 @@
         ]
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.dialogPattern",
@@ -6440,16 +6051,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.action.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.dismiss.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -6686,21 +6287,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.field.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.milestones.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.milestone.note",
-          "reason": "names a tool"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -6932,11 +6518,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.dialogPattern",

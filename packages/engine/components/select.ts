@@ -415,7 +415,11 @@ export const select: ComponentDef = {
         // containers FILL). Field-label's name wraps at its own max width inside it (#1762, owner; it wrapped at
         // the field's width under #1757), so a long name wraps instead of running past the field.
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field\'s width (#1503); a long name wraps at FieldLabel\'s max width.',
+        // Maintainer detail, out of the reader caption (#3610): The accessible name, composed rather than re-
+        // declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the
+        // select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts primary
+        // and regular. Fills the field's width (#1503); a long name wraps at FieldLabel's max width.
+        note: 'The field\'s label, set here on the select (its text, required marker and weight); a long label wraps.',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill and border (`paintSlots`; no hover wash since #2926);
@@ -505,7 +509,9 @@ export const select: ComponentDef = {
         type: 'size.{size}.type',
         presentWhen: { state: ['filled', 'focus-visible-filled', 'read-only', 'pending'] },
         wrap: true,
-        note: 'The chosen option\'s label, in the value ink. Shown on the filled and read-only control. Wraps rather than truncating (#1758), and the control grows taller.',
+        // Maintainer detail, out of the reader caption (#3610): The chosen option's label, in the value ink. Shown on
+        // the filled and read-only control. Wraps rather than truncating (#1758), and the control grows taller.
+        note: 'The chosen option, shown when the select is filled or read-only; a long value wraps and the field grows taller.',
       },
       // THE TRAILING CHEVRON — a fixed `vector`, glyph `chevron-down` (the engine name; the Prism2 spec's
       // `arrow-down-s-line` is the source file's name, not ours). Its ink is the `icon` slot.
@@ -513,7 +519,10 @@ export const select: ComponentDef = {
         kind: 'vector',
         glyph: 'chevron-down',
         size: 'icon-size',
-        note: 'The disclosure affordance, aria-hidden — the control\'s role conveys that it opens a menu. A downward chevron, painted the primary icon role so it matches the value text and the leading glyph (#1343).',
+        // Maintainer detail, out of the reader caption (#3610): The disclosure affordance, aria-hidden — the
+        // control's role conveys that it opens a menu. A downward chevron, painted the primary icon role so it
+        // matches the value text and the leading glyph (#1343).
+        note: 'The downward chevron that shows the field opens a menu, decorative, in the value\'s color.',
       },
       // THE NESTED MESSAGE (nest-fixed, FOLLOWING status). An in-flow instance of `field-message` whose
       // single projected axis, `status`, is DRIVEN by select's `status` axis via `follow` — a same-name,
@@ -537,7 +546,11 @@ export const select: ComponentDef = {
         // FILL), so a long message wraps at the field's width. Coexists with `optional` (the node-visibility
         // boolean toggles `visible`; this sets the child-side stretch) — different fields.
         crossAxisFill: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Hidden by default (#2926); the `showMessage` boolean (#1426) shows it where the field has something to say. Fills the field\'s width (#1503).',
+        // Maintainer detail, out of the reader caption (#3610): Helper or validation text, composed rather than re-
+        // declared. Its status follows select's validation by name, so error / warning / success reach the message
+        // without a value mapping. Hidden by default (#2926); the `showMessage` boolean (#1426) shows it where the
+        // field has something to say. Fills the field's width (#1503).
+        note: 'Helper or validation text, hidden until the field has something to say; it takes the field\'s status and width.',
       },
     },
     codeOnly: [

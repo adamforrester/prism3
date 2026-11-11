@@ -19,12 +19,12 @@ A control for choosing one value from a known, bounded set — the closed, nativ
 
 Shown on the default member: size `medium`, style `outline`, status `default`.
 
-1. **Label**
+1. **Label** — The field's label, set here on the select (its text, required marker and weight); a long label wraps.
 2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
 3. **Placeholder** — The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. Wraps rather than truncating, and the control grows taller.
-4. **Value**
-5. **Chevron glyph**
-6. **Message** (optional)
+4. **Value** — The chosen option, shown when the select is filled or read-only; a long value wraps and the field grows taller.
+5. **Chevron glyph** — The downward chevron that shows the field opens a menu, decorative, in the value's color.
+6. **Message** (optional) — Helper or validation text, hidden until the field has something to say; it takes the field's status and width.
 
 ## Styles
 
