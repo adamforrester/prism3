@@ -383,6 +383,13 @@
       "title": "Prism3 never renames a mode in a built file, custom modes included",
       "doc": "docs/44-materialization-renames.md",
       "section": "9.1"
+    },
+    {
+      "date": "2026-11-11",
+      "issue": 1040,
+      "title": "text, effect and gradient styles carry a rename record, and the plugin renames the existing style in place",
+      "doc": "docs/44-materialization-renames.md",
+      "section": "10.1"
     }
   ]
 }

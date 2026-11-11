@@ -183,7 +183,11 @@ export const resolveCollisions = (plans: ApplyPlans, conflicts: readonly Conflic
   // REFERENCES: every place a plan names another variable follows a rename, and lets go of a skip.
   const ref = (n: string | null): string | null => (n === null ? null : skippedVars.has(n) ? null : renamedVars.get(n) ?? n);
   for (const r of p.color.color.aliases) {
-    r.targetsByMode = r.targetsByMode.map(ref);
+    // A TINTED WASH whose opacity is skipped lets go of its color too (#3556): the executor writes a plain alias for a
+    // target with no opacity, so keeping the target bound the wash to the solid fill at 100% over the literal the
+    // first pass wrote. Dropped, the mode keeps that literal, the fill at its opacity, as the header promises.
+    const washSkipped = (i: number): boolean => { const o = r.opacityByMode?.[i]; return !!o && ref(o.name) === null; };
+    r.targetsByMode = r.targetsByMode.map((t, i) => (washSkipped(i) ? null : ref(t)));
     if (r.opacityByMode) r.opacityByMode = r.opacityByMode.map((o) => (o && ref(o.name) !== null ? { ...o, name: ref(o.name)! } : null));
   }
   for (const c of p.float) for (const r of c.aliases) r.targetsByMode = r.targetsByMode.map(ref);

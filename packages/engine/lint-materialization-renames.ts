@@ -72,6 +72,9 @@ import {
   ACCOUNTING_COLLECTION_MOVES,
   MATERIALIZATION_RENAMES,
   MATERIALIZATION_DELETIONS,
+  STYLE_RENAMES,
+  STYLE_DELETIONS,
+  styleKeysFromEmittedFile,
   accountFor,
   isTotal,
   keysFromEmittedFile,
@@ -97,6 +100,13 @@ const FIGMA_DIR = 'packages/engine/out/figma';
  * today's exact count is a second baseline that fails on legitimate change.
  */
 const FLOOR_KEYS = 1200;
+
+/**
+ * The same floor for the STYLE accounting (#1040): 299 style keys across four brands at the time of writing
+ * (51–80 text styles, 15 shadow styles and 0–2 gradients per brand). Below that with room to lose a brand, for the
+ * reason `FLOOR_KEYS` gives. A style reader that found nothing would account for every style rename.
+ */
+const STYLE_FLOOR_KEYS = 150;
 
 const git = (...args: string[]): { ok: boolean; out: string; err: string } => {
   const r = spawnSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -125,13 +135,21 @@ const brandsOnDisk = (): string[] => {
 // 708 being every `color` key failing its own image lookup. Per-brand keeps the key space identical to
 // the rules' own `(collection, name)` domain, which is the space `docs/44` defines them over.
 const afterByBrand = new Map<string, Set<VarKey>>();
+// THE STYLE KEYS (#1040), read from the same files in the same pass. Styles are their own accounting rather than
+// keys mixed into the variable one: the variable rules take a brand root and claim any name that lacks it, and a
+// style name carries no root, so a mixed key space would have every variable rule claiming every style.
+const styleAfterByBrand = new Map<string, Set<VarKey>>();
 for (const brand of brandsOnDisk()) {
   const dir = resolve(repo, FIGMA_DIR, brand);
   const keys = new Set<VarKey>();
-  for (const f of readdirSync(dir).filter((n) => n.endsWith('.json')).sort())
-    for (const k of keysFromEmittedFile(JSON.parse(readFileSync(resolve(dir, f), 'utf8')), `${FIGMA_DIR}/${brand}/${f}`))
-      keys.add(k);
+  const styleKeys = new Set<VarKey>();
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.json')).sort()) {
+    const parsed = JSON.parse(readFileSync(resolve(dir, f), 'utf8'));
+    for (const k of keysFromEmittedFile(parsed, `${FIGMA_DIR}/${brand}/${f}`)) keys.add(k);
+    for (const k of styleKeysFromEmittedFile(parsed, `${FIGMA_DIR}/${brand}/${f}`)) styleKeys.add(k);
+  }
   afterByBrand.set(brand, keys);
+  styleAfterByBrand.set(brand, styleKeys);
 }
 const afterKeys = new Set<VarKey>([...afterByBrand].flatMap(([b, ks]) => [...ks].map((k) => varKey(b, k))));
 
@@ -210,14 +228,19 @@ if (!tree.ok)
 
 const beforeFiles = tree.out.split('\n').map((l) => l.trim()).filter((l) => l.endsWith('.json'));
 const beforeByBrand = new Map<string, Set<VarKey>>();
+const styleBeforeByBrand = new Map<string, Set<VarKey>>();
 for (const path of beforeFiles) {
   const blob = git('show', `${base}:${path}`);
   if (!blob.ok)
     die([`could not read ${path} at ${base.slice(0, 8)} — this check CANNOT RUN.`, `    ${blob.err}`]);
   const brand = path.slice(`${FIGMA_DIR}/`.length).split('/')[0];
   if (!beforeByBrand.has(brand)) beforeByBrand.set(brand, new Set());
-  for (const k of keysFromEmittedFile(JSON.parse(blob.out), `${base.slice(0, 8)}:${path}`))
+  if (!styleBeforeByBrand.has(brand)) styleBeforeByBrand.set(brand, new Set());
+  const parsed = JSON.parse(blob.out);
+  for (const k of keysFromEmittedFile(parsed, `${base.slice(0, 8)}:${path}`))
     beforeByBrand.get(brand)!.add(k);
+  for (const k of styleKeysFromEmittedFile(parsed, `${base.slice(0, 8)}:${path}`))
+    styleBeforeByBrand.get(brand)!.add(k);
 }
 const beforeKeys = new Set<VarKey>([...beforeByBrand].flatMap(([b, ks]) => [...ks].map((k) => varKey(b, k))));
 
@@ -259,6 +282,17 @@ if (beforeKeys.size < FLOOR_KEYS && beforeFiles.length > 0)
     `the emission at ${base.slice(0, 8)} yielded only ${beforeKeys.size} keys, below the floor of ${FLOOR_KEYS}.`,
     '  Every claim below is "every name that …", which is vacuously true of no names — a reader that',
     '  finds nothing accounts for everything. Something changed the emitted shape or the reader.',
+  ]);
+const styleCount = (m: Map<string, Set<VarKey>>): number => [...m.values()].reduce((n, ks) => n + ks.size, 0);
+if (styleCount(styleBeforeByBrand) < STYLE_FLOOR_KEYS && beforeFiles.length > 0)
+  die([
+    `the style emission at ${base.slice(0, 8)} yielded only ${styleCount(styleBeforeByBrand)} style keys, below the floor of ${STYLE_FLOOR_KEYS}.`,
+    '  The style accounting (#1040) claims "every style name that left is recorded"; over no names that is vacuous.',
+  ]);
+if (styleCount(styleAfterByBrand) < STYLE_FLOOR_KEYS)
+  die([
+    `the working tree's style emission yielded only ${styleCount(styleAfterByBrand)} style keys, below the floor of ${STYLE_FLOOR_KEYS}.`,
+    '  Did `regen` run, or did a style file lose its `styles` array?',
   ]);
 if (afterKeys.size < FLOOR_KEYS)
   die([
@@ -377,6 +411,47 @@ const listing = (label: string, xs: readonly string[]): string[] =>
     ...(xs.length > PRINT ? [`     … and ${xs.length - PRINT} more, not listed`] : []),
   ];
 
+// ---- THE STYLE ACCOUNTING (#1040, `docs/44` §10.1) -------------------------------------------------
+//
+// The same whole-set accounting over the three style collections, with the style register. No root (a style name
+// carries none), no contract claims (no app resolves a style name), no collection moves (a style never changes
+// collection). Its own floor is above; its own report section is below, so a style failure names the style
+// register and never sends a reader to the variable rules.
+const stylePer = brands.map((brand) => ({
+  brand,
+  a: accountFor(styleBeforeByBrand.get(brand) ?? empty, styleAfterByBrand.get(brand) ?? empty, STYLE_RENAMES, parseVarKey, '', [], STYLE_DELETIONS),
+}));
+const styleAcct = {
+  removed: stylePer.flatMap((p) => tag(p.brand, p.a.removed)),
+  added: stylePer.flatMap((p) => tag(p.brand, p.a.added)),
+  claims: stylePer.flatMap((p) => p.a.claims),
+  unaccountedRemovals: stylePer.flatMap((p) => tag(p.brand, p.a.unaccountedRemovals)),
+  unaccountedAdditions: stylePer.flatMap((p) => tag(p.brand, p.a.unaccountedAdditions)),
+  contradictedClaims: stylePer.flatMap((p) => p.a.contradictedClaims.map((c) => ({ ...c, from: `${p.brand} · ${c.from}` }))),
+  multiplyClaimed: stylePer.flatMap((p) => p.a.multiplyClaimed.map((m) => ({ ...m, key: `${p.brand} · ${m.key}` }))),
+};
+const styleTally = `${STYLE_RENAMES.length} style rule(s) making ${styleAcct.claims.length} claim(s), plus ${STYLE_DELETIONS.length} recorded style deletion(s)`;
+const styleOut: string[] = isTotal(styleAcct) ? [] : [
+  `STYLES — the style emission moved and ${STYLE_RENAMES.length} style rule(s) do not account for it.`,
+  `    ${styleCount(styleBeforeByBrand)} style keys → ${styleCount(styleAfterByBrand)} · ${styleAcct.removed.length} removed · ${styleAcct.added.length} added · ${styleTally}`,
+  '',
+  ...listing('UNACCOUNTED STYLE REMOVALS — a style name left the emission and no style rule claimed it', styleAcct.unaccountedRemovals),
+  ...listing('style names that ARRIVED (context — an addition is a new style and never a failure on its own)', styleAcct.unaccountedAdditions),
+  ...listing(
+    'CONTRADICTED STYLE CLAIMS — a style rule states a rename the emission does not show',
+    styleAcct.contradictedClaims.map((c) => `[${c.rule}] ${c.from} → ${c.to}: ${c.contradiction}`),
+  ),
+  ...listing(
+    'STYLE NAMES CLAIMED BY MORE THAN ONE RULE — the pairing must be unambiguous',
+    styleAcct.multiplyClaimed.map((m) => `${m.key} claimed by [${m.rules.join(', ')}]`),
+  ),
+  '',
+  '  A style rename is recorded in `STYLE_RENAMES` (`packages/engine/materialization-renames.ts`, `docs/44` §10.1),',
+  '  and the plugin then renames the existing style in place, so the layers and library consumers using it follow.',
+  '  Without the entry the plugin creates the new style beside the old one, and every layer stays on the old one.',
+  '  A style that was DELETED rather than renamed goes in `STYLE_DELETIONS`, with the decision behind it.',
+];
+
 if (!isTotal(acct)) {
   const out: string[] = [
     `the emission moved and ${MATERIALIZATION_RENAMES.length} rule(s) do not account for it.`,
@@ -413,8 +488,9 @@ if (!isTotal(acct)) {
     '  Writing a rule for one puts two differently-derived records in front of one Figma operation, and',
     '  the key then fails here as CLAIMED BY MORE THAN ONE RULE rather than going quietly.',
   ];
-  die(out);
+  die(styleOut.length ? [...out, '', ...styleOut] : out);
 }
+if (styleOut.length) die(styleOut);
 
 console.log(
   `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}, ${cmp.label}), `
@@ -432,5 +508,7 @@ console.log(
   // that IS a claim's image is the rules working; one that is not is a new token.
   + (acct.unaccountedAdditions.length
     ? `\n  ${acct.unaccountedAdditions.length} of the ${acct.added.length} added are no rule's image — additions need no rule; only a REMOVAL can hide a rename (#1053).`
-    : `\n  every one of the ${acct.added.length} added is a rule's claimed image — nothing arrived unexplained.`),
+    : `\n  every one of the ${acct.added.length} added is a rule's claimed image — nothing arrived unexplained.`)
+  + `\n✓ style renames accounted for (#1040) — ${styleCount(styleBeforeByBrand)} style keys → ${styleCount(styleAfterByBrand)}, `
+  + `${styleAcct.removed.length} removed / ${styleAcct.added.length} added, ${styleTally}.`,
 );

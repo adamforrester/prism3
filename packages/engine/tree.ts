@@ -261,7 +261,7 @@ const weightRoleAlias = (path: string, numeric: number, description: string): To
  *  mode, which is the invariant #296 protected and this preserves rather than reopens. `$type` follows
  *  the primitive it points at, so a consumer that resolves the alias sees a number / a dimension. */
 const rungRoleAlias = (path: string, value: number, description: string): Token => ({
-  $type: typeof value === 'number' && path.includes('line-height') ? 'number' : 'dimension',
+  $type: 'number',
   $value: `{${path}}`, $description: description,
   $extensions: { prism3: { role: 'semantic', aliasOf: path } },
 });
@@ -273,12 +273,15 @@ const lineHeightLeaf = (value: number, description: string): Token => ({
   $type: 'number', $value: value, $description: description,
   $extensions: { prism3: { generated: true, unitless: true, figma: { kind: 'style-part', field: 'lineHeight', unit: 'PERCENT', percent: Math.round(value * 100) } } },
 });
-// Letter spacing: em-relative in $value (CSS-correct). Figma binds letter-
-// spacing as either PIXELS or PERCENT; the exporter bakes as PERCENT (em×100)
-// so a fluid style's tracking is size-independent. A future PR ships a tracking
-// FLOAT collection (per §4 fix 3b — bindable form).
+// Letter spacing: a `number`, the multiplier of the font size (#2434). DTCG 2025.10's `dimension`
+// allows only `px` and `rem`, so the `-0.04em` this leaf held was a unit no stock tool reads: native
+// size transforms took it for rem and wrote an absolute -0.64. A platform applies the multiplier
+// itself: `calc(<value> * 1em)` in CSS, `value × fontSize` in points on iOS (`kern`), the value as
+// `em` on Android (`letterSpacing`) and Compose (`.em`). `$extensions.prism3.em` keeps the same
+// number for the readers that named it. Figma binds letter spacing as PIXELS or PERCENT; the
+// exporter bakes PERCENT (multiplier × 100) so a fluid style's tracking is size-independent.
 const letterSpacingLeaf = (em: number, description: string): Token => ({
-  $type: 'dimension', $value: `${em}em`, $description: description,
+  $type: 'number', $value: em, $description: description,
   $extensions: { prism3: { generated: true, em, figma: { kind: 'style-part', field: 'letterSpacing', unit: 'PERCENT', percent: Math.round(em * 10000) / 100 } } },
 });
 // Composite (DTCG typography): bundles family/size/weight-role/line-height/tracking
@@ -1112,7 +1115,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     lineHeight[key] = lineHeightLeaf(value, `line height ${value}× — unitless multiplier (ladder step ${key})`);
   const letterSpacing: Record<string, Token> = {};
   for (const [key, em] of [...lsStepsUsed].sort((a, b) => a[1] - b[1]))
-    letterSpacing[key] = letterSpacingLeaf(em, `letter spacing ${em}em (ladder step ${key})`);
+    letterSpacing[key] = letterSpacingLeaf(em, `letter spacing ${em} × the font size, ${em}em in CSS (ladder step ${key})`);
 
   // The semantic tier. A mode override lives HERE — one statement — rather than being fanned onto every
   // composite that referenced the rung, which is the whole point of the tier existing.
@@ -1130,7 +1133,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const letterSpacingRole: Record<string, Token> = {};
   for (const ls of ty.letterSpacings) {
     const leaf = rungRoleAlias(`${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(ls.em)}`, ls.em,
-      `letter-spacing role '${ls.key}' → ${ls.em}em — a relative-emphasis name a mode may re-point; the step itself never changes`);
+      `letter-spacing role '${ls.key}' → ${ls.em} × the font size — a relative-emphasis name a mode may re-point; the step itself never changes`);
     const modes: Record<string, any> = {};
     for (const [m, byRole] of Object.entries(ty.letterSpacingRoleByMode ?? {}))
       if (byRole[ls.key] !== undefined)
@@ -1229,7 +1232,6 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     max: dimLeaf(ly.containerMax, `container max — ${ly.containerMax}px content cap (fluid below it)`),
     narrow: dimLeaf(ly.containerNarrow, `container narrow — ${ly.containerNarrow}px reading measure`),
     min: dimLeaf(ly.containerMin, `container min — ${ly.containerMin}px narrowest column (the WCAG 1.4.10 reflow width)`),
-    fluid: { $type: 'dimension', $value: '100%', $description: 'container fluid — full width with margins (the default)', $extensions: { prism3: { generated: true } } },
   };
 
   // ---- assemble under the brand root ----

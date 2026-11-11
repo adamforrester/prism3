@@ -13249,7 +13249,8 @@ const HT = (() => {
   };
   const num = (name) => {
     const v = walk('light', `${root}.${HEADING_TOKEN_PATHS[name]}`);
-    if (typeof v === 'number') return v;
+    // Letter spacing is a `number` multiplier of the font size since #2434, read here as the em it renders at.
+    if (typeof v === 'number') return HEADING_TOKEN_PATHS[name].includes('letter-spacing') ? { em: v } : v;
     const m = /^(-?[\d.]+)(px|rem|em)?$/.exec(String(v ?? ''));
     if (!m) throw new Error(`TY2 A: ${name} (${HEADING_TOKEN_PATHS[name]}) resolves to ${JSON.stringify(v)} in the emission, not a number`);
     if (m[2] === 'em') return { em: Number(m[1]) };
@@ -13831,7 +13832,7 @@ console.log(`\nThe view and card titles (#2322)\n${'='.repeat(78)}`);
   const root = base.$extensions?.prism3?.root;
   const at = (path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), base);
   const deref = (path, hops = 0) => { const v = at(path)?.$value; const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v); return m && hops < 16 ? deref(m[1], hops + 1) : v; };
-  ok(deref(`${root}.core.font.letter-spacing-role.tightest`) === '-0.04em' && deref(`${root}.core.font.letter-spacing-role.open`) === '0.01em' && deref(`${root}.core.font.weight.700`) === 700,
+  ok(deref(`${root}.core.font.letter-spacing-role.tightest`) === -0.04 && deref(`${root}.core.font.letter-spacing-role.open`) === 0.01 && deref(`${root}.core.font.weight.700`) === 700,
     `#2322: the emission carries tightest −4%, open +1% and weight 700 (${[deref(`${root}.core.font.letter-spacing-role.tightest`), deref(`${root}.core.font.letter-spacing-role.open`), deref(`${root}.core.font.weight.700`)].join(', ')})`);
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host: 'web', theme, w: 1280, h: 900 });
@@ -21543,6 +21544,67 @@ if (runs('3553-md')) {
     } finally { await ctx.close(); }
   }
 } // 3553-md
+// #3553 M10, M11 AND M12 (batch M-E): REPORT A PROBLEM AND DOCUMENTATION. M10: the Report dialog's intro carried
+// `p3-upd-sub`, whose indent hangs a hint under a checkbox, but it comes before the checkbox, so it sat 32px right of the
+// checkbox row and the textarea. M11: with no collection open, Documentation › Style guides drew its empty groups tree
+// as a bordered pill about 8px tall. M12: at the plugin's 380, the narrow tier's padding for the guide outranked
+// Documentation's `padding: 0`, so its body sat 12px inside the title and the section select. Held: M10 on the web at
+// 1280 and 380; M11 on the plugin at 1280 and 380; M12 at 380; both themes. MUTATIONS (each after a `wip:` commit): the
+// intro given `p3-upd-sub` again → `#3553 M10 … the intro starts where the checkbox row starts`; the `.p3-sg-tree:empty`
+// rule dropped → `#3553 M11 … no groups tree is drawn while it has no rows`; the narrow `.p3-docs-body > .p3-sg` rule
+// dropped → `#3553 M12 … the guide's body starts at the title's edge`.
+if (runs('3553-me')) {
+  console.log(`\nReport a problem and Documentation align (#3553 M10, M11, M12)\n${'='.repeat(78)}`);
+  for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-me web ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme, w, h });
+    let step = 'report';
+    try {
+      await hooks.click(page.locator('[data-p3="report-open"]'));
+      await hooks.need(page, '[data-p3="report-dialog"] [data-p3="report-intro"]');
+      await settle(page);
+      const m = await page.evaluate(() => {
+        const textLeft = (sel) => { const n = document.querySelector(sel); if (!n) return null; const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; };
+        return { intro: textLeft('[data-p3="report-intro"]'), row: document.querySelector('[data-p3="report-brand-row"]')?.getBoundingClientRect().left ?? null,
+          text: document.querySelector('[data-p3="report-text"]')?.getBoundingClientRect().left ?? null };
+      });
+      ok(m.row !== null && Math.abs(m.row - m.text) <= ALIGN_TOLERANCE, `${where}: premise, the checkbox row and the textarea share an edge (${JSON.stringify(m)})`);
+      ok(m.intro !== null && Math.abs(m.intro - m.row) <= ALIGN_TOLERANCE, `#3553 M10 ${where}: the intro starts where the checkbox row starts (intro ${m.intro?.toFixed(1)}, row ${m.row?.toFixed(1)})`);
+      await page.keyboard.press('Escape');
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-me figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h });
+    let step = 'documentation';
+    try {
+      await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+      await hooks.need(page, '.p3-docs-body > .p3-sg');
+      await settle(page);
+      const m = await page.evaluate(() => {
+        const textLeft = (sel) => { const n = document.querySelector(sel); if (!n) return null; const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; };
+        const tree = document.querySelector('[data-p3="sg-tree"]');
+        const docs = document.querySelector('.p3-docs');
+        const title = docs?.querySelector('.p3-docs-head');
+        return {
+          tree: tree ? { rows: tree.children.length, drawn: tree.getClientRects().length > 0 && tree.getBoundingClientRect().height > 0 } : null,
+          title: title ? textLeft('.p3-docs-head') : null,
+          intro: textLeft('.p3-docs-body > .p3-sg .p3-sg-intro'),
+        };
+      });
+      ok(!!m.tree, `${where}: premise, Style guides draws its groups tree (${JSON.stringify(m.tree)})`);
+      if (m.tree) ok(m.tree.rows > 0 || !m.tree.drawn, `#3553 M11 ${where}: no groups tree is drawn while it has no rows (${JSON.stringify(m.tree)})`);
+      if (w === 380) ok(m.title !== null && m.intro !== null && Math.abs(m.intro - m.title) <= ALIGN_TOLERANCE, `#3553 M12 ${where}: the guide's body starts at the title's edge (intro ${m.intro?.toFixed(1)}, title ${m.title?.toFixed(1)})`);
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-me-plugin-${w}-docs.png`) });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-me
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

@@ -1155,96 +1155,96 @@
         },
         "letter-spacing": {
           "0": {
-            "$type": "dimension",
-            "$value": "0em",
-            "$description": "letter spacing 0em (ladder step 0)"
+            "$type": "number",
+            "$value": 0,
+            "$description": "letter spacing 0 × the font size, 0em in CSS (ladder step 0)"
           },
           "10": {
-            "$type": "dimension",
-            "$value": "0.01em",
-            "$description": "letter spacing 0.01em (ladder step 10)"
+            "$type": "number",
+            "$value": 0.01,
+            "$description": "letter spacing 0.01 × the font size, 0.01em in CSS (ladder step 10)"
           },
           "20": {
-            "$type": "dimension",
-            "$value": "0.02em",
-            "$description": "letter spacing 0.02em (ladder step 20)"
+            "$type": "number",
+            "$value": 0.02,
+            "$description": "letter spacing 0.02 × the font size, 0.02em in CSS (ladder step 20)"
           },
           "50": {
-            "$type": "dimension",
-            "$value": "0.05em",
-            "$description": "letter spacing 0.05em (ladder step 50)"
+            "$type": "number",
+            "$value": 0.05,
+            "$description": "letter spacing 0.05 × the font size, 0.05em in CSS (ladder step 50)"
           },
           "neg-40": {
-            "$type": "dimension",
-            "$value": "-0.04em",
-            "$description": "letter spacing -0.04em (ladder step neg-40)"
+            "$type": "number",
+            "$value": -0.04,
+            "$description": "letter spacing -0.04 × the font size, -0.04em in CSS (ladder step neg-40)"
           },
           "neg-30": {
-            "$type": "dimension",
-            "$value": "-0.03em",
-            "$description": "letter spacing -0.03em (ladder step neg-30)"
+            "$type": "number",
+            "$value": -0.03,
+            "$description": "letter spacing -0.03 × the font size, -0.03em in CSS (ladder step neg-30)"
           },
           "neg-20": {
-            "$type": "dimension",
-            "$value": "-0.02em",
-            "$description": "letter spacing -0.02em (ladder step neg-20)"
+            "$type": "number",
+            "$value": -0.02,
+            "$description": "letter spacing -0.02 × the font size, -0.02em in CSS (ladder step neg-20)"
           },
           "neg-15": {
-            "$type": "dimension",
-            "$value": "-0.015em",
-            "$description": "letter spacing -0.015em (ladder step neg-15)"
+            "$type": "number",
+            "$value": -0.015,
+            "$description": "letter spacing -0.015 × the font size, -0.015em in CSS (ladder step neg-15)"
           },
           "neg-10": {
-            "$type": "dimension",
-            "$value": "-0.01em",
-            "$description": "letter spacing -0.01em (ladder step neg-10)"
+            "$type": "number",
+            "$value": -0.01,
+            "$description": "letter spacing -0.01 × the font size, -0.01em in CSS (ladder step neg-10)"
           }
         },
         "letter-spacing-role": {
           "tightest": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.neg-40}",
-            "$description": "letter-spacing role 'tightest' → -0.04em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'tightest' → -0.04 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           },
           "tighter": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.neg-30}",
-            "$description": "letter-spacing role 'tighter' → -0.03em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'tighter' → -0.03 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           },
           "tight": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.neg-20}",
-            "$description": "letter-spacing role 'tight' → -0.02em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'tight' → -0.02 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           },
           "snugger": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.neg-15}",
-            "$description": "letter-spacing role 'snugger' → -0.015em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'snugger' → -0.015 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           },
           "snug": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.neg-10}",
-            "$description": "letter-spacing role 'snug' → -0.01em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'snug' → -0.01 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           },
           "normal": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.0}",
-            "$description": "letter-spacing role 'normal' → 0em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'normal' → 0 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           },
           "open": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.10}",
-            "$description": "letter-spacing role 'open' → 0.01em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'open' → 0.01 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           },
           "wide": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.20}",
-            "$description": "letter-spacing role 'wide' → 0.02em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'wide' → 0.02 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           },
           "wider": {
-            "$type": "dimension",
+            "$type": "number",
             "$value": "{nbds.core.font.letter-spacing.50}",
-            "$description": "letter-spacing role 'wider' → 0.05em — a relative-emphasis name a mode may re-point; the step itself never changes"
+            "$description": "letter-spacing role 'wider' → 0.05 × the font size — a relative-emphasis name a mode may re-point; the step itself never changes"
           }
         },
         "underline": {
@@ -4253,11 +4253,6 @@
         "$type": "dimension",
         "$value": "320px",
         "$description": "container min — 320px narrowest column (the WCAG 1.4.10 reflow width)"
-      },
-      "fluid": {
-        "$type": "dimension",
-        "$value": "100%",
-        "$description": "container fluid — full width with margins (the default)"
       }
     },
     "space": {

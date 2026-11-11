@@ -39,6 +39,13 @@
  * #3565: `declarations` back to the innermost-body regex → `R2/nested`, `R2/nested-px` (2 of 86). 86 assertions run.
  * #3565 review: the nested rule's selector no longer cut from its parent's body → `R2/nested-prelude` (1 of 87). 87
  * assertions run.
+ * #3567: `readsFiles` back to `READ_TOOLS` alone → `contamination/mcp`, `contamination/mcp-text` (with the text regex's `mcp__` dropped too);
+ * the CLAUDE.md pattern case-sensitive again → `contamination/claude-md-case`. 87 assertions run.
+ * #3567 review: the text form back to the `mcp__…(` line no transcript prints → `contamination/mcp-text`; the text
+ * form's line-start anchor dropped → `contamination/mcp-text-prose`; `MCP_RE` refusing a hyphen (`/^mcp__\w+$/`) →
+ * `contamination/mcp-hyphen`. 89 assertions run.
+ * #3567 delta review: the text form's server group refusing a hyphen (`([\w.]+) - `) →
+ * `contamination/mcp-text-hyphen` (1 of 94). 94 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -379,6 +386,15 @@ console.log('\ncapture, record and contamination — orchestrate.ts');
   ok(probeContamination(`${cleanJsonl}\n${call('Agent', { description: 'look up tokens', prompt: 'Read skills/prism3-build-ui/SKILL.md and summarize it' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/agent: an Agent sub-task told to read the skill voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Task', { prompt: 'open the CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/task: a Task sub-task naming CLAUDE.md voids the run');
   ok(probeContamination(`${proseText}\n⏺ Grep(pattern: "x", path: "skills/prism3-build-ui")`, packet).includes('a read of skills/prism3-*'), 'contamination/grep-text: a Grep call line in a text transcript voids the run');
+  // #3567: a read through an MCP tool is a read, in JSON and as a text transcript prints it, and CLAUDE.md in any case.
+  ok(probeContamination(`${cleanJsonl}\n${call('mcp__github__get_file_contents', { owner: 'o', repo: 'r', path: 'skills/prism3-build-ui/SKILL.md' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp: a read of skills/prism3-* through an MCP tool voids the run');
+  // The line Claude Code prints for an MCP call: `<server> - <tool>(<args>) (MCP)` (#3567 review).
+  ok(probeContamination(`${proseText}\n⏺ github - get_file_contents(owner: "adamforrester", repo: "prism3", path: "skills/prism3-build-ui/SKILL.md") (MCP)`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-text: an MCP call line, as Claude Code prints it, in a text transcript voids the run');
+  ok(probeContamination(`${proseText}\nassistant: I could open it with github - get_file_contents(path: "skills/prism3-build-ui/SKILL.md") (MCP), but I won't.\nassistant: the tool is github - get_file_contents (MCP)\nassistant: next I would call github - get_file_contents(path: "skills/prism3-build-ui/SKILL.md") (MCP)`, packet).length === 0, 'contamination/mcp-text-prose: a sentence naming an MCP call mid-line is prose and does not void the run');
+  ok(probeContamination(`${proseText}\n⏺ prism3-figma - figma_run(code: "await readFile('skills/prism3-build-ui/SKILL.md')") (MCP)`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-text-hyphen: an MCP call line on a hyphenated server name, as Claude Code prints it, voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('mcp__prism3-figma__figma_run', { code: 'await readFile("skills/prism3-build-ui/SKILL.md")' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-hyphen: an MCP call on a hyphenated server name voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat $(find / -iname claude.md)' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/claude-md-case: a lower-case claude.md in a Bash input voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('mcp__github__get_file_contents', { owner: 'o', repo: 'r', path: 'README.md' })}`, packet).length === 0, 'contamination/mcp-clean: an MCP call that names none of the three does not void the run');
   ok(median([3, 1, 2]) === 2 && median([4, 1, 2, 3]) === 2.5 && median([]) === null, 'median: odd, even and empty');
 }
 
