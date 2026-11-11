@@ -204,6 +204,7 @@ the fade-in stays, on `motion.duration-reduced.fast`.
 | The fill moves to each new value | `motion.duration.moderate`, `motion.easing-role.default` |
 | An indeterminate bar sweeps its segment across the track, until the work ends | `motion.duration.sweep` per pass, `motion.easing.calm` |
 | An indeterminate ring turns its arc, until the work ends | `motion.duration.sweep` per turn, `motion.easing.linear` |
+| At complete or error, the fill's color crossfades | `motion.duration.fast`, `motion.easing-role.default` |
 
 **Reduced:** the fill moves on `motion.duration-reduced.moderate`, which can resolve to zero (#3484).
 The sweep and the turn slow to `motion.duration-reduced.sweep` and never stop while the work runs
