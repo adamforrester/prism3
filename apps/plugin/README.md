@@ -22,7 +22,7 @@ contract (two discriminated unions, one per direction) that compiles under both.
 
 ## The typed bridge
 
-`src/bridge-main.ts` / `src/bridge-ui.ts` are thin typed wrappers over the raw channel — the
+`src/bridge-main.ts` is the main thread's thin typed wrapper over the raw channel, and the UI side posts through `apps/studio/src/write-adapter.ts` — the
 figma-plugin-dev skill's React `usePluginMessage` hook adapted to a vanilla `addEventListener`
 wrapper (docs/22 §3). Every message is a variant of `UiToMain` / `MainToUi`; `assertNever` makes
 each handler's `switch` exhaustive, so a new message type can't be silently dropped.
@@ -383,7 +383,7 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the
   commands (`AGENT_COMMANDS`: `status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`,
   `readback`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs`, the four read-only node
-  commands below, `activity` and `context`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  commands below, `activity`, `panels-clean` and `context`) and the validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
 - ✅ **Read-only node commands** (#3147 Phase 2a, Q3147.10 and .14 A) — `inspect`, `component-keys`, `audit-frames`
   and `snapshot` (`src/agent-reads.ts`) read any layer, so a file where Prism3 is open needs no second plugin for the
