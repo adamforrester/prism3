@@ -576,11 +576,11 @@
     },
     "list-item": {
       "members": 12,
-      "sha256": "7d9ecec7b537abcffc70bf4278a35c875d3183274e6b16e8894d289dcaecd076",
+      "sha256": "089e83fb25da650afae18b70ea66a8bd8598f59b1ac17be88877b4e427c7c433",
       "properties": [
+        "label:TEXT",
         "number:TEXT",
-        "swap icon:INSTANCE_SWAP",
-        "text:TEXT"
+        "swap icon:INSTANCE_SWAP"
       ]
     },
     "list": {
