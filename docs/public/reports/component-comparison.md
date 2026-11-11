@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (116)
+## Findings (117)
 
 ### axis values
 
@@ -61,6 +61,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 - **prop dismissible** — dismissible defaults differ over the same values — false in banner; true in toast
 - **prop headingLevel** — headingLevel defaults differ over the same values — 2 in banner; 3 in accordion
+- **prop hideLabel** — hideLabel defaults differ over the same values — false in search-field, slider; true in counter
 - **prop label** — label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner; Pagination in pagination
 - **prop max** — max defaults differ over the same values — 100 in progress, slider; 99 in badge
 
@@ -491,6 +492,9 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | slider | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
+| hideLabel | counter | true | — |
+|  | search-field | false | — |
+|  | slider | false | — |
 | href | breadcrumb-item | — | — |
 |  | button | — | — |
 |  | button-destructive | — | — |

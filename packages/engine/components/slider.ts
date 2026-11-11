@@ -315,6 +315,9 @@ export const slider: ComponentDef = {
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
+    // Q-CC7 A (#3554): the hidden label is one code prop across Search, Counter and Slider. Figma's `label` switch stands
+    // for it, so code can now hide what Figma can.
+    { name: 'hideLabel', type: 'boolean', default: false, required: false, description: 'Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none.' },
     { name: 'value', type: 'number | [number, number]', required: false, description: 'The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange.' },
     { name: 'defaultValue', type: 'number | [number, number]', required: false, description: 'The starting value when the slider manages its own state. A pair starts a range.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called on every change while dragging or stepping, for a live preview.' },
@@ -412,12 +415,15 @@ export const slider: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'primary', weight: 'bold', state: 'rest' }, variantWhen: { state: { disabled: { state: 'disabled' } } } },
+        // Nested as the fields nest it (Q-CC5 A, #3554; Q399 A, the Counter's precedent): `emphasis` and `weight` EXPOSED,
+        // starting primary and regular; `size` follows the slider's, so the label stays one body step below the field's
+        // type at every size; it dims with a disabled slider.
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         optional: true,
         // The nested FieldLabel is built at its own 320, so left to hug it fills the header and pushes the value out of the
         // component to the right. It grows into what the value leaves instead, so the value sits at the header's end.
         grow: true,
-        note: 'The visible label, naming the dimension being set; it fills the room the value leaves.',
+        note: 'The visible label, naming the dimension being set; it fills the room the value leaves. Its label text, required marker, emphasis and weight surface on the slider. Starts primary and regular, and follows the slider\'s size.',
       },
       valueSingle: {
         kind: 'text',

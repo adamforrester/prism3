@@ -1625,13 +1625,20 @@
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
-      "relation": "nest-fixed",
+      "relation": "nest-exposed",
       "variant": {
         "size": "medium",
         "emphasis": "primary",
-        "weight": "bold",
+        "weight": "regular",
         "state": "rest"
-      }
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
     },
     {
       "from": "slider",

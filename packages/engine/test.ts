@@ -20330,8 +20330,8 @@ arm: {
     ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, on ghost only, at the control offset (Q283.10 A); outline draws none, its edge is the focus edge (#3399)${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
     const b = counter.figmaProperties?.booleans ?? {};
     ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
-      && counter.props.find((x) => x.name === 'showLabel')?.default === false,
-      `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B), and the message is off (got ${JSON.stringify(b)})`);
+      && b.showLabel.figmaOnly === true && !counter.props.some((x) => x.name === 'showLabel') && counter.props.find((x) => x.name === 'hideLabel')?.default === true,
+      `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B; since Q-CC7 A the code prop is hideLabel, default true, and the Figma switch is Figma-only), and the message is off (got ${JSON.stringify(b)})`);
     const keyboardSays = /tabindex="-1"/.test(counter.accessibility.keyboard ?? '') && (codeOnlyText(counter.anatomy?.codeOnly) ?? []).some((e) => /<button type="button" tabindex="-1">/.test(e));
     ok(counter.props.find((x) => x.name === 'min')?.default === 0 && keyboardSays && !counter.props.some((x) => /remove/i.test(x.name)),
       `#2427 counter/api: min defaults to 0 (Q283.7), the buttons are tabindex="-1" in the shipped keyboard text and in codeOnly (Q283.8 A), and no remove-at-min prop (Q283.7 C)`);
@@ -40479,6 +40479,35 @@ arm: {
     && validateComponentDef(withStateMap({ disabled: { tone: 'quiet' } })).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'tone', which its 'variant' does not name/.test(m))
     && validateComponentDef(withStateMap({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'size', which is also in 'follow'/.test(m)),
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+}
+
+// Q-CC5 A and Q-CC7 A (#3554): the field label, nested and hidden alike across the field hosts. Q-CC7: Search, Counter
+// and Slider hide their label through one code prop, `hideLabel`, each default typed here from its decision (Search
+// Q?4 A visible, Counter Q283.9 B hidden, Slider visible); none declares a code `showLabel`, and each Figma `label`
+// switch is Figma-only. Q-CC5: Slider nests FieldLabel as the fields do (Q399 A): exposed emphasis and weight, starting
+// primary and regular, following the slider's size and dimming with it. ACTUAL is the def and its projected plan.
+{
+  const HIDE: Record<string, boolean> = { 'search-field': false, counter: true, slider: false };
+  for (const [id, dflt] of Object.entries(HIDE)) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const h = d.props.find((p) => p.name === 'hideLabel');
+    const sw = d.figmaProperties?.booleans?.showLabel as { part?: string; figmaOnly?: boolean } | undefined;
+    ok(h?.type === 'boolean' && h.default === dflt && !d.props.some((p) => p.name === 'showLabel') && sw?.part === 'label' && sw.figmaOnly === true,
+      `Q-CC7 ${id}: hides its label through the code prop hideLabel (default ${String(dflt)}), declares no code showLabel, and its Figma label switch is Figma-only (got ${h ? String(h.default) : 'no hideLabel'}, switch ${JSON.stringify(sw)})`);
+  }
+  const sl = componentDefs.find((x) => x.id === 'slider')!;
+  const n = (sl.anatomy!.parts.label as { nesting?: { kind?: string; variant?: Record<string, string>; expose?: readonly string[]; follow?: readonly string[] } }).nesting;
+  ok(n?.kind === 'nest-exposed' && JSON.stringify(n.variant) === JSON.stringify({ size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' })
+    && JSON.stringify(n.expose) === JSON.stringify(['emphasis', 'weight']) && JSON.stringify(n.follow) === JSON.stringify(['size']),
+    `Q-CC5 slider: FieldLabel is nest-exposed as on the fields, exposing emphasis and weight, starting primary and regular, following size (got ${JSON.stringify(n)})`);
+  type LN = { name: string; children: LN[]; nestTarget?: string; nestVariant?: Record<string, string> };
+  const findL = (x: LN, nm: string): LN | undefined => x.name === nm ? x : x.children.map((c) => findL(c, nm)).find(Boolean);
+  const off = figmaAnatomySet(sl, {}).flatMap((pl) => {
+    const lab = findL(pl.root as LN, 'label');
+    const want = { size: String(pl.size ?? pl.coord.size), emphasis: 'primary', weight: 'regular', state: pl.coord.state === 'disabled' ? 'disabled' : 'rest' };
+    return lab?.nestTarget === 'field-label' && JSON.stringify(lab.nestVariant) === JSON.stringify(want) ? [] : [`${planComponentName(pl)}: ${JSON.stringify(lab?.nestVariant)}`];
+  });
+  ok(off.length === 0, `Q-CC5 slider: every member's label is FieldLabel at the slider's size, primary and regular, disabled only on the disabled members (off: ${off.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // ------------------------------------------------------------------- #2888: the Search field

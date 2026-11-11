@@ -82,8 +82,11 @@ export const counter: ComponentDef = {
     'A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is unavailable. Outline draws the field\'s edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.',
 
   props: [
-    { name: 'label', type: 'string', required: true, description: 'What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel.' },
-    { name: 'showLabel', type: 'boolean', default: false, required: false, description: 'Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way.' },
+    { name: 'label', type: 'string', required: true, description: 'What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set.' },
+    // Q-CC7 A (#3554): one code prop for a hidden label across Search, Counter and Slider, `hideLabel`, which keeps the
+    // label in the accessibility tree. It replaces `showLabel`, with the polarity flipped and the default kept: the
+    // label is hidden by default (Q283.9 B), so `hideLabel` defaults to true here.
+    { name: 'hideLabel', type: 'boolean', default: true, required: false, description: 'Hides the label visually and keeps it in the accessibility tree, so the value keeps its name. On by default: a counter on a product card or a bag line is usually explained by what sits around it. Set it to false to show the label above the counter. Never display: none.' },
     { name: 'value', type: 'number', required: false, description: 'Controlled value; pair it with onChange.' },
     { name: 'defaultValue', type: 'number', required: false, description: 'The starting value when the counter manages its own state. Defaults to min.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called with the new number after each step. Never called with a value outside min and max.' },
@@ -311,8 +314,9 @@ export const counter: ComponentDef = {
     gridAxis: 'state',
     texts: { value: { part: 'value', default: '1' } },
     booleans: {
-      // Q283.9 B: the label hidden by default in Figma, as in code.
-      showLabel: { part: 'label', figmaName: 'label', default: false },
+      // Q283.9 B: the label hidden by default in Figma, as in code. Figma-only since Q-CC7 A (#3554): the code prop is
+      // `hideLabel`, which keeps the label in the accessibility tree, and the switch off stands for it.
+      showLabel: { part: 'label', figmaName: 'label', default: false, figmaOnly: true },
       showMessage: { part: 'message', figmaName: 'message', default: false },
     },
   },

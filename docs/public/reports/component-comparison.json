@@ -1567,8 +1567,8 @@
           "name": "label"
         },
         {
-          "name": "showLabel",
-          "default": false
+          "name": "hideLabel",
+          "default": true
         },
         {
           "name": "value"
@@ -4364,6 +4364,10 @@
       "props": [
         {
           "name": "label"
+        },
+        {
+          "name": "hideLabel",
+          "default": false
         },
         {
           "name": "value"
@@ -7195,7 +7199,15 @@
     ],
     "hideLabel": [
       {
+        "id": "counter",
+        "default": true
+      },
+      {
         "id": "search-field",
+        "default": false
+      },
+      {
+        "id": "slider",
         "default": false
       }
     ],
@@ -8519,12 +8531,6 @@
     "showInputs": [
       {
         "id": "slider",
-        "default": false
-      }
-    ],
-    "showLabel": [
-      {
-        "id": "counter",
         "default": false
       }
     ],
@@ -10649,6 +10655,16 @@
         "banner"
       ],
       "detail": "headingLevel defaults differ over the same values — 2 in banner; 3 in accordion"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop hideLabel",
+      "components": [
+        "counter",
+        "search-field",
+        "slider"
+      ],
+      "detail": "hideLabel defaults differ over the same values — false in search-field, slider; true in counter"
     },
     {
       "kind": "prop default",
