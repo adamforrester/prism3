@@ -1204,7 +1204,7 @@
     "interactive.primary.indicator.rest": {
       "$description": "primary interactive indicator — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
@@ -1230,7 +1230,7 @@
     "interactive.primary.indicator.hover": {
       "$description": "primary interactive indicator — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.700}",
@@ -1256,7 +1256,7 @@
     "interactive.primary.indicator.pressed": {
       "$description": "primary interactive indicator — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.800}",
@@ -1676,7 +1676,7 @@
     "interactive.destructive.indicator.rest": {
       "$description": "destructive interactive indicator — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.600}",
@@ -1702,7 +1702,7 @@
     "interactive.destructive.indicator.hover": {
       "$description": "destructive interactive indicator — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.700}",
@@ -1728,7 +1728,7 @@
     "interactive.destructive.indicator.pressed": {
       "$description": "destructive interactive indicator — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.800}",
@@ -2110,7 +2110,7 @@
     "interactive.neutral.indicator.rest": {
       "$description": "neutral interactive indicator — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.950}",
@@ -2136,7 +2136,7 @@
     "interactive.neutral.indicator.hover": {
       "$description": "neutral interactive indicator — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.850}",
@@ -2162,7 +2162,7 @@
     "interactive.neutral.indicator.pressed": {
       "$description": "neutral interactive indicator — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.750}",
@@ -2578,7 +2578,7 @@
     "inverse.interactive.primary.indicator.rest": {
       "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.rest`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
@@ -2604,7 +2604,7 @@
     "inverse.interactive.primary.indicator.hover": {
       "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.hover`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.350}",
@@ -2630,7 +2630,7 @@
     "inverse.interactive.primary.indicator.pressed": {
       "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.pressed`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.250}",
@@ -3050,7 +3050,7 @@
     "inverse.interactive.destructive.indicator.rest": {
       "$description": "destructive interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.rest`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.400}",
@@ -3076,7 +3076,7 @@
     "inverse.interactive.destructive.indicator.hover": {
       "$description": "destructive interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.hover`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.300}",
@@ -3102,7 +3102,7 @@
     "inverse.interactive.destructive.indicator.pressed": {
       "$description": "destructive interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.pressed`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.200}",
@@ -3524,7 +3524,7 @@
     "inverse.interactive.neutral.indicator.rest": {
       "$description": "neutral interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.rest`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.025}",
@@ -3550,7 +3550,7 @@
     "inverse.interactive.neutral.indicator.hover": {
       "$description": "neutral interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.hover`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.100}",
@@ -3576,7 +3576,7 @@
     "inverse.interactive.neutral.indicator.pressed": {
       "$description": "neutral interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.pressed`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.200}",
