@@ -14731,7 +14731,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -14887,7 +14887,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -15043,7 +15043,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -15199,7 +15199,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -16821,7 +16821,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -16977,7 +16977,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -17133,7 +17133,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -17289,7 +17289,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -18911,7 +18911,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19067,7 +19067,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19223,7 +19223,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19379,7 +19379,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }

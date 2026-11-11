@@ -3509,8 +3509,12 @@
           ],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -3527,8 +3531,12 @@
           ],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -3545,8 +3553,12 @@
           ],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -3924,6 +3936,69 @@
                 ],
                 "state": [
                   "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button": {
+          "keys": [
+            "disabled.icon.on-fill"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-destructive": {
+          "keys": [
+            "disabled.icon.on-fill"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-neutral": {
+          "keys": [
+            "disabled.icon.on-fill"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
                 ]
               }
             }
@@ -11647,8 +11722,12 @@
           "keys": [],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -11663,8 +11742,12 @@
           "keys": [],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -11679,8 +11762,12 @@
           "keys": [],
           "parts": {
             "icon": {
-              "members": 18,
+              "members": 12,
               "where": {
+                "appearance": [
+                  "ghost",
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ],
@@ -11877,6 +11964,63 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button": {
+          "keys": [],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-destructive": {
+          "keys": [],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-neutral": {
+          "keys": [],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "filled"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
                 ]
               }
             }
@@ -31472,6 +31616,7 @@
         "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
+        "color.disabled.on-fill",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.border.rest",
@@ -31487,6 +31632,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.border.rest",
@@ -31517,6 +31663,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.border.rest",
@@ -31567,6 +31714,7 @@
         "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
+        "color.disabled.on-fill",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.border.rest",
@@ -31582,6 +31730,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.border.rest",
@@ -31612,6 +31761,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.border.rest",
@@ -31662,6 +31812,7 @@
         "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
+        "color.disabled.on-fill",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
@@ -31677,6 +31828,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
@@ -31707,6 +31859,7 @@
         "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",

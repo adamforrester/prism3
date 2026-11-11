@@ -12771,7 +12771,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -12879,7 +12879,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -12987,7 +12987,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -13095,7 +13095,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -14303,7 +14303,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -14411,7 +14411,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -14519,7 +14519,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -14627,7 +14627,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -15835,7 +15835,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -15943,7 +15943,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
@@ -16051,7 +16051,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.disabled.icon"
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
@@ -16159,7 +16159,7 @@
             },
             {
               "part": "container/icon",
-              "icon": "color.inverse.disabled.icon"
+              "icon": "color.inverse.disabled.on-fill"
             }
           ]
         },
