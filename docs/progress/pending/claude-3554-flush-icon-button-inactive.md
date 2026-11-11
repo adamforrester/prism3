@@ -11,3 +11,5 @@ native disabled only. Pending stays out, as decided.
 - The host wording follows: the composition note and the `aria` line now tell a host to set `isInactive` (which
   carries aria-disabled) at a limit, and `onClick` is not called while disabled or inactive. Counter's own prose,
   which says its host sets aria-disabled at the limit, stays true and is not touched here.
+- `test.ts`: the #2711 admissions list gains the three flush families' `inactive`, in the "<name> — not projected:
+  <why>" format that arm reads.

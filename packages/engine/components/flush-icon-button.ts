@@ -237,7 +237,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
         class: 'not-projected',
         disposition: 'refused',
         description:
-          'inactive — not projected, as on IconButton: its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus.',
+          'inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus.',
       },
       {
         class: 'right-to-left',
