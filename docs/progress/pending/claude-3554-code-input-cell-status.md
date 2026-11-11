@@ -42,3 +42,13 @@ The `#2428 code-input` arms in `test.ts` now read the cell by coordinate, with e
 - The default cells take the field's status by name.
 
 Baselines accepted: component surface, paint census, component axes.
+
+### Fallout outside the engine
+
+- The Studio's generated catalog (`apps/studio/src/state/component-catalog-data.ts`) records the cell's member count.
+  It was regenerated, from 28 to 48.
+- Three plugin tests held the 28-member cell as literals, and each now types the new count:
+  - `test-write-components.ts`: 16 built characters, where it held 12.
+  - `test-roundtrip.ts` `#3399 focus edge as built`: 163 focus members, where it held 155.
+  - `test-reactions.ts`: `[48, 16, 24]`, with each status's rest and hover reactions checked by name. No reaction
+    crosses the status.

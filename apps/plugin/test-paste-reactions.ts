@@ -137,7 +137,8 @@ const plugin = async (id: string) => {
 };
 
 const T = (state: string) => `type=select, selection=unselected, size=medium, state=${state}`;
-const C = (state: string) => `size=medium, state=${state}`;
+// The code input cell's members carry its status axis since Q-CC1 A (#3554); the literal names the default status.
+const C = (state: string, status = 'default') => `status=${status}, size=medium, state=${state}`;
 
 const main = async () => {
   console.log('#2564 — the names codec');
@@ -159,11 +160,14 @@ const main = async () => {
       [T('pressed'), []],
       [T('disabled'), []],
     ]],
-    // A set with no pressed look: While pressing goes to the state its def names (#2428, `focus-visible`).
-    ['code-input-cell', [28, 8, 12], [
+    // A set with no pressed look: While pressing goes to the state its def names (#2428, `focus-visible`). 4 sizes × 2
+    // statuses × 6 states (Q-CC1 A, #3554); each status's reactions stay within it.
+    ['code-input-cell', [48, 16, 24], [
       [C('rest'), [`ON_HOVER→${C('hover')}`, `ON_PRESS→${C('focus-visible')}`]],
       [C('hover'), [`ON_PRESS→${C('focus-visible')}`]],
       [C('filled'), []],
+      [C('rest', 'error'), [`ON_HOVER→${C('hover', 'error')}`, `ON_PRESS→${C('focus-visible', 'error')}`]],
+      [C('hover', 'error'), [`ON_PRESS→${C('focus-visible', 'error')}`]],
     ]],
   ] as [string, [number, number, number], [string, string[]][]][]) {
     console.log(`\n#2564 — ${id}`);
