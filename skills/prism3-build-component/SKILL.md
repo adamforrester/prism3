@@ -474,10 +474,11 @@ Figma, so one job takes one name across every def:
 **The `_` prefix (owner decisions Q349, Q355, Q394).** A component that should not be used outside its
 parent takes the `_` prefix on its id, which Figma reads as a building block and leaves out of a published
 library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of …" or "Never directly
-…". The prefixed set is `_accordion-indicator`. A native slot's preferred item never takes the prefix
+…". The prefixed set is `_accordion-indicator`, `_breadcrumb-separator` and `_slider-thumb`. A native slot's preferred item never takes the prefix
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
 unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
-`list-item` and `segmented-control-segment`. The checkbox and radio controls (`checkbox-control`,
+`list-item`, `segmented-control-segment`, `breadcrumb-item`, `pagination-item`, `page-nav-item` and
+`code-input-cell`. The checkbox and radio controls (`checkbox-control`,
 `radio-control`) stay unprefixed because they may be used on their own, and so does Radio row: it is a
 whole option, not a part.
 
@@ -588,7 +589,9 @@ boolean otherwise.** Verify which case a new component is in against the actual 
 
 **Axis value order is a decision, and it is fixed (#2501, owner decision Q213; sizes and slots by #2752,
 Q1 B and Q2 A).** A size axis leads with medium, the code default, and the rest run small to large, so an
-inserted control is medium. Field label, whose code default is small, is the one named exception. A slot
+inserted control is medium. There are two named exceptions: Field label, whose code default is small, leads
+with small, and Spinner keeps the icon ladder from `x-small` up, because it builds one component per size and
+no set member is ever inserted as a default. A slot
 presence axis leads with `false`, so the inserted member's slots are empty, as in code. States run in ladder
 order, for example rest, hover, pressed, pending, focus-visible, disabled (the full ladder is `STATE_LADDER`
 in `packages/engine/test.ts`). Figma's default member is the one at the top left of the set on the canvas,

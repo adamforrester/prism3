@@ -80,12 +80,14 @@ import type { ComponentDef } from './component-schema';
  *  Radio.Group" is not one of them: Q355's prefixed list leaves it out (#2759 Q-N1). */
 const PRIVATE_WORDING: readonly RegExp[] = [/^Only as a child of /, /^Never directly\b/];
 
-/** The owner's prefixed set (Q349), by the id each takes. Q353 and Q355 prefixed the tab, list item and
- *  segment too; Q394 A took them out as slot items (`SLOT_ITEMS`). */
-const DECIDED_PRIVATE: readonly string[] = ['_accordion-indicator'];
+/** The owner's prefixed set, by the id each takes: the accordion indicator (Q349), the breadcrumb separator (Q382 A)
+ *  and the slider thumb (Q349). Q353 and Q355 prefixed the tab, list item and segment too; Q394 A took them out as slot
+ *  items (`SLOT_ITEMS`). Exact, not a floor (#3554 M-B): a registered `_` def missing here fails. */
+const DECIDED_PRIVATE: readonly string[] = ['_accordion-indicator', '_breadcrumb-separator', '_slider-thumb'];
 
-/** The owner's slot items (Q394 A): each is a native slot's preferred item, so it stays unprefixed. */
-const SLOT_ITEMS: readonly string[] = ['tab-item', 'list-item', 'segmented-control-segment'];
+/** The owner's slot items (Q394 A): each is a native slot's preferred item, so it stays unprefixed. Exact, not a floor
+ *  (#3554 M-B): a slot item whose whenToUse reads as a private part, and that no entry here names, fails. */
+const SLOT_ITEMS: readonly string[] = ['tab-item', 'list-item', 'segmented-control-segment', 'breadcrumb-item', 'pagination-item', 'page-nav-item', 'code-input-cell'];
 
 /** Exempt from the prefix by decision (Q349): each may be used on its own. */
 const STANDALONE: readonly string[] = ['checkbox-control', 'radio-control'];
@@ -217,6 +219,16 @@ const offered = new Set(slotItemsOf(componentDefs).map((s) => s.item));
 for (const id of SLOT_ITEMS) {
   if (!ids.has(id)) fail.push(`floor: '${id}' is in the owner's slot items (Q394 A) and no def is registered under that id`);
   else if (!offered.has(id)) fail.push(`floor: '${id}' is in the owner's slot items (Q394 A), and no slot offers it as its preferred item, so the slot item rule cannot see it`);
+}
+// The converse (#3554 M-B): both lists were floors, so a def prefixed or offered as a slot item AFTER the list was
+// written passed unlisted, and the skill's §6, which mirrors the lists, went stale with them. The registry and the
+// slots are the oracle here, never the lists.
+for (const d of componentDefs) if (d.id.startsWith('_') && !DECIDED_PRIVATE.includes(d.id)) fail.push(`list: '${d.id}' is registered with the '_' prefix and is not in DECIDED_PRIVATE (nor in the skill's §6 prefixed set) — add it to both with the decision that prefixed it`);
+// A slot item is in the list when the prefix rule would otherwise reach it: its whenToUse says it is used only inside
+// its parent. A standalone component a slot also prefers (Button, Checkbox.Row) is not one.
+for (const id of offered) {
+  const d = componentDefs.find((x) => x.id === id);
+  if (d && isPrivateWording(d.ai?.whenToUse ?? '') && !SLOT_ITEMS.includes(id)) fail.push(`list: '${id}' is a slot's preferred item whose whenToUse reads as a private part, and is not in SLOT_ITEMS (nor in the skill's §6 slot items) — add it to both`);
 }
 for (const id of STANDALONE) if (!ids.has(id)) fail.push(`floor: '${id}' is exempt from the prefix by decision and is not registered under that id`);
 for (const id of DECIDED_PRIVATE) {
