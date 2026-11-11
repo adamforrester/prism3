@@ -16,8 +16,9 @@ No executor change, so `EXECUTOR_REVISION` stays.
 ### Diagnosis
 
 `style` is a code axis only: `figmaProperties.variantAxes` stays `size, status`, so Select still projects 84 members.
-The plan digest moves because every member's plan carries the def's codeOnly list; the paint census and the
-component-axes baseline do not move.
+The plan digest moves because every member's plan carries the def's codeOnly list. In the paint census only the
+grid's hash moves, because the grid walks the code coordinates and each now carries `style=outline`; the projected
+set's paint and every count hold. The component-axes baseline does not move.
 
 ### Verification
 

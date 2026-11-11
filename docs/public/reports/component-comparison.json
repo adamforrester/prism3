@@ -4161,6 +4161,9 @@
           "small",
           "large"
         ],
+        "style": [
+          "outline"
+        ],
         "status": [
           "default",
           "error",
@@ -4174,6 +4177,9 @@
         },
         {
           "name": "value"
+        },
+        {
+          "name": "defaultValue"
         },
         {
           "name": "placeholder"
@@ -4218,6 +4224,9 @@
         {
           "name": "readOnly",
           "default": false
+        },
+        {
+          "name": "autoComplete"
         },
         {
           "name": "isPending",
@@ -6275,6 +6284,7 @@
           "card-number-field",
           "password-field",
           "search-field",
+          "select",
           "text-field",
           "textarea"
         ]
@@ -6694,6 +6704,9 @@
         "id": "search-field"
       },
       {
+        "id": "select"
+      },
+      {
         "id": "text-field"
       }
     ],
@@ -6850,6 +6863,9 @@
       },
       {
         "id": "segmented-control"
+      },
+      {
+        "id": "select"
       },
       {
         "id": "slider"
@@ -10190,12 +10206,13 @@
         "pagination-item",
         "password-field",
         "search-field",
+        "select",
         "sign-in-button",
         "text-field",
         "textarea",
         "wallet-button"
       ],
-      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
+      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -10836,7 +10853,7 @@
       "components": [
         "select"
       ],
-      "detail": "select has the variant axis status and no prop of that name"
+      "detail": "select has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",

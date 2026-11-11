@@ -28832,7 +28832,7 @@ arm: {
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
       'search-field:style', 'search-field:pending', 'search-field:empty',
       'card-number-field:style', 'card-number-field:pending', 'card-number-field:empty',
-      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty', 'code-input:pending',
+      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:style', 'select:pending', 'select:empty', 'code-input:pending',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
     ];
     ok(JSON.stringify([...found].sort()) === JSON.stringify([...EXPECTED_ADMISSIONS].sort()),
