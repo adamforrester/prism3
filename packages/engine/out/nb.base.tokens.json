@@ -1742,17 +1742,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.10}",
-              "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.hover)"
+              "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.hover)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.20}",
-              "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)"
+              "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)"
             },
             "selected": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.20}",
-              "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.selected)"
+              "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.selected)"
             }
           },
           "hover-fill": {
@@ -1880,17 +1880,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.10}",
-              "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)"
+              "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.20}",
-              "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)"
+              "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)"
             },
             "selected": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.20}",
-              "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)"
+              "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)"
             }
           },
           "hover-fill": {
@@ -2011,17 +2011,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.10}",
-              "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)"
+              "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.20}",
-              "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)"
+              "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)"
             },
             "selected": {
               "$type": "color",
               "$value": "{nbds.core.palette.black-alpha.20}",
-              "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)"
+              "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)"
             }
           },
           "hover-fill": {
@@ -2140,12 +2140,12 @@
           "rest": {
             "$type": "color",
             "$value": "{nbds.core.palette.neutral.450}",
-            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible ground (`background.secondary`), not the page alone"
+            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against `background.secondary`, the ground it is gated on, not the page alone"
           },
           "hover": {
             "$type": "color",
             "$value": "{nbds.core.palette.neutral.650}",
-            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
+            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on `background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer"
           }
         },
         "placeholder": {
@@ -2906,18 +2906,18 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.core.palette.neutral.550}",
-              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground"
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against `inverse.background.secondary`, the ground it is gated on"
             },
             "hover": {
               "$type": "color",
               "$value": "{nbds.core.palette.neutral.350}",
-              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
+              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on `inverse.background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer"
             }
           },
           "placeholder": {
             "$type": "color",
             "$value": "{nbds.core.palette.neutral.450}",
-            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill"
+            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on `inverse.background.secondary` behind the transparent fill"
           }
         }
       }
