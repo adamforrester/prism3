@@ -103,7 +103,7 @@ Label: what is happening, with an active verb ("Uploading photo.jpg"), one label
 
 - **Built from:** `field-message`
 - **Instead, consider:** `spinner`
-- **Often used with:** `button`, `spinner`
+- **Often used with:** `button`
 - **Replaces:**
   - a bar that creeps to 99% while the real amount is unknown
   - a label printed inside the moving fill

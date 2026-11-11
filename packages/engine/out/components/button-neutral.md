@@ -21,9 +21,9 @@ Shown on the default member: appearance `filled`, size `medium`, width `auto`, s
 
 1. **Leading visual** (optional) — Icon / avatar / counter / spinner before the label.
 2. **Label** — Its own node so truncation, wrap and line-height are controllable independently of the row.
-3. **Trailing visual** (optional)
-4. **Spinner**
-5. **Focus ring**
+3. **Trailing visual** (optional) — An icon, caret or indicator after the label.
+4. **Spinner** — Shown while the button is busy: it takes the place of an icon when there is one, and otherwise sits over the hidden label, so the button keeps its width.
+5. **Focus ring** — The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.
 
 ## Styles
 
