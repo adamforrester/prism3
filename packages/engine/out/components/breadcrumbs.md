@@ -20,7 +20,7 @@ Shows where the current page sits in the site's hierarchy: a row of links to the
 Shown on the default member: path `full`, separator `chevron`, size `medium`.
 
 1. **Container** — The navigation: a row that hugs the trail, or the one link up to the parent, with no padding and no fill.
-2. **Items** — The trail: a native slot holding Breadcrumbs.Item instances in a row, two ancestors and the current page by default.
+2. **Items** — The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.
 3. **Item1** — The first step, a link to the root page.
 4. **Item2** — A second step, a link to the parent page.
 5. **Item3** — The current page, last and not a link.

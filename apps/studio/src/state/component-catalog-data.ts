@@ -1447,7 +1447,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   },
   {
     "id": "_breadcrumb-separator",
-    "name": "Breadcrumbs.Separator",
+    "name": "BreadcrumbSeparator",
     "category": "navigation",
     "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
     "unit": "variants",
@@ -1463,7 +1463,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   },
   {
     "id": "breadcrumb-item",
-    "name": "Breadcrumbs.Item",
+    "name": "BreadcrumbItem",
     "category": "navigation",
     "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
     "unit": "variants",

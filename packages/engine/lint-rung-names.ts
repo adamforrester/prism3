@@ -442,8 +442,8 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
   // nested List.Item, which this gate checks on its own rungs.
   list: 'its only size-keyed binding is the item gap (`space.100` / `150` / `200`); the text and markers are sized by the nested List.Item, checked under its own name',
   // #2666: as List — the trail's gap between items is its own size binding; the text, links and separators are sized by
-  // the nested Breadcrumbs.Item and Link, each checked under its own name.
-  breadcrumbs: 'its only size-keyed binding is the gap between items (`space.050` / `100`); the steps are sized by the nested Breadcrumbs.Item and Link, checked under their own names',
+  // the nested BreadcrumbItem and Link, each checked under its own name.
+  breadcrumbs: 'its only size-keyed binding is the gap between items (`space.050` / `100`); the steps are sized by the nested BreadcrumbItem and Link, checked under their own names',
   // #3345: as Breadcrumbs — the row's gap between items is its own size binding; the links are sized by the nested
   // PageNav.Item and Link, each checked under its own name.
   'page-nav': 'its only size-keyed binding is the gap between items (`space.200` / `300`); the links are sized by the nested PageNav.Item and Link, checked under their own names',

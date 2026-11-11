@@ -1,5 +1,5 @@
 /**
- * Breadcrumbs.Item — one step in a Breadcrumbs trail: a link to an ancestor page, the current page, or the collapsed
+ * BreadcrumbItem — one step in a Breadcrumbs trail: a link to an ancestor page, the current page, or the collapsed
  * steps, held in the Breadcrumbs `items` slot and never placed on its own (#2666).
  *
  * KB brief: `components/breadcrumbs.md`
@@ -47,7 +47,7 @@ import { ComponentDef } from '../component-schema';
 
 export const breadcrumbItem: ComponentDef = {
   id: 'breadcrumb-item',
-  name: 'Breadcrumbs.Item',
+  name: 'BreadcrumbItem',
   aliases: ['crumb', 'breadcrumb-step'],
   category: 'navigation',
   status: 'draft',
@@ -265,7 +265,7 @@ export const breadcrumbItem: ComponentDef = {
     evolution: [
       '2026-10-16 (#2666): built from the approved wireframe, every numbered call A. Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal\'s small-first order.',
       '2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries.',
-      '2026-11-11 (#3554 Q-CC16 A, Q-CC17 A; #3555 Q-MD7 A): the display name is Breadcrumbs.Item, dotted like every other child, and the current page\'s text part is `label`, the main-text name, renamed in place through `COMPONENT_RENAMES`.',
+      '2026-11-11 (#3554 Q-CC17 A): the current page\'s text part is `label`, the main-text name, renamed in place through `COMPONENT_RENAMES`.',
     ],
   },
 };

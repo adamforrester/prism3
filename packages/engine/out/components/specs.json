@@ -40267,7 +40267,7 @@
     },
     "_breadcrumb-separator": {
       "id": "_breadcrumb-separator",
-      "name": "Breadcrumbs.Separator",
+      "name": "BreadcrumbSeparator",
       "members": 2,
       "axes": [
         {
@@ -40405,7 +40405,7 @@
     },
     "breadcrumb-item": {
       "id": "breadcrumb-item",
-      "name": "Breadcrumbs.Item",
+      "name": "BreadcrumbItem",
       "members": 10,
       "axes": [
         {

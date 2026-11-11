@@ -1,4 +1,4 @@
-# Breadcrumbs.Item
+# BreadcrumbItem
 
 > One step in a breadcrumb trail: a link, the current page, or the collapsed steps.
 

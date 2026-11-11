@@ -18,10 +18,10 @@
  *   - Call 16 A — the wording, all DRAFT: "Breadcrumb", "Show full path", "Parent page", "Current page".
  *
  * THE ITEMS SLOT (owner decision Q307 A, the pattern of #2649 / PR #2660, not yet merged when this was built): a native
- * Figma slot holding Breadcrumbs.Item instances, three by default (two ancestors and the current page), at least two,
- * preferred Breadcrumbs.Item only. A slot child does not follow the container's variant after it is placed: the
+ * Figma slot holding BreadcrumbItem instances, three by default (two ancestors and the current page), at least two,
+ * preferred BreadcrumbItem only. A slot child does not follow the container's variant after it is placed: the
  * defaults are inserted at the container's size, and a designer who changes the size changes each item too. Since
- * #2660 landed, the `items` prop carries its `anyOf` / `minItems` fields: Breadcrumbs.Item, at least two.
+ * #2660 landed, the `items` prop carries its `anyOf` / `minItems` fields: BreadcrumbItem, at least two.
  *
  * SIZE ORDER (owner decisions Q347 A and Q359 B on #2752): medium first, the code default.
  *
@@ -100,20 +100,20 @@ export const breadcrumbs: ComponentDef = {
         gap: 'back-gap',
         note: 'The navigation: a row that hugs the trail, or the one link up to the parent, with no padding and no fill.',
       },
-      // THE ITEMS SLOT (Q307 A): Breadcrumbs.Item instances, two ancestors and the current page by default.
+      // THE ITEMS SLOT (Q307 A): BreadcrumbItem instances, two ancestors and the current page by default.
       items: {
         kind: 'box',
         role: 'presentation',
         contentSlot: true,
         presentWhen: { path: ['full'] },
-        // At least two items (an ancestor and the current page), and only a Breadcrumbs.Item (the proposal's Figma
+        // At least two items (an ancestor and the current page), and only a BreadcrumbItem (the proposal's Figma
         // properties table, approved).
         slotSettings: { minChildren: 2, allowPreferredValuesOnly: true },
         preferred: ['breadcrumb-item'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
         children: ['item1', 'item2', 'item3'],
-        note: 'The trail: a native slot holding Breadcrumbs.Item instances in a row, two ancestors and the current page by default.',
+        note: 'The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.',
       },
       item1: item('ancestor', 'The first step, a link to the root page.'),
       item2: item('ancestor', 'A second step, a link to the parent page.'),

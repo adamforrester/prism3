@@ -10710,7 +10710,7 @@
     },
     "_breadcrumb-separator": {
       "id": "_breadcrumb-separator",
-      "name": "Breadcrumbs.Separator",
+      "name": "BreadcrumbSeparator",
       "aliases": [
         "breadcrumb-divider",
         "crumb-separator"
@@ -10754,7 +10754,7 @@
         "labelPattern": "The mark carries no text."
       },
       "docs": {
-        "usage": "Part of a Breadcrumbs.Item. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.",
+        "usage": "Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.",
         "do": [
           "Choose the look once, on Breadcrumbs"
         ],
@@ -10766,7 +10766,7 @@
       },
       "ai": {
         "primaryPurpose": "The mark between two steps of a Breadcrumbs trail, a chevron or a slash.",
-        "whenToUse": "Only as a child of Breadcrumbs.Item. Generate Breadcrumbs.Item, which shows the separator in the look its Breadcrumbs sets.",
+        "whenToUse": "Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.",
         "avoidWhen": "Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.",
         "commonPartners": [
           "breadcrumb-item",
@@ -10811,7 +10811,7 @@
     },
     "breadcrumb-item": {
       "id": "breadcrumb-item",
-      "name": "Breadcrumbs.Item",
+      "name": "BreadcrumbItem",
       "aliases": [
         "crumb",
         "breadcrumb-step"

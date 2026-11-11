@@ -65,7 +65,7 @@
     },
     {
       "id": "_breadcrumb-separator",
-      "name": "Breadcrumbs.Separator",
+      "name": "BreadcrumbSeparator",
       "category": "navigation",
       "states": [],
       "projectedStates": [],
@@ -423,7 +423,7 @@
     },
     {
       "id": "breadcrumb-item",
-      "name": "Breadcrumbs.Item",
+      "name": "BreadcrumbItem",
       "category": "navigation",
       "states": [],
       "projectedStates": [],
@@ -5361,15 +5361,6 @@
   "peerGroups": [
     {
       "kind": "variant family",
-      "name": "Breadcrumbs",
-      "members": [
-        "_breadcrumb-separator",
-        "breadcrumbs"
-      ],
-      "basis": "components named Breadcrumbs or Breadcrumbs.<variant>, where the suffix is not a role"
-    },
-    {
-      "kind": "variant family",
       "name": "Button",
       "members": [
         "button",
@@ -5450,7 +5441,6 @@
       "kind": "role peers",
       "name": "*.Item",
       "members": [
-        "breadcrumb-item",
         "list-item",
         "page-nav-item",
         "pagination-item",
@@ -9842,14 +9832,6 @@
   },
   "findings": [
     {
-      "kind": "variant axes",
-      "subject": "variant family: Breadcrumbs",
-      "components": [
-        "_breadcrumb-separator"
-      ],
-      "detail": "_breadcrumb-separator's variant axes differ from the family's common set"
-    },
-    {
       "kind": "state set",
       "subject": "variant family: CodeInput",
       "components": [
@@ -9886,17 +9868,12 @@
       "kind": "state set",
       "subject": "role peers: *.Item",
       "components": [
-        "pagination-item"
-      ],
-      "detail": "pagination-item differs from the group's common set [] — adds rest, hover, pressed, focus-visible, disabled"
-    },
-    {
-      "kind": "state set",
-      "subject": "role peers: *.Item",
-      "components": [
+        "list-item",
+        "page-nav-item",
+        "pagination-item",
         "tab-item"
       ],
-      "detail": "tab-item differs from the group's common set [] — adds rest, hover, pressed, focus-visible, disabled"
+      "detail": "no state set is shared by most of the group — list-item []; page-nav-item []; pagination-item [rest, hover, pressed, focus-visible, disabled]; tab-item [rest, hover, pressed, focus-visible, disabled]"
     },
     {
       "kind": "state set",
