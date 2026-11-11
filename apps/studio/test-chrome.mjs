@@ -21759,14 +21759,16 @@ if (runs('3553-mb')) {
 // #3553 Q-UI7 AND Q-UI11 (the owner's A on each): EXPORT'S SWITCHERS. Q-UI11: "which kind of output" was a segmented
 // control on Export and underline tabs on Documentation; Export's is now Documentation's tabs, a tablist of `.p3-tab`s
 // with one selected, the three on one row at every width (M8's 380 overflow, and the 2 + 1 wrap #3600 left, gone). Held:
-// its role, its one selected tab, its tabs on one row inside the column, and, on the plugin, each tab's type and its
+// its role, its one selected tab, its panel named by that tab, Arrow, Home and End moving the selection with focus
+// (#3658 review), its tabs on one row inside the column, and, on the plugin, each tab's type and its
 // selected underline read the same as Documentation's tabs (another page, drawn by `documentation.ts`). Q-UI7: every
 // option tab was set in mono; only Token names' options (token spellings) are now, the rest in the chrome's UI face.
 // Held: each option tab's face is the face Export's code preview is set in exactly when its row is Token names, and the
 // face of the page's own body text otherwise. Plugin 380 and 1280, web 1280, both themes. MUTATIONS (each after a `wip:`
 // commit): the switcher back to `p3-seg p3-export-seg` with `p3-seg-tab`s → `#3553 Q-UI11 … the switcher is
 // Documentation's underline tabs`; the Token names rule widened to every option row → `#3553 Q-UI7 … only Token names'
-// options are set in mono`.
+// options are set in mono`; the tablist's `keydown` listener dropped → `#3553 Q-UI11 … Arrow, Home and End move the
+// selection`; the body's `aria-labelledby` dropped → `#3553 Q-UI11 … the export panel is named by its selected tab`.
 if (runs('3553-export')) {
   console.log(`\nExport's switchers (#3553 Q-UI7, Q-UI11)\n${'='.repeat(78)}`);
   for (const [host, w, h] of [['figma', 380, 420], ['figma', 1280, 900], ['web', 1280, 900]]) for (const theme of ['light', 'dark']) {
@@ -21815,6 +21817,30 @@ if (runs('3553-export')) {
       const wrong = m.opts.filter((o) => o.font !== (o.row === 'Token names' ? m.mono : m.ui));
       ok(m.opts.some((o) => o.row === 'Token names') && wrong.length === 0, `#3553 Q-UI7 ${where}: only Token names' options are set in mono, the rest in the UI face (${JSON.stringify(wrong.map((o) => `${o.row}: ${o.opt}`))})`);
       if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-export-${host}-${w}.png`) });
+      // The panel is named by its selected tab, and the keys move the selection with focus (Documentation's pattern).
+      step = 'keys';
+      const kr = () => page.evaluate(() => {
+        const tabs = [...document.querySelectorAll('[data-p3="export-page"] [data-p3="export-artifact"]')];
+        const sel = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+        const body = document.querySelector('[data-p3="export-page"] [role="tabpanel"]');
+        const by = body?.getAttribute('aria-labelledby');
+        return { labels: tabs.map((t) => t.textContent), sel: sel?.textContent ?? null, focus: tabs.includes(document.activeElement) ? document.activeElement.textContent : null,
+          named: !!sel && !!by && document.getElementById(by) === sel };
+      });
+      const k0 = await kr();
+      ok(k0.named, `#3553 Q-UI11 ${where}: the export panel is named by its selected tab (${k0.sel})`);
+      await page.locator('[data-p3="export-artifact"][aria-selected="true"]').focus();
+      const n = k0.labels.length, i0 = k0.labels.indexOf(k0.sel);
+      const want = [['ArrowRight', (i0 + 1) % n], ['End', n - 1], ['Home', 0], ['ArrowLeft', n - 1]];
+      const got = [];
+      for (const [key, i] of want) {
+        await page.keyboard.press(key);
+        await settle(page);
+        const r = await kr();
+        got.push({ key, want: k0.labels[i], sel: r.sel, focus: r.focus, named: r.named });
+      }
+      ok(n === 3 && i0 >= 0 && got.every((g) => g.sel === g.want && g.focus === g.want && g.named),
+        `#3553 Q-UI11 ${where}: Arrow, Home and End move the selection, focus follows, and the panel's name with it (${JSON.stringify(got)})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);

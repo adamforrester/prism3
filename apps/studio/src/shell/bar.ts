@@ -321,6 +321,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     const tabs = x.artifacts.map((a) => {
       const b = hook(h('button', 'p3-tab', a.label), 'export-artifact');
       b.type = 'button';
+      b.id = `p3-export-tab-${a.id}`;
       b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', String(a.on));
       b.tabIndex = a.on ? 0 : -1;
@@ -329,6 +330,9 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       return b;
     });
     seg.append(...tabs);
+    // The panel is named by its selected tab, as Documentation's is (`p3-docs-tab-…`), so a screen reader reads its kind.
+    const on = x.artifacts.find((a) => a.on);
+    if (on) body.setAttribute('aria-labelledby', `p3-export-tab-${on.id}`);
     seg.addEventListener('keydown', (e) => {
       const i = tabs.indexOf(e.target as HTMLButtonElement);
       const to = i < 0 ? -1 : e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length
