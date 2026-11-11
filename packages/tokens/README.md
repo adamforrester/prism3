@@ -52,7 +52,10 @@ references (`var(--pds3-…)`), so a primitive changed in one place moves every 
 `sd.ship.mjs` builds it with the same stock Style Dictionary and the same no-custom-code rule as the
 gate below. It's a separate file so the gate's configuration never bends to suit the deliverable.
 `check-package.mjs` holds the installed CSS to `packages/engine/schema/token-contract.json`: every
-guaranteed name, in every mode block. A non-DTCG type (today the three `spring` tokens) isn't in the
+guaranteed name, in every mode block. It also checks each name's value against the engine's value for
+that mode, read from `packages/engine/out/prism3.tokens.json`, which the build never reads (#3563).
+That check ignores spelling (`#0000001a` or `rgba(0, 0, 0, 0.1)`, quoted or not), but not order: a
+reversed `cubic-bezier( )` or reordered shadow layers fail it. A non-DTCG type (today the three `spring` tokens) isn't in the
 projection, so it isn't in the CSS (#642).
 
 ## The rule
