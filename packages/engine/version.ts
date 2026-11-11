@@ -24,7 +24,7 @@
  *
  * Only the FOLD (`fold.ts` at the repo root). A PR that owes an engine bump adds a change note,
  * `packages/engine/changes/<slug>.md`, whose front matter DECLARES the class (`engine: patch|minor|major`)
- * and whose body is the changelog prose; it never edits the constant or its changelog (`CHANGELOG.md`). After a
+ * and whose body is the changelog prose; it never edits the constant or the changelog below. After a
  * batch of merges the fold assigns ONE version for the batch (the highest declared class), writes the
  * constant and the changelog under the FOLD MARKER, deletes the notes and regenerates the stamps. So a
  * version names a fold, which may cover several PRs, and `main` runs a merged change under the previous

@@ -226,7 +226,7 @@ before saying CI is green, and say what you relied on. A PR that regresses any g
 until explained.
 
 Beware the cwd trap: the Bash tool's working directory persists between calls, so a
-`cd apps/studio` leaves later bare `npx tsx packages/engine/...` calls failing with
+`cd web` leaves later bare `npx tsx packages/engine/...` calls failing with
 `ERR_MODULE_NOT_FOUND`. Prefer `--workspace` / `-p` flags over `cd`.
 
 ## Prism3 engine invariants (the expert layer — check every one that the diff touches)
@@ -415,10 +415,9 @@ Re-derive the load-bearing ones yourself:
   is a rolling window (not a calendar-day reset) and rejected deploys are not queued, so
   an intermittent Vercel failure is routine. Always read the `gates` check-run status
   separately; never conflate the two.
-- The Vercel build's inputs are listed in `apps/studio/vercel-ignore.sh` (`PATHS`, minus `EXCLUDED`):
-  `apps/studio/**`, `packages/engine/**`, `docs/public/**`, the root manifests and one plugin file,
-  `apps/plugin/src/causes.ts`. The rest of `apps/plugin/**`, `reference/**` and the excluded engine
-  files are not build inputs, so a change confined to those needs no Vercel-impact check.
+- The Vercel-deployed bundle reads only `apps/studio/src` + `packages/engine/{*,schema}`.
+  `plugin/**`, `reference/**` and `packages/engine/out/**` are not build inputs, so a change
+  confined to those needs no Vercel-impact check.
 - **Don't push to a branch under review; land a correction as a follow-up PR.** A squash-merge
   rewrites the SHA, so a push racing the merge is dropped silently. Before pushing to any branch
   you have not touched in the last hour, compare trees (`git log origin/main..<branch>`,

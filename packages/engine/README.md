@@ -26,7 +26,7 @@ rest is derived.
 ## Run
 
 ```bash
-npx tsx packages/engine/regen.ts           # regenerate EVERY committed artifact (its artifact lists; the count is EXPECTED_ARTIFACTS in verify.ts)
+npx tsx packages/engine/regen.ts           # regenerate EVERY committed artifact (out/** + 3 emitted schema/ files + 2 engine-root reports)
 npx tsx packages/engine/regen.ts --check   # gate: fail if any committed artifact has drifted from what the engine emits
 npx tsx packages/engine/nb-regression.ts   # regression: generated vs real NB
 npx tsx packages/engine/emit-dtcg.ts       # emit a DTCG token tree + validate aliases + schema (NB + aurora + harbor)

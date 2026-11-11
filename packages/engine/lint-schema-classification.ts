@@ -6,9 +6,8 @@
  *
  * ── THE RULE THIS ENFORCES, AND WHY IT NEEDED A GATE ────────────────────────────────────────────
  *
- * CLAUDE.md principle 5 once stated it (the sentence left CLAUDE.md in #1312; this header and the gate now
- * hold it): `token-contract.json` is deliberately not a regen artifact, and so is named by hand in the
- * prose gates — **"anything else kept out of regen needs the same line."**
+ * CLAUDE.md principle 5 states it: `token-contract.json` is deliberately not a regen artifact, and so
+ * is named by hand in the prose gates — **"anything else kept out of regen needs the same line."**
  *
  * That rule lived in prose and in each gate's header, and was carried out by whoever remembered at the
  * moment a file was created. `packages/engine/schema/` mixes two populations: files in

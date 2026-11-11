@@ -13,7 +13,7 @@ working principles apply to humans as much as to agents.
 
 | Read | For |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | Repo conventions + the working principles. Non-optional — agents load this automatically, so you should know what it told them. |
+| [`CLAUDE.md`](CLAUDE.md) | Repo conventions + the four working principles. Non-optional — agents load this automatically, so you should know what it told them. |
 | [`docs/00-progress.md`](docs/00-progress.md) | The durable state log — status, decisions and why, most recent first. **Read the latest entries before starting anything**; the arc moves fast and your question may already be answered. Entries merged since the last fold are still in [`docs/progress/pending/`](docs/progress/pending/), so read that directory first. |
 | The lane doc for your work | `07-e2e-journey` (the pipeline + portable-core architecture), `18`/`22` (plugin), `11` (multi-brand north star), `23`–`26` (dashboard IA + UI conventions). Index in [`docs/`](docs/). |
 
@@ -49,8 +49,8 @@ one at a time. Now:
   existing entry; a correction travels as a fragment of its own ("Correction to <date> <title>").
   A **pure** fold is exempt because it
   consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
-  the log, and it touches nothing but the log, the pending directories, `version.ts`, `CHANGELOG.md`, `out/`, the release
-  notes under `docs/public/releases/` (#2650) and the rename stamps it fills (below). A fold PR that also fixes a semantic conflict carries a fragment for
+  the log, and it touches nothing but the log, the pending directories, `version.ts`, `CHANGELOG.md`, `out/` and the
+  rename stamps it fills (below). A fold PR that also fixes a semantic conflict carries a fragment for
   the fix.
 - **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
 
@@ -238,7 +238,7 @@ stated in `verify.ts`'s header:
    a `lint-us-english.ts` that exited 1 got reported as a pass. The runner spawns each gate with
    `shell: false` and reads its status and output from one call, so there is no pipeline for a status
    to get lost in.
-2. **Output is buffered per gate.** Dozens of gates interleaving thousands of lines is how a real failure gets
+2. **Output is buffered per gate.** Thirty-odd gates interleaving thousands of lines is how a real failure gets
    read past. A clean run is a table; a red run is a table plus exactly the failing output. `--verbose`
    prints everything.
 3. **Ordering is declared per gate and checked before anything runs.** Three orderings are
@@ -1870,8 +1870,9 @@ Figma or Style Dictionary APIs. This repo's precedent is to re-verify API surfac
 against current docs before building on them (Context7 or the live docs), because they
 drift.
 
-The packaged skills are the five directories under `skills/` (listed in
-[`CLAUDE.md`](CLAUDE.md)'s layer table); `.claude/commands/review-pr.md` runs an independent PR review.
+If you're using the packaged skills, `skills/prism3-theme` (authoring a brand)
+and `skills/prism3-build-ui` (building UI from generated tokens) are the two that
+exist; `.claude/commands/review-pr.md` runs an independent PR review.
 
 ---
 
@@ -1949,7 +1950,7 @@ within that set — just the readiness filter. Computed once (2026-07-28) from t
 code-library backlog passes; nobody's maintaining it as issues open and close, so treat it
 as a snapshot to re-derive, not a live feed. Only `priority:now` exists — no
 `priority:next`/`priority:later`; an unused tier is worse than no tier (see `lane:emitter`'s
-fate, under History below). Add those only once there's something real to put in them.
+fate, above). Add those only once there's something real to put in them.
 
 These 15 are the whole set. GitHub's stock labels were removed deliberately: `bug`,
 `documentation`, and `question` collided with `type:finding` / `lane:docs` /

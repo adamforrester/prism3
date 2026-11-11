@@ -15,7 +15,7 @@ An npm-workspace monorepo for the **Prism3 design-token engine** and its surface
 | `docs/` | The **design record** — the numbered design docs plus `superpowers/` working notes. |
 | `skills/` | The **shipped skills** (`prism3-theme`, `prism3-build-ui`, `prism3-motion`, `prism3-rebind` for agents working *with* Prism3; `prism3-build-component` for agents working *on* the engine), gated by `lint-skills.ts`. Per-brand *payload* skills will be emitted by the engine (#668, not yet built) and will not live here. |
 | `reference/` | The **legacy hand-built token JSON** — Prism2 + New Balance. Read-only in practice: it is the engine's regression target, not a place to author. |
-| `tools/` | **Measurement harnesses**, not wired into `ci.yml` except two gates (`exporter-comparison/gate.ts`, `claude-md-freshness/mutations.sh`): a tool answers a question and exits 0, a gate asserts an answer and fails, so the two stay in separate files. Depth: `tools/CLAUDE.md`. |
+| `tools/` | **Measurement harnesses**, not wired into `ci.yml`: a tool answers a question and exits 0, a gate asserts an answer and fails, so the two stay in separate files. Depth: `tools/CLAUDE.md`. |
 
 Also read `README.md` (the signpost) and **`CONTRIBUTING.md`** — §3 is the canonical gate list, and `packages/engine/lint-doc-gates.ts` enforces that it matches CI. No Cursor/Copilot rules exist.
 

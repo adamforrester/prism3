@@ -3600,7 +3600,7 @@
       ]
     },
     "interactive.primary.overlay.hover": {
-      "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.hover)",
+      "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.hover)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
@@ -3624,7 +3624,7 @@
       ]
     },
     "interactive.primary.overlay.pressed": {
-      "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)",
+      "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
@@ -3648,7 +3648,7 @@
       ]
     },
     "interactive.primary.overlay.selected": {
-      "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.selected)",
+      "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.selected)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.primary.overlay.*` — the page wash takes the page's polarity.",
@@ -3672,7 +3672,7 @@
       ]
     },
     "interactive.neutral.overlay.hover": {
-      "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)",
+      "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
@@ -3696,7 +3696,7 @@
       ]
     },
     "interactive.neutral.overlay.pressed": {
-      "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)",
+      "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
@@ -3720,7 +3720,7 @@
       ]
     },
     "interactive.neutral.overlay.selected": {
-      "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)",
+      "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.neutral.overlay.*` — the page wash takes the page's polarity.",
@@ -3744,7 +3744,7 @@
       ]
     },
     "interactive.destructive.overlay.hover": {
-      "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)",
+      "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
@@ -3768,7 +3768,7 @@
       ]
     },
     "interactive.destructive.overlay.pressed": {
-      "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)",
+      "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
@@ -3792,7 +3792,7 @@
       ]
     },
     "interactive.destructive.overlay.selected": {
-      "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)",
+      "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards.",
       "avoid_when": "Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle), as a modal backdrop (use `scrim.default`), or on a form field, which hovers by its border alone (`field.border.hover`). On an inverse band, use `inverse.interactive.destructive.overlay.*` — the page wash takes the page's polarity.",
@@ -4235,7 +4235,7 @@
       ]
     },
     "field.border.rest": {
-      "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible ground (`background.secondary`), not the page alone",
+      "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against `background.secondary`, the ground it is gated on, not the page alone",
       "meaning": "Form input / field chrome",
       "when_to_use": "The resting boundary of a transparent-fill field, before focus (SC 1.4.11). Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for the focus ring (use `border.focus`) or a validation state (use an intent border such as `border.danger`).",
@@ -4263,7 +4263,7 @@
       ]
     },
     "field.border.hover": {
-      "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer",
+      "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on `background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer",
       "meaning": "Form input / field chrome",
       "when_to_use": "The hover boundary of a form field — four ramp steps stronger than the resting border, and the field's only drawn hover cue: a field takes no hover fill. A perceivable border (SC 1.4.11) on pointer hover. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use as the resting border (use `field.border.rest`), the focus ring (use `border.focus`), or a validation state (use an intent border such as `border.danger`).",
@@ -4337,7 +4337,7 @@
       ]
     },
     "inverse.field.border.rest": {
-      "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground",
+      "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against `inverse.background.secondary`, the ground it is gated on",
       "meaning": "Form input / field chrome (inverse ground)",
       "when_to_use": "The resting boundary of a transparent-fill field, before focus (SC 1.4.11). Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.border.rest`. Do not use for the focus ring (use `inverse.border.focus`) or a validation state (use an intent border such as `inverse.border.danger`).",
@@ -4365,7 +4365,7 @@
       ]
     },
     "inverse.field.border.hover": {
-      "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer",
+      "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on `inverse.background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer",
       "meaning": "Form input / field chrome (inverse ground)",
       "when_to_use": "The hover boundary of a form field — four ramp steps stronger than the resting border, and the field's only drawn hover cue: a field takes no hover fill. A perceivable border (SC 1.4.11) on pointer hover. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.border.hover`. Do not use as the resting border (use `inverse.field.border.rest`), the focus ring (use `inverse.border.focus`), or a validation state (use an intent border such as `inverse.border.danger`).",
@@ -4396,7 +4396,7 @@
       ]
     },
     "inverse.field.placeholder": {
-      "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
+      "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on `inverse.background.secondary` behind the transparent fill",
       "meaning": "Form input / field chrome (inverse ground)",
       "when_to_use": "Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.placeholder`. Do not use as a label (a11y anti-pattern) or for the entered value (use `inverse.text.primary`).",
