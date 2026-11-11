@@ -21,9 +21,9 @@ A control for choosing exactly one from a small set of mutually exclusive, all-v
 Shown on the default member: size `medium`, status `default`.
 
 1. **Content** — The control and the label, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label's first line.
-2. **Control**
+2. **Control** — The radio, centered on the label's first line; it follows the row's size, status and selection.
 3. **Text stack** — The label and the description under it, starting at the label's edge. Its top inset keeps the label's first line centered on the control.
-4. **Label**
+4. **Label** — This option's name, and part of what a person clicks; a long label wraps to a second line.
 5. **Description** (optional) — The optional description under the label, in the muted text color, one type step smaller and starting at the label's edge. Hidden by default.
 
 ## Styles
@@ -95,7 +95,6 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 - **Built from:** `radio-control`
 - **Instead, consider:** `checkbox-row`, `switch-row`, `select`, `segmented-control`
 - **Often used with:** `radio-group`, `field-label`, `field-message`, `focus-ring`
-- **Superseded by:** `select`
 - **Replaces:**
   - a set of checkboxes misused for a mutually exclusive choice
   - a bare \<input type="radio"> set with no group label

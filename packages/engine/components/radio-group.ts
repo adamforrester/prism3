@@ -242,7 +242,10 @@ export const radioGroup: ComponentDef = {
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
-        note: 'The first Radio.Row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width. Its checked state is derived from the group\'s scalar value (`checked = value === row.value`), not wired here.',
+        // Maintainer detail, out of the reader caption (#3610): The first Radio.Row — always present. Nests the
+        // labeled row (which nests the control), following the group's size. Fills the group's width. Its checked
+        // state is derived from the group's scalar value (`checked = value === row.value`), not wired here.
+        note: 'The first option, always present; it fills the group\'s width and is selected when its value is the group\'s value.',
       },
       row2: {
         kind: 'nest',

@@ -99,7 +99,10 @@ export const spinner: ComponentDef = {
         size: 'size.{size}',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['ringGlyph'],
-        note: 'The square on the icon ladder. Paints nothing; it is the box a host resizes to its own slot. `target` only in the schema\'s sense — the spinner is never interactive.',
+        // Maintainer detail, out of the reader caption (#3610): The square on the icon ladder. Paints nothing; it is
+        // the box a host resizes to its own slot. `target` only in the schema's sense — the spinner is never
+        // interactive.
+        note: 'The square the spinner turns in; it paints nothing and takes the size of the slot it is placed in.',
       },
       ringGlyph: {
         kind: 'vector',
