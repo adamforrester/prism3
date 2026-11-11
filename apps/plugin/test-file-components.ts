@@ -226,6 +226,31 @@ for (const name of ['_Section-header', '_Headings']) {
   );
 }
 
+// ── The variant-set border (#1713) ───────────────────────────────────────────────────────────────────
+// The shim's `combineAsVariants` hands back a set with no `strokes`, as the live host does (probed
+// 2026-09-27: `strokes: []`), so a border on the built set can only be one the code wrote. The expected values
+// are Figma's own variant-set border, written out here as literals (#9747FF, 1px, INSIDE, 10/5, 5px radius),
+// not read off the subject's constant (docs/34).
+console.log('variant-set border (#1713)');
+for (const name of ['_Section-header', '_Headings']) {
+  const set = setsByName.get(name);
+  if (!set) { ok(false, `${name}: set exists for the border check`); continue; }
+  const st = set.strokes as { type?: string; color?: { r: number; g: number; b: number } }[] | undefined;
+  const c = Array.isArray(st) && st.length === 1 && st[0].type === 'SOLID' ? st[0].color : undefined;
+  const purple = !!c && Math.round(c.r * 255) === 0x97 && Math.round(c.g * 255) === 0x47 && Math.round(c.b * 255) === 0xff;
+  ok(purple && set.strokeWeight === 1 && set.strokeAlign === 'INSIDE' && JSON.stringify(set.dashPattern) === '[10,5]' && set.cornerRadius === 5,
+    `${name}: the set carries Figma's purple dashed set border (${JSON.stringify({ strokes: set.strokes, weight: set.strokeWeight, align: set.strokeAlign, dash: set.dashPattern, radius: set.cornerRadius })})`);
+}
+{
+  // A set the host hands back already stroked keeps its own border, as the projected sets' `claimDefaults` does.
+  const { api: stroked, sets: strokedSets } = makeApi();
+  const combine = stroked.combineAsVariants.bind(stroked);
+  stroked.combineAsVariants = (nodes, parent) => { const s = combine(nodes, parent); s.strokes = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }]; s.dashPattern = []; return s; };
+  await buildFileComponents(stroked, page);
+  ok(strokedSets.length === 2 && strokedSets.every((s) => JSON.stringify(s.strokes) === '[{"type":"SOLID","color":{"r":0,"g":0,"b":0}}]' && JSON.stringify(s.dashPattern) === '[]'),
+    `a set the host already stroked keeps its own border (${JSON.stringify(strokedSets.map((s) => [s.name, s.strokes, s.dashPattern]))})`);
+}
+
 // ── File setup's idempotent build, in any case ───────────────────────────────────────────────────────
 console.log('file setup: existing sets in another case');
 {
