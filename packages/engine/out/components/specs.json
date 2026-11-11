@@ -11050,7 +11050,10 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "pending",
+        "disabled"
+      ],
       "anatomy": [
         {
           "part": "container",

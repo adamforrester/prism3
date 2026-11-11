@@ -4254,7 +4254,9 @@
         "rest",
         "hover",
         "pressed",
-        "focus-visible"
+        "pending",
+        "focus-visible",
+        "disabled"
       ],
       "projectedStates": [
         "rest",
@@ -4323,6 +4325,14 @@
         },
         {
           "name": "onClick"
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
         }
       ],
       "sizes": [
@@ -5517,6 +5527,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "sign-in-button",
       "slider",
       "switch-control",
       "switch-row",
@@ -5645,6 +5656,7 @@
       "password-field",
       "search-field",
       "select",
+      "sign-in-button",
       "switch-row",
       "text-field",
       "textarea"
@@ -7001,6 +7013,10 @@
         "default": false
       },
       {
+        "id": "sign-in-button",
+        "default": false
+      },
+      {
         "id": "slider",
         "default": false
       },
@@ -7494,6 +7510,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "sign-in-button",
         "default": false
       },
       {
@@ -9998,6 +10018,14 @@
         "select"
       ],
       "detail": "select declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "sign-in-button",
+      "components": [
+        "sign-in-button"
+      ],
+      "detail": "sign-in-button declares the states pending and disabled, which the design-file state axis does not draw"
     },
     {
       "kind": "state not drawn",

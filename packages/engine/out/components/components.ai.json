@@ -2007,14 +2007,30 @@
           "name": "onClick",
           "type": "(event: MouseEvent) => void",
           "required": false,
-          "description": "Called before the provider's sign-in starts, for analytics or a loading state. The sign-in itself is the provider's."
+          "description": "Called before the provider's sign-in starts, for analytics or to set isPending. The sign-in itself is the provider's. Not called while isPending or disabled."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "While the provider's sign-in is in flight: keeps focus (aria-disabled, not native disabled), sets aria-busy, ignores a second click, and announces busy through a polite live region. The provider's mark and words stay as drawn."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled, reserved for a sign-in the view does not offer right now; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
         "rest",
         "hover",
         "pressed",
-        "focus-visible"
+        "pending",
+        "focus-visible",
+        "disabled"
       ],
       "variants": {
         "provider": {
@@ -2119,6 +2135,10 @@
         ]
       },
       "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
         {
           "class": "platform-owned",
           "disposition": "REFUSED"
