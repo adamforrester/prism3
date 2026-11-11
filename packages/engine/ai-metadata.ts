@@ -399,7 +399,7 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
   // The selection mark (#3346): a shape, never ink, that equals the label as resolved. It names that ink under `tracks`
   // for the border's reason, and steers away from the edge, which a brand may quiet.
   if (slot === 'indicator') {
-    return { when_to_use: `The shape that marks a selected or switched-on ${c} control${sc(state)}: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.`, avoid_when: `Do not use as ink (use ${q(`interactive.${c}.text.*`)}) or as an outline control's edge (use ${q(`interactive.${c}.border.*`)}).`, sits_on: ['background.primary'], tracks: [`interactive.${c}.text.${state ?? 'rest'}`] };
+    return { when_to_use: `The shape that marks a selected or switched-on ${c} control${sc(state)}: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.`, avoid_when: `Do not use as ink (use ${q(`interactive.${c}.text.*`)}) or as an outline control's edge (use ${q(`interactive.${c}.border.*`)}).`, sits_on: ['background.primary'], tracks: [`interactive.${c}.text.${state ?? 'rest'}`] };
   }
   // A `slot === 'inverse'` BLOCK STOOD HERE UNTIL #1140, and it was the clearest single argument for the
   // restructure. The inverse column nested its real slot one deeper (`inverse.<slot>.<state>`), so `state`
