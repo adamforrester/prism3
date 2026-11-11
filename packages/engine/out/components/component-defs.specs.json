@@ -49106,7 +49106,7 @@
         "glyphCell": {
           "type": "container"
         },
-        "checkCircleGlyph": {
+        "successGlyph": {
           "type": "instance",
           "instanceOf": "icon/check-circle"
         }
@@ -49195,7 +49195,7 @@
                   "message",
                   {
                     "glyphCell": [
-                      "checkCircleGlyph"
+                      "successGlyph"
                     ]
                   }
                 ]
@@ -49268,7 +49268,7 @@
               }
             }
           },
-          "checkCircleGlyph": {
+          "successGlyph": {
             "styles": {
               "height": {
                 "$token": "icon.size.sm",
@@ -49308,7 +49308,7 @@
                 }
               }
             },
-            "checkCircleGlyph": {
+            "successGlyph": {
               "styles": {
                 "fillColor": {
                   "$token": "color.inverse.icon.success",
@@ -57341,7 +57341,7 @@
           "type": "instance",
           "instanceOf": "button"
         },
-        "dismiss": {
+        "close": {
           "type": "instance",
           "instanceOf": "flush-icon-button-neutral"
         },
@@ -57470,7 +57470,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible."
+              "description": "Whether the banner shows a close button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible."
             }
           }
         },
@@ -57481,7 +57481,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place."
+              "description": "Called when the close button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place."
             }
           }
         },
@@ -57531,7 +57531,7 @@
                   }
                 ]
               },
-              "dismiss",
+              "close",
               "successGlyph",
               "warningGlyph",
               "dangerGlyph"

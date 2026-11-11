@@ -7092,12 +7092,12 @@ arm: {
       if (r.placementWidth !== BUILT[width]) wrong.push(`${name} built at ${r.placementWidth}`);
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'])
         if (r.bound?.[c] !== CORNER[width]) wrong.push(`${name} ${c} ${r.bound?.[c]}`);
-      const g = glyphs(r).filter((n) => n.name !== 'dismiss');
+      const g = glyphs(r).filter((n) => n.name !== 'close');
       if (GLYPH[tone] === null ? g.length !== 0 : (g.length !== 1 || g[0].nestTarget !== GLYPH[tone] || g[0].descendantFills !== `color/icon/${tone}` || g[0].bound?.width !== 'icon/size/md'))
         wrong.push(`${name} glyph ${g.map((n) => `${n.nestTarget} in ${n.descendantFills}`).join(', ') || 'none'}`);
       for (const t of ['title', 'bodyText'])
         if (find(r, t)?.paints?.fills !== 'color/text/primary') wrong.push(`${name} ${t} ink ${find(r, t)?.paints?.fills}`);
-      const row = find(r, 'actions'), a = find(r, 'action'), d = find(r, 'dismiss');
+      const row = find(r, 'actions'), a = find(r, 'action'), d = find(r, 'close');
       // Q533.1: ONE action, a text Button, small, the row's only child.
       if (a?.nestTarget !== 'button' || a?.nestPrefer !== 'button-neutral' || a?.nestVariant?.appearance !== 'text' || a?.nestVariant?.size !== 'small') wrong.push(`${name} action ${a?.nestTarget}/${a?.nestVariant?.appearance}/${a?.nestVariant?.size}`);
       if ((row?.children ?? []).length !== 1) wrong.push(`${name} actions row holds ${(row?.children ?? []).map((c: any) => c.name).join('+') || 'nothing'}`);
@@ -7175,8 +7175,8 @@ arm: {
       ...Object.entries(fp.texts ?? {}).map(([k, t]: [string, any]) => t.figmaName ?? k),
       ...Object.entries(fp.booleans ?? {}).map(([k, b]: [string, any]) => (typeof b === 'object' && b.figmaName) || k),
     ];
-    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'body text', 'title', 'body', 'rich body', 'icon', 'actions', 'link', 'dismiss']),
-      `banner Figma properties: title text, body text, title, body, rich body, icon, actions, link, dismiss, all lowercase (Q345, #3225), and no second action (Q533.1) (got ${propNames.join(', ')})`);
+    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'body text', 'title', 'body', 'rich body', 'icon', 'actions', 'link', 'close']),
+      `banner Figma properties: title text, body text, title, body, rich body, icon, actions, link, close, all lowercase (Q345, #3225), the close named as Toast's and Dialog's (#3554 Q-CC26 A), and no second action (Q533.1) (got ${propNames.join(', ')})`);
     // Q533.1 from the other side: the banner's one action is not grouped, so Button group neither pairs with Banner nor
     // says in its prose that it holds a banner's actions (review on #2786).
     const bg = componentDefs.find((d) => d.id === 'button-group')!;
@@ -39608,7 +39608,7 @@ arm: {
 
   // THE GLYPH (call 3): success only, a circled check on inverse.icon.success, 20px, 12px from the message; neutral none.
   const glyphBad = plans.filter((p) => {
-    const r = p.root as TN, icon = find(r, 'checkCircleGlyph'), content = find(r, 'content');
+    const r = p.root as TN, icon = find(r, 'successGlyph'), content = find(r, 'content');
     const success = (p.coord as Record<string, string>).intent === 'success';
     return success ? !(icon && icon.nestTarget === 'icon/check-circle' && icon.descendantFills === 'color/inverse/icon/success' && icon.bound?.width === 'icon/size/sm' && content?.bound?.itemSpacing === 'space/150')
       : !!icon || all(r).some((n) => /^icon\//.test(n.nestTarget ?? ''));
@@ -39758,7 +39758,7 @@ arm: {
   for (const density of ['compact', 'comfortable', 'spacious'] as const) {
     const plans = figmaAnatomySet(applySpacingDensity(td, density), { swapTarget: 'FPO-default-icon' });
     for (const p of plans) {
-      const r = p.root as PN, msg = find(r, 'message'), glyph = find(r, 'checkCircleGlyph'), close = find(r, 'close'), content = find(r, 'content'), cell = find(r, 'glyphCell');
+      const r = p.root as PN, msg = find(r, 'message'), glyph = find(r, 'successGlyph'), close = find(r, 'close'), content = find(r, 'content'), cell = find(r, 'glyphCell');
       for (const w of worlds.filter((x) => x.density === density)) {
         const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
         const at1 = `${planComponentName(p)} ${w.brand} ${density}`;

@@ -162,6 +162,12 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   // first, so a member built at `width=full` lands on `edge=full-bleed` and keeps its id and every placed instance.
   { def: 'banner', kind: 'axis', from: 'width', to: 'edge', issue: 3392 },
   { def: 'banner', kind: 'value', axis: 'edge', from: 'full', to: 'full-bleed', issue: 3392 },
+  // #3554 (owner decisions 2026-11-11). Q-CC26 A: Banner's close button is `close`, part and boolean, as on Toast and
+  // Dialog; a placed banner keeps whether it shows and every override on it. Q-CC27 A: a glyph picked by an axis is named
+  // by the axis value, so Toast's success glyph is `successGlyph`, as Banner's and FieldMessage's are.
+  { def: 'banner', kind: 'part', from: 'dismiss', to: 'close', issue: 3554 },
+  { def: 'banner', kind: 'property-rename', from: 'dismiss', to: 'close', issue: 3554 },
+  { def: 'toast', kind: 'part', from: 'checkCircleGlyph', to: 'successGlyph', issue: 3554 },
 ];
 
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */

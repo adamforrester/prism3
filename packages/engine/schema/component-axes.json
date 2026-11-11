@@ -130,7 +130,7 @@
       "actions": "BOOLEAN",
       "body": "BOOLEAN",
       "body text": "TEXT",
-      "dismiss": "BOOLEAN",
+      "close": "BOOLEAN",
       "icon": "BOOLEAN",
       "link": "BOOLEAN",
       "rich body": "BOOLEAN",

@@ -141,10 +141,10 @@ export const toast: ComponentDef = {
         minHeight: 'glyph-cell',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         presentWhen: { intent: ['success'] },
-        children: ['checkCircleGlyph'],
+        children: ['successGlyph'],
         note: 'One line of the message tall, centering the glyph on the message\'s first line.',
       },
-      checkCircleGlyph: {
+      successGlyph: {
         kind: 'vector',
         glyph: 'check-circle',
         size: 'glyph-size',

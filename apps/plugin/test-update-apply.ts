@@ -1692,7 +1692,7 @@ section('accordion side padding — a file built at the old large 24px updates i
 // built before holds both members with the 16px style, no floor and the glyph straight under `content`; the Update
 // rewrites both in place and inserts the cell. THE FILE is reconstructed from today's def by putting those facts back
 // (as `before3153` does), so the subject is the real def's projection on both sides. EXPECTED, typed here: the success
-// member's `content` holding [glyphCell, message] and the cell [checkCircleGlyph], the neutral member's [message].
+// member's `content` holding [glyphCell, message] and the cell [successGlyph], the neutral member's [message].
 // Mutation: the def's message back at `type.body.md.default` → `toast 14/written`.
 section('toast 14 — a Toast built with the 16px message, no floor and no glyph cell updates in place to 14px on the ladder, the glyph moved into its cell (#3165)');
 {
@@ -1703,7 +1703,7 @@ section('toast 14 — a Toast built with the 16px message, no floor and no glyph
   const before3165 = {
     ...now,
     tokens: { ...oldTokens, type: 'type.body.md.default' },
-    anatomy: { ...now.anatomy!, parts: { ...oldParts, container: oldContainer, content: { ...oldParts.content, children: oldParts.content.children!.map((c) => (c === 'glyphCell' ? 'checkCircleGlyph' : c)) } } },
+    anatomy: { ...now.anatomy!, parts: { ...oldParts, container: oldContainer, content: { ...oldParts.content, children: oldParts.content.children!.map((c) => (c === 'glyphCell' ? 'successGlyph' : c)) } } },
   } as ComponentDef;
   const plans = plansOf('toast');
   // The shim holds the nested Button and FlushIconButton as plain components with no `label` or `swap icon` property,
@@ -1722,7 +1722,7 @@ section('toast 14 — a Toast built with the 16px message, no floor and no glyph
   const lineBox = await varIdOf(w, 'type/body/sm/line-box');
   const isSuccess = (m: Node) => /intent=success/.test(String(m.name));
   ok(membersOf(w.set()).length === 2 && membersOf(w.set()).every((m) => /body\/md\/default/.test(String(messageOf(m).textStyleId)) && !floorOf(m) && !kids(childNamed(m, 'content')).includes('glyphCell'))
-    && membersOf(w.set()).filter(isSuccess).length === 1 && membersOf(w.set()).filter(isSuccess).every((m) => JSON.stringify(kids(childNamed(m, 'content'))) === '["checkCircleGlyph","message"]'),
+    && membersOf(w.set()).filter(isSuccess).length === 1 && membersOf(w.set()).filter(isSuccess).every((m) => JSON.stringify(kids(childNamed(m, 'content'))) === '["successGlyph","message"]'),
     `premise: both Toast members hold the message at body/md/default, no floor and no glyph cell; the success glyph sits straight under content (${membersOf(w.set()).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ')})`);
   const before = identityOf(w.set());
   const { pre, res } = await confirm(w, [{ def: 'toast', plans }]);
@@ -1736,11 +1736,11 @@ section('toast 14 — a Toast built with the 16px message, no floor and no glyph
   const extra = res.outcomes[0].misses.filter((x) => !builtMisses.includes(x));
   ok(builtMisses.every((x) => /^(action\.nestOverrides -> label|close\.nestOverrides -> swap icon) /.test(x)) && extra.length === 0 && moved.length === 0 && kidsLost.length === 0 && after.members.size === 2,
     `toast 14/in place: every member and child keeps its key and id, adding no miss to the build's (${applyVerdict(res).headline}; ${moved.length} members moved, ${kidsLost.slice(0, 2).join(', ') || 'no child lost'}; ${extra.slice(0, 1).join('')})`);
-  const glyphId = (m: Node | undefined) => m && [...(before.members.get(String(m.name))?.kids ?? [])].find(([path]) => /checkCircleGlyph/.test(path))?.[1];
+  const glyphId = (m: Node | undefined) => m && [...(before.members.get(String(m.name))?.kids ?? [])].find(([path]) => /successGlyph/.test(path))?.[1];
   const success = membersOf(w.set()).find(isSuccess)!;
   const cell = childNamed(childNamed(success, 'content'), 'glyphCell');
-  ok(JSON.stringify(kids(childNamed(success, 'content'))) === '["glyphCell","message"]' && JSON.stringify(kids(cell)) === '["checkCircleGlyph"]'
-    && String(childNamed(cell, 'checkCircleGlyph').id) === glyphId(success)
+  ok(JSON.stringify(kids(childNamed(success, 'content'))) === '["glyphCell","message"]' && JSON.stringify(kids(cell)) === '["successGlyph"]'
+    && String(childNamed(cell, 'successGlyph').id) === glyphId(success)
     && (cell.boundVariables as Record<string, { id: string } | undefined>)?.minHeight?.id === lineBox && cell.counterAxisAlignItems === 'CENTER' && childNamed(success, 'content').counterAxisAlignItems === 'MIN'
     && membersOf(w.set()).filter((m) => !isSuccess(m)).every((m) => JSON.stringify(kids(childNamed(m, 'content'))) === '["message"]'),
     `toast 14/cell: the success member's content holds [glyphCell, message], the inserted cell centers the glyph it kept (same id) on a type/body/sm/line-box floor, content top-aligned; neutral holds [message] (${membersOf(w.set()).map((m) => `${String(m.name)}: [${kids(childNamed(m, 'content')).join(', ')}]`).join('; ')}; cell [${kids(cell).join(', ')}] ${String(cell?.counterAxisAlignItems)})`);

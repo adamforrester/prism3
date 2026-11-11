@@ -1433,7 +1433,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| toast | `success.icon` | checkCircleGlyph | intent: success (1 of 2) |
+| toast | `success.icon` | successGlyph | intent: success (1 of 2) |
 
 ### `color.inverse.interactive.destructive.border.hover`
 
@@ -2637,7 +2637,7 @@ Type: dimension. Bound by 28 component(s).
 |  |  | leadingVisual | size: medium (15 of 45) |
 | text-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
-| toast | `glyph-size` | checkCircleGlyph | intent: success (1 of 2) |
+| toast | `glyph-size` | successGlyph | intent: success (1 of 2) |
 | wallet-button | `size.small.any.mark` | mark | provider: apple-pay, paypal · size: small · style: any (4 of 68) |
 
 ### `icon.size.xl`

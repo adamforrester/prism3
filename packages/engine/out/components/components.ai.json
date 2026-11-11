@@ -13132,13 +13132,13 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible."
+          "description": "Whether the banner shows a close button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible."
         },
         {
           "name": "onDismiss",
           "type": "function",
           "required": false,
-          "description": "Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place."
+          "description": "Called when the close button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place."
         },
         {
           "name": "announce",
@@ -13182,12 +13182,12 @@
           "1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)",
           "2.4.3 Focus Order (the action or the link is in the tab order, and a dismiss moves focus to a surviving element)",
           "2.4.4 Link Purpose (In Context) (the inline link sits in the sentence that gives it its purpose)",
-          "2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)",
+          "2.5.8 Target Size (Minimum) (the close button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)",
           "2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)"
         ],
-        "keyboard": "The action or the inline link, then the dismiss button, are ordinary Tab stops in reading order. The banner itself takes no focus.",
+        "keyboard": "The action or the inline link, then the close button, are ordinary Tab stops in reading order. The banner itself takes no focus.",
         "focus": "No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.",
-        "aria": "The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role=\"alert\". An inserted banner: announced through a live region that already exists, role=\"alert\" for danger and role=\"status\" otherwise. The dismiss button's accessible name names what it dismisses (\"Dismiss error message\"), and is translated."
+        "aria": "The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role=\"alert\". An inserted banner: announced through a live region that already exists, role=\"alert\" for danger and role=\"status\" otherwise. The close button's accessible name names what it dismisses (\"Dismiss error message\"), and is translated."
       },
       "content": {
         "labelPattern": "Title: names the issue up front, in sentence case and with no period (\"Payment failed\", not \"Error\"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Action: a verb of one or two words (\"Retry\", \"Update billing\"). Inline link: the outcome it leads to, short enough to end the sentence (\"Become a member\").",

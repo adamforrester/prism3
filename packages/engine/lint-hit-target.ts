@@ -284,7 +284,7 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
   dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
   // Owner QA 2026-10-19: the Banner's dismiss is a flush FlushIconButton.Neutral, the one code-side target in the row.
-  banner: { parts: ['dismiss'], why: "the Banner's dismiss, the one code-side target in its row" },
+  banner: { parts: ['close'], why: "the Banner's close button, the one code-side target in its row" },
   // #2666: the overflow step's flush icon button is the one code-side target in a breadcrumb item, so there is no second hit area to space it from.
   'breadcrumb-item': { parts: ['overflow'], why: "the collapsed-steps button, the one code-side target in a breadcrumb step" },
   // #2668 (Q386): the Toast's close is one code-side target beside the action Button, which is a separate target measured under its own name.

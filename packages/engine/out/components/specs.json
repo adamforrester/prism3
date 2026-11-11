@@ -40077,7 +40077,7 @@
           }
         },
         {
-          "part": "container/content/glyphCell/checkCircleGlyph",
+          "part": "container/content/glyphCell/successGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -40144,7 +40144,7 @@
               }
             },
             {
-              "part": "container/content/glyphCell/checkCircleGlyph",
+              "part": "container/content/glyphCell/successGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -40198,7 +40198,7 @@
               "fill": "color.inverse.background.primary"
             },
             {
-              "part": "container/content/glyphCell/checkCircleGlyph",
+              "part": "container/content/glyphCell/successGlyph",
               "icon": "color.inverse.icon.success"
             },
             {
@@ -40239,7 +40239,7 @@
           "exposes": []
         },
         {
-          "part": "container/content/glyphCell/checkCircleGlyph",
+          "part": "container/content/glyphCell/successGlyph",
           "kind": "instance",
           "component": "icon/check-circle",
           "variant": {},
@@ -46893,7 +46893,7 @@
           "members": 10
         },
         {
-          "part": "container/dismiss",
+          "part": "container/close",
           "kind": "instance",
           "members": 10
         },
@@ -48092,7 +48092,7 @@
           "exposes": []
         },
         {
-          "part": "container/dismiss",
+          "part": "container/close",
           "kind": "instance",
           "component": "flush-icon-button-neutral",
           "variant": {
@@ -48171,7 +48171,7 @@
           "default": false
         },
         {
-          "name": "dismiss",
+          "name": "close",
           "type": "BOOLEAN",
           "default": false
         },
