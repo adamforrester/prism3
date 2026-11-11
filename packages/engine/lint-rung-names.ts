@@ -77,8 +77,10 @@
  *   D. A REPEAT IS A CLAMP OR A NAMED DECISION (#3374). Monotonic alone admits every repeat, including one no
  *      shorter ladder explains: rebinding List item's `x-small` text from `type.body.xs` to `type.body.sm` put two
  *      sizes on one 14px rung, resolved on every line, and passed. So a repeat is admitted without a word only as
- *      the clamp the paragraph above reasons about, on the family's LOWEST or HIGHEST rung as the emitted trees hold
- *      it (any brand). A repeat with a rung emitted on both sides needs an entry in `RUNG_REPEATS` naming the def,
+ *      the clamp the paragraph above reasons about: on the family's LOWEST or HIGHEST rung as the emitted trees hold
+ *      it (any brand), AND with no emitted rung skipped by the ladder (its distinct rungs contiguous in the emitted
+ *      order). `xs, xs, md, lg` with `sm` emitted is #3374's defect mirrored down to the end rung: the ladder did not
+ *      run out of rungs, a size lost its own. That, or a repeat with a rung emitted on both sides, needs an entry in `RUNG_REPEATS` naming the def,
  *      the family and the decision its def cites (Flush icon button's 20/20/24 glyphs, Q283.13 A). The entries are
  *      checked both directions, so one whose repeat is gone fails as stale. Step families (spacing, border width)
  *      are not checked: two sizes sharing a gap is ordinary there, and their scale is not a size ladder.
@@ -345,7 +347,8 @@ const RING_DEFAULT_RUNG = RUNG_ORDER[RUNG_ORDER.indexOf(DEFAULT_RUNG) + 2];
  * THE SANCTIONED MID-TIER REPEATS (#3374): two sizes on one rung where the tier has a rung on both sides. Arm 2D
  * refuses such a repeat unless it is named here, because a rebind that puts `x-small` on `small`'s rung is monotonic,
  * resolves on every line, and was green before this arm (#3374's mutation of List item). A CLAMP needs no entry: a
- * repeat on the family's lowest or highest emitted rung is the shorter-ladder case the header reasons about. Each
+ * repeat on the family's lowest or highest emitted rung, on a ladder that skips no emitted rung, is the
+ * shorter-ladder case the header reasons about. Each
  * entry is a def's family and the owner decision its def cites for the repeat, and it is checked both directions:
  * an entry no repeat uses fails as stale.
  */
@@ -354,6 +357,16 @@ const RUNG_REPEATS: Record<string, { families: string[]; why: string }> = {
   'flush-icon-button-destructive': { families: ['icon.size.*'], why: 'Q283.13 A, as Flush icon button' },
   'flush-icon-button-neutral': { families: ['icon.size.*'], why: 'Q283.13 A, as Flush icon button' },
   'card-number-field': { families: ['icon.size.*'], why: 'the mark tile is the icon rung, 20 at small and medium and 24 at large (#2429 §2)' },
+};
+
+/**
+ * REPEATS AWAITING AN OWNER ANSWER (#3374 review). A repeat arm 2D refuses that no def comment grounds in a decision,
+ * so it cannot go in RUNG_REPEATS: inventing its reason would make the register lie. Each entry names the open issue
+ * instead, and is checked both directions like RUNG_REPEATS. When the issue is answered, the entry moves to
+ * RUNG_REPEATS (kept) or is deleted with the def's fix (changed).
+ */
+const RUNG_REPEATS_OPEN: Record<string, { families: string[]; issue: string }> = {
+  'code-input-cell': { families: ['radius.*'], issue: '#3551: small, medium and large on radius.sm with md skipped, from the as-built wireframe, no decision cited' },
 };
 
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
@@ -793,18 +806,24 @@ for (const def of componentDefs) {
       if (seq[i] < seq[i - 1])
         failures.push(`${def.id}: in tier family '${family}' the enum walks '${rows[i - 1].value}' → ${rows[i - 1].rung} then '${rows[i].value}' → ${rows[i].rung}, which goes DOWN the tier. Every line resolves; the ladder is inverted. (${rows.map((r) => `${r.value}→${r.rung}`).join(', ')})`);
 
-    // D (#3374): two sizes on one rung are a CLAMP only at the end of the family's emitted ladder. Where the tier
-    // emits a rung on both sides, the repeat is a size that lost its own rung, unless RUNG_REPEATS names it. The
-    // family's rungs are read from the emitted trees (any brand), not from the def.
+    // D (#3374): two sizes on one rung are a CLAMP only at the end of the family's emitted ladder, and only when the
+    // ladder skips no emitted rung (its distinct rungs are contiguous in the emitted order): `xs, xs, md, lg` with
+    // `sm` emitted is a size that lost its own rung, mirrored down to the end. Where the tier emits a rung on both
+    // sides, the repeat is a lost rung too. Either passes only when RUNG_REPEATS names it. The family's rungs are
+    // read from the emitted trees (any brand), not from the def.
     if (stepFamily(family)) continue;
     const emitted = RUNG_ORDER.filter((rung) => trees.some(({ paths }) => paths.has(family.replace('*', rung))));
+    const distinct = [...new Set(rows.map((r) => emitted.indexOf(r.rung)))];
+    const skipped = emitted.filter((_, k) => k > Math.min(...distinct) && k < Math.max(...distinct) && !distinct.includes(k));
     for (let i = 1; i < rows.length; i++) {
       const [lo, hi] = [rows[i - 1], rows[i]];
       if (lo.value === hi.value || lo.rung !== hi.rung) continue;
-      if (hi.rung === emitted[0] || hi.rung === emitted[emitted.length - 1]) continue;
-      arm2Repeats++;
-      if (RUNG_REPEATS[def.id]?.families.includes(family)) { repeatsUsed.add(`${def.id}|${family}`); continue; }
-      failures.push(`${def.id}: in tier family '${family}' sizes '${lo.value}' and '${hi.value}' both bind ${hi.rung}, and the tier emits rungs on both sides of it (${emitted.join(', ')}). Monotonic, so arm C passes it, but one of the two sizes lost its own rung. Bind each size to its rung, or name the repeat in RUNG_REPEATS with the decision behind it. (${rows.map((r) => `${r.value}→${r.rung}`).join(', ')})`);
+      const end = hi.rung === emitted[0] || hi.rung === emitted[emitted.length - 1];
+      if (end && !skipped.length) continue;
+      if (RUNG_REPEATS[def.id]?.families.includes(family) || RUNG_REPEATS_OPEN[def.id]?.families.includes(family)) { arm2Repeats++; repeatsUsed.add(`${def.id}|${family}`); continue; }
+      failures.push(end
+        ? `${def.id}: in tier family '${family}' sizes '${lo.value}' and '${hi.value}' both bind ${hi.rung}, the end of the tier, but the ladder skips the emitted rung(s) ${skipped.join(', ')}. That is not a clamp: the ladder did not run out of rungs, one of the two sizes lost its own. Bind each size to its rung, or name the repeat in RUNG_REPEATS with the decision behind it. (${rows.map((r) => `${r.value}→${r.rung}`).join(', ')})`
+        : `${def.id}: in tier family '${family}' sizes '${lo.value}' and '${hi.value}' both bind ${hi.rung}, and the tier emits rungs on both sides of it (${emitted.join(', ')}). Monotonic, so arm C passes it, but one of the two sizes lost its own rung. Bind each size to its rung, or name the repeat in RUNG_REPEATS with the decision behind it. (${rows.map((r) => `${r.value}→${r.rung}`).join(', ')})`);
     }
   }
 
@@ -886,11 +905,12 @@ for (const id of Object.keys(LADDER_STATED_ONCE))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: LADDER_STATED_ONCE names '${id}', which is not a def any more. Remove it — same reason as above.`);
 
-// The #3374 repeat admission, both directions (docs/34): every named family must still hold a mid-tier repeat.
-for (const [id, { families }] of Object.entries(RUNG_REPEATS))
-  for (const family of families)
-    if (!repeatsUsed.has(`${id}|${family}`))
-      failures.push(`STALE ADMISSION: RUNG_REPEATS names '${id}' family '${family}', but ${componentDefs.some((d) => d.id === id) ? 'no two of its sizes share a mid-tier rung there any more' : 'it is not a def any more'}. Remove the entry.`);
+// The #3374 repeat admissions, both directions (docs/34): every named family must still hold a repeat arm D refuses.
+for (const [register, entries] of [['RUNG_REPEATS', RUNG_REPEATS], ['RUNG_REPEATS_OPEN', RUNG_REPEATS_OPEN]] as const)
+  for (const [id, { families }] of Object.entries(entries))
+    for (const family of families)
+      if (!repeatsUsed.has(`${id}|${family}`))
+        failures.push(`STALE ADMISSION: ${register} names '${id}' family '${family}', but ${componentDefs.some((d) => d.id === id) ? 'no repeat arm D refuses is left there' : 'it is not a def any more'}. Remove the entry.`);
 
 // The Q330 pinned ladder, checked BOTH directions as the offsets below are: a listed def must exist and reach every
 // named family at its default.
@@ -953,7 +973,7 @@ for (const id of Object.keys(HOST_DEFAULT_DEFS)) {
     failures.push(`STALE ADMISSION: HOST_DEFAULT_DEFS sanctions '${id}' defaulting two rungs below '${DEFAULT_RUNG}', but no binding is reached at its default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
 }
 
-console.log(`Rung names — ${covered.size} def(s) with a size axis, ${arm1Checks} enum→path check(s) across ${brands.length} brand(s) (${brands.join(', ')}), ${arm2Families} tier family(ies) ordered, ${arm2Repeats} mid-tier repeat(s) each named in RUNG_REPEATS.`);
+console.log(`Rung names — ${covered.size} def(s) with a size axis, ${arm1Checks} enum→path check(s) across ${brands.length} brand(s) (${brands.join(', ')}), ${arm2Families} tier family(ies) ordered, ${arm2Repeats} repeat(s) admitted by RUNG_REPEATS or RUNG_REPEATS_OPEN.`);
 for (const n of notes) console.log(`    ${n}`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} rung-name failure(s):`);

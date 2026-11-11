@@ -7,8 +7,9 @@
 - **Arm 2D.** Arm C checks that a size ladder never goes down the tier, and deliberately admits a repeat, so a
   def that clamps against a shorter tier is not refused. That also admitted #3374's mutation: List item's
   `x-small` text rebound from `type.body.xs` to `type.body.sm` puts `x-small` and `small` on one 14px rung, and
-  the gate passed. Now a repeat passes on its own only as a clamp, on the lowest or highest rung the family emits
-  (read from the emitted trees, any brand). A repeat with a rung on both sides fails by name unless
+  the gate passed. Now a repeat passes on its own only as a clamp: on the lowest or highest rung the family emits
+  (read from the emitted trees, any brand), on a ladder that skips no emitted rung. List item's `small` text on
+  `type.body.xs` (`xs, xs, md, lg` with `sm` emitted) is the same defect at the end rung, and fails. A repeat with a rung on both sides fails by name unless
   `RUNG_REPEATS` names the def and family with the decision behind it. Entries are checked both ways, so a stale
   one fails. Step families (spacing, border width) are out of scope: shared gaps are ordinary there.
 - **Not a per-word map.** The issue asked whether `x-small` must bind `xs`, `small` `sm`, and so on. The corpus
@@ -18,11 +19,14 @@
 
 ### What the corpus holds
 
-Measured over every def before writing the arm: 12 tier families hold a repeat. 8 are clamps (the fields' and Accordion's
-`size.md.min-height` floor, the only rung that family emits; Link's `icon.size.xs`, the lowest; Code input's
-`radius.sm`, the lowest the radius family emits on the ladder). 4 are mid-tier, and each def's own comment cites
-the owner decision: the three Flush icon buttons' 20/20/24 glyphs (Q283.13 A) and Card number field's mark tile
-(#2429 §2). Those 4 are the `RUNG_REPEATS` entries.
+Measured over every def before writing the arm: 12 tier families hold a repeat. 7 are clamps (the fields' and Accordion's
+`size.md.min-height` floor, the only rung that family emits; Link's `icon.size.xs`, the lowest). 4 are mid-tier, and
+each def's own comment cites the owner decision: the three Flush icon buttons' 20/20/24 glyphs (Q283.13 A) and Card
+number field's mark tile (#2429 §2). Those 4 are the `RUNG_REPEATS` entries.
+
+Code input cell's `radius.*` (`small, medium, large → sm`, `xlarge → lg`) is not a clamp: it skips the emitted `md`,
+and its def cites the as-built wireframe, not a decision. It is filed as #3551 for the owner and held in
+`RUNG_REPEATS_OPEN`, which names the issue instead of a reason and is checked both ways like `RUNG_REPEATS`.
 
 ### Mutations, each failing by name
 
@@ -30,4 +34,6 @@ the owner decision: the three Flush icon buttons' 20/20/24 glyphs (Q283.13 A) an
 - Link's `x-small` on `sm` (the issue's "same gap"): four failures, one per Link type family.
 - Card number field's entry removed: `card-number-field: in tier family 'icon.size.*' …`.
 - An entry with no repeat behind it (`radius.*` on Card number field): `STALE ADMISSION: RUNG_REPEATS …`.
+- List item `small` text on `type.body.xs` (an end-rung repeat with `sm` skipped, from review): `list-item: in tier family 'type.body.*.default' sizes 'x-small' and 'small' both bind xs, the end of the tier, but the ladder skips the emitted rung(s) sm`.
+- Code input's `RUNG_REPEATS_OPEN` entry removed: `code-input-cell: in tier family 'radius.*' sizes 'small' and 'medium' both bind sm, the end of the tier, but the ladder skips the emitted rung(s) md`.
 - The admission check made always-true, with #3374's mutation in place: no failure, so arm D is what catches it.
