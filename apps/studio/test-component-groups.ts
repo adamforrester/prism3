@@ -465,6 +465,16 @@ alsoStop = record(alsoStop, { id: 'tag', result: 'ok', headline: '', alsoBuilt: 
 const asv = runVerdict(alsoStop, catalog);
 ok(alsoStop.done && asv.headline === 'Stopped after 4 of 5 sets' && asv.lines.at(-1) === 'Not built: Link.',
   `queue/also built stop: a stop leaves unbuilt only the sets no build made (${asv.headline}; ${JSON.stringify(asv.lines)})`);
+// #3547 review: stopped while Tag builds, with the set Tag made first queued PAST a set no build made. Badge is built,
+// so the stop leaves only Link unbuilt, in the verdict's line and in its causes. Literal.
+// (mutation: `record` recording only the queued sets next in line on a stop → `queue/also built stop, not next`)
+let stopLater = stopRun(startRun('selection', ['tag', 'link', 'badge'], catalog));
+stopLater = record(stopLater, { id: 'tag', result: 'ok', headline: '', alsoBuilt: ['badge'] });
+const slv = runVerdict(stopLater, catalog);
+ok(stopLater.done && slv.headline === 'Stopped after 2 of 3 sets' && slv.lines.at(-1) === 'Not built: Link.'
+  && JSON.stringify(slv.causes.map((c) => [c.subject, c.what])) === JSON.stringify([['link', 'not built']])
+  && stopLater.results.at(-1)?.id === 'badge' && stopLater.results.at(-1)?.builtBy === 'tag',
+  `queue/also built stop, not next: a stop leaves only Link unbuilt when Tag built Badge, queued after Link (${slv.headline}; ${JSON.stringify(slv.lines)}; ${JSON.stringify(slv.causes.map((c) => [c.subject, c.what]))})`);
 // A set built first that the queue reaches later, past a set no build made: skipped when the run gets there.
 let later = startRun('selection', ['tag', 'link', 'badge'], catalog);
 later = record(later, { id: 'tag', result: 'ok', headline: '', alsoBuilt: ['badge'] });

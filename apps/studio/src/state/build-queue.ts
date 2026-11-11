@@ -87,7 +87,10 @@ export const currentOf = (r: BuildRun): string | null => (r.done ? null : r.ids[
  * Divider builds the others the file lacks. Posted again, each answered "already built", and its detail carried one
  * ALREADY PRESENT miss per member. So each set the run's results report under `alsoBuilt` is recorded here as built by
  * that set, with the result the repeat post recorded (`ok`), and the run moves past it. It is recorded on a stop too:
- * it was built, so the run must not list it as not built.
+ * it was built, so the run must not list it as not built. On a stop, every such set left in the queue is recorded, not
+ * only those next in it, and `leftOf` reads the sets left unbuilt as the queued ids with no result, so it holds only
+ * sets no build made: `['tag', 'link', 'badge']` stopped while Tag builds Badge first leaves Link alone unbuilt. The
+ * queue's order is kept, so running the same sets again runs them in the same order.
  */
 export const record = (r: BuildRun, x: RunResult): BuildRun => {
   if (r.done) return r;
@@ -96,8 +99,16 @@ export const record = (r: BuildRun, x: RunResult): BuildRun => {
   for (const y of results) for (const id of y.alsoBuilt ?? []) if (!by.has(id)) by.set(id, y.id);
   for (let next = r.ids[results.length]; next !== undefined && by.has(next); next = r.ids[results.length])
     results.push({ id: next, result: 'ok', headline: '', builtBy: by.get(next) });
-  return { ...r, results, done: r.stopping || results.length >= r.ids.length };
+  if (r.stopping) {
+    const rest = r.ids.slice(results.length);
+    for (const id of rest) if (by.has(id)) results.push({ id, result: 'ok', headline: '', builtBy: by.get(id) });
+    return { ...r, results, done: true };
+  }
+  return { ...r, results, done: results.length >= r.ids.length };
 };
+
+/** The queued sets a stop left with no result, in the queue's order (#3359: a set recorded out of order is not left). */
+export const leftOf = (r: BuildRun): string[] => r.ids.filter((id) => !r.results.some((x) => x.id === id));
 
 /** Stop after the current set (call 16 A). */
 export const stopRun = (r: BuildRun): BuildRun => (r.done ? r : { ...r, stopping: true });
@@ -147,7 +158,7 @@ export const runCauses = (r: BuildRun): Cause[] => {
     for (const c of own) add(c);
   }
   // A stop is the person's: each set it left is not built, and is a cause of its own with no reason but the stop.
-  for (const id of r.ids.slice(r.results.length)) add({ kind: 'warn', subject: id, what: CAUSE_WHAT.notBuilt, reasons: [] });
+  for (const id of leftOf(r)) add({ kind: 'warn', subject: id, what: CAUSE_WHAT.notBuilt, reasons: [] });
   return [...mergeCauses(out), ...notes.values()];
 };
 
@@ -156,7 +167,7 @@ export const runCauses = (r: BuildRun): Cause[] => {
 export const runVerdict = (r: BuildRun, catalog: Catalog): { ok: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
   const name = (id: string): string => entryOf(catalog, id)?.name ?? id;
   const ok = r.results.filter((x) => x.result === 'ok');
-  const left = r.ids.slice(r.results.length);
+  const left = leftOf(r);
   const failed = r.results.filter((x) => x.result === 'failed').length;
   const issues = r.results.filter((x) => x.result === 'issues').length;
   const headline = left.length ? RUN_COPY.stopped(r.results.length, r.ids.length)
