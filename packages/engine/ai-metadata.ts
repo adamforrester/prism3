@@ -60,9 +60,10 @@ type AiToken = {
   mode_overrides: Record<string, string | { color: string; opacity: string }>;
 } & Relations;
 
-/** The body-text floor (WCAG 1.4.3) and the large-text thresholds (24px, or 18.66px bold — 18pt / 14pt). */
+/** The body-text floor (WCAG 1.4.3) and the large-text thresholds (24px, or 18.67px bold — 18pt / 14pt). */
 const BODY_FLOOR = 4.5;
-const LARGE_TEXT = { min_px: 24, bold_min_px: 18.66 };
+// 14pt is 18.667px (14 × 96 / 72), so the bold threshold rounds UP: 18.66px bold is still below large text (#3555 F7).
+const LARGE_TEXT = { min_px: 24, bold_min_px: 18.67 };
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const INTENT: Record<string, string> = {
@@ -409,7 +410,7 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
   // five branches below serve both grounds, states included, and the decoration says which ground.
   //
   // The ground-specific sentence is a `page_note` (AI/A-13): on the inverse twin it used to tell the
-  // role to use itself instead of itself. (`foreground.${c}-subtle` is AI/A-11 — held for #1614.)
+  // role to use itself instead of itself.
   // The TINTED WASH (#1614): the category's own fill at an opacity step, over whatever the control sits on. Its
   // relations are `tracks`, not `sits_on` / `carries`: those two are legibility pairs gated opaque-on-opaque,
   // and a wash is neither ink nor an opaque ground. It follows its fill, and its state label is measured on it.
@@ -437,7 +438,10 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
       tracks: [`interactive.${c}.text.${st}`, `interactive.${c}.icon.${st}`],
     };
   }
-  if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle), as a modal backdrop (use ${q('scrim.default')}), or on a form field, which hovers by its border alone (${q('field.border.hover')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
+  // A NEUTRAL wash (#3555 F3): every overlay is black or white at an alpha, whatever its category, so the sentence names
+  // the category as the control's, not the wash's color. The opaque alternative is the fill alone (#3555 F2: the
+  // `foreground.<c>-subtle` it also named exists for no interactive category in any brand).
+  if (slot === 'overlay') return { when_to_use: `A translucent neutral ${state ?? 'interaction'} wash for outline/text ${c} controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)}), as a modal backdrop (use ${q('scrim.default')}), or on a form field, which hovers by its border alone (${q('field.border.hover')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
   return { when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
 };
 
@@ -543,9 +547,25 @@ const CONSUME: Record<string, string> = {
   opacity: 'Consumable — reference directly for custom alpha (or use the scrim / disabled tokens).',
   motion: 'Consumable — motion durations/easings/springs are used directly; transitions compose them.',
   font: 'Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.',
-  shadow: 'Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation).',
 };
-const primMeaning = (seg: string[]): string => {
+// A shadow's `consume` reads its direction off the tree (#3555 F1): the elevation steps lighten in dark, where surface lift
+// carries elevation, but the inset's alpha RISES in dark, so one fixed sentence was false for one of the seven.
+const alphaOf = (c: string): number => {
+  const m = c.match(/^rgba?\(([^)]+)\)$/);
+  if (m) return parseFloat(m[1].split(',')[3] ?? '1');
+  const h = c.replace('#', '');
+  return h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1;
+};
+const shadowConsume = (seg: string[], node: any): string => {
+  const light: any[] = Array.isArray(node.$value) ? node.$value : [node.$value];
+  const darkV = node.$extensions?.prism3?.modes?.dark?.$value;
+  const dark: any[] | undefined = darkV === undefined ? undefined : Array.isArray(darkV) ? darkV : [darkV];
+  const pairs = dark ? light.map((l, i) => [alphaOf(String(l.color)), alphaOf(String(dark[i]?.color ?? l.color))]) : [];
+  const dir = !dark ? '' : pairs.every(([l, d]) => d < l) ? 'a lighter shadow in dark' : pairs.every(([l, d]) => d > l) ? 'a stronger shadow in dark' : 'its own shadow in dark';
+  const what = seg[1] === 'inset' ? 'Consumable — apply the inner shadow directly' : 'Consumable — apply the elevation step directly';
+  return dir ? `${what} (mode-aware: ${dir}${seg[1] === 'inset' ? '' : ', where surface lift carries elevation'}).` : `${what}.`;
+};
+const primMeaning = (seg: string[], node?: any): string => {
   if (seg[0] === 'palette') {
     if (seg[1] === 'white' || seg[1] === undefined) return 'Pure white primitive';
     if (seg.length === 2) return `Pure ${seg[1]} primitive`;
@@ -554,7 +574,8 @@ const primMeaning = (seg: string[]): string => {
     return `${seg[1]} ramp — raw step ${seg[2]}`;
   }
   if (seg[0] === 'opacity') return 'Opacity scale primitive';
-  if (seg[0] === 'dimension') return `${seg[1]}px grid primitive`;
+  // Not "grid": 1, 2, 3, 5, 6, 10, 18 and 30px are off the 4px grid (#3555 F6). The tree's own word.
+  if (seg[0] === 'dimension') return `${seg[1]}px dimension primitive`;
   if (seg[0] === 'motion') return seg[1] === 'easing' ? 'Easing curve primitive (cubic-bezier)' : seg[1] === 'spring' ? 'Spring primitive (damping / stiffness)' : seg[1] === 'stagger' ? 'Stagger delay primitive' : 'Motion duration primitive';
   if (seg[0] === 'font') {
     if (seg[1] === 'family') return `Font family stack — ${seg[2]} role`;
@@ -566,7 +587,11 @@ const primMeaning = (seg: string[]): string => {
     if (seg[1] === 'underline') return `Link underline ${seg[2]} — a share of the font size (unitless; \`em\` in a stylesheet)`;
     return `Typography primitive — ${seg.slice(1).join(' ')}`;
   }
-  if (seg[0] === 'shadow') return `Shadow / elevation composite — ${seg[1]} (2-layer, mode-aware)`;
+  // The layer count is the tree's, not a constant: the inset is one layer (#3555 F1).
+  if (seg[0] === 'shadow') {
+    const n = Array.isArray(node?.$value) ? node.$value.length : 1;
+    return `Shadow / elevation composite — ${seg[1]} (${n}-layer, mode-aware)`;
+  }
   return `${cap(seg[0])} primitive — ${seg.slice(1).join(' ')}`;
 };
 
@@ -834,12 +859,13 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     const intent = colorIntent(seg, node);
     const p: AiPrimitive = {
       $description: node.$description,
-      meaning: primMeaning(seg),
+      meaning: primMeaning(seg, node),
       ...(intent ? { intent } : {}),
       tier: 'primitive',
       // #2942 — no composite carries the underline (DTCG's typography type has no field for it), so code reads it here.
       consume: seg[0] === 'font' && seg[1] === 'underline'
         ? `Consumable — multiply it by \`1em\` for \`${seg[2] === 'thickness' ? 'text-decoration-thickness' : 'text-underline-offset'}\` on every underlined link type style. Absent when the brand leaves it to the font, which reads as auto.`
+        : seg[0] === 'shadow' ? shadowConsume(seg, node)
         : CONSUME[seg[0]] ?? 'Private primitive — prefer a semantic token.',
     };
     const by = aliasedBy[path];

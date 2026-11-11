@@ -345,6 +345,8 @@ one that bites.
    and `color`'s four appearance modes are renamed through `renameMode` (`write-figma.ts:370`), keyed
    by index for the first mode and by name for the rest. Nothing here covers a mode rename, and the
    swap does not need one — but it is the same class of problem and it is undecided.
+   *(Decided 2026-11-11, #1040: modes get no record, because Prism3 never renames a mode in a built
+   file, custom modes included. The reason and what a designer does instead: §9.1.)*
 4. **Styles are excluded.** `text-styles`, `shadow-styles` and `gradient-styles` hold zero variables;
    a rename there is a different API. Consistent with `shadow`'s exclusion from `PROJECTED_ROOTS`,
    and unaddressed.
@@ -449,4 +451,61 @@ pre-pass from §3 — which is theirs, not the mechanism's.
   file themed before #1013 faces up to three migrations rather than one, and the cost #1032 named is
   real and now partly spent. That is an argument for landing the remaining two **together**, not for
   re-litigating this one.
-- Mode renames (§6.3).
+- ~~Mode renames (§6.3).~~ **Closed by #1040: Prism3 never renames a mode in a built file (§9.1).**
+
+---
+
+## 9. Modes and styles (#1040)
+
+§6 named two materialization axes outside the variable mechanism, modes (§6.3) and styles (§6.4), and
+left both undecided. #1040 asked each for either a record under a named mechanism or a written decision
+that it needs none.
+
+### 9.1 Decided (2026-11-11, #1040): Prism3 never renames a mode in a built file, custom modes included
+
+**The decision (owner, Q172 A).** Modes get no rename record, because no apply renames a mode that a
+file already holds. That covers the engine's own modes (`color`'s appearance modes, `layout`'s
+breakpoints, `type-sets`' desktop and mobile) and the custom modes a brand author adds in Studio. A mode
+whose name changes in the brand reaches a built file as a **new** mode. The old mode stays, still holding
+the values it was last written with, and every frame pinned to it keeps resolving through it, until the
+designer moves those frames and Clean up removes it.
+
+**This is what the code already does, and the decision makes it a rule rather than an accident.**
+`reconcileModes` (`apps/plugin/src/write-figma.ts`) claims each planned mode by NAME (`claimModes`: the
+first still-unclaimed mode carrying that name), renames only a FRESH collection's single unplanned mode
+(Figma's `Mode 1`, the one `createVariableCollection` hands back), and adds whatever is still unmatched.
+A renamed mode is therefore unmatched on a collection that already holds several modes, so it is added,
+and its predecessor becomes an unclaimed mode. The prune arm (`apps/plugin/src/prune-figma.ts`) offers
+exactly the unclaimed modes inside the apply's own mode stamp (#1581), so Clean up lists the old name.
+
+**Why an in-place rename is unsafe: the index-vs-name asymmetry.** The emission names a mode; it carries
+no identity a file could match on. A rename in place would have to pair an old mode with a new name, and
+there are only two keys available, both wrong:
+
+- **By name**, which is how every mode after a fresh collection's first is reached, a rename and a
+  removal-plus-addition are the same plan: `{light, dark, night}` → `{light, dark, dusk}`. The writer
+  cannot tell `night` became `dusk` from `night` being dropped and `dusk` being new. A rule register like
+  §5's would supply the pairing for engine modes, but custom modes are named by whoever authors the brand
+  and no committed emission carries one (no corpus brand ships a custom mode), so the emission diff that
+  forces a variable rule to exist would never see them: the record would be performed by memory, which
+  is the failure §4 rejected option A for.
+- **By index**, which is how `renameMode` reaches the first mode, the pairing is positional, and a
+  file's mode order drifts from the plan's. Figma has no mode reorder and `defaultModeId` is readonly, so
+  after any shrink the stale modes keep their positions (#1570 measured a 6→2 breakpoint shrink leaving
+  `xs` at index 0 beside a planned `sm`). A positional rename then writes a new mode's name and values
+  onto a mode designers bound frames to for a different reason.
+
+The two failures are not the same size, and that decides it. A **missed** rename is visible and
+recoverable: a new mode appears, the old one stays with its last values, and Clean up names it. A
+**wrong** pairing resolves, renders, and reads as a design decision, because a mode is where a value
+lives. That is #708's shape, not #479's, and it is the more expensive one (#1040). The decision takes the
+visible failure.
+
+**What a designer does instead.** The public guide carries the steps (`docs/public/guides/update-a-file-safely.md`,
+"When a mode is renamed"): run Update file with Theme ticked, so the new mode arrives; move each frame
+pinned to the old mode onto the new one; then remove the old mode from the Clean up tab.
+
+**What would reopen this.** A mode identity the emission carries (a stable id per mode, written into the
+file's mode stamp) would give a rename something to pair on other than a name or a position. Nothing here
+builds one; the stamp records which mode ids are the engine's (#1581), not which planned mode each one
+was.
