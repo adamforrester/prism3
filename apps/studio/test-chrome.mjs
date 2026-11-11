@@ -21676,6 +21676,49 @@ if (runs('3553-m1')) {
     } finally { await ctx.close(); }
   }
 } // 3553-m1
+// #3553 Q-UI1 (the owner's Q-UI1 A): ONE MODE CONTROL ON EVERY PAGE AT 1280. The preview header's mode control was the
+// radios on Palettes, Interactive, Type and Layout but a select on Brand ("Style guide"), Surfaces & fills, Shape and Depth
+// & motion, whose longer titles left the radios no room, so moving between tabs swapped the control under the pointer.
+// The fit logic stays; the header gives it the room: the Contrast tile sets its icon beside its word, not above it, and
+// Inspect is its icon alone at the wide tier, still named "Inspect". Held on both hosts at 1280, both themes, on every
+// Theme page: the control settles on its radios on one row, the Contrast icon sits left of its word on one line, and
+// Inspect draws no word and keeps its name. MUTATION (after a `wip:` commit): the wide-tier Inspect rule dropped →
+// `#3553 Q-UI1 … the mode control is its radios`.
+if (runs('3553-q1')) {
+  console.log(`\nOne mode control on every page at 1280 (#3553 Q-UI1)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3553-q1 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'open';
+    try {
+      for (const place of ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout']) {
+        step = place;
+        await goPlace(page, place);
+        await settleModes(page);
+        const m = await page.evaluate(() => {
+          const wrap = document.querySelector('[data-p3="mode-control"]')?.parentElement;
+          const v = document.querySelector('.p3-preview-head [data-p3="verdict"]');
+          const mark = v?.querySelector('.p3-tile-mark')?.getBoundingClientRect(), lab = v?.querySelector('.p3-tile-label')?.getBoundingClientRect();
+          const ins = document.querySelector('.p3-preview-head [data-p3="inspect-open"]');
+          const word = ins?.querySelector('.p3-btn-label');
+          const icons = [...(ins?.querySelectorAll('svg.p3-ico') ?? [])].filter((g) => g.getClientRects().length > 0).map((g) => g.dataset.glyph ?? '?');
+          return { fit: wrap?.dataset.fit ?? null, row: wrap?.dataset.row ?? null,
+            beside: !!mark && !!lab && lab.width > 0 && mark.right <= lab.left + 0.5 && Math.abs((mark.top + mark.height / 2) - (lab.top + lab.height / 2)) <= 2,
+            inspectWord: !!word && word.getClientRects().length > 0, icons, inspectName: ins?.getAttribute('aria-label') ?? null,
+            title: document.querySelector('[data-p3="preview-title"]')?.textContent ?? null };
+        });
+        const at = `${where} ${place} ("${m.title}")`;
+        ok(m.fit === 'radios' && !m.row, `#3553 Q-UI1 ${at}: the mode control is its radios, on the title's row (fit ${m.fit}, row ${m.row})`);
+        ok(m.beside, `#3553 Q-UI1 ${at}: the Contrast tile's icon sits beside its word, on one line`);
+        ok(!m.inspectWord && JSON.stringify(m.icons) === '["layers"]' && m.inspectName === 'Inspect', `#3553 Q-UI1 ${at}: Inspect is its icon alone, no word and no caret, still named "Inspect" (word drawn ${m.inspectWord}, icons ${JSON.stringify(m.icons)}, name ${JSON.stringify(m.inspectName)})`);
+        if (SHOTS && theme === 'light' && host === 'web' && place === 'brand') await page.screenshot({ path: join(SHOTS, `s3553-q1-${host}-${place}.png`) });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-q1
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
