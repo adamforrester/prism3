@@ -226,6 +226,10 @@ ok(JSON.stringify(queued) === JSON.stringify(['button', 'button-destructive', 'b
       `panels/on: sets/${id}: no "No usage panels drawn" problem (${JSON.stringify(lines.filter((l) => l.startsWith('No usage')))})`);
     if (i === 0) ok(lines.includes('Also built: icon, focus-ring, tag, list-item, divider') && lines.includes('Built _Doc-block'),
       `panels/on: sets/${id}: names what it built first, then _Doc-block (${JSON.stringify(lines.filter((l) => l.startsWith('Also built') || l.includes('_Doc-block')))})`);
+    // #3359: and sends them as data, the ids the panel's run skips. Literal. (mutation: `main.ts` not sending
+    // `alsoBuilt` → `panels/on: sets/badge: also built as data`)
+    if (i === 0) ok(JSON.stringify(r?.alsoBuilt) === JSON.stringify(['icon', 'focus-ring', 'tag', 'list-item', 'divider']),
+      `panels/on: sets/${id}: also built as data: the result carries the ids it built first (${JSON.stringify(r?.alsoBuilt ?? null)})`);
   }
   ok(setNamed('_Doc-block'), 'panels/on: _Doc-block: the template is in the file');
   ok(['badge', 'tag', 'list-item', 'divider'].every(setNamed), `panels/on: the four sets _Doc-block is built from are in the file`);
