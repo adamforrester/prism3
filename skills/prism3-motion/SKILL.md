@@ -147,7 +147,7 @@ rules above; where a recipe needs a value the tokens don't hold yet, it says whi
 | Panel, end panel | slides in from the end edge, same timing | slides back out, same timing |
 
 **Reduced:** the backdrop and every panel placement fade only, on `motion.duration-reduced.normal`,
-with no slide and no scale. (The `dialog` definition still says it drops the fade; #3488 corrects it.)
+with no slide and no scale.
 
 Move focus into the dialog when it opens, without waiting for the enter to finish.
 

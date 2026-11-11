@@ -70,7 +70,7 @@ Use tabs to switch between peer sections of related content in one place, one at
 
 ### Motion
 
-- **Enter:** None. On a change, the underline slides to the new tab and the panel cross-fades, about 150–200ms.
+- **Enter:** None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.
 - **Exit:** The outgoing panel fades out under the incoming one. Panels never slide sideways.
 - **Reduced motion:** The underline snaps and the panel swaps with no transition.
 

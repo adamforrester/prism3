@@ -39637,7 +39637,8 @@ arm: {
 // Q483 A: the side sheet is a value of Dialog's placement, NOT a lighter component, so it keeps every modal promise the
 // other placements make. EXPECTED is typed here as literal clauses; ACTUAL is the def's own contract text, so a def
 // that carves the end panel (or any placement) out of the modal semantics or the scrim fails this arm by name. And
-// Q491 A: reduced motion is instant at every placement, so no contract line may promise a fade under it.
+// Q-M5 A (#3488), amending Q491 A: under reduced motion every placement and the backdrop fade only, on
+// `motion.duration-reduced.normal`, so no contract line may say the dialog opens at once or drops the fade.
 {
   const dg = componentDefs.find((d) => d.id === 'dialog')!;
   const lines = codeOnlyText(dg.anatomy!.codeOnly);
@@ -39662,8 +39663,9 @@ arm: {
   ok(moved.length === 0 && carved.length === 0,
     `#2877 dialog end: modal — role="dialog" with aria-modal, focus held, page inert and the scrim at every placement, the end panel included, and no line excepts a placement${moved.length ? ` — MOVED: ${moved.join(', ')}` : ''}${carved.length ? ` — CARVED: ${carved.map((t) => t.slice(0, 70)).join(' | ')}` : ''}`);
   const rm = [dg.motion?.reduceMotion ?? '', line('motion')];
-  ok(rm.every((t) => /at once, with no movement and no fade/.test(t) && /0ms/.test(t)) && !rm.some((t) => /fades? only/.test(t)),
-    `#2877 dialog reduced motion: every placement opens and closes at once under prefers-reduced-motion, 0ms, and no line promises a fade (Q491 A) (got ${JSON.stringify(dg.motion?.reduceMotion)})`);
+  ok(rm.every((t) => /every placement and the backdrop fade only, with no slide and no scale, on `?motion\.duration-reduced\.normal`? to open and to close/.test(t))
+    && !rm.some((t) => /at once|no fade|0ms|duration-reduced\.moderate/.test(t)),
+    `#3488 dialog reduced motion: every placement and the backdrop fade only, on motion.duration-reduced.normal, and no line says at once, no fade or 0ms (Q-M5 A) (got ${JSON.stringify(dg.motion?.reduceMotion)})`);
   // The end panel's code rules: 480 wide, full height, capped at 100vw − 48px, sliding in from the end edge, mirrored.
   ok(/An end panel is full height and 480px wide, at most `100vw − 48px`/.test(line('per-breakpoint placement, no automatic switch'))
     && /an end panel slides in from the end edge/.test(line('motion')) && /An end panel sits at the left edge/.test(line('right-to-left')),
