@@ -8397,6 +8397,11 @@
         ],
         "generationPriority": 9
       },
+      "motion": {
+        "enter": "On open, a chevron turns to its open position on motion.transition.default; a plus and minus swap glyphs.",
+        "exit": "On close, the chevron turns back on motion.transition.default; a plus and minus swap back.",
+        "reduceMotion": "Under prefers-reduced-motion the indicator swaps to its open or closed glyph without turning."
+      },
       "composition": {
         "composesWith": [],
         "alternativeTo": [],
