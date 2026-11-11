@@ -83,8 +83,10 @@ not `focus.ring.size`).
 Use `color.interactive.primary.fill.rest`, not `core.palette.primary.600`. Use `space.400`, not `core.dimension.16`.
 The semantic token aliases the primitive *and* carries the mode behavior and the contract.
 Binding a raw primitive throws all of that away and is the #1 source of drift.
-*Exception:* `opacity.*`, `motion.*`, and `shadow.*` are consumable directly — their
-semantic layer is thin (the `.ai.json` marks them `consume: "Consumable …"`).
+*Exception:* `opacity.*`, `shadow.*` and the motion roles are consumable directly — their
+semantic layer is thin (the `.ai.json` marks them `consume: "Consumable …"`). A duration step
+(`motion.duration-ms.*`) is not: bind a `motion.duration.*` role, or its
+`motion.duration-reduced.*` twin.
 For how things move (which duration, easing role, spring or transition each change takes, and what
 reduced motion substitutes), read `prism3-motion`.
 

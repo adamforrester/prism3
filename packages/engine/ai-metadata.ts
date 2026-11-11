@@ -288,7 +288,7 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
     // `focus` (the ring) off the third segment. Both are ordinary `border` roles now —
     // `inverse.border.primary` and `inverse.border.focus` — so they take the branches below and the
     // inverse decoration, and `default` is gone entirely: it was byte-identical to `primary`.
-    if (variant === 'tertiary') return { when_to_use: `The first accessible border — a meaningful divider, a badge or table outline, any boundary that has to be perceived. ${surfaceClause(ctx, 'border.tertiary', 3).text}`, avoid_when: `Do not use as a hairline (use ${q('border.primary')}) or as a focus ring (use ${q('border.focus')}) — the ring has its own hue for a reason.` };
+    if (variant === 'tertiary') return { when_to_use: `The first accessible border — a meaningful divider, a badge or table outline, any boundary that has to be perceived. ${surfaceClause(ctx, 'border.tertiary', 3).text}`, avoid_when: `Do not use as a hairline (use ${q('border.primary')}) or as a focus ring (use ${q('border.focus')}) — the ring has its own hue so focus reads apart from every resting border.` };
     if (variant === 'focus') {
       const c = surfaceClause(ctx, 'border.focus', ctx.min('border.focus') || 3);
       return { when_to_use: `The keyboard-focus indicator on interactive elements. ${c.text}`, avoid_when: `Do not use as a decorative divider (use ${q('border.primary')}).`, page_note: `On an inverse band, use ${q('inverse.border.focus')}.`, ...(c.ok.length ? { sits_on: c.ok } : {}) };
@@ -300,8 +300,9 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
   if (group === 'disabled') {
     if (variant === 'fill') return { when_to_use: 'The fill of any disabled control (button, chip, field), regardless of intent — a disabled control looks disabled.', avoid_when: 'Do not use for enabled controls (use `interactive.*` fills or `foreground.*`).', carries: ['disabled.on-fill'] };
     if (variant === 'on-fill') return { when_to_use: "The label or icon on a disabled control's fill — muted but legible on it.", avoid_when: 'Do not use on an enabled fill (use `interactive.*` on-fill inks) or on the page (use `disabled.text`).', sits_on: ['disabled.fill'] };
-    if (variant === 'text') return { when_to_use: 'Text of a disabled or inactive element (a disabled outline/text control, disabled body copy).', avoid_when: 'Do not use for active content (use `text.primary` or `text.secondary`).' };
-    if (variant === 'icon') return { when_to_use: 'Icon of a disabled or inactive element.', avoid_when: 'Do not use for active icons (use `icon.primary` or `icon.secondary`).' };
+    // #3555 Q-MD17 A: the disabled inks hold a 3:1 contract, so they state the surfaces it holds on, as every other ink does.
+    if (variant === 'text') { const c = surfaceClause(ctx, 'disabled.text', ctx.min('disabled.text') || 3); return { when_to_use: `Text of a disabled or inactive element (a disabled outline/text control, disabled body copy). ${c.text}`, avoid_when: 'Do not use for active content (use `text.primary` or `text.secondary`).', ...(c.ok.length ? { sits_on: c.ok } : {}) }; }
+    if (variant === 'icon') { const c = surfaceClause(ctx, 'disabled.icon', ctx.min('disabled.icon') || 3); return { when_to_use: `Icon of a disabled or inactive element. ${c.text}`, avoid_when: 'Do not use for active icons (use `icon.primary` or `icon.secondary`).', ...(c.ok.length ? { sits_on: c.ok } : {}) }; }
     if (variant === 'border') return { when_to_use: 'The border of a disabled outline control.', avoid_when: 'Do not use as a page divider (use `border.primary`) or on an enabled control (use `interactive.*` borders).', tracks: ['disabled.fill'] };
   }
 
@@ -316,7 +317,7 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
       const c = surfaceClause(ctx, 'field.border.rest', ctx.min('field.border.rest') || 3);
       return { when_to_use: `The resting boundary of a transparent-fill field, before focus (SC 1.4.11). ${c.text}`, avoid_when: `Do not use for the focus ring (use \`border.focus\`) or ${validation}.`, ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.placeholder'] };
     }
-    if (variant === 'placeholder') { const c = surfaceClause(ctx, 'field.placeholder', ctx.min('field.placeholder') || 4.5); return { when_to_use: `Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: ${c.text.replace(/^C/, 'c')}`, avoid_when: 'Do not use as a label (a11y anti-pattern) or for the entered value (use `text.primary`).', ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.border.rest'] }; }
+    if (variant === 'placeholder') { const c = surfaceClause(ctx, 'field.placeholder', ctx.min('field.placeholder') || 4.5); return { when_to_use: `Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: ${c.text.replace(/^C/, 'c')}`, avoid_when: 'Do not use as a label (placeholder text disappears on input, so the field loses its name) or for the entered value (use `text.primary`).', ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.border.rest'] }; }
   }
 
   // AI/D-2 (owner decision): the modal over the scrim is a page-polarity surface, never an inverse one. It used to
@@ -345,7 +346,7 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
         avoid_when: 'Do not use as a solid fill — it paints nothing on its own; it is only the far stop of a veil gradient.',
       };
     return {
-      when_to_use: `A ${state} ${variant} wash over a photograph or video, to lift ${ink} text off it. Pick the polarity from the image (${variant} veil under ${ink} text), then the intensity for how much the image needs muting; verify contrast against your own photo. The ink must stay ${ink} in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.`,
+      when_to_use: `A ${state} ${variant} wash over a photograph or video, to lift ${ink} text off it. Pick the polarity from the image (${variant} veil under ${ink} text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink ${ink} in every mode, as the veil is — the page and inverse text roles flip in dark mode, so neither is a safe pair.`,
       avoid_when: 'Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.',
     };
   }
@@ -545,7 +546,7 @@ const CONSUME: Record<string, string> = {
   palette: 'Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.',
   dimension: 'Private primitive — reference via space / radius / size / border-width / focus.',
   opacity: 'Consumable — reference directly for custom alpha (or use the scrim / disabled tokens).',
-  motion: 'Consumable — motion durations/easings/springs are used directly; transitions compose them.',
+  motion: 'Consumable — easing shapes and springs are used directly where no role fits; transitions compose them.',
   font: 'Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.',
 };
 // A shadow's `consume` reads its direction off the tree (#3555 F1): the elevation steps lighten in dark, where surface lift
@@ -866,6 +867,9 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       consume: seg[0] === 'font' && seg[1] === 'underline'
         ? `Consumable — multiply it by \`1em\` for \`${seg[2] === 'thickness' ? 'text-decoration-thickness' : 'text-underline-offset'}\` on every underlined link type style. Absent when the brand leaves it to the font, which reads as auto.`
         : seg[0] === 'shadow' ? shadowConsume(seg, node)
+        // #3555 Q-MD3 A: a duration step is the value a role resolves to, never a binding. prism3-motion R1 and
+        // lint-motion-literals refuse it, so the sidecar points at the roles instead of calling it consumable.
+        : seg[0] === 'motion' && seg[1] === 'duration-ms' ? 'Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.'
         : CONSUME[seg[0]] ?? 'Private primitive — prefer a semantic token.',
     };
     const by = aliasedBy[path];
@@ -941,7 +945,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     const key = `${CORE_TIER}.font.weight-role.${w.role}`;
     const entry: any = {
       $description: `The ${w.role} font-weight role.`,
-      meaning: `Function-named weight → ${w.value} — white-label-stable (the role is the contract; each brand maps the numeric).`,
+      meaning: `Function-named weight → ${w.value} — the name holds across brands (the role is the contract; each brand maps the numeric).`,
       when_to_use: `Reference \`${key}\` (not the numeric) so a brand weight re-map reflows every consumer at once.`,
       avoid_when: `Do not hard-code the numeric (${w.value}); reference the role.`,
       resolves_to: `{${root}.${CORE_TIER}.font.weight.${w.value}}`,

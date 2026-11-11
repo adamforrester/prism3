@@ -10628,6 +10628,19 @@ arm: {
       const achromatic = modesOf(k).every((m) => { const c = roleIn(k, m); return Math.abs(c.r - c.g) < 1 && Math.abs(c.g - c.b) < 1; });
       if (achromatic !== (said[1] === 'neutral')) primBad.push(`${b} ${k}: when_to_use says "translucent ${said[1]}", the wash is ${achromatic ? 'neutral in every mode' : 'chromatic'}`);
     }
+    // #3555 Q-MD17 A: an ink with a contrast contract names the surfaces it holds on. The disabled inks carried a 3:1
+    // contract and no `sits_on`, unlike every other ink. (Whether each listed surface really clears is the relation arm's.)
+    for (const [k, e] of Object.entries<any>(ai.color)) {
+      const p = k.replace(/^inverse\./, '');
+      if (/^(text|icon)\.|^disabled\.(text|icon)$/.test(p) && e.contrast_with?.length && !e.sits_on?.length) primBad.push(`${b} ${k}: an ink with a contrast contract and no sits_on`);
+    }
+    // #3555 Q-MD3 A: a duration step is a value, not a binding (prism3-motion R1, lint-motion-literals). Every
+    // `motion.duration-ms.*` leaf in the TREE has a primitive entry whose consume does not call it consumable and
+    // points at the duration roles instead.
+    for (const l of leaves) if (l.startsWith('motion.duration-ms.')) {
+      const c = String(ai.primitives[l]?.consume ?? '');
+      if (/^Consumable\b/.test(c) || !c.includes('`motion.duration.*`')) primBad.push(`${b} ${l}: consume "${c}" does not send the step to the motion.duration.* roles`);
+    }
     // Every ramp step the TREE marks with a band gets a usage intent — the tree decides which, not the sidecar.
     for (const l of leaves) if (at(l)?.$extensions?.prism3?.band && !ai.primitives[l]?.intent) primBad.push(`${b} ${l}: banded ramp step without intent`);
     for (const [k, e] of Object.entries<any>(ai.typography)) for (const f of ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to']) if (e[f] === undefined) primBad.push(`${b} typography ${k}: missing ${f}`);
