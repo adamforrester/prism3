@@ -24,6 +24,11 @@ Task guides for designers, in task order. Every write to a Figma file goes throu
 - [Use the agent link](guides/agent-link.md): let an AI agent drive the open plugin, its commands, and how it stays off by default.
 - [Feature reference](guides/features.md): what each surface can do, side by side.
 
+## Releases and reports
+
+- [Release notes](releases/index.md): one page per engine version, newest first.
+- [Reports](reports/index.md): generated reports on the registered components, read from their definitions and the emission.
+
 ## Ecosystem
 
 - [Ecosystem map](ecosystem/index.html): every Prism3 surface, its inputs and outputs, and how a token travels from brand input to Figma, code and TokenPress.

@@ -465,5 +465,38 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
     `#3545 no unnamed column: \`solo\`'s Dark anchor and border override stay on it, solo 300 / 700 (${tfill}, ${tborder})`);
 }
 
+console.log('\n12. #3562: a brand color cannot be renamed to a palette the engine always mints');
+{
+  // THE FIXTURE is the issue's repro: the prism3 brand, a brand color `accent-x`, a Light override on it and a Dark
+  // override on the status palette `success`. The ORACLE for "the engine refuses the name" is the engine's own
+  // `brandTheme`, run on a copy with the name forced in, never the module; the reserved names are literals typed here.
+  const ROLE = 'interactive.primary.border.rest', TEXT = 'interactive.primary.text.rest';
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'accent-x', oklch: { l: 0.55, c: 0.15, h: 235 } });
+  store.rebuild();
+  store.brandState.overrides = {
+    light: { [ROLE]: { palette: 'accent-x', step: '350' } },
+    dark: { [TEXT]: { palette: 'success', step: '700' } },
+  };
+  const was = JSON.stringify(store.brandState);
+  const i = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-x');
+  for (const name of ['success', 'warning', 'info', 'danger', 'white', 'black', 'transparent', 'black-alpha', 'white-alpha', 'primary', 'neutral']) {
+    const forced = structuredClone(store.brandState);
+    forced.brandColors![i].name = name;
+    let engine = 'builds';
+    try { brandTheme(forced); } catch (e) { engine = (e as Error).message; }
+    ok(/is reserved/.test(engine), `premise: the engine refuses a brand color named ${name} (${engine.slice(0, 80)})`);
+    ok(!P.renameBrandColor(i, name) && JSON.stringify(store.brandState) === was,
+      `#3562 reserved: renaming accent-x to ${name} is refused, and nothing moves`);
+  }
+  // Rename-back: the Dark override was ALWAYS on the status palette, so no rename may move it onto the brand color.
+  P.renameBrandColor(i, 'success');
+  P.renameBrandColor(i, 'accent-x');
+  ok(same(store.brandState.overrides!.dark, { [TEXT]: { palette: 'success', step: '700' } }) && takes(),
+    `#3562 rename back: an override on the status palette still names success, and the brand builds (${JSON.stringify(store.brandState.overrides!.dark)})`);
+  ok(P.renameBrandColor(i, 'success-2') && same(store.brandState.overrides!.light, { [ROLE]: { palette: 'success-2', step: '350' } }) && takes(),
+    '#3562 a name that only starts with a reserved one is taken, and carries its override');
+}
+
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
 if (failed) process.exit(1);
