@@ -35951,7 +35951,7 @@
       }
     },
     "tag": {
-      "digest": "ef1a37c0",
+      "digest": "6b399e06",
       "def": {
         "id": "tag",
         "name": "Tag",
@@ -36387,7 +36387,7 @@
                   "minWidth": {
                     "px": 64,
                     "source": "derived",
-                    "rule": "height × 1.5"
+                    "rule": "height × 1.5, rounded to the nearest 8px"
                   }
                 }
               },
@@ -36470,7 +36470,7 @@
                   "minWidth": {
                     "px": 56,
                     "source": "derived",
-                    "rule": "height × 1.5"
+                    "rule": "height × 1.5, rounded to the nearest 8px"
                   }
                 }
               },
@@ -36553,7 +36553,7 @@
                   "minWidth": {
                     "px": 88,
                     "source": "derived",
-                    "rule": "height × 1.5"
+                    "rule": "height × 1.5, rounded to the nearest 8px"
                   }
                 }
               },
@@ -36636,7 +36636,7 @@
                   "minWidth": {
                     "px": 64,
                     "source": "derived",
-                    "rule": "height × 1.5"
+                    "rule": "height × 1.5, rounded to the nearest 8px"
                   }
                 }
               },
@@ -36730,7 +36730,7 @@
                   "minWidth": {
                     "px": 56,
                     "source": "derived",
-                    "rule": "height × 1.5"
+                    "rule": "height × 1.5, rounded to the nearest 8px"
                   }
                 }
               },
@@ -36824,7 +36824,7 @@
                   "minWidth": {
                     "px": 88,
                     "source": "derived",
-                    "rule": "height × 1.5"
+                    "rule": "height × 1.5, rounded to the nearest 8px"
                   }
                 }
               },
