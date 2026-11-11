@@ -9,6 +9,8 @@ executor change.
   `prism3-motion` tabs recipe names for the underline. `tab.ts`'s code-only underline description says the same.
 - `banner.ts` `motion.exit` and its code-only motion description drop "about 150 to 200ms"; both already named
   `motion.transition.exit`.
+- `lint-token-consumers.ts`: the `motion.**` unread register drops from 13 to 12, because a def now names
+  `motion.transition.default`.
 
 ### Why
 
