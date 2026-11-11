@@ -24,11 +24,13 @@ halves of Q-MD5, Q-MD14, Q-MD15 and Q-MD16.
   - Checkbox.Row's focus text says "44 or 48 on touch", not "44 (Apple) / 48 (Material)".
   - Image placeholder's tool-neutral `whenToUse` drops "turn the marker property off". The same instruction already
     ships in its `docs.do`, which a designer reads in the file.
+  - Switch.Row's `docs.dont` drops "(Apple's HIG reserves switches for immediate settings)".
 
 ### Gate
 
 A new arm, `#3555 Q-MD5`, holds three things:
-- No summary contains another registered component's dotted name. The oracle is the registry's names.
+- No summary names another registered component: its dotted name, or its one-word name as a whole capitalized word
+  ("Icon-only" is not a reference). The oracle is the registry's names.
 - No summary contains "build".
 - Each action family's three siblings state three different `primaryPurpose` lines.
 

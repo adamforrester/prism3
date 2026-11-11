@@ -414,7 +414,7 @@ export const switchRow: ComponentDef = {
       'Let thumb position carry the state, and add the thumb glyph (showStateLabel) where legibility demands a cue beyond color',
     ],
     dont: [
-      'Use a switch for a binary that is submitted with a form — if a Save button sits anywhere in the flow it is a Checkbox.Row (Apple\'s HIG reserves switches for immediate settings)',
+      'Use a switch for a binary that is submitted with a form — if a Save button sits anywhere in the flow it is a Checkbox.Row',
       'Use a switch whose toggle reveals a sub-form that must be filled before the data is valid — that is progressive disclosure, not an immediate mutation, and it is the most common real misuse',
       'Put aria-pressed on a switch — it corrupts the announcement; aria-pressed is a toggle button',
       'Reach for a Switch.Group — there is none, deliberately: a settings list is a list of rows',

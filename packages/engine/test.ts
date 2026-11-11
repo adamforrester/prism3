@@ -20493,18 +20493,23 @@ arm: {
   }
   // #3555 Q-MD5 A and Q-MD14 A. A summary is the Figma set description a designer reads, so it names other components in
   // plain words, never by a code name (`Checkbox.Row`), and carries no build instruction. And each sibling of an action
-  // family states its own primaryPurpose. The oracle for a code name is the registry's dotted names, not the summary.
+  // family states its own primaryPurpose. The oracle for a code name is the registry's names, not the summary: every
+  // dotted name (`Checkbox.Row`), and every one-word name (`Accordion`, `Slider`) as a whole capitalized word. A word
+  // joined by a hyphen is a different word ("Icon-only" is not the Icon component), and one before a dot and a letter
+  // is part of a dotted name, so neither is a reference here.
   {
     const mdBad: string[] = [];
     const dotted = componentDefs.map((d) => d.name).filter((n) => n.includes('.'));
+    const oneWord = componentDefs.map((d) => d.name).filter((n) => /^[A-Z][A-Za-z]*$/.test(n));
     for (const d of componentDefs) {
       const s = d.summary ?? '';
       for (const n of dotted) if (n !== d.name && s.includes(n)) mdBad.push(`${d.id} summary names ${n}`);
+      for (const n of oneWord) if (n !== d.name && new RegExp(`(?<![\\w.-])${n}(?![\\w-]|\\.\\w)`).test(s)) mdBad.push(`${d.id} summary names ${n}`);
       if (/\bbuild\b/i.test(s)) mdBad.push(`${d.id} summary carries a build instruction: "${s}"`);
     }
     for (const fam of [[button, buttonDestructive, buttonNeutral], [iconButton, iconButtonDestructive, iconButtonNeutral], [flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral]])
       if (new Set(fam.map((d) => d.ai.primaryPurpose)).size !== 3) mdBad.push(`${fam[0].id} family shares a primaryPurpose`);
-    ok(mdBad.length === 0 && dotted.length > 10, `#3555 Q-MD5 summaries name components in plain words with no build instruction, and action siblings each state their own primaryPurpose${mdBad.length ? ` — ${mdBad.join(' | ')}` : ''}`);
+    ok(mdBad.length === 0 && dotted.length > 10 && oneWord.length > 20, `#3555 Q-MD5 summaries name components in plain words with no build instruction, and action siblings each state their own primaryPurpose${mdBad.length ? ` — ${mdBad.join(' | ')}` : ''}`);
   }
   // #1697 DECISION 2, icon-only half.
   for (const [a, b] of [[iconButton, iconButtonDestructive], [iconButton, iconButtonNeutral], [iconButtonDestructive, iconButtonNeutral]])
