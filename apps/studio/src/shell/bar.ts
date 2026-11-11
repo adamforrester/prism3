@@ -228,10 +228,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     // Beneath the list it belongs to, so the sentence sits where the click was.
     if (v.confirm?.at === 'example') menu.append(confirmBox(v.confirm.text));
     menu.append(h('div', 'p3-menu-div'));
-    const nb = hook(h('button', 'p3-menu-item', '+ New brand'), 'brand-menu-new');
+    // #3553 Q-UI8 A: the vendored icons, not text glyphs ("+", "↑"), as Add brand color draws its plus.
+    const nb = hook(h('button', 'p3-menu-item'), 'brand-menu-new');
+    nb.append(glyph('plus'), h('span', 'p3-menu-label', 'New brand'));
     nb.type = 'button';
     nb.onclick = () => act.newBrand();
-    const imp = hook(h('button', 'p3-menu-item', '↑ Import design.md…'), 'brand-menu-import');
+    const imp = hook(h('button', 'p3-menu-item'), 'brand-menu-import');
+    imp.append(glyph('upload'), h('span', 'p3-menu-label', 'Import design.md…'));
     imp.type = 'button';
     imp.setAttribute('aria-expanded', String(v.importOpen));
     imp.onclick = () => act.toggleImport();
@@ -286,7 +289,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     fi.type = 'file';
     fi.accept = lend.importAccept;
     fi.onchange = () => { const f = fi.files?.[0]; if (f) act.importFile(f); };
-    up.append(h('span', undefined, '↑ Upload .md'), fi);
+    up.append(glyph('upload'), h('span', undefined, 'Upload .md'), fi);
     const load = hook(h('button', 'p3-btn p3-btn-primary', 'Load'), 'import-load');
     load.type = 'button';
     load.onclick = () => act.importLoad(ta.value);
@@ -361,7 +364,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     body.append(left, right);
     dlg.append(body);
     const foot = h('div', 'p3-bardlg-foot');
-    const go = hook(h('button', 'p3-btn p3-btn-primary', x.go.text), 'dialog-confirm');
+    const go = hook(h('button', 'p3-btn p3-btn-primary'), 'dialog-confirm');
+    go.append(glyph('download'), h('span', 'p3-btn-label', x.go.text));
     go.type = 'button';
     if (x.go.off) { go.disabled = true; go.title = x.go.off; }
     go.onclick = act.download;
@@ -372,7 +376,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       const imp = h('div', 'p3-bardlg-import');
       imp.append(h('div', 'p3-menu-cap', 'Import'));
       for (const slot of x.imports) {
-        const b = hook(h('button', 'p3-menu-item', `↑ ${slot.label}…`), 'export-import');
+        const b = hook(h('button', 'p3-menu-item'), 'export-import');
+        b.append(glyph('upload'), h('span', 'p3-menu-label', `${slot.label}…`));
         b.type = 'button';
         b.setAttribute('aria-expanded', String(v.importOpen));
         b.onclick = () => act.toggleImport();

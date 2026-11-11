@@ -231,6 +231,9 @@
   animation: p3-spin-show var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both, p3-spin var(--p3-dur-spin) linear infinite;
 }
 .p3-btn-primary .p3-spin::before { border-top-color: var(--p3-inv-text); }
+/* #3553 Q-UI8 A: an icon on a primary button (Export's Download) takes the button's own ink, as its words do (the
+   inverse text; a disabled one takes the disabled icon ink, below), never the page's secondary icon gray. */
+.p3-btn-primary .p3-ico { color: var(--p3-inv-text); }
 /* A control's spinner is made with its label, at mount, and held invisible until the control turns busy, and
    an invisible element still runs its animations: the wait and the fade would be spent unseen, long before
    any write (#2332). So it holds no animation until then, and they start when the control turns busy. A

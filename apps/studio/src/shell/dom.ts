@@ -111,6 +111,9 @@ const GLYPHS = {
   dash: 'minus',
   x: 'x',
   plus: 'plus',
+  // #3553 Q-UI8 A: the actions that drew "↑" and "↓" as text (Import, Upload, Brand brief, Download) draw Tabler's.
+  upload: 'upload',
+  download: 'download',
   search: 'search',
   info: 'info-circle',
   warn: 'alert-triangle',
