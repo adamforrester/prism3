@@ -14228,7 +14228,7 @@
       }
     },
     "icon-button": {
-      "digest": "a4e30023",
+      "digest": "06540ae9",
       "def": {
         "id": "icon-button",
         "name": "IconButton",
@@ -14434,7 +14434,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+          "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
         },
         "composition": {
           "composesWith": [
@@ -16021,7 +16021,7 @@
       }
     },
     "icon-button-destructive": {
-      "digest": "4c768ff5",
+      "digest": "c09bc10b",
       "def": {
         "id": "icon-button-destructive",
         "name": "IconButton.Destructive",
@@ -16228,7 +16228,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+          "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
         },
         "composition": {
           "composesWith": [
@@ -17815,7 +17815,7 @@
       }
     },
     "icon-button-neutral": {
-      "digest": "d0b5b58f",
+      "digest": "2d3d2bff",
       "def": {
         "id": "icon-button-neutral",
         "name": "IconButton.Neutral",
@@ -18021,7 +18021,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default (prism3-motion R6). A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+          "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
         },
         "composition": {
           "composesWith": [
