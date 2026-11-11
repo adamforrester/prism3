@@ -14,3 +14,7 @@ Owner decisions Q-CC24 A and Q-CC25 A, one PR because both rewrite the same `acc
   verified goes with the claim.
 - Prose only. The component catalog, the spinner page and the Figma set's description move; the component-surface
   baseline was re-accepted for the description (same member count).
+- **Held by a `test.ts` arm** (review of #3645): the decision phrases are typed literals. Putting back "named
+  by label … keep announcing the missing value" fails the Q-CC25 A arms by name; dropping "a spinner is not a
+  progressbar" from the `dont` list, or Progress's indeterminate `role="progressbar"`, fails the Q-CC24 A arms.
+  The 1.1.1 WCAG entry now says the status text "carries the meaning", not that it "is the name".
