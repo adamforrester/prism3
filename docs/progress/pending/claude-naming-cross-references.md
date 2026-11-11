@@ -10,6 +10,10 @@
   Badge, Button, Button.Group, Counter, FieldMessage, Pagination, Progress, SegmentedControl, Slider,
   Tabs and Tag. "A switch" reads `Switch.Row`, the whole labeled option, as Button's line already did.
   FieldMessage's "(use an alert/banner)" now names Banner or Toast, both built.
+  Review of #3652 found seven more, now converted: Tag's avoidWhen (`Checkbox.Group` or `Radio.Group`),
+  Slider's description and usage (`TextField`), Accordion's dont (`Tabs`), Link's usage (`Button`),
+  Toast's usage (`Banner`) and Button's `summary` (`Link`). The summary also ships in the plugin bundle
+  and the Studio catalog, so the plugin's page-header literal and the generated catalog move with it.
 - **Left as words:** components not built (a number input, a combobox, a toggle button, a heading) and
   ordinary nouns that are not pointers ("a link inside a sentence").
 
