@@ -1328,6 +1328,9 @@ npx tsx packages/engine/lint-guide-claims.ts        # the designer guides still 
                                                     # cites path:a-b#<8 hex>, the SHA-256 of the cited
                                                     # lines, so a shift fails by name. --stamp adds a
                                                     # missing one and never rewrites one.
+                                                    # ORDER (#3519): a list of **bold** labels joined by
+                                                    # commas and "and" holds the order its cited lines
+                                                    # hold them in, so a reorder fails by name.
 npx tsx packages/engine/lint-release-notes.ts       # every release's notes in docs/public/releases/
                                                     # list exactly the changes git shows between its
                                                     # fold and the fold before (#2650), classified by
