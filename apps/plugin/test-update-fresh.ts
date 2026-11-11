@@ -12,26 +12,37 @@
  * the panel kept it pending for a verdict that had already been sent, and the run never ended.
  *
  * So this drives the panel's own rule, NOT `test-build-completed.ts`'s retry-until-taken: each post is sent once, the
- * moment the last answer lands, and its FIRST answer is read. The host is the shared component shim with a page list,
- * as `test-build-completed.ts` builds it, starting from one empty page.
+ * moment the last answer lands, and its FIRST answer is read. The host is the strict component shim (#3215) reading the
+ * suite's pages (`pages`, #3308), starting from one empty page, with every variable and style the sets bind.
+ *
+ * #3325: this suite used to patch the root's search to add the raw nodes on its pages. A raw node cannot make an
+ * instance, so every set that nests another failed its build (`target.createInstance is not a function`), and the
+ * suite passed anyway, because it read only each answer's `type`. Now the shim's own search reads the pages, and
+ * each set's answer must have completed, clean.
  *
  *   1. Set up file on the fresh file answers with its result.
  *   2. Every buildable set in catalog order (the order Update file's sets step posts them), each posted once, straight
- *      after the previous result: each is answered by a `component-result`, never `refused`.
+ *      after the previous result: each is answered by a `component-result`, never `refused`, that completed, clean.
  *   3. Update file's `update` step posted straight after the last set's result: answered by a `component-update-result`.
  *
  * INDEPENDENCE (docs/34): what is read is what `main.ts` posted to the panel; the expected answer types are the wire's
  * literals. The order is the studio's own catalog function over the plugin's defs, as the panel's catalog is computed.
  *
  * Mutation this fails by name: `buildComponents` no longer releasing the build's guard when its verdict posts (`main.ts`,
- * the `guard.release` call after `verdictPosted = true`) → `sets/provider-logo: answered by component-result` (refused) and
+ * the `guard.release` call after `verdictPosted = true`) → `sets/provider-logo: answered by a component-result …` (refused) and
  * `update/after the last set: answered by component-update-result`. `run-guard.ts`'s `finally` deleting the operation
- * whoever holds it (the hold token dropped) → `guard/release: released, …`.
+ * whoever holds it (the hold token dropped) → `guard/release: released, …`. The #3325 patch put back (the root's search
+ * also returning the raw nodes on the pages, the strict host opted out) → `sets/button: answered by a component-result that
+ * completed, clean`, and the same for each set that nests another.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
 import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
+import type { BrandInput } from '@prism3/engine/theme';
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { SWAP_TARGET } from './src/build-deps';
+import { materializeForBrand } from './src/brand-def';
 import { catalogOf, CATALOG_SWAP_TARGET } from '../studio/src/state/component-catalog';
 import { leafForDef } from './src/file-taxonomy';
 import { createRunGuard } from './src/run-guard';
@@ -57,12 +68,25 @@ const mkPage = (divider: boolean): ShimPage => {
   pages.push(p);
   return p;
 };
-mkPage(false).name = 'Page 1';
+const first = mkPage(false);
+first.name = 'Page 1';
 const posted: any[] = [];
-const shim = makeShim({ vars: [], styles: [], effects: [], looseHost: 'patches root.findAllWithCriteria to search the pages the suite builds' }) as Record<string, any>;
+// No opt-out: the strict host (#3215). The shim reads the suite's pages itself (`pages`, #3308), so a set that nests
+// another finds it built, as a reference that makes instances. The patched search this suite had (#3325) handed the
+// executor raw page nodes, which cannot make one, and every nesting set's build failed.
+// The file after the run's Theme step: every variable and style a set binds under the example brand is in it, so a miss
+// is a real one, not a theme the shim never applied (as `test-update-owner-run.ts` builds it).
+const brand = Object.values(exampleBrands as Record<string, unknown>)[0] as BrandInput;
+const plans = componentDefs.flatMap((d) => [d, materializeForBrand(d, brand)]).flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }));
+const shim = makeShim({
+  vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+  styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+  effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
+  page: first, pages: () => pages, liveRoot: true, liveComponents: true, identities: true }) as Record<string, any>;
 const root = shim.root as Record<string, unknown>;
 const pluginData = new Map<string, string>();
 const sharedData = new Map<string, string>();
+// What a document has and the shim's root does not: its pages and its data. Each is a property the root lacks.
 Object.defineProperty(root, 'children', { get: () => pages });
 Object.assign(root, {
   name: 'fresh file', type: 'DOCUMENT',
@@ -73,11 +97,10 @@ Object.assign(root, {
   getPluginData: (k: string) => pluginData.get(k) ?? '',
   setPluginData: (k: string, v: string) => { pluginData.set(k, v); },
 });
-// A search finds what is on the pages, as Figma's does, so a set that nests another finds it built.
+/** Every node on the suite's pages, for the read-back below. */
 const onPages = (): Node[] => { const out: Node[] = []; const walk = (n: Node) => { out.push(n); for (const c of (n.children as Node[] | undefined) ?? []) walk(c); }; for (const p of pages) for (const c of p.children) walk(c); return out; };
-const shimFind = (root.findAllWithCriteria as (c?: { types?: string[] }) => unknown[]).bind(root);
-root.findAllWithCriteria = (c?: { types?: string[] }) => [...shimFind(c), ...onPages().filter((n) => !c?.types || c.types.includes(n.type as string))];
 const empty = async () => [];
+// What the host has and the shim does not. Each is a property the host lacks, so none is a patch.
 Object.assign(shim, {
   showUI: () => undefined,
   ui: { postMessage: (m: unknown) => { posted.push(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
@@ -88,10 +111,9 @@ Object.assign(shim, {
   // Figma's `createComponent`, as the shim makes a component: Set up file builds the file's templates.
   createComponent: () => shim.createComponentFromNode(shim.createFrame()),
   setCurrentPageAsync: async () => undefined,
-  getNodeByIdAsync: async (id: string) => onPages().find((n) => n.id === id) ?? null,
   listAvailableFontsAsync: empty,
-  getLocalPaintStylesAsync: shim.getLocalPaintStylesAsync ?? empty,
-  getLocalGridStylesAsync: shim.getLocalGridStylesAsync ?? empty,
+  getLocalPaintStylesAsync: empty,
+  getLocalGridStylesAsync: empty,
 });
 const g = globalThis as Record<string, unknown>;
 g.figma = shim; g.__html__ = ''; g.PRISM3_BUILD = '2026-10-28T00:00:00Z tree-test0000';
@@ -114,9 +136,14 @@ const send = async (msg: unknown, kinds: readonly string[], ms = 30_000): Promis
   }
   return null;
 };
-const said = (r: any): string => (r ? `${r.type}: ${r.headline ?? r.message ?? ''}` : 'no answer in 30 s');
+const said = (r: any): string => (r ? `${r.type}: ${JSON.stringify({ ok: r.ok, completed: r.completed })} ${r.headline ?? r.message ?? ''}` : 'no answer in 30 s');
 
 console.log('Update file on a fresh file, every set, through main.ts (#3128)');
+
+// 0. The host is strict, as Figma's is (#3215): its methods and its root's are fixed, so nothing here replaced one.
+const fixedOn = (o: object, k: string): boolean => { const d = Object.getOwnPropertyDescriptor(o, k); return !!d && typeof d.value === 'function' && d.writable === false && d.configurable === false; };
+ok(fixedOn(shim, 'getNodeByIdAsync') && fixedOn(root, 'findAllWithCriteria') && fixedOn(root, 'findAll'),
+  'fixture: the strict host: the host\'s and the root\'s methods are fixed, and the search is the shim\'s own (#3325)');
 
 // 1. Set up file.
 const setup = await send({ type: 'file-setup' }, ['file-setup-result']);
@@ -128,7 +155,9 @@ const order = catalogOf(componentDefs, (d) => figmaAnatomySet(d, { swapTarget: C
 ok(order[0] === 'icon' && order[1] === 'provider-logo', `sets: Icon then ProviderLogo lead the catalog, as in the owner's run (${order.slice(0, 2).join(', ')})`);
 for (const id of order) {
   const r = await send({ type: 'build-components', def: id }, ['component-result']);
-  ok(r?.type === 'component-result', `sets/${id}: answered by component-result (${said(r)})`);
+  // #3325: the answer's TYPE alone passed while every set that nests another failed its build. Each set completes,
+  // clean: the file holds every variable and style the set binds, and every set it nests is built before it.
+  ok(r?.type === 'component-result' && r.completed === true && r.ok === true, `sets/${id}: answered by a component-result that completed, clean (${said(r)})`);
 }
 const marks = onPages().filter((n) => n.type === 'COMPONENT' && String(n.name).startsWith('provider-logo/'));
 ok(marks.length > 0, `sets: ProviderLogo's components reached the file (${marks.length})`);

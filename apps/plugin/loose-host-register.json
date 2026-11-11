@@ -9,7 +9,6 @@
     "test-run-read.ts": "wraps the root in a Proxy that substitutes findAllWithCriteria to count whole-file searches",
     "test-slot-constraints.ts": "patches combineAsVariants for a host that cannot take slot settings",
     "test-update-apply.ts": "patches loadFontAsync so one font will not load, and createNodeFromSvg so the host does not scale an imported glyph",
-    "test-update-fresh.ts": "patches root.findAllWithCriteria to search the pages the suite builds",
     "test-write-components.ts": "patches createNodeFromSvg to store the artboard at float32 or size it to its ink"
   }
 }
