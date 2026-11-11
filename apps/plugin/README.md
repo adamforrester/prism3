@@ -47,7 +47,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   (N modes, literal fallbacks) → `color` aliases (**per-mode** binding — the collapse-guard).
 - ✅ **Colour only** (`core-palette` + `color`), matching the CLI today. The theme is the bundled NB
   fixture (`nbThemeFrom(nbMeasured)`, JSON inlined) — `buildFigmaColor` bundles with **zero `node:`
-  builtins** thanks to the node-free `engine/emit-figma-color.ts`. A UI button fires `apply-theme`.
+  builtins** thanks to the node-free `packages/engine/emit-figma-color.ts`. A UI button fires `apply-theme`.
 - ✅ **Tested** without a live Figma: `test-write.ts` drives the executor against an in-memory
   `figma.variables` shim (twice — idempotency), asserting the materialisation contract. `npm test`.
 
@@ -89,7 +89,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **Rehydrate on boot** — `ui-ready` runs `restoreToUi()` (independent of the #109 seed): reads the
   blob back, and if trusted posts `restore-input`; the shared UI loads it via `loadBrand`, so re-opening a
   themed file boots on that brand instead of the default `aurora`.
-- ✅ **Versioned + defensive** — pure `engine/persist-input.ts` (`PERSIST_VERSION`) tags the blob;
+- ✅ **Versioned + defensive** — pure `packages/engine/persist-input.ts` (`PERSIST_VERSION`) tags the blob;
   `deserializeBrandInput` returns `null` only on genuine absence (nothing ever stored). A NON-EMPTY
   blob it can't trust — parse error, no recognizable version stamp, or a version this build doesn't
   understand — THROWS `UnrecognizedPersistedInputError` instead (#480), and `restoreToUi` catches it
@@ -108,7 +108,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **Eight FLOAT collections** materialise alongside colour: `core-dimension`, `space`, `radius`,
   `size`, `border-width`, `focus`, `opacity`, and `layout`. An apply now writes the geometric layer,
   not just colour.
-- ✅ **Node-free extraction** — `buildFigmaDims` + `buildFigmaLayout` moved to `engine/emit-figma-dims.ts`
+- ✅ **Node-free extraction** — `buildFigmaDims` + `buildFigmaLayout` moved to `packages/engine/emit-figma-dims.ts`
   (like the colour core), so they bundle into the plugin main thread (0 `node:` builtins preserved).
 - ✅ **Pure plan + executor** — `buildFloatWritePlan(theme)` reshapes both builders into a uniform
   `FloatCollectionPlan[]`; `applyFloatPlan` runs the same two-pass shape as the colour write, binding
@@ -126,7 +126,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **Shadow → BOTH style sets** — `shadow/*` (light) + `shadow-dark/*` (dark), exactly as the engine
   emits them (Effect Styles can't carry Figma modes; a component swaps the pair by mode).
 - ✅ **Gradient → Paint Styles with BAKED resolved stops** + Figma `gradientTransform` (the emit's
-  `angle`/`center` → a 2×3 affine via `gradientTransformFor`). Node-free `engine/emit-figma-styles.ts`
+  `angle`/`center` → a 2×3 affine via `gradientTransformFor`). Node-free `packages/engine/emit-figma-styles.ts`
   + pure `buildStylesPlan`. Live-verified: a linear gradient + shadow render on a real rect.
 - ⏭ **Variable-linked gradient stops** (bind `ColorStop.boundVariables` to `palette/*` so gradients
   re-theme live) — a fast-follow; this lane bakes resolved colours.
@@ -136,7 +136,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **The last write axis** — the plugin now materialises the whole generated system. Font VARIABLES
   (`core-font` per-mode: STRING family + FLOAT size/weight + FLOAT weight-role aliased; `type-sets`
   mobile/desktop) via the widened `VariablesApi` + `applyVarCollectionPlan` (mixed STRING+FLOAT, per-row
-  `resolvedType`). Node-free `engine/emit-figma-font.ts` + pure `buildFontVarPlan`/`buildTextStylePlan`.
+  `resolvedType`). Node-free `packages/engine/emit-figma-font.ts` + pure `buildFontVarPlan`/`buildTextStylePlan`.
 - ✅ **Text Styles** — new `apps/plugin/src/write-text-styles.ts` `TextStylesApi` port + `applyTextStylePlan`.
   fontFamily/fontSize/fontWeight bound to the font vars via `setBoundVariable`; fontStyle/lineHeight/
   letterSpacing/case/decoration baked. Run after the font vars (bound targets must exist first).

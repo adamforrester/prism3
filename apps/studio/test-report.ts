@@ -139,6 +139,20 @@ const ROOT = brandWords(SHORT);
 ok(scrub('hf, then hf: and (hf)', ROOT) === '[brand], then [brand]: and ([brand])',
   '#3525 R1 a short root bounded by punctuation is replaced (hf, / hf: / (hf))');
 ok(scrub('shelf, half: hfx;', ROOT) === 'shelf, half: hfx;', '#3525 R1 a short root inside an ordinary word stays whole next to punctuation');
+// #3560: a line break or a tab bounds a name too. A run's summary spans lines (the plugin's file-setup summary holds
+// `\n`), and `^`/`$` match only at the ends of the whole text. Literal inputs and outputs.
+const ws: [string, string][] = [
+  ['modes: light, night-watch\nnext line', 'modes: light, [brand]\nnext line'],
+  ['first line\nnight-watch is on', 'first line\n[brand] is on'],
+  ['tidewater\tramp', '[brand]\tramp'],
+  ['a\r\ntidewater\r\n', 'a\r\n[brand]\r\n'],
+];
+for (const [inp, want] of ws) {
+  const got = scrub(inp, PUNCT);
+  ok(got === want, `#3560 a palette or mode name bounded by a newline or a tab is replaced (${JSON.stringify(inp)} → ${JSON.stringify(got)})`);
+}
+ok(scrub('ends hf\nhf starts\tthen hf', ROOT) === 'ends [brand]\n[brand] starts\tthen [brand]', '#3560 a short root bounded by a newline or a tab is replaced');
+ok(scrub('tidewaters\novernight-watch\tshelf', [...PUNCT, ...ROOT]) === 'tidewaters\novernight-watch\tshelf', '#3560 an ordinary word holding a name stays whole next to a newline or a tab');
 
 // ── the link ──
 const url = issueUrl(off);

@@ -89,6 +89,26 @@ export const resolveCollisions = (plans: ApplyPlans, conflicts: readonly Conflic
   const unchosen = conflicts.filter((c) => choices[conflictKey(c)] !== 'skip' && choices[conflictKey(c)] !== 'rename');
   if (unchosen.length) return { ok: false, unchosen };
   const p = clone(plans);
+  // #3557: what each FLOAT or mixed-type variable's first mode resolves to, aliases followed, read off the plans as they
+  // came in (before any row is dropped), so a text style whose size variable is skipped keeps that size as a literal.
+  const firstValue = new Map<string, number>();
+  const firstAlias = new Map<string, string>();
+  for (const c of plans.float) {
+    for (const r of c.create) if (typeof r.valuesByMode[0] === 'number') firstValue.set(r.name, r.valuesByMode[0]);
+    for (const r of c.aliases) if (r.targetsByMode[0]) firstAlias.set(r.name, r.targetsByMode[0]);
+  }
+  for (const c of [...plans.font, ...plans.motion]) for (const r of c.rows) {
+    if (typeof r.valuesByMode[0] === 'number') firstValue.set(r.name, r.valuesByMode[0]);
+    if (r.aliasByMode[0]) firstAlias.set(r.name, r.aliasByMode[0]);
+  }
+  const resolvedSize = (name: string): number | undefined => {
+    for (let n: string | undefined = name, hops = 0; n !== undefined && hops < 16; hops++) {
+      const next = firstAlias.get(n);
+      if (next === undefined) return firstValue.get(n);
+      n = next;
+    }
+    return undefined;
+  };
   const names: ColorNames = { ...from };
   const tally: ChoiceTally = { skipped: 0, renamed: 0 };
   /** Variable renames and skips, applied to every reference once the rows are settled. */
@@ -182,6 +202,8 @@ export const resolveCollisions = (plans: ApplyPlans, conflicts: readonly Conflic
   });
   for (const r of p.text) {
     r.fontFamilyVar = ref(r.fontFamilyVar) ?? '';
+    // A skipped size keeps its literal (#3557): the size it resolved to, written by the text-style executor.
+    if (r.fontSizeVar && ref(r.fontSizeVar) === null) { const px = resolvedSize(r.fontSizeVar); if (px !== undefined) r.fontSizePx = px; }
     r.fontSizeVar = ref(r.fontSizeVar) ?? '';
     r.fontStyleVar = ref(r.fontStyleVar) ?? '';
   }

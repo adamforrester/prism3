@@ -12,14 +12,21 @@
  * WHAT "DIFFERS" MEANS. A set differs when, from the same start, the two executors leave the shim holding different
  * nodes: every enumerable field of every node under the set, its prototype reactions and plugin data, serialized in
  * key order, with only the two things that move on every run normalized: the revision in a member's stamp and a
- * build's timestamp. Each def is drawn in eight arms, each OLD against NEW from one start:
+ * build's timestamp. Each def is drawn in ten arms, each OLD against NEW from one start:
  *
  *   fresh/<brand>          a build into an empty file;
  *   update/<brand>         a file OLD built, every member's stamp at revision 0, then the in-place update to the same
  *                          plans: what Update file does to a set drawn by an older plugin;
  *   update/<a>><b>         the same, across a lever change: built under brand a, updated to brand b's plans;
  *   repair/<a>><b>         a file OLD built under a and OLD updated to b, then updated to b again: what a later
- *                          revision does to a drawing an earlier revision's update left (a convergence fix, #2976).
+ *                          revision does to a drawing an earlier revision's update left (a convergence fix, #2976);
+ *   oldgrid/<brand>        a file OLD built, its single-component block then moved onto the grid every plugin before
+ *                          #3142 laid one out at (a fixed 48px pitch from the block's corner, each component keeping
+ *                          its row and column), then the in-place update (#3280). Every other arm starts from a layout
+ *                          OLD drew, so a revision whose only change is MOVING components an older plugin left (#3145's
+ *                          re-lay, revision 46) read `same` in all of them. Files still hold this layout, so it is a
+ *                          start a revision can meet. A def that builds no single components draws the update arm's
+ *                          start here, which costs a draw and reads the same as that arm.
  *
  * under two brands: `default` (no brand, every lever at its default) and `levers` (every structural lever away from its
  * default at once, `LEVERS` below). A def whose arm throws on one side and not the other differs; one that throws the
@@ -34,7 +41,8 @@
  * does not then reads `changed`. It over-reports by design (a lacking property read for any reason is recorded), which
  * the record allows: an entry may name more sets than moved, never fewer.
  *
- * WHAT IT CANNOT SEE: a write the shim does not model to a property it DOES carry, or through a method it implements
+ * WHAT IT CANNOT SEE: a change that only fires on a layout none of the arms starts from (they are the layouts an
+ * executor here draws, and the old grid; not every arrangement a designer can make), a write the shim does not model to a property it DOES carry, or through a method it implements
  * as a no-op, reads the same on both sides (docs/34 shape 17, both sides share the host model), and an executor branch
  * only some other lever combination reaches. `executor-reach.ts` says what an author does about each.
  */
@@ -147,7 +155,7 @@ export const drawn = (n: Node): unknown => {
 type Step = readonly [Exec, BrandInput | null];
 /** A file holding `def` (and what it nests), built by `build` under `brand0`; then each update in `updates`, every
  *  member's stamp rewritten to revision 0 first, as a file an older plugin wrote. The def's own top-level nodes. */
-const draw = async (def: ComponentDef, brand0: BrandInput | null, build: Exec, updates: readonly Step[]): Promise<string> => {
+const draw = async (def: ComponentDef, brand0: BrandInput | null, build: Exec, updates: readonly Step[], oldGrid = false): Promise<string> => {
   const brands = [brand0, ...updates.map(([, b]) => b)];
   const plans = brands.flatMap((b) => project(b)(def));
   const js = JSON.stringify(plans.map((p) => p.root));
@@ -162,6 +170,17 @@ const draw = async (def: ComponentDef, brand0: BrandInput | null, build: Exec, u
   const before = page.children.length;
   await build.apply(project(brand0)(def), shim, emit(def));
   const mine = page.children.slice(before);
+  // #3280: the pre-#3142 layout. Each single component keeps its column and row (its rank among the block's distinct
+  // x and y) at the old fixed pitch. The pitch is written here from that history, not imported from the executor
+  // (`OLD_SINGLE_PITCH`), which is the subject (docs/34).
+  if (oldGrid) {
+    const OLD_PITCH = 48;
+    const singles = mine.filter((n) => n.type === 'COMPONENT');
+    const rank = (k: 'x' | 'y') => { const v = [...new Set(singles.map((n) => Math.round(n[k] as number)))].sort((a, b) => a - b); return (n: Node) => v.indexOf(Math.round(n[k] as number)); };
+    const [col, row] = [rank('x'), rank('y')];
+    const ox = Math.min(...singles.map((n) => n.x as number)), oy = Math.min(...singles.map((n) => n.y as number));
+    for (const n of singles) { const [c, r] = [col(n), row(n)]; n.x = ox + c * OLD_PITCH; n.y = oy + r * OLD_PITCH; }
+  }
   const host = { ...shim, root: { ...shim.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : shim.root.findAllWithCriteria(c)) } };
   for (const [ex, b] of updates) {
     for (const top of mine) for (const m of (top.type === 'COMPONENT_SET' ? (top.children as Node[]) : [top])) {
@@ -181,6 +200,7 @@ export const ARMS = (OLD: Exec, NEW: Exec): Record<string, Pair> => {
   for (const [name, b] of BRANDS) {
     out[`fresh/${name}`] = (d) => [() => draw(d, b, OLD, []), () => draw(d, b, NEW, [])];
     out[`update/${name}`] = (d) => [() => draw(d, b, OLD, [[OLD, b]]), () => draw(d, b, OLD, [[NEW, b]])];
+    out[`oldgrid/${name}`] = (d) => [() => draw(d, b, OLD, [[OLD, b]], true), () => draw(d, b, OLD, [[NEW, b]], true)];
   }
   for (const [[an, a], [bn, b]] of [[BRANDS[0], BRANDS[1]], [BRANDS[1], BRANDS[0]]]) {
     out[`update/${an}>${bn}`] = (d) => [() => draw(d, a, OLD, [[OLD, b]]), () => draw(d, a, OLD, [[NEW, b]])];
