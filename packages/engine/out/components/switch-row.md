@@ -21,8 +21,8 @@ A control for a binary on/off setting that takes effect immediately — no save,
 Shown on the default member: size `medium`, status `default`.
 
 1. **Content** — The label and the control, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label's first line.
-2. **Label**
-3. **Control**
+2. **Label** — The setting's name, and part of what a person clicks; it stays the same when the switch changes.
+3. **Control** — The switch, centered on the label's first line; it follows the row's size, status and selection.
 
 ## Styles
 

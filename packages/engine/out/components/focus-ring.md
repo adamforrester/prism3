@@ -19,7 +19,7 @@ The shared keyboard-focus indicator: a stroke drawn outside its host's bounds, s
 
 Shown on the default member: surface `default`, offset `control`.
 
-1. **Ring**
+1. **Ring** — The ring itself, drawn outside its host's edge at the host's size plus its offset, so it takes no space in the host's layout.
 
 ## Styles
 

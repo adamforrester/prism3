@@ -267,7 +267,13 @@ export const focusRing: ComponentDef = {
         // was true of the projector and was #933: paint moved to `paintSlots` above, and the two
         // readings this comment noticed were coming apart are now two fields.
         role: 'target',
-        note: 'The ring itself: one node, zero children, `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host\'s row and its size is the host\'s bounds grown by the host\'s `inset` — which is why it binds no radius of its own and why its own square side is nominal, supplied only so the component is buildable on its own and overwritten the moment it is nested. The one dimension it truly owns is its stroke\'s width, because that one is nobody else\'s to supply.',
+        // Maintainer detail, out of the reader caption (#3610): The ring itself: one node, zero children,
+        // `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host's row and
+        // its size is the host's bounds grown by the host's `inset` — which is why it binds no radius of its own and
+        // why its own square side is nominal, supplied only so the component is buildable on its own and overwritten
+        // the moment it is nested. The one dimension it truly owns is its stroke's width, because that one is nobody
+        // else's to supply.
+        note: 'The ring itself, drawn outside its host\'s edge at the host\'s size plus its offset, so it takes no space in the host\'s layout.',
       },
     },
     derived: {

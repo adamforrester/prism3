@@ -175,7 +175,9 @@ export const tab: ComponentDef = {
       labelReserve: {
         kind: 'text',
         type: 'size.{size}.type.selected',
-        note: 'The label again, in the selected weight, never seen: it holds every tab at its bold width (Q226 A).',
+        // Maintainer detail, out of the reader caption (#3610): The label again, in the selected weight, never seen:
+        // it holds every tab at its bold width (Q226 A).
+        note: 'A hidden copy of the label in the selected weight, which holds each tab at its selected width so the tabs don\'t shift when the selection moves.',
       },
       label: {
         kind: 'text',

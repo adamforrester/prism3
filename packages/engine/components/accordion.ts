@@ -224,7 +224,9 @@ export const accordion: ComponentDef = {
         inset: 'ring-offset',
         drawnInside: true,
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'The shared focus ring, drawn inside the header row\'s edge while it has keyboard focus (Q257), so it never overlaps the Divider or gets clipped.',
+        // Maintainer detail, out of the reader caption (#3610): The shared focus ring, drawn inside the header row's
+        // edge while it has keyboard focus (Q257), so it never overlaps the Divider or gets clipped.
+        note: 'The shared focus ring, drawn inside the header row\'s edge on keyboard focus, so it never overlaps the divider or gets clipped.',
       },
       content: {
         kind: 'box',

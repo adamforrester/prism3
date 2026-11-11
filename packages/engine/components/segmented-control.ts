@@ -411,7 +411,10 @@ export const segmentedControl: ComponentDef = {
         nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'primary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         crossAxisFill: true,
         optional: true,
-        note: 'The visible label, naming what is being chosen. Shown by default. Starts primary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).',
+        // Maintainer detail, out of the reader caption (#3610): The visible label, naming what is being chosen. Shown
+        // by default. Starts primary and bold; its label text, required marker, emphasis and weight surface on the
+        // control (Q348 A).
+        note: 'The visible label, naming what is being chosen, shown by default; its text, required marker and weight are set on the control.',
       },
       track: {
         kind: 'box',
