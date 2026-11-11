@@ -41,49 +41,23 @@ version stamp in every emitted tree; when every PR wrote them, every open PR con
 other (the progress log's 2026-09-30 entry, "Merge independence"). So:
 
 - **The progress entry** is `docs/progress/pending/<slug>.md`, where the slug is your branch name
-  with `/` turned into `-`. It holds one entry headed `## (YYYY-MM-DD) — <title>`, in the log's
-  usual shape. **Every PR carries one, except a fold** (owner decision, 2026-09-30):
-  `lint-progress-order.ts` fails a PR that adds no fragment, and a heading written straight into
-  the log does not count. Outside a fold, **any** change to the log fails, including an edit to an
-  existing entry; a correction travels as a fragment of its own ("Correction to <date> <title>").
-  A **pure** fold is exempt because it
-  consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
-  the log, and it touches nothing but the log, the pending directories, `version.ts`, `CHANGELOG.md`, `out/`, the release
-  notes under `docs/public/releases/` (#2650) and the rename stamps it fills (below). A fold PR that also fixes a semantic conflict carries a fragment for
-  the fix.
-- **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
-
-  ```
-  ---
-  engine: minor          # patch | minor | major
-  ---
-  The changelog prose; the fold writes it into CHANGELOG.md. Write {{ENGINE_VERSION}} where the number goes.
-  ```
-
-  It declares the class and never picks a number. **The class:** `minor` for any behavior change;
-  `patch` only when no committed artifact and no projected component surface moves (`regen --check`
-  clean before and after, `lint-component-surface.ts` baseline unchanged); `major` is
-  refused while `ENGINE_VERSION` is below 1.0, because going to 1.0 is the owner's decision. The fold
-  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog (`packages/engine/CHANGELOG.md`), the version
-  stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
-  the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
-  as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
-- **A rename rule's `since`** (#1816) is the other version number a PR used to write. A PR that adds an
-  entry to `MATERIALIZATION_RENAMES`, `MATERIALIZATION_DELETIONS` or `COLLECTION_RENAMES` stamps it
-  `since: '{{ENGINE_VERSION}}'`, and writes the same quoted placeholder in `test.ts`'s table for it
-  (`EXPECTED_SINCE` or `EXPECTED_COLLECTION_SINCE`). **The same diff adds a change note**; another PR's
-  pending note does not count, because the fold may consume it before your PR merges. The fold fills
-  both stamps with the version it assigns. **An existing stamp never changes**, in a fold or out of
-  one: a rule whose change needs a new stamp is a new rule, with a new id, the placeholder and a note.
-  A fold only fills placeholders; it adds no stamp of its own. `lint-emission-version.ts`'s RENAME
-  STAMPS arm fails each of these by name. In those three files the quoted placeholder is reserved for
-  stamps, because the fold replaces every one: a test fixture that needs it builds it by concatenation.
+  with `/` turned into `-`. **Every PR carries one, except a pure fold**, and outside a fold any
+  change to the log itself fails (`lint-progress-order.ts`). Format, the fold exemption and how a
+  correction travels: [`docs/progress/pending/README.md`](docs/progress/pending/README.md).
+- **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`, that
+  declares a class and never picks a number. **Do not edit `ENGINE_VERSION`, its changelog
+  (`packages/engine/CHANGELOG.md`), the version stamps in `out/`, or a note another PR merged**
+  (`lint-emission-version.ts`). Format and the class policy:
+  [`packages/engine/changes/README.md`](packages/engine/changes/README.md).
+- **A rename rule's `since`** (#1816) takes the quoted `{{ENGINE_VERSION}}` placeholder and a change
+  note in the same diff, and **an existing stamp never changes**. The full rule:
+  [`packages/engine/changes/README.md`](packages/engine/changes/README.md), "Rename stamps".
 - **`CONTRACT_VERSION` is unchanged by this.** A PR that moves the guaranteed token-name surface still
   bumps it itself and runs `token-contract.ts --accept`. Contract bumps are rare and carry real
   baseline content, so two of them *should* meet.
 
-Both directories carry a `README.md` with the format. The fold, below, is the one writer of the
-shared lines.
+Those two READMEs are the one home for the format and the classes. The fold, below, is the one
+writer of the shared lines.
 
 **`npm run verify` on a plain checkout of `main` is red by design.** There, HEAD is its own base, so
 `lint-progress-order.ts` finds no diff to hold an entry in and fails CARRIES AN ENTRY rather than
@@ -1805,6 +1779,11 @@ closes with a `Gaps` section: what was not done, what was not checked, and the r
 remain. When there are none it says `Gaps: none` — the section is never omitted, because a
 verdict with no such line cannot be told apart from one that never asked (#2850).
 
+**Agents may edit `CLAUDE.md` in a PR; the owner reviews the diff before merge** (owner decision
+Q-HY4 A, 2026-11-11, as Q319.1 A said). The one exception is #2921's paragraph (Q503 A): Q529 A made
+that text the owner's to paste, and it covers that paragraph only. An agent edit of `CLAUDE.md` is held
+to every rule the file states, the gate list included (`lint-doc-gates.ts`).
+
 ### Running a lane (#3240)
 
 Owner decision Q-SI1 A: a self-check loop. These four rules apply to every lane, agent or person.
@@ -1909,7 +1888,8 @@ natively — they sort together in the picker, and they keep the axes from readi
 | Type | Use |
 |---|---|
 | `type:task` | Scoped build work. |
-| `type:finding` | A defect with evidence. Bug fixes are a *type*, not a lane — a Storybook bug is `lane:code-library` + `type:finding`. |
+| `type:finding` | A defect with evidence, found before it reached anyone. Defects are a *type*, not a lane — a Storybook defect is `lane:code-library` + `type:finding`. |
+| `type:bug` | A defect that **reached the owner or real Figma** (owner decision Q-HY3 A, 2026-11-11). Same evidence bar as `type:finding`; the difference is the escape. The PR that closes one fills the template's **Escape review** (§4, "Running a lane"). |
 | `type:decision` | A fork that needs a call before work proceeds. |
 | `type:research` | A question to investigate. Deliberately a type, not a lane: research often spans lanes (#113 covers web, Figma **and** MCP). |
 
@@ -1929,8 +1909,8 @@ as a snapshot to re-derive, not a live feed. Only `priority:now` exists — no
 `priority:next`/`priority:later`; an unused tier is worse than no tier (see `lane:emitter`'s
 fate, under History below). Add those only once there's something real to put in them.
 
-These 15 are the whole set. GitHub's stock labels were removed deliberately: `bug`,
-`documentation`, and `question` collided with `type:finding` / `lane:docs` /
+These 16 are the whole set (15 until Q-HY3 A added `type:bug`). GitHub's stock labels were removed
+deliberately: `bug`, `documentation`, and `question` collided with `type:bug` / `lane:docs` /
 `type:research`, and `duplicate` / `invalid` / `wontfix` are better served by the native
 `state_reason` on close. If you find yourself wanting a new label, check it isn't a
 sub-area that belongs in the title first (see below).
