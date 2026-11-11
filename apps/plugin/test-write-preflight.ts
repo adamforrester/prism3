@@ -47,6 +47,9 @@ import { applyTextStylePlan } from './src/write-text-styles';
 import { guardApply, preflightPlanOf, conflictSummary, type PreflightPlan } from './src/preflight';
 import { runApplyTheme } from './src/apply-theme';
 import { conflictKey, choiceNote, renamedOf, type CollisionChoices } from './src/collision-choice';
+import { computePrunePlan, type PruneInput } from './src/prune-figma';
+import { ownedModeIds } from './src/write-figma';
+import { rootOf } from '@prism3/engine/figma-names';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -654,6 +657,59 @@ for (const c of ['skip', 'rename'] as const) {
     `Q112 skip references (control): display/3xl/strong still binds its own font size (${other?.bound.fontSize ?? 'none'})`);
 }
 
+// ── PRUNE AFTER A RENAME (#3558) ──
+// A hand-made `color`, renamed on apply: Prism3's variables are in `color (Prism3)`. Prune then reads the file the way
+// `main.ts`'s `prune` does: the same plan builders, and each collection's `ownedModeIds`. Expected: no collection is
+// offered for deletion, and the person's `color` is judged for nothing. Names are literals.
+{
+  const f = new FileShim();
+  const theirs = f.addCollection('color');
+  f.addVar('pds3/color/brand/hero', theirs, 'COLOR');
+  f.writes = [];
+  const { guarded: g } = await applyWith(f, { 'collection:color': 'rename' });
+  const renamed = f.collections.find((c) => c.name === 'color (Prism3)');
+  ok(g.ok && !!renamed && ownedModeIds(renamed).length > 0 && ownedModeIds(theirs).length === 0,
+    `#3558 premise: the apply renames Prism3's color to "color (Prism3)", stamped, and the person's color is not (${f.collections.map((c) => c.name).join(', ')})`);
+  // The prune's input, as `main.ts` assembles it.
+  const theme = brandTheme(PRISM3);
+  const colorFiles = buildFigmaColor(theme);
+  const wp = buildWritePlan(colorFiles);
+  const floatPlan = buildFloatWritePlan(theme);
+  const varPlans = [...buildFontVarPlan(theme), ...buildMotionVarPlan(theme)];
+  const plannedVariables = [...wp.palette.map((r) => r.name), ...wp.color.create.map((r) => r.name), ...floatPlan.flatMap((p) => p.create.map((r) => r.name)), ...varPlans.flatMap((p) => p.rows.map((r) => r.name))];
+  const input: PruneInput = {
+    collections: f.collections.map((c) => ({ name: c.name, variableNames: f.vars.filter((v) => v.variableCollectionId === c.id).map((v) => v.name), modes: c.modes, ownedModeIds: ownedModeIds(c) })),
+    styles: { text: [], effect: [], paint: [], grid: [] },
+    plannedVariables,
+    plannedCollections: [colorFiles.palette.$collection, ...colorFiles.color.map((c) => c.$collection), ...floatPlan.map((p) => p.name), ...varPlans.map((p) => p.name)],
+    plannedStyles: { text: [], effect: [], paint: [], grid: [] },
+    plannedModes: [
+      ...[...new Set(colorFiles.color.map((c) => c.$collection))].map((collection) => ({ collection, modes: wp.color.modes })),
+      ...floatPlan.map((p) => ({ collection: p.name, modes: p.modes })),
+      ...varPlans.map((p) => ({ collection: p.name, modes: p.modes })),
+    ],
+    root: rootOf(plannedVariables[0] ?? ''),
+  };
+  const plan = computePrunePlan(input);
+  ok(plan.collections.length === 0, `#3558 prune after rename: no collection is offered for deletion (${JSON.stringify(plan.collections)})`);
+  ok(!plan.variables.some((x) => x.collection === 'color') && !plan.modes.some((x) => x.collection === 'color'),
+    `#3558 prune after rename: the person's color is judged for no orphan and no mode (${JSON.stringify([...plan.variables.filter((x) => x.collection === 'color'), ...plan.modes.filter((x) => x.collection === 'color')])})`);
+  // The control: an orphan Prism3 left in its renamed collection is still found there.
+  f.addVar('pds3/color/retired/role', renamed, 'COLOR');
+  input.collections = f.collections.map((c) => ({ name: c.name, variableNames: f.vars.filter((v) => v.variableCollectionId === c.id).map((v) => v.name), modes: c.modes, ownedModeIds: ownedModeIds(c) }));
+  const plan2 = computePrunePlan(input);
+  ok(JSON.stringify(plan2.variables) === JSON.stringify([{ collection: 'color (Prism3)', names: ['pds3/color/retired/role'] }]),
+    `#3558 prune after rename (control): an orphan in "color (Prism3)" is still offered there (${JSON.stringify(plan2.variables)})`);
+  // The mode control: one planned color mode dropped from the plan, so the mode Prism3 wrote into `color (Prism3)` is
+  // stale and stamped as Prism3's. It is offered there, and nothing in the person's `color`. Mutation: the planned-modes
+  // remap in `computePrunePlan` dropped (`own.of(pm.collection)` → `pm.collection`) → `#3558 prune after rename (mode control)`.
+  const dropped = wp.color.modes[wp.color.modes.length - 1];
+  const plan3 = computePrunePlan({ ...input, plannedModes: input.plannedModes.map((pm) => (pm.collection === 'color' ? { ...pm, modes: pm.modes.filter((m) => m !== dropped) } : pm)) });
+  const offered = plan3.modes.map((x) => [x.collection, x.modes.map((m) => m.name)]);
+  ok(wp.color.modes.length > 1 && JSON.stringify(offered) === JSON.stringify([['color (Prism3)', [dropped]]]),
+    `#3558 prune after rename (mode control): a stale Prism3 mode in "color (Prism3)" is offered there, and nothing in the person's color (${dropped}; ${JSON.stringify(offered)})`);
+}
+
 // ── A SKIPPED SIZE KEEPS THE STYLE'S SIZE (#3557) ──
 // A text style whose size variable is skipped binds nothing for its size, so it must carry the size as a literal, never
 // the host's default 12. A hand-made `type-sets` collection, skipped whole: every fluid size is skipped. The expected
@@ -672,6 +728,68 @@ for (const c of ['skip', 'rename'] as const) {
     `#3557 skip type-sets: no text style is left with no size binding at the host default 12 (${stranded.length} of ${f.styles.text.length}: ${stranded.slice(0, 3).map((x) => x.name).join(', ') || 'none'})`);
   const fluidFree = f.styles.text.find((x) => typeof x.bound.fontSize === 'string');
   ok(!!fluidFree, `#3557 skip type-sets (control): a style sized from core still binds its size (${fluidFree?.name ?? 'none'} → ${fluidFree?.bound.fontSize ?? 'none'})`);
+}
+
+// ── A SKIPPED OPACITY KEEPS THE WASH'S LITERAL (#3556) ──
+// A tinted wash is a color alias plus a per-mode opacity alias. Skipping the opacity (its whole collection, or the one
+// variable) must leave the wash's literal, the fill at its opacity, never a plain alias to the solid fill at 100%. The
+// wash and its opacity variable are literals here. Expected per mode: a literal color whose alpha is below 1.
+{
+  const WASH = 'pds3/color/interactive/primary/subtle-fill/selected';
+  const modesOf = (f: FileShim): any[] => Object.values(f.vars.find((v) => v.name === WASH)?.valuesByMode ?? {});
+  const literalWash = (vs: any[]): boolean => vs.length > 0 && vs.every((x) => typeof x?.r === 'number' && typeof x?.a === 'number' && x.a < 1);
+  const show = (vs: any[]): string => JSON.stringify(vs.map((x) => (x?.type === 'VARIABLE_ALIAS' ? 'alias' : x?.color ? 'wash' : typeof x?.a === 'number' ? `literal a=${Math.round(x.a * 100) / 100}` : x)));
+  // The control: with no collision, every mode is a wash (a color alias with an opacity alias).
+  const clean = new FileShim();
+  await apply(clean);
+  ok(modesOf(clean).length > 0 && modesOf(clean).every((x) => x?.color?.type === 'VARIABLE_ALIAS' && x?.opacity?.type === 'VARIABLE_ALIAS'),
+    `#3556 premise: on a clean apply ${WASH} is a wash in every mode (${show(modesOf(clean))})`);
+  // A hand-made `opacity` collection, skipped whole.
+  const f = new FileShim();
+  f.addCollection('opacity');
+  f.writes = [];
+  const { guarded: g } = await applyWith(f, { 'collection:opacity': 'skip' });
+  ok(g.ok && literalWash(modesOf(f)),
+    `#3556 skip opacity collection: ${WASH} keeps its literal at its opacity in every mode, not a plain alias to the solid fill (${g.ok ? show(modesOf(f)) : 'refused'})`);
+  // One opacity variable retyped by hand in Prism3's own collection, skipped alone.
+  const h = new FileShim();
+  await apply(h);
+  const opName = (Object.values(h.vars.find((v) => v.name === WASH)!.valuesByMode)[0] as any).opacity.id;
+  const op = h.vars.find((v) => v.id === opName);
+  op.resolvedType = 'STRING';
+  op.valuesByMode = { m: 'hand-typed' };
+  const g0 = await apply(h);
+  const keys = g0.ok ? [] : g0.conflicts.map(conflictKey);
+  const { guarded: g2 } = await applyWith(h, Object.fromEntries(keys.map((k: string) => [k, 'skip' as const])));
+  ok(keys.length === 1 && keys[0] === `variable:opacity:${op.name}` && g2.ok, `#3556 skip opacity variable: the one collision is ${op.name}, and the apply goes ahead (${keys.join(' | ')})`);
+  ok(g2.ok && literalWash(modesOf(h).filter((_, i) => i === 0)),
+    `#3556 skip opacity variable: ${WASH}'s first mode, whose opacity is ${op.name}, keeps its literal at its opacity (${show(modesOf(h))})`);
+  // The Rename controls: a renamed opacity follows the rename, and the wash stays a wash in every mode. Without these,
+  // dropping the color on any collision, or on a rename, would turn every wash into an unbound literal unseen (#3556 review).
+  const isWash = (x: any): boolean => x?.color?.type === 'VARIABLE_ALIAS' && x?.opacity?.type === 'VARIABLE_ALIAS';
+  const opVarOf = (f: FileShim, x: any): any => f.vars.find((v) => v.id === x?.opacity?.id);
+  const colName = (f: FileShim, v: any): string | undefined => f.collections.find((c: any) => c.id === v?.variableCollectionId)?.name;
+  // A hand-made `opacity` collection, renamed: Prism3 writes its own opacity collection under the renamed name.
+  const rc = new FileShim();
+  rc.addCollection('opacity');
+  rc.writes = [];
+  const { guarded: gr } = await applyWith(rc, { 'collection:opacity': 'rename' });
+  const rcModes = modesOf(rc);
+  ok(gr.ok && rcModes.length > 0 && rcModes.every((x) => isWash(x) && colName(rc, opVarOf(rc, x)) === renamedOf('opacity')),
+    `#3556 rename opacity collection: ${WASH} stays a wash in every mode, its opacity in ${renamedOf('opacity')} (${gr.ok ? show(rcModes) + ' in ' + JSON.stringify(rcModes.map((x) => colName(rc, opVarOf(rc, x)))) : 'refused'})`);
+  // One opacity variable retyped by hand, renamed: every mode's opacity alias names the renamed variable.
+  const rv = new FileShim();
+  await apply(rv);
+  const rop = rv.vars.find((v) => v.id === (Object.values(rv.vars.find((v) => v.name === WASH)!.valuesByMode)[0] as any).opacity.id);
+  const ropName = rop.name;
+  rop.resolvedType = 'STRING';
+  rop.valuesByMode = { m: 'hand-typed' };
+  const r0 = await apply(rv);
+  const rkeys = r0.ok ? [] : r0.conflicts.map(conflictKey);
+  const { guarded: gr2 } = await applyWith(rv, Object.fromEntries(rkeys.map((k: string) => [k, 'rename' as const])));
+  const rvModes = modesOf(rv);
+  ok(rkeys.length === 1 && gr2.ok && rvModes.length > 0 && rvModes.every((x) => isWash(x) && opVarOf(rv, x)?.name === renamedOf(ropName)),
+    `#3556 rename opacity variable: ${WASH} stays a wash in every mode, its opacity alias on ${renamedOf(ropName)} (${gr2.ok ? show(rvModes) + ' on ' + JSON.stringify(rvModes.map((x) => opVarOf(rv, x)?.name)) : 'refused'})`);
 }
 
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');

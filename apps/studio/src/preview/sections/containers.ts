@@ -7,6 +7,7 @@
  *  the full track, which is what it does on that screen.
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="containers"`, `kit.ts`'s header).
+ *  The full-width row carries no token pill: `container.fluid` left the token layer (#2434).
  *  WHAT IT IS HANDED. The layout context, the section's copy, the hint (given the reference width) and the three
  *  labels. Nothing here reads the session. */
 import { el, hook, palSection } from './kit';
@@ -23,13 +24,14 @@ export const containersSection = (x: LayoutCtx, copy: { title: string; desc: str
   sec.append(el('p', 'lyv-hint', hint(ref)));
   const ly = x.ly;
   const rows: [string, string, number, string, number][] = [
-    [labels.fluid, 'container.fluid', ref, '100%', 0],
+    // Full width is the layout's default, with no token behind it since #2434 dropped `container.fluid`.
+    [labels.fluid, '', ref, '100%', 0],
     [labels.max, 'container.max', ly.containerMax, `${ly.containerMax}px`, 1],
     [labels.narrow, 'container.narrow', ly.containerNarrow, `${ly.containerNarrow}px`, 3],
   ];
   for (const [label, token, px, value, step] of rows) {
     const row = hook(el('div', 'lyv-cont'), 'layout-container');
-    row.dataset.token = token;
+    if (token) row.dataset.token = token;
     const track = tinted(x, 'lyv-track', x.gray);
     const bar = tinted(x, 'lyv-bar', x.tint(step));
     bar.style.width = `${Math.max(2, Math.min(100, (px / ref) * 100))}%`;

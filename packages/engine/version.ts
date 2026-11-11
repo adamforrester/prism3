@@ -702,7 +702,16 @@ export const ENGINE_VERSION = '0.237.0';
  * (14.13.0). The small inline Badge's label is `caption.md`, and its dot cell is that label's own line box. Two added
  * paths; an added path cannot break a reference. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.15.0';
+/**
+ * 15.0.0 (#2434 with #2423, owner Q175 A, 2026-11-11): MAJOR. Two DTCG 2025.10 conformance fixes in the token layer.
+ * The 18 guaranteed `core.font.letter-spacing.*` steps and `core.font.letter-spacing-role.*` roles change `$type` from
+ * `dimension` to `number`: the value is now a multiplier of the font size (`-0.04em` → `-0.04`), because `em` is not a
+ * DTCG `dimension` unit and stock native transforms read it as rem. Same names, new type, so MAJOR. `container.fluid`
+ * (`100%`, a unit DTCG `dimension` doesn't allow either) is removed with no replacement path: full width is a layout's
+ * default, not a value to bind. No `DEPRECATIONS` entry, the 14.0.0 precedent: there is no one path to point at. The
+ * Figma half of the decision (#2423, the primitives as number variables) moves no DTCG name and needs no further bump.
+ */
+export const CONTRACT_VERSION = '15.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
