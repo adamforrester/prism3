@@ -68,7 +68,7 @@ export const cascadeRename = (prev: string, next: string): void => {
   // and every key that names the column by it follows (#3448): its per-mode anchor (`modeAnchors[mode][col]`) and its
   // role overrides (`interactive.<col>.…`, `inverse.interactive.<col>.…`). Left on the old name the engine ignores them,
   // and the column's anchor and overrides go back to Auto without a word. The old name wins: a key already on the new
-  // name belongs to no live column (a rename onto a name another palette holds is refused), so it is a leftover, and
+  // name belongs to no live column (a rename onto a name another palette or column holds is refused), so it is a leftover, and
   // it is dropped first (a removed column's keys stay behind, #3549). Kept, it would bring back a value the user
   // removed and drop the one they just set.
   const renamesColumn = !!brandState.interactivePalettes?.some((e) => e.name === undefined && e.palette === prev);
@@ -155,13 +155,16 @@ export const addBrandColor = (): string => {
   return nm;
 };
 /** Rename brand color `i`. Refused (returns false, nothing changes) when the name is empty, unchanged, or
- *  another palette's: a collision would merge two ramps in the alias graph. */
+ *  another palette's: a collision would merge two ramps in the alias graph. Also refused when it is another
+ *  interactive column's explicit `name` (#3545 re-review): the renamed palette's unnamed column would take that name,
+ *  the engine refuses a duplicate column name, and `cascadeRename` would drop the named column's keys as leftovers. */
 export const renameBrandColor = (i: number, raw: string): boolean => {
   const list = brandState.brandColors ?? [];
   const bc = list[i];
   const next = raw.trim();
   if (!bc || !next || next === bc.name) return false;
-  const taken = new Set(['primary', 'neutral', ...list.filter((_, j) => j !== i).map((b) => b.name)]);
+  const columnNames = (brandState.interactivePalettes ?? []).filter((e) => e.palette !== bc.name).map((e) => e.name).filter((n): n is string => n !== undefined);
+  const taken = new Set(['primary', 'neutral', ...list.filter((_, j) => j !== i).map((b) => b.name), ...columnNames]);
   if (taken.has(next)) return false;
   const prev = bc.name;
   bc.name = next;

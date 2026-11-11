@@ -416,6 +416,29 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   const zfill = pathOf('dark', FILL('accent-z')), zborder = pathOf('light', BORDER('accent-z'));
   ok(zfill.endsWith('.palette.accent-z.400'), `#3545 old name wins: a stale Dark anchor on the new name does not beat the live one, ${FILL('accent-z')} resolves to accent-z 400 in dark (${zfill})`);
   ok(zborder.endsWith('.palette.accent-z.700'), `#3545 old name wins: a stale border override on the new name does not beat the live one, ${BORDER('accent-z')} resolves to accent-z 700 in light (${zborder})`);
+
+  // A RENAME ONTO ANOTHER COLUMN'S EXPLICIT NAME IS REFUSED (#3545 re-review). `named` is no palette, so only the
+  // column-name check stops it; taken, the drop above would delete `named`'s Dark anchor and border override as leftovers.
+  const z = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-z');
+  ok(!P.renameBrandColor(z, 'named'), '#3545 a rename onto another interactive column\'s explicit name is refused');
+  const rfill = pathOf('dark', FILL('named')), rborder = pathOf('light', BORDER('named'));
+  ok(rfill.endsWith('.palette.accent-m.300') && rborder.endsWith('.palette.accent-m.700'),
+    `#3545 refused rename onto a column name: \`named\`'s Dark anchor and border override survive, accent-m 300 / 700 (${rfill}, ${rborder})`);
+
+  // A STALE KEY WITH NO LIVE COUNTERPART (#3545 re-review). Above, each stale key had a live one on the old name, and the
+  // carry overwrote it whether or not the drop ran. Here the old name has no Light anchor and no text override, so only
+  // the drop removes the stale `accent-w` keys: each must resolve to what the column resolves to on Auto.
+  const TEXT = (c: string): string => `interactive.${c}.text.rest`;
+  const stepOf = (path: string): string => path.split('.').pop() ?? '';
+  const autoFill = stepOf(pathOf('light', FILL('accent-z'))), autoText = stepOf(pathOf('light', TEXT('accent-z')));
+  const staleFill = autoFill === '200' ? 300 : 200, staleText = autoText === '200' ? '300' : '200';
+  (store.brandState.modeAnchors!.light ??= {})['accent-w'] = staleFill;
+  store.brandState.overrides!.light![TEXT('accent-w')] = { palette: 'accent-m', step: staleText };
+  const w = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-z');
+  ok(P.renameBrandColor(w, 'accent-w'), 'the rename onto a name with unmatched stale keys is taken');
+  const wfill = pathOf('light', FILL('accent-w')), wtext = pathOf('light', TEXT('accent-w'));
+  ok(wfill.endsWith(`.palette.accent-w.${autoFill}`), `#3545 old name wins, no counterpart: a stale Light anchor on the new name is dropped, ${FILL('accent-w')} resolves to Auto (accent-w ${autoFill}) in light (${wfill})`);
+  ok(wtext.endsWith(`.palette.accent-w.${autoText}`), `#3545 old name wins, no counterpart: a stale text override on the new name is dropped, ${TEXT('accent-w')} resolves to Auto (accent-w ${autoText}) in light (${wtext})`);
 }
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
