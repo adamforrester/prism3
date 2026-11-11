@@ -4394,6 +4394,38 @@ section('what the host draws — after an update in place, every bound paint sho
   ok(v.ok === (left.length === 0), `root/verified: the verdict fails exactly when a member root keeps a fill the plan does not give it (${v.headline}; ${left.length} washed)`);
 }
 
+{
+  // #2675 (owner Q135 A): a verify line about a member's ROOT names the member alone, `<member>.fills`, never
+  // `<member>/..fills`. The host here keeps the wash on every root the plan gives no fill (its `fills` setter ignores
+  // an empty list), so verify's unpainted check fires at the root. The expected lines are spelled out here. Mutations:
+  // the unpainted line's call site, or the field line's, back to `${name}/${at}` → `root/named`.
+  const def = componentDefs.find((d) => d.id === 'button')!;
+  const was = figmaAnatomySet(materializeForBrand(def, { buttonTextHover: 'fill' } as never), { swapTarget: SWAP_TARGET });
+  const next = figmaAnatomySet(materializeForBrand(def, null), { swapTarget: SWAP_TARGET });
+  const w = await world('button', was, {
+    extraVars: next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+    extraStyles: next.flatMap((p) => planTextStyles(p.root)),
+  });
+  const bare = new Set(next.filter((p) => !p.root.paints?.fills && !p.root.gradientFill).map((p) => planComponentName(p)));
+  for (const m of membersOf(w.set()).filter((x) => bare.has(String(x.name)))) {
+    let held = m.fills;
+    Object.defineProperty(m, 'fills', { configurable: true, enumerable: true, get: () => held, set: (v: unknown) => { if (Array.isArray(v) && v.length) held = v; } });
+  }
+  // And one of those members stores MIN for its root's main-axis alignment whenever it is written (it reads as built
+  // until then, so the dry run sees no hand edit), so `diffAnatomy`'s field line fires at a root too.
+  const held = membersOf(w.set()).find((x) => bare.has(String(x.name)) && ((x.fills as unknown[] | undefined) ?? []).length > 0)!;
+  let align = held.primaryAxisAlignItems;
+  Object.defineProperty(held, 'primaryAxisAlignItems', { configurable: true, enumerable: true, get: () => align, set: () => { align = 'MIN'; } });
+  const pre = await previewUpdate(w.host, [{ def: 'button', plans: next }]);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: 'button', plans: next }], previewHashOf(pre));
+  const content = res.outcomes[0]?.content ?? [];
+  const member = [...bare].find((n) => content.some((c) => c.startsWith(`${n}.fills: `))) ?? '';
+  const want = `${member}.fills: 1 paint(s) (the plan says none)`;
+  const wantField = `${String(held.name)}.primaryAxisAlignItems: MIN (the plan says CENTER)`;
+  ok(!!member && content.includes(want) && content.includes(wantField) && !content.some((c) => c.includes('/..')),
+    `root/named: a root's verify lines name the member alone (${want}; ${wantField}; ${content.find((c) => c.includes('/..')) ?? `${content.length} content lines`})`);
+}
+
 /* ── the veil's gradient stops ───────────────────────────────────────────────────────────────────────── */
 section("veil — every directional member's gradient stops store the colors their variables resolve to, fresh and in place (#2391)");
 {

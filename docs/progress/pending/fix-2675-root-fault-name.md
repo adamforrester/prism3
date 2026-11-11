@@ -18,4 +18,11 @@ are outside the executor (`lint-executor-revision.ts` lists its five files), so 
 - `veil/verify` and `veil/alpha verify` (`test-update-apply.ts`) now expect `<member>.fills`.
 - `def rename, single/verdict` filtered its known shim misreads by `<member>/`; it now accepts `<member>.` too, since
   a root misread reads that way.
-- **Mutation:** `faultAt` returning `<member>/<part>` for the root fails `veil/verify` and `veil/alpha verify` by name.
+- `root/named` (review of #3541): Button's 48 washed members are built under "Text button hover: Fill" and updated to
+  the default plan, by a host that keeps every root's wash and misapplies one root's main-axis alignment. Verify then
+  writes both root lines, `<member>.fills: 1 paint(s) (the plan says none)` and
+  `<member>.primaryAxisAlignItems: MIN (the plan says CENTER)`, and the arm asserts both exactly, with no `/..` line.
+- **Mutations:** `faultAt` returning `<member>/<part>` for the root fails `veil/verify` and `veil/alpha verify` by
+  name. Either `update-apply.ts` call site (the field line, or the unpainted fill line) reverted to `${name}/${at}`
+  fails `root/named` by name. The unpainted stroke line has the same shape as the fill line beside it and is not pinned
+  on its own.
