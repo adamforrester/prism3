@@ -68,6 +68,9 @@
  *             must pass, so a gate that fails everything cannot satisfy them.
  *   COUNT     "<n> component sets" in a guide equals `componentDefs.length`, read from the engine. At least one guide
  *             makes the claim, so the arm cannot pass by having nothing to check.
+ *   COMMANDS (#3555 G11)  The agent-link guide's "What an agent can do" table has a row for every command in
+ *             `AGENT_COMMANDS`, read as text from `apps/plugin/src/agent-protocol.ts`. CITE checks the rows that exist;
+ *             this checks the ones that are missing (`panels-clean` shipped with none).
  *   SCOPE     Represented, not counted (`docs/34` shape 13): every guide `index.md` lists is read, every guide carries
  *             at least one citation, and each of the three source trees yielded string literals. A moved guides
  *             folder or source tree fails here instead of passing with nothing read (`docs/34` shape 9).
@@ -619,8 +622,20 @@ if (!stats.ordered) fail('SCOPE', 'no guide lists two or more bold labels the OR
 if (!counts.length) fail('COUNT', `no guide says how many component sets the engine defines, so this arm checked nothing (componentDefs holds ${defs}).`);
 for (const c of counts) if (c.n !== defs) fail('COUNT', `${c.file}: says ${c.n} component sets; componentDefs holds ${defs}.`);
 
+// COMMANDS (#3555 G11) — the agent-link guide's "What an agent can do" table lists every command the protocol has.
+// `panels-clean` shipped with no row, and CITE could not notice: it checks the rows that exist, not the ones missing.
+// The ORACLE is `AGENT_COMMANDS` as written in the protocol source, read as text; the SUBJECT is the table's first column.
+// `run-code` is dev-only and never in `AGENT_COMMANDS`, so it is not asked for.
+const protocolSrc = readFileSync(join(ROOT, 'apps/plugin/src/agent-protocol.ts'), 'utf8');
+const commandsLit = /export const AGENT_COMMANDS = \[([^\]]*)\]/.exec(protocolSrc);
+const commands = commandsLit ? [...commandsLit[1].matchAll(/'([a-z-]+)'/g)].map((m) => m[1]) : [];
+const linkGuide = guideFiles.includes('agent-link.md') ? readFileSync(join(guideDir, 'agent-link.md'), 'utf8') : '';
+const rows = new Set([...linkGuide.matchAll(/^\| `([a-z-]+)` \|/gm)].map((m) => m[1]));
+if (commands.length < 10) fail('COMMANDS', `read ${commands.length} commands from AGENT_COMMANDS in apps/plugin/src/agent-protocol.ts, so this arm checked almost nothing`);
+for (const c of commands) if (!rows.has(c)) fail('COMMANDS', `docs/public/guides/agent-link.md: "What an agent can do" has no row for \`${c}\`, which AGENT_COMMANDS lists`);
+
 if (fails.length) {
   console.error(`❌ ${TAG}: ${fails.length} failure${fails.length === 1 ? '' : 's'}\n${fails.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}).`);
+console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide.`);

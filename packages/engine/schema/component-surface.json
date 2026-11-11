@@ -576,11 +576,11 @@
     },
     "list-item": {
       "members": 12,
-      "sha256": "7d9ecec7b537abcffc70bf4278a35c875d3183274e6b16e8894d289dcaecd076",
+      "sha256": "089e83fb25da650afae18b70ea66a8bd8598f59b1ac17be88877b4e427c7c433",
       "properties": [
+        "label:TEXT",
         "number:TEXT",
-        "swap icon:INSTANCE_SWAP",
-        "text:TEXT"
+        "swap icon:INSTANCE_SWAP"
       ]
     },
     "list": {
@@ -624,7 +624,7 @@
     },
     "link": {
       "members": 192,
-      "sha256": "bf9d96887836ea1cf3de6eab1e7035c3c1fb2fc326344c261efcc131f378c624",
+      "sha256": "fb125f46b3e8924cbed6e97fb02105acb47f35875d0af4cf64c3f9fd24484112",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -632,7 +632,7 @@
     },
     "link@body-emphasis": {
       "members": 192,
-      "sha256": "13cfcc193d92843d1568f73c1a5e7055d67e267cb81890ab396f0a4507de4619",
+      "sha256": "c96ae63cd69e5516c8826ee9bdd22c6c7b60d45aaedebc23ef465751bcfa47ed",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -640,7 +640,7 @@
     },
     "link@body-single": {
       "members": 96,
-      "sha256": "532aacd144e3691a471f53bacc0bc0207bf1e596a489e866d41521f25fc9f901",
+      "sha256": "ba83d254ebe3f311bfe6a6f6fc89a9a70bacdce319ecefdc99f706db72eb92b0",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -705,7 +705,7 @@
     },
     "counter": {
       "members": 18,
-      "sha256": "b7b708fc1c078c1f43df06153206b749955bf0f80fa3bcf8e3846b5e335b58c7",
+      "sha256": "22458d4468f5d356c0b6dc607f8049443d6b5a6f026e91983feb8484bab63e47",
       "properties": [
         "label:BOOLEAN",
         "message:BOOLEAN",
