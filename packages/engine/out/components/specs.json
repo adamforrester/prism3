@@ -28623,7 +28623,7 @@
                 "minWidth": {
                   "px": 64,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28706,7 +28706,7 @@
                 "minWidth": {
                   "px": 56,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28789,7 +28789,7 @@
                 "minWidth": {
                   "px": 88,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28872,7 +28872,7 @@
                 "minWidth": {
                   "px": 64,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -28966,7 +28966,7 @@
                 "minWidth": {
                   "px": 56,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -29060,7 +29060,7 @@
                 "minWidth": {
                   "px": 88,
                   "source": "derived",
-                  "rule": "height × 1.5"
+                  "rule": "height × 1.5, rounded to the nearest 8px"
                 }
               }
             },
@@ -33245,7 +33245,7 @@
       ],
       "properties": [
         {
-          "name": "text",
+          "name": "label",
           "type": "TEXT",
           "default": "List item"
         },
