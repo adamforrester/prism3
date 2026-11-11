@@ -29,7 +29,8 @@
  *                  stopped before any stamp, 9 when the 10th stamp write or the 10th marker clear throws (#3449).
  *                  Mutations: the count not read off the host on a stop → `stop/count finished`; the in-progress
  *                  marker ignored → `stop/count marker`; the dry run reading a marked member as current (#3497) →
- *                  `stop/count marker dry run`.
+ *                  `stop/count marker dry run`; the marker read before the pass left out of the count (#3559) →
+ *                  `stop/count after marker`.
  *   version/…      a named version is saved once, before the first write; refused, nothing is written.
  *                  Mutation: the version not saved → `version/once`, `version/refused`.
  *   fonts/…        a text style whose typeface will not load refuses the set before anything is written.
@@ -1159,6 +1160,37 @@ section('stop/count — a set stopped after some members finished counts them');
   const post = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
   ok(applyVerdict(again).ok && post.counts.current === 45 && membersOf(w.set()).every((m: any) => !pd(m, UPDATING_KEY)),
     `stop/count marker finished: the next run finishes the marked member and clears its marker (${applyVerdict(again).headline}; ${JSON.stringify(post.counts)})`);
+}
+{
+  // #3559: a stop in the run AFTER a marker stop. Run 1 stops on the 10th marker clear, as above, so one member carries
+  // its new stamp and still its marker, and the dry run reads 36 to update. Run 2 stops on the 36th stamp write: 35
+  // members finished, the marked one among them (its marker came off). Expected, literal: 35, and the dry run after run
+  // 2 reads 44 current and 1 to update, the second witness. Mutation: the marker read before the pass left out of the
+  // count (`markedWas` dropped) → `stop/count after marker` (34).
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const next = moveGap(w.plans);
+  const pd = (m: any, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  let clears = 0, stamps = 0, phase = 1;
+  for (const m of membersOf(w.set())) {
+    const real = m.setSharedPluginData as (ns: string, k: string, v: string) => void;
+    m.setSharedPluginData = (ns: string, k: string, v: string) => {
+      if (phase === 1 && k === UPDATING_KEY && !v && ++clears === 10) throw new Error('in setSharedPluginData: the host stopped');
+      if (phase === 2 && k === STAMP_KEY && v && ++stamps === 36) throw new Error('in setSharedPluginData: the host stopped');
+      real.call(m, ns, k, v);
+    };
+  }
+  await confirm(w, [{ def: TAG, plans: next }]);
+  const marked = membersOf(w.set()).find((m: any) => pd(m, UPDATING_KEY));
+  const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
+  ok(!!marked && mid.counts.current === 9 && mid.counts.update === 36, `stop/count after marker premise: run 1 leaves one member marked and 36 to update (${JSON.stringify(mid.counts)}; ${String(marked?.name ?? 'none')})`);
+  phase = 2;
+  const { res } = await confirm(w, [{ def: TAG, plans: next }]);
+  const post = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
+  ok(!!res.outcomes[0]?.stopped && stamps === 36 && !pd(marked, UPDATING_KEY) && post.counts.current === 44 && post.counts.update === 1,
+    `stop/count after marker premise: run 2 stops at the 36th stamp write, the marked member is finished, and the dry run reads 44 current and 1 to update (${stamps} stamps; ${JSON.stringify(post.counts)})`);
+  const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
+  ok(line.includes('). 35 members updated; ') && (res.outcomes[0]?.updated ?? []).includes(String(marked?.name)),
+    `stop/count after marker: run 2's line counts the 35 members it finished, the one a marker stop left among them (${line.slice(0, 160)})`);
 }
 
 /* ── version ─────────────────────────────────────────────────────────────────────────────────────────── */
