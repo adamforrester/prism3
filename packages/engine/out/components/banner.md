@@ -32,8 +32,8 @@ Shown on the default member: tone `info`, edge `contained`.
 11. **Link** (optional) — The inline link: a Link, inline, default weight, medium, after the body's last word. Off by default, and never shown with the action.
 12. **Rich body** (optional) — The rich body: an empty slot for content a sentence cannot hold, such as a short list. Off by default; turn the body off when it is on.
 13. **Actions** (optional) — The action's row under the body, so the space above it hides with it. Off by default.
-14. **Action**
-15. **Dismiss** (optional)
+14. **Action** — The one action, a small text button; a banner holds one action at most.
+15. **Dismiss** (optional) — The dismiss button, a bare close icon with no edge or fill, as on a dialog; off by default.
 
 ## Styles
 

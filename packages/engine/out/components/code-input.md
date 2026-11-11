@@ -28,7 +28,7 @@ Shown on the default member: size `medium`, status `default`.
 7. **Cell4** — Cell 4 of the default six.
 8. **Cell5** — Cell 5 of the default six.
 9. **Cell6** — Cell 6 of the default six.
-10. **Message** (optional)
+10. **Message** (optional) — Helper or error text, hidden until the field has something to say; it takes the field's status.
 
 ## Styles
 

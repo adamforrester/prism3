@@ -189,7 +189,7 @@
     "veil.dark.subtle": {
       "$description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A subtle dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. The ink must stay light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
+      "when_to_use": "A subtle dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "mode_overrides": {
         "light": "{ads.core.palette.black-alpha.50}",
@@ -201,7 +201,7 @@
     "veil.dark.medium": {
       "$description": "Media veil, dark — a medium black wash (60%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A medium dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. The ink must stay light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
+      "when_to_use": "A medium dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "mode_overrides": {
         "light": "{ads.core.palette.black-alpha.60}",
@@ -213,7 +213,7 @@
     "veil.dark.strong": {
       "$description": "Media veil, dark — a strong black wash (70%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A strong dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. The ink must stay light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
+      "when_to_use": "A strong dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink light in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "mode_overrides": {
         "light": "{ads.core.palette.black-alpha.70}",
@@ -237,7 +237,7 @@
     "veil.light.subtle": {
       "$description": "Media veil, light — a subtle white wash (40%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A subtle light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. The ink must stay dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
+      "when_to_use": "A subtle light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "mode_overrides": {
         "light": "{ads.core.palette.white-alpha.40}",
@@ -249,7 +249,7 @@
     "veil.light.medium": {
       "$description": "Media veil, light — a medium white wash (50%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A medium light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. The ink must stay dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
+      "when_to_use": "A medium light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "mode_overrides": {
         "light": "{ads.core.palette.white-alpha.50}",
@@ -261,7 +261,7 @@
     "veil.light.strong": {
       "$description": "Media veil, light — a strong white wash (60%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A strong light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. The ink must stay dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
+      "when_to_use": "A strong light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo. Keep the ink dark in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.",
       "avoid_when": "Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "mode_overrides": {
         "light": "{ads.core.palette.white-alpha.60}",
@@ -1184,7 +1184,7 @@
     "interactive.primary.indicator.rest": {
       "$description": "primary interactive indicator — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.600}",
@@ -1210,7 +1210,7 @@
     "interactive.primary.indicator.hover": {
       "$description": "primary interactive indicator — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.700}",
@@ -1236,7 +1236,7 @@
     "interactive.primary.indicator.pressed": {
       "$description": "primary interactive indicator — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.800}",
@@ -1632,7 +1632,7 @@
     "interactive.destructive.indicator.rest": {
       "$description": "destructive interactive indicator — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.danger.600}",
@@ -1658,7 +1658,7 @@
     "interactive.destructive.indicator.hover": {
       "$description": "destructive interactive indicator — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.danger.700}",
@@ -1684,7 +1684,7 @@
     "interactive.destructive.indicator.pressed": {
       "$description": "destructive interactive indicator — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.danger.800}",
@@ -2042,7 +2042,7 @@
     "interactive.neutral.indicator.rest": {
       "$description": "neutral interactive indicator — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.950}",
@@ -2068,7 +2068,7 @@
     "interactive.neutral.indicator.hover": {
       "$description": "neutral interactive indicator — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.850}",
@@ -2094,7 +2094,7 @@
     "interactive.neutral.indicator.pressed": {
       "$description": "neutral interactive indicator — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.750}",
@@ -2482,7 +2482,7 @@
     "inverse.interactive.primary.indicator.rest": {
       "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.rest`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.450}",
@@ -2508,7 +2508,7 @@
     "inverse.interactive.primary.indicator.hover": {
       "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.hover`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.350}",
@@ -2534,7 +2534,7 @@
     "inverse.interactive.primary.indicator.pressed": {
       "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on primary control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.indicator.pressed`. Do not use as ink (use `interactive.primary.text.*`) or as an outline control's edge (use `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.250}",
@@ -2930,7 +2930,7 @@
     "inverse.interactive.destructive.indicator.rest": {
       "$description": "destructive interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.rest`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.danger.400}",
@@ -2956,7 +2956,7 @@
     "inverse.interactive.destructive.indicator.hover": {
       "$description": "destructive interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.hover`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.danger.300}",
@@ -2982,7 +2982,7 @@
     "inverse.interactive.destructive.indicator.pressed": {
       "$description": "destructive interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on destructive control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.indicator.pressed`. Do not use as ink (use `interactive.destructive.text.*`) or as an outline control's edge (use `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.danger.200}",
@@ -3380,7 +3380,7 @@
     "inverse.interactive.neutral.indicator.rest": {
       "$description": "neutral interactive indicator on an inverse surface — rest (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.rest`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.025}",
@@ -3406,7 +3406,7 @@
     "inverse.interactive.neutral.indicator.hover": {
       "$description": "neutral interactive indicator on an inverse surface — hover (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control on pointer hover: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.hover`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.100}",
@@ -3432,7 +3432,7 @@
     "inverse.interactive.neutral.indicator.pressed": {
       "$description": "neutral interactive indicator on an inverse surface — pressed (the selection mark; matches the label)",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's thumb or a slider's disc. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The shape that marks a selected or switched-on neutral control while pressed: a selected tab's bar, a checked radio's ring, a selected tag's outline, a switch's off thumb, a slider's disc or the current page's underline. A thumb on a filled track takes the on-fill ink instead. It matches the label's color. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.indicator.pressed`. Do not use as ink (use `interactive.neutral.text.*`) or as an outline control's edge (use `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.200}",
@@ -3928,7 +3928,7 @@
     "disabled.text": {
       "$description": "Disabled text — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state",
-      "when_to_use": "Text of a disabled or inactive element (a disabled outline/text control, disabled body copy).",
+      "when_to_use": "Text of a disabled or inactive element (a disabled outline/text control, disabled body copy). Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for active content (use `text.primary` or `text.secondary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.450}",
@@ -3936,6 +3936,11 @@
         "hc-light": "{ads.core.palette.neutral.550}",
         "hc-dark": "{ads.core.palette.neutral.450}"
       },
+      "sits_on": [
+        "background.primary",
+        "background.secondary",
+        "foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "background.secondary",
@@ -3948,7 +3953,7 @@
     "disabled.icon": {
       "$description": "Disabled icon — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state",
-      "when_to_use": "Icon of a disabled or inactive element.",
+      "when_to_use": "Icon of a disabled or inactive element. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for active icons (use `icon.primary` or `icon.secondary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.450}",
@@ -3956,6 +3961,11 @@
         "hc-light": "{ads.core.palette.neutral.550}",
         "hc-dark": "{ads.core.palette.neutral.450}"
       },
+      "sits_on": [
+        "background.primary",
+        "background.secondary",
+        "foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "background.secondary",
@@ -4021,7 +4031,7 @@
     "inverse.disabled.text": {
       "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state (inverse ground)",
-      "when_to_use": "Text of a disabled or inactive element (a disabled outline/text control, disabled body copy). Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Text of a disabled or inactive element (a disabled outline/text control, disabled body copy). Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `disabled.text`. Do not use for active content (use `inverse.text.primary` or `inverse.text.secondary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.550}",
@@ -4029,6 +4039,11 @@
         "hc-light": "{ads.core.palette.neutral.500}",
         "hc-dark": "{ads.core.palette.neutral.500}"
       },
+      "sits_on": [
+        "inverse.background.primary",
+        "inverse.background.secondary",
+        "inverse.foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4041,7 +4056,7 @@
     "inverse.disabled.icon": {
       "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state (inverse ground)",
-      "when_to_use": "Icon of a disabled or inactive element. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Icon of a disabled or inactive element. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `disabled.icon`. Do not use for active icons (use `inverse.icon.primary` or `inverse.icon.secondary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.550}",
@@ -4049,6 +4064,11 @@
         "hc-light": "{ads.core.palette.neutral.500}",
         "hc-dark": "{ads.core.palette.neutral.500}"
       },
+      "sits_on": [
+        "inverse.background.primary",
+        "inverse.background.secondary",
+        "inverse.foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4153,7 +4173,7 @@
       "$description": "Form field placeholder ink — a readable hint, 4.5:1 on `background.secondary` behind the transparent fill (not a sub-AA placeholder)",
       "meaning": "Form input / field chrome",
       "when_to_use": "Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use as a label (a11y anti-pattern) or for the entered value (use `text.primary`).",
+      "avoid_when": "Do not use as a label (placeholder text disappears on input, so the field loses its name) or for the entered value (use `text.primary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.550}",
         "dark": "{ads.core.palette.neutral.450}",
@@ -4257,7 +4277,7 @@
       "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on `inverse.background.secondary` behind the transparent fill",
       "meaning": "Form input / field chrome (inverse ground)",
       "when_to_use": "Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `field.placeholder`. Do not use as a label (a11y anti-pattern) or for the entered value (use `inverse.text.primary`).",
+      "avoid_when": "Do not use on the page ground; that is `field.placeholder`. Do not use as a label (placeholder text disappears on input, so the field loses its name) or for the entered value (use `inverse.text.primary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.450}",
         "dark": "{ads.core.palette.neutral.550}",
@@ -6759,7 +6779,7 @@
       "$description": "Accessible border — the first edge that clears 3:1 (SC 1.4.11) on every page and surface tier",
       "meaning": "Separation / structure",
       "when_to_use": "The first accessible border — a meaningful divider, a badge or table outline, any boundary that has to be perceived. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use as a hairline (use `border.primary`) or as a focus ring (use `border.focus`) — the ring has its own hue for a reason.",
+      "avoid_when": "Do not use as a hairline (use `border.primary`) or as a focus ring (use `border.focus`) — the ring has its own hue so focus reads apart from every resting border.",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.550}",
         "dark": "{ads.core.palette.neutral.500}",
@@ -6936,7 +6956,7 @@
       "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder",
       "meaning": "Separation / structure (inverse ground)",
       "when_to_use": "The first accessible border — a meaningful divider, a badge or table outline, any boundary that has to be perceived. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `border.tertiary`. Do not use as a hairline (use `inverse.border.primary`) or as a focus ring (use `inverse.border.focus`) — the ring has its own hue for a reason.",
+      "avoid_when": "Do not use on the page ground; that is `border.tertiary`. Do not use as a hairline (use `inverse.border.primary`) or as a focus ring (use `inverse.border.focus`) — the ring has its own hue so focus reads apart from every resting border.",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.350}",
         "dark": "{ads.core.palette.neutral.700}",
@@ -7860,14 +7880,14 @@
     },
     "core.font.weight-role.subtle": {
       "$description": "weight role 'subtle' → 300 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
-      "meaning": "Function-named weight → 300 — white-label-stable (the role is the contract; each brand maps the numeric).",
+      "meaning": "Function-named weight → 300 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.subtle` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (300); reference the role.",
       "resolves_to": "{ads.core.font.weight.300}"
     },
     "core.font.weight-role.default": {
       "$description": "weight role 'default' → 400 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
-      "meaning": "Function-named weight → 400 — white-label-stable (the role is the contract; each brand maps the numeric).",
+      "meaning": "Function-named weight → 400 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.default` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (400); reference the role.",
       "resolves_to": "{ads.core.font.weight.400}",
@@ -7895,7 +7915,7 @@
     },
     "core.font.weight-role.emphasis": {
       "$description": "weight role 'emphasis' → 500 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
-      "meaning": "Function-named weight → 500 — white-label-stable (the role is the contract; each brand maps the numeric).",
+      "meaning": "Function-named weight → 500 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.emphasis` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (500); reference the role.",
       "resolves_to": "{ads.core.font.weight.500}",
@@ -7913,7 +7933,7 @@
     },
     "core.font.weight-role.strong": {
       "$description": "weight role 'strong' → 700 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
-      "meaning": "Function-named weight → 700 — white-label-stable (the role is the contract; each brand maps the numeric).",
+      "meaning": "Function-named weight → 700 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.strong` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (700); reference the role.",
       "resolves_to": "{ads.core.font.weight.700}",
@@ -7945,7 +7965,7 @@
     },
     "core.font.weight-role.max": {
       "$description": "weight role 'max' → 900 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
-      "meaning": "Function-named weight → 900 — white-label-stable (the role is the contract; each brand maps the numeric).",
+      "meaning": "Function-named weight → 900 — the name holds across brands (the role is the contract; each brand maps the numeric).",
       "when_to_use": "Reference `core.font.weight-role.max` (not the numeric) so a brand weight re-map reflows every consumer at once.",
       "avoid_when": "Do not hard-code the numeric (900); reference the role.",
       "resolves_to": "{ads.core.font.weight.900}"
@@ -12285,7 +12305,7 @@
       "$description": "duration primitive — 0ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration-reduced.moderate",
         "motion.duration-reduced.slow",
@@ -12296,7 +12316,7 @@
       "$description": "duration primitive — 30ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.stagger"
       ]
@@ -12305,7 +12325,7 @@
       "$description": "duration primitive — 40ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration-reduced.instant",
         "motion.duration.instant"
@@ -12315,7 +12335,7 @@
       "$description": "duration primitive — 50ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration-reduced.normal"
       ]
@@ -12324,7 +12344,7 @@
       "$description": "duration primitive — 80ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration-reduced.fast",
         "motion.duration.fast",
@@ -12335,7 +12355,7 @@
       "$description": "duration primitive — 160ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration.normal",
         "motion.transition.default",
@@ -12346,7 +12366,7 @@
       "$description": "duration primitive — 240ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration.moderate",
         "motion.transition.emphasized"
@@ -12356,7 +12376,7 @@
       "$description": "duration primitive — 400ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration.slow"
       ]
@@ -12365,7 +12385,7 @@
       "$description": "duration primitive — 640ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration.slower"
       ]
@@ -12374,7 +12394,7 @@
       "$description": "duration primitive — 800ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration.spin"
       ]
@@ -12383,7 +12403,7 @@
       "$description": "duration primitive — 1600ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration.sweep"
       ]
@@ -12392,7 +12412,7 @@
       "$description": "duration primitive — 2600ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration-reduced.spin",
         "motion.duration-reduced.sweep"
@@ -12402,13 +12422,13 @@
       "$description": "easing linear — constant speed, no easing",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
     },
     "motion.easing.standard": {
       "$description": "easing standard — symmetric ease for in-place changes",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them.",
       "aliased_by": [
         "motion.easing-role.default",
         "motion.transition.default"
@@ -12418,7 +12438,7 @@
       "$description": "easing decelerate — fast start, soft landing; for entrances",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them.",
       "aliased_by": [
         "motion.easing-role.enter",
         "motion.transition.enter"
@@ -12428,7 +12448,7 @@
       "$description": "easing accelerate — soft start, fast finish; for exits",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them.",
       "aliased_by": [
         "motion.easing-role.exit",
         "motion.transition.exit"
@@ -12438,7 +12458,7 @@
       "$description": "easing expressive — S-curve for emphasized moments",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them.",
       "aliased_by": [
         "motion.easing-role.emphasized",
         "motion.transition.emphasized"
@@ -12448,25 +12468,25 @@
       "$description": "easing calm — accessibility: soft onset for long/involuntary motion",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
     },
     "motion.spring.snappy": {
       "$description": "spring snappy — damping 0.9, stiffness 700",
       "meaning": "Spring primitive (damping / stiffness)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
     },
     "motion.spring.gentle": {
       "$description": "spring gentle — damping 0.8, stiffness 380",
       "meaning": "Spring primitive (damping / stiffness)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
     },
     "motion.spring.bouncy": {
       "$description": "spring bouncy — damping 0.6, stiffness 800",
       "meaning": "Spring primitive (damping / stiffness)",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
     },
     "shadow.xs": {
       "$description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient)",
