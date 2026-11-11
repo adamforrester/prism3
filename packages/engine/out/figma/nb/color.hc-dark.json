@@ -781,7 +781,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Strongest border / divider",
+      "description": "Strongest border / divider — 3:1 on background/primary",
       "value": {
         "r": 0.9647058844566345,
         "g": 0.9686274528503418,
@@ -2824,7 +2824,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 50% black wash over an image to lift light text. Check contrast on your photo.",
+      "description": "Media veil — 50% black wash over an image to lift light text. Contrast depends on the photo.",
       "value": {
         "r": 0,
         "g": 0,
@@ -2843,7 +2843,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 60% black wash over an image to lift light text. Check contrast on your photo.",
+      "description": "Media veil — 60% black wash over an image to lift light text. Contrast depends on the photo.",
       "value": {
         "r": 0,
         "g": 0,
@@ -2862,7 +2862,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 70% black wash over an image to lift light text. Check contrast on your photo.",
+      "description": "Media veil — 70% black wash over an image to lift light text. Contrast depends on the photo.",
       "value": {
         "r": 0,
         "g": 0,
@@ -2900,7 +2900,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 40% white wash over an image to lift dark text. Check contrast on your photo.",
+      "description": "Media veil — 40% white wash over an image to lift dark text. Contrast depends on the photo.",
       "value": {
         "r": 1,
         "g": 1,
@@ -2919,7 +2919,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 50% white wash over an image to lift dark text. Check contrast on your photo.",
+      "description": "Media veil — 50% white wash over an image to lift dark text. Contrast depends on the photo.",
       "value": {
         "r": 1,
         "g": 1,
@@ -2938,7 +2938,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil — 60% white wash over an image to lift dark text. Check contrast on your photo.",
+      "description": "Media veil — 60% white wash over an image to lift dark text. Contrast depends on the photo.",
       "value": {
         "r": 1,
         "g": 1,

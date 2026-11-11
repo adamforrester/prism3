@@ -2563,6 +2563,8 @@ for (const place of SEARCH_PLACES) {
     }
   }
   await page.locator('[data-p3="search-input"]').fill('');
+  // #3553 M1 A: the tab row hides while Search is open, at every width, so the sweep closes it before the next place.
+  if (place !== 'components') await hooks.click(page.locator('[data-p3="search-close"]'));
 }
 for (const l of levers) {
   const at = foundAt.get(l.key);
@@ -2595,10 +2597,17 @@ for (const s of SEARCH_SAMPLE) {
   ok(before['lever-raised-surface'] && !before['lever-dialog-title-size'] && afterEdit['lever-raised-surface'] && !afterEdit['lever-dialog-title-size'],
     `#3093: on Components, searching "white" then picking Dialog surface's "${String(picked).trim()}" keeps Dialog title size hidden (${JSON.stringify({ before, after: afterEdit })})`);
   // #3129 R4: Components shows no mode control, so the mode changes on Theme (Components previews Light, Q3129.14 B), and
-  // the search holds across the visit.
-  await goPlace(page, 'brand');
+  // the search holds across the visit. #3553 M1 A changed the route: the tab row hides while Search is open, so no other
+  // Theme page can be reached without closing it. The visit goes by the rail instead, to the Theme page last open
+  // (Layout, the sweep's last), and the mode is changed there with Search still open.
+  await hooks.click(page.locator('[data-p3="rail-theme"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place !== 'components');
+  const onTheme = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, open: document.querySelector('[data-p3="search"]')?.dataset.open === 'true',
+    tabs: [...document.querySelectorAll('[data-p3="tab-row"] .p3-tabs')].filter((t) => t.getClientRects().length > 0).length }));
+  ok(onTheme.open && onTheme.tabs === 0, `#3553 M1 A: the rail's Theme tile keeps Search open, and the tab row stays hidden under it (${JSON.stringify(onTheme)})`);
   await pickMode(page, 'dark');
-  await goPlace(page, 'components');
+  await hooks.click(page.locator('[data-p3="rail-components"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const afterMode = await read();
   ok(afterMode['lever-raised-surface'] && !afterMode['lever-dialog-title-size'],
@@ -21605,6 +21614,68 @@ if (runs('3553-me')) {
     } finally { await ctx.close(); }
   }
 } // 3553-me
+// #3553 M1 (the owner's M1 A): SEARCH AT EVERY WIDTH TAKES THE ROW. At the wide tier an open field was `flex: 0 1 50%`
+// beside tabs that kept their width: about 52px of field, "Depth & motion" cut, the no-match status run about 180px past
+// the levers column and over the preview's title, and Close outside the row; on Components Close ran past the column at
+// every width. Now the field takes the row and the tab row hides while it is open, as the narrow tier already did. Held
+// on both hosts, both themes, at 1280 and 1024 (and the plugin's 380), on every Theme page and Components, with a query
+// that matches nothing so the status line is at its longest. On Components the page's title gives way too: the row
+// carried it beside the field, which left the field 0px at 1024. MUTATIONS (each after a `wip:` commit): the general
+// `.p3-nav:has(.p3-search[data-open="true"]) :is(.p3-tabs, .p3-preview-title)` rule dropped → `#3553 M1 … the tab row hides while Search is open`
+// and `… the field shows at least 80px of text`; the open field's `flex: 1 1 auto` put back to `0 1 50%` → `… the status and
+// Close stay inside the levers column`.
+/** The field's floor: about ten characters of the chrome's 14px text, where the wide tier left about 52px. */
+const M1_FIELD_MIN = 80;
+if (runs('3553-m1')) {
+  console.log(`\nSearch takes the row at every width (#3553 M1)\n${'='.repeat(78)}`);
+  const sizes = { web: [[1280, 900], [1024, 768]], figma: [[1280, 900], [1024, 768], [380, 420]] };
+  for (const host of ['web', 'figma']) for (const [w, h] of sizes[host]) for (const theme of ['light', 'dark']) {
+    const where = `3553-m1 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'open';
+    try {
+      for (const place of ['brand', 'color-fills', 'type', 'shape', 'depth', 'layout', 'components']) {
+        step = place;
+        await goPlace(page, place);
+        await hooks.click(page.locator('[data-p3="search-open"]'));
+        await hooks.need(page, '[data-p3="search-input"]');
+        await page.locator('[data-p3="search-input"]').fill('zqxj');
+        await page.waitForFunction(() => (document.querySelector('[data-p3="search-status"]')?.textContent ?? '') !== '');
+        await settle(page);
+        const m = await page.evaluate(() => {
+          const r = (sel) => { const n = document.querySelector(sel); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width }; };
+          const input = document.querySelector('[data-p3="search-input"]');
+          const cs = input ? getComputedStyle(input) : null;
+          return {
+            nav: r('[data-p3="tab-row"]'), status: r('[data-p3="search-status"]'), close: r('[data-p3="search-close"]'),
+            tabs: [...document.querySelectorAll('[data-p3="tab-row"] :is(.p3-tabs, .p3-preview-title)')].filter((t) => t.getClientRects().length > 0).length,
+            whole: input ? input.scrollWidth <= input.clientWidth : false,
+            field: input ? input.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : null,
+            statusText: document.querySelector('[data-p3="search-status"]')?.textContent ?? '',
+          };
+        });
+        const at = `${where} ${place}`;
+        ok(m.statusText !== '' && !!m.nav && !!m.status && !!m.close, `${at}: premise, the no-match status and Close are drawn in the tab row (${JSON.stringify(m)})`);
+        ok(m.tabs === 0, `#3553 M1 ${at}: the tab row hides while Search is open, and Components' title with it (${m.tabs} drawn)`);
+        // The floor is M1's, the wide tier's. At the plugin's 380 the no-match status leaves the field 17px on `main` too:
+        // filed as #3620, not fixed here.
+        if (w >= 1024) ok(m.field !== null && m.field >= M1_FIELD_MIN && m.whole, `#3553 M1 ${at}: the field shows at least ${M1_FIELD_MIN}px of text, the typed query whole (${m.field?.toFixed(1)}, whole ${m.whole})`);
+        if (m.nav && m.status && m.close) ok(m.status.r <= m.nav.r + ALIGN_TOLERANCE && m.close.r <= m.nav.r + ALIGN_TOLERANCE,
+          `#3553 M1 ${at}: the status and Close stay inside the levers column (status ${m.status.r.toFixed(1)}, Close ${m.close.r.toFixed(1)}, column ${m.nav.r.toFixed(1)})`);
+        if (SHOTS && theme === 'light' && place === 'depth') await page.screenshot({ path: join(SHOTS, `s3553-m1-${host}-${w}-${place}.png`) });
+        await hooks.click(page.locator('[data-p3="search-close"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true');
+        if (place !== 'components') {
+          const back = await page.evaluate(() => [...document.querySelectorAll('[data-p3="tab-row"] .p3-tabs, [data-p3="tab-row"] .p3-domrow')].filter((t) => t.getClientRects().length > 0).length);
+          ok(back === 1, `#3553 M1 ${at}: closing Search brings the place switcher back (${back} drawn)`);
+        }
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-m1
 // #3553 M2, M3 AND M4 (batch M-B; the owner's M2 A, M3 A and M4 A): THE LEVERS ROWS IN A PANE BETWEEN 360 AND 480.
 // M2: at web 1024 the levers pane is 404px, above the old snug line (360), and a fill row's step picker squeezed its
 // name to 20–40px ("Hover" read "Ho"); the line is now 480, so from 1024 to 1200 the picker sits under the name. Held on
