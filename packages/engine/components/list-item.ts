@@ -228,7 +228,7 @@ export const listItem: ComponentDef = {
     variantAxes: ['type', 'size'],
     // The text first, at the top of the panel; the number only on ordered members, the icon swap only on icon members.
     texts: {
-      children: { part: 'label', default: 'List item', figmaName: 'text' },
+      children: { part: 'label', default: 'List item', figmaName: 'label' },
       value: { part: 'number', default: '1.', figmaName: 'number' },
     },
     // A required single icon, with no presence toggle: `swap icon`, with no ↳ (the icon-property canon).
