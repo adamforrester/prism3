@@ -64,7 +64,37 @@ export const cascadeRename = (prev: string, next: string): void => {
   if (brandState.linkPalette === prev) brandState.linkPalette = next;
   const rc = brandState.roleColors as Record<string, string> | undefined;
   if (rc) for (const r of Object.keys(rc)) if (rc[r] === prev) rc[r] = next;
+  // A column with no explicit `name` is named by its palette (`name ?? palette`), so the rename renames the column too,
+  // and every key that names the column by it follows (#3448): its per-mode anchor (`modeAnchors[mode][col]`) and its
+  // role overrides (`interactive.<col>.…`, `inverse.interactive.<col>.…`). Left on the old name the engine ignores them,
+  // and the column's anchor and overrides go back to Auto without a word. The old name wins: a key already on the new
+  // name belongs to no live column (`renameBrandColor` refuses every rename that would make it one), so it is a leftover, and
+  // it is dropped first (a removed column's keys stay behind, #3549). Kept, it would bring back a value the user
+  // removed and drop the one they just set. When another column carries the explicit `name` equal to the old name, the
+  // keys on it name that column too, and nothing says which column they belong to, so none of them moves (#3545 fifth
+  // review): a palette renamed onto a column's name, given a column, then renamed back must not take that column's keys.
+  const cols = brandState.interactivePalettes ?? [];
+  const renamesColumn = cols.some((e) => e.name === undefined && e.palette === prev) && !cols.some((e) => e.name === prev);
   brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
+  if (renamesColumn) {
+    for (const m of Object.values(brandState.modeAnchors ?? {})) {
+      if (!m) continue;
+      delete m[next];
+      if (prev in m) { m[next] = m[prev]; delete m[prev]; }
+    }
+    const heads = [[`interactive.${prev}.`, `interactive.${next}.`], [`inverse.interactive.${prev}.`, `inverse.interactive.${next}.`]];
+    for (const m of Object.values(brandState.overrides ?? {})) {
+      if (!m) continue;
+      for (const key of Object.keys(m)) if (heads.some(([, to]) => key.startsWith(to))) delete m[key];
+      for (const key of Object.keys(m)) {
+        const head = heads.find(([from]) => key.startsWith(from));
+        if (!head) continue;
+        const to = head[1] + key.slice(head[0].length);
+        (m as Record<string, unknown>)[to] = m[key];
+        delete m[key];
+      }
+    }
+  }
   if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === prev) s.palette = next; }));
   // An override that names the palette follows too (#3405), in every mode, custom modes included: left on the old
   // name it dangles, and the engine refuses the brand ("unknown palette"). Its step is kept: the ramp is the same one.
@@ -131,13 +161,21 @@ export const addBrandColor = (): string => {
  *  another palette's: a collision would merge two ramps in the alias graph. "Another palette" includes every palette
  *  the engine always mints (`isReservedPalette`: primary, neutral, the status palettes, white, black, transparent and
  *  the alpha ramps, #3562). Taken, such a rename made the engine refuse the brand, and the cascade rewrote every
- *  reference to the status palette, so renaming back moved them onto the brand color. */
+ *  reference to the status palette, so renaming back moved them onto the brand color. Also refused when the palette
+ *  has an unnamed interactive column and the name is any column's explicit `name`, on any palette, this one included
+ *  (#3545 re-reviews): the unnamed column would take that name, the engine refuses a duplicate column name, and
+ *  `cascadeRename` would drop the named column's keys as leftovers. A palette with no unnamed column renames no
+ *  column, so nothing collides and nothing is dropped, and that rename is not refused. Every case of this rule is a
+ *  row of one table in `test-interactive-input.ts` §11 (`#3545 rule: …`). */
 export const renameBrandColor = (i: number, raw: string): boolean => {
   const list = brandState.brandColors ?? [];
   const bc = list[i];
   const next = raw.trim();
   if (!bc || !next || next === bc.name) return false;
-  const taken = new Set(list.filter((_, j) => j !== i).map((b) => b.name));
+  const cols = brandState.interactivePalettes ?? [];
+  const ownsUnnamed = cols.some((e) => e.palette === bc.name && e.name === undefined);
+  const columnNames = ownsUnnamed ? cols.map((e) => e.name).filter((n): n is string => n !== undefined) : [];
+  const taken = new Set([...list.filter((_, j) => j !== i).map((b) => b.name), ...columnNames]);
   if (taken.has(next) || isReservedPalette(next)) return false;
   const prev = bc.name;
   bc.name = next;
