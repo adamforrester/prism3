@@ -30,9 +30,9 @@
 export const BODY_TEXT_FLOOR = 4.5;
 
 /** The large-text limit a sub-body text role carries (owner sign-off, #1623 DT/T-7 · FG/F-16). WCAG 2.2
- *  defines large text as ≥18pt (24px) or ≥14pt bold (18.66px). Shared by the DTCG and Figma registers so
- *  the two state the same rule in the same words. */
-export const LARGE_TEXT_ONLY = 'large text (≥24px, or ≥18.66px bold) or non-essential text only';
+ *  defines large text as ≥18pt (24px) or ≥14pt bold (18.667px, written 18.67px: 18.66px bold is below 14pt, #3555 F7).
+ *  Shared by the DTCG and Figma registers so the two state the same rule in the same words. */
+export const LARGE_TEXT_ONLY = 'large text (≥24px, or ≥18.67px bold) or non-essential text only';
 
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const num = (n: number): string => String(+n.toFixed(2));

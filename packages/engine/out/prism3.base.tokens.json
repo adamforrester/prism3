@@ -1548,7 +1548,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{pds3.core.palette.neutral.450}",
-          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "brand": {
           "$type": "color",
@@ -1578,27 +1578,27 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.primary.450}",
-          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "success-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.success.450}",
-          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "warning-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.warning.450}",
-          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "danger-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.danger.450}",
-          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "info-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.info.450}",
-          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
         },
         "on-brand": {
           "$type": "color",
@@ -1925,17 +1925,17 @@
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.10}",
-              "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.hover)"
+              "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.hover)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.20}",
-              "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)"
+              "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.20}",
-              "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.selected)"
+              "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.selected)"
             }
           },
           "subtle-fill": {
@@ -2051,17 +2051,17 @@
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.10}",
-              "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)"
+              "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.20}",
-              "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)"
+              "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.20}",
-              "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)"
+              "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)"
             }
           }
         },
@@ -2170,17 +2170,17 @@
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.10}",
-              "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)"
+              "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.20}",
-              "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)"
+              "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.black-alpha.20}",
-              "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)"
+              "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)"
             }
           }
         }
@@ -2282,18 +2282,18 @@
           "rest": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.450}",
-            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible ground (`background.secondary`), not the page alone"
+            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against `background.secondary`, the ground it is gated on, not the page alone"
           },
           "hover": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.650}",
-            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
+            "$description": "Form field hover border — four ramp steps stronger than rest, gated at 3:1 on `background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer"
           }
         },
         "placeholder": {
           "$type": "color",
           "$value": "{pds3.core.palette.neutral.550}",
-          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
+          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on `background.secondary` behind the transparent fill (not a sub-AA placeholder)"
         }
       },
       "inverse": {
@@ -2395,7 +2395,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.550}",
-            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "brand": {
             "$type": "color",
@@ -2425,27 +2425,27 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.550}",
-            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "success-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.success.550}",
-            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "warning-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.warning.550}",
-            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "danger-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.danger.550}",
-            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "info-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.info.550}",
-            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "link": {
             "default": {
@@ -3012,18 +3012,18 @@
             "rest": {
               "$type": "color",
               "$value": "{pds3.core.palette.neutral.550}",
-              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground"
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against `inverse.background.secondary`, the ground it is gated on"
             },
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.neutral.350}",
-              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground. A field draws no hover fill, so this border is its hover cue, with the pointer"
+              "$description": "Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at 3:1 on `inverse.background.secondary`. A field draws no hover fill, so this border is its hover cue, with the pointer"
             }
           },
           "placeholder": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.450}",
-            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill"
+            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on `inverse.background.secondary` behind the transparent fill"
           }
         }
       }

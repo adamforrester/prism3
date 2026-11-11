@@ -12,7 +12,7 @@
  * tells the `brand` topic, and every surface that reads the brand repaints from its subscription.
  */
 import type { BrandInput } from '@prism3/engine/theme';
-import { brandTheme } from '@prism3/engine/theme';
+import { brandTheme, isReservedPalette } from '@prism3/engine/theme';
 import { ACHROMATIC_C, hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { brandState, lastGoodInput, theme } from './store';
@@ -128,14 +128,17 @@ export const addBrandColor = (): string => {
   return nm;
 };
 /** Rename brand color `i`. Refused (returns false, nothing changes) when the name is empty, unchanged, or
- *  another palette's: a collision would merge two ramps in the alias graph. */
+ *  another palette's: a collision would merge two ramps in the alias graph. "Another palette" includes every palette
+ *  the engine always mints (`isReservedPalette`: primary, neutral, the status palettes, white, black, transparent and
+ *  the alpha ramps, #3562). Taken, such a rename made the engine refuse the brand, and the cascade rewrote every
+ *  reference to the status palette, so renaming back moved them onto the brand color. */
 export const renameBrandColor = (i: number, raw: string): boolean => {
   const list = brandState.brandColors ?? [];
   const bc = list[i];
   const next = raw.trim();
   if (!bc || !next || next === bc.name) return false;
-  const taken = new Set(['primary', 'neutral', ...list.filter((_, j) => j !== i).map((b) => b.name)]);
-  if (taken.has(next)) return false;
+  const taken = new Set(list.filter((_, j) => j !== i).map((b) => b.name));
+  if (taken.has(next) || isReservedPalette(next)) return false;
   const prev = bc.name;
   bc.name = next;
   cascadeRename(prev, next);

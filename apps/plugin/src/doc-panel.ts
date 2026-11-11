@@ -198,8 +198,16 @@ export const nameInFamily = (name: string, page: string): string => (name.starts
 const sentence = (s: string): string => { const t = s.replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
 /** Prose as the panel shows it: code spans as plain text, whitespace folded. */
 export const plain = (s: string): string => s.replace(/`/g, '').replace(/\s+/g, ' ').trim();
-/** The first `n` sentences of `s`, the wireframe's cut: a sentence ends at `.` or `)` before a capital or a quote. */
-export const firstSentences = (s: string, n: number): string => plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/).slice(0, n).join(' ');
+/** The first `n` sentences of `s`, the wireframe's cut: a sentence ends at `.` or `)` before a capital or a quote. Each
+ *  sentence inside a quoted example still counts toward `n`, but the cut never falls inside an open `"…"` (#3552 N1):
+ *  when the `n`th sentence leaves a quote open, the sentences after it are kept until it closes. */
+export const firstSentences = (s: string, n: number): string => {
+  const pieces = plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/);
+  const open = (k: number): boolean => (pieces.slice(0, k).join(' ').match(/"/g) ?? []).length % 2 === 1;
+  let k = Math.min(n, pieces.length);
+  while (k < pieces.length && open(k)) k++;
+  return pieces.slice(0, k).join(' ');
+};
 
 /**
  * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927, #3265), from the def's part tree: pure, so the runs and the bracket rule

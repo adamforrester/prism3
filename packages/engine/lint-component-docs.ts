@@ -491,11 +491,11 @@ const strs = (v: unknown): string[] =>
   v == null ? [] : Array.isArray(v) ? v.flatMap(strs) : typeof v === 'object' ? Object.values(v as object).flatMap(strs)
     : typeof v === 'string' ? (v.trim() ? [v] : []) : [];
 const src = (field: string, read: (d: ComponentDef) => unknown): Src => ({ field, read: (d) => strs(read(d)) });
-/** A part note written for maintainers — an issue number, a doc path, a section sign or a code span — is held
- *  back from the doc until it is rewritten (owner, 2026-10-19), and so is one that names a tool (#2411).
- *  Restated here, not imported. */
-const MAINTAINER_MARK = /#\d|docs\/|§|`|prism\s*2|\b(?:figma|figjam|dev\s+mode|code\s+connect|style\s+dictionary|tokens\s+studio|tokenpress|penpot|sketch|plugin\s+api|plugins?|exporters?|mcp|prism\s?3)\b/i;
-for (const [s, want] of [['see #848', true], ['docs/28 §5.3', true], ['the shared `focus-ring`', true], ['Typed per item in Figma.', true], ['Icon before the label.', false]] as [string, boolean][])
+/** A part note written for maintainers — an issue number, a doc path, a section sign, an owner-decision id or QA
+ *  date (#3552 N2) or a code span — is held back from the doc until it is rewritten (owner, 2026-10-19), and so is
+ *  one that names a tool (#2411). Restated here, not imported. */
+const MAINTAINER_MARK = /#\d|docs\/|§|`|prism\s*2|\(Q\d|Q\d+ [A-Za-z]\)|owner QA \d|\b(?:figma|figjam|dev\s+mode|code\s+connect|style\s+dictionary|tokens\s+studio|tokenpress|penpot|sketch|plugin\s+api|plugins?|exporters?|mcp|prism\s?3)\b/i;
+for (const [s, want] of [['see #848', true], ['docs/28 §5.3', true], ['the shared `focus-ring`', true], ['Typed per item in Figma.', true], ['while it has focus (Q257), so', true], ['the same square (Q414 A).', true], ['as its close; owner QA 2026-10-19)', true], ['Icon before the label.', false], ['A Quiet 2px gap.', false]] as [string, boolean][])
   if (MAINTAINER_MARK.test(s) !== want) note(`ANATOMY DETECTOR: the maintainer mark ${want ? 'misses' : 'matches'} ${JSON.stringify(s)} — the caption checks below cannot be trusted`);
 const notedParts = (d: ComponentDef) => Object.entries(d.anatomy?.parts ?? {}).filter(([, p]) => !!p.note?.trim());
 
