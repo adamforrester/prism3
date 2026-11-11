@@ -10634,6 +10634,14 @@ arm: {
       const p = k.replace(/^inverse\./, '');
       if (/^(text|icon)\.|^disabled\.(text|icon)$/.test(p) && e.contrast_with?.length && !e.sits_on?.length) primBad.push(`${b} ${k}: an ink with a contrast contract and no sits_on`);
     }
+    // #3555 Q-MD15 A: the veil's ink sentence is an instruction in the owner's stem, and its tail says the veil, like
+    // the ink, holds its polarity in every mode ("as the veil does"), not that the veil is the ink's color.
+    for (const [k, e] of Object.entries<any>(ai.color)) {
+      const v = /^veil\.(dark|light)\.(?!clear$)/.exec(k);
+      if (!v) continue;
+      const want = `Keep the ink ${v[1] === 'dark' ? 'light' : 'dark'} in every mode, as the veil does —`;
+      if (!String(e.when_to_use ?? '').includes(want)) primBad.push(`${b} ${k}: when_to_use lacks "${want}"`);
+    }
     // #3555 Q-MD3 A: a duration step is a value, not a binding (prism3-motion R1, lint-motion-literals). Every
     // `motion.duration-ms.*` leaf in the TREE has a primitive entry whose consume does not call it consumable and
     // points at the duration roles instead.
