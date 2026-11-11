@@ -4,7 +4,9 @@
  *
  *   present/<def>   every def that builds a set: one live panel on the set's page, tagged with the def and the set, and
  *                   its section frames, read off the drawn panel, are exactly the model's sections less the site-only
- *                   one, Theming included because the file has light and dark. Mutations: a section the model omits
+ *                   one, Theming included because the file has light and dark. On a family's lead, "In this family"
+ *                   lists the lead by its name alone (#3552 Q-UG4 A: the lede is its summary) and each other member with
+ *                   its summary. Mutation: the lead's summary back on its line → every `present/<lead> family`. Mutations: a section the model omits
  *                   drawn anyway → `present/focus-ring` (Content guidelines); the modes not passed → every
  *                   `present/<def>` (Theming missing).
  *   no data/…       a def with its Content guidelines and its Accessibility rows emptied draws neither section.
@@ -112,7 +114,10 @@
  *                   `legend/code-input`; a run keeping its first part's note → `legend/tabs`; the merge before #3265
  *                   (by settings, wherever a repeat stands, labelled "Item ×4") → `legend/pagination`, `legend/every def`;
  *                   a run's shared note replaced by the summary → `legend/shared note` (`anatomyEntry` called directly,
- *                   since no run in today's library shares a note).
+ *                   since no run in today's library shares a note). `legend/slot` (#3552 Q-UG5 A): over every def, each part
+ *                   other than the root that holds a numbered nested part reads "<run name> slot", and no label reads like a
+ *                   run after it ("Items" over "Items 1–2"). Mutation: the slot label dropped from `anatomyEntry` →
+ *                   `legend/slot`, `legend/code-input`, `legend/pagination`, `legend/tabs`, `legend/breadcrumbs`.
  *   quote/…         (#3552 N1) Progress', Card number field's and Code input's Content › Errors lines, typed by hand: each
  *                   keeps its quoted example whole, its quote closed; and over every lead, no planned string carries an odd
  *                   count of `"`; and Textarea's and Switch row's, whose quotes close inside the cut, keep exactly their two
@@ -126,7 +131,10 @@
  *                   `markers/breadcrumbs numbers` and every `markers/<def>`.
  *   family/related  (#2970 Q5 A) Checkbox's and Buttons' Related lists typed from the approved wireframe; a family named
  *                   twice in one list once. Mutations: the own-family drop removed → `family/related`, `family/related
- *                   buttons`; the de-duplication removed → `family/related once`.
+ *                   buttons`; the de-duplication removed → `family/related once`. `related/…` (#3552 Q-UG3 A): Dialog's and
+ *                   Tag's lists typed from their defs, each family once, in the first list that names it; over every lead,
+ *                   no family or component in two lists. Mutation: the panel's de-duplication reset per list →
+ *                   `related/dialog`, `related/every lead`. (The model's own once-rule is gated by `lint-component-docs.ts`.)
  *   line/…          a file without `_Doc-block`: one usage-panel line for the run (`docBlockLine`), and the warning templates'
  *                   line names nothing (#3467 Q2 A). Mutation: `_Doc-block` back in `WARN_TEMPLATES` → `line/not a warning`.
  *
@@ -564,7 +572,8 @@ for (const def of withSets) {
     `present/${def.id}: one panel, sections ${got.join(', ')}`, `want [${want.join(', ')}], got ${panels.length} panel(s) [${got.join(', ')}] ${r.skipped.join('; ')}`);
   // THE FAMILY AS ONE COMPONENT (#2970 Q3 A, Q4 A), when the page holds more than one: the title is the page's name, and
   // "In this family" one bulleted line per member, the lead's first, each its name (the page's own prefix dropped) then
-  // its summary's opening, the name linked to its set when the file has one (here only the lead's).
+  // its summary's opening, the name linked to its set when the file has one (here only the lead's). THE LEAD'S LINE IS
+  // ITS NAME ALONE (#3552 Q-UG4 A): its summary is the panel's lede already.
   const fam = familyOf(def.id);
   if (fam.members.length > 1) {
     const field = walk(panels[0]).find((c) => c.name === '_Doc-block' && walk(c).some((t) => t.name === 'label' && t.characters === 'In this family'));
@@ -574,6 +583,7 @@ for (const def of withSets) {
     const bad = order.flatMap((m, k) => {
       const d = componentDefs.find((x) => x.id === m)!;
       const short = d.name.startsWith(`${fam.page}.`) ? d.name.slice(fam.page.length + 1) : d.name;
+      if (k === 0) return lines[0] === short ? [] : [`line 1 "${lines[0] ?? ''}" is not the lead's name alone, "${short}"`];
       return lines[k]?.startsWith(`${short}: ${d.summary.slice(0, 12)}`) ? [] : [`line ${k + 1} "${lines[k] ?? ''}" is not ${short}'s`];
     });
     const title = walk(panels[0]).find((c) => c.type === 'TEXT' && c.fontSize === 18);
@@ -582,7 +592,7 @@ for (const def of withSets) {
     const leadShort = leadName.startsWith(`${fam.page}.`) ? leadName.slice(fam.page.length + 1) : leadName;
     ok(!bad.length && lines.length === order.length && title?.characters === fam.page && panels[0].name === `${fam.page} usage` && tagOf(panels[0]).family === fam.page
       && JSON.stringify(text?._lists) === `[{"s":0,"e":${String(text?.characters).length},"o":{"type":"UNORDERED"}}]` && linked.join() === `${leadShort}>${set.id}`,
-    `present/${def.id} family: "${fam.page}", ${order.length} parts listed, the lead first, each with its summary`, [...bad, `title ${String(title?.characters)}`, `links ${linked.join()}`].slice(0, 3).join('; '));
+    `present/${def.id} family: "${fam.page}", ${order.length} parts listed, the lead first by its name alone, each other with its summary`, [...bad, `title ${String(title?.characters)}`, `links ${linked.join()}`].slice(0, 3).join('; '));
   }
 }
 
@@ -711,7 +721,7 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
   want('code-input', [
     '1  Container — The field: label, the row of cells and the message, as wide as the widest of the three.',
     '2  Label — The accessible name, composed.',
-    '3  Items — The cells: a native slot of Cell instances, six by default, four at least and eight at most.',
+    '3  Cell slot — The cells: a native slot of Cell instances, six by default, four at least and eight at most.',
     '4  Cells 1–6 — One cell of a code input: a box holding one character of the code.',
     '5  Message (optional) — ',
   ], 'the six cells, one run, captioned by the cell\'s summary');
@@ -721,7 +731,7 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     '1  Container — The navigation landmark: one row of controls.',
     '2  Row — The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
     '3  Previous — ',
-    '4  Items — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.',
+    '4  Item slot — The pages: a slot of page cells, 4px apart, showing page 5 of 10 by default: 1, an ellipsis, 4, 5 (current), 6, an ellipsis, 10.',
     '5  Item 1 — The first page, 1.',
     '6  Item 2 — An ellipsis for pages 2 and 3.',
     '7  Item 3 — Page 4, before the current page.',
@@ -739,7 +749,7 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
   // tab."), so the run takes the tab's summary, never the second tab's note.
   want('tabs', [
     '1  Container — The tab list: the row of tabs above the baseline.',
-    '2  Items — The tabs: a native slot holding Tab instances side by side with no gap, three by default, the first selected.',
+    '2  Tab slot — The tabs: a native slot holding Tab instances side by side with no gap, three by default, the first selected.',
     '3  Tab 1 — The first tab, selected.',
     '4  Tabs 2–3 — One trigger in a tab list.',
     '5  Baseline — The 1px line along the bottom of the tab list.',
@@ -758,7 +768,7 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
   }
   want('breadcrumbs', [
     '1  Container — The navigation: a row that hugs the trail, or the one link up to the parent, with no padding and no fill.',
-    '2  Items — The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.',
+    '2  Item slot — The trail: a native slot holding BreadcrumbItem instances in a row, two ancestors and the current page by default.',
     '3  Items 1–2 — One step in a breadcrumb trail: a link, the current page, or the collapsed steps.',
     '4  Item 3 — The current page, last and not a link.',
     '5  Back glyph — The parent path: a 16px chevron pointing up the trail, in the link icon color, before the link.',
@@ -790,6 +800,28 @@ section('legend/… — numbered instances: "Cell 4" for one, "Cells 1–6" for 
     }
   }
   ok(bad.length === 0, 'legend/every def: no label glued to its number or carrying ×, and each repeat\'s entries cover its parts once, in order', bad.slice(0, 4).join('; '));
+
+  // A SLOT AND ITS RUN READ APART (#3552 Q-UG5 A), over every def: each part other than the root that holds a numbered
+  // nested part is labeled by what it holds, "<Item> slot", the word read here off its first such child's key; and no
+  // label is the name a later run or instance starts with ("Items" above "Items 1–2", "Items" above "Item 1").
+  const slotBad: string[] = [];
+  let slots = 0;
+  for (const def of componentDefs) {
+    const a = docSections(def).sections.find((x) => x.id === 'anatomy');
+    if (!a || a.id !== 'anatomy') continue;
+    const all = def.anatomy!.parts as Record<string, { kind?: string; children?: string[] }>;
+    const labels = legend(def.id).map((l) => l.replace(/^\d+ {2}/, '').replace(/ — [\s\S]*$/, '').replace(/ \(optional\)$/, ''));
+    for (const pt of a.parts) {
+      const child = pt.id === def.anatomy!.root ? undefined : (all[pt.id]?.children ?? []).find((c) => /\d$/.test(c) && all[c]?.kind === 'nest');
+      if (!child) continue;
+      slots++;
+      const base = child.replace(/\d+$/, '');
+      const word = base.charAt(0).toUpperCase() + base.slice(1).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+      if (!labels.includes(`${word} slot`)) slotBad.push(`${def.id}.${pt.id}: no "${word} slot" entry (legend ${labels.join(' / ')})`);
+    }
+    for (const l of labels) if (labels.some((o) => o !== l && new RegExp(`^${l.replace(/s$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}s? \\d`).test(o))) slotBad.push(`${def.id}: "${l}" reads like a run after it (legend ${labels.join(' / ')})`);
+  }
+  ok(slots >= 9 && slotBad.length === 0, `legend/slot: all ${slots} slots that hold a run read "<run name> slot", and no label reads like a run`, slotBad.slice(0, 4).join('; '));
 }
 
 /* ── quote: a caption is never cut inside a quoted example (#3552 N1) ─────────────────────────────────────── */
@@ -845,6 +877,9 @@ section('markers/… — every listed number on a specimen, on its part, by a le
     // #3265: a label names one instance ("Cell 4") or a run ("Cells 1–6"); each is read back to the def's parts by their
     // part names ("Cell4"), so the oracle knows which parts an entry covers without asking the panel.
     const covers = (label: string): ComponentDef['id'][] => {
+      // #3552 Q-UG5 A: "Item slot" is the part that holds the parts named "Item1", "Item2"….
+      const slot = /^(.+) slot$/.exec(label);
+      if (slot) return parts.filter((pt) => ((def.anatomy?.parts as Record<string, { children?: string[] }>)[pt.id]?.children ?? []).some((c) => new RegExp(`^${slot[1]}\\d+$`).test(parts.find((x) => x.id === c)?.name ?? ''))).map((pt) => pt.id);
       const run = /^(.+)s (\d+)–(\d+)$/.exec(label);
       if (run) return Array.from({ length: Number(run[3]) - Number(run[2]) + 1 }, (_, i) => `${run[1]}${Number(run[2]) + i}`).flatMap((nm) => parts.filter((pt) => pt.name === nm).map((pt) => pt.id));
       const one = /^(.+) (\d+)$/.exec(label);
@@ -1112,6 +1147,19 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   const doubled = { ...twice, composition: { ...twice.composition, alternativeTo: ['checkbox-row', 'checkbox-group', 'radio-row'] } } as ComponentDef;
   const alt = planDocPanel(doubled, { modes: ['light', 'dark'], names }).sections.find((s) => s.id === 'related')!.blocks.find((b) => b.type === 'Links' && b.label === 'Instead, consider');
   ok(alt?.type === 'Links' && alt.items.map((i) => i.name).join(' / ') === 'Checkbox / Radio', `family/related once: Checkbox.Row and Checkbox.Group in one list read "Checkbox" once (${alt?.type === 'Links' ? alt.items.map((i) => i.name).join(' / ') : 'no list'})`);
+  // EACH ONCE ACROSS THE LISTS (#3552 Q-UG3 A), typed from the defs: Dialog is built from Button.Group and names Button,
+  // Button.Neutral and Button.Destructive as partners, all of the Buttons family, so Buttons is under Built from alone;
+  // Tag names Badge, Checkbox.Group and Radio.Group as alternatives and as partners, so they stay under Instead, consider. Then over every lead: no family or component in two lists.
+  ok(related('dialog').join('\n') === ['Built from: Flush Icon Button>flush-icon-button / Divider>divider / Buttons>button', 'Instead, consider: Accordion>accordion',
+    'Often used with: TextField>text-field / Select>select / Checkbox>checkbox-row / Radio>radio-row'].join('\n'), 'related/dialog: Buttons once, under Built from', related('dialog').join(' | '));
+  ok(related('tag').join('\n') === ['Built from: FocusRing>focus-ring', 'Instead, consider: Badge>badge / Buttons>button / Checkbox>checkbox-row / Radio>radio-row', 'Often used with: Icon>icon'].join('\n'),
+    'related/tag: Badge, Checkbox and Radio once, under Instead, consider', related('tag').join(' | '));
+  const twiceIn: string[] = [];
+  for (const d of componentDefs.filter((x) => leadsPanel(x.id))) {
+    const lists = planDocPanel(d, { modes: ['light', 'dark'], names }).sections.find((x) => x.id === 'related')?.blocks.flatMap((b) => (b.type === 'Links' && b.label !== 'Replaces' ? b.items.map((i) => [i.def ?? i.name, b.label]) : [])) ?? [];
+    for (const [id, label] of lists) { const o = lists.find(([x, l]) => x === id && l !== label); if (o && lists.indexOf(o) > lists.findIndex(([x]) => x === id)) twiceIn.push(`${d.id}: ${id} under ${label} and ${o[1]}`); }
+  }
+  ok(twiceIn.length === 0, 'related/every lead: no family or component in two of a panel\'s Related lists', twiceIn.slice(0, 4).join('; '));
   const p = page('↳ Checkbox');
   const control = fakeSet(p, 'checkbox-control', 0, 0, 300, 200);
   const row = fakeSet(p, 'checkbox-row', 1000, 0, 300, 200);
@@ -1886,7 +1934,7 @@ section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do 
   ok(lists.join('\n') === [
     'Built from: FocusRing',
     'Instead, consider: Badge / Buttons / Checkbox / Radio',
-    'Often used with: Badge / Icon / Checkbox / Radio',
+    'Often used with: Icon',
     'Replaces: a removable token list built as a listbox / a clickable div styled as a pill / a bare × glyph with no accessible name',
   ].join('\n'), 'qa/related lists: 4 lists, one line per name, no chips', lists.join(' | '));
   ok(!related.children.some((b) => walk(b).some((c) => /^chip\d/.test(String(c.name)))) && rows.every((x) => JSON.stringify(x.text._lists) === `[{"s":0,"e":${String(x.text.characters).length},"o":{"type":"UNORDERED"}}]`),
@@ -1894,9 +1942,8 @@ section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do 
   const links = rows.flatMap((x) => x.text._links as { text: string; link: { type: string; value: string } }[]);
   ok(JSON.stringify(links) === JSON.stringify([
     { text: 'Badge', link: { type: 'NODE', value: badge.id } }, { text: 'Buttons', link: { type: 'NODE', value: button.id } },
-    { text: 'Badge', link: { type: 'NODE', value: badge.id } },
-  ]), 'qa/related links: Badge ×2, and Buttons to its lead Button\'s set, link by node; FocusRing, Icon, the families with no set here and Replaces stay plain', JSON.stringify(links));
-  ok(JSON.stringify(rows.flatMap((x) => (x.text._decos as { text: string }[]).map((d) => d.text))) === '["Badge","Buttons","Badge"]', 'qa/related underline: exactly the 3 linked names are underlined');
+  ]), 'qa/related links: Badge, and Buttons to its lead Button\'s set, link by node; FocusRing, Icon, the families with no set here and Replaces stay plain', JSON.stringify(links));
+  ok(JSON.stringify(rows.flatMap((x) => (x.text._decos as { text: string }[]).map((d) => d.text))) === '["Badge","Buttons"]', 'qa/related underline: exactly the 2 linked names are underlined');
   // A set built after the draw: the panel is due, so its name is linked on the next update; drawn again, it is not.
   ok(docPanelDue(api, set, planDocPanel(def, { modes: ['light', 'dark'], names })) === 0, 'qa/links current: not due right after the draw');
   const icon = mk('COMPONENT_SET', 'icon', [], { x: 0, y: 5000 }); p.appendChild!(icon);
