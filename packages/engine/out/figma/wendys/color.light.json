@@ -367,7 +367,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Tertiary text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Tertiary text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.501960813999176,
         "g": 0.5098039507865906,
@@ -475,7 +475,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted brand text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted brand text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.239215686917305,
@@ -493,7 +493,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted success text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted success text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.32549020648002625,
         "g": 0.5647059082984924,
@@ -511,7 +511,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted warning text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted warning text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.7803921699523926,
         "g": 0.4000000059604645,
@@ -529,7 +529,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted danger text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted danger text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.32156863808631897,
@@ -547,7 +547,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted info text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted info text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -3255,7 +3255,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Tertiary text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Tertiary text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
@@ -3363,7 +3363,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted brand text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted brand text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -3381,7 +3381,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted success text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted success text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.24313725531101227,
         "g": 0.4588235318660736,
@@ -3399,7 +3399,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted warning text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted warning text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.6470588445663452,
         "g": 0.3137255012989044,
@@ -3417,7 +3417,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted danger text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted danger text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.24705882370471954,
@@ -3435,7 +3435,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted info text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "description": "Muted info text — 3:1; large text (≥24px, or ≥18.67px bold) or non-essential text only.",
       "value": {
         "r": 0.1568627506494522,
         "g": 0.4274509847164154,

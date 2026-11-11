@@ -3669,6 +3669,11 @@
       },
       "docGaps": [
         {
+          "section": "anatomy",
+          "field": "anatomy.parts.labelReserve.note",
+          "reason": "maintainer register"
+        },
+        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -4128,6 +4133,11 @@
       },
       "docGaps": [
         {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -4532,6 +4542,11 @@
         "projection": []
       },
       "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "maintainer register"
+        },
         {
           "section": "styles",
           "field": "states",
@@ -5717,6 +5732,21 @@
       },
       "docGaps": [
         {
+          "section": "anatomy",
+          "field": "anatomy.parts.previousGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.gapGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.nextGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -5847,6 +5877,26 @@
         "projection": []
       },
       "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.previous.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.next.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.previousButton.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.nextButton.note",
+          "reason": "maintainer register"
+        },
         {
           "section": "styles",
           "field": "states",
@@ -6386,6 +6436,16 @@
       },
       "docGaps": [
         {
+          "section": "anatomy",
+          "field": "anatomy.parts.action.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.dismiss.note",
+          "reason": "maintainer register"
+        },
+        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -6620,6 +6680,16 @@
         ]
       },
       "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.field.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.milestones.note",
+          "reason": "maintainer register"
+        },
         {
           "section": "anatomy",
           "field": "anatomy.parts.milestone.note",
