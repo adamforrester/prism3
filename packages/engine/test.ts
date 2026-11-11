@@ -20312,13 +20312,15 @@ arm: {
       if (control?.bound?.height !== HEIGHT[sz] || control?.bound?.paddingLeft !== INSET[ap][sz] || control?.bound?.paddingRight !== INSET[ap][sz] || entry?.minWidth !== 32)
         offRow.push(`${name}: height ${control?.bound?.height}, insets ${control?.bound?.paddingLeft}/${control?.bound?.paddingRight}, value ${entry?.minWidth} wide`);
       const own = control ? planPaintVars({ ...control, children: [] }) : [];
-      const wantPaint = ap === 'ghost' ? [] : st === 'disabled' ? ['color/disabled/border'] : ['color/field/fill', st === 'focus-visible' ? 'color/border/focus' : 'color/field/border/rest'];
+      // Q-CC10 A (#3554): a disabled outline keeps a box, Text field's disabled fill and edge, literals.
+      const wantPaint = ap === 'ghost' ? [] : st === 'disabled' ? ['color/disabled/fill', 'color/disabled/border'] : ['color/field/fill', st === 'focus-visible' ? 'color/border/focus' : 'color/field/border/rest'];
       // The edge weight (#3399): the hairline, and the focus width while the value has focus. Literals.
       const wantWeight = st === 'focus-visible' ? 'focus/ring/width' : 'border-width/hairline';
       if (control?.bound?.strokeWeight !== wantWeight) offPaint.push(`${name}: edge weight ${control?.bound?.strokeWeight}, want ${wantWeight}`);
       if (JSON.stringify([...own].sort()) !== JSON.stringify([...wantPaint].sort())) offPaint.push(`${name}: box paints [${own.join(', ')}], want [${wantPaint.join(', ')}]`);
       const value = entry?.children.find((c) => c.name === 'value');
-      const ink = st === 'disabled' ? 'color/disabled/text' : 'color/text/primary';
+      // The value on the disabled outline fill takes the on-fill ink (#784); ghost's sits on the page.
+      const ink = st !== 'disabled' ? 'color/text/primary' : ap === 'outline' ? 'color/disabled/on-fill' : 'color/disabled/text';
       if (value?.paints?.fills !== ink) offPaint.push(`${name}: value ${value?.paints?.fills}, want ${ink}`);
       const ring = control?.children.find((c) => c.name === 'focusRing');
       if ((st === 'focus-visible' && RING[ap] !== undefined) !== !!ring || (ring && ring.absoluteInset !== RING[ap])) offRing.push(`${name}: ring ${ring ? ring.absoluteInset : 'absent'}`);
@@ -20326,7 +20328,7 @@ arm: {
     ok(offNest.length === 0, `#2427 counter/nests: both buttons nest FlushIconButton.Neutral exposing [state], outline → flush and ghost → round (Q287 A), at rest unless the Counter is disabled (Q283.7)${offNest.length ? ` — ${offNest.slice(0, 3).join('; ')}` : ''}`);
     ok(offLabel.length === 0, `#2427 counter/label-dims: the nested FieldLabel is primary and regular (#3200) at the Counter's size, disabled on the Counter's disabled members and at rest on the rest${offLabel.length ? ` — ${offLabel.slice(0, 3).join('; ')}` : ''}`);
     ok(offRow.length === 0, `#2427 counter/row: the row is 36 / 44 / 56 tall (Q287 A), inset 12 / 12 / 16 on outline and 0 on ghost, the value at least 32 wide (Q283.13 A)${offRow.length ? ` — ${offRow.slice(0, 3).join('; ')}` : ''}`);
-    ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the focus edge at focus-visible, #3399; the disabled edge at disabled), ghost paints no box at any state, the value full contrast until disabled${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
+    ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the focus edge at focus-visible, #3399; the disabled fill and edge at disabled, Q-CC10 A), ghost paints no box at any state, the value full contrast until disabled, then on-fill ink on outline and page ink on ghost${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
     ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, on ghost only, at the control offset (Q283.10 A); outline draws none, its edge is the focus edge (#3399)${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
     const b = counter.figmaProperties?.booleans ?? {};
     ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
