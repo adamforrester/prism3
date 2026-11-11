@@ -36,6 +36,8 @@
  * root hard-coded to `'pds3'` → `oracle/other-root` (1 of 78: the two scoring arms need its oracle). 80 assertions run.
  * The #3502 review's M5: `rootOf` taking the first of several top-level keys instead of throwing → `oracle/two-roots`,
  * `oracle/two-roots-base` (2 of 83); `rootOf` accepting an empty tree → `oracle/no-root` (1 of 83). 83 assertions run.
+ * #3567: `readsFiles` back to `READ_TOOLS` alone → `contamination/mcp`, `contamination/mcp-text` (with the text regex's `mcp__` dropped too);
+ * the CLAUDE.md pattern case-sensitive again → `contamination/claude-md-case`. 87 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -367,6 +369,11 @@ console.log('\ncapture, record and contamination — orchestrate.ts');
   ok(probeContamination(`${cleanJsonl}\n${call('Agent', { description: 'look up tokens', prompt: 'Read skills/prism3-build-ui/SKILL.md and summarize it' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/agent: an Agent sub-task told to read the skill voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Task', { prompt: 'open the CLAUDE.md' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/task: a Task sub-task naming CLAUDE.md voids the run');
   ok(probeContamination(`${proseText}\n⏺ Grep(pattern: "x", path: "skills/prism3-build-ui")`, packet).includes('a read of skills/prism3-*'), 'contamination/grep-text: a Grep call line in a text transcript voids the run');
+  // #3567: a read through an MCP tool is a read, in JSON and as a text transcript prints it, and CLAUDE.md in any case.
+  ok(probeContamination(`${cleanJsonl}\n${call('mcp__github__get_file_contents', { owner: 'o', repo: 'r', path: 'skills/prism3-build-ui/SKILL.md' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp: a read of skills/prism3-* through an MCP tool voids the run');
+  ok(probeContamination(`${proseText}\n⏺ mcp__github__get_file_contents(path: "skills/prism3-build-ui/SKILL.md")`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-text: an MCP call line in a text transcript voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat $(find / -iname claude.md)' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/claude-md-case: a lower-case claude.md in a Bash input voids the run');
+  ok(probeContamination(`${cleanJsonl}\n${call('mcp__github__get_file_contents', { owner: 'o', repo: 'r', path: 'README.md' })}`, packet).length === 0, 'contamination/mcp-clean: an MCP call that names none of the three does not void the run');
   ok(median([3, 1, 2]) === 2 && median([4, 1, 2, 3]) === 2.5 && median([]) === null, 'median: odd, even and empty');
 }
 
