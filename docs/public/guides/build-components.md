@@ -50,7 +50,7 @@ The status strip says how the run went, such as "Sets added" or "File updated". 
 | `⚠ N misses` | Something did not resolve or bind, such as a variable the file is missing. |
 | `✗ nothing built` | Nothing was in the file and nothing could be built. |
 
-A run of several sets is summed up in one line, such as "Built 3 sets" or "Built 2 of 3 sets". <!-- src: apps/studio/src/state/build-queue.ts:115-120 -->
+A run of several sets is summed up in one line, such as "Built 3 sets" or "Built 2 of 3 sets". <!-- src: apps/studio/src/state/build-queue.ts:126-131 -->
 
 A set that can't be built for this brand is listed with the reason: "Can't be built yet: …". <!-- src: apps/studio/src/preview/sections/component-sets.ts:26 -->
 
