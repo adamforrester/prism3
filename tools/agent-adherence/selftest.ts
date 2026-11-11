@@ -245,6 +245,11 @@ if (o) {
   fails('R2/bad-px', await run(edit('padding: var(--pds3-space-500);', 'padding: 40px;')), 'R2', 1, '40px in padding');
   fails('R2/bad-primitive', await run(edit('gap: var(--pds3-space-300);', 'gap: var(--pds3-core-dimension-24);')), 'R2', 1, 'primitive core.dimension.24 in gap');
   fails('R2/style-attr', await run(edit('<h1>Sign in</h1>', '<h1 style="margin-bottom: 8px">Sign in</h1>')), 'R2', 1, '8px in margin-bottom');
+  // #3565: a rule that holds a nested rule (native CSS nesting) keeps its own declarations, and the nested rule's too.
+  const nested = await run(edit('.card { max-width', '.card { outline: 3px solid #ff0000; & h1 { letter-spacing: 0; } max-width'));
+  fails('R2/nested', nested, 'R2', 2, 'hex #ff0000 in outline');
+  fails('R2/nested-px', nested, 'R2', 2, '3px in outline');
+  fails('R2/nested-inner', await run(edit('.card { max-width', '.card { & h1 { margin-block: 12px; } max-width')), 'R2', 1, '12px in margin-block');
   const media = await run(edit('@media (min-width: 600px)', '@media (min-width: 640px)'));
   ok(media.counts.R2 === 0, `R2/media-prelude: a px in an @media prelude is not counted (${brief(media)})`);
 
