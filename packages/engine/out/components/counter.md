@@ -54,7 +54,7 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 ### Don't
 
 - Use it for a large or precise number, such as a price or a measurement; use a number input
-- Use it for a count shown on another element, such as unread messages; use a badge
+- Use it for a count shown on another element, such as unread messages; use Badge
 - Put the minus and plus buttons in the Tab order; the arrow keys already step the value
 - Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology
 - Change the value on a mouse wheel or scroll

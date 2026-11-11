@@ -670,7 +670,7 @@ export const slider: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don\'t use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).',
+    usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don\'t use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).',
     do: [
       'Name the dimension with a visible label',
       'Format the value with its unit or currency, and use the same text for aria-valuetext',
@@ -689,7 +689,7 @@ export const slider: ComponentDef = {
   ai: {
     primaryPurpose: 'Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.',
     whenToUse: 'An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.',
-    avoidWhen: 'The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.',
+    avoidWhen: 'The user knows the exact number (use TextField, or turn on the paired inputs), there are a few named options (use SegmentedControl or Radio.Group), it is on or off (use Switch.Row), or the range is too wide for the track to reach each value.',
     commonPartners: ['_slider-thumb', 'field-label', 'field-message', 'text-field'],
     triggerKeywords: ['slider', 'range slider', 'price filter', 'volume control', 'range input', 'min max slider'],
     generationPriority: 2,

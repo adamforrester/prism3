@@ -2138,7 +2138,7 @@
       }
     },
     "button": {
-      "digest": "cb9fdc98",
+      "digest": "e4136509",
       "def": {
         "id": "button",
         "name": "Button",
@@ -2149,7 +2149,7 @@
         "category": "form",
         "status": "draft",
         "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use a link.",
-        "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
+        "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (SegmentedControl, or a toggle button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
         "props": [
           {
             "name": "label",
@@ -19608,7 +19608,7 @@
       }
     },
     "flush-icon-button": {
-      "digest": "361e6973",
+      "digest": "cb15282f",
       "def": {
         "id": "flush-icon-button",
         "name": "FlushIconButton",
@@ -19787,7 +19787,7 @@
           "supersedes": [],
           "supersededBy": [],
           "planned": [
-            "number-input",
+            "number-field",
             "card"
           ],
           "replacesPatterns": [
@@ -20439,7 +20439,7 @@
       }
     },
     "flush-icon-button-destructive": {
-      "digest": "d7a41f89",
+      "digest": "dff037e9",
       "def": {
         "id": "flush-icon-button-destructive",
         "name": "FlushIconButton.Destructive",
@@ -20619,7 +20619,7 @@
           "supersedes": [],
           "supersededBy": [],
           "planned": [
-            "number-input",
+            "number-field",
             "card"
           ],
           "replacesPatterns": [
@@ -21271,7 +21271,7 @@
       }
     },
     "flush-icon-button-neutral": {
-      "digest": "a7da0a07",
+      "digest": "00873467",
       "def": {
         "id": "flush-icon-button-neutral",
         "name": "FlushIconButton.Neutral",
@@ -21452,7 +21452,7 @@
           "supersedes": [],
           "supersededBy": [],
           "planned": [
-            "number-input",
+            "number-field",
             "card"
           ],
           "replacesPatterns": [
@@ -22704,7 +22704,7 @@
       }
     },
     "field-message": {
-      "digest": "84044863",
+      "digest": "4873fb4f",
       "def": {
         "id": "field-message",
         "name": "FieldMessage",
@@ -22798,7 +22798,7 @@
         "ai": {
           "primaryPurpose": "Carry helper guidance or a validation result below a form field, as icon + caption.",
           "whenToUse": "Under any field control that needs persistent guidance or an error/warning/success message.",
-          "avoidWhen": "As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.",
+          "avoidWhen": "As a standalone alert or toast (use Banner or Toast) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.",
           "commonPartners": [
             "text-field",
             "textarea",
@@ -34727,7 +34727,7 @@
       }
     },
     "badge": {
-      "digest": "3677dd33",
+      "digest": "e90da4d5",
       "def": {
         "id": "badge",
         "name": "Badge",
@@ -34928,7 +34928,7 @@
         "ai": {
           "primaryPurpose": "Mark a status, count or presence with a small static badge that nobody clicks.",
           "whenToUse": "A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card's details, where a filled label would draw too much attention.",
-          "avoidWhen": "The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.",
+          "avoidWhen": "The user can click, toggle or remove it (use Tag), the message is feedback about an action (use Toast or Banner), or the color would be the only signal.",
           "commonPartners": [
             "icon-button",
             "button",
@@ -35948,7 +35948,7 @@
       }
     },
     "tag": {
-      "digest": "6b399e06",
+      "digest": "fb3b4c7c",
       "def": {
         "id": "tag",
         "name": "Tag",
@@ -36122,7 +36122,7 @@
         "ai": {
           "primaryPurpose": "Render a small interactive token the user toggles or removes in place.",
           "whenToUse": "Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.",
-          "avoidWhen": "Nobody can act on it (use a badge), it runs an action (use a button), or it is a structured choice in a form submission (use a checkbox group or radio group).",
+          "avoidWhen": "Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use a checkbox group or radio group).",
           "commonPartners": [
             "badge",
             "icon",
@@ -38272,7 +38272,7 @@
       }
     },
     "tabs": {
-      "digest": "991560fb",
+      "digest": "e8bed752",
       "def": {
         "id": "tabs",
         "name": "Tabs",
@@ -38393,7 +38393,7 @@
           "labelPattern": "Short, parallel nouns, one or two words each. Past six or seven tabs, rethink the grouping."
         },
         "docs": {
-          "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use page navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.",
+          "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use PageNav), to change a setting or filter the current view (use SegmentedControl or Select), or for content people need to compare side by side.",
           "do": [
             "Keep labels short, parallel nouns",
             "Keep one tab selected at all times",
@@ -43550,7 +43550,7 @@
       }
     },
     "segmented-control": {
-      "digest": "5d327a0a",
+      "digest": "bae31b01",
       "def": {
         "id": "segmented-control",
         "name": "SegmentedControl",
@@ -43681,7 +43681,7 @@
           "labelPattern": "Short nouns or noun phrases, one line each, in sentence case: \"List\", \"Grid\". The same kind of content in every option. The control label names what is being chosen (\"View\", \"Time range\")."
         },
         "docs": {
-          "usage": "Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).",
+          "usage": "Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use Tabs), for more than five options or long labels (use Select or Radio.Group), or for one setting that turns on and off (use Switch.Row).",
           "do": [
             "Name what is being chosen, with a visible label or an accessible name",
             "Use two to five options with short, one-line labels",
@@ -43699,7 +43699,7 @@
         "ai": {
           "primaryPurpose": "Choose exactly one of two to five short, always-visible options that change a value in place.",
           "whenToUse": "A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.",
-          "avoidWhen": "The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).",
+          "avoidWhen": "The options switch panels of content (use Tabs), there are more than five or the labels are long (use Select or Radio.Group), options need descriptions (use Radio.Group), it is one on/off setting (use Switch.Row), or selecting goes to another page (a navigation of links).",
           "commonPartners": [
             "segmented-control-segment",
             "field-label",
@@ -47037,7 +47037,7 @@
       }
     },
     "button-group": {
-      "digest": "202150ed",
+      "digest": "55151957",
       "def": {
         "id": "button-group",
         "name": "Button.Group",
@@ -47049,7 +47049,7 @@
         "category": "form",
         "status": "draft",
         "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
-        "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.",
+        "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a SegmentedControl, whose buttons join edge to edge as one choice, and not a toolbar.",
         "props": [
           {
             "name": "items",
@@ -52372,7 +52372,7 @@
       }
     },
     "counter": {
-      "digest": "82319231",
+      "digest": "3e707664",
       "def": {
         "id": "counter",
         "name": "Counter",
@@ -52550,7 +52550,7 @@
           ],
           "dont": [
             "Use it for a large or precise number, such as a price or a measurement; use a number input",
-            "Use it for a count shown on another element, such as unread messages; use a badge",
+            "Use it for a count shown on another element, such as unread messages; use Badge",
             "Put the minus and plus buttons in the Tab order; the arrow keys already step the value",
             "Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology",
             "Change the value on a mouse wheel or scroll"
@@ -52598,7 +52598,7 @@
           "supersedes": [],
           "supersededBy": [],
           "planned": [
-            "number-input"
+            "number-field"
           ],
           "replacesPatterns": [
             "an <input type=\"number\"> for an item count",
@@ -54875,7 +54875,7 @@
       }
     },
     "pagination": {
-      "digest": "4347d65d",
+      "digest": "ae6b531a",
       "def": {
         "id": "pagination",
         "name": "Pagination",
@@ -55060,7 +55060,7 @@
         "ai": {
           "primaryPurpose": "Move between the pages of a long, ordered set of results and show which page is open.",
           "whenToUse": "Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.",
-          "avoidWhen": "A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a \"Go to page\" field (the table pager, not yet built).",
+          "avoidWhen": "A feed with no useful end (a load more Button), a few fixed views (Tabs or SegmentedControl), the slides of a carousel, or rows per page and a \"Go to page\" field (the table pager, not yet built).",
           "commonPartners": [
             "pagination-item",
             "list"
@@ -55851,7 +55851,7 @@
       }
     },
     "progress": {
-      "digest": "6c6e44b5",
+      "digest": "e52f66a4",
       "def": {
         "id": "progress",
         "name": "Progress",
@@ -56055,7 +56055,7 @@
         "ai": {
           "primaryPurpose": "Show that system work is under way and, when it can be measured, how far along it is.",
           "whenToUse": "An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.",
-          "avoidWhen": "The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).",
+          "avoidWhen": "The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).",
           "commonPartners": [
             "button",
             "spinner",
@@ -62186,7 +62186,7 @@
       }
     },
     "slider": {
-      "digest": "52e088b5",
+      "digest": "e7726d70",
       "def": {
         "id": "slider",
         "name": "Slider",
@@ -62415,7 +62415,7 @@
           "errorPattern": "Say what is wrong and how to fix it, in the field message: \"Enter a maximum of 200 or less.\""
         },
         "docs": {
-          "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don't use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).",
+          "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don't use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).",
           "do": [
             "Name the dimension with a visible label",
             "Format the value with its unit or currency, and use the same text for aria-valuetext",
@@ -62433,7 +62433,7 @@
         "ai": {
           "primaryPurpose": "Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.",
           "whenToUse": "An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.",
-          "avoidWhen": "The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.",
+          "avoidWhen": "The user knows the exact number (use TextField, or turn on the paired inputs), there are a few named options (use SegmentedControl or Radio.Group), it is on or off (use Switch.Row), or the range is too wide for the track to reach each value.",
           "commonPartners": [
             "_slider-thumb",
             "field-label",

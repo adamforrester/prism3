@@ -445,7 +445,7 @@ export const fieldMessage: ComponentDef = {
   ai: {
     primaryPurpose: 'Carry helper guidance or a validation result below a form field, as icon + caption.',
     whenToUse: 'Under any field control that needs persistent guidance or an error/warning/success message.',
-    avoidWhen: 'As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.',
+    avoidWhen: 'As a standalone alert or toast (use Banner or Toast) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.',
     // The hosts that nest it (text-field, textarea, select) and the parts it sits beside. A reverse list
     // lives here, not in `composesWith` (#1700).
     commonPartners: ['text-field', 'textarea', 'select', 'checkbox-row', 'counter', 'field-label', 'icon'],

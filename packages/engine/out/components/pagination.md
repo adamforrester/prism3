@@ -13,7 +13,7 @@ Moves between the pages of a long, ordered list or set of results, and shows whi
 
 - **Purpose:** Move between the pages of a long, ordered set of results and show which page is open.
 - **Use when:** Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.
-- **Avoid when:** A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).
+- **Avoid when:** A feed with no useful end (a load more Button), a few fixed views (Tabs or SegmentedControl), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).
 
 ## Anatomy
 

@@ -789,7 +789,7 @@ export const pagination: ComponentDef = {
   ai: {
     primaryPurpose: 'Move between the pages of a long, ordered set of results and show which page is open.',
     whenToUse: 'Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.',
-    avoidWhen: 'A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).',
+    avoidWhen: 'A feed with no useful end (a load more Button), a few fixed views (Tabs or SegmentedControl), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).',
     commonPartners: ['pagination-item', 'list'],
     triggerKeywords: ['pagination', 'pager', 'page numbers', 'previous and next', 'page 1 of 10', 'next page'],
     generationPriority: 2,
