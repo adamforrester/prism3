@@ -2,7 +2,7 @@
   "format": "prism3-component-defs/1.2",
   "generated": true,
   "engineVersion": "0.237.0",
-  "contractVersion": "14.15.0",
+  "contractVersion": "15.0.0",
   "note": "Every component definition, exported from the TypeScript source: `def` is the definition's shipped fields (the code API, states, variants, accessibility, the decision surface and relationships), and `spec` is the model of the design-file component built from it (parts, spacing and size tokens per size, color tokens per state, nesting). Token names only, so one file serves every brand. Generated, never edited: change the definition.",
   "brand": null,
   "components": {

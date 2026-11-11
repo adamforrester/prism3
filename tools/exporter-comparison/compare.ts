@@ -826,10 +826,7 @@ const NOT_IN_EMISSION = [
   { prefix: 'core.font.line-height', why: 'line-height reaches Figma only inside a text style, never as its own variable' },
   { prefix: 'core.font.letter-spacing', why: 'letter-spacing reaches Figma only inside a text style, never as its own variable' },
   { prefix: 'core.font.typeface.', why: 'the typeface primitive tier is collapsed: the emission writes the resolved face onto `<root>/core/font/family/*`' },
-  {
-    prefix: 'container.fluid',
-    why: 'value is `100%` — Figma FLOAT variables are unitless numbers, so a percentage has no representation and the emission omits the token',
-  },
+  // `container.fluid` (`100%`) was here until #2434 dropped it from the token layer.
   {
     prefix: 'focus.ring.style',
     why: 'value is the strokeStyle keyword `solid` — Figma has no stroke-style variable type, and the emission omits it (`focus/ring/width|offset|offset-field` ARE emitted)',
@@ -1352,7 +1349,7 @@ const VERDICTS: Verdict[] = [
     category: 1,
     verdict: 'EXPECTED',
     claim:
-      'the Figma round-trip is LOSSY BY CONSTRUCTION, and the loss is a property of Figma\'s variable model, not of either exporter: motion, line-height and letter-spacing roles, the typeface tier, `container.fluid` (a percentage) and `focus.ring.style` (a keyword) have no variable representation, so no exporter reading a Figma file can recover them',
+      'the Figma round-trip is LOSSY BY CONSTRUCTION, and the loss is a property of Figma\'s variable model, not of either exporter: motion, line-height and letter-spacing roles, the typeface tier and `focus.ring.style` (a keyword) have no variable representation, so no exporter reading a Figma file can recover them',
     source: '#696 scoped the emission to what Figma can hold; #703 §portability restated it',
     when: (r) => r.paths.explained.some((e) => e.reason.startsWith('NOT IN THE FIGMA EMISSION')),
   },

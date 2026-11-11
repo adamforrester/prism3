@@ -617,7 +617,7 @@ export const buildFigmaMotion = (theme: Theme): FigmaCollectionFile[] => {
 //   grid/columns        — FLOAT, per-mode count. No scope (no count scope exists).
 //   grid/gutter,margin  — FLOAT, PER-MODE alias into `space/*`. Scope: GAP.
 //   container/max,narrow,min — FLOAT, viewport-invariant. Scope: WIDTH_HEIGHT.
-// `container/fluid` (`"100%"`) skipped — Figma has no percentage FLOAT primitive.
+// No `container/fluid`: the token layer dropped it (#2434 — `100%` is no DTCG `dimension` unit).
 // ---------------------------------------------------------------------------
 
 export const LAYOUT_MODES = ['sm', 'md', 'lg', 'xl', '2xl'] as const;
