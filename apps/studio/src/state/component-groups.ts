@@ -129,7 +129,8 @@ export const SECTION_BLOCKS: Readonly<Partial<Record<SectionKind, readonly Block
 
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
-  intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
+  /** The web's intro. #3553 Q-UI6 A: no file sentence, since the web host has no file and builds nothing. */
+  intro: (n: number): string => `The ${n} component sets the engine defines, in families.`,
   /** #3129 (Q3129.4 A), #3306: the plugin's intro, and its boxes' names. DRAFT, the #3306 proposal's words: a set or a
    *  family is ticked, and the sets it nests come with it. */
   introPlugin: (n: number): string => `The ${n} component sets the engine defines, in families. Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them.`,
