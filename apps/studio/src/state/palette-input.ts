@@ -64,7 +64,29 @@ export const cascadeRename = (prev: string, next: string): void => {
   if (brandState.linkPalette === prev) brandState.linkPalette = next;
   const rc = brandState.roleColors as Record<string, string> | undefined;
   if (rc) for (const r of Object.keys(rc)) if (rc[r] === prev) rc[r] = next;
+  // A column with no explicit `name` is named by its palette (`name ?? palette`), so the rename renames the column too,
+  // and every key that names the column by it follows (#3448): its per-mode anchor (`modeAnchors[mode][col]`) and its
+  // role overrides (`interactive.<col>.…`, `inverse.interactive.<col>.…`). Left on the old name the engine ignores them,
+  // and the column's anchor and overrides go back to Auto without a word. A key already on the new name is kept.
+  const renamesColumn = !!brandState.interactivePalettes?.some((e) => e.name === undefined && e.palette === prev);
   brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
+  if (renamesColumn) {
+    for (const m of Object.values(brandState.modeAnchors ?? {})) {
+      if (m && prev in m && !(next in m)) { m[next] = m[prev]; delete m[prev]; }
+    }
+    const heads = [[`interactive.${prev}.`, `interactive.${next}.`], [`inverse.interactive.${prev}.`, `inverse.interactive.${next}.`]];
+    for (const m of Object.values(brandState.overrides ?? {})) {
+      if (!m) continue;
+      for (const key of Object.keys(m)) {
+        const head = heads.find(([from]) => key.startsWith(from));
+        if (!head) continue;
+        const to = head[1] + key.slice(head[0].length);
+        if (to in m) continue;
+        (m as Record<string, unknown>)[to] = m[key];
+        delete m[key];
+      }
+    }
+  }
   if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === prev) s.palette = next; }));
   // An override that names the palette follows too (#3405), in every mode, custom modes included: left on the old
   // name it dangles, and the engine refuses the brand ("unknown palette"). Its step is kept: the ramp is the same one.

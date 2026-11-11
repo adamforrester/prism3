@@ -362,5 +362,49 @@ console.log('\n10. #3405: renaming a brand color carries every override that nam
     'a refused rename (a taken name) moves no override');
 }
 
+console.log('\n11. #3448: renaming a brand color carries its interactive column\'s per-mode anchor and role overrides');
+{
+  // THE FIXTURE is the issue's repro: the prism3 brand, a brand color `accent-x` with an unnamed interactive column on
+  // it, its Dark fill anchored at 400, and two overrides keyed by the column's role path (one plain, one inverse, the
+  // inverse in the custom mode promo so custom modes are pinned). A second brand color `accent-n` has a column with an
+  // explicit `name`, so its keys name the column, not the palette, and must not move.
+  // The ORACLE is the engine's own `resolveAllModes`: what each role resolves to after the rename, never the module.
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'accent-x', oklch: { l: 0.55, c: 0.15, h: 235 } }, { name: 'accent-n', oklch: { l: 0.55, c: 0.15, h: 40 } });
+  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.brandState.interactivePalettes = [{ palette: 'accent-x' }, { name: 'named', palette: 'accent-n' }];
+  store.rebuild();
+  const FILL = (c: string): string => `interactive.${c}.fill.rest`, BORDER = (c: string): string => `interactive.${c}.border.rest`;
+  const INV = (c: string): string => `inverse.interactive.${c}.text.rest`;
+  store.brandState.modeAnchors = { dark: { 'accent-x': 400, named: 300 } };
+  store.brandState.overrides = {
+    light: { [BORDER('accent-x')]: { palette: 'accent-x', step: '700' }, [BORDER('named')]: { palette: 'accent-n', step: '700' } },
+    promo: { [INV('accent-x')]: { palette: 'accent-x', step: '100' } },
+  };
+  const pathOf = (mode: string, role: string): string => {
+    try { return (resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === mode)?.roles as Record<string, { path?: string } | undefined>)?.[role]?.path ?? 'none'; } catch (e) { return `REFUSED: ${(e as Error).message}`; }
+  };
+  const before = { fill: pathOf('dark', FILL('accent-x')), border: pathOf('light', BORDER('accent-x')), inv: pathOf('promo', INV('accent-x')) };
+  ok(before.fill.endsWith('.palette.accent-x.400') && before.border.endsWith('.palette.accent-x.700') && before.inv.endsWith('.palette.accent-x.100'),
+    `premise: before the rename the engine honors the Dark anchor (400), the Light border override (700) and promo's inverse text override (100) (${JSON.stringify(before)})`);
+  const i = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-x');
+  ok(P.renameBrandColor(i, 'accent-y'), 'the rename is taken');
+  const fill = pathOf('dark', FILL('accent-y')), border = pathOf('light', BORDER('accent-y')), inv = pathOf('promo', INV('accent-y'));
+  ok(fill.endsWith('.palette.accent-y.400'), `#3448 carry: the column's Dark anchor follows the rename, ${FILL('accent-y')} resolves to accent-y 400 in dark (${fill})`);
+  ok(border.endsWith('.palette.accent-y.700'), `#3448 carry: the column's border override follows the rename, ${BORDER('accent-y')} resolves to accent-y 700 in light (${border})`);
+  ok(inv.endsWith('.palette.accent-y.100'), `#3448 carry, inverse in a custom mode: ${INV('accent-y')} resolves to accent-y 100 in promo (${inv})`);
+  // Compared by key, not by `same`: a moved key is written last, so the map's order changes and its contents do not.
+  const da = store.brandState.modeAnchors?.dark as Record<string, number> | undefined;
+  ok(da?.['accent-y'] === 400 && da?.named === 300 && Object.keys(da ?? {}).length === 2 && !JSON.stringify(store.brandState.overrides).includes('accent-x'),
+    `#3448 carry: no key names the old column (${JSON.stringify(store.brandState.modeAnchors)} ${JSON.stringify(store.brandState.overrides)})`);
+  // The named column's keys name the column, not the palette: renaming its palette moves its palette value only.
+  const j = store.brandState.brandColors!.findIndex((b) => b.name === 'accent-n');
+  ok(P.renameBrandColor(j, 'accent-m'), 'the second rename is taken');
+  ok(da?.['accent-y'] === 400 && da?.named === 300 && Object.keys(da ?? {}).length === 2 && same(store.brandState.overrides!.light![BORDER('named')], { palette: 'accent-m', step: '700' }),
+    `#3448 named column: its keys stay on its name, only the override's palette value follows (${JSON.stringify(store.brandState.modeAnchors)} ${JSON.stringify(store.brandState.overrides!.light)})`);
+  const nfill = pathOf('dark', FILL('named'));
+  ok(nfill.endsWith('.palette.accent-m.300'), `#3448 named column: its Dark anchor still holds, ${FILL('named')} resolves to accent-m 300 (${nfill})`);
+}
+
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
 if (failed) process.exit(1);
