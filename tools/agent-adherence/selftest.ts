@@ -36,6 +36,7 @@
  * root hard-coded to `'pds3'` → `oracle/other-root` (1 of 78: the two scoring arms need its oracle). 80 assertions run.
  * The #3502 review's M5: `rootOf` taking the first of several top-level keys instead of throwing → `oracle/two-roots`,
  * `oracle/two-roots-base` (2 of 83); `rootOf` accepting an empty tree → `oracle/no-root` (1 of 83). 83 assertions run.
+ * #3565: `declarations` back to the innermost-body regex → `R2/nested`, `R2/nested-px` (2 of 86). 86 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
