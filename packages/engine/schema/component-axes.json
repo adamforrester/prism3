@@ -932,9 +932,9 @@
     },
     "members": 12,
     "properties": {
+      "label": "TEXT",
       "number": "TEXT",
-      "swap icon": "INSTANCE_SWAP",
-      "text": "TEXT"
+      "swap icon": "INSTANCE_SWAP"
     }
   },
   "page-nav": {
