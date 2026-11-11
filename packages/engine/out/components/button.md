@@ -1,6 +1,6 @@
 # Button
 
-> Triggers an action in place, such as submit, save or confirm. For navigation, use a link.
+> Triggers an action in place, such as submit, save or confirm. For navigation, use Link.
 
 - **ID:** `button`
 - **Category:** form

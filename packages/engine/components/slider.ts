@@ -311,7 +311,7 @@ export const slider: ComponentDef = {
   status: 'draft',
   summary: 'Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.',
   description:
-    'A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.',
+    'A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use TextField.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
@@ -675,7 +675,7 @@ export const slider: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don\'t use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).',
+    usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don\'t use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).',
     do: [
       'Name the dimension with a visible label',
       'Format the value with its unit or currency, and use the same text for aria-valuetext',
