@@ -37,6 +37,8 @@
  * The #3502 review's M5: `rootOf` taking the first of several top-level keys instead of throwing → `oracle/two-roots`,
  * `oracle/two-roots-base` (2 of 83); `rootOf` accepting an empty tree → `oracle/no-root` (1 of 83). 83 assertions run.
  * #3565: `declarations` back to the innermost-body regex → `R2/nested`, `R2/nested-px` (2 of 86). 86 assertions run.
+ * #3565 review: the nested rule's selector no longer cut from its parent's body → `R2/nested-prelude` (1 of 87). 87
+ * assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -251,6 +253,10 @@ if (o) {
   fails('R2/nested', nested, 'R2', 2, 'hex #ff0000 in outline');
   fails('R2/nested-px', nested, 'R2', 2, '3px in outline');
   fails('R2/nested-inner', await run(edit('.card { max-width', '.card { & h1 { margin-block: 12px; } max-width')), 'R2', 1, '12px in margin-block');
+  // #3565 review: a nested rule's selector is cut from its parent's body, so a nested `@media (…)` prelude's px, and a
+  // nested selector's `:`, are never read as a declaration.
+  const nestedPrelude = await run(edit('.card { max-width', '.card { @media (min-width: 640px) { letter-spacing: 0; } &:hover { letter-spacing: 0; } max-width'));
+  ok(nestedPrelude.counts.R2 === 0, `R2/nested-prelude: a nested @media prelude's px is not counted (${brief(nestedPrelude)})`);
   const media = await run(edit('@media (min-width: 600px)', '@media (min-width: 640px)'));
   ok(media.counts.R2 === 0, `R2/media-prelude: a px in an @media prelude is not counted (${brief(media)})`);
 
