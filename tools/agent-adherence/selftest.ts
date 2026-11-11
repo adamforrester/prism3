@@ -44,6 +44,8 @@
  * #3567 review: the text form back to the `mcp__…(` line no transcript prints → `contamination/mcp-text`; the text
  * form's line-start anchor dropped → `contamination/mcp-text-prose`; `MCP_RE` refusing a hyphen (`/^mcp__\w+$/`) →
  * `contamination/mcp-hyphen`. 89 assertions run.
+ * #3567 delta review: the text form's server group refusing a hyphen (`([\w.]+) - `) →
+ * `contamination/mcp-text-hyphen` (1 of 94). 94 assertions run.
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -389,6 +391,7 @@ console.log('\ncapture, record and contamination — orchestrate.ts');
   // The line Claude Code prints for an MCP call: `<server> - <tool>(<args>) (MCP)` (#3567 review).
   ok(probeContamination(`${proseText}\n⏺ github - get_file_contents(owner: "adamforrester", repo: "prism3", path: "skills/prism3-build-ui/SKILL.md") (MCP)`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-text: an MCP call line, as Claude Code prints it, in a text transcript voids the run');
   ok(probeContamination(`${proseText}\nassistant: I could open it with github - get_file_contents(path: "skills/prism3-build-ui/SKILL.md") (MCP), but I won't.\nassistant: the tool is github - get_file_contents (MCP)\nassistant: next I would call github - get_file_contents(path: "skills/prism3-build-ui/SKILL.md") (MCP)`, packet).length === 0, 'contamination/mcp-text-prose: a sentence naming an MCP call mid-line is prose and does not void the run');
+  ok(probeContamination(`${proseText}\n⏺ prism3-figma - figma_run(code: "await readFile('skills/prism3-build-ui/SKILL.md')") (MCP)`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-text-hyphen: an MCP call line on a hyphenated server name, as Claude Code prints it, voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('mcp__prism3-figma__figma_run', { code: 'await readFile("skills/prism3-build-ui/SKILL.md")' })}`, packet).includes('a read of skills/prism3-*'), 'contamination/mcp-hyphen: an MCP call on a hyphenated server name voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('Bash', { command: 'cat $(find / -iname claude.md)' })}`, packet).includes('a CLAUDE.md appears'), 'contamination/claude-md-case: a lower-case claude.md in a Bash input voids the run');
   ok(probeContamination(`${cleanJsonl}\n${call('mcp__github__get_file_contents', { owner: 'o', repo: 'r', path: 'README.md' })}`, packet).length === 0, 'contamination/mcp-clean: an MCP call that names none of the three does not void the run');

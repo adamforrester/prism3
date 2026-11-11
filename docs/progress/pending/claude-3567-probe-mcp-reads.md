@@ -32,3 +32,7 @@ Review round: `contamination/mcp-text` now feeds the real `⏺ github - get_file
 each failing by name with every other arm green: the text form back to the `mcp__…(` line → `contamination/mcp-text`;
 its line-start anchor dropped → `contamination/mcp-text-prose`; `MCP_RE` refusing a hyphen →
 `contamination/mcp-hyphen`.
+
+Delta review round: `contamination/mcp-text-hyphen` is added, a text call line on the hyphenated server
+`prism3-figma - figma_run(…) (MCP)`. Mutation: the text form's server group refusing a hyphen (`([\w.]+) - `) →
+`contamination/mcp-text-hyphen` fails by name, every other arm green.
