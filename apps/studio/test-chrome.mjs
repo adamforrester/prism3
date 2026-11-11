@@ -21099,6 +21099,43 @@ if (runs('3337')) {
     } finally { await ctx.close(); }
   }
 } // 3337
+// #3338: Components › Button options is drawn in the preview's card (`.p3-cp-optsec`), where the levers pane's `data-fit`
+// never reaches, so a readout there must wrap on its own: the Weights line ("subtle 300 · default 400 · … · max 900") ran
+// one line past the card's right edge at 1280. Measured as RENDERED, both hosts, both themes, 1280 and 380: every
+// readout in the card ends inside the card's content box, and the Weights readout is represented by name (not counted).
+// MUTATION (fails by name): drop the `.p3-cp-optsec .p3-readout` rule from chrome.css →
+// `3338 web light 1280: readout "components-weights" ends …px past the card's content edge`.
+if (runs('3338')) {
+  console.log(`\nComponents › Button options: a readout stays inside its card (#3338)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    const where = `3338 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'open';
+    try {
+      if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+      await goPlace(page, 'components');
+      step = 'Button options';
+      await openButtonOptions(page);
+      await settle(page);
+      await page.evaluate(() => document.fonts.ready);
+      const m = await page.evaluate(() => {
+        const card = document.querySelector('[data-p3="button-options-section"]');
+        if (!card) return null;
+        const r = card.getBoundingClientRect();
+        const cs = getComputedStyle(card);
+        const edge = r.right - parseFloat(cs.paddingRight) - parseFloat(cs.borderRightWidth);
+        return [...card.querySelectorAll('.p3-readout')].filter((n) => n.getClientRects().length).map((n) => ({
+          row: n.closest('.p3-lever')?.dataset.p3 ?? null, text: n.textContent,
+          over: +(n.getBoundingClientRect().right - edge).toFixed(1) }));
+      });
+      ok(Array.isArray(m) && m.some((x) => x.row === 'components-weights'), `${where}: the Weights readout is drawn in Button options' card (${JSON.stringify(m)})`);
+      for (const x of m ?? []) ok(x.over <= 0.5, `${where}: readout "${x.row}" ends ${x.over}px past the card's content edge ("${x.text}")`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3338
 // ── #3335: Color › Interactive, a group with no rest row (the owner's amendment to Q3335.7 A, 2026-11-03) ─────────────
 // Rest → Hover → Pressed nesting applies only where a group HAS a rest row. A group with none (the neutral wash, the tinted
 // wash, and Solid fill's per-set pickers) draws its Hover and Pressed side by side at the group's own level: neither nested

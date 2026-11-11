@@ -963,6 +963,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 .p3-readout { margin-left: auto; color: var(--p3-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* #1975: in a snug pane a long readout (Layout's container max, "1440px · 90rem") wraps under itself, set right. */
 .p3-levers[data-fit="snug"] .p3-readout { white-space: normal; text-align: right; }
+/* #3338: Button options is drawn in the preview's card, where no `data-fit` reaches, so a long readout (the Weights line,
+   "subtle 300 · … · max 900") wraps under itself there too, set right, rather than running past the card's edge. */
+.p3-cp-optsec .p3-readout { white-space: normal; text-align: right; }
 .p3-lever-head .p3-readout, .p3-slider-head > .p3-readout { line-height: var(--p3-lh-compact); }
 /* The ⓘ keeps its target (hit-min wide, at least; the narrow tier's buttons are ctl-h-xs tall) but overhangs the heading's
    line equally above and below, so it never sets the row's height at any tier: equal negative margins of a whole hit-min
