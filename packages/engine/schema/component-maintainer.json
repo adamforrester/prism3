@@ -2301,6 +2301,11 @@
           "reason": "empty"
         },
         {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
           "section": "code",
           "field": "docs.implementation",
           "reason": "not in the schema yet"
@@ -4887,6 +4892,11 @@
         },
         {
           "section": "related",
+          "field": "ai.commonPartners",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
           "field": "composition.supersedes",
           "reason": "empty"
         },
@@ -5196,6 +5206,11 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "ai.commonPartners",
           "reason": "empty"
         },
         {
