@@ -8,11 +8,11 @@ and `inverse.interactive.<old>.`. The engine ignores a key that names no column,
 anchor and its role overrides went back to Auto without a word. A rename now moves those keys too, in every mode,
 custom modes included, when the column has no explicit `name`. A named column's keys name the column, so they stay.
 The old name wins: a key already on the new name belongs to no live column, so it is a leftover, such as a removed
-column leaves behind (#3549). For that to hold, a rename onto a name another palette holds is refused, as before, and
+column leaves behind (#3549). It is dropped before the carry, so it cannot bring back a value the user removed or drop
+the one they just set. For that to hold, a rename onto a name another palette holds is refused, as before, and
 so, new here, is a rename of a palette that has an unnamed column onto any column's explicit `name`, on any palette,
 its own included. Otherwise the drop would delete that column's live keys. A palette with no unnamed column renames no
-column, so that rename is not refused. It is dropped before the carry, so it cannot
-bring back a value the user removed or drop the one they just set. No new copy: nothing is lost, so there is nothing to
+column, so that rename is not refused. No new copy: nothing is lost, so there is nothing to
 say.
 
 ### Gate
@@ -27,6 +27,10 @@ stale Light anchor and a stale text override go on `accent-w` with no live count
 removes them: after the rename both resolve to Auto. A last fixture gives `accent-s` an unnamed column and a column
 named `same`: the rename onto `same` is refused, and `same` still resolves to 300 / 700. Its control, `accent-t`, has
 only a column named `solo`, and may be renamed `solo`, which keeps `solo`'s 300 / 700.
+Last, the whole refusal rule is one table, each row from a fresh fixture with its verdict typed as a literal: another
+brand color, a reserved palette, and a column name (own or another palette's) when the palette has an unnamed column
+are refused and change nothing; a free name, and a column name when the palette has no unnamed column, are taken, the
+brand still builds, and both named columns keep 300 / 700.
 
 Mutation: drop the new key-carry block, and `#3448 carry: the column's Dark anchor follows the rename …` fails, along
 with the border and inverse arms.
@@ -42,3 +46,6 @@ name wins, no counterpart: a stale text override on the new name is dropped …`
 Mutation (third review): restore the exclusion of the renamed palette's own columns from the refusal
 (`.filter((e) => e.palette !== bc.name)`), and `#3545 a rename onto a column name on the same palette, which has an
 unnamed column, is refused` fails.
+
+Mutation (fourth review): make the refusal ignore whether the palette has an unnamed column (`ownsUnnamed = true`), and
+`#3545 rule: acc-n → own-u (another palette's named column, no unnamed column) is taken …` fails, with its siblings.

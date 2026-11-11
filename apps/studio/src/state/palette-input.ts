@@ -68,7 +68,7 @@ export const cascadeRename = (prev: string, next: string): void => {
   // and every key that names the column by it follows (#3448): its per-mode anchor (`modeAnchors[mode][col]`) and its
   // role overrides (`interactive.<col>.…`, `inverse.interactive.<col>.…`). Left on the old name the engine ignores them,
   // and the column's anchor and overrides go back to Auto without a word. The old name wins: a key already on the new
-  // name belongs to no live column (a rename onto a name another palette or column holds is refused), so it is a leftover, and
+  // name belongs to no live column (`renameBrandColor` refuses every rename that would make it one), so it is a leftover, and
   // it is dropped first (a removed column's keys stay behind, #3549). Kept, it would bring back a value the user
   // removed and drop the one they just set.
   const renamesColumn = !!brandState.interactivePalettes?.some((e) => e.name === undefined && e.palette === prev);
@@ -162,7 +162,8 @@ export const addBrandColor = (): string => {
  *  has an unnamed interactive column and the name is any column's explicit `name`, on any palette, this one included
  *  (#3545 re-reviews): the unnamed column would take that name, the engine refuses a duplicate column name, and
  *  `cascadeRename` would drop the named column's keys as leftovers. A palette with no unnamed column renames no
- *  column, so nothing collides and nothing is dropped, and that rename is not refused. */
+ *  column, so nothing collides and nothing is dropped, and that rename is not refused. Every case of this rule is a
+ *  row of one table in `test-interactive-input.ts` §11 (`#3545 rule: …`). */
 export const renameBrandColor = (i: number, raw: string): boolean => {
   const list = brandState.brandColors ?? [];
   const bc = list[i];

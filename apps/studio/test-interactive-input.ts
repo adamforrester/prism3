@@ -463,6 +463,36 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   const tfill = pathOf('dark', FILL('solo')), tborder = pathOf('light', BORDER('solo'));
   ok(tfill.endsWith('.palette.solo.300') && tborder.endsWith('.palette.solo.700'),
     `#3545 no unnamed column: \`solo\`'s Dark anchor and border override stay on it, solo 300 / 700 (${tfill}, ${tborder})`);
+
+  // THE RULE AS A TABLE (#3545, fourth review). Four rounds found cases one at a time, so every case of
+  // `renameBrandColor`'s refusal is listed once here, from a fresh fixture each: `acc-u` owns an unnamed column and a
+  // column named `own-u`, `acc-n` owns only a column named `own-n`, `acc-o` owns no column. The expected verdicts are
+  // literals typed here. A taken rename must leave the brand building (the engine is the oracle) and both named
+  // columns' Dark anchor and border override still resolved, 300 / 700; a refused one must change nothing.
+  const RULE: readonly [from: string, to: string, why: string, taken: boolean][] = [
+    ['acc-u', 'acc-n', 'another brand color', false],
+    ['acc-u', 'primary', 'a reserved palette', false],
+    ['acc-u', 'own-u', 'its own named column, with an unnamed column', false],
+    ['acc-u', 'own-n', 'another palette\'s named column, with an unnamed column', false],
+    ['acc-u', 'acc-v', 'a free name, with an unnamed column', true],
+    ['acc-n', 'own-n', 'its own named column, no unnamed column', true],
+    ['acc-n', 'own-u', 'another palette\'s named column, no unnamed column', true],
+    ['acc-o', 'own-u', 'a named column, no column at all', true],
+  ];
+  for (const [from, to, why, taken] of RULE) {
+    reset();
+    (store.brandState.brandColors ??= []).push(...['acc-u', 'acc-n', 'acc-o'].map((name, h) => ({ name, oklch: { l: 0.55, c: 0.15, h: 40 + 90 * h } })));
+    store.brandState.interactivePalettes = [{ palette: 'acc-u' }, { name: 'own-u', palette: 'acc-u' }, { name: 'own-n', palette: 'acc-n' }];
+    store.brandState.modeAnchors = { dark: { 'acc-u': 400, 'own-u': 300, 'own-n': 300 } };
+    store.brandState.overrides = { light: { [BORDER('own-u')]: { palette: 'acc-u', step: '700' }, [BORDER('own-n')]: { palette: 'acc-n', step: '700' } } };
+    store.rebuild();
+    const was = JSON.stringify(store.brandState);
+    const got = P.renameBrandColor(store.brandState.brandColors!.findIndex((b) => b.name === from), to);
+    const kept = ['own-u', 'own-n'].map((c) => [pathOf('dark', FILL(c)), pathOf('light', BORDER(c))]);
+    const holds = kept.every(([f, b]) => f.endsWith('.300') && b.endsWith('.700'));
+    ok(got === taken && (taken ? holds : JSON.stringify(store.brandState) === was),
+      `#3545 rule: ${from} → ${to} (${why}) is ${taken ? 'taken, and both named columns keep 300 / 700' : 'refused, and nothing moves'} (${got ? 'taken' : 'refused'}; ${JSON.stringify(kept)})`);
+  }
 }
 
 console.log('\n12. #3562: a brand color cannot be renamed to a palette the engine always mints');
