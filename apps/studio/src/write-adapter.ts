@@ -36,7 +36,9 @@ export type HostMessage =
   | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; collisions: readonly CollisionView[] | null; chosen: CollisionChoices | null }
   // `causes` (#3326): why the run is not clean, as the writer sent it (`Cause`); `null` from a host that sends none, or a
   // malformed list.
-  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null; causes: readonly Cause[] | null }
+  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null; causes: readonly Cause[] | null;
+      /** #3359: the ids of the sets the build made first; absent when it sent none, or sent them malformed. */
+      alsoBuilt?: readonly string[] }
   // #2265 — the in-place update's dry run, or a baseline capture: what an update WOULD change, which is not
   // whether a build landed, so it has its own kind and never overwrites the build's verdict.
   | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null; publish: string | null; causes: readonly Cause[] | null }
@@ -450,7 +452,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // `completed` (S8.2, C1): required of the host (`messages.ts`), and never inferred from `ok`. Only a literal `true`
   // reads as a build that ran to the end. A malformed value is not dropped (a dropped terminal result leaves the
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
-  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines), causes: causesOf(m.causes) }),
+  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines), causes: causesOf(m.causes), ...(linesOf(m.alsoBuilt) ? { alsoBuilt: linesOf(m.alsoBuilt)! } : {}) }),
   'component-update-result': (m) => ({ ...verdict('component-update-result', m, '✓ checked', '✗ check failed'), lines: linesOf(m.lines),   // #2265
     publish: typeof m.publish === 'string' && m.publish ? m.publish : null, causes: causesOf(m.causes) }),   // #2858, #3326
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558

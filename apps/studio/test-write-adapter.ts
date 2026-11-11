@@ -94,6 +94,11 @@ for (const [label, bad] of [['an unknown kind', { ...CAUSE, kind: 'info' }], ['a
 }
 accepts('component-result with its lines', { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: 's. t', lines: ['s', 't'] },
   { kind: 'component-result', ok: true, headline: '✓ built', summary: 's. t', completed: true, lines: ['s', 't'], causes: null });
+// #3359: the sets a build made first, as ids, carried to the panel's run; a malformed list is dropped whole.
+accepts('component-result with the sets it built first', { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: 's', alsoBuilt: ['tag', 'divider'] },
+  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true, lines: null, causes: null, alsoBuilt: ['tag', 'divider'] });
+accepts('component-result whose sets built first hold a number', { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: 's', alsoBuilt: ['tag', 3] },
+  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true, lines: null, causes: null });
 accepts('style-guide-result with its lines', { type: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'] },
   { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'], retired: [] });
 accepts('apply-result with a malformed lines leaves them off', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 2] },
