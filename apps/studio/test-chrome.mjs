@@ -7684,6 +7684,10 @@ if (runs('3115')) {
             const g = document.querySelector(s);
             if (!g) return null;
             if (tight) {
+              // #3553 Q-UI2 A: a group too wide for one row is stacked (`data-stack`), one option to a row, and a stack's
+              // max-content is its widest option. The row's own max-content is read with the stack cleared; at that width
+              // the row fits, so the page keeps it a row.
+              delete g.dataset.stack;
               if (px === null) { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
               g.style.width = `${px}px`;
             }
@@ -21676,6 +21680,46 @@ if (runs('3553-m1')) {
     } finally { await ctx.close(); }
   }
 } // 3553-m1
+// #3553 Q-UI2 (the owner's Q-UI2 A): A SINGLE CHOICE NEVER WRAPS TO AN ORPHAN. Interactive's Outline hover drew 3 + 1 at
+// 1280 ("No hover fill" alone) and 2 + 2 at 1024 and 380; Components' Control shape drew 3 + 1 at the plugin's 380 ("Pill"
+// alone). A, "swap to a select or to a radio list": the list, so each option keeps its button, hook, role and keys. A
+// choice whose options do not fit one row is laid out one option to a row, the column's width (`data-stack`). Held on
+// every drawn segmented choice (`.p3-choice`) and single-choice chip row (`.p3-chips-one`) of Interactive, Shape, Type
+// and Components: its options sit on one row, or one to a row, never anything between. Web at 1280 and 1024, the plugin
+// at 380, both themes. MUTATION (after a `wip:` commit): `stackWhenWrapped(el)` dropped from `choice` and `chipChoice` →
+// `#3553 Q-UI2 … no single choice wraps to an orphan`.
+if (runs('3553-q2')) {
+  console.log(`\nA single choice never wraps to an orphan (#3553 Q-UI2)\n${'='.repeat(78)}`);
+  for (const [host, w, h] of [['web', 1280, 900], ['web', 1024, 768], ['figma', 380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-q2 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'open';
+    try {
+      let stacked = 0, seen = 0;
+      for (const place of ['color-interactive', 'shape', 'type', 'components']) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        await settle(page);
+        const m = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] :is(.p3-choice, .p3-chips-one)')].filter((g) => g.getClientRects().length > 0).map((g) => {
+          const opts = [...g.children].filter((c) => c.getClientRects().length > 0);
+          const rows = new Set(opts.map((c) => Math.round(c.getBoundingClientRect().top))).size;
+          return { hook: g.dataset.p3 ?? g.getAttribute('aria-label'), n: opts.length, rows, stack: g.dataset.stack === 'true' };
+        }));
+        seen += m.length;
+        stacked += m.filter((g) => g.stack).length;
+        const orphans = m.filter((g) => g.rows !== 1 && g.rows !== g.n);
+        ok(orphans.length === 0, `#3553 Q-UI2 ${where} ${place}: no single choice wraps to an orphan; each is one row or one option to a row (${JSON.stringify(orphans)})`);
+        if (SHOTS && theme === 'light' && place === 'color-interactive') await page.screenshot({ path: join(SHOTS, `s3553-q2-${host}-${w}.png`) });
+      }
+      ok(seen >= 6, `${where}: premise, the sweep read the pages' single choices (${seen}, ${stacked} stacked)`);
+      if (w === 380) ok(stacked > 0, `${where}: premise, at 380 some choice is too wide for one row and is stacked (${stacked})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-q2
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
