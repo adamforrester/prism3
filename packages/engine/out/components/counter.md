@@ -226,8 +226,8 @@ Keyed by `appearance`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/control` | — | `color.disabled.border` | — | — |
-| `container/control/entry/value` | — | — | `color.disabled.text` | — |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/entry/value` | — | — | `color.disabled.on-fill` | — |
 
 **appearance=ghost, state=rest**
 
