@@ -35,11 +35,10 @@ else broken, open a finding and keep going.
 The PR template's Gates block is the load-bearing part — fill it in with real numbers,
 not ticks.
 
-**A PR writes its own files, never the shared lines (#1807).** Every PR used to write the same
-four places: the top of `docs/00-progress.md`, `ENGINE_VERSION`, the changelog above it (since
-Q319.3, `packages/engine/CHANGELOG.md`), and the
-version stamp in every emitted tree. So every open PR conflicted with every other, and merges ran
-one at a time. Now:
+**A PR writes its own files, never the shared lines (#1807).** The shared lines are the top of
+`docs/00-progress.md`, `ENGINE_VERSION`, its changelog (`packages/engine/CHANGELOG.md`) and the
+version stamp in every emitted tree; when every PR wrote them, every open PR conflicted with every
+other (the progress log's 2026-09-30 entry, "Merge independence"). So:
 
 - **The progress entry** is `docs/progress/pending/<slug>.md`, where the slug is your branch name
   with `/` turned into `-`. It holds one entry headed `## (YYYY-MM-DD) — <title>`, in the log's
@@ -85,11 +84,6 @@ one at a time. Now:
 
 Both directories carry a `README.md` with the format. The fold, below, is the one writer of the
 shared lines.
-
-**A branch that has not merged `main` since #1807 landed can pass locally and fail in CI.** Locally
-its merge base predates the FOLD MARKER, so `lint-emission-version.ts` prints "not yet in force" for
-the one-writer check. CI tests the merge with the current `main`, where it is in force. Merge `main`
-before trusting a local green.
 
 **`npm run verify` on a plain checkout of `main` is red by design.** There, HEAD is its own base, so
 `lint-progress-order.ts` finds no diff to hold an entry in and fails CARRIES AN ENTRY rather than
@@ -172,33 +166,15 @@ What to check before you push the fold:
   hand-write the fold's output, because `lint-emission-version.ts` and `lint-progress-order.ts` check
   that output against git.
 
-### Converting an open PR from the old convention
+### A PR still on the pre-#1807 convention
 
-A PR opened before #1807 landed converts at its next merge of `main`, and that merge is its last
-conflict on these lines. Move your text into the new files **before** you resolve anything, because
-resolving takes `main`'s side of the lines your text is on.
-
-1. **On your branch, before merging:** copy your progress entry, unchanged, into
-   `docs/progress/pending/<slug>.md`. Copy your changelog prose out of `version.ts` into
-   `packages/engine/changes/<slug>.md` under `engine: minor` (or `patch`, if your change moved no
-   committed artifact). **One file per entry:** a branch that wrote two progress entries or two
-   changelog entries adds `<slug>.md` and `<slug>-2.md` in each directory. Where the entry or the
-   prose cites the number you had claimed, write `{{ENGINE_VERSION}}` instead, but never at the start
-   of a line: `{{ENGINE_VERSION}} — …` becomes a changelog heading once folded, and NOTE SHAPE refuses
-   it. Commit.
-2. `git merge origin/main`, then resolve:
-   - **`docs/00-progress.md`:** keep `main`'s side and drop your old entry from the top. It is in the
-     fragment now.
-   - **`version.ts`:** keep `main`'s `ENGINE_VERSION` line and `main`'s changelog (in
-     `CHANGELOG.md` since Q319.3), and drop your old entry there. Keep any other edit of yours in the file, such as a `CONTRACT_VERSION` bump, its
-     changelog or a `DEPRECATIONS` row. Those are still per-PR.
-   - **Version stamps in `out/` and `components.ai.json`:** take either side. The next step rewrites
-     them.
-   - **`schema/token-contract.json`:** if you re-accepted it only to restamp `engineVersion`, keep
-     `main`'s copy. A real contract change keeps its bump and gets a fresh `--accept` after step 3.
-3. `npx tsx packages/engine/regen.ts`, commit, then `npm run verify`. Your `out/` now carries
-   `main`'s stamp with your real changes, and `lint-emission-version.ts` reports your note as the
-   bump. It fails by name if an edit to `ENGINE_VERSION` or its changelog survived the resolution.
+None was open at the last check (2026-11-11). If one turns up, move its text into the new files
+**before** merging `main`, because resolving takes `main`'s side of the lines it is on: its log entry,
+unchanged, into `docs/progress/pending/<slug>.md`, and its changelog prose into
+`packages/engine/changes/<slug>.md` (`{{ENGINE_VERSION}}` for the number, never at the start of a line).
+Then merge `main`, keep `main`'s side of the log, `ENGINE_VERSION`, the changelog and the `out/` stamps,
+keep any other edit of its own (a `CONTRACT_VERSION` bump, a `DEPRECATIONS` row), run `regen.ts` (and,
+for a real contract bump, a fresh `token-contract.ts --accept`), and verify. The full step list is in this file's history: `git log -S'Converting an open PR' -- CONTRIBUTING.md`.
 
 ---
 
@@ -1754,9 +1730,8 @@ type filter and the FLOAT read-back would have come back empty in production).
 ### Reviewing a PR: CI runs the whole list, the reviewer runs what the change touches (#3216)
 
 Owner decision Q-CI1 A. **The author still runs the whole list before pushing** (`npm run verify`,
-CLAUDE.md §4); nothing here changes that. What changes is the reviewer's share. A PR used to pay for
-three full runs, the author's, the reviewer's and CI's, and the reviewer's was the same gates on the
-same tree as CI's. The reviewer now:
+CLAUDE.md §4); nothing here changes that. What changes is the reviewer's share: a full
+reviewer run repeats CI's gates on the same tree, so the reviewer now:
 
 - **relies on CI for the full gate list**: every check-run green on the exact head SHA, and the `gates`
   check `success`. If CI has not run on that SHA, or anything is red or pending, the reviewer says so and

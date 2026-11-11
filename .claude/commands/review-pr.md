@@ -267,7 +267,7 @@ not a follow-up.
 **Since #1807 the entry is a FILE, not an edit to the log.** Look for
 `docs/progress/pending/<slug>.md` in the diff: one entry headed `## (YYYY-MM-DD) — <title>`.
 A PR that writes at the top of `docs/00-progress.md` instead is on the old convention; send it
-to `CONTRIBUTING.md` §2, "Converting an open PR from the old convention".
+to `CONTRIBUTING.md` §2, "A PR still on the pre-#1807 convention".
 `lint-progress-order.ts` fails a PR (other than a fold) that adds no fragment, but it checks
 only that the file exists: whether the entry says what a diff cannot is still yours to judge. When reading recent state, read `pending/` before the top of
 the log: merged entries wait there until the next fold.
