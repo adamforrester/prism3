@@ -18,5 +18,5 @@ the brand state is byte-identical after it. Then the rename-to-`success` and ren
 override on `success`, and the brand builds. A name that only starts with a reserved one (`success-2`) is still taken.
 
 Mutation: the `isReservedPalette(next)` check dropped from `renameBrandColor` → `#3562 reserved: renaming accent-x to
-success is refused, and nothing moves` fails by name (and the same for every other name but `primary` and `neutral`),
-along with `#3562 rename back`.
+success is refused, and nothing moves` fails by name, along with the same arm for each of the other ten names,
+`#3562 rename back` and §10's `a refused rename (a taken name) moves no override` (13 of 109).
