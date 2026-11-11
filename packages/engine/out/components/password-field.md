@@ -24,11 +24,11 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 3. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the field. A fix to FieldLabel still reaches this without a copy. Starts primary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
 4. **Toggle** — The Show/Hide button: a small flush text Button in the emphasis weight, at the end of the label row, at every field size. It reads "Show" on every member; set it to "Hide" for the shown look. Disabled with the field, live when read-only, never colored by status. It stretches to the row, so the row is as tall as the label.
 5. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
-6. **Caret**
+6. **Caret** — The insertion point in a focused, empty field, right before the placeholder, in the value color.
 7. **Caret end** — The insertion point on the focused field that holds a value, immediately after the value, in the value ink. Code draws the native caret where the user is typing.
 8. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
-9. **Value**
-10. **Message** (optional)
+9. **Value** — The entered value, on one line: shown when the field is filled or read-only, and a long value scrolls rather than ending in an ellipsis.
+10. **Message** (optional) — Helper or validation text, hidden until the field has something to say; it takes the field's status and width, and a long message wraps.
 
 ## Styles
 
