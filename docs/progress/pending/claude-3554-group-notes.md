@@ -2,8 +2,10 @@
 
 Part of #3554 (the 2026-11-11 component consistency audit), batch M-C. The first row's part note in Checkbox.Group and
 Radio.Group said the row follows "the group's size". Since owner Q354 (#2751) the nests follow `['size', 'status']`, as the
-row-level notes already say, so both notes now say "size and status". The comment in `radio-group.ts` that still read
+row-level notes already say, so both notes now say "size and status". (Since #3610, Radio.Group's row1 caption is a reader
+caption that names no axis; its maintainer detail, kept as the comment above it, now says "size and status".) The comment in `radio-group.ts` that still read
 "`radio-row` projects only `size`" now matches `checkbox-group.ts`'s corrected one.
 
 No gate. A note states its follow in prose ("validation" for `status`, "open" for `expansion`), so an arm holding note
-words to `nesting.follow` measured 11 notes and would fail correct ones; the follow itself is gated by `lint-nesting`.
+words to `nesting.follow` measured 11 notes and would fail correct ones. The follow itself is held by `test.ts`'s #2751 arm
+("every checkbox-row/radio-row nest follows status"): `lint-nesting` passes a dropped `status` follow.
