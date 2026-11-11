@@ -167,7 +167,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       const k = seg[1];
       if (k === 'primary') return 'Default border — a decorative divider';
       if (k === 'secondary') return 'Stronger border / divider';
-      if (k === 'tertiary') return 'Strongest border / divider';
+      // #3555 Q-MD15 A: the tertiary border is the first gated one (3:1), so its line states the floor as the others do.
+      if (k === 'tertiary') return claim ? `Strongest border / divider — ${claim}` : 'Strongest border / divider';
       if (k === 'focus') return `Focus ring color — ${claim}`;
       return `${cap(k)} border — ${claim}`;
     }
@@ -185,8 +186,8 @@ export const figmaColorDescription = (f: ColorFacts): string => {
           ? 'Media veil, clear end — transparent black, where a dark gradient veil fades to.'
           : 'Media veil, clear end — transparent white, where a light gradient veil fades to.';
       return tone === 'dark'
-        ? `Media veil — ${pct} black wash over an image to lift light text. Check contrast on your photo.`
-        : `Media veil — ${pct} white wash over an image to lift dark text. Check contrast on your photo.`;
+        ? `Media veil — ${pct} black wash over an image to lift light text. Contrast depends on the photo.`
+        : `Media veil — ${pct} white wash over an image to lift dark text. Contrast depends on the photo.`;
     }
     case 'field': {
       const k = seg.slice(1).join('.');
