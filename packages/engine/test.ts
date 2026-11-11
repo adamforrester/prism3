@@ -40211,11 +40211,16 @@ arm: {
     `#2317 password-field toggle: on every member a nested Button (the primary component), text appearance, flush, default surface, no icons, SMALL at every field size (#2804, Q380 A), "Show", exposed for its label, its label in the emphasis weight (label/sm/emphasis-link, Q301.3 B); disabled at the field's disabled member and rest at every other state, read-only included, whatever the status${toggleBad.length ? ` — WRONG on ${toggleBad.length}: ${toggleBad.slice(0, 2).join(' | ')}` : ''}`);
 
   // THE LABEL ROW'S HEIGHT (#2804, owner decision Q380 A): the row is no taller than the label alone needs. Measured
-  // per member the way a hugging auto-layout row is sized: the tallest in-flow child that does not stretch. The
-  // label's height is one line of its FieldLabel member's type (font size × line height, read off the committed
-  // emission); the toggle's is its Button member's bound height unless it stretches to the row. EXPECTED is typed
-  // here: one body line at 12 / 14 / 16px × 1.5. Before #2804 the row measured 36 / 44 / 56 (the button's height),
-  // so a toggle that stops stretching, or one that follows the field's size again, fails here by name.
+  // per member the way the host sizes a hugging auto-layout row: the tallest in-flow child, where a child that
+  // STRETCHES across the row still floors it at its own content height (#3347, measured in the real file; #3361:
+  // this arm used to leave stretched children out, and passed while the row read 26 on all 84 members). The label's
+  // height is one line of its FieldLabel member's type (font size × line height, read off the committed emission).
+  // The toggle's is its Button member's bound height, or, stretched, its block padding (the instance's own override
+  // first, then its main's) plus its main's tallest in-flow child, a text one line of its style. Written here from
+  // the plans and the emission, not with the round-trip shim's `stretchFloorsHug`, so the two models can disagree
+  // (docs/34). EXPECTED is typed here: one body line at 12 / 14 / 16px × 1.5. Before #2804 the row measured
+  // 36 / 44 / 56 (the button's height); before #3347 it measured 26 (the toggle's 6 + 6 padding around its 13.8
+  // line). So a toggle that stops stretching, follows the field's size again, or loses its zero padding fails here.
   {
     const emitted = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8'));
     const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!];
@@ -40225,7 +40230,7 @@ arm: {
     const varPx = (name: string): number => num(name.split('/').reduce((n: any, k) => n?.[k], eRoot)?.$value);
     const flPlans = figmaAnatomySet(fieldLabel, { swapTarget: 'FPO-default-icon' });
     const flNames = flPlans.map(planComponentName);
-    type MN = PN & { layoutAlign?: string; bound?: Record<string, string> };
+    type MN = PN & { layoutAlign?: string; layoutPositioning?: string; visible?: boolean; bound?: Record<string, string> };
     const textOf = (n: PN): PN | undefined => (n.type === 'TEXT' ? n : n.children.map(textOf).find(Boolean));
     const ROW: Record<string, number> = { small: 18, medium: 21, large: 24 };
     const SHOW_LINE = 12 * 1.15; // one label.sm line, the button's "Show"
@@ -40233,7 +40238,8 @@ arm: {
     const measured: Record<string, number> = {};
     for (const p of pwPlans) {
       const row = find(p.root as PN, 'labelRow') as MN | undefined;
-      const heights = (row?.children ?? []).filter((c) => (c as MN).layoutAlign !== 'STRETCH').map((c): number => {
+      const inFlow = (n: PN): boolean => (n as MN).visible !== false && (n as MN).layoutPositioning !== 'ABSOLUTE';
+      const heights = (row?.children ?? []).filter(inFlow).map((c): number => {
         if (c.name === 'labelCell') {
           const l = find(c, 'label');
           const m = l?.nestVariant ? nestVariantMatch(l.nestVariant, flNames) : null;
@@ -40241,8 +40247,12 @@ arm: {
           return t?.textStyle ? lineBox(t.textStyle) : NaN;
         }
         const m = c.nestVariant ? nestVariantMatch(c.nestVariant, btnNames) : null;
-        const h = m ? (btnPlans[btnNames.indexOf(m)].root as MN).bound?.height : undefined;
-        return h ? varPx(h) : NaN;
+        const main = m ? (btnPlans[btnNames.indexOf(m)].root as MN) : undefined;
+        if (!main) return NaN;
+        if ((c as MN).layoutAlign !== 'STRETCH') return main.bound?.height ? varPx(main.bound.height) : NaN;
+        const pad = (k: 'paddingTop' | 'paddingBottom'): number => { const v = (c as MN).bound?.[k] ?? main.bound?.[k]; return v ? varPx(v) : 0; };
+        const flow = main.children.filter(inFlow).map((k) => (k.type === 'TEXT' ? (k.textStyle ? lineBox(k.textStyle) : NaN) : (k as MN).bound?.height ? varPx((k as MN).bound!.height) : NaN));
+        return pad('paddingTop') + pad('paddingBottom') + Math.max(...flow);
       });
       const h = Math.max(...heights);
       measured[p.size!] = h;
