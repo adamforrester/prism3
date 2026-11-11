@@ -1103,8 +1103,9 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   // loses Built from: Checkbox.Control and Often used with: Checkbox.Group; Buttons loses nothing of its own here).
   const related = (id: string) => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections.find((s) => s.id === 'related')!.blocks
     .flatMap((b) => (b.type === 'Links' && b.label !== 'Replaces' ? [`${b.label}: ${b.items.map((i) => `${i.name}>${i.def}`).join(' / ')}`] : []));
-  const cb = ['Instead, consider: Switch>switch-row / Radio>radio-row', 'Often used with: FieldLabel>field-label / FieldMessage>field-message / FocusRing>focus-ring / Buttons>button'];
-  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row', 'Often used with: Icon>icon'];
+  // #3555 Q-MD10 A: `alternativeTo` is symmetric, so Checkbox gains TextField (which names it) and Button gains Tag and Link.
+  const cb = ['Instead, consider: Switch>switch-row / Radio>radio-row / TextField>text-field', 'Often used with: FieldLabel>field-label / FieldMessage>field-message / FocusRing>focus-ring / Buttons>button'];
+  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row / Tag>tag / Link>link', 'Often used with: Icon>icon'];
   ok(related('checkbox-row').join('\n') === cb.join('\n'), 'family/related: Checkbox names families, its own parts dropped, Built from gone', related('checkbox-row').join(' | '));
   ok(related('button').join('\n') === bt.join('\n'), 'family/related buttons: Buttons as the wireframe has it', related('button').join(' | '));
   // A list naming one family twice, through two members: one entry.
