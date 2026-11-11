@@ -21503,7 +21503,7 @@ if (runs('2069')) {
 // … "You get 4 files" starts at the files' edge` and `… "Import" starts at its note's edge`; the action's negative margin
 // dropped → `#3553 M9 … "↑ Brand brief…" starts at its note's edge`; the caption rule narrowed to
 // `.p3-menu-cap:is(:has(+ .p3-export-files), :first-child)` → `#3553 M9 … "A few tokens, shaped by these settings"
-// starts at the files' edge`.
+// starts at the files' edge`. Since #3553 Q-UI11 A the switcher is underline tabs (section 3553-export holds their form).
 if (runs('3553-md')) {
   console.log(`\nExport: the switcher fits, and its captions align (#3553 M8, M9)\n${'='.repeat(78)}`);
   for (const [host, w, h] of [['figma', 380, 420], ['figma', 1280, 900], ['web', 1280, 900]]) for (const theme of ['light', 'dark']) {
@@ -21519,8 +21519,9 @@ if (runs('3553-md')) {
         const page = document.querySelector('[data-p3="export-page"]');
         const textLeft = (n) => { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; };
         const contentBox = (n) => { const r = n.getBoundingClientRect(); const cs = getComputedStyle(n); return { l: r.left + parseFloat(cs.paddingLeft), r: r.right - parseFloat(cs.paddingRight) }; };
-        const seg = page.querySelector('.p3-export-seg');
-        const col = contentBox(seg.parentElement);
+        // #3553 Q-UI11 A: the switcher is underline tabs now (`.p3-export-tabs`), still held inside its column.
+        const seg = page.querySelector('.p3-export-tabs');
+        const col = contentBox(seg.closest('.p3-bardlg-col'));
         const tabs = [...seg.querySelectorAll('[data-p3="export-artifact"]')].map((t) => { const r = t.getBoundingClientRect(); return { t: t.textContent, l: r.left, r: r.right }; });
         const out = page.querySelector('.p3-export-out');
         const capIn = (box, text) => [...box.querySelectorAll(':scope > .p3-menu-cap')].find((c) => c.textContent.startsWith(text));
@@ -21676,6 +21677,71 @@ if (runs('3553-m1')) {
     } finally { await ctx.close(); }
   }
 } // 3553-m1
+// #3553 Q-UI7 AND Q-UI11 (the owner's A on each): EXPORT'S SWITCHERS. Q-UI11: "which kind of output" was a segmented
+// control on Export and underline tabs on Documentation; Export's is now Documentation's tabs, a tablist of `.p3-tab`s
+// with one selected, the three on one row at every width (M8's 380 overflow, and the 2 + 1 wrap #3600 left, gone). Held:
+// its role, its one selected tab, its tabs on one row inside the column, and, on the plugin, each tab's type and its
+// selected underline read the same as Documentation's tabs (another page, drawn by `documentation.ts`). Q-UI7: every
+// option tab was set in mono; only Token names' options (token spellings) are now, the rest in the chrome's UI face.
+// Held: each option tab's face is the face Export's code preview is set in exactly when its row is Token names, and the
+// face of the page's own body text otherwise. Plugin 380 and 1280, web 1280, both themes. MUTATIONS (each after a `wip:`
+// commit): the switcher back to `p3-seg p3-export-seg` with `p3-seg-tab`s → `#3553 Q-UI11 … the switcher is
+// Documentation's underline tabs`; the Token names rule widened to every option row → `#3553 Q-UI7 … only Token names'
+// options are set in mono`.
+if (runs('3553-export')) {
+  console.log(`\nExport's switchers (#3553 Q-UI7, Q-UI11)\n${'='.repeat(78)}`);
+  for (const [host, w, h] of [['figma', 380, 420], ['figma', 1280, 900], ['web', 1280, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-export ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'docs';
+    try {
+      let docTab = null;
+      if (host === 'figma') {
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+        await hooks.need(page, '[data-p3="docs-head"]');
+        if (w >= 600) docTab = await page.evaluate(() => {
+          const t = document.querySelector('[data-p3="docs-tabs"] [role="tab"][aria-selected="true"]');
+          const c = getComputedStyle(t);
+          return { font: c.fontFamily, size: c.fontSize, line: c.borderBottomWidth, cls: t.className };
+        });
+      }
+      step = 'export';
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '[data-p3="export-page"] [data-p3="export-artifact"]');
+      await settle(page);
+      const m = await page.evaluate(() => {
+        const pg = document.querySelector('[data-p3="export-page"]');
+        const tabs = [...pg.querySelectorAll('[data-p3="export-artifact"]')];
+        const list = tabs[0]?.parentElement;
+        const sel = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+        const c = sel ? getComputedStyle(sel) : null;
+        const col = list?.closest('.p3-bardlg-col')?.getBoundingClientRect();
+        return {
+          role: list?.getAttribute('role') ?? null, roles: tabs.map((t) => t.getAttribute('role')), selected: tabs.filter((t) => t.getAttribute('aria-selected') === 'true').length,
+          rows: new Set(tabs.map((t) => Math.round(t.getBoundingClientRect().top))).size, cls: tabs.map((t) => t.className),
+          inside: tabs.every((t) => { const r = t.getBoundingClientRect(); return r.left >= col.left - 0.5 && r.right <= col.right + 0.5; }),
+          sel: c ? { font: c.fontFamily, size: c.fontSize, line: c.borderBottomWidth } : null,
+          mono: getComputedStyle(pg.querySelector('[data-p3="export-preview"]')).fontFamily,
+          ui: getComputedStyle(pg.querySelector('.p3-bardlg-desc')).fontFamily,
+          opts: [...pg.querySelectorAll('.p3-export-set')].flatMap((row) => [...row.querySelectorAll('[data-p3="export-setting"]')].map((b) => ({
+            row: row.querySelector('.p3-export-lab')?.textContent ?? '', opt: b.textContent, font: getComputedStyle(b).fontFamily }))),
+        };
+      });
+      ok(m.role === 'tablist' && m.roles.length === 3 && m.roles.every((r) => r === 'tab') && m.selected === 1 && m.cls.every((c) => /\bp3-tab\b/.test(c)),
+        `#3553 Q-UI11 ${where}: the switcher is Documentation's underline tabs, a tablist of three tabs, one selected (${JSON.stringify({ role: m.role, roles: m.roles, selected: m.selected, cls: m.cls })})`);
+      ok(m.rows === 1 && m.inside, `#3553 Q-UI11 ${where}: the three tabs sit on one row, inside the column (rows ${m.rows}, inside ${m.inside})`);
+      if (docTab) ok(!!m.sel && m.sel.font === docTab.font && m.sel.size === docTab.size && m.sel.line === docTab.line,
+        `#3553 Q-UI11 ${where}: a selected Export tab reads as Documentation's (${JSON.stringify({ export: m.sel, docs: docTab })})`);
+      ok(m.opts.length >= 6 && m.mono !== m.ui, `${where}: premise, Export draws its option rows, and its code and body faces differ (${m.opts.length}; ${m.mono} / ${m.ui})`);
+      const wrong = m.opts.filter((o) => o.font !== (o.row === 'Token names' ? m.mono : m.ui));
+      ok(m.opts.some((o) => o.row === 'Token names') && wrong.length === 0, `#3553 Q-UI7 ${where}: only Token names' options are set in mono, the rest in the UI face (${JSON.stringify(wrong.map((o) => `${o.row}: ${o.opt}`))})`);
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-export-${host}-${w}.png`) });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-export
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
