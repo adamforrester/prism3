@@ -395,9 +395,9 @@ export const checkboxGroup: ComponentDef = {
 
   // Brief §8: no layout motion. The group moves nothing; each row's control carries its own glyph motion.
   motion: {
-    enter: 'None (present on mount). Each row\'s nested control draws its own check, about 100-150ms.',
+    enter: 'None (present on mount). Each row\'s nested control draws its own check, on motion.duration.fast.',
     exit: 'None. Rows do not animate in or out of the stack.',
-    reduceMotion: 'No layout motion at any setting. Under prefers-reduced-motion, each nested control flips instantly.',
+    reduceMotion: 'No layout motion at any setting. Under prefers-reduced-motion, each nested control takes its new state at once and fades its color change.',
   },
 
   notes: {

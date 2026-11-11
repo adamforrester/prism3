@@ -562,9 +562,9 @@ export const radioRow: ComponentDef = {
 
   // Brief §8. The Row draws no motion of its own; the dot's transition belongs to the nested control.
   motion: {
-    enter: 'None of the row\'s own (present on mount). On select, the nested Radio.Control scales its dot in, about 100-150ms; the focus ring appears instantly.',
+    enter: 'None of the row\'s own (present on mount). On select, the nested Radio.Control scales its dot in, on motion.duration.fast; the focus ring appears instantly.',
     exit: 'None of the row\'s own. When a sibling option is selected, this option\'s dot animates out — exclusivity made visible.',
-    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested dot snaps through opacity and color only.',
+    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested dot fades with no scale, on motion.duration-reduced.fast.',
   },
 
   notes: {

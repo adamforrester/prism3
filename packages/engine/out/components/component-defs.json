@@ -26403,7 +26403,7 @@
       }
     },
     "checkbox-control": {
-      "digest": "824f74b5",
+      "digest": "ad9cfe01",
       "def": {
         "id": "checkbox-control",
         "name": "Checkbox.Control",
@@ -26549,9 +26549,9 @@
           "generationPriority": 6
         },
         "motion": {
-          "enter": "On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.",
+          "enter": "On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, on motion.duration.fast with motion.easing-role.default. Indeterminate to checked morphs the dash into the check.",
           "exit": "On uncheck, the same glyph transition runs back and the fill crossfades out.",
-          "reduceMotion": "Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion."
+          "reduceMotion": "Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box takes its new state at once; the fill's color change fades on motion.duration-reduced.fast, since opacity does not trigger vestibular symptoms. No layout motion."
         },
         "composition": {
           "composesWith": [
@@ -27357,7 +27357,7 @@
       }
     },
     "checkbox-row": {
-      "digest": "df9d720b",
+      "digest": "49e0a0ff",
       "def": {
         "id": "checkbox-row",
         "name": "Checkbox.Row",
@@ -27543,9 +27543,9 @@
           "generationPriority": 2
         },
         "motion": {
-          "enter": "None of the row's own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, about 100-150ms.",
+          "enter": "None of the row's own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, on motion.duration.fast.",
           "exit": "None of the row's own. On uncheck, the nested control runs the same glyph transition back.",
-          "reduceMotion": "No layout motion. Under prefers-reduced-motion, the nested glyph flips instantly; a crossfade under 150ms may remain."
+          "reduceMotion": "No layout motion. Under prefers-reduced-motion, the nested glyph is not drawn, and the color change fades on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -28011,7 +28011,7 @@
       }
     },
     "checkbox-group": {
-      "digest": "88213845",
+      "digest": "953c165f",
       "def": {
         "id": "checkbox-group",
         "name": "Checkbox.Group",
@@ -28191,9 +28191,9 @@
           "generationPriority": 2
         },
         "motion": {
-          "enter": "None (present on mount). Each row's nested control draws its own check, about 100-150ms.",
+          "enter": "None (present on mount). Each row's nested control draws its own check, on motion.duration.fast.",
           "exit": "None. Rows do not animate in or out of the stack.",
-          "reduceMotion": "No layout motion at any setting. Under prefers-reduced-motion, each nested control flips instantly."
+          "reduceMotion": "No layout motion at any setting. Under prefers-reduced-motion, each nested control takes its new state at once and fades its color change."
         },
         "composition": {
           "composesWith": [
@@ -28587,7 +28587,7 @@
       }
     },
     "radio-control": {
-      "digest": "015ef969",
+      "digest": "d63bc677",
       "def": {
         "id": "radio-control",
         "name": "Radio.Control",
@@ -28725,9 +28725,9 @@
           "generationPriority": 6
         },
         "motion": {
-          "enter": "On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.",
-          "exit": "When a sibling is selected, this dot animates out — the one exit a radio has, since it is never deselected on its own.",
-          "reduceMotion": "Under prefers-reduced-motion, the dot snaps in and out through opacity and color only, with no scale."
+          "enter": "On select, the inner dot scales in from a little under full size with a border-color crossfade on the ring, on motion.duration.fast with motion.easing-role.default. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.",
+          "exit": "When a sibling is selected, this dot scales out on the same timing — the one exit a radio has, since it is never deselected on its own.",
+          "reduceMotion": "Under prefers-reduced-motion, the dot has no scale: it fades in and out with the color change, on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -29276,7 +29276,7 @@
       }
     },
     "radio-row": {
-      "digest": "66e7583c",
+      "digest": "746df7ff",
       "def": {
         "id": "radio-row",
         "name": "Radio.Row",
@@ -29432,9 +29432,9 @@
           "generationPriority": 2
         },
         "motion": {
-          "enter": "None of the row's own (present on mount). On select, the nested Radio.Control scales its dot in, about 100-150ms; the focus ring appears instantly.",
+          "enter": "None of the row's own (present on mount). On select, the nested Radio.Control scales its dot in, on motion.duration.fast; the focus ring appears instantly.",
           "exit": "None of the row's own. When a sibling option is selected, this option's dot animates out — exclusivity made visible.",
-          "reduceMotion": "No layout motion. Under prefers-reduced-motion, the nested dot snaps through opacity and color only."
+          "reduceMotion": "No layout motion. Under prefers-reduced-motion, the nested dot fades with no scale, on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -29904,7 +29904,7 @@
       }
     },
     "radio-group": {
-      "digest": "14e661bc",
+      "digest": "b0bbbbdd",
       "def": {
         "id": "radio-group",
         "name": "Radio.Group",
@@ -30088,9 +30088,9 @@
           "generationPriority": 2
         },
         "motion": {
-          "enter": "None (present on mount). On select, the chosen option's dot scales in, about 100-150ms.",
+          "enter": "None (present on mount). On select, the chosen option's dot scales in, on motion.duration.fast.",
           "exit": "Selecting an option animates the previously selected option's dot out — exclusivity made visible, and the only exit a radio has. Rows do not animate in or out of the stack.",
-          "reduceMotion": "No layout motion. Under prefers-reduced-motion, both dots snap through opacity and color only; the focus ring appears instantly at every setting."
+          "reduceMotion": "No layout motion. Under prefers-reduced-motion, both dots fade with no scale, on motion.duration-reduced.fast; the focus ring appears instantly at every setting."
         },
         "composition": {
           "composesWith": [
@@ -30491,7 +30491,7 @@
       }
     },
     "switch-control": {
-      "digest": "bec59501",
+      "digest": "d599689e",
       "def": {
         "id": "switch-control",
         "name": "Switch.Control",
@@ -30635,7 +30635,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "The thumb slides across the track in ~150–200ms, ease-in-out, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the slide drops and the thumb snaps (0ms); the track-color crossfade may remain if it stays under flashing thresholds. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back."
+          "reduceMotion": "The thumb travels across the track on motion.transition.default, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the travel drops and the thumb takes its new place at once; the track-color change fades on motion.duration-reduced.fast. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back."
         },
         "composition": {
           "composesWith": [
@@ -31390,7 +31390,7 @@
       }
     },
     "switch-row": {
-      "digest": "80f4c6cf",
+      "digest": "ee2fcc34",
       "def": {
         "id": "switch-row",
         "name": "Switch.Row",
@@ -31578,7 +31578,7 @@
         "motion": {
           "enter": "none (present on mount)",
           "exit": "none",
-          "reduceMotion": "The nested control carries the thumb slide (~150–200ms, ease-in-out, snapping to 0ms under prefers-reduced-motion). The Row's motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears."
+          "reduceMotion": "The nested control carries the thumb travel (motion.transition.default; at once under prefers-reduced-motion, with the track color fading). The Row's motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears."
         },
         "composition": {
           "composesWith": [
@@ -42693,7 +42693,7 @@
       }
     },
     "segmented-control-segment": {
-      "digest": "7e9a9b4d",
+      "digest": "1c23c947",
       "def": {
         "id": "segmented-control-segment",
         "name": "SegmentedControl.Segment",
@@ -42821,9 +42821,9 @@
           "generationPriority": 9
         },
         "motion": {
-          "enter": "None. On selection the pill moves to this option, or cross-fades, over a short duration.",
+          "enter": "None. On selection the pill travels to this option on motion.transition.default, or cross-fades.",
           "exit": "None.",
-          "reduceMotion": "The indicator moves at once; only the color change remains."
+          "reduceMotion": "The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [
@@ -43550,7 +43550,7 @@
       }
     },
     "segmented-control": {
-      "digest": "5d327a0a",
+      "digest": "ce2663fd",
       "def": {
         "id": "segmented-control",
         "name": "SegmentedControl",
@@ -43716,9 +43716,9 @@
           "generationPriority": 3
         },
         "motion": {
-          "enter": "None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.",
+          "enter": "None. On selection the pill travels to the new option on motion.transition.default, or cross-fades.",
           "exit": "None.",
-          "reduceMotion": "The indicator moves at once; only the color change remains."
+          "reduceMotion": "The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast."
         },
         "composition": {
           "composesWith": [

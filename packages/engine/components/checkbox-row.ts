@@ -622,9 +622,9 @@ export const checkboxRow: ComponentDef = {
 
   // Brief §8. The Row draws no motion of its own; the glyph transition belongs to the nested control.
   motion: {
-    enter: 'None of the row\'s own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, about 100-150ms.',
+    enter: 'None of the row\'s own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, on motion.duration.fast.',
     exit: 'None of the row\'s own. On uncheck, the nested control runs the same glyph transition back.',
-    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested glyph flips instantly; a crossfade under 150ms may remain.',
+    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested glyph is not drawn, and the color change fades on motion.duration-reduced.fast.',
   },
 
   notes: {
@@ -638,7 +638,7 @@ export const checkboxRow: ComponentDef = {
       'The unchecked box has no `pressed` binding. `color.field.border.*` emits `rest` and `hover` only, so a pressed unchecked box falls through to its rest border. Reaching into `color.interactive.neutral.border.pressed` for that one coordinate would put two families on one ladder, which is the inconsistency `lint-paint.ts` arm 1 exists to see in its axis-led form. The checked and indeterminate coordinates DO paint pressed, so the gap is asymmetric — worth knowing before anyone reads the pressed row as covered.',
       '`read-only` is declared and binds nothing (see `states`). The brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to bind; a consumer choosing `aria-readonly` plus a prevented toggle has no token telling them what it should look like.',
       'The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch. Since #2894 the row\'s floor, `size.*.min-height`, is bound in Figma as well as code, and every row clears 24 by measurement (`test.ts` #2894: 29px at its smallest, small at compact). History: before #1433b gave the row 12px of block padding, an aurora `small` row at compact hugged to 21px, short of 24. `lint-hit-target` holds only the default (medium) row\'s `min-height` to 44px on comfortable and spacious density, which is why `accessibility.wcag` states 2.5.8 as intent (#1698). The heights are measured from emitted tokens and plans, not yet read back from a real host.',
-      'The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw at roughly 100-150ms, morphing dash to check) is stated in `checkbox-control`\'s `motion`, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`.',
+      'The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw, morphing dash to check) is stated in `checkbox-control`\'s `motion` on motion.duration.fast, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`.',
     ],
     evolution: [
       // Moved from `contested` (#1700): each is decided ("RESOLVED, not open", "Settled by evidence", "CLOSED"),

@@ -78,9 +78,9 @@ Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember 
 
 ### Motion
 
-- **Enter:** None of the row's own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, about 100-150ms.
+- **Enter:** None of the row's own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, on motion.duration.fast.
 - **Exit:** None of the row's own. On uncheck, the nested control runs the same glyph transition back.
-- **Reduced motion:** No layout motion. Under prefers-reduced-motion, the nested glyph flips instantly; a crossfade under 150ms may remain.
+- **Reduced motion:** No layout motion. Under prefers-reduced-motion, the nested glyph is not drawn, and the color change fades on motion.duration-reduced.fast.
 
 ## Content guidelines
 

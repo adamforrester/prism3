@@ -73,9 +73,9 @@ Use to select any number — zero to many — from a bounded set, where the chan
 
 ### Motion
 
-- **Enter:** None (present on mount). Each row's nested control draws its own check, about 100-150ms.
+- **Enter:** None (present on mount). Each row's nested control draws its own check, on motion.duration.fast.
 - **Exit:** None. Rows do not animate in or out of the stack.
-- **Reduced motion:** No layout motion at any setting. Under prefers-reduced-motion, each nested control flips instantly.
+- **Reduced motion:** No layout motion at any setting. Under prefers-reduced-motion, each nested control takes its new state at once and fades its color change.
 
 ## Content guidelines
 

@@ -412,9 +412,9 @@ export const radioGroup: ComponentDef = {
   // Brief §8. The group's one visible motion is exclusivity: selecting an option animates the previous
   // option's dot out. The dots are `radio-control`'s; the group is where two of them meet.
   motion: {
-    enter: 'None (present on mount). On select, the chosen option\'s dot scales in, about 100-150ms.',
+    enter: 'None (present on mount). On select, the chosen option\'s dot scales in, on motion.duration.fast.',
     exit: 'Selecting an option animates the previously selected option\'s dot out — exclusivity made visible, and the only exit a radio has. Rows do not animate in or out of the stack.',
-    reduceMotion: 'No layout motion. Under prefers-reduced-motion, both dots snap through opacity and color only; the focus ring appears instantly at every setting.',
+    reduceMotion: 'No layout motion. Under prefers-reduced-motion, both dots fade with no scale, on motion.duration-reduced.fast; the focus ring appears instantly at every setting.',
   },
 
   notes: {

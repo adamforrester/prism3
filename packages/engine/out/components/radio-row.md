@@ -78,9 +78,9 @@ Use a group of these for exactly one of 2 to about 7 mutually exclusive, all-vis
 
 ### Motion
 
-- **Enter:** None of the row's own (present on mount). On select, the nested Radio.Control scales its dot in, about 100-150ms; the focus ring appears instantly.
+- **Enter:** None of the row's own (present on mount). On select, the nested Radio.Control scales its dot in, on motion.duration.fast; the focus ring appears instantly.
 - **Exit:** None of the row's own. When a sibling option is selected, this option's dot animates out — exclusivity made visible.
-- **Reduced motion:** No layout motion. Under prefers-reduced-motion, the nested dot snaps through opacity and color only.
+- **Reduced motion:** No layout motion. Under prefers-reduced-motion, the nested dot fades with no scale, on motion.duration-reduced.fast.
 
 ## Content guidelines
 

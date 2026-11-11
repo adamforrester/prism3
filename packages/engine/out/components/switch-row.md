@@ -81,7 +81,7 @@ Use for a binary on/off setting that applies immediately — notifications, dark
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** The nested control carries the thumb slide (~150–200ms, ease-in-out, snapping to 0ms under prefers-reduced-motion). The Row's motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears.
+- **Reduced motion:** The nested control carries the thumb travel (motion.transition.default; at once under prefers-reduced-motion, with the track color fading). The Row's motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears.
 
 ## Content guidelines
 
