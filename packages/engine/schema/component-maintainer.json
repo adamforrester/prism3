@@ -3693,7 +3693,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion."
+          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs, on motion.transition.default both ways, and swaps without turning under prefers-reduced-motion (the prism3-motion accordion recipe). Figma swaps the down and up glyphs, since a variant holds no motion."
         },
         {
           "class": "right-to-left",
@@ -3719,21 +3719,6 @@
         {
           "section": "accessibility",
           "field": "accessibility.keyboard",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.enter",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.exit",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.reduceMotion",
           "reason": "empty"
         },
         {
