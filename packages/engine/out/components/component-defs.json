@@ -12958,7 +12958,7 @@
       }
     },
     "sign-in-button": {
-      "digest": "16a25762",
+      "digest": "279fd04d",
       "def": {
         "id": "sign-in-button",
         "name": "SignInButton",
@@ -13156,6 +13156,10 @@
           ]
         },
         "syncBoundary": [
+          {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
           {
             "class": "not-projected",
             "disposition": "REFUSED"

@@ -11,3 +11,7 @@ not the code API. The def now carries `isPending` and `disabled` as code-only pr
 - The explicit `stateAxis` keeps the set at its members; the spec grid gains the code-only coordinates (96 → 144)
   and the paint census and component-surface baselines were re-accepted. WalletButton is untouched: its provider
   element owns its own states.
+- `test.ts`: the #2711 admissions list gains `sign-in-button:pending` and `sign-in-button:disabled`, each admitted
+  in its own `codeOnly` entry led by its name, as the admission format requires. The literal-paint validator case
+  "a wash at a state the def lacks" used `disabled`, which the def now has, so it uses `inactive`, still a state
+  SignInButton lacks.

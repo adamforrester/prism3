@@ -234,7 +234,13 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
         class: 'not-projected',
         disposition: 'refused',
         description:
-          'pending and disabled — not projected: the design file\'s states are rest, hover, pressed and focus-visible (Q-S6 A), and both are code-only, as Button\'s inactive is (Q-CC23 A). In code isPending keeps focus with aria-disabled and aria-busy, ignores a second click while the provider\'s sign-in is in flight, and announces busy through a polite live region; disabled is the native attribute, and the button leaves the tab order.',
+          'pending — not projected: the design file\'s states are rest, hover, pressed and focus-visible (Q-S6 A), and pending is code-only, as Button\'s inactive is (Q-CC23 A). In code isPending keeps focus with aria-disabled and aria-busy, ignores a second click while the provider\'s sign-in is in flight, and announces busy through a polite live region.',
+      },
+      {
+        class: 'not-projected',
+        disposition: 'refused',
+        description:
+          'disabled — not projected: the design file\'s states are rest, hover, pressed and focus-visible (Q-S6 A), and disabled is code-only (Q-CC23 A). In code it is the native attribute, and the button leaves the tab order and the accessibility tree.',
       },
       {
         class: 'platform-owned',

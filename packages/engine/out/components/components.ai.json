@@ -2140,6 +2140,10 @@
           "disposition": "REFUSED"
         },
         {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
           "class": "platform-owned",
           "disposition": "REFUSED"
         },
