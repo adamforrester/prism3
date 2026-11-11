@@ -700,6 +700,14 @@ for (const c of ['skip', 'rename'] as const) {
   const plan2 = computePrunePlan(input);
   ok(JSON.stringify(plan2.variables) === JSON.stringify([{ collection: 'color (Prism3)', names: ['pds3/color/retired/role'] }]),
     `#3558 prune after rename (control): an orphan in "color (Prism3)" is still offered there (${JSON.stringify(plan2.variables)})`);
+  // The mode control: one planned color mode dropped from the plan, so the mode Prism3 wrote into `color (Prism3)` is
+  // stale and stamped as Prism3's. It is offered there, and nothing in the person's `color`. Mutation: the planned-modes
+  // remap in `computePrunePlan` dropped (`own.of(pm.collection)` → `pm.collection`) → `#3558 prune after rename (mode control)`.
+  const dropped = wp.color.modes[wp.color.modes.length - 1];
+  const plan3 = computePrunePlan({ ...input, plannedModes: input.plannedModes.map((pm) => (pm.collection === 'color' ? { ...pm, modes: pm.modes.filter((m) => m !== dropped) } : pm)) });
+  const offered = plan3.modes.map((x) => [x.collection, x.modes.map((m) => m.name)]);
+  ok(wp.color.modes.length > 1 && JSON.stringify(offered) === JSON.stringify([['color (Prism3)', [dropped]]]),
+    `#3558 prune after rename (mode control): a stale Prism3 mode in "color (Prism3)" is offered there, and nothing in the person's color (${dropped}; ${JSON.stringify(offered)})`);
 }
 
 // ── A SKIPPED SIZE KEEPS THE STYLE'S SIZE (#3557) ──
