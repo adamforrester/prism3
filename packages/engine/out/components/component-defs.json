@@ -47502,7 +47502,7 @@
       }
     },
     "dialog": {
-      "digest": "a2231089",
+      "digest": "2b63b362",
       "def": {
         "id": "dialog",
         "name": "Dialog",
@@ -47716,7 +47716,7 @@
         "motion": {
           "enter": "A centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge (motion.duration.moderate, motion.easing-role.enter). The backdrop fades in.",
           "exit": "The reverse, on motion.easing-role.exit.",
-          "reduceMotion": "Under prefers-reduced-motion every placement opens and closes at once, with no movement and no fade: motion.duration-reduced.moderate is 0ms."
+          "reduceMotion": "Under prefers-reduced-motion every placement and the backdrop fade only, with no slide and no scale, on motion.duration-reduced.normal to open and to close. A fade is not movement, and it keeps the cue that a layer opened or closed."
         },
         "composition": {
           "composesWith": [
