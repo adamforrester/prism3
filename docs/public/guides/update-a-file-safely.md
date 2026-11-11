@@ -22,7 +22,7 @@ The **Update** tab lists these items, in this order:
 |---|---|---|
 | **Set up file** | The pages, the templates and the style-guide cells, and the cover while Documentation has it on. Listed for a file that isn't set up yet, and for a set-up file that lacks something setup builds, such as a deleted template. See [Set up a file](file-setup.md). <!-- src: apps/studio/src/state/update-file.ts:317-318 --> | On a file that isn't set up yet. On a set-up file, it starts unticked and names what is missing. <!-- src: apps/studio/src/state/update-file.ts:178-185#8d8cd69f --> |
 | **Theme** | The brand's variables and styles. Layers bound to them restyle at once. See [Write the theme to a Figma file](apply-a-theme.md). <!-- src: apps/studio/src/state/update-file.ts:321-322 --> | When the file's variables differ from the brand, or the file isn't set up yet. Otherwise it reads "Up to date". <!-- src: apps/studio/src/state/update-file.ts:324 --> |
-| **Components** › **To add** | The sets chosen in the Components area, each with its usage panel while Documentation has panels on. See [Build components](build-components.md). <!-- src: apps/studio/src/state/update-file.ts:327-329 --> | Every set listed runs |
+| **Components** › **To add** | The sets chosen in the Components area, and each family's usage panel, beside its lead, while Documentation has panels on. See [Build components](build-components.md). <!-- src: apps/studio/src/state/update-file.ts:327-329 --> | Every set listed runs |
 | **Components** › **Due** | The sets in the file that are out of date, updated in place. See [Update sets in place](#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:336-338 --> | Yes |
 | **Style guides** | The token tables, drawn with the settings in Documentation. See [Build style guides](style-guides.md). <!-- src: apps/studio/src/state/update-file.ts:387-390 --> | Only on a file not set up yet |
 
@@ -106,6 +106,16 @@ What Clean up can delete: <!-- src: apps/plugin/src/prune-figma.ts:18-32#6e2fac9
 The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:581-582#88108fd2 -->
 
 After a style-guide run that found tables Prism3 no longer draws, **Clean up** lists them too: "2 style-guide tables the generator no longer draws." Choose **Remove *N* tables** to delete them. <!-- src: apps/studio/src/state/update-file.ts:403-404 -->
+
+### When a mode is renamed
+
+Prism3 never renames a mode in a file, and that includes a custom mode renamed in **Custom mode name**. <!-- src: apps/studio/src/domains/brand.ts:200 -->
+The renamed mode arrives as a new mode beside the old one. The old mode keeps the values it last had, and frames set to it still show them. <!-- src: apps/plugin/src/write-figma.ts:371-386#ffc2b3a2 -->
+Removing a mode removes its values from every variable in the collection, so move the frames first: <!-- src: apps/plugin/src/prune-figma.ts:45-53#979f9c19 -->
+
+1. Choose **Update file**, with **Theme** ticked, and run it. The file gets the new mode.
+2. Select each frame set to the old mode. In Figma's right sidebar, change the frame's mode for that collection to the new mode.
+3. Choose **Update file**, then the **Clean up** tab. It lists the old mode by name. Choose **Delete *N* items**.
 
 ## What refuses, and why
 

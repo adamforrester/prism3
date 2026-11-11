@@ -10400,11 +10400,9 @@ arm: {
   const PATHISH = /^[a-z][a-z0-9-]*(?:\.[a-z0-9*-]+)+$/;
   // Role-shaped names written OUTSIDE backticks — prose the path arm could not otherwise see.
   const BARE = /\b(?:text|icon|background|foreground|border|interactive|disabled|field|scrim|veil|inverse|type|core|color|font|space|radius|size|motion)\.[a-z0-9*<]/g;
-  // AI/A-11 is IN FLUX under #1614 and deliberately untouched by batch B: the overlay's avoid_when names
-  // `foreground.<color>-subtle`, which no brand emits. Exempt by exact shape, and only while it still
-  // ships — once #1614 rewrites the sentence this exemption fails as STALE, so it cannot outlive its reason.
-  const A11 = /\bforeground\.(?:primary|neutral|destructive|accent)-subtle\b/g;
-  let a11Seen = 0;
+  // The AI/A-11 exemption that stood here (held for #1614) is gone (#3555 S1): #1614 shipped, and the
+  // `foreground.<category>-subtle` names it let through were false in every brand (#3555 F2). Bare names now fail
+  // the BARE arm like any other.
 
   const pathBad: string[] = [], pairBad: string[] = [], primBad: string[] = [];
   let pairsChecked = 0, cwChecked = 0, clausesChecked = 0, tracking = 0, pathsChecked = 0, entriesChecked = 0, skillNamesChecked = 0, capsChecked = 0, limitsChecked = 0;
@@ -10482,8 +10480,7 @@ arm: {
       if (shout.length) pathBad.push(`${b} ${tier}.${k}.${f}: capitals for emphasis ${[...new Set(shout)].join(', ')}`);
       for (const m of t.matchAll(/`([^`]+)`/g)) if (PATHISH.test(m[1])) miss(`${tier}.${k}.${f}`, m[1]);
       const outside = t.replace(/`[^`]*`/g, '');
-      a11Seen += (outside.match(A11) ?? []).length;
-      const bare = outside.replace(A11, '').match(BARE);
+      const bare = outside.match(BARE);
       if (bare) pathBad.push(`${b} ${tier}.${k}.${f}: unquoted ${bare.join(', ')}`);
       // AI/A-14: on an inverse role, a named role that HAS an inverse twin must be named as the twin.
       // The decoration's opening sentence names the page twin on purpose, so it is set aside.
@@ -10576,10 +10573,12 @@ arm: {
       const u = e.usage_limit;
       if (!low) primBad.push(`${b} ${k}: usage_limit on an ink whose floor is ${lowest(k)}:1 in every mode`);
       if (u.floor !== `${lowest(k)}:1`) primBad.push(`${b} ${k}: usage_limit.floor ${u.floor}, tree says ${lowest(k)}:1`);
-      if (u.body_text_floor !== '4.5:1' || u.large_text?.min_px !== 24 || u.large_text?.bold_min_px !== 18.66) primBad.push(`${b} ${k}: usage_limit thresholds are not WCAG's (4.5:1; 24px, or 18.66px bold)`);
+      if (u.body_text_floor !== '4.5:1' || u.large_text?.min_px !== 24 || u.large_text?.bold_min_px !== 18.67) primBad.push(`${b} ${k}: usage_limit thresholds are not WCAG's (4.5:1; 24px, or 18.67px bold)`);
+      // 14pt bold is the WCAG threshold, and a px figure below 14pt is not large text (#3555 F7: 18.66px is 13.995pt).
+      if (!(u.large_text?.bold_min_px * 72 / 96 >= 14)) primBad.push(`${b} ${k}: usage_limit.large_text.bold_min_px ${u.large_text?.bold_min_px}px is below 14pt`);
       if (JSON.stringify(u.use_for) !== JSON.stringify(['large-text', 'icons', 'non-essential-text'])) primBad.push(`${b} ${k}: usage_limit.use_for ${JSON.stringify(u.use_for)}`);
       if (u.body_text_alternative !== undefined && lowest(u.body_text_alternative) < 4.5) primBad.push(`${b} ${k}: body_text_alternative ${u.body_text_alternative} is itself below 4.5:1 in some mode`);
-      if (!String(e.avoid_when).includes('Large text (24px and up, or 18.66px bold), icons and non-essential text only')) primBad.push(`${b} ${k}: usage_limit not stated in avoid_when`);
+      if (!String(e.avoid_when).includes('Large text (24px and up, or 18.67px bold), icons and non-essential text only')) primBad.push(`${b} ${k}: usage_limit not stated in avoid_when`);
     }
     // AI/D-2 (owner decision): the modal over a scrim is a page-polarity surface, not an inverse one; since #3049
     // (Q721 A) it is `foreground.raised`, the modal's own role.
@@ -10601,6 +10600,33 @@ arm: {
         const c = colorIn(k, 'light'), W = { r: 255, g: 255, b: 255, a: 1 }, K = { r: 0, g: 0, b: 0, a: 1 };
         if (ratio(c, W) < 4.5 || ratio(c, K) < 4.5) primBad.push(`${b} ${k}: pivot intent, but ${ratio(c, W).toFixed(2)}:1 on white / ${ratio(c, K).toFixed(2)}:1 on black`);
       }
+    }
+    // #3555 F1, F6: a primitive's meaning and consume state facts about its value, so each is read back off the TREE.
+    // A shadow's layer count is its `$value` array's length, and its dark-mode direction is its layers' alpha, per layer.
+    // A dimension called a grid step sits on the 4px grid.
+    for (const [k, e] of Object.entries<any>(ai.primitives)) {
+      const n = at(k);
+      if (k.startsWith('shadow.')) {
+        const layers: any[] = Array.isArray(n.$value) ? n.$value : [n.$value];
+        const said = /\((\d+)-layer\b/.exec(e.meaning ?? '');
+        if (!said || +said[1] !== layers.length) primBad.push(`${b} ${k}: meaning says ${said ? `${said[1]}-layer` : 'no layer count'}, the tree has ${layers.length}`);
+        const dv = n.$extensions?.prism3?.modes?.dark?.$value;
+        const dark: any[] = dv === undefined ? [] : Array.isArray(dv) ? dv : [dv];
+        const pairs = dark.map((d, i) => [parseColor(String(layers[i].color)).a, parseColor(String(d.color)).a]);
+        const t = `${e.consume ?? ''} ${e.meaning ?? ''}`;
+        if (/lighter|reduced/.test(t) && !(pairs.length && pairs.every(([l, d]) => d < l))) primBad.push(`${b} ${k}: says lighter in dark, alphas light→dark ${pairs.map(([l, d]) => `${l.toFixed(2)}→${d.toFixed(2)}`).join(', ')}`);
+        if (/stronger/.test(t) && !(pairs.length && pairs.every(([l, d]) => d > l))) primBad.push(`${b} ${k}: says stronger in dark, alphas light→dark ${pairs.map(([l, d]) => `${l.toFixed(2)}→${d.toFixed(2)}`).join(', ')}`);
+      }
+      const grid = /(\d+(?:\.\d+)?)px grid\b/.exec(e.meaning ?? '');
+      if (grid && +grid[1] % 4 !== 0) primBad.push(`${b} ${k}: meaning calls ${grid[1]}px a grid step, off the 4px grid`);
+    }
+    // #3555 F3: an overlay wash that names a color names the one it is. Every overlay's own value is read in every mode:
+    // an achromatic wash (black or white at an alpha) is "neutral", whatever its category.
+    for (const [k, e] of Object.entries<any>(ai.color)) if (/(?:^|\.)overlay\./.test(k)) {
+      const said = /\btranslucent (\w+)\b/.exec(e.when_to_use ?? '');
+      if (!said) continue;
+      const achromatic = modesOf(k).every((m) => { const c = roleIn(k, m); return Math.abs(c.r - c.g) < 1 && Math.abs(c.g - c.b) < 1; });
+      if (achromatic !== (said[1] === 'neutral')) primBad.push(`${b} ${k}: when_to_use says "translucent ${said[1]}", the wash is ${achromatic ? 'neutral in every mode' : 'chromatic'}`);
     }
     // Every ramp step the TREE marks with a band gets a usage intent — the tree decides which, not the sidecar.
     for (const l of leaves) if (at(l)?.$extensions?.prism3?.band && !ai.primitives[l]?.intent) primBad.push(`${b} ${l}: banded ramp step without intent`);
@@ -10645,7 +10671,6 @@ arm: {
       `sidecar (${id}): the selected tint's mode_overrides state the fill role at the opacity token in every mode, as the tree's tint does (${wrong.length ? wrong.map(([m, v]) => `${m}: ${JSON.stringify(v)}`).join('; ') : JSON.stringify(ov.light)})`);
   }
 }
-  ok(a11Seen > 0, `sidecar paths: the AI/A-11 exemption (held for #1614) is still live (${a11Seen}) — once it reads 0, delete the exemption`);
   ok(pairBad.length === 0, 'sidecar pairings: every sits_on / carries / contrast_with pair and surface claim clears its stated floor in every mode' + (pairBad.length ? ` — ${pairBad.length}: ${pairBad.slice(0, 5).join(' | ')}` : ''));
   ok(primBad.length === 0, 'sidecar fields: every entry carries its required fields, and every sub-body-text ink its usage_limit' + (primBad.length ? ` — ${primBad.length}: ${primBad.slice(0, 5).join(' | ')}` : ''));
 }
@@ -10688,7 +10713,7 @@ arm: {
     ['a missing required field', (d) => { delete d.color['text.primary'].avoid_when; }],
     ['a malformed ratio', (d) => { d.color['text.primary'].contrast_with[0].min = '7'; }],
     ['a contract without its requirement', (d) => { delete d.color['text.primary'].contrast_with[0].requirement; }],
-    ['an unknown usage_limit scope', (d) => { d.color['text.primary'].usage_limit = { use_for: ['body-text'], floor: '3:1', body_text_floor: '4.5:1', large_text: { min_px: 24, bold_min_px: 18.66 } }; }],
+    ['an unknown usage_limit scope', (d) => { d.color['text.primary'].usage_limit = { use_for: ['body-text'], floor: '3:1', body_text_floor: '4.5:1', large_text: { min_px: 24, bold_min_px: 18.67 } }; }],
     ['a stale schema version', (d) => { d.$schema = 'prism3-ai-metadata/0.2'; }],
     ['an unkeyed tier', (d) => { d.spacing = {}; }],
     ['a relation naming a non-path', (d) => { d.color['text.primary'].sits_on = ['Background Primary']; }],
@@ -14925,8 +14950,10 @@ arm: {
 // freezes NB colour + typography); the gate is that (a) every axis produces
 // output with the right shape, (b) every alias resolves WITHIN each brand's
 // own emitted collections, (c) since #1097 the namespace transform CARRIES the
-// brand's own root — aurora=prism (default), wendys=prism (default), NB=nbds —
-// exactly once and with no other brand's root anywhere, and (d) the aurora
+// brand's own root (the arms select by each brand's theme, `theme.root`: #3315,
+// this line once named two brands' roots wrongly, and an arm that trusted it would
+// select nothing; the doubled-root check in (e) still tests against a hardcoded
+// root list, #3575) exactly once and with no other brand's root anywhere, and (d) the aurora
 // gradient axis actually ships alias-driven stops that resolve to palette leaves
 // in the aurora tree (the alias-driven Paint Style form parked in the shadow +
 // gradient PR now materialises through the generalise pass).
@@ -15013,9 +15040,9 @@ arm: {
     // old form was satisfied by an emitter that dropped the root, and by one that never had it.
     //
     // Two halves, and the second is where the idempotence lives. Every name must start with THIS brand's
-    // own root, read off the theme rather than spelled — `prism` is a default a brief can move, and a
-    // literal here would pass for the two brands that take the default and be wrong for the one that does
-    // not, which is the Prism2 hardcoded-`pds/` bug in a gate instead of in a read path. Then no name's
+    // own root, read off the theme rather than spelled — `prism` is only a default a brief can move, and
+    // neither brand this arm walks takes it (#3315), so a literal `prism/` would select nothing, which is
+    // the Prism2 hardcoded-`pds/` bug in a gate instead of in a read path. Then no name's
     // TAIL may start with a root segment: that catches a DOUBLED root (`prism/prism/color/…`, what a
     // second pass over its own output produces) and cross-brand leakage in one predicate, and neither is
     // visible to a check that only looks at segment 0.
