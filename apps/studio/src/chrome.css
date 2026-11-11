@@ -280,7 +280,13 @@
 /* Settings search (Q3): a magnifier at the end of the levers header opens a field in place. */
 .p3-search { display: flex; align-items: center; flex: none; min-width: 0; }
 .p3-search-box { display: none; }
-.p3-search[data-open="true"] { flex: 0 1 50%; }
+/* #3553 M1 A: an open field takes the row and the tabs hide, at every width (the narrow tier's rule, below, made general).
+   At 50% beside tabs that keep their width, the wide tier left the field about 52px of text, cut the last tab, and ran
+   the status and Close out of the levers column. Moving to another Theme page means closing Search first. */
+.p3-search[data-open="true"] { flex: 1 1 auto; }
+/* On Components the row also carries the page's title, which left the field 0px at 1024 and ran Close past the column at
+   every width: it gives way too, as the tabs do (the rail's tile still names the place). */
+.p3-nav:has(.p3-search[data-open="true"]) :is(.p3-tabs, .p3-preview-title) { display: none; }
 .p3-search[data-open="true"] .p3-search-open { display: none; }
 .p3-search[data-open="true"] .p3-search-box { display: flex; position: relative; align-items: center; gap: var(--p3-space-100); flex: 1 1 auto; min-width: 0; }
 .p3-search-box > .p3-ico { position: absolute; left: var(--p3-space-150); color: var(--p3-icon-2); pointer-events: none; }
@@ -538,7 +544,6 @@
 .p3-frame[data-w="narrow"] .p3-nav { gap: var(--p3-space-100); padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-w="narrow"] .p3-domrow { display: flex; flex: 1 1 auto; min-width: 0; }
-.p3-frame[data-w="narrow"] .p3-search[data-open="true"] { flex: 1 1 auto; }
 .p3-frame[data-w="narrow"] .p3-nav:has(.p3-search[data-open="true"]) .p3-domrow { display: none; }
 .p3-frame[data-w="narrow"] .p3-subnav { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-subnav .p3-seg { display: flex; width: 100%; }
