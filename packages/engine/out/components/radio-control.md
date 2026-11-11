@@ -19,9 +19,9 @@ The atomic radio control — the painted circle with its inner selection dot and
 
 Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
-1. **Control**
-2. **Dot**
-3. **Focus ring**
+1. **Control** — The radio's outlined ring, which changes color when selected; a person clicks the whole labeled row, not the ring alone.
+2. **Dot** — The inner dot, shown only when the radio is selected.
+3. **Focus ring** — The shared focus ring, drawn as a circle around the radio on keyboard focus.
 
 ## Styles
 
