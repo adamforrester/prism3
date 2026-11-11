@@ -51700,7 +51700,7 @@
             "underline": {
               "styles": {
                 "backgroundColor": {
-                  "$token": "color.border.tertiary",
+                  "$token": "color.interactive.neutral.indicator.rest",
                   "$type": "color"
                 }
               }
@@ -51743,7 +51743,7 @@
             "underline": {
               "styles": {
                 "backgroundColor": {
-                  "$token": "color.border.tertiary",
+                  "$token": "color.interactive.neutral.indicator.rest",
                   "$type": "color"
                 }
               }

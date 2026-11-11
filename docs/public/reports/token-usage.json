@@ -2289,35 +2289,6 @@
             "separator.rule.border"
           ],
           "parts": {}
-        },
-        "pagination-item": {
-          "keys": [
-            "selected.underline.page.fill.focus-visible",
-            "selected.underline.page.fill.rest"
-          ],
-          "parts": {
-            "underline": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "underline"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
         }
       }
     },
@@ -8447,6 +8418,35 @@
                 "state": [
                   "focus-visible",
                   "rest"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "selected.underline.page.fill.focus-visible",
+            "selected.underline.page.fill.rest"
+          ],
+          "parts": {
+            "underline": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "underline"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -31995,13 +31995,13 @@
         "border-width.thick",
         "color.border.focus",
         "color.border.secondary",
-        "color.border.tertiary",
         "color.disabled.icon",
         "color.disabled.text",
         "color.icon.primary",
         "color.interactive.neutral.icon.hover",
         "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.indicator.rest",
         "color.interactive.neutral.overlay.hover",
         "color.interactive.neutral.overlay.pressed",
         "color.interactive.neutral.text.hover",

@@ -9,7 +9,7 @@
 
 ## Overview
 
-One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in a gray that stands out from the page at 3:1. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.
+One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in the number's ink. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.
 
 - **Purpose:** One page number, the ellipsis, or previous or next, inside a pagination row.
 - **Use when:** Only as a child of Pagination. Generate Pagination, which places the pages, the gap marker, previous and next, and sets which page is current.
@@ -27,7 +27,7 @@ Shown on the default member: type `page`, selection `unselected`, style `border`
 6. **Reserve** — A zero-height frame that clips a copy of the number in the emphasis weight: it takes that width and shows nothing.
 7. **Label reserve** — The number again, in the emphasis weight, never seen: it holds the cell at that width.
 8. **Label** — The page number. Regular, and in the emphasis weight on the current page.
-9. **Underline** — The 2px line under the current page's number, in the underline style: as wide as the number, not the cell, in a gray that stands out from the page at 3:1.
+9. **Underline** — The 2px line under the current page's number, in the underline style: as wide as the number, not the cell, in the number's ink (the neutral selection mark), at 3:1 or more against the page.
 10. **Underline reserve** — A zero-height frame that clips a copy of the number, so the underline takes the number's width and shows only its own color.
 11. **Underline label** — The number again, in the emphasis weight, never seen: it sets the underline's width.
 12. **Gap glyph**
@@ -273,7 +273,7 @@ Keyed by `type`, `selection`, `style`, `labeled`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/labelBox/underline` | `color.border.tertiary` | — | — | — |
+| `container/labelBox/underline` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/labelBox/underline/underlineReserve/underlineLabel` | — | — | `color.interactive.neutral.text.rest` | — |
 
 **type=page, selection=selected, style=underline, labeled=false, state=focus-visible**
@@ -282,7 +282,7 @@ Keyed by `type`, `selection`, `style`, `labeled`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
 | `container/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/labelBox/underline` | `color.border.tertiary` | — | — | — |
+| `container/labelBox/underline` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/labelBox/underline/underlineReserve/underlineLabel` | — | — | `color.interactive.neutral.text.rest` | — |
 
 **type=ellipsis, selection=unselected, style=border, labeled=false, state=rest**
