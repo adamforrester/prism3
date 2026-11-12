@@ -1371,7 +1371,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked."
+              "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked."
             }
           }
         },
@@ -5154,7 +5154,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked."
+              "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked."
             }
           }
         },
@@ -8937,7 +8937,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked."
+              "description": "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked."
             }
           }
         },
@@ -13957,7 +13957,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree."
+              "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree."
             }
           }
         },
@@ -16047,7 +16047,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree."
+              "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree."
             }
           }
         },
@@ -18137,7 +18137,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree."
+              "description": "Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree."
             }
           }
         },
@@ -50020,18 +50020,18 @@
             "com.prism3": {
               "type": "string | node",
               "required": true,
-              "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter only with showLabel."
+              "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set."
             }
           }
         },
-        "showLabel": {
+        "hideLabel": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "$extensions": {
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way."
+              "description": "Hides the label visually and keeps it in the accessibility tree, so the value keeps its name. On by default: a counter on a product card or a bag line is usually explained by what sits around it. Set it to false to show the label above the counter. Never display: none."
             }
           }
         },
@@ -59252,6 +59252,17 @@
               "type": "string | node",
               "required": true,
               "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
+            }
+          }
+        },
+        "hideLabel": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none."
             }
           }
         },

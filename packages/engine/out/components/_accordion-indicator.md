@@ -1,6 +1,6 @@
 # Accordion.Indicator
 
-> The open or closed glyph inside an Accordion header: a chevron or a plus and minus.
+> The open or closed glyph inside an accordion header: a chevron or a plus and minus.
 
 - **ID:** `_accordion-indicator`
 - **Category:** navigation

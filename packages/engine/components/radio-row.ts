@@ -138,7 +138,7 @@ export const radioRow: ComponentDef = {
   category: 'form',
   status: 'draft',
   inherits: 'checkbox-row',
-  summary: 'One labeled option inside a Radio.Group. The whole row is the hit target.',
+  summary: 'One labeled option inside a radio group. The whole row is the hit target.',
   description:
     'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).',
 
@@ -571,9 +571,9 @@ export const radioRow: ComponentDef = {
 
   // Brief §8. The Row draws no motion of its own; the dot's transition belongs to the nested control.
   motion: {
-    enter: 'None of the row\'s own (present on mount). On select, the nested Radio.Control scales its dot in, about 100-150ms; the focus ring appears instantly.',
+    enter: 'None of the row\'s own (present on mount). On select, the nested Radio.Control scales its dot in, on motion.duration.fast; the focus ring appears instantly.',
     exit: 'None of the row\'s own. When a sibling option is selected, this option\'s dot animates out — exclusivity made visible.',
-    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested dot snaps through opacity and color only.',
+    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested dot fades with no scale, on motion.duration-reduced.fast.',
   },
 
   notes: {

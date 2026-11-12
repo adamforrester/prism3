@@ -49390,7 +49390,7 @@
           "variant": {
             "size": "medium",
             "emphasis": "primary",
-            "weight": "bold",
+            "weight": "regular",
             "state": "rest"
           },
           "when": {
@@ -49400,8 +49400,13 @@
               }
             }
           },
-          "follows": [],
-          "exposes": []
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "emphasis",
+            "weight"
+          ]
         },
         {
           "part": "container/field/control/track/thumb",
