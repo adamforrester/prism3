@@ -32,6 +32,8 @@
  *   · `missingMain++` written eagerly → `partway definitions/an unread main-less instance counts no missing main`;
  *     never committed → `partway definitions/a readable main-less instance counts one missing main`;
  *   · `btn` or `cta` dropped from `BUTTON_WORD` → `button words/a frame named "btn" is button-like; …` (or "cta").
+ *   · the usage-row sort dropped (comparator `0`, walk order kept) → `order/paints: most-used first, a tie by color`;
+ *   · the components sort dropped → `order/components: most-used first, a tie by name`.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -390,6 +392,27 @@ section('partway definitions — a component, a set and a main-less instance who
   const read = await scanFileFacts(sourceFromSnapshot({ collections: [], variables: [], styles: { paint: [], text: [], effect: [], grid: [] },
     components: [], pages: [{ id: 'p', name: 'P', children: [{ id: 'lost', type: 'INSTANCE', name: 'Card', mainComponentId: 'gone', children: [] }] }] }));
   ok(read.components.missingMain === 1 && read.coverage.instances === 1, 'partway definitions/a readable main-less instance counts one missing main', [read.components.missingMain, read.coverage]);
+}
+
+/* ── most-used first: the order the schema promises, against walk order ─────────────────────────────────────────────── */
+section('order — rows and components most-used first, ties by identity, whatever the walk order');
+{
+  // Walk order puts the less-used first: red (1), green (1), then blue (2); instances Zeta (1), Alpha (1), then Mid (2).
+  // Most-used first puts blue and Mid on top; each tie is broken by identity (color, then component name), so green
+  // comes before red and Alpha before Zeta. Both orders are the reverse of the walk, so neither falls out of it.
+  const frame = (id: string, c: { r: number; g: number; b: number }): FactsNode => ({ id, type: 'FRAME', name: 'Panel', fills: [solid(c.r, c.g, c.b)] });
+  const inst = (id: string, main: string): FactsNode => ({ id, type: 'INSTANCE', name: 'Item', mainComponentId: main, children: [] });
+  const r = await scanFileFacts(sourceFromSnapshot({ collections: [], variables: [], styles: { paint: [], text: [], effect: [], grid: [] },
+    components: [{ id: 'z', name: 'Zeta' }, { id: 'a', name: 'Alpha' }, { id: 'm', name: 'Mid' }],
+    pages: [{ id: 'p', name: 'P', children: [
+      frame('f1', { r: 1, g: 0, b: 0 }), frame('f2', { r: 0, g: 1, b: 0 }), frame('f3', BLUE), frame('f4', BLUE),
+      inst('i1', 'z'), inst('i2', 'a'), inst('i3', 'm'), inst('i4', 'm'),
+    ] }] }));
+  ok(validate(SCHEMA, r).length === 0, 'order/the report matches schema/file-facts.schema.json', validate(SCHEMA, r).slice(0, 5));
+  const fills = r.usage.paints.filter((p) => p.property === 'fill').map((p) => [p.color, p.layers]);
+  ok(eq(fills, [['#0066ff', 2], ['#00ff00', 1], ['#ff0000', 1]]), 'order/paints: most-used first, a tie by color', fills);
+  const placed = r.components.used.map((c) => [c.name, c.layers]);
+  ok(eq(placed, [['Mid', 2], ['Alpha', 1], ['Zeta', 1]]), 'order/components: most-used first, a tie by name', placed);
 }
 
 /* ── the button words, each on its own (ROLE_RULE name-and-type/1) ──────────────────────────────────────────────────── */
