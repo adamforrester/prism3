@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (118)
+## Findings (121)
 
 ### axis values
 
@@ -128,6 +128,9 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **button-neutral** — button-neutral declares the state inactive, which the design-file state axis does not draw
 - **card-number-field** — card-number-field declares the states pending and empty, which the design-file state axis does not draw
 - **code-input** — code-input declares the state pending, which the design-file state axis does not draw
+- **flush-icon-button** — flush-icon-button declares the state inactive, which the design-file state axis does not draw
+- **flush-icon-button-destructive** — flush-icon-button-destructive declares the state inactive, which the design-file state axis does not draw
+- **flush-icon-button-neutral** — flush-icon-button-neutral declares the state inactive, which the design-file state axis does not draw
 - **icon-button** — icon-button declares the state inactive, which the design-file state axis does not draw
 - **icon-button-destructive** — icon-button-destructive declares the state inactive, which the design-file state axis does not draw
 - **icon-button-neutral** — icon-button-neutral declares the state inactive, which the design-file state axis does not draw
@@ -144,9 +147,9 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **variant family: CodeInput** — no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled, error]
 - **role peers: *.Row** — switch-row differs from the group's common set [disabled, focus-visible, hover, pressed, read-only, rest] — adds pending
 - **role peers: *.Item** — no state set is shared by most of the group — list-item []; page-nav-item []; pagination-item [rest, hover, pressed, focus-visible, disabled]; tab-item [rest, hover, pressed, focus-visible, disabled]
-- **substrate: button** — flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
-- **substrate: button-destructive** — flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
-- **substrate: button-neutral** — flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
+- **substrate: button** — flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending
+- **substrate: button-destructive** — flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending
+- **substrate: button-neutral** — flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending
 - **substrate: text-field** — no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]
 
 ### variant axes
@@ -199,9 +202,9 @@ Generated from the component definitions and the emission by `packages/engine/em
 | divider | foundations | — | — |
 | field-label | form | rest, disabled | rest, disabled |
 | field-message | feedback | — | — |
-| flush-icon-button | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
-| flush-icon-button-destructive | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
-| flush-icon-button-neutral | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
+| flush-icon-button | form | rest, hover, pressed, focus-visible, disabled, inactive | rest, hover, pressed, focus-visible, disabled |
+| flush-icon-button-destructive | form | rest, hover, pressed, focus-visible, disabled, inactive | rest, hover, pressed, focus-visible, disabled |
+| flush-icon-button-neutral | form | rest, hover, pressed, focus-visible, disabled, inactive | rest, hover, pressed, focus-visible, disabled |
 | focus-ring | foundations | — | — |
 | icon | foundations | — | — |
 | icon-button | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
@@ -250,7 +253,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | focus-visible | _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tag, text-field, textarea, wallet-button |
 | focus-visible-filled | card-number-field, code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
 | hover | _slider-thumb, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-row, code-input, code-input-cell, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, sign-in-button, slider, switch-control, switch-row, tab-item, tag, text-field, textarea |
-| inactive | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral |
+| inactive | button, button-destructive, button-neutral, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral |
 | pending | button, button-destructive, button-neutral, card-number-field, code-input, icon-button, icon-button-destructive, icon-button-neutral, password-field, search-field, select, sign-in-button, switch-row, text-field, textarea |
 | pressed | _slider-thumb, button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, radio-control, radio-row, segmented-control-segment, sign-in-button, slider, switch-control, switch-row, tab-item, tag |
 | read-only | card-number-field, checkbox-row, password-field, radio-row, search-field, select, switch-row, tag, text-field, textarea |
@@ -533,6 +536,9 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | isInactive | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
+|  | flush-icon-button | false | — |
+|  | flush-icon-button-destructive | false | — |
+|  | flush-icon-button-neutral | false | — |
 |  | icon-button | false | — |
 |  | icon-button-destructive | false | — |
 |  | icon-button-neutral | false | — |
@@ -684,6 +690,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | page-nav | — | — |
 | required | card-number-field | false | — |
 |  | checkbox-group | false | — |
+|  | code-input | false | — |
 |  | field-label | false | — |
 |  | password-field | false | — |
 |  | radio-group | false | — |

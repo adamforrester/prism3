@@ -1265,7 +1265,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
@@ -5048,7 +5048,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
@@ -8831,7 +8831,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
@@ -20113,7 +20113,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -20179,6 +20179,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -20186,7 +20197,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -20203,7 +20214,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
@@ -20879,7 +20893,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -20945,6 +20959,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -20952,7 +20977,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -20969,7 +20994,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
@@ -21645,7 +21673,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -21711,6 +21739,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -21718,7 +21757,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -21735,7 +21774,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
@@ -31753,7 +31795,7 @@
             "com.prism3": {
               "type": "array",
               "required": false,
-              "description": "The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
+              "description": "The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
             }
           }
         },
@@ -61106,6 +61148,17 @@
               "type": "enum: 'auto' | 'full'",
               "required": false,
               "description": "auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must."
+            }
+          }
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
             }
           }
         },

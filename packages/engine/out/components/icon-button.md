@@ -13,7 +13,7 @@
 A Button whose entire content is a single icon, with no visible text label, in the brand's primary action style. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the IconButton.Destructive / IconButton.Neutral sibling components.
 
 - **Purpose:** Trigger an action with an icon alone, no visible label, in the brand's primary style.
-- **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).
+- **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).
 - **Avoid when:** The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action deletes or removes something → use IconButton.Destructive. It carries no brand emphasis (most toolbar and row actions, a close affordance) → use IconButton.Neutral.
 
 ## Anatomy
@@ -67,7 +67,7 @@ Use for a self-evident action where space is tight and a text label would be red
 - 2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)
 - 1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)
 - 2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)
-- 2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)
+- 2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)
 - 1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)
 - 2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)
 - 2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)
@@ -76,7 +76,7 @@ Use for a self-evident action where space is tight and a text label would be red
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.
+- **Reduced motion:** State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.
 
 ## Content guidelines
 

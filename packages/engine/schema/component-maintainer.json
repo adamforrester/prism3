@@ -954,7 +954,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1048,7 +1048,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1142,7 +1142,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1212,7 +1212,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1302,7 +1307,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1392,7 +1402,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",

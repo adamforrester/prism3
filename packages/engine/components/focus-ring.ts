@@ -418,7 +418,7 @@ export const focusRing: ComponentDef = {
     primaryPurpose: 'Render the shared keyboard-focus indicator for a focusable control.',
     whenToUse: 'Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.',
     avoidWhen:
-      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.',
+      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.',
     // The defs that NEST the ring, read off their anatomy (#1700). A reverse list, so it lives here and not
     // in `composesWith`, which names what a def nests itself.
     commonPartners: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control', 'link', 'counter'],

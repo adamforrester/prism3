@@ -345,6 +345,8 @@ export const codeInput: ComponentDef = {
     { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the composed FieldMessage is shown. Off by default; turn it on to show the helper or validation message below the cells. Never hides a message the field needs: turn it on wherever there is helper or validation text.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'xlarge'", values: ['small', 'medium', 'large', 'xlarge'], default: 'medium', required: false, description: 'The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes.' },
     { name: 'width', type: "enum: 'auto' | 'full'", values: ['auto', 'full'], default: 'auto', required: false, description: 'auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must.' },
+    // Q-CC8 A (#3554): the nested FieldLabel shows a required marker, so the field takes the field family's `required`.
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'The code is being checked; sets aria-busy and keeps the input editable.' },
     { name: 'name', type: 'string', required: false, description: 'A real <input name>, so the field works in a native <form>.' },
@@ -524,7 +526,7 @@ export const codeInput: ComponentDef = {
     ],
     keyboard: 'One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.',
     focus: 'Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.',
-    aria: 'aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.',
+    aria: 'aria-describedby names the helper and any error, aria-required is set when the code is required, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.',
   },
 
   content: {
