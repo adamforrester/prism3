@@ -1,0 +1,13 @@
+## (2026-11-12) — A late file read no longer replaces the brand the designer chose (#3697 R9)
+
+The review's L2: `handleHostMessage` loaded a `restore-input` with no guard. The boot read is asynchronous and the panel is live before it lands, so a designer who picked a brand, or edited the placeholder, in that window lost the work when the file's brand arrived. The sibling effects (the fresh-file start, the library home, "Reading this file") already guard on `provenance === bootProvenance`. The owner chose A: a late restore is not applied, and the designer is offered the file's brand instead.
+
+**What counts as acting.** `userActed()` is the siblings' identity test, `provenance !== bootProvenance`, which every load reassigns. To that it adds `isDirty(brandState, bootProvenance)`: a lever edit does not reassign provenance, so the identity test alone would miss someone who only edited. The guard is the siblings' test, deliberately, and not a value comparison. The value form failed in #1197, where picking the boot brand's own chip read as "nothing chosen". The new arm picks exactly that chip (`prism3`, the boot brand) and must still be held.
+
+**Only the boot read is held.** `bootRestoreSeen` turns true on the first of `restore-input`, `-empty`, `-error` or `-library`. A later `restore-input` is the plugin's own sync after a Theme write it ran for the panel (#3394's override, sent only while the panel's brand is the one it wrote), so it still loads. Without this scope, an agent's override would have been offered instead of shown.
+
+**The offer.** The held input shows in the error strip, the one strip that already carries a one-click action (#2146), below a refused restore and a failed edit in priority. Taking it loads the brand as `{ kind: 'file' }`, as an early restore would, and the strip clears. A Theme write that lands (`apply-result` ok) also drops the offer, since the file then holds the panel's brand.
+
+**Owner decisions held in the PR.** The copy is a DRAFT to the voice standard: "This file holds a saved brand. Your choice came first, so it stays on screen." and "Load the file's brand". So is drawing a non-error offer in the error strip with its warning glyph.
+
+**Tests and mutations.** `test-start-screen.mjs` §3b: `early-restore`, `late-restore`, `late-offer` and `take-offer`, against the built `dist/ui.html`. With the guard removed (`late = false`), `late-restore` and `late-offer` fail by name. With the offer loading nothing, `take-offer` fails. Both mutations were committed as `wip:` and reverted. No arm covers the edit-only path (`isDirty`), only the chosen one.
