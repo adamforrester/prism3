@@ -377,7 +377,7 @@
         },
         {
           "name": "figma_run",
-          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity, panels-clean, context. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
+          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity, panels-clean, context, set-override. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -401,12 +401,13 @@
                   "snapshot",
                   "activity",
                   "panels-clean",
-                  "context"
+                  "context",
+                  "set-override"
                 ]
               },
               "args": {
                 "type": "object",
-                "description": "status: Record<string, never>; apply-theme: { input: BrandInput }; build-components: { def?: string }; file-setup: Record<string, never>; style-guide: StyleGuideOptions; prune: { input: BrandInput; confirm: boolean }; readback: Record<string, never>; update-components: { def?: string; confirm: false } | { def?: string; confirm: true; previewHash: string; choices?: UpdateChoiceArgs }; capture-baseline: { def?: string }; adopt-members: { def?: string }; draw-specs: { def?: string }; inspect: { ids: string[]; depth?: number; fields?: Array<'props' | 'bindings' | 'styles' | 'layout' | 'text'>; maxNodes?: number }; component-keys: { names?: string[]; sets?: boolean }; audit-frames: { ids: string[]; legacy?: { textStyles?: string[]; components?: string[]; variablePrefixes?: string[] }; nameRule?: string }; snapshot: { id: string; scale?: number }; activity: { since?: number; limit?: number }; panels-clean: { confirm?: boolean }; context: Record<string, never>. Record<string, never> means send {}. Each field's meaning: docs/public/reference/commands.json."
+                "description": "status: Record<string, never>; apply-theme: { input: BrandInput }; build-components: { def?: string }; file-setup: Record<string, never>; style-guide: StyleGuideOptions; prune: { input: BrandInput; confirm: boolean }; readback: Record<string, never>; update-components: { def?: string; confirm: false } | { def?: string; confirm: true; previewHash: string; choices?: UpdateChoiceArgs }; capture-baseline: { def?: string }; adopt-members: { def?: string }; draw-specs: { def?: string }; inspect: { ids: string[]; depth?: number; fields?: Array<'props' | 'bindings' | 'styles' | 'layout' | 'text'>; maxNodes?: number }; component-keys: { names?: string[]; sets?: boolean }; audit-frames: { ids: string[]; legacy?: { textStyles?: string[]; components?: string[]; variablePrefixes?: string[] }; nameRule?: string }; snapshot: { id: string; scale?: number }; activity: { since?: number; limit?: number }; panels-clean: { confirm?: boolean }; context: Record<string, never>; set-override: { changes: OverrideChange[]; confirm: false } | { changes: OverrideChange[]; confirm: true; previewHash: string }. Record<string, never> means send {}. Each field's meaning: docs/public/reference/commands.json."
               },
               "timeoutMs": {
                 "type": "number",
@@ -849,6 +850,28 @@
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.context",
         "writes": "Nothing. Reads the stored brand, the variable collections, the as-built ledger and every page for its protected nodes; pages are loaded, never switched to.",
         "refuses": [],
+        "devOnly": false
+      },
+      {
+        "name": "set-override",
+        "args": "{ changes: OverrideChange[]; confirm: false } | { changes: OverrideChange[]; confirm: true; previewHash: string }",
+        "description": "Color overrides, 1 to 32 changes applied all or nothing. `confirm: false` previews and writes nothing; its result carries a `previewHash`. `confirm: true` must echo it, and runs the Theme write itself.",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.set-override",
+        "writes": "With confirm: false, nothing: a preview whose result carries a previewHash, each change before and after, and every pair that moved. With confirm: true and that previewHash, the Theme write: the variables, the stored brand and a saved version, through the same handler as apply-theme; refused when a pair would drop below its minimum, the file's brand moved after the preview, or Theme has unapplied edits.",
+        "refuses": [
+          {
+            "computed": "changes",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.set-override"
+          },
+          {
+            "message": "set-override needs args.confirm: false to preview, true to write",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.set-override"
+          },
+          {
+            "message": "set-override with confirm: true needs args.previewHash: the previewHash its preview returned",
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.set-override"
+          }
+        ],
         "devOnly": false
       },
       {

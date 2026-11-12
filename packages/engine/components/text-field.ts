@@ -881,7 +881,7 @@ export const textField: ComponentDef = makeTextField({
     // What the anatomy nests (#1700). The glyph, clear button and pending spinner fill slots or swap in at
     // runtime, so they are partners in `ai.commonPartners`, not parts.
     composesWith: ['field-label', 'field-message'],
-    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field', 'search-field', 'code-input'],
+    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field', 'search-field', 'counter', 'card-number-field', 'slider', 'code-input'],
     replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
     planned: ['form', 'tooltip', 'combobox', 'number-field', 'date-picker'],
   },
@@ -890,7 +890,7 @@ export const textField: ComponentDef = makeTextField({
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'State transitions — the border color on focus or status, the helper-to-validation message swap — are short, token-driven and eased out, ~100–150ms. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion these resolve to an instant color or position change so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.',
+    reduceMotion: 'State transitions — the border color on focus or status, the helper-to-validation message swap — run on motion.duration.fast with motion.easing-role.default. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion a position change is at once and a color change runs on motion.duration-reduced.fast, so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.',
   },
 
   notes: {

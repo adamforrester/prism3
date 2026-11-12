@@ -83,9 +83,9 @@ Use a link to go somewhere: another page, a place on the page, a file or another
 
 ### Motion
 
-- **Enter:** None. At hover and focus the color changes over about 150ms, and a standalone link shows its underline.
+- **Enter:** None. At hover and focus the color changes on motion.duration.fast, and a standalone link shows its underline.
 - **Exit:** None.
-- **Reduced motion:** The color and underline change at once, with no transition.
+- **Reduced motion:** The color and underline change on motion.duration-reduced.fast.
 
 ## Content guidelines
 
@@ -96,8 +96,8 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 ## Related components
 
 - **Built from:** `focus-ring`
-- **Instead, consider:** `button`
-- **Often used with:** `icon`, `text-field`, `breadcrumbs`, `page-nav`
+- **Instead, consider:** `button`, `breadcrumbs`
+- **Often used with:** `icon`, `text-field`, `page-nav`
 - **Replaces:**
   - a click handler on a div or span styled as a link
   - an \<a> with no href, href="#" or javascript:void(0)

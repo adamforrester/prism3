@@ -241,7 +241,9 @@
       },
       "composition": {
         "composesWith": [],
-        "alternativeTo": [],
+        "alternativeTo": [
+          "provider-logo"
+        ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
@@ -1006,7 +1008,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border, shadow) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -1015,7 +1017,9 @@
         ],
         "alternativeTo": [
           "icon-button",
-          "switch-row"
+          "switch-row",
+          "tag",
+          "link"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -1334,7 +1338,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border, shadow) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -1658,7 +1662,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border, shadow) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -2398,7 +2402,8 @@
           "spinner"
         ],
         "alternativeTo": [
-          "button"
+          "button",
+          "flush-icon-button"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -2657,7 +2662,8 @@
           "spinner"
         ],
         "alternativeTo": [
-          "button-destructive"
+          "button-destructive",
+          "flush-icon-button-destructive"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -2915,7 +2921,8 @@
           "spinner"
         ],
         "alternativeTo": [
-          "button-neutral"
+          "button-neutral",
+          "flush-icon-button-neutral"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -3134,7 +3141,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "The glyph color change, and the round shape's fill, are meant to run about 100–150ms through the brand's motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly."
+        "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [
@@ -3360,7 +3367,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "The glyph color change, and the round shape's fill, are meant to run about 100–150ms through the brand's motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly."
+        "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [
@@ -3587,7 +3594,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "The glyph color change, and the round shape's fill, are meant to run about 100–150ms through the brand's motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly."
+        "reduceMotion": "The glyph color change, and the round shape's fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [
@@ -3942,7 +3949,10 @@
       },
       "composition": {
         "composesWith": [],
-        "alternativeTo": [],
+        "alternativeTo": [
+          "toast",
+          "banner"
+        ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
@@ -4269,7 +4279,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions — the border color on focus or status, the helper-to-validation message swap — are short, token-driven and eased out, ~100–150ms. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion these resolve to an instant color or position change so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless."
+        "reduceMotion": "State transitions — the border color on focus or status, the helper-to-validation message swap — run on motion.duration.fast with motion.easing-role.default. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion a position change is at once and a color change runs on motion.duration-reduced.fast, so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless."
       },
       "composition": {
         "composesWith": [
@@ -4283,6 +4293,9 @@
           "switch-row",
           "password-field",
           "search-field",
+          "counter",
+          "card-number-field",
+          "slider",
           "code-input"
         ],
         "supersedes": [],
@@ -4622,7 +4635,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions follow text-field's ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor."
+        "reduceMotion": "State transitions follow text-field's: motion.duration.fast with motion.easing-role.default. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under motion.duration.fast and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor."
       },
       "composition": {
         "composesWith": [
@@ -5067,7 +5080,8 @@
         ],
         "alternativeTo": [
           "switch-row",
-          "radio-row"
+          "radio-row",
+          "text-field"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -5304,7 +5318,9 @@
         ],
         "alternativeTo": [
           "radio-group",
-          "switch-row"
+          "switch-row",
+          "select",
+          "tag"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -5944,7 +5960,9 @@
           "checkbox-group",
           "select",
           "switch-row",
-          "segmented-control"
+          "segmented-control",
+          "tag",
+          "slider"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -6380,7 +6398,14 @@
         "alternativeTo": [
           "checkbox-row",
           "radio-row",
-          "segmented-control"
+          "segmented-control",
+          "button",
+          "button-destructive",
+          "button-neutral",
+          "text-field",
+          "checkbox-group",
+          "radio-group",
+          "slider"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -6662,9 +6687,9 @@
         "generationPriority": 2
       },
       "motion": {
-        "enter": "The open list (the platform's or a listbox component's): ~100–150ms opacity fade with a small vertical translate (translateY(-4px) → 0), anchored to the control. The chevron rotates on open under the same rule.",
-        "exit": "The open list closes faster than it opens — ~75ms, a fade without translate — so dismissal reads as instant.",
-        "reduceMotion": "Under prefers-reduced-motion, drop the translate and scale and keep an accelerated opacity fade (~50ms); the chevron rotation follows the same rule. The closed control's border and state changes are short token-driven transitions, text-field's ~100–150ms, and resolve to an instant color change under reduced motion."
+        "enter": "The open list (the platform's or a listbox component's): an opacity fade with a small vertical translate (translateY(-4px) → 0) on motion.duration.fast with motion.easing-role.enter, anchored to the control. The chevron rotates on open under the same rule.",
+        "exit": "The open list closes faster than it opens — a fade without translate on motion.duration.instant with motion.easing-role.exit — so dismissal reads as instant.",
+        "reduceMotion": "Under prefers-reduced-motion, drop the translate and scale and keep an opacity fade on motion.duration-reduced.instant both ways; the chevron rotation follows the same rule. The closed control's border and state changes follow text-field's, motion.duration.fast, and run on motion.duration-reduced.fast under reduced motion."
       },
       "composition": {
         "composesWith": [
@@ -6675,7 +6700,11 @@
           "text-field",
           "radio-group",
           "checkbox-group",
-          "segmented-control"
+          "segmented-control",
+          "textarea",
+          "radio-row",
+          "tabs",
+          "counter"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -8113,7 +8142,9 @@
           "select",
           "accordion",
           "segmented-control",
-          "page-nav"
+          "page-nav",
+          "breadcrumbs",
+          "pagination"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -8713,7 +8744,8 @@
           "divider"
         ],
         "alternativeTo": [
-          "tabs"
+          "tabs",
+          "dialog"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -9472,7 +9504,11 @@
           "tabs",
           "radio-group",
           "select",
-          "switch-row"
+          "switch-row",
+          "radio-row",
+          "button-group",
+          "counter",
+          "slider"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -9731,16 +9767,17 @@
         "generationPriority": 2
       },
       "motion": {
-        "enter": "None. At hover and focus the color changes over about 150ms, and a standalone link shows its underline.",
+        "enter": "None. At hover and focus the color changes on motion.duration.fast, and a standalone link shows its underline.",
         "exit": "None.",
-        "reduceMotion": "The color and underline change at once, with no transition."
+        "reduceMotion": "The color and underline change on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [
           "focus-ring"
         ],
         "alternativeTo": [
-          "button"
+          "button",
+          "breadcrumbs"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -10177,7 +10214,9 @@
           "button-group"
         ],
         "alternativeTo": [
-          "accordion"
+          "accordion",
+          "toast",
+          "banner"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -11273,7 +11312,8 @@
         ],
         "alternativeTo": [
           "link",
-          "tabs"
+          "tabs",
+          "page-nav"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -14524,9 +14564,9 @@
         "generationPriority": 9
       },
       "motion": {
-        "enter": "None. The link's color changes over about 150ms at hover and focus.",
+        "enter": "None. The link's color changes on motion.duration.fast at hover and focus.",
         "exit": "None.",
-        "reduceMotion": "The color changes at once, with no transition."
+        "reduceMotion": "The color changes on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [

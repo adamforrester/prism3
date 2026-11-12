@@ -81,7 +81,7 @@ Use for free-form, non-enumerable single-line input — names, titles, SKUs, ide
 
 - **Enter:** none (present on mount)
 - **Exit:** none
-- **Reduced motion:** State transitions — the border color on focus or status, the helper-to-validation message swap — are short, token-driven and eased out, ~100–150ms. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion these resolve to an instant color or position change so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.
+- **Reduced motion:** State transitions — the border color on focus or status, the helper-to-validation message swap — run on motion.duration.fast with motion.easing-role.default. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion a position change is at once and a color change runs on motion.duration-reduced.fast, so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.
 
 ## Content guidelines
 
@@ -94,7 +94,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 ## Related components
 
 - **Built from:** `field-label`, `field-message`
-- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`, `code-input`
+- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`, `counter`, `card-number-field`, `slider`, `code-input`
 - **Often used with:** `icon`, `button`, `spinner`
 - **Replaces:**
   - bare input without label wiring

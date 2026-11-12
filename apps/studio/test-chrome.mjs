@@ -3242,6 +3242,13 @@ const drawerState = (page) => page.evaluate(() => {
     sheet: !!dr && !!br && vis(d) && dr.top >= br.bottom - 1 && Math.abs(dr.bottom - window.innerHeight) <= 1,
   };
 });
+/** #3537: each case's page clock starts at midday on a fixed day, not at the wall clock's time, and runs on at the real
+ *  rate (`clock.setSystemTime` without `install`, so the page's timers and durations are untouched). A run's time
+ *  drops its date only for a run from the same day (`runTime`), so a case that crossed midnight drew its older
+ *  earlier result with a date, and Q3113.6 A's bare-time pattern failed once a day for any run spanning midnight.
+ *  From midday, no case reaches the next day. */
+const PAGE_DAY = new Date(2026, 10, 11, 12, 0, 0);
+const pinPageDay = (page) => page.clock.setSystemTime(PAGE_DAY);
 const sinceMs = async (page, t0, ms) => { const left = t0 + ms - Date.now(); if (left > 0) await page.waitForTimeout(left); };
 /** A write's control's label as drawn: the text of whichever label layer is visible. A control carries its idle
  *  and busy labels in one cell (owner decision #4 on #1956); both visible, or neither, reads as both, or empty. */
@@ -3253,7 +3260,7 @@ for (const host of ['web', 'figma']) {
       const where = `${host} ${theme} ${w}`;
       const narrow = w <= 560;
       const shot = (name) => (SHOTS ? page.screenshot({ path: join(SHOTS, `s14-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-${name}.png`) }) : null);
-      const { ctx, page, errors } = await open({ host, theme, w, h });
+      const { ctx, page, errors } = await open({ host, theme, w, h, prep: pinPageDay });
       try {
         await recordPosts(page);
         // Idle: nothing has run. #2909: the rail shell draws no Activity tile (the drawer's own row is Activity), on both
@@ -9965,7 +9972,8 @@ const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
-const SHAPE_PAIRS = [['Density', 'Density'], ['Radius', 'Radius'], ['Base radius', 'Radius']];
+/** #3553 Q-UI14 A: Base radius is drawn inside Radius, behind that card's Show advanced, so it is no lever section of its own. */
+const SHAPE_PAIRS = [['Density', 'Density'], ['Radius', 'Radius']];
 /** The approved copy (owner, 2026-10-04), verbatim. */
 const SHAPE_COPY = {
   intro: 'Control heights and corners. Padding is set per component.',
@@ -10241,7 +10249,8 @@ for (const host of ['web', 'figma']) {
       const d = await page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
         // #2909: Control shape's line only navigates too (its home is Components), so it stays live, as the way to Components does.
-        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="shape-see-components"], [data-p3="shape-control-shape-link"]'));
+        // #3553 Q-UI14 A: Show advanced sits in Radius now, and stays live as a disclosure (`STAYS_LIVE`), as Depth & motion's does.
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="shape-see-components"], [data-p3="shape-control-shape-link"], [data-p3="shape-advanced"]'));
         return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
           line: document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null,
           preview: [...document.querySelectorAll('[data-p3="shape-style-guide"] .psec-t')].map((t) => t.textContent),
@@ -13321,8 +13330,9 @@ const EXPECT_HEADINGS = {
     TH: ['Family', 'Text type', 'Text type', 'Line height', 'Letter spacing', 'Desktop', 'Mobile'],
   },
   shape: {
-    L1: ['Density', 'Radius', 'Base radius'],
-    L2: ['Radius softness', 'Control shape'],
+    // #3553 Q-UI14 A: Base radius sits in Radius, behind its Show advanced, a lever at L2 as Shadow tint is in Elevation.
+    L1: ['Density', 'Radius'],
+    L2: ['Radius softness', 'Control shape', 'Base radius'],
   },
   depth: {
     L1: ['Elevation', 'Motion'],
@@ -13425,7 +13435,7 @@ const PROMOTED = {
   },
   shape: {
     Density: 'Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.',
-    'Base radius': 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
+    // #3553 Q-UI14 A: Base radius is no section of its own any more; it is a lever in Radius, under its own name and ⓘ.
   },
   layout: { Breakpoints: manifest.levers.find((l) => l.key === 'layout.breakpoints')?.description },
 };
@@ -21616,6 +21626,71 @@ if (runs('3553-me')) {
     } finally { await ctx.close(); }
   }
 } // 3553-me
+// #3553 Q-UI12 AND Q-UI14 (the owner's A on each): BRAND'S STYLE GUIDE SECTIONS AND SHOW ADVANCED. Q-UI12: Brand's Style
+// guide drew its sections white, so previewing Dark showed the dark sample in a stray white panel in the dark chrome;
+// they now take Q24's levers gray (`p3-sgsec`), as every other preview's sections do, the card still pinned light.
+// Held: each Brand section's ground is the ground Surfaces & fills' sections are drawn on, read from that page (another
+// renderer). Q-UI14: Shape's Show advanced sat below the cards at page level while Depth & motion's sits in Elevation;
+// both now sit in the card they belong to, Base radius in Radius. Held: each Show advanced, closed and open, is inside
+// its card, and Base radius opens there. Both hosts, both themes, at 1280 and 380. MUTATIONS (each after a `wip:`
+// commit): the `p3-sgsec` loop dropped from `preview/brand.ts` → `#3553 Q-UI12 … Brand's style guide sections take the
+// levers gray`; Shape's fold put back at page level (`unhosted = adv`) → `#3553 Q-UI14 … Show advanced sits in its card`.
+if (runs('3553-cards')) {
+  console.log(`\nBrand's style guide sections and Show advanced (#3553 Q-UI12, Q-UI14)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-cards ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'surfaces';
+    try {
+      if (w === 1280) {
+        await goPlace(page, 'color-fills');
+        await hooks.need(page, '.p3-sgsec');
+        const want = await page.evaluate(() => getComputedStyle(document.querySelector('.p3-sgsec')).backgroundColor);
+        step = 'brand';
+        await goPlace(page, 'brand');
+        await hooks.need(page, '[data-p3="brand-style-guide"] .psec');
+        await pickMode(page, 'dark');
+        await settle(page);
+        const got = await page.evaluate(() => [...document.querySelectorAll('[data-p3="brand-style-guide"] > .psec')].map((n) => getComputedStyle(n).backgroundColor));
+        ok(got.length > 0 && got.every((c) => c === want), `#3553 Q-UI12 ${where}: Brand's style guide sections take the levers gray Surfaces & fills' sections are drawn on (${want}), previewing Dark (read ${JSON.stringify([...new Set(got)])})`);
+        if (SHOTS && theme === 'dark' && host === 'web') await page.screenshot({ path: join(SHOTS, `s3553-cards-${host}-brand-dark.png`) });
+        await pickMode(page, 'light');
+      }
+      for (const [place, fold, card, inner] of [['shape', 'shape-advanced', 'Radius', 'base-radius-pick'], ['depth', 'depth-tint-advanced', 'Elevation', 'shadow-tint-hue']]) {
+        step = place;
+        await goPlace(page, place);
+        await hooks.need(page, `[data-p3="${fold}"]`);
+        const inCard = (sel) => page.evaluate((q) => {
+          const n = document.querySelector(q);
+          return n?.closest('.p3-lsec')?.querySelector(':scope > .p3-lsec-head .p3-lsec-title')?.textContent ?? null;
+        }, sel);
+        const closed = await inCard(`[data-p3="${fold}"]`);
+        if ((await page.locator(`[data-p3="${fold}"]`).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(`[data-p3="${fold}"]`));
+        await hooks.need(page, `[data-p3="${inner}"]`);
+        const open = await inCard(`[data-p3="${inner}"]`);
+        ok(closed === card && open === card, `#3553 Q-UI14 ${where} ${place}: Show advanced sits in its card, ${card}, and opens there (button in ${JSON.stringify(closed)}, opened lever in ${JSON.stringify(open)})`);
+        // Moving Base radius out of its own section moved its approved words with it (review of #3646): the line under
+        // the lever and its ⓘ, typed here as the owner approved them (BG1 A's PROMOTED entry held the ⓘ before Q-UI14),
+        // as D8 A holds Shadow tint's line inside Elevation.
+        if (place === 'shape') {
+          const words = await page.evaluate(() => {
+            const lv = document.querySelector('[data-p3="base-radius-pick"]')?.closest('.p3-lever');
+            const btn = lv?.querySelector('.p3-lever-head [aria-describedby], .p3-lever-head [aria-controls]');
+            const tipId = btn?.getAttribute('aria-describedby') ?? btn?.getAttribute('aria-controls');
+            return { line: lv?.querySelector('.p3-lever-ctl')?.textContent ?? null, tip: (tipId && document.getElementById(tipId)?.textContent) || lv?.querySelector(':scope > [id^="p3-tip-"]')?.textContent || null };
+          });
+          const LINE = 'The medium radius at standard softness. Every other radius size is a multiple of it.';
+          const TIP = 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.';
+          ok(!!words.line?.includes(LINE) && !!words.tip?.includes(TIP), `#3553 Q-UI14 ${where} shape: Base radius, opened in Radius, carries its approved line and its ⓘ (line ${JSON.stringify(words.line?.slice(0, 90))}, ⓘ ${JSON.stringify(words.tip?.slice(0, 110))})`);
+        }
+        await hooks.click(page.locator(`[data-p3="${fold}"]`));
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-cards
 // #3553 Q-UI9, Q-UI10 AND Q-UI13 (the owner's A on each): PLACE NAMES, THE AGENT LABEL AND THE RAIL'S TOOLTIPS. Q-UI9: the
 // rail read "Docs" while the area's name, tooltip and title read "Documentation", which does not fit the rail's tile, so
 // the area is "Docs" throughout; Shape's preview is titled "Shape", not "Size & shape". Q-UI10: at 380 the Agent switch

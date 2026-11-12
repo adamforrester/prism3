@@ -87,7 +87,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 ## Related components
 
 - **Built from:** `focus-ring`, `spinner`
-- **Instead, consider:** `button`
+- **Instead, consider:** `button`, `flush-icon-button`
 - **Often used with:** `icon`
 - **Replaces:**
   - div[role=button] wrapping an icon
