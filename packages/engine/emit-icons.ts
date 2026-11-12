@@ -92,7 +92,7 @@ if (errors.length) fail(errors);
 // ── EXTRACT ─────────────────────────────────────────────────────────────────────────────────────
 const glyphs: Glyph[] = [];
 const shapeErrors: string[] = [];
-for (const [name, source] of Object.entries(ICON_SOURCES).sort(([a], [b]) => localeFreeCompare(a, b))) {
+for (const [name, source] of Object.entries(ICON_SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
   const svg = readFileSync(resolve(iconsDir, `${source}.svg`), 'utf8');
 
   const vb = /viewBox="([^"]*)"/.exec(svg)?.[1];
