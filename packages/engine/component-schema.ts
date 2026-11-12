@@ -1178,7 +1178,8 @@ export type PartDef = {
   /** How this part relates to the component it points at (#681). REQUIRED on every part that points
    *  at one — a `slot` (whose content is swapped), an `absolute` (out-of-flow instance) and a `nest`
    *  (in-flow instance, #1226 PR-A) — and rejected on the kinds that point at nothing. A `nest` is
-   *  `nest-fixed` only (`nest-exposed` stays refused, #761; `swap` is a slot's relation).
+   *  `nest-fixed` or `nest-exposed` (#1330 reversed #761's refusal of the latter; `anatomyErrors` accepts
+   *  both). `swap` is refused on a `nest`: it is a slot's relation.
    *
    *  Separate from `nests` because the two answer different questions and `nests` already has an
    *  answer: `nests` names WHICH component, this names the RELATIONSHIP to it. A `slot` has no `nests`

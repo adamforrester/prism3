@@ -21687,6 +21687,96 @@ if (runs('3553-m1')) {
     } finally { await ctx.close(); }
   }
 } // 3553-m1
+// #3553 M5, M6 AND M7 (batch M-C; the owner's M5 A, M6 A and M7 A): THE SPECIMENS IN THE PREVIEW. M5: an inverse token
+// pill shares an inline-flex wrap with its `inverse` badge, and in a narrow card the pill shrank below its longest
+// segment and broke inside it, per character at 1024 ("color / . / inver / se. …"). The wrap now wraps, so the badge goes
+// above the pill where the two don't fit side by side. Held: no pill segment (the text between two `<wbr>`s) breaks
+// anywhere but after a hyphen. M6: the five-column fill cards were 61px at 1024 and their titles clipped ("Succes"); `.sg-g5` now reflows
+// to columns of at least 90px and never more than five. Held: every five-grid card's title is whole inside its card,
+// and at 1280 and 1600 the grids keep five columns (1600, where a 90px floor alone gives six, holds the cap). M7: the alpha ramps' 8-digit hexes ellipsized by about 5px at 1280; the alpha
+// ramps go five to a strip below a 760px preview. Held at web and plugin 1280: every alpha key is whole; at 1600 they
+// stay ten to a strip. Web 1024, 1280 and 1600 (M5, M6) on Brand and Surfaces & fills, both themes. MUTATIONS (each after a
+// `wip:` commit): the `.p3-legacy-card .sg-pills .tpill-wrap` rule dropped from `chrome.css` → `#3553 M5 … no token pill
+// breaks inside a segment`; `.sg-g5` back to `repeat(5,1fr)` → `#3553 M6 … every five-column card's title is whole`; `ALPHA_SLIM_MAX` set to
+// `SLIM_MAX`'s 560 → `#3553 M7 … every alpha key's hex is whole`; `.sg-g5` to `repeat(auto-fill,minmax(90px,1fr))`, its
+// fifth dropped → `#3553 M6 … a wide ground keeps five columns, never more`.
+if (runs('3553-mc')) {
+  console.log(`\nThe preview's specimens (#3553 M5, M6, M7)\n${'='.repeat(78)}`);
+  for (const [w, h] of [[1024, 768], [1280, 900], [1600, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mc web ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme, w, h });
+    let step = 'open';
+    try {
+      for (const place of ['brand', 'color-fills']) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        const m = await page.evaluate(() => {
+          const lines = (n) => { const r = document.createRange(); r.selectNodeContents(n); return new Set([...r.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size; };
+          const pills = [...document.querySelectorAll('.sg-pills .tpill')].filter((p) => p.getClientRects().length > 0);
+          const broken = [];
+          // A segment may wrap after a hyphen (a word boundary, "brand-" / "subtle"); a line change anywhere else in it is a
+          // break inside a word.
+          const charTop = (n, i) => { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1); const b = [...r.getClientRects()].find((x) => x.width > 0); return b ? Math.round(b.top) : null; };
+          for (const p of pills) for (const n of p.childNodes) {
+            if (n.nodeType !== 3 || !n.data.trim() || lines(n) < 2) continue;
+            for (let i = 1; i < n.data.length; i++) {
+              const a = charTop(n, i - 1), b = charTop(n, i);
+              if (a !== null && b !== null && a !== b && n.data[i - 1] !== '-') { broken.push(`${p.textContent} @ "${n.data.slice(0, i)}|${n.data.slice(i)}"`); break; }
+            }
+          }
+          const cards = [...document.querySelectorAll('.sg-g5 > *')].filter((c) => c.getClientRects().length > 0);
+          const cut = [];
+          for (const c of cards) for (const lab of c.querySelectorAll('.sg-lab')) {
+            const cr = c.getBoundingClientRect(); const lr = document.createRange(); lr.selectNodeContents(lab); const tr = lr.getBoundingClientRect();
+            if (lab.scrollWidth > lab.clientWidth + 0.5 || tr.right > cr.right + 0.5) cut.push(lab.textContent);
+          }
+          const grids = [...document.querySelectorAll('.sg-g5')].filter((g) => g.getClientRects().length > 0);
+          const cols = grids.map((g) => getComputedStyle(g).gridTemplateColumns.split(' ').length);
+          // How many 90px columns the ground would take with no cap: at 1600 this must exceed five, or the cap is not measured.
+          const fit90 = grids.map((g) => { const cs = getComputedStyle(g); const gap = parseFloat(cs.columnGap) || 0; return Math.floor((g.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + gap) / (90 + gap)); });
+          return { pills: pills.length, broken, cards: cards.length, cut, cols, fit90 };
+        });
+        const at = `${where} ${place}`;
+        ok(m.pills > 0 && m.cards > 0, `${at}: premise, the style guide draws token pills and five-column cards (${m.pills}, ${m.cards})`);
+        ok(m.broken.length === 0, `#3553 M5 ${at}: no token pill breaks inside a segment (${m.broken.length}: ${JSON.stringify(m.broken.slice(0, 3))})`);
+        ok(m.cut.length === 0, `#3553 M6 ${at}: every five-column card's title is whole inside its card (${JSON.stringify(m.cut.slice(0, 5))})`);
+        if (w === 1280) ok(m.cols.length > 0 && m.cols.every((n) => n === 5), `#3553 M6 ${at}: at 1280 every five-column grid keeps five columns (${JSON.stringify(m.cols)})`);
+        // The cap half of M6 A (review of #3651): at 1600 a 90px floor alone would give six or more, so five here is the
+        // "never more than five" rule measured, not the floor.
+        if (w === 1600) {
+          ok(m.fit90.length > 0 && m.fit90.every((n) => n >= 6), `${at}: premise, the ground is wide enough for six 90px columns (${JSON.stringify(m.fit90)})`);
+          ok(m.cols.length > 0 && m.cols.every((n) => n === 5), `#3553 M6 ${at}: a wide ground keeps five columns, never more (${JSON.stringify(m.cols)})`);
+        }
+        if (SHOTS && theme === 'light' && w === 1024) await page.screenshot({ path: join(SHOTS, `s3553-mc-web-${w}-${place}.png`), fullPage: true });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const [host, w, h] of [['web', 1280, 900], ['figma', 1280, 900], ['web', 1600, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mc ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    try {
+      await goPlace(page, 'color-palettes');
+      await hooks.need(page, '[data-p3="alpha-ramp"]');
+      await settle(page);
+      const a = await page.evaluate(() => {
+        const ramps = [...document.querySelectorAll('[data-p3="alpha-ramp"]')];
+        return { ramps: ramps.length, perStrip: ramps.map((r) => r.querySelector('.p3-sqk')?.children.length ?? 0),
+          keys: ramps.flatMap((r) => [...r.querySelectorAll('.p3-sqk-hex')]).length,
+          cut: ramps.flatMap((r) => [...r.querySelectorAll('.p3-sqk-hex')]).filter((k) => k.scrollWidth > k.clientWidth + 0.5).map((k) => k.textContent) };
+      });
+      ok(a.ramps === 2 && a.keys === 24, `${where}: premise, both alpha ramps draw their 12 keys (${JSON.stringify({ ramps: a.ramps, keys: a.keys })})`);
+      ok(a.cut.length === 0, `#3553 M7 ${where}: every alpha key's hex is whole (${a.cut.length} cut: ${JSON.stringify(a.cut.slice(0, 4))})`);
+      if (w === 1600) ok(a.perStrip.every((n) => n === 10), `#3553 M7 ${where}: a wide preview keeps ten to a strip (${JSON.stringify(a.perStrip)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-mc
 // #3553 M2, M3 AND M4 (batch M-B; the owner's M2 A, M3 A and M4 A): THE LEVERS ROWS IN A PANE BETWEEN 360 AND 480.
 // M2: at web 1024 the levers pane is 404px, above the old snug line (360), and a fill row's step picker squeezed its
 // name to 20–40px ("Hover" read "Ho"); the line is now 480, so from 1024 to 1200 the picker sits under the name. Held on

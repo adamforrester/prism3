@@ -19,7 +19,7 @@
  * resources/list · resources/resolve · resources/public-only · served/no-file-keys (#3300) · pair/on-demand · no-plugin · origin/refused · pair/secret-file · pair/expiry · pair/cap · pair/challenge · pair/wrong-code · pair/replay · pair/limit · pair/no-request · pair/no-evict ·
  * handshake · fragmented · ping · run · stream · progress · big-frame · timeout · unmasked · disconnect · reconnect ·
  * resend/hand · pair/relay · pair/not-in-file · pair/refused · e2e/routes · e2e/parity · resend/e2e · resend/running ·
- * e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B) ·
+ * mcp/args (#2639; mutation: the hand-typed args line back → `mcp/args`) · e2e/link-off · e2e/switch-off · bridge/<read> · envelope/<read> · no-write/<read> · context/commands · context/engine-mcp · context/read-first (#3300 B) ·
  * arm/0-starts · arm/1-starts · arm/<n>-context · arm/<n>-resources · arm/no-leak · arm/1-note · record/calls · record/args · arm/bad-value (#3440;
  * mutation: one sentence of the note leaked into arm 0's figma_status description → `arm/no-leak: arm 0's tools/list …`;
  * one appended to the context refusal's message → `arm/no-leak: arm 0's context refusal …`)
@@ -72,7 +72,7 @@ import type { WsLike } from './src/agent-bridge-relay';
 import { createPairing, createProgressCounter, loadSecret, RESOURCES } from '../../tools/figma-bridge/server';
 import { HANDSHAKE_PROBES } from '../../packages/engine/mcp-handshake-probes';
 import { SERVER_INFO as ENGINE_SERVER } from '../../packages/engine/mcp';
-import { READ_COMMANDS } from './src/agent-protocol';
+import { READ_COMMANDS, AGENT_COMMANDS } from './src/agent-protocol';
 import { readFixture, ARGS, EXPECTED, canon, ACTIVITY_NOTES, activityExpected, atRead, contextExpected } from './agent-read-fixture';
 import { ACTIVITY_KEEP } from './src/activity-log';
 
@@ -252,6 +252,14 @@ section('mcp — the stdio loop');
   }
   const list = await rpc('tools/list');
   ok(JSON.stringify(list.result?.tools?.map((t: { name: string }) => t.name)) === JSON.stringify(['figma_status', 'figma_run', 'figma_logs']), 'tools/list: figma_status, figma_run, figma_logs');
+  // #2639: figma_run's `args` description was hand-typed and named 4 of the commands, so an agent reading only tools/list
+  // sent {} to commands that take arguments. Every command must be named with its args, and the shapes below are written
+  // HERE, by hand, from `AgentArgs` (docs/34 shape 1): a check that re-read `AgentArgs` would pass on the server's own parse.
+  const argsDesc: string = list.result?.tools?.find((t: { name: string }) => t.name === 'figma_run')?.inputSchema?.properties?.args?.description ?? '';
+  const unnamed = AGENT_COMMANDS.filter((c) => !argsDesc.includes(`${c}: `));
+  ok(unnamed.length === 0 && argsDesc.includes('update-components: { def?: string; confirm: false } | { def?: string; confirm: true; previewHash: string; choices?: UpdateChoiceArgs }')
+    && argsDesc.includes('style-guide: StyleGuideOptions') && argsDesc.includes('adopt-members: { def?: string }') && argsDesc.includes('snapshot: { id: string; scale?: number }'),
+    `mcp/args: figma_run's args description names every command with its args (${AGENT_COMMANDS.length - unnamed.length}/${AGENT_COMMANDS.length}${unnamed.length ? `, missing ${unnamed.join(', ')}` : ''})`);
   const bad = await rpc('tools/call', { name: 'figma_paint' });
   ok(bad.error?.code === -32602, 'an unknown tool is a protocol error');
 }
@@ -1238,8 +1246,9 @@ section('arms — what arm 0 and arm 1 show a fresh agent (#3440)');
     // `context` is refused at the bridge, as the build's own code for a command it lacks, written here by hand.
     ok(cx.result?.isError === true && cxv?.error?.code === 'unknown-command',
       `arm/${arm}-context: figma_run context is refused at the bridge with unknown-command, with no plugin asked (${JSON.stringify(cxv)})`);
-    ok(!enumCmds.includes('context') && enumCmds.includes('inspect') && !statusCmds.includes('context') && statusCmds.includes('inspect'),
-      `arm/${arm}-context: neither figma_run's command list nor figma_status's names context (${enumCmds.length} listed, ${statusCmds.length} in status)`);
+    const armArgs: string = (tools.result?.tools ?? []).find((t: { name: string }) => t.name === 'figma_run')?.inputSchema?.properties?.args?.description ?? '';
+    ok(!enumCmds.includes('context') && enumCmds.includes('inspect') && !statusCmds.includes('context') && statusCmds.includes('inspect') && !armArgs.includes('context: ') && armArgs.includes('inspect: '),
+      `arm/${arm}-context: neither figma_run's command list, its args description, nor figma_status's names context (${enumCmds.length} listed, ${statusCmds.length} in status)`);
     ok(rl.error?.code === -32601 && rr.error?.code === -32601 && init.result?.capabilities?.resources === undefined && disc.result?.capabilities?.resources === undefined,
       `arm/${arm}-resources: no resources capability, and resources/list and resources/read are methods it does not have (${JSON.stringify(rl.error ?? rl.result)})`);
     if (arm === '0') {
