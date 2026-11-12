@@ -415,6 +415,18 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     "status `error` maps to the `danger` border role — text-field's filled coordinate, through the shared field factory",
   'card-number-field|error.border.focus-visible-filled':
     "status `error` maps to the `danger` border role — text-field's focused filled coordinate, through the shared field factory",
+  // `code-input-cell` (Q-CC1 A, #3554): error left the cell's state axis for the fields' `status` axis (Q354), so its one
+  // danger border became Text field's status-led keys, at each of the cell's five non-disabled states.
+  'code-input-cell|error.border.rest':
+    "status `error` maps to the `danger` border role — the empty cell in error, Text field's rest coordinate",
+  'code-input-cell|error.border.hover':
+    'status `error` maps to the `danger` border role — the hover coordinate, bound so the error border persists through hover',
+  'code-input-cell|error.border.filled':
+    'status `error` maps to the `danger` border role — a cell holding a character of an invalid code, the old error state\'s look',
+  'code-input-cell|error.border.focus-visible':
+    'status `error` maps to the `danger` border role — the active empty cell, bound so the danger border persists as its 2px focus edge',
+  'code-input-cell|error.border.focus-visible-filled':
+    'status `error` maps to the `danger` border role — the active filled cell, bound so the danger border persists as its 2px focus edge',
   // `divider` (#3382, owner Q15 revised A): `emphasis` leads the rule's stroke key, and its two values are two RUNGS of the
   // one neutral edge ladder, not two families. The tier emits no `color.bold.*` or `color.subtle.*` and must not, so arm 1's
   // premise has nothing to be true of; each key is named rather than the axis exempted, because Badge's `emphasis` paints

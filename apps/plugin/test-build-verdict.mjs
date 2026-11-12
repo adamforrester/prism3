@@ -2489,7 +2489,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
 // the iframe refuses it, selects the text and says so.
 {
   const { page, errors } = await openPanel();
-  const publish = 'Before Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.';
+  const publish = 'Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.';
   await post(page, { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 'tag: 3 updated in place.', lines: ['tag: 3 updated in place.'], publish });
   await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]'), null, { timeout: 5000 }).catch(() => {});
   // An ok result with no run before it leaves the drawer closed: open it, then the row.

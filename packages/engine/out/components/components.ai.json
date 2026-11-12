@@ -14016,11 +14016,15 @@
           "description": "Whether this is the cell the next character goes into while the input has focus. Set by the code input."
         },
         {
-          "name": "isInvalid",
-          "type": "boolean",
-          "default": false,
+          "name": "validation",
+          "type": "enum: 'default' | 'error'",
+          "default": "default",
           "required": false,
-          "description": "Whether the code input is in error. Set by the code input."
+          "values": [
+            "default",
+            "error"
+          ],
+          "description": "The validation status. error draws the danger border on the cell at every state but disabled; default is neutral. Set by the code input."
         },
         {
           "name": "disabled",
@@ -14036,8 +14040,7 @@
         "filled",
         "focus-visible",
         "focus-visible-filled",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "variants": {
         "size": {
@@ -14048,6 +14051,13 @@
             "x-large"
           ],
           "kind": "authoring"
+        },
+        "status": {
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "runtime"
         }
       },
       "accessibility": {
@@ -14062,9 +14072,9 @@
         "aria": "aria-hidden=\"true\". A screen reader meets the code input's one input and its whole value, never a cell."
       },
       "docs": {
-        "usage": "Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.",
+        "usage": "Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell to match the field: its status to error when the field is in error, its state to disabled when the field is disabled. In code, the code input sets every cell.",
         "do": [
-          "Set every cell to error when the code input is in error",
+          "Set every cell's status to error when the code input is in error",
           "Set every cell to disabled when the code input is disabled"
         ],
         "dont": [

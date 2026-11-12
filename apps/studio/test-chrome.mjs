@@ -1165,11 +1165,23 @@ async function settleModes(page) {
     if (still) return;
   }
 }
+/** #3700: the guard for a step that acts on the mode control. Such a step picks a radio or the select by what is on
+ *  screen, so it must look only after the header's fit has run: `settleModes` first, then this, then the look. With
+ *  `data-fit-pending` still set, the step would act on the answer the fit is about to replace (S7 Shape edits went
+ *  from Brand, on the select, to Shape, where the radios fit, and `selectOption` then waited 30 s on a hidden select).
+ *  So it fails here by name, with the mode and the page. Read off the page, independent of the settle it guards.
+ *  Its mutation, and the case that holds the fit back so the mutation fails every run, are section 24's (#3700). */
+async function modeLook(page, mode) {
+  const s = await page.evaluate(() => ({ pending: !!document.querySelector('[data-p3="mode-control"]')?.parentElement?.hasAttribute('data-fit-pending'),
+    place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null }));
+  ok(!s.pending, `#3700: choosing ${mode} on ${s.place}, the mode control is read only once the preview header's fit has run${s.pending ? ' — data-fit-pending was still set' : ''}`);
+}
 /** Choose a mode in the preview header by whichever control represents it: its radio, or, where the modes do not all
  *  fit, the select of the same modes (both are the mode choice, PREVIEW_HEAD_ALL). #2909: the plugin's preview header is
  *  narrower by the rail and holds Contrast, so at 1280 it can show the select where the web shows radios. */
 async function pickMode(page, mode) {
   await settleModes(page);
+  await modeLook(page, mode);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -2961,6 +2973,9 @@ for (const theme of ['light', 'dark']) {
   const mp = await measure(page, `${where} / preview header`, 'web', 1280);
   check(mp, `${where} / preview header`, 'web wide', PLACE_FLOOR);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-studio-${theme}-1280-mode-control.png`) });
+  // #3700: each step on the mode control waits for its fit first (`modeLook`).
+  await settleModes(page);
+  await modeLook(page, 'dark');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
@@ -2970,11 +2985,15 @@ for (const theme of ['light', 'dark']) {
   // The mode chosen on one page is the mode every page that previews modes draws in: HC light, chosen on Brand, holds on
   // Surfaces & fills. (Palettes always shows Light, PM1 B; section 36. Components shows none, #3129 R4.)
   await goPlace(page, 'brand');
+  await settleModes(page);
+  await modeLook(page, 'hc-light');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
   await goPlace(page, 'color-fills');
   const b = await modeState(page);
   ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true', `${where}: HC light, chosen on Brand, is the mode Surfaces & fills shows (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
   // Arrow keys move along the radios and choose as they go.
+  await settleModes(page);
+  await modeLook(page, 'hc-dark');
   await page.locator('[data-p3="mode-option"][data-mode="hc-light"]').focus();
   await page.keyboard.press('ArrowRight');
   const c = await modeState(page);
@@ -4909,7 +4928,9 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   // the mode nor the preview's scroll.
   const before = await toBottom();
   // #2909 Q2909.9 A: at 1280 the web's header may show the select (Contrast beside the rail); a click reaches whichever
-  // the header draws, and a held select takes none, as the held radios do.
+  // the header draws, and a held select takes none, as the held radios do. #3700: read once the fit has run.
+  await settleModes(page);
+  await modeLook(page, 'dark');
   await page.evaluate(() => { const r = document.querySelector('[data-p3="mode-option"][data-mode="dark"]'); if (r?.getClientRects().length) r.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     else document.querySelector('[data-p3="mode-select"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   const held = await page.evaluate(() => document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode);
@@ -5148,6 +5169,7 @@ const choosable = (page) => page.evaluate(() => {
  *  has settled (the select shown, or radios with none clipped), a frame apart, for at most 2 s; a control that
  *  never settles is still read and reported as it stands. */
 const settled = async (page) => {
+  await settleModes(page); // #3700: past any fit still owed, then read until settled as before.
   for (const end = Date.now() + 2000; Date.now() < end;) {
     const c = await choosable(page);
     if (c.select || (c.radios > 0 && c.clipped.length === 0)) return c;
@@ -5179,6 +5201,7 @@ for (const { w, h } of WIDTHS) {
       const where = `web light ${w} / brand, ${want.length} modes`;
       ok(c.clipped.length === 0 && JSON.stringify(c.modes) === JSON.stringify(want), `${where}: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c)}`);
       if (c.select) {
+        await modeLook(page, `custom-${n}`);
         await page.locator('[data-p3="mode-select"]').selectOption(`custom-${n}`);
         const now = await choosable(page);
         ok(now.selected === `custom-${n}`, `${where}: choosing custom-${n} in the select previews it (${now.selected})`);
@@ -5883,8 +5906,10 @@ const VISIBLE_WORDS = () => {
 /** Show `mode` in the preview: its radio, or the select when the radios do not all fit. */
 const showMode = async (page, mode) => {
   // The control measures whether its radios fit once it is drawn (#2909: the rail narrows the plugin's preview, so at 380
-  // they can be drawn and then give way to the select): read that after it settles, as `roShowMode` does.
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // they can be drawn and then give way to the select): read that after it settles, as `roShowMode` does. #3700: by
+  // `settleModes`, not two frames, which can both land before a resize's fit.
+  await settleModes(page);
+  await modeLook(page, mode);
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
   if (await radio.count() && await radio.first().isVisible()) await hooks.click(radio.first());
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
@@ -7121,6 +7146,7 @@ const chooseAnyMode = async (page, mode) => {
   // #3668: look only once the fit has settled. Looking first found the radio drawn, and the fit that ran a frame later
   // hid it for the select, so the click waited for a radio that never came back (section 26, Components to Brand).
   await settleModes(page);
+  await modeLook(page, mode);
   const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
   if (await radio.count() && await radio.isVisible()) await hooks.click(radio);
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
@@ -9305,6 +9331,7 @@ const openDepth = async (page) => {
 /** Choose a mode in the preview header: its radio, or, where the modes do not all fit, the select of the same modes. */
 const chooseModeAny = async (page, mode) => {
   await settleModes(page);
+  await modeLook(page, mode);
   if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
   else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
   await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
@@ -10239,6 +10266,43 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     if (!e?.reported) ok(false, `S7 Shape edits: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// #3700: a mode chosen while the header's fit is still owed. S7 Shape edits goes from Brand, where five modes put the
+// select in the header at 1280, to Shape, where the radios fit, and chooses the custom mode at once. On CI the choice
+// could land before the fit: it read the select, the fit then hid it, and `selectOption` waited 30 s. Natural speed
+// hits that window only some of the time, so here every frame is slowed 600 ms from Brand on, which holds the fit
+// back (`data-fit-pending` set) when Shape opens, every run. EXPECTED: the window is there (the first check, so a
+// change that closes it is said, not passed), and `chooseAnyMode` still checks the custom mode's radio, since it
+// settles first. ACTUAL: the drawn control.
+// MUTATION (after a `wip:` commit): `chooseAnyMode`'s `settleModes` call removed → `#3700: choosing custom-1 on shape,
+// the mode control is read only once the preview header's fit has run — data-fit-pending was still set` and `#3700 web
+// light 1280, Brand to Shape with the fit owed: the custom mode is chosen by its radio once the fit has run — fit select,
+// checked custom-1`, 3 runs of 3. (At natural speed the same mutation failed S7 Shape edits in 2 runs of 3, once with
+// the issue's `selectOption` timeout: the reason for holding the fit back here.)
+{
+  const where = '#3700 web light 1280, Brand to Shape with the fit owed';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
+    await settleModes(page);
+    await page.evaluate(() => {
+      const raf = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (cb) => setTimeout(() => raf(cb), 600);
+      window.cancelAnimationFrame = (id) => clearTimeout(id);
+    });
+    await goPlace(page, 'shape');
+    const owed = await page.evaluate(() => { const w = document.querySelector('[data-p3="mode-control"]')?.parentElement; return { fit: w?.dataset.fit ?? null, pending: !!w?.hasAttribute('data-fit-pending') }; });
+    ok(owed.fit === 'select' && owed.pending, `${where}: Shape opens with Brand's select still shown and its fit still owed — fit ${owed.fit}, data-fit-pending ${owed.pending}`);
+    await chooseAnyMode(page, 'custom-1');
+    const now = await page.evaluate(() => { const w = document.querySelector('[data-p3="mode-control"]')?.parentElement;
+      return { fit: w?.dataset.fit ?? null, checked: document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode ?? null }; });
+    ok(now.fit === 'radios' && now.checked === 'custom-1', `${where}: the custom mode is chosen by its radio once the fit has run — fit ${now.fit}, checked ${now.checked}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    if (!e?.reported) ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: in each derived mode every control on Shape is disabled, the advanced one included, under the derived line, and
@@ -15101,7 +15165,9 @@ const roShowMode = async (page, mode) => {
   const narrow = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
   if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
   // The control measures whether its radios fit once it is drawn (radios, or a select); read that after it settles.
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // #3700: by `settleModes`, not two frames, which can both land before a resize's fit.
+  await settleModes(page);
+  await modeLook(page, mode);
   const radios = await page.evaluate(() => document.querySelector('[data-p3="mode-control"]')?.parentElement?.dataset.fit === 'radios');
   if (radios) await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`).first());
   else await page.locator('[data-p3="mode-select"]').selectOption(mode);
