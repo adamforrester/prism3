@@ -1663,14 +1663,14 @@ section('session — a mailbox command that changes the file needs this session\
   ok(posted.filter((m) => m.type === 'agent-link-session').pop()?.code === code, 'session/panel: and the panel is told it, to show the person');
   // Literal, not read from SESSION_COMMANDS (docs/34 shape 1).
   const want: Array<[string, unknown, boolean]> = [
-    ['apply-theme', { input: {} }, true], ['run-code', { code: '' }, true], ['prune', { confirm: true }, true], ['prune', { confirm: false }, false],
+    ['apply-theme', { input: {} }, true], ['run-code', { code: '' }, false], ['prune', { confirm: true }, true], ['prune', { confirm: false }, false],
     ['update-components', { confirm: true, previewHash: 'x' }, true], ['update-components', {}, false], ['panels-clean', { confirm: true }, true],
     ['panels-clean', {}, false], ['set-override', { confirm: true }, true], ['set-override', { confirm: false }, false],
     ['build-components', {}, false], ['file-setup', {}, false], ['style-guide', {}, false], ['draw-specs', {}, false],
     ['capture-baseline', {}, false], ['adopt-members', {}, false], ['status', {}, false], ['readback', {}, false], ['context', {}, false],
   ];
   const wrongWhich = want.filter(([cmd, args, need]) => needsSession({ v: 1, id: 'x', cmd, args, issuedAt: '' }) !== need);
-  ok(!wrongWhich.length, `session/which: needsSession names exactly the theme write, run-code and each confirm (${wrongWhich.map(([c, a]) => `${c} ${JSON.stringify(a)}`).join(', ') || 'all as listed'})`);
+  ok(!wrongWhich.length, `session/which: needsSession names exactly the theme write and each confirm, and no dev command (${wrongWhich.map(([c, a]) => `${c} ${JSON.stringify(a)}`).join(', ') || 'all as listed'})`);
 
   calls.length = 0;
   const bare = await sendBare('apply-theme', { input: brand });
@@ -1683,6 +1683,9 @@ section('session — a mailbox command that changes the file needs this session\
   const rd = (await read(del.id)) as AgentResult;
   ok(rd.error?.code === 'no-session' && !calls.includes('prune') && /session/.test(rd.error?.message ?? ''),
     `session/refused: a prune confirm with no code is refused, and the message says what is missing (${rd.error?.code})`);
+  const rc = await sendBare('run-code', { code: 'return 1' });
+  await tick();
+  ok(((await read(rc.id)) as AgentResult).error?.code === 'no-session', 'session/refused: a dev build\'s run-code through the mailbox with no code is refused too');
   const other = code === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'ZZZZ-ZZZZ';
   const wrong = await send('apply-theme', { input: brand }, undefined, other);
   await tick();

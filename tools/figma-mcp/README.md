@@ -135,7 +135,7 @@ commands write to that file.
 
 **The session code (#3697 R8, the owner's A).** The mailbox is the file's shared plugin data, which any
 editor or plugin can write, so a command that changes or removes what is in the file must carry this link
-session's code: `apply-theme`, `run-code`, and every `confirm: true` (`prune`, `update-components`,
+session's code: `apply-theme`, a dev build's `run-code`, and every `confirm: true` (`prune`, `update-components`,
 `panels-clean`, `set-override`). Previews, reads and the builds need none. Ask the owner for the code: the
 plugin shows it in the agent link's status (point at the agent word in the Activity drawer's bar), never in
 the file, and draws a new one each time the link is switched on. Pass it as `--session <code>`; without it,

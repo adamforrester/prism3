@@ -172,12 +172,12 @@ export type AgentCommand = { v: number; id: string; cmd: string; args?: unknown;
  * the bridge's connection is paired and proves itself (`bridge-auth.ts`).
  *
  * What needs it, decided from the raw envelope so a malformed one is refused for the code before its shape is read:
- * `apply-theme` (it rewrites the variables), `run-code` (dev builds; it can do anything), and the confirm of every
- * two-step write — `prune`, `update-components`, `panels-clean`, `set-override`. Their previews, every read, and the
+ * `apply-theme` (it rewrites the variables) and the confirm of every two-step write — `prune`, `update-components`, `panels-clean`, `set-override`. Their previews, every read, and the
  * commands that add what is missing (`build-components`, `file-setup`, `style-guide`, `draw-specs`, `capture-baseline`,
- * `adopt-members`) do not.
+ * `adopt-members`) do not. A dev build's `run-code` needs it too; `agent-link.ts` adds it behind `PRISM3_DEV`, since its
+ * name must not reach a release bundle (`lint-release-bundle.ts`) and this file is context-neutral.
  */
-export const SESSION_COMMANDS = ['apply-theme', 'run-code'] as const;
+export const SESSION_COMMANDS = ['apply-theme'] as const;
 export const SESSION_CONFIRMS = ['prune', 'update-components', 'panels-clean', 'set-override'] as const;
 export const needsSession = (raw: unknown): boolean => {
   if (!isObject(raw) || typeof raw.cmd !== 'string') return false;

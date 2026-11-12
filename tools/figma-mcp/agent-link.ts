@@ -11,7 +11,7 @@
  * `nb-redesign`, `wendys`) or a `.design.md` path, the same resolution `plan.ts` uses.
  *
  * `--session` (#3697 R8) is the link session's code, which the owner reads in the plugin's agent link status. Through the
- * mailbox, `apply-theme`, `run-code` and every `confirm: true` (`prune`, `update-components`, `panels-clean`,
+ * mailbox, `apply-theme`, a dev build's `run-code` and every `confirm: true` (`prune`, `update-components`, `panels-clean`,
  * `set-override`) are refused `no-session` without it; `send` warns when one of those goes out without it.
  *
  * Commands: status · apply-theme {input} · build-components {def?} · file-setup · style-guide {collections?, types?, tables?} ·

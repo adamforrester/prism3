@@ -44,6 +44,7 @@
  */
 import { AGENT_PROTOCOL_VERSION, MAILBOX, commandId, failedResult, needsSession, resultKey, partKey, chunkUtf8, utf8Bytes } from './agent-protocol';
 import { CODE_ALPHABET, CODE_LENGTH, formatCode, normalizeCode } from './bridge-auth';
+import { RUN_CODE } from './dev-commands';
 import type { AgentLinkState, AgentResult, ChunkManifest } from './agent-protocol';
 import type { SharedDataPort } from './persist-figma';
 
@@ -197,7 +198,8 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
       if (next === undefined) return null;
       const id = commandId(next) as string;
       claim(q.entries, q.claimed, [id]);
-      if (needsSession(next)) {
+      // A dev build's `run-code` too (#2530): folded away with `dev-commands.ts` in a release, like the dispatcher's branch.
+      if (needsSession(next) || (PRISM3_DEV && (next as { cmd?: unknown }).cmd === RUN_CODE)) {
         const sent = (next as { session?: unknown }).session;
         const right = session !== null && typeof sent === 'string' && normalizeCode(sent) === session;
         if (!right) {
