@@ -591,11 +591,11 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
-    values: ['medium', 'small', 'large', 'xlarge'],
+    values: ['medium', 'small', 'large', 'x-large'],
     defs: ['code-input', 'code-input-cell'],
     relation: 'superset',
     reason:
-      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `xlarge`, the 68×72 display '
+      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `x-large`, the 68×72 display '
       + 'cell with a 40px character meant for four-character codes. Led by `medium`, the code default and so the set\'s '
       + 'first member (owner decisions Q347 and Q359), as every size ladder is (#2752, Q1 B); the code enum keeps the '
       + 'ladder\'s own order (`lint-rung-names.ts` DEFAULT_FIRST). The cell carries the same values, so it follows the '
@@ -708,14 +708,15 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'style',
     values: ['outline'],
-    defs: ['text-field', 'textarea', 'password-field', 'search-field', 'card-number-field'],
+    defs: ['text-field', 'textarea', 'password-field', 'search-field', 'card-number-field', 'select'],
     relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped. Underline is a BRAND choice since #2695 (the Field style '
       + 'lever, applied to the def before projection), not a value here: a second value would be a per-instance '
       + 'code coordinate, which Q14 A rules out. The axis keeps filled a place to land without a later API break. '
       + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here. '
-      + '`canonical` since Link (#2580) declared a second `style` set against it.',
+      + '`canonical` since Link (#2580) declared a second `style` set against it. Select joined with Q-CC3 A (#3554): '
+      + 'the Field style setting reaches its control, so it carries the same one-value axis.',
   },
   {
     axis: 'style',
