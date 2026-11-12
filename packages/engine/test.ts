@@ -10729,7 +10729,7 @@ arm: {
     }
     // Represented, not counted (docs/34): every brand the sidecar arm reads plus `prism3`, and each one carrying both
     // kinds of prose, so a walk that stopped reading per-mode lines, or a brand, fails here rather than passing empty.
-    const want = [...BRANDS, 'prism3'];
+    const want = [...new Set([...BRANDS, 'prism3'])];
     const thin = want.filter((b) => !(seen.get(b)?.desc! > 500 && seen.get(b)?.mode! > 100));
     ok(thin.length === 0 && treeBrands.length >= want.length,
       `#3555 Q-MD2 token tree prose scope: ${[...seen].map(([b, v]) => `${b} ${v.desc} $description + ${v.mode} per-mode`).join(', ')}${thin.length ? ` — too thin or missing: ${thin.join(', ')}` : ''}`);
