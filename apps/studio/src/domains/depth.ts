@@ -281,7 +281,7 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       const row = hook(h('div', 'p3-tweight'), 'easing-row');
       row.dataset.role = r.role;
       const now = !light() && ov === undefined ? DEPTH_COPY.autoLight(brandCurve) : cur;
-      row.append(tokenLabel(`motion.easing-role.${r.role}`, DEPTH_COPY.easingRow(r.role), id), pickButton(r.role, id, now, ov !== undefined));
+      row.append(tokenLabel(`motion.easing-role.${r.role}`, DEPTH_COPY.easingRow(r.role), id, { wrap: true }), pickButton(r.role, id, now, ov !== undefined));
       rows.append(row);
       if (openPick === r.role && !derived()) {
         const pk = valuePicker({
