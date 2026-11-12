@@ -95,7 +95,7 @@ The provider's wording, in the provider's language handling. Nothing to write.
 | `provider` | enum: 'apple-pay' \| 'google-pay' \| 'paypal' \| 'shop-pay' | — | yes | Which wallet. Each needs its provider's script on the page, which draws the button. |
 | `style` | enum: 'any' \| 'black' \| 'white' \| 'white-outline' \| 'gold' \| 'blue' \| 'silver' \| 'purple' | `any` | no | The provider's color style, from its own list, passed to the provider: Apple Pay black, white, white-outline; Google Pay black, white; PayPal gold, blue, silver, white, black; Shop Pay purple. Pick it for the ground the button sits on: dark buttons on light grounds, light ones on dark grounds. any passes no style, so the provider draws its default. A style the provider does not offer is refused. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height. |
-| `type` | string | `plain` | no | The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain. |
+| `wording` | string | `plain` | no | The provider's wording, from its own list, passed to the provider as its button type: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain. |
 
 ## Specs
 

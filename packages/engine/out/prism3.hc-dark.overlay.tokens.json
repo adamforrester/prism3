@@ -37,32 +37,32 @@
         "raised": {
           "$type": "color",
           "$value": "{pds3.core.palette.black}",
-          "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (foreground.primary) unless the brand sets it to the page or to white; in dark modes it is always the card surface"
+          "$description": "Raised surface — the panel a dialog or sheet draws over the scrim. The card surface (`foreground.primary`) unless the brand sets it to the page or to white; in dark modes it is always the card surface"
         },
         "brand": {
           "$type": "color",
           "$value": "{pds3.core.palette.primary.300}",
-          "$description": "Bold brand fill — clears 7:1 on background.secondary"
+          "$description": "Bold brand fill — clears 7:1 on `background.secondary`"
         },
         "success": {
           "$type": "color",
           "$value": "{pds3.core.palette.success.300}",
-          "$description": "Bold success fill — clears 7:1 on background.secondary"
+          "$description": "Bold success fill — clears 7:1 on `background.secondary`"
         },
         "warning": {
           "$type": "color",
           "$value": "{pds3.core.palette.warning.300}",
-          "$description": "Bold warning fill — clears 7:1 on background.secondary"
+          "$description": "Bold warning fill — clears 7:1 on `background.secondary`"
         },
         "danger": {
           "$type": "color",
           "$value": "{pds3.core.palette.danger.300}",
-          "$description": "Bold danger fill — clears 7:1 on background.secondary"
+          "$description": "Bold danger fill — clears 7:1 on `background.secondary`"
         },
         "info": {
           "$type": "color",
           "$value": "{pds3.core.palette.info.300}",
-          "$description": "Bold info fill — clears 7:1 on background.secondary"
+          "$description": "Bold info fill — clears 7:1 on `background.secondary`"
         },
         "brand-subtle": {
           "$type": "color",
@@ -99,62 +99,62 @@
         "secondary": {
           "$type": "color",
           "$value": "{pds3.core.palette.neutral.300}",
-          "$description": "Secondary text — 7:1 on background.secondary"
+          "$description": "Secondary text — 7:1 on `background.secondary`"
         },
         "tertiary": {
           "$type": "color",
           "$value": "{pds3.core.palette.neutral.450}",
-          "$description": "Tertiary text — 4.5:1 on background.secondary"
+          "$description": "Tertiary text — 4.5:1 on `background.secondary`"
         },
         "brand": {
           "$type": "color",
           "$value": "{pds3.core.palette.primary.300}",
-          "$description": "brand text — 7:1 on background.secondary and on its own tint"
+          "$description": "brand text — 7:1 on `background.secondary` and on its own tint"
         },
         "success": {
           "$type": "color",
           "$value": "{pds3.core.palette.success.300}",
-          "$description": "success text — 7:1 on background.secondary and on its own tint"
+          "$description": "success text — 7:1 on `background.secondary` and on its own tint"
         },
         "warning": {
           "$type": "color",
           "$value": "{pds3.core.palette.warning.300}",
-          "$description": "warning text — 7:1 on background.secondary and on its own tint"
+          "$description": "warning text — 7:1 on `background.secondary` and on its own tint"
         },
         "danger": {
           "$type": "color",
           "$value": "{pds3.core.palette.danger.300}",
-          "$description": "danger text — 7:1 on background.secondary and on its own tint"
+          "$description": "danger text — 7:1 on `background.secondary` and on its own tint"
         },
         "info": {
           "$type": "color",
           "$value": "{pds3.core.palette.info.300}",
-          "$description": "info text — 7:1 on background.secondary and on its own tint"
+          "$description": "info text — 7:1 on `background.secondary` and on its own tint"
         },
         "brand-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.primary.350}",
-          "$description": "Muted brand text — 4.5:1 on background.primary"
+          "$description": "Muted brand text — 4.5:1 on `background.primary`"
         },
         "success-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.success.350}",
-          "$description": "Muted success text — 4.5:1 on background.primary"
+          "$description": "Muted success text — 4.5:1 on `background.primary`"
         },
         "warning-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.warning.350}",
-          "$description": "Muted warning text — 4.5:1 on background.primary"
+          "$description": "Muted warning text — 4.5:1 on `background.primary`"
         },
         "danger-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.danger.350}",
-          "$description": "Muted danger text — 4.5:1 on background.primary"
+          "$description": "Muted danger text — 4.5:1 on `background.primary`"
         },
         "info-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.info.350}",
-          "$description": "Muted info text — 4.5:1 on background.primary"
+          "$description": "Muted info text — 4.5:1 on `background.primary`"
         },
         "on-brand": {
           "$type": "color",
@@ -185,27 +185,27 @@
           "default": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.300}",
-            "$description": "Link text — default, 7:1 on background.secondary"
+            "$description": "Link text — default, 7:1 on `background.secondary`"
           },
           "hover": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.200}",
-            "$description": "Link text — hover, 7:1 on background.secondary"
+            "$description": "Link text — hover, 7:1 on `background.secondary`"
           },
           "visited": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.025}",
-            "$description": "Link text — visited, 7:1 on background.secondary"
+            "$description": "Link text — visited, 7:1 on `background.secondary`"
           },
           "focused": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.300}",
-            "$description": "Link text — focused, 7:1 on background.secondary"
+            "$description": "Link text — focused, 7:1 on `background.secondary`"
           },
           "pressed": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.100}",
-            "$description": "Link text — pressed, 7:1 on background.secondary"
+            "$description": "Link text — pressed, 7:1 on `background.secondary`"
           }
         }
       },
@@ -253,7 +253,7 @@
         "focus": {
           "$type": "color",
           "$value": "{pds3.core.palette.primary.300}",
-          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on background.primary"
+          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on `background.primary`"
         }
       },
       "icon": {
@@ -265,62 +265,62 @@
         "secondary": {
           "$type": "color",
           "$value": "{pds3.core.palette.neutral.300}",
-          "$description": "Secondary icon — 7:1 on background.secondary"
+          "$description": "Secondary icon — 7:1 on `background.secondary`"
         },
         "tertiary": {
           "$type": "color",
           "$value": "{pds3.core.palette.neutral.450}",
-          "$description": "Tertiary icon — 4.5:1 on background.secondary"
+          "$description": "Tertiary icon — 4.5:1 on `background.secondary`"
         },
         "brand": {
           "$type": "color",
           "$value": "{pds3.core.palette.primary.300}",
-          "$description": "brand icon — 7:1 on background.secondary and on its own tint"
+          "$description": "brand icon — 7:1 on `background.secondary` and on its own tint"
         },
         "success": {
           "$type": "color",
           "$value": "{pds3.core.palette.success.300}",
-          "$description": "success icon — 7:1 on background.secondary and on its own tint"
+          "$description": "success icon — 7:1 on `background.secondary` and on its own tint"
         },
         "warning": {
           "$type": "color",
           "$value": "{pds3.core.palette.warning.300}",
-          "$description": "warning icon — 7:1 on background.secondary and on its own tint"
+          "$description": "warning icon — 7:1 on `background.secondary` and on its own tint"
         },
         "danger": {
           "$type": "color",
           "$value": "{pds3.core.palette.danger.300}",
-          "$description": "danger icon — 7:1 on background.secondary and on its own tint"
+          "$description": "danger icon — 7:1 on `background.secondary` and on its own tint"
         },
         "info": {
           "$type": "color",
           "$value": "{pds3.core.palette.info.300}",
-          "$description": "info icon — 7:1 on background.secondary and on its own tint"
+          "$description": "info icon — 7:1 on `background.secondary` and on its own tint"
         },
         "brand-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.primary.350}",
-          "$description": "Muted brand icon — low-emphasis accent, 4.5:1 on background.primary"
+          "$description": "Muted brand icon — low-emphasis accent, 4.5:1 on `background.primary`"
         },
         "success-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.success.350}",
-          "$description": "Muted success icon — low-emphasis accent, 4.5:1 on background.primary"
+          "$description": "Muted success icon — low-emphasis accent, 4.5:1 on `background.primary`"
         },
         "warning-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.warning.350}",
-          "$description": "Muted warning icon — low-emphasis accent, 4.5:1 on background.primary"
+          "$description": "Muted warning icon — low-emphasis accent, 4.5:1 on `background.primary`"
         },
         "danger-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.danger.350}",
-          "$description": "Muted danger icon — low-emphasis accent, 4.5:1 on background.primary"
+          "$description": "Muted danger icon — low-emphasis accent, 4.5:1 on `background.primary`"
         },
         "info-subtle": {
           "$type": "color",
           "$value": "{pds3.core.palette.info.350}",
-          "$description": "Muted info icon — low-emphasis accent, 4.5:1 on background.primary"
+          "$description": "Muted info icon — low-emphasis accent, 4.5:1 on `background.primary`"
         },
         "on-brand": {
           "$type": "color",
@@ -351,27 +351,27 @@
           "default": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.300}",
-            "$description": "Link icon — default, 7:1 on background.secondary"
+            "$description": "Link icon — default, 7:1 on `background.secondary`"
           },
           "hover": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.200}",
-            "$description": "Link icon — hover, 7:1 on background.secondary"
+            "$description": "Link icon — hover, 7:1 on `background.secondary`"
           },
           "visited": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.025}",
-            "$description": "Link icon — visited, 7:1 on background.secondary"
+            "$description": "Link icon — visited, 7:1 on `background.secondary`"
           },
           "focused": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.300}",
-            "$description": "Link icon — focused, 7:1 on background.secondary"
+            "$description": "Link icon — focused, 7:1 on `background.secondary`"
           },
           "pressed": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.100}",
-            "$description": "Link icon — pressed, 7:1 on background.secondary"
+            "$description": "Link icon — pressed, 7:1 on `background.secondary`"
           }
         }
       },
@@ -381,27 +381,27 @@
             "rest": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.300}",
-              "$description": "primary interactive fill — rest, clears 7:1 on background.secondary"
+              "$description": "primary interactive fill — rest, clears 7:1 on `background.secondary`"
             },
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.200}",
-              "$description": "primary interactive fill — hover, clears 7:1 on background.secondary"
+              "$description": "primary interactive fill — hover, clears 7:1 on `background.secondary`"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.100}",
-              "$description": "primary interactive fill — pressed, clears 7:1 on background.secondary"
+              "$description": "primary interactive fill — pressed, clears 7:1 on `background.secondary`"
             },
             "focused": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.300}",
-              "$description": "primary interactive fill — focused, clears 7:1 on background.secondary"
+              "$description": "primary interactive fill — focused, clears 7:1 on `background.secondary`"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.300}",
-              "$description": "primary interactive fill — selected, clears 7:1 on background.secondary"
+              "$description": "primary interactive fill — selected, clears 7:1 on `background.secondary`"
             }
           },
           "on-fill": {
@@ -481,24 +481,24 @@
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.10}",
-              "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.hover)"
+              "$description": "primary interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.hover`)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.20}",
-              "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)"
+              "$description": "primary interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.pressed`)"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.20}",
-              "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.primary.overlay.selected)"
+              "$description": "primary interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.primary.overlay.selected`)"
             }
           },
           "subtle-fill": {
             "selected": {
               "$type": "color",
               "$value": "#86a7f74d",
-              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)"
+              "$description": "primary interactive subtle fill — selected (the primary fill at `opacity.30`; translucent, the selected background of a selectable control or an outline/text control)"
             }
           }
         },
@@ -507,27 +507,27 @@
             "rest": {
               "$type": "color",
               "$value": "{pds3.core.palette.danger.300}",
-              "$description": "destructive interactive fill — rest, clears 7:1 on background.secondary"
+              "$description": "destructive interactive fill — rest, clears 7:1 on `background.secondary`"
             },
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.danger.200}",
-              "$description": "destructive interactive fill — hover, clears 7:1 on background.secondary"
+              "$description": "destructive interactive fill — hover, clears 7:1 on `background.secondary`"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.danger.100}",
-              "$description": "destructive interactive fill — pressed, clears 7:1 on background.secondary"
+              "$description": "destructive interactive fill — pressed, clears 7:1 on `background.secondary`"
             },
             "focused": {
               "$type": "color",
               "$value": "{pds3.core.palette.danger.300}",
-              "$description": "destructive interactive fill — focused, clears 7:1 on background.secondary"
+              "$description": "destructive interactive fill — focused, clears 7:1 on `background.secondary`"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.danger.300}",
-              "$description": "destructive interactive fill — selected, clears 7:1 on background.secondary"
+              "$description": "destructive interactive fill — selected, clears 7:1 on `background.secondary`"
             }
           },
           "on-fill": {
@@ -607,17 +607,17 @@
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.10}",
-              "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)"
+              "$description": "destructive interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.hover`)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.20}",
-              "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)"
+              "$description": "destructive interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.pressed`)"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.20}",
-              "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)"
+              "$description": "destructive interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.destructive.overlay.selected`)"
             }
           }
         },
@@ -626,27 +626,27 @@
             "rest": {
               "$type": "color",
               "$value": "{pds3.core.palette.neutral.850}",
-              "$description": "neutral interactive fill — rest, clears 0:1 on background.secondary"
+              "$description": "neutral interactive fill — rest, clears 0:1 on `background.secondary`"
             },
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.neutral.750}",
-              "$description": "neutral interactive fill — hover, clears 0:1 on background.secondary"
+              "$description": "neutral interactive fill — hover, clears 0:1 on `background.secondary`"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.neutral.650}",
-              "$description": "neutral interactive fill — pressed, clears 0:1 on background.secondary"
+              "$description": "neutral interactive fill — pressed, clears 0:1 on `background.secondary`"
             },
             "focused": {
               "$type": "color",
               "$value": "{pds3.core.palette.neutral.850}",
-              "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary"
+              "$description": "neutral interactive fill — focused, clears 0:1 on `background.secondary`"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.neutral.850}",
-              "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary"
+              "$description": "neutral interactive fill — selected, clears 0:1 on `background.secondary`"
             }
           },
           "on-fill": {
@@ -726,17 +726,17 @@
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.10}",
-              "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)"
+              "$description": "neutral interactive overlay — hover (10% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.hover`)"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.20}",
-              "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)"
+              "$description": "neutral interactive overlay — pressed (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.pressed`)"
             },
             "selected": {
               "$type": "color",
               "$value": "{pds3.core.palette.white-alpha.20}",
-              "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)"
+              "$description": "neutral interactive overlay — selected (20% neutral wash for the page ground; the dark-band twin is `inverse.interactive.neutral.overlay.selected`)"
             }
           }
         }
@@ -838,27 +838,27 @@
           "brand": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.600}",
-            "$description": "Bold brand fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+            "$description": "Bold brand fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
           },
           "success": {
             "$type": "color",
             "$value": "{pds3.core.palette.success.650}",
-            "$description": "Bold success fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+            "$description": "Bold success fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
           },
           "warning": {
             "$type": "color",
             "$value": "{pds3.core.palette.warning.650}",
-            "$description": "Bold warning fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+            "$description": "Bold warning fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
           },
           "danger": {
             "$type": "color",
             "$value": "{pds3.core.palette.danger.650}",
-            "$description": "Bold danger fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+            "$description": "Bold danger fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
           },
           "info": {
             "$type": "color",
             "$value": "{pds3.core.palette.info.650}",
-            "$description": "Bold info fill on an inverse surface — clears 7:1 on inverse.background.secondary"
+            "$description": "Bold info fill on an inverse surface — clears 7:1 on `inverse.background.secondary`"
           },
           "brand-subtle": {
             "$type": "color",
@@ -895,88 +895,88 @@
           "secondary": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.650}",
-            "$description": "Secondary text on an inverse surface — 7:1 on inverse.background.secondary"
+            "$description": "Secondary text on an inverse surface — 7:1 on `inverse.background.secondary`"
           },
           "tertiary": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.500}",
-            "$description": "Tertiary text on an inverse surface — 4.5:1 on inverse.background.secondary"
+            "$description": "Tertiary text on an inverse surface — 4.5:1 on `inverse.background.secondary`"
           },
           "brand": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.700}",
-            "$description": "brand text — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "brand text — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "success": {
             "$type": "color",
             "$value": "{pds3.core.palette.success.700}",
-            "$description": "success text — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "success text — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "warning": {
             "$type": "color",
             "$value": "{pds3.core.palette.warning.700}",
-            "$description": "warning text — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "warning text — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "danger": {
             "$type": "color",
             "$value": "{pds3.core.palette.danger.700}",
-            "$description": "danger text — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "danger text — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "info": {
             "$type": "color",
             "$value": "{pds3.core.palette.info.700}",
-            "$description": "info text — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "info text — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "brand-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.650}",
-            "$description": "Muted brand text — 4.5:1 on inverse.background.primary"
+            "$description": "Muted brand text — 4.5:1 on `inverse.background.primary`"
           },
           "success-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.success.650}",
-            "$description": "Muted success text — 4.5:1 on inverse.background.primary"
+            "$description": "Muted success text — 4.5:1 on `inverse.background.primary`"
           },
           "warning-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.warning.650}",
-            "$description": "Muted warning text — 4.5:1 on inverse.background.primary"
+            "$description": "Muted warning text — 4.5:1 on `inverse.background.primary`"
           },
           "danger-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.danger.650}",
-            "$description": "Muted danger text — 4.5:1 on inverse.background.primary"
+            "$description": "Muted danger text — 4.5:1 on `inverse.background.primary`"
           },
           "info-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.info.650}",
-            "$description": "Muted info text — 4.5:1 on inverse.background.primary"
+            "$description": "Muted info text — 4.5:1 on `inverse.background.primary`"
           },
           "link": {
             "default": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.600}",
-              "$description": "Link text on an inverse surface — default, 7:1 on inverse.background.secondary"
+              "$description": "Link text on an inverse surface — default, 7:1 on `inverse.background.secondary`"
             },
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.700}",
-              "$description": "Link text on an inverse surface — hover, 7:1 on inverse.background.secondary"
+              "$description": "Link text on an inverse surface — hover, 7:1 on `inverse.background.secondary`"
             },
             "visited": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.900}",
-              "$description": "Link text on an inverse surface — visited, 7:1 on inverse.background.secondary"
+              "$description": "Link text on an inverse surface — visited, 7:1 on `inverse.background.secondary`"
             },
             "focused": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.600}",
-              "$description": "Link text on an inverse surface — focused, 7:1 on inverse.background.secondary"
+              "$description": "Link text on an inverse surface — focused, 7:1 on `inverse.background.secondary`"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.800}",
-              "$description": "Link text on an inverse surface — pressed, 7:1 on inverse.background.secondary"
+              "$description": "Link text on an inverse surface — pressed, 7:1 on `inverse.background.secondary`"
             }
           }
         },
@@ -1024,7 +1024,7 @@
           "focus": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.600}",
-            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on inverse.background.primary"
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on `inverse.background.primary`"
           }
         },
         "icon": {
@@ -1036,88 +1036,88 @@
           "secondary": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.650}",
-            "$description": "Secondary icon on an inverse surface — 7:1 on inverse.background.secondary"
+            "$description": "Secondary icon on an inverse surface — 7:1 on `inverse.background.secondary`"
           },
           "tertiary": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.500}",
-            "$description": "Tertiary icon on an inverse surface — 4.5:1 on inverse.background.secondary"
+            "$description": "Tertiary icon on an inverse surface — 4.5:1 on `inverse.background.secondary`"
           },
           "brand": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.700}",
-            "$description": "brand icon — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "brand icon — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "success": {
             "$type": "color",
             "$value": "{pds3.core.palette.success.700}",
-            "$description": "success icon — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "success icon — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "warning": {
             "$type": "color",
             "$value": "{pds3.core.palette.warning.700}",
-            "$description": "warning icon — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "warning icon — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "danger": {
             "$type": "color",
             "$value": "{pds3.core.palette.danger.700}",
-            "$description": "danger icon — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "danger icon — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "info": {
             "$type": "color",
             "$value": "{pds3.core.palette.info.700}",
-            "$description": "info icon — 7:1 on inverse.background.secondary and on its own tint"
+            "$description": "info icon — 7:1 on `inverse.background.secondary` and on its own tint"
           },
           "brand-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.primary.650}",
-            "$description": "Muted brand icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+            "$description": "Muted brand icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
           },
           "success-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.success.650}",
-            "$description": "Muted success icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+            "$description": "Muted success icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
           },
           "warning-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.warning.650}",
-            "$description": "Muted warning icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+            "$description": "Muted warning icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
           },
           "danger-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.danger.650}",
-            "$description": "Muted danger icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+            "$description": "Muted danger icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
           },
           "info-subtle": {
             "$type": "color",
             "$value": "{pds3.core.palette.info.650}",
-            "$description": "Muted info icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+            "$description": "Muted info icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
           },
           "link": {
             "default": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.600}",
-              "$description": "Link icon on an inverse surface — default, 7:1 on inverse.background.secondary"
+              "$description": "Link icon on an inverse surface — default, 7:1 on `inverse.background.secondary`"
             },
             "hover": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.700}",
-              "$description": "Link icon on an inverse surface — hover, 7:1 on inverse.background.secondary"
+              "$description": "Link icon on an inverse surface — hover, 7:1 on `inverse.background.secondary`"
             },
             "visited": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.900}",
-              "$description": "Link icon on an inverse surface — visited, 7:1 on inverse.background.secondary"
+              "$description": "Link icon on an inverse surface — visited, 7:1 on `inverse.background.secondary`"
             },
             "focused": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.600}",
-              "$description": "Link icon on an inverse surface — focused, 7:1 on inverse.background.secondary"
+              "$description": "Link icon on an inverse surface — focused, 7:1 on `inverse.background.secondary`"
             },
             "pressed": {
               "$type": "color",
               "$value": "{pds3.core.palette.primary.800}",
-              "$description": "Link icon on an inverse surface — pressed, 7:1 on inverse.background.secondary"
+              "$description": "Link icon on an inverse surface — pressed, 7:1 on `inverse.background.secondary`"
             }
           }
         },

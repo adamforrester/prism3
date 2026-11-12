@@ -186,7 +186,7 @@ const surfaceClause = (ctx: Ctx, ink: string, min: number, alt?: string): { text
  *  tier, so `onInverseGround` names that lever instead; test.ts (Q689) gates both. */
 const floorClause = (ctx: Ctx, self: string): { floor_note?: string } => {
   const deep = ctx.belowFloor(self);
-  return deep.length ? { floor_note: `No contrast promise on ${list(deep)} — they sit deeper than the contrast floor. For ink there, move the floor (the brand's floorStep setting) and every floor-gated ink re-derives to clear it.` } : {};
+  return deep.length ? { floor_note: `No contrast promise on ${list(deep)} — they sit deeper than the contrast floor. For ink there, move the floor (the brand's \`surfaces.<mode>.floorStep\` setting) and every floor-gated ink re-derives to clear it.` } : {};
 };
 
 // Intent-keyed examples (AI/A-21): the example names the intent's own situation, and an icon role is
@@ -501,7 +501,7 @@ const onInverseGround = (d: Described, pageKey: string, known: (role: string) =>
   return {
     // AI/C-3: the ground is named as the path family it is, not in capitals.
     when_to_use: `${remap(d.when_to_use)} Only on an \`${INVERSE_GROUP}.*\` ground — a dark band on a light page, or the reverse.${note}`,
-    avoid_when: `Do not use on the page ground; that is \`${pageKey}\`. ${remap(d.avoid_when)}${d.floor_note ? ` ${remap(d.floor_note).replace('floorStep setting', 'inverseSecondary setting')}` : ''}`,
+    avoid_when: `Do not use on the page ground; that is \`${pageKey}\`. ${remap(d.avoid_when)}${d.floor_note ? ` ${remap(d.floor_note).replace('`surfaces.<mode>.floorStep` setting', '`surfaces.<mode>.inverseSecondary` setting')}` : ''}`,
     ...(d.limit ? { limit: alt?.startsWith(`${INVERSE_GROUP}.`) ? { alt } : {} } : {}),
     ...rel,
   };
@@ -634,7 +634,7 @@ const thinRole = (path: string): { tier: 'layout' | 'motion' | 'typography'; mea
   // #2869: the glass blur is a role with a literal value, the background half of the glass treatment.
   if (s[0] === 'blur') return { tier: 'layout', meaning: `Background-blur radius — ${last}`, when: 'The background blur behind a glass band over a photograph (`backdrop-filter: blur()` in code). Its fill is `color.glass.surface`.' };
   if (s[0] === 'border-width') return { tier: 'layout', meaning: `Border-width role — ${last}`, when: 'Stroke width of borders, dividers and outlines.' };
-  if (s[0] === 'focus' && s[1] === 'ring') return { tier: 'layout', meaning: `Focus-ring geometry — ${tail(2)}`, when: 'The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.' };
+  if (s[0] === 'focus' && s[1] === 'ring') return { tier: 'layout', meaning: `Focus-ring geometry — ${tail(2)}`, when: 'The keyboard-focus ring drawn around a focused element. Its color is `color.border.focus`.' };
   if (s[0] === 'size' && s.length === 3) return { tier: 'layout', meaning: `Control size step ${s[1]} — ${s[2]}`, when: `The ${s[2]} of a button, field or other control at the ${s[1]} size step. Take every dimension of one control from the same step.` };
   if (s[0] === 'control' && s[1] === 'size') return { tier: 'layout', meaning: `Selection-control geometry, ${s[2]} step — ${tail(3)}`, when: `The ${tail(3)} of a checkbox, radio or switch at the ${s[2]} step.` };
   // #2586 (Q282 A): the one non-composite leaf under `type.*`, a baked line box beside the composites it measures.
@@ -923,7 +923,9 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     if (c.link && resolves.textDecoration === undefined) resolves.textDecoration = 'underline';
     // Key by the real tree path (`type.<path>`) so aliased_by references resolve.
     typography[`type.${c.path}`] = {
-      $description: xs ? BODY_XS_DESCRIPTION : `${cap(d.desc)}${c.italic ? ' (italic variant)' : ''}${c.link ? ' (underlined link variant)' : ''}.`,
+      // The token's own `$description`, copied as the color tier copies (AI/A-22, #3555 G2): the regenerated sentence
+      // lost the face, line height, tracking and fluid range, and `body.xs`'s link variants lost "underlined".
+      $description: nodeAt(`type.${c.path}`)?.$description ?? (xs ? BODY_XS_DESCRIPTION : `${cap(d.desc)}${c.italic ? ' (italic variant)' : ''}${c.link ? ' (underlined link variant)' : ''}.`),
       meaning: `Type style — ${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} (${c.sizePx}px, ${c.group} face${c.textCase !== 'none' ? `, ${c.textCase}` : ''})`,
       // #2324: a label's underlined variant is a text button's label, in the button's own ink, never a `text.link.*` link.
       when_to_use: c.link && c.group === 'label'
@@ -944,7 +946,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     // exist and made the `used_by` lookup below miss every time.
     const key = `${CORE_TIER}.font.weight-role.${w.role}`;
     const entry: any = {
-      $description: `The ${w.role} font-weight role.`,
+      $description: nodeAt(key)?.$description ?? `The ${w.role} font-weight role.`,
       meaning: `Function-named weight → ${w.value} — the name holds across brands (the role is the contract; each brand maps the numeric).`,
       when_to_use: `Reference \`${key}\` (not the numeric) so a brand weight re-map reflows every consumer at once.`,
       avoid_when: `Do not hard-code the numeric (${w.value}); reference the role.`,
@@ -991,7 +993,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
         ? `Do not set ${drops[0].ink} body text directly on it — it drops to ${r2(drops[0].worst)}:1 at the worst sampled point, below 4.5:1. ${cap(holds[0].ink)} text clears ${r2(holds[0].worst)}:1 at every sampled point; use ${holds[0].ink} ink, or a scrim or solid container for ${drops[0].ink}.`
         : `Do not set body text directly on it — white text drops to ${r2(g.worstOnWhite)}:1 and black text to ${r2(g.worstOnBlack)}:1 at the worst sampled point, below 4.5:1. Use a scrim or a solid container.`;
     gradient[`gradient.${g.name}`] = {
-      $description: `Brand gradient — ${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ` ${g.shape}`}, ${g.stops.length} stops.`,
+      $description: nodeAt(`gradient.${g.name}`)?.$description ?? `Brand gradient — ${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ` ${g.shape}`}, ${g.stops.length} stops.`,
       // AI/B-2: how the gradient materializes in Figma is host detail; it lives in the token's own
       // `$extensions.figma`, not in the agent's reading of what the gradient is for.
       meaning: `Decorative ${g.kind} gradient (opt-in); stop colors alias the ramp, ${g.interpolation} interpolation.`,
@@ -1015,8 +1017,8 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     generated: true,
     note: `Agent-readable metadata, companion to ${tokensFile}. Every token in that tree has one entry here, keyed by ` +
       'its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color ' +
-      'roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, focus-ring, icon, ' +
-      'control and grid roles), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw ' +
+      'roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, ' +
+      'focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw ' +
       'values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through ' +
       'another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on ' +
       'and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and ' +

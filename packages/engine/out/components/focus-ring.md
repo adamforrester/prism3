@@ -13,7 +13,7 @@ The shared keyboard-focus indicator: a stroke drawn outside its host's bounds, s
 
 - **Purpose:** Render the shared keyboard-focus indicator for a focusable control.
 - **Use when:** Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.
-- **Avoid when:** As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.
+- **Avoid when:** As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.
 
 ## Anatomy
 
