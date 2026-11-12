@@ -22,7 +22,7 @@
  */
 
 /** The operations, by the drawer's own keys (`OpKey` in `host-session.ts`), plus `update`: Update file's run. */
-export type ActivityOp = 'apply' | 'components' | 'filesetup' | 'styleguide' | 'prune' | 'readback' | 'specs' | 'update';
+export type ActivityOp = 'apply' | 'components' | 'filesetup' | 'styleguide' | 'prune' | 'readback' | 'specs' | 'update' | 'override';
 
 /** One set that was not clean, and why. */
 export type ActivityProblem = { readonly set: string; readonly reasons: readonly string[] };
@@ -51,6 +51,8 @@ export type ActivityRun = {
 export const VERDICT_KINDS: Readonly<Record<string, ActivityOp>> = {
   'apply-result': 'apply', 'component-result': 'components', 'component-update-result': 'components', 'file-setup-result': 'filesetup',
   'style-guide-result': 'styleguide', 'prune-result': 'prune', 'seed-info': 'readback',
+  // #3394 Q3394.7 A: the agent link's color overrides, a row of their own.
+  'override-result': 'override',
 };
 
 /** How many runs the log keeps; the oldest goes first. */
@@ -63,7 +65,7 @@ export const capReasons = (rs: readonly string[]): string[] =>
   rs.length > REASONS_MAX ? [...rs.slice(0, REASONS_MAX), `…and ${rs.length - REASONS_MAX} more`] : [...rs];
 
 type Msg = { readonly type: string; readonly ok?: boolean; readonly headline?: string; readonly summary?: string; readonly lines?: readonly string[];
-  readonly applied?: boolean; readonly pillOnly?: boolean };
+  readonly applied?: boolean; readonly preview?: boolean; readonly pillOnly?: boolean };
 
 export const createActivityLog = (o: { readonly now: () => Date; readonly commit: string | null; readonly build: string; readonly keep?: number }) => {
   const keep = o.keep ?? ACTIVITY_KEEP;
@@ -75,10 +77,11 @@ export const createActivityLog = (o: { readonly now: () => Date; readonly commit
     if (runs.length > keep) runs.splice(0, runs.length - keep);
   };
   return {
-    /** Record `m` if it is a verdict the drawer shows. A prune preview is not one: it opens the confirm, or is a pill. */
+    /** Record `m` if it is a verdict the drawer shows. A prune preview is not one: it opens the confirm, or is a pill. Nor
+     *  is a `set-override` preview (#3394): it writes nothing. A refused write is recorded. */
     post(m: Msg, by: 'panel' | 'agent', cmd: string | null): void {
       const op = VERDICT_KINDS[m.type];
-      if (!op || (m.type === 'prune-result' && !m.applied)) return;
+      if (!op || (m.type === 'prune-result' && !m.applied) || (m.type === 'override-result' && m.preview)) return;
       const summary = typeof m.summary === 'string' ? m.summary : '';
       push({ op, by, cmd, verdict: { type: m.type, ok: !!m.ok }, headline: typeof m.headline === 'string' ? m.headline : '', summary,
         lines: Array.isArray(m.lines) ? [...m.lines] : summary ? [summary] : [], problems: [] });

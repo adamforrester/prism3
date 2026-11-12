@@ -881,7 +881,7 @@ export const textField: ComponentDef = makeTextField({
     // What the anatomy nests (#1700). The glyph, clear button and pending spinner fill slots or swap in at
     // runtime, so they are partners in `ai.commonPartners`, not parts.
     composesWith: ['field-label', 'field-message'],
-    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field', 'search-field', 'code-input'],
+    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field', 'search-field', 'counter', 'card-number-field', 'slider', 'code-input'],
     replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
     planned: ['form', 'tooltip', 'combobox', 'number-field', 'date-picker'],
   },

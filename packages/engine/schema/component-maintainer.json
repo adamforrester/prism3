@@ -101,11 +101,6 @@
         },
         {
           "section": "related",
-          "field": "composition.alternativeTo",
-          "reason": "empty"
-        },
-        {
-          "section": "related",
           "field": "composition.supersedes",
           "reason": "empty"
         },
@@ -1649,11 +1644,6 @@
         {
           "section": "related",
           "field": "composition.composesWith",
-          "reason": "empty"
-        },
-        {
-          "section": "related",
-          "field": "composition.alternativeTo",
           "reason": "empty"
         },
         {

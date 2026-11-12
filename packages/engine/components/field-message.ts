@@ -469,7 +469,7 @@ export const fieldMessage: ComponentDef = {
     // Nests nothing (#1700): its status glyphs are vector parts drawn from the glyph set, not nested `icon`
     // instances. The hosts that nest it are in `ai.commonPartners`.
     composesWith: [],
-    alternativeTo: [],
+    alternativeTo: ['toast', 'banner'],
     // `inline-message` — the brief's name for the SECTION-level message, the one this field-scoped part is
     // not (brief §1).
     planned: ['number-field', 'tooltip', 'inline-message'],

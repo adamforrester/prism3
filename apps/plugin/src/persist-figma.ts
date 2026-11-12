@@ -51,7 +51,7 @@ export const restoreInput = (root: SharedDataPort): BrandInput | null => {
 };
 
 /** Recursively key-sorted JSON: two brands are the same when these match, whatever order their keys were set in. */
-const canon = (v: unknown): string => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x)
+export const canon = (v: unknown): string => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x)
   ? Object.fromEntries(Object.keys(x as object).sort().map((k) => [k, (x as Record<string, unknown>)[k]])) : x));
 
 /**
