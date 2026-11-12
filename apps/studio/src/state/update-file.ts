@@ -352,6 +352,16 @@ export const blockedLine = (reasons: readonly string[] | undefined): string => r
 /** #3713 (2 of 4): its line under Can't update yet, whose title already says so: the reason as a sentence. DRAFT. */
 export const blockedReason = (reasons: readonly string[] | undefined): string => reasonText(reasons, (why) => `${why.charAt(0).toUpperCase()}${why.slice(1)}`);
 
+/** #3713 (3 of 4): names as a list: "A", "A and B", "A, B and C", then "A, B and 2 more". */
+const andList = (names: readonly string[]): string =>
+  names.length <= 3 ? names.join(', ').replace(/, ([^,]*)$/, ' and $1') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+/** #3713 (3 of 4): why Update file is disabled, said beside it; null while it is enabled, and while the check is out
+ *  (its progress in the foot says that already). The file's brand not restored (`off`) says so; else there are no steps
+ *  to run, because each set ticked is one the check blocks (`blocked`, by name), or nothing is ticked. It never names a
+ *  write it does not make: the button stays disabled. DRAFT (OWNER DECISION: copy). */
+export const goWhyOf = (o: { readonly off: string | null; readonly waiting: boolean; readonly steps: number; readonly blocked: readonly string[] }): string | null =>
+  o.off ? o.off : o.waiting || o.steps > 0 ? null : UPDATE_COPY.nothing(o.blocked);
+
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
   button: 'Update file',
@@ -440,6 +450,8 @@ export const UPDATE_COPY = {
   coverStep: 'Cover and About this library',
   guidesSub: 'Drawn with the settings in Documentation. A rerun updates each table in place.',
   go: 'Update file',
+  /** #3713 (3 of 4, DRAFT): beside a disabled Update file, `goWhyOf`. */
+  nothing: (blocked: readonly string[]): string => (blocked.length ? `Nothing to write: ${andList(blocked)} can’t be updated yet.` : 'Nothing to write: nothing above is ticked.'),
   goFresh: 'Set up and update',
   cancel: 'Cancel',
   close: 'Close',

@@ -50,7 +50,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { alsoAddsOf, awaitingRead, badgeParts, blockedDueOf, blockedReason, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { alsoAddsOf, awaitingRead, badgeParts, blockedDueOf, blockedReason, goWhyOf, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -524,6 +524,15 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       close();
     };
     const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go];
+    // #3713 (3 of 4): a disabled Update file says why, beside Cancel and the button, and names it as its description.
+    // A set that can run but is unticked makes it "nothing ticked", not the blocked sets' fault.
+    const why = goWhyOf({ off: r.off, waiting, steps: steps.length, blocked: updating.length ? [] : blocked.map(nameOf) });
+    if (why) {
+      const p = hook(h('p', 'p3-sub p3-upd-gowhy', why), 'update-go-why');
+      p.id = 'p3-upd-gowhy';
+      go.setAttribute('aria-describedby', p.id);
+      foot.unshift(p);
+    }
     if (chk === 'pending' && checkedFor !== null && updating.length) {
       // #3302 Q3302.1 A, Q3302.3 A: the check's progress in the foot, before Cancel: "Reading this file…" with the bar
       // empty until every set is found, then "Checked n of N sets", the chrome's own bar filled by sets. It moves only
