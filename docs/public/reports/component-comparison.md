@@ -20,7 +20,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis provider** — the provider axis takes 2 value sets — [apple, facebook, google] in sign-in-button; [apple-pay, google-pay, paypal, shop-pay] in wallet-button
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in link, page-nav-item, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
 - **axis shape** — the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress
-- **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, xlarge] in code-input, code-input-cell
+- **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell
 - **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
 - **axis style** — the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [danger, info, neutral, success, warning] in badge, banner; [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon
@@ -84,8 +84,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **checkbox-control** — checkbox-control declares its sizes as [medium, small, large], not smallest first
 - **checkbox-group** — checkbox-group declares its sizes as [medium, small, large], not smallest first
 - **checkbox-row** — checkbox-row declares its sizes as [medium, small, large], not smallest first
-- **code-input** — code-input declares its sizes as [medium, small, large, xlarge], not smallest first
-- **code-input-cell** — code-input-cell declares its sizes as [medium, small, large, xlarge], not smallest first
+- **code-input** — code-input declares its sizes as [medium, small, large, x-large], not smallest first
+- **code-input-cell** — code-input-cell declares its sizes as [medium, small, large, x-large], not smallest first
 - **counter** — counter declares its sizes as [medium, small, large], not smallest first
 - **dialog** — dialog declares its sizes as [medium, small, large], not smallest first
 - **flush-icon-button** — flush-icon-button declares its sizes as [medium, small, large], not smallest first
@@ -301,7 +301,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | size | large, medium, small | _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button |
 |  | medium, small | badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row |
 |  | large, medium, small, x-small | link, list, list-item, spinner |
-|  | large, medium, small, xlarge | code-input, code-input-cell |
+|  | large, medium, small, x-large | code-input, code-input-cell |
 | status | default, error | checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row |
 |  | default, error, success, warning | card-number-field, field-message, password-field, search-field, select, text-field, textarea |
 |  | active, complete, error | progress |
@@ -346,8 +346,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | checkbox-control | medium, small, large | medium |
 | checkbox-group | medium, small, large | medium |
 | checkbox-row | medium, small, large | medium |
-| code-input | medium, small, large, xlarge | medium |
-| code-input-cell | medium, small, large, xlarge | medium |
+| code-input | medium, small, large, x-large | medium |
+| code-input-cell | medium, small, large, x-large | medium |
 | counter | medium, small, large | medium |
 | dialog | medium, small, large | medium |
 | field-label | small, medium, large | small |
@@ -493,6 +493,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | banner | 2 | 2, 3, 4, 5, 6 |
 | helpText | card-number-field | — | — |
 |  | code-input | — | — |
+|  | counter | — | — |
 |  | password-field | — | — |
 |  | search-field | — | — |
 |  | select | — | — |
@@ -617,8 +618,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | counter | — | — |
 |  | progress | 100 | — |
 |  | slider | 100 | — |
-| message | counter | — | — |
-|  | field-message | — | — |
+| message | field-message | — | — |
 |  | progress | — | — |
 |  | toast | — | — |
 | min | counter | 0 | — |
@@ -717,6 +717,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | password-field | false | — |
 |  | search-field | false | — |
 |  | select | false | — |
+|  | slider | false | — |
 |  | text-field | false | — |
 |  | textarea | false | — |
 | showStateLabel | switch-control | true | — |
@@ -736,8 +737,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | checkbox-control | medium | small, medium, large |
 |  | checkbox-group | medium | small, medium, large |
 |  | checkbox-row | medium | small, medium, large |
-|  | code-input | medium | small, medium, large, xlarge |
-|  | code-input-cell | medium | small, medium, large, xlarge |
+|  | code-input | medium | small, medium, large, x-large |
+|  | code-input-cell | medium | small, medium, large, x-large |
 |  | counter | medium | small, medium, large |
 |  | dialog | medium | small, medium, large |
 |  | field-label | small | small, medium, large |

@@ -2990,7 +2990,7 @@
         {
           "class": "announcement",
           "disposition": "REFUSED",
-          "description": "announcement — a wrapper with `role=\"status\"` and `aria-live=\"polite\"` around an `aria-hidden` `<svg>`, with the `label` (\"Loading\" by default) in a visually hidden span (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer's stance) — puts `aria-hidden=\"true\"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role=\"progressbar\"`: a spinner has no value."
+          "description": "announcement — the region comes first: a polite `role=\"status\"` region, the host's or the app's, is on the page and empty before the spinner shows, and the `label` (\"Loading\" by default) is written into it, visually hidden, when the spinner shows, because some screen readers ignore a region inserted together with its text (owner decision Q-CC25 A, as Progress, Toast and Banner require). The `<svg>` is `aria-hidden`. The label is the region's content, not its accessible name (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer's stance) — puts `aria-hidden=\"true\"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role=\"progressbar\"`: a spinner is not a progressbar (Q-CC24 A)."
         }
       ],
       "notes": {
@@ -2999,7 +2999,7 @@
           "STANDALONE COMPONENTS, not one variant set (`emitAsComponents`). The button swaps a spinner into its icon slot by component name, and a set member's name is not unique in a file.",
           "THE TURN IS NOT TEMPO-SCALED. `motion.duration.spin` holds 800ms at every tempo, where the transition ramp scales with the brand's tempo lever.",
           "A SEPARATE PRIMITIVE, not a `CircularProgress` variant (brief §1, §10). The practice default, and this def: a separate `Spinner` keeps the no-value contract off a component that carries `value` / `min` / `max`, so a button loader is never read as a `progressbar` that needs a value. The alternative is the fold MUI (`CircularProgress variant=\"indeterminate\"`) and Spectrum (`ProgressCircle isIndeterminate`) ship. Material 3 split its \"Loading indicator\" out of indeterminate progress in May 2025 (unverified, see below).",
-          "THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role=\"status\"` with a hidden \"Loading\" (the APG-recommended pattern, and this def's default); an indeterminate `role=\"progressbar\"` with no `aria-valuenow` (permitted, but some screen readers keep announcing the missing value, so ruled out here); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).",
+          "THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role=\"status\"` with a hidden \"Loading\" (the APG-recommended pattern, and this def's default); an indeterminate `role=\"progressbar\"` with no `aria-valuenow` (permitted, and Progress uses it for its visible indeterminate bar; a spinner is not a progressbar, so ruled out here, Q-CC24 A); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).",
           "INLINE vs OVERLAY, and the API divide (brief §3, §4). This def is the inline primitive only: no mask, no `spinning` toggle, no `fullscreen`. The alternatives are Ant's `Spin`, which wraps content in a dimming mask and blocks it, and, on API shape, Base Web's exhaustive `overrides` (drilling into `Svg` / `TrackPath`) against Spectrum's locked-down API (only `staticColor`). This def sits at the locked-down end: `size` and `label`.",
           "REDUCED MOTION SLOWS THE TURN rather than substituting a pulse (owner, 2026-09-26). Brief §6 and §8 name a slow opacity pulse, or a static indicator with a low-frequency text ellipsis, as the substitute. Both agree on the rule that matters: never a frozen ring, which reads as a crash (Primer: make it subtle, do not remove it).",
           "THE ANTI-FLASH DELAY IS THE HOST'S, not a `delay` prop. Brief §3 lists `delay` (~200–500ms), a first-class prop in Ant and Fluent. The host already decides when to mount the spinner and owns the busy announcement, so the timer sits with that decision; a `delay` prop would put a second timer beside the host's. The alternative is the brief's prop, defaulting to 0.",
@@ -3013,7 +3013,6 @@
         ],
         "unverified": [
           "The external 2026 version numbers and the Material 3 \"Loading indicator\" split (May 2025 Expressive Update) — brief §14 holds them loosely and flags them unverified, and so does this def. They back the separate-primitive call and the 200ms / 5s bands, both of which stand on their own reasoning.",
-          "The `role=\"status\"`-versus-`role=\"progressbar\"` announcement specifics — which screen readers keep announcing an indeterminate progressbar's missing value. The brief asks for verification against current screen readers; not verified here.",
           "1.4.11 for the arc: it takes its host's icon ink and is stated to clear 3:1, but that is not measured per host. Standalone it binds `color.icon.primary`, which the engine gates against `background.primary`; inside a host it takes whatever ink the host pushes (on-fill, disabled ink, their inverse twins), and no gate composes the spinner onto each host's ground and measures the arc there."
         ],
         "evolution": [
@@ -6395,7 +6394,7 @@
         "contested": [
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
           "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
-          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+          "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
           "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
@@ -6531,7 +6530,7 @@
       ],
       "notes": {
         "contested": [
-          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
+          "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
           "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
         ],
         "unverified": [

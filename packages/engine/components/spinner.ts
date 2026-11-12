@@ -14,8 +14,8 @@
  *   surrounding text/icon color (`currentColor`), so it drops into any icon slot.
  *
  * THE OWNER'S DECISIONS OF 2026-09-27, carried with the brief:
- *   · the DEFAULT ANNOUNCEMENT — a standalone spinner is a polite `role="status"` named "Loading" (the `label`
- *     default). A host that announces its own busy state (Button / IconButton `isPending`) opts out with the
+ *   · the DEFAULT ANNOUNCEMENT — a standalone spinner announces a polite "Loading" (the `label` default),
+ *     written on show into a `role="status"` region that is already present and empty (Q-CC25 A, #3554). A host that announces its own busy state (Button / IconButton `isPending`) opts out with the
  *     standard `aria-hidden="true"` attribute, not a new prop. Before this the spinner was hidden by default and
  *     only a `label` made it speak — the brief's first trap ("never an unlabeled spinner") in the default path.
  *   · the ENTER FADE — a quick opacity fade on `motion.duration.fast`, the shortest ramp role that reads as a
@@ -61,11 +61,11 @@ export const spinner: ComponentDef = {
   status: 'draft',
   summary: 'Indeterminate loading indicator on the icon ladder. Announces "Loading" unless its host hides it.',
   description:
-    'A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button\'s leading visual, a field\'s trailing slot. On its own it is a polite status named "Loading", or a more specific label; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.',
+    'A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button\'s leading visual, a field\'s trailing slot. On its own it announces a polite "Loading", or a more specific label, through a status region that is already on the page; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.',
 
   props: [
     { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large'", values: ['x-small', 'small', 'medium', 'large'], default: 'medium', required: false, description: 'The icon ladder: 16 / 20 / 24 / 32. The band scales with it (2px at 24). Inside a host slot, take the slot\'s own icon size.' },
-    { name: 'label', type: 'string', default: 'Loading', required: false, description: 'The accessible name of the spinner\'s role="status" wrapper, visually hidden and announced politely. "Loading" by default; name the work when it is known ("Loading results"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden="true" on the spinner instead, so the state is announced once.' },
+    { name: 'label', type: 'string', default: 'Loading', required: false, description: 'The text announced when the spinner shows, written into a polite role="status" region that is present and empty before it shows, and visually hidden. "Loading" by default; name the work when it is known ("Loading results"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden="true" on the spinner instead, so the state is announced once.' },
   ],
 
   // `[]`: the spinner has no interactive state. Hover, focus and disabled belong to its host.
@@ -160,7 +160,7 @@ export const spinner: ComponentDef = {
         class: 'announcement',
         disposition: 'refused',
         description:
-          'announcement — a wrapper with `role="status"` and `aria-live="polite"` around an `aria-hidden` `<svg>`, with the `label` ("Loading" by default) in a visually hidden span (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer\'s stance) — puts `aria-hidden="true"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role="progressbar"`: a spinner has no value.',
+          'announcement — the region comes first: a polite `role="status"` region, the host\'s or the app\'s, is on the page and empty before the spinner shows, and the `label` ("Loading" by default) is written into it, visually hidden, when the spinner shows, because some screen readers ignore a region inserted together with its text (owner decision Q-CC25 A, as Progress, Toast and Banner require). The `<svg>` is `aria-hidden`. The label is the region\'s content, not its accessible name (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer\'s stance) — puts `aria-hidden="true"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role="progressbar"`: a spinner is not a progressbar (Q-CC24 A).',
       },
     ],
   },
@@ -174,15 +174,15 @@ export const spinner: ComponentDef = {
   },
 
   accessibility: {
-    role: 'status with aria-live="polite", named by label — "Loading" by default. Hidden (aria-hidden="true") inside a host that announces its own busy state.',
+    role: 'status with aria-live="polite": a region present and empty before the spinner shows, into which the label ("Loading" by default) is written on show. Hidden (aria-hidden="true") inside a host that announces its own busy state.',
     // No 2.2.2 or 2.3.3 (owner, 2026-09-26) — see `notes.contested`.
     wcag: [
-      '1.1.1 Non-text Content (the drawing is aria-hidden; the status text is the name)',
+      '1.1.1 Non-text Content (the drawing is aria-hidden; the status text carries the meaning)',
       '1.4.11 Non-text Contrast (the arc takes its host\'s icon ink, meant to clear 3:1; the track is decorative and exempt)',
       '4.1.3 Status Messages (the polite "Loading" status when it stands alone; the host\'s own announcement when the host hides it)',
     ],
     focus: 'None. The spinner takes no focus. A pending host control keeps its own: it takes aria-disabled="true", not native disabled, which takes the control out of the focus order and sends focus to the page body (USWDS), and it suppresses the repeat click in script — see Button\'s isPending.',
-    aria: 'Standalone, the default: a role="status" wrapper with aria-live="polite", named by label ("Loading" unless a more specific label is given), around an aria-hidden drawing. Inside a host that already announces its busy state — a Button or IconButton isPending, which set aria-busy and carry their own polite live region — the host sets aria-hidden="true" on the spinner, so the state is announced once rather than twice. Never aria-valuenow and never role="progressbar": a spinner has no value, and an indeterminate progressbar can make some screen readers keep announcing the missing value.',
+    aria: 'Standalone, the default: a role="status" region with aria-live="polite", the host\'s or the app\'s, is present and empty before the spinner shows, and the label ("Loading" unless a more specific label is given) is written into it when the spinner shows; the drawing is aria-hidden. The label is the region\'s content, not its accessible name. Inside a host that already announces its busy state — a Button or IconButton isPending, which set aria-busy and carry their own polite live region — the host sets aria-hidden="true" on the spinner, so the state is announced once rather than twice. Never aria-valuenow and never role="progressbar": a spinner is not a progressbar.',
   },
 
   // Brief §7, owner-approved 2026-09-27 for the optional label.
@@ -191,7 +191,7 @@ export const spinner: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite "Loading" status, or a more specific label; inside a host that announces its own busy state, such as a Button\'s isPending, the host sets aria-hidden="true" on it.',
+    usage: 'Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite "Loading", or a more specific label, through a status region that exists, empty, before it shows; inside a host that announces its own busy state, such as a Button\'s isPending, the host sets aria-hidden="true" on it.',
     do: [
       'Put the spinner in the host\'s own icon slot at that slot\'s icon size, so nothing around it moves',
       'Let the host delay showing it, so a fast operation does not flash a spinner',
@@ -205,7 +205,7 @@ export const spinner: ComponentDef = {
       'Leave a spinner exposed inside a host that already announces its busy state — the state is announced twice; set aria-hidden="true" on it',
       'Keep the generic "Loading" when the work is known — name it ("Loading results")',
       'Show many spinners at once — a dashboard that starts one per widget on load reads as noise; use one placeholder for the layout and keep the spinner for a single user-triggered wait (Primer)',
-      'Put role="progressbar" or aria-valuenow on a spinner — it has no value, and a value is determinate progress',
+      'Put role="progressbar" or aria-valuenow on a spinner — a spinner is not a progressbar',
       'Stop the turn under reduced motion — slow it',
     ],
     contentGuidelines: 'Label: specific and in sentence case — "Loading results", "Updating profile" — not a generic "Loading…"; "Loading" is the fallback when nothing more specific is known. One status for the whole wait, and for a region or a longer wait the host announces completion ("Results loaded"). Inside a button, the button keeps its accessible name while pending.',
@@ -242,7 +242,7 @@ export const spinner: ComponentDef = {
       'STANDALONE COMPONENTS, not one variant set (`emitAsComponents`). The button swaps a spinner into its icon slot by component name, and a set member\'s name is not unique in a file.',
       'THE TURN IS NOT TEMPO-SCALED. `motion.duration.spin` holds 800ms at every tempo, where the transition ramp scales with the brand\'s tempo lever.',
       'A SEPARATE PRIMITIVE, not a `CircularProgress` variant (brief §1, §10). The practice default, and this def: a separate `Spinner` keeps the no-value contract off a component that carries `value` / `min` / `max`, so a button loader is never read as a `progressbar` that needs a value. The alternative is the fold MUI (`CircularProgress variant="indeterminate"`) and Spectrum (`ProgressCircle isIndeterminate`) ship. Material 3 split its "Loading indicator" out of indeterminate progress in May 2025 (unverified, see below).',
-      'THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role="status"` with a hidden "Loading" (the APG-recommended pattern, and this def\'s default); an indeterminate `role="progressbar"` with no `aria-valuenow` (permitted, but some screen readers keep announcing the missing value, so ruled out here); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).',
+      'THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role="status"` with a hidden "Loading" (the APG-recommended pattern, and this def\'s default); an indeterminate `role="progressbar"` with no `aria-valuenow` (permitted, and Progress uses it for its visible indeterminate bar; a spinner is not a progressbar, so ruled out here, Q-CC24 A); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).',
       'INLINE vs OVERLAY, and the API divide (brief §3, §4). This def is the inline primitive only: no mask, no `spinning` toggle, no `fullscreen`. The alternatives are Ant\'s `Spin`, which wraps content in a dimming mask and blocks it, and, on API shape, Base Web\'s exhaustive `overrides` (drilling into `Svg` / `TrackPath`) against Spectrum\'s locked-down API (only `staticColor`). This def sits at the locked-down end: `size` and `label`.',
       'REDUCED MOTION SLOWS THE TURN rather than substituting a pulse (owner, 2026-09-26). Brief §6 and §8 name a slow opacity pulse, or a static indicator with a low-frequency text ellipsis, as the substitute. Both agree on the rule that matters: never a frozen ring, which reads as a crash (Primer: make it subtle, do not remove it).',
       'THE ANTI-FLASH DELAY IS THE HOST\'S, not a `delay` prop. Brief §3 lists `delay` (~200–500ms), a first-class prop in Ant and Fluent. The host already decides when to mount the spinner and owns the busy announcement, so the timer sits with that decision; a `delay` prop would put a second timer beside the host\'s. The alternative is the brief\'s prop, defaulting to 0.',
@@ -256,7 +256,6 @@ export const spinner: ComponentDef = {
     ],
     unverified: [
       'The external 2026 version numbers and the Material 3 "Loading indicator" split (May 2025 Expressive Update) — brief §14 holds them loosely and flags them unverified, and so does this def. They back the separate-primitive call and the 200ms / 5s bands, both of which stand on their own reasoning.',
-      'The `role="status"`-versus-`role="progressbar"` announcement specifics — which screen readers keep announcing an indeterminate progressbar\'s missing value. The brief asks for verification against current screen readers; not verified here.',
       '1.4.11 for the arc: it takes its host\'s icon ink and is stated to clear 3:1, but that is not measured per host. Standalone it binds `color.icon.primary`, which the engine gates against `background.primary`; inside a host it takes whatever ink the host pushes (on-fill, disabled ink, their inverse twins), and no gate composes the spinner onto each host\'s ground and measures the arc there.',
     ],
     evolution: [
