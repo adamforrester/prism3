@@ -1450,6 +1450,10 @@
           ]
         },
         {
+          "name": "required",
+          "default": false
+        },
+        {
           "name": "disabled",
           "default": false
         },
@@ -8400,6 +8404,10 @@
       },
       {
         "id": "checkbox-group",
+        "default": false
+      },
+      {
+        "id": "code-input",
         "default": false
       },
       {
