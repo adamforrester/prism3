@@ -673,7 +673,7 @@
         {
           "class": "platform-owned",
           "disposition": "REFUSED",
-          "description": "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and type and style through unchanged."
+          "description": "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and wording (as the provider's button type) and style through unchanged."
         },
         {
           "class": "runtime-behavior",
@@ -728,6 +728,7 @@
           "The style artwork, grounds and edges were captured from each provider's public SDK on 2026-10-30 (the records in marks/provenance.json). An SDK that changes its paint later is not seen until the artwork is captured again."
         ],
         "evolution": [
+          "2026-11-11 (#3554 Q-CC21 A): the wording prop is `wording`, as SignInButton names the same job, not `type`, which is the HTML button type on Button, IconButton and FlushIconButton. It still reaches the provider as its button type.",
           "Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A) and the provider's own element in code (Q-B8 A). Built in PR 4 on the owner's logo marks (PR 3).",
           "Q-W1 (the Figma member) was built as A, a layout stand-in with no fill, while the providers' artwork was not in. #3174 took B (Q3174.1–6, all A): a style axis in each SDK's own names, each style drawn from the provider's SDK artwork with its record's ground and edge, and the stand-in kept as the any style, so every member built before is still there at style any.",
           "Q-W2 (heights outside a provider's range): built as A, no member, and kept by Q3174.4 A: PayPal has no large member, because 55 is its documented ceiling.",
@@ -783,6 +784,16 @@
     },
     "sign-in-button": {
       "codeOnly": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "pending — not projected: the design file's states are rest, hover, pressed and focus-visible (Q-S6 A), and pending is code-only, as Button's inactive is (Q-CC23 A). In code isPending keeps focus with aria-disabled and aria-busy, ignores a second click while the provider's sign-in is in flight, and announces busy through a polite live region."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "disabled — not projected: the design file's states are rest, hover, pressed and focus-visible (Q-S6 A), and disabled is code-only (Q-CC23 A). In code it is the native attribute, and the button leaves the tab order and the accessibility tree."
+        },
         {
           "class": "platform-owned",
           "disposition": "REFUSED",
@@ -943,7 +954,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1037,7 +1048,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1131,7 +1142,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1201,7 +1212,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1291,7 +1307,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1381,7 +1402,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -2630,6 +2656,11 @@
         {
           "class": "not-projected",
           "disposition": "LOWERED",
+          "description": "style — not projected: the field's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695)."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED",
           "description": "pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, text-field's posture. In code async options are loading: a spinner replaces the chevron and the control sets aria-busy. It stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members."
         },
         {
@@ -3682,7 +3713,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion."
+          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs, on motion.transition.default both ways, and swaps without turning under prefers-reduced-motion (the prism3-motion accordion recipe). Figma swaps the down and up glyphs, since a variant holds no motion."
         },
         {
           "class": "right-to-left",
@@ -3708,21 +3739,6 @@
         {
           "section": "accessibility",
           "field": "accessibility.keyboard",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.enter",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.exit",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.reduceMotion",
           "reason": "empty"
         },
         {
@@ -6379,7 +6395,7 @@
         "contested": [
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
           "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
-          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+          "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
           "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
@@ -6515,7 +6531,7 @@
       ],
       "notes": {
         "contested": [
-          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
+          "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
           "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
         ],
         "unverified": [
