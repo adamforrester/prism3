@@ -1912,7 +1912,7 @@
       }
     },
     "focus-ring": {
-      "digest": "aa390d04",
+      "digest": "addd83c2",
       "def": {
         "id": "focus-ring",
         "name": "FocusRing",
@@ -1996,7 +1996,7 @@
         "ai": {
           "primaryPurpose": "Render the shared keyboard-focus indicator for a focusable control.",
           "whenToUse": "Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.",
-          "avoidWhen": "As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. \"Standalone\" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.",
+          "avoidWhen": "As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. \"Standalone\" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.",
           "commonPartners": [
             "button",
             "button-destructive",
@@ -5302,7 +5302,7 @@
       }
     },
     "button-destructive": {
-      "digest": "f9cbc869",
+      "digest": "668f627b",
       "def": {
         "id": "button-destructive",
         "name": "Button.Destructive",
@@ -5537,7 +5537,7 @@
         "ai": {
           "primaryPurpose": "Trigger an action in place.",
           "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-          "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
+          "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
           "commonPartners": [
             "icon",
             "spinner",
@@ -8468,7 +8468,7 @@
       }
     },
     "button-neutral": {
-      "digest": "3b80742d",
+      "digest": "d9ca40e4",
       "def": {
         "id": "button-neutral",
         "name": "Button.Neutral",
@@ -8702,7 +8702,7 @@
         "ai": {
           "primaryPurpose": "Trigger an action in place.",
           "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-          "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
+          "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Neutral (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
           "commonPartners": [
             "icon",
             "spinner",
@@ -14255,7 +14255,7 @@
       }
     },
     "icon-button": {
-      "digest": "1a7c3d77",
+      "digest": "988e589e",
       "def": {
         "id": "icon-button",
         "name": "IconButton",
@@ -14442,7 +14442,7 @@
         },
         "ai": {
           "primaryPurpose": "Trigger an action with an icon alone, no visible label.",
-          "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).",
+          "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).",
           "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action deletes or removes something → use IconButton.Destructive. It carries no brand emphasis (most toolbar and row actions, a close affordance) → use IconButton.Neutral.",
           "commonPartners": [
             "icon",
@@ -16048,7 +16048,7 @@
       }
     },
     "icon-button-destructive": {
-      "digest": "6f469c8d",
+      "digest": "d848e8f4",
       "def": {
         "id": "icon-button-destructive",
         "name": "IconButton.Destructive",
@@ -16236,7 +16236,7 @@
         },
         "ai": {
           "primaryPurpose": "Trigger an action with an icon alone, no visible label.",
-          "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).",
+          "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).",
           "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action is not destructive → use IconButton, or IconButton.Neutral for one with no brand emphasis.",
           "commonPartners": [
             "icon",
@@ -19635,7 +19635,7 @@
       }
     },
     "flush-icon-button": {
-      "digest": "20f1d2bb",
+      "digest": "285520a3",
       "def": {
         "id": "flush-icon-button",
         "name": "FlushIconButton",
@@ -19792,7 +19792,7 @@
         },
         "ai": {
           "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
-          "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+          "whenToUse": "Any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
           "avoidWhen": "The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
           "commonPartners": [
             "icon",
@@ -20480,7 +20480,7 @@
       }
     },
     "flush-icon-button-destructive": {
-      "digest": "10473ec1",
+      "digest": "dc597691",
       "def": {
         "id": "flush-icon-button-destructive",
         "name": "FlushIconButton.Destructive",
@@ -20638,7 +20638,7 @@
         },
         "ai": {
           "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
-          "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+          "whenToUse": "Any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
           "avoidWhen": "The action is not destructive (use FlushIconButton, or FlushIconButton.Neutral for one with no brand emphasis). It stands on its own in a toolbar or a header (use IconButton.Destructive, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
           "commonPartners": [
             "icon",
@@ -27426,7 +27426,7 @@
       }
     },
     "checkbox-row": {
-      "digest": "df9d720b",
+      "digest": "868c371b",
       "def": {
         "id": "checkbox-row",
         "name": "Checkbox.Row",
@@ -27569,7 +27569,7 @@
           "errorPattern": "Group-level for a set — \"Select at least one option\" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets status=error on every row and carries the message. A standalone row sets its own status=error (\"Accept the terms to continue\"), and its host shows the message."
         },
         "docs": {
-          "usage": "Use a single Checkbox.Row for one independent opt-in (a consent line, \"Remember me\"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7-10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.",
+          "usage": "Use a single Checkbox.Row for one independent opt-in (a consent line, \"Remember me\"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.",
           "do": [
             "Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond",
             "Set aria-checked=\"mixed\" explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech",
@@ -27590,7 +27590,7 @@
         "ai": {
           "primaryPurpose": "Capture an independent binary choice that is staged into a form and submitted, with an associated label that doubles as the hit target and an optional indeterminate state for select-all hierarchy.",
           "whenToUse": "A single opt-in (consent, \"remember me\", \"include X\"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.",
-          "avoidWhen": "The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).",
+          "avoidWhen": "The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).",
           "commonPartners": [
             "checkbox-control",
             "checkbox-group",
@@ -28080,7 +28080,7 @@
       }
     },
     "checkbox-group": {
-      "digest": "88213845",
+      "digest": "4527fc45",
       "def": {
         "id": "checkbox-group",
         "name": "Checkbox.Group",
@@ -28095,7 +28095,7 @@
         "category": "form",
         "status": "draft",
         "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
-        "description": "A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).",
+        "description": "A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7–10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).",
         "props": [
           {
             "name": "label",
@@ -28219,7 +28219,7 @@
           "errorPattern": "Group-level and specific — \"Select at least one option\", stating what is wrong and how to fix it (SC 3.3.3), never \"Invalid\". The group sets status=error on every row (the danger border on each box) and shows the message once, under the options."
         },
         "docs": {
-          "usage": "Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.",
+          "usage": "Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7–10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.",
           "do": [
             "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder",
             "Let the group own the value array, required and validation — a row inside a group never manages its own",
@@ -28231,7 +28231,7 @@
             "Pre-check a consent option — a dark pattern, and for marketing consent often unlawful",
             "Wire checked, onChange or required on an individual row inside a group — all three belong to the group",
             "Model an exclusive one-of-many choice as a checkbox group — that is Radio.Group",
-            "Reach for a checkbox group past roughly 7-10 options — a filtering multi-select combobox (not built yet) scans better",
+            "Reach for a checkbox group past roughly 7–10 options — a filtering multi-select combobox (not built yet) scans better",
             "Override Enter to toggle — Enter submits the form, and that expectation is universal"
           ],
           "contentGuidelines": "The group label names the decision; the rows carry the short options. Group errors read \"Select at least one option\" rather than \"Invalid\"."
@@ -28239,7 +28239,7 @@
         "ai": {
           "primaryPurpose": "Select any number — zero to many — from a bounded set via a labeled stack of Checkbox.Row options, with the group owning the value array, group-level required and all validation.",
           "whenToUse": "A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.",
-          "avoidWhen": "Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, \"remember me\"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).",
+          "avoidWhen": "Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, \"remember me\"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).",
           "commonPartners": [
             "checkbox-row",
             "checkbox-control",
@@ -29345,7 +29345,7 @@
       }
     },
     "radio-row": {
-      "digest": "66e7583c",
+      "digest": "4f7eff81",
       "def": {
         "id": "radio-row",
         "name": "Radio.Row",
@@ -29357,7 +29357,7 @@
         "category": "form",
         "status": "draft",
         "summary": "One labeled option inside a Radio.Group. The whole row is the hit target.",
-        "description": "A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
+        "description": "A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
         "inherits": "checkbox-row",
         "props": [
           {
@@ -29461,7 +29461,7 @@
           "emptyPattern": "A group starts empty by default, so no option carries a pre-selected state — the practice forces a deliberate choice and pre-selects only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must therefore carry an explicit \"None\" or \"N/A\" option, or a stray click permanently pollutes the data with no way back. If a \"None\" option would corrupt the data model, the choice belongs in a clearable Select instead."
         },
         "docs": {
-          "usage": "Use a group of these for exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.",
+          "usage": "Use a group of these for exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.",
           "do": [
             "Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop",
             "Give the group a label; without one, assistive tech announces \"radio button, 1 of 3\" with no idea what the choice is",
@@ -29475,15 +29475,15 @@
             "Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure",
             "Add toggle-off behavior — no-deselect is native and deliberate",
             "Model an exclusive choice as several checkboxes, or a true/false toggle as two radios",
-            "Reach for radio past about 7 options or in tight vertical space — that is Select",
+            "Reach for radio past 7 options or in tight vertical space — that is Select",
             "Use radio for a choice that takes effect instantly — that is Switch.Row, or SegmentedControl"
           ],
           "contentGuidelines": "Option labels are parallel and brief; the detail that distinguishes them goes in the description. The group label names the decision. Errors are group-level and say what to do."
         },
         "ai": {
           "primaryPurpose": "Present one option within a mutually exclusive set via a labeled row that nests the circle-and-dot control, deriving its selected state from the group that owns the value.",
-          "whenToUse": "Exactly one of 2 to about 7 all-visible options where seeing them together aids the decision, and the choice is committed on submit rather than applied instantly. Always as a child of a Radio.Group.",
-          "avoidWhen": "Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for Radio.Row when what is wanted is the group: use Radio.Group (radio-group), which owns the name, the value and the validation.",
+          "whenToUse": "Only as a child of a Radio.Group. Generate a Radio.Group, which places one row per option and sets which one is selected.",
+          "avoidWhen": "Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for Radio.Row when what is wanted is the group: use Radio.Group (radio-group), which owns the name, the value and the validation.",
           "commonPartners": [
             "radio-control",
             "radio-group",
@@ -29498,7 +29498,7 @@
             "pick one",
             "mutually exclusive"
           ],
-          "generationPriority": 2
+          "generationPriority": 9
         },
         "motion": {
           "enter": "None of the row's own (present on mount). On select, the nested Radio.Control scales its dot in, about 100-150ms; the focus ring appears instantly.",
@@ -29973,7 +29973,7 @@
       }
     },
     "radio-group": {
-      "digest": "14e661bc",
+      "digest": "00ee2a3a",
       "def": {
         "id": "radio-group",
         "name": "Radio.Group",
@@ -29989,7 +29989,7 @@
         "category": "form",
         "status": "draft",
         "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
-        "description": "A labeled set for choosing exactly one from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
+        "description": "A labeled set for choosing exactly one from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
         "props": [
           {
             "name": "label",
@@ -30113,7 +30113,7 @@
           "emptyPattern": "The group starts empty by default, so no option carries a pre-selected state — this forces a deliberate choice. Pre-select only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must carry an explicit \"None\" or \"N/A\" option, or a stray click permanently pollutes the data. If a \"None\" option would corrupt the data model, the choice belongs in a clearable Select instead."
         },
         "docs": {
-          "usage": "Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.",
+          "usage": "Use to choose exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.",
           "do": [
             "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder",
             "Let the group own the shared name, the single scalar value, required and validation — an option never manages its own",
@@ -30126,15 +30126,15 @@
             "Set checked, onChange or name on an individual option — all three belong to the group, and an option setting its own name breaks exclusivity outright",
             "Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure",
             "Model an any-number choice as a radio group — that is Checkbox.Group",
-            "Reach for a radio group past about 7 options or in tight vertical space — that is a Select",
+            "Reach for a radio group past 7 options or in tight vertical space — that is a Select",
             "Override Enter to select — Enter submits the form, and that expectation is universal"
           ],
           "contentGuidelines": "The group label names the decision; the rows carry the short options. Group errors read \"Select a shipping method\" rather than \"Invalid\"."
         },
         "ai": {
           "primaryPurpose": "Choose exactly one from a bounded set via a labeled stack of Radio.Row options, with the group owning the shared name, the single scalar value, group-level required and all validation.",
-          "whenToUse": "A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to about 7 options aids the choice and the group needs one label, one required rule and one validation message.",
-          "avoidWhen": "Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).",
+          "whenToUse": "A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to 7 options aids the choice and the group needs one label, one required rule and one validation message.",
+          "avoidWhen": "Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).",
           "commonPartners": [
             "radio-row",
             "radio-control",
@@ -31945,7 +31945,7 @@
       }
     },
     "select": {
-      "digest": "27856ebc",
+      "digest": "0f381fe1",
       "def": {
         "id": "select",
         "name": "Select",
@@ -31990,7 +31990,7 @@
             "name": "options",
             "type": "array",
             "required": false,
-            "description": "The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
+            "description": "The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
           },
           {
             "name": "onChange",
@@ -32149,7 +32149,7 @@
           "errorPattern": "What is wrong and how to fix it (SC 3.3.3); icon + text, not color-only (carried by the nested field-message)."
         },
         "docs": {
-          "usage": "Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.",
+          "usage": "Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native <select> where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.",
           "do": [
             "Render a visible, associated label (FieldLabel) above the control",
             "Show a muted placeholder as a prompt, never as the label or a real option",
@@ -32167,7 +32167,7 @@
         "ai": {
           "primaryPurpose": "Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.",
           "whenToUse": "One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.",
-          "avoidWhen": "The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).",
+          "avoidWhen": "The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 7 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).",
           "commonPartners": [
             "field-label",
             "field-message",

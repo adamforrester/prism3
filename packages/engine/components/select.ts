@@ -150,7 +150,7 @@ export const select: ComponentDef = {
     // input purpose for SC 1.3.5 (the claim in `accessibility.wcag`).
     { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial value: the option chosen when the select first renders.' },
     { name: 'placeholder', type: 'string', required: false, description: 'The null state shown before a choice is made — plainly the thing to choose ("Country"), not an instruction ("Select a country from the list"), and omittable when the label suffices. Muted, and never load-bearing — it is not the label, not a real option, and it vanishes once a value is chosen.' },
-    { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better.' },
+    { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better.' },
     { name: 'onChange', type: 'function', required: false, description: 'Fires with the newly chosen value (also onBlur / onFocus). A controlled value with no onChange is read-only by accident.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure.' },
     // The UI reads "Validation"; the Figma variant axis is `status` so it drives the nested message's own
@@ -676,7 +676,7 @@ export const select: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
+    usage: 'Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
     do: [
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',
@@ -695,7 +695,7 @@ export const select: ComponentDef = {
   ai: {
     primaryPurpose: 'Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.',
     whenToUse: 'One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.',
-    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
+    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 7 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
     commonPartners: ['field-label', 'field-message', 'icon'],
     // No `combobox` (brief §10: the mis-conflation, a different component) and no `menu` (a menu performs an
     // action, a select sets a value — brief §12; it is an alternative, not this) (#1699).

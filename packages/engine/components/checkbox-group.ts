@@ -73,7 +73,7 @@ export const checkboxGroup: ComponentDef = {
   status: 'draft',
   summary: 'Labeled stack of Checkbox rows. Owns the value array, required and validation. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
-    'A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).',
+    'A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7–10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).',
 
   // THE GROUP'S PUBLIC API — the contract the brief (§2) puts on the group and a row cannot express. The
   // per-row `checked` is DERIVED from `value`, never held on a row inside a group.
@@ -353,7 +353,7 @@ export const checkboxGroup: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row\'s checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.',
+    usage: 'Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row\'s checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7–10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.',
     do: [
       'Give the group a label that names the decision, so its rows can read the short abstracted-up remainder',
       'Let the group own the value array, required and validation — a row inside a group never manages its own',
@@ -365,7 +365,7 @@ export const checkboxGroup: ComponentDef = {
       'Pre-check a consent option — a dark pattern, and for marketing consent often unlawful',
       'Wire checked, onChange or required on an individual row inside a group — all three belong to the group',
       'Model an exclusive one-of-many choice as a checkbox group — that is Radio.Group',
-      'Reach for a checkbox group past roughly 7-10 options — a filtering multi-select combobox (not built yet) scans better',
+      'Reach for a checkbox group past roughly 7–10 options — a filtering multi-select combobox (not built yet) scans better',
       'Override Enter to toggle — Enter submits the form, and that expectation is universal',
     ],
     contentGuidelines: 'The group label names the decision; the rows carry the short options. Group errors read "Select at least one option" rather than "Invalid".',
@@ -374,7 +374,7 @@ export const checkboxGroup: ComponentDef = {
   ai: {
     primaryPurpose: 'Select any number — zero to many — from a bounded set via a labeled stack of Checkbox.Row options, with the group owning the value array, group-level required and all validation.',
     whenToUse: 'A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.',
-    avoidWhen: 'Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).',
+    avoidWhen: 'Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).',
     commonPartners: ['checkbox-row', 'checkbox-control', 'field-label', 'field-message'],
     triggerKeywords: ['checkbox group', 'checkbox set', 'checkboxes', 'multiselect', 'choice list', 'select all', 'choose any', 'notification preferences', 'opt in list'],
     generationPriority: 2,

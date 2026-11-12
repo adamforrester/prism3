@@ -31795,7 +31795,7 @@
             "com.prism3": {
               "type": "array",
               "required": false,
-              "description": "The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
+              "description": "The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
             }
           }
         },
