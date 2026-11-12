@@ -623,6 +623,32 @@ export const listen = async (bridge: Bridge, port: number): Promise<{ port: numb
 type Rpc = { jsonrpc?: string; id?: number | string | null; method: string; params?: any };
 type RpcOut = { jsonrpc: '2.0'; id: number | string | null; result?: unknown; error?: { code: number; message: string; data?: unknown } };
 
+/**
+ * #2639: `figma_run`'s `args` description, one entry per command, read from the source rather than typed here. It was
+ * hand-typed and named 4 of the commands, telling an agent to send `{}` to commands that take arguments. Each command's
+ * args are its `AgentArgs` member in `agent-protocol.ts`, as written (the same one-line form `emit-agent-reference.ts`
+ * reads); the command list is `AGENT_COMMANDS`. A command with no one-line member fails the load, by name, so the
+ * description can never skip one. Gated by `test-agent-bridge.ts` arm `mcp/args`.
+ */
+const PROTOCOL_SRC = 'apps/plugin/src/agent-protocol.ts';
+export const argsByCommand = (src: string): Record<string, string> => {
+  const lines = src.split('\n');
+  const start = lines.findIndex((l) => /^export type AgentArgs = \{/.test(l));
+  const end = lines.findIndex((l, i) => i > start && /^\};/.test(l));
+  const out: Record<string, string> = {};
+  for (const cmd of AGENT_COMMANDS) {
+    const re = new RegExp(`^\\s*(?:'${cmd}'|${cmd.replace(/-/g, '\\-')}): (.+);\\s*$`);
+    const hit = start < 0 ? undefined : lines.slice(start + 1, end).map((l) => re.exec(l)).find(Boolean);
+    if (!hit) throw new Error(`figma-bridge: AgentArgs in ${PROTOCOL_SRC} has no one-line member for '${cmd}'`);
+    out[cmd] = hit[1];
+  }
+  return out;
+};
+const ARGS = argsByCommand(readFileSync(join(REPO_ROOT, PROTOCOL_SRC), 'utf8'));
+/** The `args` description for a command list: each command and its args type, then where the field docs live. */
+export const argsDescription = (cmds: readonly string[]): string =>
+  `${cmds.map((c) => `${c}: ${ARGS[c]}`).join('; ')}. Record<string, never> means send {}. Each field's meaning: docs/public/reference/commands.json.`;
+
 export const TOOLS = [
   {
     name: 'figma_status',
@@ -636,7 +662,7 @@ export const TOOLS = [
       type: 'object',
       properties: {
         cmd: { type: 'string', enum: [...AGENT_COMMANDS] },
-        args: { type: 'object', description: "apply-theme: {input: BrandInput}; build-components: {def?}; prune: {input, confirm}; others: {}" },
+        args: { type: 'object', description: argsDescription(AGENT_COMMANDS) },
         timeoutMs: { type: 'number', description: 'Default 600000 (a full catalog build takes minutes).' },
       },
       required: ['cmd'],
@@ -681,7 +707,7 @@ export const toolsFor = (arm: BridgeArm) => {
   return TOOLS.map((t) => t.name !== 'figma_run' ? t : {
     ...t,
     description: t.description.replace(`Commands: ${AGENT_COMMANDS.join(', ')}.`, `Commands: ${cmds.join(', ')}.`),
-    inputSchema: { ...t.inputSchema, properties: { ...t.inputSchema.properties, cmd: { type: 'string', enum: [...cmds] } } },
+    inputSchema: { ...t.inputSchema, properties: { ...t.inputSchema.properties, cmd: { type: 'string', enum: [...cmds] }, args: { type: 'object', description: argsDescription(cmds) } } },
   });
 };
 

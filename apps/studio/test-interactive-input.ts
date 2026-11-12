@@ -516,6 +516,28 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   const bfill = pathOf('dark', FILL('own-n')), bborder = pathOf('light', BORDER('own-n'));
   ok(bfill.endsWith('.palette.acc-n.300') && bborder.endsWith('.palette.acc-n.700') && store.brandState.modeAnchors?.dark?.['own-n'] === 300 && !!store.brandState.overrides?.light?.[BORDER('own-n')],
     `#3545 rename back off a named column's name: \`own-n\` keeps its Dark anchor and border override, acc-n 300 / 700, on its own name (${bfill}, ${bborder}; ${JSON.stringify(store.brandState.modeAnchors)} ${JSON.stringify(store.brandState.overrides)})`);
+
+  // NO MODE MAP IS LEFT EMPTY (#3613). The drop above can delete a mode's only key: a stale anchor on the new name, in a
+  // mode where the old name has none. That map is pruned, as `setAnchor` prunes, and so is an emptied `modeAnchors`.
+  // A map that still holds another key stays, and an empty map the brand already held is not the rename's to change.
+  // The expected shapes are literals typed here.
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'acc-p', oklch: { l: 0.55, c: 0.15, h: 235 } });
+  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.brandState.interactivePalettes = [{ palette: 'acc-p' }];
+  store.rebuild();
+  const empties = (): string[] => Object.entries(store.brandState.modeAnchors ?? {}).filter(([, m]) => !Object.keys(m ?? {}).length).map(([mode]) => mode);
+  store.brandState.modeAnchors = { dark: { 'acc-q': 300 }, promo: { primary: 400, 'acc-q': 200 } };
+  const p = store.brandState.brandColors!.findIndex((b) => b.name === 'acc-p');
+  ok(P.renameBrandColor(p, 'acc-q'), 'the rename onto a name whose only Dark key is stale is taken');
+  ok(same(store.brandState.modeAnchors, { promo: { primary: 400 } }) && !empties().length && takes(),
+    `#3613 prune: Dark's emptied map is pruned, promo keeps primary 400, and no mode map is left empty (${JSON.stringify(store.brandState.modeAnchors)})`);
+  store.brandState.modeAnchors = { dark: { 'acc-r': 300 } };
+  ok(P.renameBrandColor(p, 'acc-r') && store.brandState.modeAnchors === undefined,
+    `#3613 prune: a rename that empties the only mode map leaves no modeAnchors at all (${JSON.stringify(store.brandState.modeAnchors)})`);
+  store.brandState.modeAnchors = { dark: {} };
+  ok(P.renameBrandColor(p, 'acc-s') && same(store.brandState.modeAnchors, { dark: {} }),
+    `#3613 prune: an empty map the brand already held is left as it was (${JSON.stringify(store.brandState.modeAnchors)})`);
 }
 
 console.log('\n12. #3562: a brand color cannot be renamed to a palette the engine always mints');
@@ -549,6 +571,79 @@ console.log('\n12. #3562: a brand color cannot be renamed to a palette the engin
     `#3562 rename back: an override on the status palette still names success, and the brand builds (${JSON.stringify(store.brandState.overrides!.dark)})`);
   ok(P.renameBrandColor(i, 'success-2') && same(store.brandState.overrides!.light, { [ROLE]: { palette: 'success-2', step: '350' } }) && takes(),
     '#3562 a name that only starts with a reserved one is taken, and carries its override');
+}
+
+console.log('\n13. #3549: removing a brand color drops its interactive column\'s per-mode anchor and role overrides');
+{
+  // THE FIXTURE is the issue's repro: the prism3 brand, a brand color `accent-y` with an unnamed column, its Dark fill
+  // anchored at a stale step through the module's own `setAnchor`, a Light border override and a promo inverse override
+  // keyed by the column, and an unrelated Dark anchor on primary that must survive. A second color `named` has no column
+  // of its own, while a column on `acc-n` carries `named` as its explicit name: those keys name that column and stay.
+  // The ORACLE is the engine's own `resolveAllModes`, and the Auto step it is held to is read from the engine before any
+  // key is written, never from the module.
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'accent-y', oklch: { l: 0.55, c: 0.15, h: 235 } },
+    { name: 'acc-n', oklch: { l: 0.55, c: 0.15, h: 40 } }, { name: 'named', oklch: { l: 0.55, c: 0.15, h: 140 } });
+  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.brandState.interactivePalettes = [{ palette: 'accent-y' }, { name: 'named', palette: 'acc-n' }];
+  store.rebuild();
+  const FILL = (c: string): string => `interactive.${c}.fill.rest`, BORDER = (c: string): string => `interactive.${c}.border.rest`;
+  const INV = (c: string): string => `inverse.interactive.${c}.text.rest`;
+  const pathOf = (mode: string, role: string): string => {
+    try { return (resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === mode)?.roles as Record<string, { path?: string } | undefined>)?.[role]?.path ?? 'none'; } catch (e) { return `REFUSED: ${(e as Error).message}`; }
+  };
+  const stepOf = (path: string): string => path.split('.').pop() ?? '';
+  const autoFill = stepOf(pathOf('dark', FILL('accent-y'))), autoBorder = stepOf(pathOf('light', BORDER('accent-y')));
+  const autoInv = stepOf(pathOf('promo', INV('accent-y')));
+  const stale = autoFill === '300' ? 200 : 300, staleBorder = autoBorder === '700' ? '800' : '700', staleInv = autoInv === '100' ? '200' : '100';
+  I.setAnchor('dark', 'accent-y', stale);
+  I.setAnchor('dark', 'primary', 400);
+  I.setAnchor('dark', 'named', 300);
+  store.brandState.overrides = {
+    light: { [BORDER('accent-y')]: { palette: 'primary', step: staleBorder }, [BORDER('named')]: { palette: 'acc-n', step: '700' } },
+    promo: { [INV('accent-y')]: { palette: 'accent-y', step: staleInv } },
+  };
+  ok(stepOf(pathOf('dark', FILL('accent-y'))) === String(stale) && pathOf('light', BORDER('accent-y')).endsWith(`.primary.${staleBorder}`),
+    `premise: before the removal the engine honors the column's Dark anchor (${stale}) and its Light border override (primary ${staleBorder})`);
+
+  // The confirm: the inverse override names accent-y, but it is keyed by the column and goes with it, so it is no
+  // "won't build" line. An override on a role of another column that names accent-y still is.
+  store.brandState.overrides.light![BORDER('primary')] = { palette: 'accent-y', step: '600' };
+  const effects = P.removalEffects('accent-y');
+  ok(effects.at(-1) === `1 role is still overridden to it: ${BORDER('primary')} — the brand won't build until it's re-picked.`,
+    `#3549 confirm: only the override that outlives the removal is held, not the column's own (${JSON.stringify(effects)})`);
+  delete store.brandState.overrides.light![BORDER('primary')];
+
+  P.removeBrandColor(store.brandState.brandColors!.findIndex((b) => b.name === 'accent-y'));
+  ok(!JSON.stringify(store.brandState.modeAnchors ?? {}).includes('accent-y') && !JSON.stringify(store.brandState.overrides ?? {}).includes('accent-y'),
+    `#3549 drop: no anchor or override key names the removed column (${JSON.stringify(store.brandState.modeAnchors)} ${JSON.stringify(store.brandState.overrides)})`);
+  ok(same(store.brandState.modeAnchors, { dark: { primary: 400, named: 300 } }) && same(store.brandState.overrides, { light: { [BORDER('named')]: { palette: 'acc-n', step: '700' } } }),
+    `#3549 drop: the other columns' keys are untouched, and promo's emptied map is pruned (${JSON.stringify(store.brandState.modeAnchors)} ${JSON.stringify(store.brandState.overrides)})`);
+  ok(takes() && !pathOf('dark', FILL('primary')).startsWith('REFUSED'), `#3549 drop: the brand still builds (${pathOf('dark', FILL('primary'))})`);
+
+  // THE ISSUE'S MEASUREMENT: a second color with a column, anchored in Dark, then renamed onto the removed name. The value
+  // the user set must win, not the stale one; and a new color of the removed name, with no rename, must start on Auto.
+  const k = P.addBrandColor();
+  I.addAccent(k);
+  const set = [500, 600, 700].find((v) => String(v) !== autoFill && v !== stale)!;
+  I.setAnchor('dark', k, set);
+  ok(P.renameBrandColor(store.brandState.brandColors!.findIndex((b) => b.name === k), 'accent-y'), `the rename ${k} → accent-y is taken`);
+  const rfill = pathOf('dark', FILL('accent-y'));
+  ok(rfill.endsWith(`.palette.accent-y.${set}`), `#3549 rename onto the removed name: ${FILL('accent-y')} resolves to the ${set} the user set in dark, not the stale ${stale} (${rfill})`);
+  P.removeBrandColor(store.brandState.brandColors!.findIndex((b) => b.name === 'accent-y'));
+  ok(same(store.brandState.modeAnchors, { dark: { primary: 400, named: 300 } }), `#3549 drop, again: the renamed column's anchor goes too (${JSON.stringify(store.brandState.modeAnchors)})`);
+  store.brandState.brandColors!.push({ name: 'accent-y', oklch: { l: 0.55, c: 0.15, h: 235 } });
+  I.addAccent('accent-y');
+  const nfill = pathOf('dark', FILL('accent-y')), nborder = pathOf('light', BORDER('accent-y')), ninv = pathOf('promo', INV('accent-y'));
+  ok(stepOf(nfill) === autoFill && stepOf(nborder) === autoBorder && nborder.includes('.palette.accent-y.') && stepOf(ninv) === autoInv,
+    `#3549 a new color of the removed name starts on Auto: dark fill ${autoFill}, light border accent-y ${autoBorder}, promo inverse ${autoInv} (${nfill}, ${nborder}, ${ninv})`);
+
+  // THE GUARD: `named` has no column of its own, and its name is `acc-n`'s column's explicit name. Removing it removes no
+  // column, so the keys on `named` belong to the live column and stay, and the engine still honors them.
+  P.removeBrandColor(store.brandState.brandColors!.findIndex((b) => b.name === 'named'));
+  const gfill = pathOf('dark', FILL('named')), gborder = pathOf('light', BORDER('named'));
+  ok(gfill.endsWith('.palette.acc-n.300') && gborder.endsWith('.palette.acc-n.700'),
+    `#3549 guard: removing a palette named like another column's explicit name keeps that column's Dark anchor and border override, acc-n 300 / 700 (${gfill}, ${gborder})`);
 }
 
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);

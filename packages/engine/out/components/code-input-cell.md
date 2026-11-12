@@ -28,7 +28,7 @@ Shown on the default member: size `medium`.
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `size` | `medium`, `small`, `large`, `xlarge` | once, when authored | The cell size and its character size. Set by the code input. |
+| `size` | `medium`, `small`, `large`, `x-large` | once, when authored | The cell size and its character size. Set by the code input. |
 
 ### States
 
@@ -85,7 +85,7 @@ One character per cell.
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `digit` | string | — | no | The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it. |
-| `size` | enum: 'small' \| 'medium' \| 'large' \| 'xlarge' | `medium` | no | The cell size and its character size. Set by the code input. |
+| `size` | enum: 'small' \| 'medium' \| 'large' \| 'x-large' | `medium` | no | The cell size and its character size. Set by the code input. |
 | `isActive` | boolean | `false` | no | Whether this is the cell the next character goes into while the input has focus. Set by the code input. |
 | `isInvalid` | boolean | `false` | no | Whether the code input is in error. Set by the code input. |
 | `disabled` | boolean | `false` | no | Whether the code input is disabled. Set by the code input. |
@@ -133,7 +133,7 @@ Keyed by `size`.
 | `container/content` | `space.0` | — | — | — | — | — |
 | `container/content/caret` | — | — | `icon.size.md` | `border-width.hairline` | — | — |
 
-**size=xlarge**
+**size=x-large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -150,7 +150,7 @@ Keyed by `size`.
 | size=medium | `container/content/digit` | `type.title.sm.strong` |
 | size=small | `container/content/digit` | `type.body.md.default` |
 | size=large | `container/content/digit` | `type.title.md.strong` |
-| size=xlarge | `container/content/digit` | `type.title.2xl.strong` |
+| size=x-large | `container/content/digit` | `type.title.2xl.strong` |
 
 ### Color
 

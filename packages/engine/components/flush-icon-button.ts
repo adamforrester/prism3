@@ -94,6 +94,9 @@ type FlushIconButtonSibling = {
   iconButton: string;
   triggerKeywords: string[];
   avoidWhen: string;
+  /** #3555 C2: the sibling's own opening for `whenToUse`, before the shared shape guidance. The counter and card-close
+   *  examples belong to the neutral sibling, which every other sibling's `avoidWhen` sends them to. */
+  whenToUse?: string;
   generationPriority: number;
   /** Appended to the shared `docs.do`. */
   do: string[];
@@ -297,8 +300,8 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   },
 
   ai: {
-    primaryPurpose: 'Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.',
-    whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.',
+    primaryPurpose: `Trigger ${{ primary: 'a brand action', destructive: 'a destructive action', neutral: 'an action with no brand emphasis' }[family]} inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.`,
+    whenToUse: `${sibling.whenToUse ?? 'Any icon action inside a component.'} shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.`,
     avoidWhen: `${sibling.avoidWhen} ${AVOID_WHEN}`,
     commonPartners: ['icon', 'focus-ring', 'counter'],
     triggerKeywords: sibling.triggerKeywords,
@@ -308,14 +311,14 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   composition: {
     composesWith: ['focus-ring'],
     alternativeTo: [sibling.iconButton],
-    planned: ['number-input', 'card'],
+    planned: ['number-field', 'card'],
     replacesPatterns: ['an <svg> with a click handler and no button', 'an IconButton with its padding overridden to zero'],
   },
 
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'The glyph color change, and the round shape\'s fill, are meant to run about 100–150ms through the brand\'s motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly.',
+    reduceMotion: 'The glyph color change, and the round shape\'s fill, run on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the change stays, on motion.duration-reduced.fast.',
   },
 
   notes: {
@@ -331,7 +334,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
       'Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color.',
     ],
     unverified: [
-      'motion timing — no motion token is bound, so nothing gates the 100–150ms target.',
+      'motion timing — the change names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
       'The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host\'s fill it is not measured.',
       'The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape\'s hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family\'s text ink), which is gated for text ink, not the icon ink. Under `outlineInteraction: opaque-fill` (#3071) the round hover and pressed fill is the opaque `interactive.<family>.hover-fill.*` instead, and the icon ink is measured on it as its second pair.',
     ],
@@ -385,6 +388,7 @@ export const flushIconButtonNeutral: ComponentDef = makeFlushIconButton(
     iconButton: 'icon-button-neutral',
     triggerKeywords: ['flush icon button', 'bare icon button', 'round icon button in a counter', 'counter plus minus', 'card close icon', 'stepper button'],
     avoidWhen: 'The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash).',
+    whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component.',
     generationPriority: 4,
     do: [],
   },

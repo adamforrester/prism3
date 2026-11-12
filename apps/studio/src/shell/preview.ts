@@ -242,6 +242,9 @@ export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, c
   btn.type = 'button';
   btn.setAttribute('aria-haspopup', 'menu');
   btn.setAttribute('aria-controls', 'p3-inspect-menu');
+  // #3553 Q-UI1 A: at the wide tier Inspect draws its icon alone, no word and no caret (`chrome.css`), so the mode control's radios fit beside
+  // every page's title at 1280; its name stays "Inspect".
+  btn.setAttribute('aria-label', 'Inspect');
   btn.append(glyph('layers'), h('span', 'p3-btn-label', 'Inspect'), glyph('chev'));
   const menu = hook(h('div', 'p3-menu'), 'inspect-menu');
   menu.id = 'p3-inspect-menu';

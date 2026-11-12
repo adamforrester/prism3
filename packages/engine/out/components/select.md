@@ -13,7 +13,7 @@ A control for choosing one value from a known, bounded set — the closed, nativ
 
 - **Purpose:** Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.
 - **Use when:** One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.
-- **Avoid when:** The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).
+- **Avoid when:** The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 7 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).
 
 ## Anatomy
 
@@ -40,7 +40,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 ## Usage guidelines
 
-Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native \<select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.
+Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native \<select> where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.
 
 ### Do
 
@@ -74,9 +74,9 @@ Use to choose one value from a known, bounded set where the options are not wort
 
 ### Motion
 
-- **Enter:** The open list (the platform's or a listbox component's): ~100–150ms opacity fade with a small vertical translate (translateY(-4px) → 0), anchored to the control. The chevron rotates on open under the same rule.
-- **Exit:** The open list closes faster than it opens — ~75ms, a fade without translate — so dismissal reads as instant.
-- **Reduced motion:** Under prefers-reduced-motion, drop the translate and scale and keep an accelerated opacity fade (~50ms); the chevron rotation follows the same rule. The closed control's border and state changes are short token-driven transitions, text-field's ~100–150ms, and resolve to an instant color change under reduced motion.
+- **Enter:** The open list (the platform's or a listbox component's): an opacity fade with a small vertical translate (translateY(-4px) → 0) on motion.duration.fast with motion.easing-role.enter, anchored to the control. The chevron rotates on open under the same rule.
+- **Exit:** The open list closes faster than it opens — a fade without translate on motion.duration.instant with motion.easing-role.exit — so dismissal reads as instant.
+- **Reduced motion:** Under prefers-reduced-motion, drop the translate and scale and keep an opacity fade on motion.duration-reduced.instant both ways; the chevron rotation follows the same rule. The closed control's border and state changes follow text-field's, motion.duration.fast, and run on motion.duration-reduced.fast under reduced motion.
 
 ## Content guidelines
 
@@ -104,7 +104,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 | `value` | string | — | no | The displayed text — the selected option's label, or the placeholder when nothing is chosen. Controlled: pair with onChange. When it holds the placeholder the ink is the muted placeholder role; a chosen value shows the full-contrast value ink — the same empty-vs-value polarity text-field uses. This is an internal, content-driven distinction, not a variant a designer picks. |
 | `defaultValue` | string | — | no | Uncontrolled initial value: the option chosen when the select first renders. |
 | `placeholder` | string | — | no | The null state shown before a choice is made — plainly the thing to choose ("Country"), not an instruction ("Select a country from the list"), and omittable when the label suffices. Muted, and never load-bearing — it is not the label, not a real option, and it vanishes once a value is chosen. |
-| `options` | array | — | no | The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. |
+| `options` | array | — | no | The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. |
 | `onChange` | function | — | no | Fires with the newly chosen value (also onBlur / onFocus). A controlled value with no onChange is read-only by accident. |
 | `helpText` | string \| node | — | no | Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state. Each non-default status swaps the control border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the nested message to the matching status; default is neutral. The values align with FieldMessage's status axis, so this drives the nested message directly. |

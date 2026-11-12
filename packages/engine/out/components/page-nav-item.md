@@ -11,7 +11,7 @@
 
 One link in a PageNav row. A link to another page is plain at rest and shows its underline at hover and keyboard focus. The link to the page the user is on is the current page: plain text with a 2px bar under it, and at hover only its color changes, so it never reads as one more link. The bar's width is the brand's Current page indicator: the title's width, or half of it centered. Both are real links with their own address. Items live inside PageNav and are never placed on their own.
 
-- **Purpose:** One link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current="page".
+- **Purpose:** Show one link in a row of sibling pages: another page, plain until hover, or the current page, marked with a bar and aria-current="page".
 - **Use when:** Only as a child of PageNav. Generate PageNav, which places one item per sibling page and marks the current one.
 - **Avoid when:** Anywhere outside PageNav: a link on its own is Link, and a tab that shows a panel in place is Tab.Item inside Tabs.
 
@@ -65,9 +65,9 @@ Items make up a PageNav row and are set inside it: one current page and links to
 
 ### Motion
 
-- **Enter:** None. The link's color changes over about 150ms at hover and focus.
+- **Enter:** None. The link's color changes on motion.duration.fast at hover and focus.
 - **Exit:** None.
-- **Reduced motion:** The color changes at once, with no transition.
+- **Reduced motion:** The color changes on motion.duration-reduced.fast.
 
 ## Content guidelines
 

@@ -150,6 +150,9 @@ type ButtonSibling = {
   do: string[];
 };
 
+/** #3555 C2: icon-only is sent to the IconButton of the same color, so Button.Destructive does not recommend the brand one. */
+const ICON_BUTTON_OF: Record<IntentFamily, string> = { primary: 'IconButton', destructive: 'IconButton.Destructive', neutral: 'IconButton.Neutral' };
+
 const makeButton = (id: string, name: string, summary: string, description: string, family: IntentFamily, sibling: ButtonSibling): ComponentDef => ({
   id,
   name,
@@ -183,7 +186,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly." },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over a loading prop.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form).' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked.' },
     { name: 'leadingVisual', type: 'slot', required: false, description: 'Icon / avatar / counter / spinner before the label.' },
     { name: 'trailingVisual', type: 'slot', required: false, description: 'Icon / caret / indicator after the label.' },
     { name: 'href', type: 'string', required: false, description: 'A destination, for a navigation that needs a button\'s weight, such as "Continue to checkout". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link.' },
@@ -776,13 +779,14 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)',
       'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
     ],
-    contentGuidelines: 'Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound i18n expansion.',
+    contentGuidelines: 'Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound text expansion in translation.',
   },
 
   ai: {
-    primaryPurpose: 'Trigger an action in place.',
+    // #3555 Q-MD14 A: one line per sibling, in the imperative register every def's primaryPurpose takes.
+    primaryPurpose: { primary: 'Trigger an action in place, in the brand\'s primary style.', destructive: 'Trigger an action in place that deletes or removes something.', neutral: 'Trigger an action in place that carries no brand emphasis.' }[family],
     whenToUse: 'The user needs to act on this surface — submit, confirm, open, apply, or start async work.',
-    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
+    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
     commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group'],
@@ -804,9 +808,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    // #1697 — the brief's ~100–150ms is carried as the target, not as a fact: this def binds no motion
-    // token, so "runs via motion tokens" was a claim nothing made true. Recorded in `notes.unverified`.
-    reduceMotion: 'State transitions (background, border, shadow) are meant to run ~100–150ms through the brand\'s motion tokens; this component binds none yet, so the timing is code-side. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    // Q-MD4 A (#3555): the brief's ~100–150ms maps to motion.duration.fast, named in prose. `motion` is prose, so
+    // nothing gates it; recorded in `notes.unverified`.
+    reduceMotion: 'State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
@@ -834,7 +838,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // #1697 — narrowed. The ring's 3:1 against the PAGE is gated (focus-ring.ts wcag, per mode, 4.5:1 in
       // high contrast); what stays open is its contrast against the host's own edge.
       'FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host\'s own edge or fill is not measured — the offset is what makes it achievable, not what proves it.',
-      'motion timing — the brief\'s ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.',
+      'motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
     ],
   },
 });
@@ -856,8 +860,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
 export const button: ComponentDef = makeButton(
   'button',
   'Button',
-  'Triggers an action in place, such as submit, save or confirm. For navigation, use a link.',
-  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand\'s primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
+  'Triggers an action in place, such as submit, save or confirm. For navigation, use Link.',
+  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand\'s primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (SegmentedControl, or a toggle button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
   'primary',
   {
     triggerKeywords: ['button', 'submit', 'cta', 'confirm', 'action', 'primary action', 'save'],

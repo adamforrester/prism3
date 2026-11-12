@@ -1991,7 +1991,7 @@ if (runs('1')) for (const host of ['web', 'figma']) {
         // `foot` in `frame.ts` → this arm, by name, at every web width and theme.
         const ORDER = web ? ['rail-theme', 'rail-components', 'rail-export', 'docs-open', 'report-open', 'theme-toggle']
           : ['rail-theme', 'rail-components', 'rail-documentation', 'rail-export', 'agent-minimize', 'docs-open', 'theme-toggle'];
-        const NAMES = web ? ['Theme', 'Components', 'Export', 'Help', 'Report a problem'] : ['Theme', 'Components', 'Documentation', 'Export', 'Minimize', 'Help'];
+        const NAMES = web ? ['Theme', 'Components', 'Export', 'Help', 'Report a problem'] : ['Theme', 'Components', 'Docs', 'Export', 'Minimize', 'Help'];
         ok(rl.rail && rl.width === 60 && rl.left === 0 && rl.frameLeft >= 60, `rail ${where}: the left rail is drawn at the window's left edge, 60px wide, and the frame starts after it (${JSON.stringify({ rail: rl.rail, width: rl.width, left: rl.left, frameLeft: rl.frameLeft })})`);
         ok(JSON.stringify(rl.order) === JSON.stringify(ORDER), web ? `rail ${where}: Theme, Components, Export, then Help, Report a problem (#3524) and Appearance, in that order: no Documentation and no Agent on the web (Q2909.9 A) (${rl.order.join(', ')})`
           : `rail ${where}: Theme, Components, Documentation, Export, then Minimize at the foot where Agent was (Q731), Help and Appearance, in that order (${rl.order.join(', ')})`);
@@ -2676,7 +2676,7 @@ if (runs('7')) console.log(`\nHomes (V1, V12) — one home per page, never moved
  *  title the preview header shows for it. */
 const EXPECT_HOME = {
   brand: ['guide', 'Style guide'], 'color-palettes': ['palettes', 'Palettes'], 'color-fills': ['surfaces', 'Surfaces & fills'],
-  'color-interactive': ['interactive', 'Interactive'], type: ['type', 'Type'], shape: ['shape', 'Size & shape'],
+  'color-interactive': ['interactive', 'Interactive'], type: ['type', 'Type'], shape: ['shape', 'Shape'],   // #3553 Q-UI9 A: the tab's own word
   depth: ['depth', 'Depth & motion'], layout: ['layout', 'Layout'], components: ['comps', 'Components'],
 };
 const previewView = (page) => page.evaluate(() => ({
@@ -3242,6 +3242,13 @@ const drawerState = (page) => page.evaluate(() => {
     sheet: !!dr && !!br && vis(d) && dr.top >= br.bottom - 1 && Math.abs(dr.bottom - window.innerHeight) <= 1,
   };
 });
+/** #3537: each case's page clock starts at midday on a fixed day, not at the wall clock's time, and runs on at the real
+ *  rate (`clock.setSystemTime` without `install`, so the page's timers and durations are untouched). A run's time
+ *  drops its date only for a run from the same day (`runTime`), so a case that crossed midnight drew its older
+ *  earlier result with a date, and Q3113.6 A's bare-time pattern failed once a day for any run spanning midnight.
+ *  From midday, no case reaches the next day. */
+const PAGE_DAY = new Date(2026, 10, 11, 12, 0, 0);
+const pinPageDay = (page) => page.clock.setSystemTime(PAGE_DAY);
 const sinceMs = async (page, t0, ms) => { const left = t0 + ms - Date.now(); if (left > 0) await page.waitForTimeout(left); };
 /** A write's control's label as drawn: the text of whichever label layer is visible. A control carries its idle
  *  and busy labels in one cell (owner decision #4 on #1956); both visible, or neither, reads as both, or empty. */
@@ -3253,7 +3260,7 @@ for (const host of ['web', 'figma']) {
       const where = `${host} ${theme} ${w}`;
       const narrow = w <= 560;
       const shot = (name) => (SHOTS ? page.screenshot({ path: join(SHOTS, `s14-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-${name}.png`) }) : null);
-      const { ctx, page, errors } = await open({ host, theme, w, h });
+      const { ctx, page, errors } = await open({ host, theme, w, h, prep: pinPageDay });
       try {
         await recordPosts(page);
         // Idle: nothing has run. #2909: the rail shell draws no Activity tile (the drawer's own row is Activity), on both
@@ -3295,7 +3302,7 @@ for (const host of ['web', 'figma']) {
           const after = (a, b) => !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING);
           return { inBar: !!c, onRail: !!document.querySelector('[data-p3="rail"] [data-p3="agent-toggle"]'), afterBrand: after(c, brand), beforeUpdate: after(upd, c),
             name: c?.getAttribute('aria-label') ?? null, role: c?.getAttribute('role') ?? null, checked: c?.getAttribute('aria-checked') ?? null,
-            pressed: c?.getAttribute('aria-pressed') ?? null, dot: [...(c?.querySelectorAll('.p3-dot') ?? [])].some(vis), label: vis(lab) ? lab.textContent : null };
+            pressed: c?.getAttribute('aria-pressed') ?? null, dot: [...(c?.querySelectorAll('.p3-dot') ?? [])].some(vis), label: (vis(lab) ? ([...lab.querySelectorAll('.p3-agent-switch-word')].some(vis) ? lab.textContent : [...lab.querySelectorAll('svg.p3-ico')].filter(vis).map((g) => `glyph:${g.dataset.glyph ?? '?'}`)[0] ?? null) : null) };
         });
         const chip = await page.evaluate(() => {
           const frame = document.querySelector('[data-p3="frame"]');
@@ -3311,12 +3318,12 @@ for (const host of ['web', 'figma']) {
         });
         const a0 = await agentState();
         // Q731 (the owner, 2026-10-26): the Agent control sits on the top bar, in the place Minimize held before the rail
-        // polish (after the brand switcher, before Update file), and not on the rail. #3083 (Q3083.6 A): its "Agent" label
-        // shows at 1280 and drops at 380, where the switch stands alone under the same name. MUTATION: `agent` back in the
+        // polish (after the brand switcher, before Update file), and not on the rail. Its label is the word "Agent" at 1280 and
+        // the agent glyph at 380 (#3553 Q-UI10 A; Q3083.6 A had dropped it there, a bare toggle). MUTATION: `agent` back in the
         // rail's `foot` and `minimize` back on the bar in `frame.ts` → this arm, by name, at every width and theme.
         ok(a0.inBar && !a0.onRail && a0.afterBrand && a0.beforeUpdate && a0.name === 'Agent' && a0.role === 'switch' && a0.checked === 'false' && a0.pressed === null && !a0.dot
-          && a0.label === (narrow ? null : 'Agent'),
-          `Q731 #3083 ${where}: the Agent switch sits on the top bar, after the brand switcher and before Update file, where Minimize was, never on the rail; a switch named "Agent", aria-checked false, no dot, its label ${narrow ? 'dropped at 380' : 'shown'} (${JSON.stringify(a0)})`);
+          && a0.label === (narrow ? 'glyph:agent' : 'Agent'),
+          `Q731 #3083 ${where}: the Agent switch sits on the top bar, after the brand switcher and before Update file, where Minimize was, never on the rail; a switch named "Agent", aria-checked false, no dot, its label ${narrow ? 'the agent glyph at 380' : 'the word'} (#3553 Q-UI10 A) (${JSON.stringify(a0)})`);
         hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile on the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
           `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
@@ -11593,15 +11600,15 @@ for (const { w, h } of WIDTHS) {
 //     this arm held until then. Held as drawn: a `role="switch"` named "Agent"; no tile mark and no dot; its track the
 //     bar-only 36 × 20 (literals, the owner's "about 36 × 20"); the switch's own hit target 24px or more on both axes
 //     (TARGET_MIN; its label widens the clickable area at 1280, but is not counted); its "Agent" label (a `<label>` for
-//     the switch) shown at 1280 and dropped at 380. Each color
+//     the switch), the word at 1280 and, since #3553 Q-UI10 A, the agent glyph at 380 (Q3083.6 A had dropped it). Each color
 //     is judged against the ground it is drawn on, the first opaque background behind the switch (the bar's), never
 //     against a role: off, the track's edge at 3:1 on it and the knob at 3:1 on the track; on, the track's fill at 3:1 on
 //     it and the knob at 3:1 on the track.
 //   Mutation: the off track's edge back to `edge` (`chrome.css`, `.p3-agent-switch .p3-switch-track`) → `29b figma dark 1280:
 //     #3083 Q3083.5 B: with the link off, the Agent switch's track edge …` (2.92:1 on the dark bar). The bar-only size rule
 //     dropped → `29b … #3083 Q3083.7 B: the Agent switch …` (the page switch's 48 × 24); the on knob's rule losing to the
-//     page switch's (one class less) → the same arm, link on, knob inside false. The narrow rule hiding the label
-//     dropped → `29b figma … 380: #3083 Q3083.6 A …`.
+//     page switch's (one class less) → the same arm, link on, knob inside false. A rule hiding the label at the narrow
+//     tier put back → `29b figma … 380: #3553 Q-UI10 A: the Agent switch's label is the agent glyph at 380 …`.
 // =============================================================================================
 if (runs('29b')) console.log('\n29b. The menu bar: Contrast per verdict, the plugin Theme menu');
 const LOW_FIXTURE = {
@@ -11685,7 +11692,7 @@ for (const host of ['web', 'figma']) {
             for (let e = b?.parentElement; e && !ground; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') ground = c; }
             const tc = tr ? getComputedStyle(tr) : null;
             return { theme: document.documentElement.dataset.theme, role: b?.getAttribute('role') ?? null, name: b?.getAttribute('aria-label') ?? null,
-              checked: b?.getAttribute('aria-checked') ?? null, ground, track: box(tr), hit: box(b), label: vis(lab) ? lab.textContent : null,
+              checked: b?.getAttribute('aria-checked') ?? null, ground, track: box(tr), hit: box(b), label: (vis(lab) ? ([...lab.querySelectorAll('.p3-agent-switch-word')].some(vis) ? lab.textContent : [...lab.querySelectorAll('svg.p3-ico')].filter(vis).map((g) => `glyph:${g.dataset.glyph ?? '?'}`)[0] ?? null) : null),
               edge: tc && parseFloat(tc.borderTopWidth) > 0 && tc.borderTopStyle !== 'none' ? tc.borderTopColor : null, fill: tc ? tc.backgroundColor : null,
               knob: kn ? getComputedStyle(kn).backgroundColor : null,
               knobIn: (() => { const a = tr?.getBoundingClientRect(), k = kn?.getBoundingClientRect(); return !!a && !!k && k.left >= a.left && k.right <= a.right && k.top >= a.top && k.bottom <= a.bottom; })(),
@@ -11707,8 +11714,8 @@ for (const host of ['web', 'figma']) {
               `${at}: #3083 Q3083.5 B: with the link ${state}, the Agent control is a switch named "Agent", aria-checked ${on}, with no tile mark and no dot (${JSON.stringify(f)})`);
             ok(JSON.stringify(f.track) === JSON.stringify([36, 20]) && f.knobIn && !!f.hit && f.hit[0] >= TARGET_MIN && f.hit[1] >= TARGET_MIN,
               `${at}: #3083 Q3083.7 B: the Agent switch's track is the bar-only 36 × 20, its knob inside it, and its hit target ${TARGET_MIN}px or more each way (track ${JSON.stringify(f.track)}, knob inside ${f.knobIn}, hit ${JSON.stringify(f.hit)})`);
-            ok(f.label === (narrowBar ? null : 'Agent'),
-              `${at}: #3083 Q3083.6 A: the Agent switch's label is ${narrowBar ? 'dropped at 380, the switch alone' : 'shown at 1280'} (label ${JSON.stringify(f.label)})`);
+            ok(f.label === (narrowBar ? 'glyph:agent' : 'Agent'),
+              `${at}: #3553 Q-UI10 A: the Agent switch's label is ${narrowBar ? 'the agent glyph at 380 (Q3083.6 A had dropped it, a bare toggle)' : 'the word "Agent" at 1280'} (label ${JSON.stringify(f.label)})`);
             const knobOn = ratio(f.knob, f.fill);
             if (on) {
               const trackOn = ratio(f.fill, f.ground);
@@ -15678,7 +15685,7 @@ if (runs('37')) {
 const PAGE_H1 = { brand: 'Brand', 'color-palettes': 'Palettes', 'color-fills': 'Surfaces & fills', 'color-interactive': 'Interactive',
   type: 'Type', shape: 'Shape', depth: 'Depth & motion', layout: 'Layout', components: 'Components' };
 /** #2909: the plugin's Build style guides page became the Documentation area's Style guides tab, under the area's h1. */
-const SG_H1 = 'Documentation';
+const SG_H1 = 'Docs';   // #3553 Q-UI9 A: the rail's word, "Documentation" does not fit its tile
 /** At least this many headings per outline (Shape, Depth & motion and Components at 380 on their Settings pane, the
  *  fewest: the h1 and the page's two sections). */
 const OUTLINE_FLOOR = 3;
@@ -21620,6 +21627,76 @@ if (runs('3553-me')) {
     } finally { await ctx.close(); }
   }
 } // 3553-me
+// #3553 Q-UI9, Q-UI10 AND Q-UI13 (the owner's A on each): PLACE NAMES, THE AGENT LABEL AND THE RAIL'S TOOLTIPS. Q-UI9: the
+// rail read "Docs" while the area's name, tooltip and title read "Documentation", which does not fit the rail's tile, so
+// the area is "Docs" throughout; Shape's preview is titled "Shape", not "Size & shape". Q-UI10: at 380 the Agent switch
+// dropped its "Agent" label and stood as a bare toggle; at 380 it now shows the agent glyph (the word there trimmed the
+// brand name), the word at 1280. Q-UI13: an area tile repeated its
+// visible label in a tooltip, which stayed under the resting pointer after a click and covered the page's first line;
+// area tiles draw none, and the label-less foot tiles keep theirs (section 1 holds those). Both hosts, both themes, 1280
+// and 380. MUTATIONS (each after a `wip:` commit): `name: 'Documentation'` back in `RAIL_AREAS` → `#3553 Q-UI9 … the Docs
+// area's tile name and its title agree`; the narrow glyph rule dropped → `#3553 Q-UI10 … the Agent switch shows its
+// label`; `tip.remove()` dropped from `rail.ts` → `#3553 Q-UI13 … no area tile draws a tooltip`.
+if (runs('3553-shell')) {
+  console.log(`\nPlace names, the Agent label and the rail's tooltips (#3553 Q-UI9, Q-UI10, Q-UI13)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-shell ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'rail';
+    try {
+      // Q-UI13: click an area tile and leave the pointer on it.
+      await hooks.click(page.locator('[data-p3="rail-components"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
+      await page.locator('[data-p3="rail-components"]').hover();
+      await settle(page);
+      const t = await page.evaluate(() => {
+        const areas = [...document.querySelectorAll('[data-p3="rail-areas"] .p3-tile')];
+        return { areas: areas.length, tips: areas.filter((a) => a.querySelector('.p3-tile-tip')).map((a) => a.dataset.p3),
+          shown: [...document.querySelectorAll('.p3-tile-tip')].filter((n) => n.getClientRects().length > 0 && getComputedStyle(n).display !== 'none').map((n) => n.textContent),
+          names: areas.map((a) => [a.dataset.p3, a.getAttribute('aria-label'), a.querySelector('.p3-tile-label')?.textContent ?? null]) };
+      });
+      ok(t.areas >= 3, `${where}: premise, the rail draws its area tiles (${t.areas})`);
+      ok(t.tips.length === 0 && t.shown.length === 0, `#3553 Q-UI13 ${where}: no area tile draws a tooltip, and none shows under the resting pointer after a click (${JSON.stringify(t)})`);
+      // Q-UI9: every area tile's name is its label.
+      const unlike = t.names.filter(([, name, label]) => name !== label);
+      ok(unlike.length === 0, `#3553 Q-UI9 ${where}: every area tile's name is its visible label (${JSON.stringify(unlike)})`);
+      await page.mouse.move(w - 1, h - 1);
+      if (host === 'figma') {
+        step = 'docs';
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+        await hooks.need(page, '[data-p3="docs-heading"]');
+        const d = await page.evaluate(() => ({ title: document.querySelector('[data-p3="docs-heading"]')?.textContent ?? null,
+          name: document.querySelector('[data-p3="rail-documentation"]')?.getAttribute('aria-label') ?? null,
+          label: document.querySelector('[data-p3="rail-documentation"] .p3-tile-label')?.textContent ?? null }));
+        ok(d.title === 'Docs' && d.name === 'Docs' && d.label === 'Docs', `#3553 Q-UI9 ${where}: the Docs area's tile name and its title agree, "Docs" (${JSON.stringify(d)})`);
+        // Q-UI10: the Agent switch's label, inside the bar: the word at 1280, the agent glyph at 380. The brand switcher keeps
+        // its whole name beside it (the word at 380 had trimmed it to "Pri…").
+        step = 'agent';
+        const a = await page.evaluate(() => {
+          const vis = (n) => !!n && n.getClientRects().length > 0 && getComputedStyle(n).display !== 'none';
+          const lab = document.querySelector('[data-p3="bar-agent"] .p3-agent-switch-label');
+          const bar = document.querySelector('[data-p3="top-bar"]').getBoundingClientRect();
+          const word = lab?.querySelector('.p3-agent-switch-word'), g = lab?.querySelector('svg.p3-ico');
+          const r = vis(lab) ? lab.getBoundingClientRect() : null;
+          return { word: vis(word), glyph: vis(g) ? g.dataset.glyph ?? '?' : null, inBar: !!r && r.width > 0 && r.left >= bar.left - 0.5 && r.right <= bar.right + 0.5,
+            trim: document.querySelector('[data-p3="frame"]')?.dataset.barFit ?? null };
+        });
+        const want = w < 600 ? !a.word && a.glyph === 'agent' : a.word && a.glyph === null;
+        ok(want && a.inBar, `#3553 Q-UI10 ${where}: the Agent switch shows its label (${w < 600 ? 'the agent glyph' : 'the word'}) inside the bar (${JSON.stringify(a)})`);
+        ok(a.trim !== 'trim', `#3553 Q-UI10 ${where}: the brand switcher keeps its whole name beside it, no trim (${JSON.stringify(a)})`);
+      }
+      // Q-UI9: Shape's preview title.
+      step = 'shape';
+      await goPlace(page, 'shape');
+      const title = await page.evaluate(() => document.querySelector('[data-p3="preview-title"]')?.textContent ?? null);
+      ok(title === 'Shape', `#3553 Q-UI9 ${where}: Shape's preview is titled "Shape" (read ${JSON.stringify(title)})`);
+      if (SHOTS && theme === 'light' && host === 'figma') await page.screenshot({ path: join(SHOTS, `s3553-shell-plugin-${w}.png`) });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-shell
 // #3553 M1 (the owner's M1 A): SEARCH AT EVERY WIDTH TAKES THE ROW. At the wide tier an open field was `flex: 0 1 50%`
 // beside tabs that kept their width: about 52px of field, "Depth & motion" cut, the no-match status run about 180px past
 // the levers column and over the preview's title, and Close outside the row; on Components Close ran past the column at
@@ -21682,6 +21759,96 @@ if (runs('3553-m1')) {
     } finally { await ctx.close(); }
   }
 } // 3553-m1
+// #3553 M5, M6 AND M7 (batch M-C; the owner's M5 A, M6 A and M7 A): THE SPECIMENS IN THE PREVIEW. M5: an inverse token
+// pill shares an inline-flex wrap with its `inverse` badge, and in a narrow card the pill shrank below its longest
+// segment and broke inside it, per character at 1024 ("color / . / inver / se. …"). The wrap now wraps, so the badge goes
+// above the pill where the two don't fit side by side. Held: no pill segment (the text between two `<wbr>`s) breaks
+// anywhere but after a hyphen. M6: the five-column fill cards were 61px at 1024 and their titles clipped ("Succes"); `.sg-g5` now reflows
+// to columns of at least 90px and never more than five. Held: every five-grid card's title is whole inside its card,
+// and at 1280 and 1600 the grids keep five columns (1600, where a 90px floor alone gives six, holds the cap). M7: the alpha ramps' 8-digit hexes ellipsized by about 5px at 1280; the alpha
+// ramps go five to a strip below a 760px preview. Held at web and plugin 1280: every alpha key is whole; at 1600 they
+// stay ten to a strip. Web 1024, 1280 and 1600 (M5, M6) on Brand and Surfaces & fills, both themes. MUTATIONS (each after a
+// `wip:` commit): the `.p3-legacy-card .sg-pills .tpill-wrap` rule dropped from `chrome.css` → `#3553 M5 … no token pill
+// breaks inside a segment`; `.sg-g5` back to `repeat(5,1fr)` → `#3553 M6 … every five-column card's title is whole`; `ALPHA_SLIM_MAX` set to
+// `SLIM_MAX`'s 560 → `#3553 M7 … every alpha key's hex is whole`; `.sg-g5` to `repeat(auto-fill,minmax(90px,1fr))`, its
+// fifth dropped → `#3553 M6 … a wide ground keeps five columns, never more`.
+if (runs('3553-mc')) {
+  console.log(`\nThe preview's specimens (#3553 M5, M6, M7)\n${'='.repeat(78)}`);
+  for (const [w, h] of [[1024, 768], [1280, 900], [1600, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mc web ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme, w, h });
+    let step = 'open';
+    try {
+      for (const place of ['brand', 'color-fills']) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        const m = await page.evaluate(() => {
+          const lines = (n) => { const r = document.createRange(); r.selectNodeContents(n); return new Set([...r.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size; };
+          const pills = [...document.querySelectorAll('.sg-pills .tpill')].filter((p) => p.getClientRects().length > 0);
+          const broken = [];
+          // A segment may wrap after a hyphen (a word boundary, "brand-" / "subtle"); a line change anywhere else in it is a
+          // break inside a word.
+          const charTop = (n, i) => { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1); const b = [...r.getClientRects()].find((x) => x.width > 0); return b ? Math.round(b.top) : null; };
+          for (const p of pills) for (const n of p.childNodes) {
+            if (n.nodeType !== 3 || !n.data.trim() || lines(n) < 2) continue;
+            for (let i = 1; i < n.data.length; i++) {
+              const a = charTop(n, i - 1), b = charTop(n, i);
+              if (a !== null && b !== null && a !== b && n.data[i - 1] !== '-') { broken.push(`${p.textContent} @ "${n.data.slice(0, i)}|${n.data.slice(i)}"`); break; }
+            }
+          }
+          const cards = [...document.querySelectorAll('.sg-g5 > *')].filter((c) => c.getClientRects().length > 0);
+          const cut = [];
+          for (const c of cards) for (const lab of c.querySelectorAll('.sg-lab')) {
+            const cr = c.getBoundingClientRect(); const lr = document.createRange(); lr.selectNodeContents(lab); const tr = lr.getBoundingClientRect();
+            if (lab.scrollWidth > lab.clientWidth + 0.5 || tr.right > cr.right + 0.5) cut.push(lab.textContent);
+          }
+          const grids = [...document.querySelectorAll('.sg-g5')].filter((g) => g.getClientRects().length > 0);
+          const cols = grids.map((g) => getComputedStyle(g).gridTemplateColumns.split(' ').length);
+          // How many 90px columns the ground would take with no cap: at 1600 this must exceed five, or the cap is not measured.
+          const fit90 = grids.map((g) => { const cs = getComputedStyle(g); const gap = parseFloat(cs.columnGap) || 0; return Math.floor((g.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + gap) / (90 + gap)); });
+          return { pills: pills.length, broken, cards: cards.length, cut, cols, fit90 };
+        });
+        const at = `${where} ${place}`;
+        ok(m.pills > 0 && m.cards > 0, `${at}: premise, the style guide draws token pills and five-column cards (${m.pills}, ${m.cards})`);
+        ok(m.broken.length === 0, `#3553 M5 ${at}: no token pill breaks inside a segment (${m.broken.length}: ${JSON.stringify(m.broken.slice(0, 3))})`);
+        ok(m.cut.length === 0, `#3553 M6 ${at}: every five-column card's title is whole inside its card (${JSON.stringify(m.cut.slice(0, 5))})`);
+        if (w === 1280) ok(m.cols.length > 0 && m.cols.every((n) => n === 5), `#3553 M6 ${at}: at 1280 every five-column grid keeps five columns (${JSON.stringify(m.cols)})`);
+        // The cap half of M6 A (review of #3651): at 1600 a 90px floor alone would give six or more, so five here is the
+        // "never more than five" rule measured, not the floor.
+        if (w === 1600) {
+          ok(m.fit90.length > 0 && m.fit90.every((n) => n >= 6), `${at}: premise, the ground is wide enough for six 90px columns (${JSON.stringify(m.fit90)})`);
+          ok(m.cols.length > 0 && m.cols.every((n) => n === 5), `#3553 M6 ${at}: a wide ground keeps five columns, never more (${JSON.stringify(m.cols)})`);
+        }
+        if (SHOTS && theme === 'light' && w === 1024) await page.screenshot({ path: join(SHOTS, `s3553-mc-web-${w}-${place}.png`), fullPage: true });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const [host, w, h] of [['web', 1280, 900], ['figma', 1280, 900], ['web', 1600, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mc ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    try {
+      await goPlace(page, 'color-palettes');
+      await hooks.need(page, '[data-p3="alpha-ramp"]');
+      await settle(page);
+      const a = await page.evaluate(() => {
+        const ramps = [...document.querySelectorAll('[data-p3="alpha-ramp"]')];
+        return { ramps: ramps.length, perStrip: ramps.map((r) => r.querySelector('.p3-sqk')?.children.length ?? 0),
+          keys: ramps.flatMap((r) => [...r.querySelectorAll('.p3-sqk-hex')]).length,
+          cut: ramps.flatMap((r) => [...r.querySelectorAll('.p3-sqk-hex')]).filter((k) => k.scrollWidth > k.clientWidth + 0.5).map((k) => k.textContent) };
+      });
+      ok(a.ramps === 2 && a.keys === 24, `${where}: premise, both alpha ramps draw their 12 keys (${JSON.stringify({ ramps: a.ramps, keys: a.keys })})`);
+      ok(a.cut.length === 0, `#3553 M7 ${where}: every alpha key's hex is whole (${a.cut.length} cut: ${JSON.stringify(a.cut.slice(0, 4))})`);
+      if (w === 1600) ok(a.perStrip.every((n) => n === 10), `#3553 M7 ${where}: a wide preview keeps ten to a strip (${JSON.stringify(a.perStrip)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-mc
 // #3553 M2, M3 AND M4 (batch M-B; the owner's M2 A, M3 A and M4 A): THE LEVERS ROWS IN A PANE BETWEEN 360 AND 480.
 // M2: at web 1024 the levers pane is 404px, above the old snug line (360), and a fill row's step picker squeezed its
 // name to 20–40px ("Hover" read "Ho"); the line is now 480, so from 1024 to 1200 the picker sits under the name. Held on
@@ -21932,6 +22099,101 @@ if (runs('3553-q2')) {
     } finally { await ctx.close(); }
   }
 } // 3553-q2
+// #3553 Q-UI1 (the owner's Q-UI1 A): ONE MODE CONTROL ON EVERY PAGE AT 1280. The preview header's mode control was the
+// radios on Palettes, Interactive, Type and Layout but a select on Brand ("Style guide"), Surfaces & fills, Shape and Depth
+// & motion, whose longer titles left the radios no room, so moving between tabs swapped the control under the pointer.
+// The fit logic stays; the header gives it the room: the Contrast tile sets its icon beside its word, not above it, and
+// Inspect is its icon alone at the wide tier, still named "Inspect". Held on both hosts at 1280, both themes, on every
+// Theme page: the control settles on its radios on one row, the Contrast icon sits left of its word on one line, and
+// Inspect draws no word and keeps its name. MUTATION (after a `wip:` commit): the wide-tier Inspect rule dropped →
+// `#3553 Q-UI1 … the mode control is its radios`.
+if (runs('3553-q1')) {
+  console.log(`\nOne mode control on every page at 1280 (#3553 Q-UI1)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3553-q1 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'open';
+    try {
+      for (const place of ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout']) {
+        step = place;
+        await goPlace(page, place);
+        await settleModes(page);
+        const m = await page.evaluate(() => {
+          const wrap = document.querySelector('[data-p3="mode-control"]')?.parentElement;
+          const v = document.querySelector('.p3-preview-head [data-p3="verdict"]');
+          const mark = v?.querySelector('.p3-tile-mark')?.getBoundingClientRect(), lab = v?.querySelector('.p3-tile-label')?.getBoundingClientRect();
+          const ins = document.querySelector('.p3-preview-head [data-p3="inspect-open"]');
+          const word = ins?.querySelector('.p3-btn-label');
+          const icons = [...(ins?.querySelectorAll('svg.p3-ico') ?? [])].filter((g) => g.getClientRects().length > 0).map((g) => g.dataset.glyph ?? '?');
+          return { fit: wrap?.dataset.fit ?? null, row: wrap?.dataset.row ?? null,
+            beside: !!mark && !!lab && lab.width > 0 && mark.right <= lab.left + 0.5 && Math.abs((mark.top + mark.height / 2) - (lab.top + lab.height / 2)) <= 2,
+            inspectWord: !!word && word.getClientRects().length > 0, icons, inspectName: ins?.getAttribute('aria-label') ?? null,
+            title: document.querySelector('[data-p3="preview-title"]')?.textContent ?? null };
+        });
+        const at = `${where} ${place} ("${m.title}")`;
+        ok(m.fit === 'radios' && !m.row, `#3553 Q-UI1 ${at}: the mode control is its radios, on the title's row (fit ${m.fit}, row ${m.row})`);
+        ok(m.beside, `#3553 Q-UI1 ${at}: the Contrast tile's icon sits beside its word, on one line`);
+        ok(!m.inspectWord && JSON.stringify(m.icons) === '["layers"]' && m.inspectName === 'Inspect', `#3553 Q-UI1 ${at}: Inspect is its icon alone, no word and no caret, still named "Inspect" (word drawn ${m.inspectWord}, icons ${JSON.stringify(m.icons)}, name ${JSON.stringify(m.inspectName)})`);
+        if (SHOTS && theme === 'light' && host === 'web' && place === 'brand') await page.screenshot({ path: join(SHOTS, `s3553-q1-${host}-${place}.png`) });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-q1
+// #3553 Q-UI8 (the owner's Q-UI8 A): THE CHROME'S ACTIONS DRAW ITS VENDORED ICONS, NOT TEXT GLYPHS. "+ New brand",
+// "↑ Import design.md…", "↑ Upload…", "↓ Download tokens" and "↑ Brand brief…" drew text characters where "Add brand color"
+// draws Tabler's plus. Each now draws the vendored icon (`svg[data-icon]`, the Tabler name, written here) before words
+// that carry no "+", "↑" or "↓". Held on both hosts at 1280, both themes: the brand menu's New brand (plus) and Import
+// design.md… (upload) and the import box's Upload .md (upload); Export's Download (download) and its Brand brief… import
+// (upload); and the start window's Upload… (upload). On a primary button (Download) the icon takes the button's ink, as
+// its words do. MUTATION (after a `wip:` commit): New brand back to the text
+// "+ New brand" → `#3553 Q-UI8 … brand-menu-new draws the plus icon`.
+const ICON_ACTIONS = [['brand-menu-new', 'plus'], ['brand-menu-import', 'upload'], ['import-upload', 'upload'], ['dialog-confirm', 'download'], ['export-import', 'upload'], ['start-upload', 'upload']];
+if (runs('3553-icons')) {
+  console.log(`\nThe actions draw the vendored icons (#3553 Q-UI8)\n${'='.repeat(78)}`);
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3553-icons ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'brand menu';
+    const seen = {};
+    const read = (hk) => page.evaluate((k) => {
+      const b = [...document.querySelectorAll(`[data-p3="${k}"]`)].find((n) => n.getClientRects().length > 0);
+      if (!b) return null;
+      const g0 = [...b.querySelectorAll('svg')].find((g) => g.getClientRects().length > 0);
+      return { icons: [...b.querySelectorAll('svg')].filter((g) => g.getClientRects().length > 0).map((g) => g.dataset.icon ?? '?'), text: b.textContent.trim(),
+        // On a primary button the icon takes the button's ink, as its words do.
+        inkMatch: !b.classList.contains('p3-btn-primary') || (!!g0 && getComputedStyle(g0).color === getComputedStyle(b).color) };
+    }, hk);
+    try {
+      await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+      await hooks.need(page, '[data-p3="brand-menu"]');
+      for (const hk of ['brand-menu-new', 'brand-menu-import']) seen[hk] = await read(hk);
+      await hooks.click(page.locator('[data-p3="brand-menu-import"]'));
+      await hooks.need(page, '[data-p3="import-upload"]');
+      seen['import-upload'] = await read('import-upload');
+      await page.keyboard.press('Escape');
+      step = 'export';
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '[data-p3="export-page"] [data-p3="dialog-confirm"]');
+      for (const hk of ['dialog-confirm', 'export-import']) seen[hk] = await read(hk);
+      step = 'start window';
+      await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      await hooks.need(page, '[data-p3="start-upload"]');
+      seen['start-upload'] = await read('start-upload');
+      for (const [hk, icon] of ICON_ACTIONS) {
+        const s = seen[hk];
+        ok(!!s && s.icons[0] === icon && !/[+↑↓]/.test(s.text) && s.text.length > 0 && s.inkMatch,
+          `#3553 Q-UI8 ${where}: ${hk} draws the ${icon} icon first, its words with no text glyph (${JSON.stringify(s)})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-icons
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

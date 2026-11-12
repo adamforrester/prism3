@@ -211,7 +211,7 @@ console.log('\nopening Documentation, and a file not set up (Q667 A, Q2909.21 A,
   const { page, errors } = await openPage();
   await posted(page, 'style-guide-catalog-request', 1);
   let st = await read(page);
-  ok(st.heading === 'Documentation' && st.layout === 'page' && JSON.stringify(st.docTabs) === JSON.stringify(['Style guides*', 'Usage panels', 'Cover', 'Specs']),
+  ok(st.heading === 'Docs' && st.layout === 'page' && JSON.stringify(st.docTabs) === JSON.stringify(['Style guides*', 'Usage panels', 'Cover', 'Specs']),
     `Q667 A, Q2909.21 A: the rail opens Documentation, full width, tabs Style guides · Usage panels · Cover · Specs, Style guides first (${JSON.stringify({ heading: st.heading, layout: st.layout, tabs: st.docTabs })})`);
   ok(sentOf(st, 'style-guide-catalog-request').length === 1, `the page asks the main thread for the file's catalog once, on open (${sentOf(st, 'style-guide-catalog-request').length})`);
   await post(page, { type: 'style-guide-catalog', catalog: { ...CAT, setUp: false } });
