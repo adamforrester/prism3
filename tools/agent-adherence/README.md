@@ -52,8 +52,18 @@ Results are raw counts per rule per run and the median per arm. There is no 0–
   field built from another element (`div role=textbox`, `contenteditable`), or a button's own boundary against its
   ground. It doesn't composite partial `opacity` on an element or an ancestor: `checkVisibility` drops only opacity 0.
   Text over a `background-image` is listed as unmeasured.
-- **R5**'s detector is the literals `DATE_RE`, `REPORT_RE` and the grouping rule in `score-code.ts`, fixed before any
-  run. A dismissible banner whose id reads as a date holds a button, so it reads as faked.
+- **R5**'s detector is the literals `DATE_RE`, `REPORT_RE` and the grouping rule in `score-code.ts`. A dismissible banner
+  whose id reads as a date holds a button, so it reads as faked.
+
+## When the rules freeze
+
+**The rules freeze at the first scored run** (owner decision on #3566, 2026-11-12). Until then a detector may be fixed,
+because no result moves. Each fix is recorded here and as an arm in `selftest.ts`.
+
+Changes made before the first scored run:
+- **#3566, R5:** `DATE_RE` reads `birthdate` and `birth-date`, as `REPORT_RE` already did, and a control's identifiers
+  are read as words: `[-_]` and camelCase become spaces (`birthDate`, `birth_date`, `userDob`). Before this, a text field
+  labeled "Birthdate" scored honest.
 
 ## Independence
 
