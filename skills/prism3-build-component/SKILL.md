@@ -441,17 +441,22 @@ whose actual value comes from the host, not from the plan.
   the owner let it widen, 2026-09-29). At hover and pressed the tint holds and the outline steps to
   `interactive.primary.indicator.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
 
-  **A selection mark is a shape, so it binds `color.interactive.<c>.indicator.*`, never a text role and never the
-  outline edge** (#3346, owner 2026-11-03). That covers the selected outline above, a selected tab's bar, a checked
-  radio's ring, a switch's thumb and a slider's disc. The indicator matches the label's color, overrides included,
-  and a brand that quiets its outline edges (`border.*`) leaves it alone. No shape binds `interactive.<c>.text.*`, even
-  where the values match.
+  **A selection mark on the page is a shape, so it binds `color.interactive.<c>.indicator.*`, never a text role and
+  never the outline edge** (#3346, owner 2026-11-03; narrowed by Q-CC13 A, 2026-11-11). That covers the selected
+  outline above, a selected tab's bar, a checked radio's ring, a switch's off thumb, a slider's disc and
+  Pagination.Item's current-page underline (Q-CC12 A). The indicator matches the label's color, overrides included,
+  and a brand that quiets its outline edges (`border.*`) leaves it alone. A mark that sits on a fill takes the fill's
+  side instead: a switch's on thumb, on the filled track, binds `interactive.<c>.on-fill`, and a checked radio's dot
+  is fill-colored (`interactive.<c>.fill.selected`). One named exception: Link's current-page bar, which PageNav.Item
+  inherits, binds `color.icon.link.*`, because link roles have no indicator twin and the edge setting does not reach
+  `icon.link.*` (Q-CC12 A). No shape binds `interactive.<c>.text.*`, even where the values match.
 
-  **The one exception to the constant weight: a choice between peers in a row** (Tab, and the Segmented
-  control's segment; owner decision). There the selected label takes the emphasis weight, and an invisible
-  copy of the label in that weight holds the label box at its bold width in both states, so selecting one
-  never moves its neighbors. The copy is a second text part the label's text property drives through
-  `also`, so it always spells the label. Tag and other in-place toggles keep the constant weight.
+  **The one exception to the constant weight: a choice between peers in a row** (Tab, the Segmented control's
+  segment, and Pagination.Item's current page, Q381; owner decisions). There the selected label takes the emphasis
+  weight, and an invisible copy of the label in that weight holds the label box at its bold width in both states,
+  so selecting one never moves its neighbors. The copy is a second text part the label's text property drives
+  through `also`, so it always spells the label. Tag and other in-place toggles keep the constant weight, and so
+  does PageNav.Item (Q8 A, Q-CC14 A): its current page is a Link, which keeps Link's constant weight.
 - **Glyph ink binds an icon role, never a text role (#1471).** A `vector` or an icon `slot` paints from an
   `icon.*` role (`color.icon.primary`, or the interactive `icon.*` twin the engine mints beside `text.*`),
   never a `text.*` role — even where the two resolve to the same value. The label beside the glyph keeps
@@ -477,10 +482,9 @@ library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of 
 …". The prefixed set is `_accordion-indicator`, `_breadcrumb-separator` and `_slider-thumb`. A native slot's preferred item never takes the prefix
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
 unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
-`list-item`, `segmented-control-segment`, `breadcrumb-item`, `pagination-item`, `page-nav-item` and
-`code-input-cell`. The checkbox and radio controls (`checkbox-control`,
-`radio-control`) stay unprefixed because they may be used on their own, and so does Radio row: it is a
-whole option, not a part.
+`list-item`, `segmented-control-segment`, `breadcrumb-item`, `pagination-item`, `page-nav-item`,
+`code-input-cell` and `radio-row`. The checkbox and radio controls (`checkbox-control`,
+`radio-control`) stay unprefixed because they may be used on their own.
 
 **Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the
 properties panel is lowercase: each `figmaName` (or the key, when there is none), and each variant axis

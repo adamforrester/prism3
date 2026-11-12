@@ -244,7 +244,9 @@ export const paginationItem: ComponentDef = {
         glyph: 'chevron-left',
         size: 'size.{size}.icon',
         presentWhen: { type: ['previous'] },
-        note: 'The previous cell\'s left chevron (Q414 A), at the gap icon\'s size, one rung under the icon button\'s glyph (Q428 A).',
+        // Maintainer detail, out of the reader caption (#3610): The previous cell's left chevron (Q414 A), at the gap
+        // icon's size, one rung under the icon button's glyph (Q428 A).
+        note: 'The previous cell\'s left chevron, one size under an icon button\'s glyph.',
       },
       previousText: {
         kind: 'text',
@@ -325,7 +327,9 @@ export const paginationItem: ComponentDef = {
         glyph: 'more-horizontal-filled',
         size: 'size.{size}.icon',
         presentWhen: { type: ['ellipsis'] },
-        note: 'The gap marker: the more-horizontal icon, three dots, decorative and hidden from assistive technology (Q404 A). It is not a control.',
+        // Maintainer detail, out of the reader caption (#3610): The gap marker: the more-horizontal icon, three dots,
+        // decorative and hidden from assistive technology (Q404 A). It is not a control.
+        note: 'The gap marker, three dots, decorative and hidden from screen readers; it is not a control.',
       },
       nextText: {
         kind: 'text',
@@ -338,7 +342,8 @@ export const paginationItem: ComponentDef = {
         glyph: 'chevron-right',
         size: 'size.{size}.icon',
         presentWhen: { type: ['next'] },
-        note: 'The next cell\'s right chevron (Q414 A).',
+        // Maintainer detail, out of the reader caption (#3610): The next cell's right chevron (Q414 A).
+        note: 'The next cell\'s right chevron.',
       },
       focusRing: {
         kind: 'absolute',
@@ -608,7 +613,9 @@ export const pagination: ComponentDef = {
         gap: 'gap',
         note: 'The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
       },
-      previous: step('previous', 'false', 'The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A). On the first page it stays in place and does nothing.'),
+      // Maintainer detail, out of the reader caption (#3610): The previous cell: a Pagination.Item with a left
+      // chevron, the same square as the page cells (Q414 A). On the first page it stays in place and does nothing.
+      previous: step('previous', 'false', 'The previous cell, a left chevron the size of the page cells; on the first page it stays in place and does nothing.'),
       items: {
         kind: 'box',
         role: 'presentation',
@@ -636,7 +643,9 @@ export const pagination: ComponentDef = {
         type: 'size.{size}.type',
         note: 'The position, "Page 5 of 10", between the previous and next buttons.',
       },
-      next: step('next', 'false', 'The next cell: a Pagination.Item with a right chevron (Q414 A). On the last page it stays in place and does nothing.'),
+      // Maintainer detail, out of the reader caption (#3610): The next cell: a Pagination.Item with a right chevron
+      // (Q414 A). On the last page it stays in place and does nothing.
+      next: step('next', 'false', 'The next cell, a right chevron; on the last page it stays in place and does nothing.'),
       simpleRow: {
         kind: 'box',
         role: 'presentation',
@@ -647,8 +656,9 @@ export const pagination: ComponentDef = {
         gap: 'gap',
         note: 'The simple row: Previous at the start and Next at the end.',
       },
-      previousButton: step('previous', 'true', 'Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).'),
-      nextButton: step('next', 'true', 'Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).'),
+      // Maintainer detail, out of the reader captions (#3610): each is a Pagination.Item (Q414 A).
+      previousButton: step('previous', 'true', 'Previous: a left chevron and the word "Previous".'),
+      nextButton: step('next', 'true', 'Next: the word "Next" and a right chevron.'),
     },
     codeOnly: [
       {

@@ -304,7 +304,12 @@ export const switchControl: ComponentDef = {
         padding: { block: 'size.{size}.inset', inlineLabel: 'size.{size}.inset' },
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['thumb', 'focusRing'],
-        note: 'The pill AND the nominal hit-target marker (the real hit target is the whole labeled ROW, which lives on `switch-row`; `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part and `checkbox-control`\'s `control` carry). Its two dimensions are two decisions: 2:1 is the ratio the field converges on, and it is the tier\'s.',
+        // Maintainer detail, out of the reader caption (#3610): The pill AND the nominal hit-target marker (the real
+        // hit target is the whole labeled ROW, which lives on `switch-row`; `role: target` is here only because the
+        // schema requires exactly one per anatomy — the same nominal marker `focus-ring`'s `ring` part and `checkbox-
+        // control`'s `control` carry). Its two dimensions are two decisions: 2:1 is the ratio the field converges on,
+        // and it is the tier's.
+        note: 'The pill-shaped track, twice as wide as it is tall; a person clicks the whole labeled row, not the track alone.',
       },
       // THE THUMB. A filled `box` claiming `indicator` (radio's dot took the slot first; #933's rule is
       // that two boxes cannot divide one slot, and the track owns `fill`). It travels (`positionWhen`),
@@ -322,7 +327,11 @@ export const switchControl: ComponentDef = {
         // distribution, the only main-axis placement Figma's auto layout offers.
         positionWhen: { selection: { off: 'start', on: 'end' } },
         children: ['onGlyph', 'offGlyph'],
-        note: 'The thumb — ONE part whose position varies, not two that take turns. Its fill is selection-keyed (no single ink bounds both tracks). It clears the track\'s ends at both extremes (#997: the track\'s uniform `inset` padding). It carries the state glyph, which travels with it. Its slide is motion and has no expression here; what this schema carries is the two endpoints.',
+        // Maintainer detail, out of the reader caption (#3610): The thumb — ONE part whose position varies, not two
+        // that take turns. Its fill is selection-keyed (no single ink bounds both tracks). It clears the track's ends
+        // at both extremes (#997: the track's uniform `inset` padding). It carries the state glyph, which travels
+        // with it. Its slide is motion and has no expression here; what this schema carries is the two endpoints.
+        note: 'The thumb, which moves from one end of the track to the other and carries the state icon.',
       },
       // THE ON GLYPH — a check, present only at `selection=on`. Sized from the thumb\'s own `dot` key (the
       // check artboard carries its own ~71% optical inset, so a second ladder would inset it twice — the
@@ -334,7 +343,10 @@ export const switchControl: ComponentDef = {
         size: 'size.{size}.dot',
         optional: true,
         presentWhen: { selection: ['on'] },
-        note: 'The on affordance (a check). Built at `selection=on`; its visibility is the `state icon` boolean (code: `showStateLabel`), default on. Never the sole state signal — thumb position already carries it.',
+        // Maintainer detail, out of the reader caption (#3610): The on affordance (a check). Built at `selection=on`;
+        // its visibility is the `state icon` boolean (code: `showStateLabel`), default on. Never the sole state
+        // signal — thumb position already carries it.
+        note: 'The check on the thumb when the switch is on, shown by default; the thumb\'s position already shows the state.',
       },
       // THE OFF GLYPH — an X (`close`), present only at `selection=off`. Same geometry as the check; only
       // the outline differs. Its ink is `off.icon` (a light X on the dark off thumb). Rides the same
@@ -345,7 +357,10 @@ export const switchControl: ComponentDef = {
         size: 'size.{size}.dot',
         optional: true,
         presentWhen: { selection: ['off'] },
-        note: 'The off affordance (an X). Built at `selection=off`; its visibility is the same `state icon` boolean as the check (code: `showStateLabel`), default on. The glyph is `close`, the set\'s X.',
+        // Maintainer detail, out of the reader caption (#3610): The off affordance (an X). Built at `selection=off`;
+        // its visibility is the same `state icon` boolean as the check (code: `showStateLabel`), default on. The
+        // glyph is `close`, the set's X.
+        note: 'The X on the thumb when the switch is off, shown by default; the thumb\'s position already shows the state.',
       },
       // Radio's / switch's ring, on the TRACK. The two insets SUM in the executor, siting the ring at
       // -(2+2) = -4 so the visible gap is a full 2px (#801). FIXED at `surface=default` (#1134): this def
@@ -357,7 +372,10 @@ export const switchControl: ComponentDef = {
         inset: 'ring-offset',
         strokeInset: 'ring-width',
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the TRACK so the ring surrounds the pill. On the track and never the thumb: the thumb moves, and an indicator that moves with it competes with the one thing that signals state.',
+        // Maintainer detail, out of the reader caption (#3610): An absolutely-positioned sibling nesting the shared
+        // `focus-ring` component, inset from the TRACK so the ring surrounds the pill. On the track and never the
+        // thumb: the thumb moves, and an indicator that moves with it competes with the one thing that signals state.
+        note: 'The shared focus ring, drawn around the track on keyboard focus, never around the moving thumb.',
       },
     },
     codeOnly: [

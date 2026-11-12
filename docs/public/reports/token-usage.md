@@ -2648,7 +2648,7 @@ Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| code-input-cell | `size.xlarge.caret-height` | caret | size: xlarge · state: focus-visible (1 of 28) |
+| code-input-cell | `size.x-large.caret-height` | caret | size: x-large · state: focus-visible (1 of 28) |
 | progress | `size.medium` | arcGlyph | shape: circular · size: medium · status: active, error (3 of 12) |
 |  |  | fullRingGlyph | shape: circular · size: medium · status: complete · type: determinate (1 of 12) |
 |  |  | ring | shape: circular · size: medium (4 of 12) |
@@ -2722,7 +2722,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| code-input-cell | `size.xlarge.radius` | container | size: xlarge (7 of 28) |
+| code-input-cell | `size.x-large.radius` | container | size: x-large (7 of 28) |
 
 ### `radius.md`
 
@@ -3680,7 +3680,7 @@ Type: typography. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| code-input-cell | `size.xlarge.type` | digit | size: xlarge · state: error, filled, focus-visible-filled (3 of 28) |
+| code-input-cell | `size.x-large.type` | digit | size: x-large · state: error, filled, focus-visible-filled (3 of 28) |
 
 ### `type.title.md.strong`
 
