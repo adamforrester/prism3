@@ -22,8 +22,9 @@
  *
  * ── WHAT IT SWEEPS ──────────────────────────────────────────────────────────────────────────────────
  *
- * Every `toggle` (true, false) and every `enum` option in `leverManifest`, ONE AT A TIME, from each of
- * three brands:
+ * Every `toggle` (true, false), every `enum` option, every `slider` at both ends of its range (#3698 R2), and
+ * every `list` at its boundaries (#3698 R2: the empty list, and for a list whose count is bounded, the counts
+ * either side of each bound) in `leverManifest`, ONE AT A TIME, from each of three brands:
  *
  *   · `minimal`     — `MINIMAL_BRAND`, the sparsest input (every lever at its default). A contract corpus member.
  *   · `harbor`      — an engine-native brief with its own lever choices (compact type scale, relaxed
@@ -66,16 +67,29 @@
  * Some settings are invalid on some brands, and the engine THROWS (e.g. `titleFloor: 16` under a
  * compact type scale). A refusal is loud, not silent, so it is not this gate's defect class. It is still
  * a verdict, not a skip: every throw must match `REFUSALS` by brand, setting AND message, and a listed
- * refusal that stops throwing fails (both directions again).
+ * refusal that stops throwing fails (both directions again). Each setting meets the input SCHEMA first
+ * (`validateBrandInput`, what the CLI and the MCP run before the build), so a schema error is a refusal
+ * too, matched the same way: a boundary just past a schema bound must be refused there (#3698 R2).
+ *
+ * ── THE BOUNDS, AND WHERE EACH SIDE COMES FROM (#3698 R2) ───────────────────────────────────────────
+ *
+ * A slider's endpoints are the manifest's `min`/`max`, the range the studio offers. A bounded list's
+ * samples are typed HERE, in `LIST_BOUNDARIES`, as literals (not computed from the schema), and the gate
+ * asserts that the schema's own `minItems` falls between the shortest sample it expects refused and the
+ * shortest it expects built. So the schema and this file are two independent statements of the floor: drop
+ * `minItems` from the schema and the one-floor sample validates, builds, and removes the four guaranteed
+ * `md` paths (arm a), and its REFUSALS entry goes stale.
  *
  * ── STATED LIMITS (a clean run does not imply these) ────────────────────────────────────────────────
  *
- *   · SLIDERS ARE NOT SWEPT. The space is continuous; #957 probed the endpoints and found no removal, but
- *     two endpoints are not a proof.
- *   · OBJECT / LIST / COLOR / PALETTE-REF / TEXT levers are not swept. They have no finite value set.
+ *   · SLIDERS ARE SWEPT AT THEIR ENDS ONLY. The space between is continuous, and two endpoints are not a
+ *     proof. A slider's named stops (#471) sit inside its range and are not swept separately.
+ *   · LISTS ARE SWEPT AT THEIR BOUNDARIES ONLY: the empty list, plus the `LIST_BOUNDARIES` samples. The
+ *     items inside a list are one fixed sample each, not a sweep of item values.
+ *   · OBJECT / COLOR / PALETTE-REF / TEXT levers are not swept. They have no finite value set.
  *     `typography.weights` IS a path-removing object lever, covered by the contract's `minimal-weights`
- *     member (#1632); `layout.breakpoints` is covered by its `minimal-bp2` member (#1479). Every lever is classified in `NOT_SWEPT` by control kind,
- *     so a new kind cannot be skipped silently.
+ *     member (#1632). Every lever is classified in `NOT_SWEPT` by control kind, so a new kind cannot be
+ *     skipped silently.
  *   · ONE LEVER AT A TIME. A path removable only by two levers together is not seen.
  *   · Three brands. A removal that only happens on some other brand is not seen.
  *   · Arm (b) restates the plugin's composition order, so it cannot see the plugin DROPPING a wrap; that
@@ -88,6 +102,7 @@ import { leverManifest, type Lever, type LeverControl } from './levers';
 import { brandTheme, weightAvailability, type BrandInput, type Theme } from './theme';
 import { parseDesignMd } from './design-md';
 import { pathsOf, MINIMAL_BRAND, CONTRACT_PATH } from './token-contract';
+import { validateBrandInput } from './emit-dtcg';
 import { figmaArtifacts } from './emit-figma';
 import { tailOf } from './figma-names';
 import { componentDefs } from './components';
@@ -99,7 +114,8 @@ import {
 } from './anatomy-figma';
 
 const here = dirname(fileURLToPath(import.meta.url));
-type Value = string | number | boolean;
+type Value = string | number | boolean | readonly number[] | readonly unknown[];
+const same = (a: Value, b: Value): boolean => JSON.stringify(a) === JSON.stringify(b);
 type BrandId = 'minimal' | 'harbor' | 'nb-redesign';
 
 // ── THE BRANDS ──────────────────────────────────────────────────────────────────────────────────────
@@ -112,18 +128,36 @@ const BRANDS: { id: BrandId; input: BrandInput; contractCorpus: boolean }[] = [
 const ALL_BRANDS: BrandId[] = BRANDS.map((b) => b.id);
 
 // ── SCOPE: every lever is swept or classified out, by control kind ──────────────────────────────────
-const SWEPT_CONTROLS: LeverControl[] = ['toggle', 'enum'];
-const NOT_SWEPT: Record<Exclude<LeverControl, 'toggle' | 'enum'>, string> = {
-  slider: 'continuous range. #957 probed min/max and found no removal, but two endpoints are not a proof',
+const SWEPT_CONTROLS: LeverControl[] = ['toggle', 'enum', 'slider', 'list'];
+const NOT_SWEPT: Record<Exclude<LeverControl, 'toggle' | 'enum' | 'slider' | 'list'>, string> = {
   color: 'an OKLCH/hex value: a continuous space, and it moves values, not names',
-  list: 'open-ended structured input. `layout.breakpoints` is covered by the contract corpus (`minimal-bp2`, #1479)',
   object: 'open-ended structured input. `typography.weights` removes paths, and the contract corpus covers it (`minimal-weights`, #1632)',
   'palette-ref': "values depend on the brand's own declared palettes, so there is no brand-independent option set",
   text: 'free text',
 };
 
-const valuesOf = (l: Lever): Value[] =>
-  l.control === 'toggle' ? [true, false] : l.control === 'enum' ? (l.options ?? []).map((o) => o.value) : [];
+// A list lever with a count bound, sampled either side of it (#3698 R2). The samples are literals, typed here,
+// so they state the bound independently of the schema (see the header). `refused` lengths must be refused;
+// `built` lengths must build. Every list lever ALSO gets the empty list.
+const SEVEN_FLOORS = [0, 360, 480, 768, 1024, 1440, 1920];
+const LIST_BOUNDARIES: Record<string, { refused: Value[]; built: Value[]; reason: string }> = {
+  'layout.breakpoints': {
+    refused: [[0], [...SEVEN_FLOORS, 2560]],
+    built: [[0, 768], SEVEN_FLOORS],
+    reason: 'two to seven floors: two is the contract corpus\'s sparsest layout (`minimal-bp2`, #1479), seven is the last t-shirt name (#2198)',
+  },
+};
+
+const valuesOf = (l: Lever): Value[] => {
+  if (l.control === 'toggle') return [true, false];
+  if (l.control === 'enum') return (l.options ?? []).map((o) => o.value);
+  if (l.control === 'slider') return l.min === undefined || l.max === undefined ? [] : [l.min, l.max];
+  if (l.control === 'list') {
+    const b = LIST_BOUNDARIES[l.key];
+    return [[], ...(b ? [...b.refused, ...b.built].filter((v) => !same(v, [])) : [])];
+  }
+  return [];
+};
 
 // ── ARM (a) ALLOWLIST: a guaranteed path a setting is ALLOWED to remove, with the reason ─────────────
 // Matched EXACTLY per (brand, lever, value): a removal not listed fails, and a listed path that is no
@@ -131,7 +165,22 @@ const valuesOf = (l: Lever): Value[] =>
 // gate can ship green without hiding it; `by-design` = a removal that IS the lever's purpose and the
 // contract should say so (#957's two cases were settled by DEMOTION, so they never reach this arm).
 type Removal = { lever: string; value: Value; brands: BrandId[]; paths: string[]; disposition: 'defect' | 'by-design'; reason: string };
-const REMOVALS: Removal[] = [];
+const LINK_PATHS = ['type.body.lg.default-link', 'type.body.md.default-link', 'type.body.sm.default-link', 'type.body.xs.default-link',
+  'type.caption.lg.default-link', 'type.caption.md.default-link'];
+const REMOVALS: Removal[] = [
+  { lever: 'typography.links', value: [], brands: ALL_BRANDS, paths: LINK_PATHS, disposition: 'defect',
+    reason: '#3707: an empty list validates and ships no body or caption link style, and the contract guarantees them (owner decision open)' },
+];
+
+// ── ARM (b) DEFECTS: a filed binding miss, held so the gate ships green without hiding it (#3698 R2) ──
+// Arm (b) has no by-design allowlist: a component that binds what its brand does not emit is always a miss on
+// paste. A FILED one is held here, exact in both directions per (brand, lever, value): the same def ids and the
+// same miss count, or the gate fails, and an entry that stops missing fails as stale. Delete with the fix.
+type BindingDefect = { lever: string; value: Value; brands: BrandId[]; misses: Record<string, number>; issue: string };
+const BINDING_DEFECTS: BindingDefect[] = [
+  { lever: 'typography.links', value: [], brands: ALL_BRANDS, misses: { link: 112 },
+    issue: '#3707: Link binds the body link text styles, which an empty `typography.links` does not emit' },
+];
 
 // ── REFUSALS: a setting the engine is RIGHT to reject on a brand, matched by message ─────────────────
 type Refusal = { brand: BrandId; lever: string; value: Value; message: RegExp; reason: string };
@@ -156,6 +205,14 @@ const REFUSALS: Refusal[] = [
       reason: 'hover 40 is the top wash step, so no pressed step sits above it' },
     ...[5, 10].map((value): Refusal => ({ brand, lever: 'outlineWash.pressed', value, message: new RegExp(`^outlineWash: pressed ${value} must be above hover 10 `),
       reason: `the neutral wash's hover defaults to 10, so a pressed of ${value} is not above it` })),
+  ]),
+  // #3698 R2: two to seven breakpoints. The schema's `minItems: 2` refuses fewer, before the build path runs;
+  // `buildLayout` refuses an eighth (#2198), since the schema states no maximum.
+  ...ALL_BRANDS.flatMap((brand): Refusal[] => [
+    ...[[], [0]].map((value): Refusal => ({ brand, lever: 'layout.breakpoints', value, message: new RegExp(`^schema: layout\\.breakpoints: ${value.length} item\\(s\\) < minItems 2$`),
+      reason: 'fewer than two breakpoints: one floor drops the guaranteed `md` tier (#3698 F3)' })),
+    { brand, lever: 'layout.breakpoints', value: [...SEVEN_FLOORS, 2560], message: /^The brand can have at most seven breakpoints\. This brand has 8\.$/,
+      reason: 'an eighth breakpoint has no t-shirt name (#2198)' },
   ]),
 ];
 
@@ -243,19 +300,40 @@ if (guaranteed.length === 0) fail(`read 0 guaranteed paths from ${CONTRACT_PATH}
 const swept = leverManifest.filter((l) => SWEPT_CONTROLS.includes(l.control));
 for (const l of leverManifest) {
   if (SWEPT_CONTROLS.includes(l.control)) {
-    if (valuesOf(l).length < 2) fail(`scope: ${l.key} is a ${l.control} with ${valuesOf(l).length} value(s) to sweep; a one-value sweep compares nothing`);
+    // A list sweeps at least its empty list, compared against the brand's own base build; the others need two values.
+    const least = l.control === 'list' ? 1 : 2;
+    if (valuesOf(l).length < least) fail(`scope: ${l.key} is a ${l.control} with ${valuesOf(l).length} value(s) to sweep${l.control === 'slider' ? ' (no min/max in the manifest)' : ''}; a sweep over too few values compares nothing`);
   } else if (!(l.control in NOT_SWEPT)) {
     fail(`scope: ${l.key} has control '${l.control}', which is neither swept nor classified in NOT_SWEPT with a reason`);
   }
 }
-for (const r of [...REMOVALS, ...REFUSALS]) {
+for (const r of [...REMOVALS, ...REFUSALS, ...BINDING_DEFECTS]) {
   const l = swept.find((x) => x.key === r.lever);
   if (!l) fail(`allowlist: '${r.lever}' is not a swept lever. The entry names nothing (stale, or a typo)`);
-  else if (!valuesOf(l).includes(r.value)) fail(`allowlist: ${r.lever}=${JSON.stringify(r.value)} is not one of its options (${valuesOf(l).map((v) => JSON.stringify(v)).join(', ')})`);
+  else if (!valuesOf(l).some((v) => same(v, r.value))) fail(`allowlist: ${r.lever}=${JSON.stringify(r.value)} is not one of its options (${valuesOf(l).map((v) => JSON.stringify(v)).join(', ')})`);
+}
+
+// LIST BOUNDS: each sample names a list lever, and the schema's own `minItems`/`maxItems` sit where the samples say.
+// Read from the committed schema file, not from `validateBrandInput`, so the comparison has two sides.
+const themeSchema = JSON.parse(readFileSync(resolve(here, 'schema/theme-schema.json'), 'utf8'));
+const schemaAt = (key: string): Record<string, unknown> | undefined =>
+  key.split('.').reduce<Record<string, unknown> | undefined>((n, k) => (n?.properties as Record<string, Record<string, unknown>> | undefined)?.[k], themeSchema);
+for (const [key, b] of Object.entries(LIST_BOUNDARIES)) {
+  const l = leverManifest.find((x) => x.key === key);
+  if (!l || l.control !== 'list') { fail(`LIST_BOUNDARIES: '${key}' is not a list lever. The entry names nothing`); continue; }
+  const lens = (vs: Value[]): number[] => vs.map((v) => (v as unknown[]).length);
+  const node = schemaAt(key);
+  const min = node?.minItems as number | undefined;
+  const builtMin = Math.min(...lens(b.built));
+  const refusedBelow = lens(b.refused).filter((n) => n < builtMin);
+  if (min === undefined) fail(`LIST_BOUNDARIES: the schema states no minItems for ${key}, and this gate expects ${Math.max(...refusedBelow)} refused and ${builtMin} built (#3698 R2)`);
+  else if (!(refusedBelow.length && Math.max(...refusedBelow) < min && min <= builtMin))
+    fail(`LIST_BOUNDARIES: the schema's minItems for ${key} is ${min}, and this gate expects ${refusedBelow.length ? Math.max(...refusedBelow) : 'nothing'} refused and ${builtMin} built. The two statements of the floor disagree`);
 }
 
 const seenRemoval = new Set<string>();   // `${brand}|${lever}=${value}|${path}` observed
 const seenRefusal = new Set<Refusal>();
+const seenDefect = new Set<string>();   // `${brand}|${lever}=${value}` whose misses matched BINDING_DEFECTS exactly
 const summary: string[] = [];
 let settings = 0, refsChecked = 0, plansChecked = 0;
 
@@ -273,25 +351,29 @@ for (const brand of BRANDS) {
   for (const lever of swept) for (const value of valuesOf(lever)) {
     const tag = `${brand.id} @ ${lever.key}=${JSON.stringify(value)}`;
     const input = structuredClone(brand.input) as unknown as Record<string, unknown>;
-    setPath(input, lever.key, value);
+    setPath(input, lever.key, structuredClone(value) as Value);
 
     let theme: Theme;
     try {
+      const schemaErrors = validateBrandInput(input);
+      if (schemaErrors.length) throw new Error(`schema: ${schemaErrors.join('; ')}`);
       theme = brandTheme(input as unknown as BrandInput);
     } catch (e) {
       const msg = (e as Error).message;
-      const r = REFUSALS.find((x) => x.brand === brand.id && x.lever === lever.key && x.value === value);
+      const r = REFUSALS.find((x) => x.brand === brand.id && x.lever === lever.key && same(x.value, value));
       if (!r) fail(`${tag}: the engine THREW and no REFUSALS entry covers it: ${msg.slice(0, 160)}`);
       else if (!r.message.test(msg)) fail(`${tag}: threw, but not the refusal REFUSALS names (${r.message}): ${msg.slice(0, 160)}`);
       else { seenRefusal.add(r); bRefusals++; }
       continue;
     }
     bSettings++;
+    if (LIST_BOUNDARIES[lever.key]?.refused.some((v) => same(v, value)))
+      fail(`${tag}: built, and LIST_BOUNDARIES expects it refused, past the list's bound (#3698 R2)`);
 
     // (a) CONTRACT — removals and retypes of guaranteed paths, attributable to this setting.
     const paths = pathsOf(theme);
     const { removed, retyped } = contractDelta(baseGuaranteed, paths);
-    const allowed = new Set(REMOVALS.filter((r) => r.lever === lever.key && r.value === value && r.brands.includes(brand.id)).flatMap((r) => r.paths));
+    const allowed = new Set(REMOVALS.filter((r) => r.lever === lever.key && same(r.value, value) && r.brands.includes(brand.id)).flatMap((r) => r.paths));
     const unlisted = removed.filter((p) => !allowed.has(p));
     for (const p of removed) if (allowed.has(p)) { seenRemoval.add(`${brand.id}|${lever.key}=${JSON.stringify(value)}|${p}`); bRemovals++; }
     if (unlisted.length) fail(`(a) ${tag} REMOVES ${unlisted.length} guaranteed path(s) not on the REMOVALS allowlist: ${unlisted.slice(0, 8).join(', ')}${unlisted.length > 8 ? ', …' : ''}`);
@@ -301,6 +383,13 @@ for (const brand of BRANDS) {
     const { misses, refs, plans } = componentMisses(input as unknown as BrandInput, theme, figmaEmitted(theme));
     if (plans === 0 || refs === 0) fail(`(b) ${tag}: projected ${plans} plan(s) carrying ${refs} ref(s). A pass over zero is not a pass (docs/34 shape 9)`);
     bRefs += refs; plansChecked += plans;
+    const held = BINDING_DEFECTS.find((x) => x.lever === lever.key && same(x.value, value) && x.brands.includes(brand.id));
+    if (held) {
+      const got: Record<string, number> = {};
+      for (const m of misses) got[m.def] = (got[m.def] ?? 0) + 1;
+      if (JSON.stringify(Object.entries(got).sort()) === JSON.stringify(Object.entries(held.misses).sort())) { seenDefect.add(`${brand.id}|${lever.key}=${JSON.stringify(value)}`); misses.length = 0; }
+      else fail(`(b) ${tag}: BINDING_DEFECTS holds ${JSON.stringify(held.misses)} (${held.issue.slice(0, 40)}…), and the sweep found ${JSON.stringify(got)}. The held defect changed shape`);
+    }
     if (misses.length) {
       const byDef = new Map<string, Miss[]>();
       for (const m of misses) byDef.set(m.def, [...(byDef.get(m.def) ?? []), m]);
@@ -317,6 +406,8 @@ for (const r of REMOVALS) for (const b of r.brands) for (const p of r.paths) {
   if (!seenRemoval.has(`${b}|${r.lever}=${JSON.stringify(r.value)}|${p}`))
     fail(`(a) STALE allowlist entry: ${b} @ ${r.lever}=${JSON.stringify(r.value)} no longer removes ${p}. Delete it (${r.disposition}: ${r.reason.slice(0, 60)}…)`);
 }
+for (const d of BINDING_DEFECTS) for (const b of d.brands) if (!seenDefect.has(`${b}|${d.lever}=${JSON.stringify(d.value)}`))
+  fail(`(b) STALE binding defect: ${b} @ ${d.lever}=${JSON.stringify(d.value)} no longer misses ${JSON.stringify(d.misses)}. Delete the BINDING_DEFECTS entry (${d.issue.slice(0, 40)}…)`);
 for (const r of REFUSALS) if (!seenRefusal.has(r))
   fail(`STALE refusal: ${r.brand} @ ${r.lever}=${JSON.stringify(r.value)} no longer throws ${r.message}. Delete the REFUSALS entry and let the sweep check it`);
 
@@ -338,7 +429,7 @@ for (const r of REFUSALS) if (!seenRefusal.has(r))
 }
 
 // ── VERDICT ─────────────────────────────────────────────────────────────────────────────────────────
-console.log(`Lever sweep (#957): ${swept.length} toggle/enum lever(s), one at a time, over ${BRANDS.length} brand(s); ` +
+console.log(`Lever sweep (#957): ${swept.length} toggle/enum/slider/list lever(s), one at a time, over ${BRANDS.length} brand(s); ` +
   `${guaranteed.length} guaranteed path(s) from the committed contract; ${settings} setting(s) built, ${plansChecked} plan(s) and ` +
   `${refsChecked} component ref(s) checked against each setting's own emission (${projCache.size} distinct materialized def(s) projected).`);
 for (const s of summary) console.log(`    ${s}`);
@@ -352,6 +443,6 @@ if (failures.length) {
   console.error('reason and is exact in both directions. See docs/30 (Decided, #957) and docs/34.');
   process.exit(1);
 }
-console.log(`  ✓ no toggle/enum setting removes or retypes a guaranteed path outside the ${REMOVALS.length} allowlisted entr${REMOVALS.length === 1 ? 'y' : 'ies'} ` +
-  `(${REMOVALS.filter((r) => r.disposition === 'defect').length} a filed defect), every allowlist and refusal entry still fires, and every`);
+console.log(`  ✓ no swept setting removes or retypes a guaranteed path outside the ${REMOVALS.length} allowlisted entr${REMOVALS.length === 1 ? 'y' : 'ies'} ` +
+  `(${REMOVALS.filter((r) => r.disposition === 'defect').length} a filed defect, plus ${BINDING_DEFECTS.length} filed binding defect(s)), every allowlist, defect and refusal entry still fires, and every`);
 console.log('    materialized component binding resolves against the Figma emission for that setting.');

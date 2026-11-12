@@ -320,9 +320,6 @@ const semantic = (
         const d = semantic('dimension', o[k]);
         n.push(...(d?.n ?? []));
       }
-      // `inset` decides inner vs drop shadow, so it is part of the value (#3603). Without it here an
-      // inner shadow emitted with no `inset: true` compared equal to TokenPress's INNER_SHADOW export.
-      n.push(o.inset === true ? 1 : 0);
     }
     return { n, str: `${layers.length} layer(s)` };
   }

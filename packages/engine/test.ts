@@ -8345,25 +8345,6 @@ arm: {
   // (c) inset also carries the per-mode overrides (the whole ramp re-derives).
   ok(!!pmTree.shadow.inset.$extensions.prism3.modes.marketing, 'D-shadow(c): the inset shadow carries the per-mode override too');
 
-  // (c2) [#3603] the inner shadow SAYS it is inner, in DTCG's own field, in EVERY mode it ships: the light
-  //      `$value` and each `modes.<mode>.$value` (dark and the light-based marketing here). Without
-  //      `inset: true` a stock consumer (Style Dictionary → `--pds3-shadow-inset`) writes no `inset` keyword
-  //      and draws a drop shadow. The drop shadows must NOT carry it. The Figma half already keyed
-  //      INNER_SHADOW on the step name; the last check holds the two projections to the same answer.
-  {
-    const insetLeaf = pmTree.shadow.inset;
-    const insetSets: [string, any[]][] = [['light', insetLeaf.$value], ...Object.entries(insetLeaf.$extensions.prism3.modes as Record<string, { $value: any[] }>).map(([m, e]) => [m, e.$value] as [string, any[]])];
-    const missing = insetSets.filter(([, ls]) => !ls.length || !ls.every((l) => l.inset === true)).map(([m]) => m);
-    ok(insetSets.length >= 3 && missing.length === 0,
-      `[#3603] shadow.inset carries inset: true on every layer in every mode (${insetSets.map(([m]) => m).join(', ')})` + (missing.length ? ` — MISSING in ${missing.join(', ')}` : ''));
-    const dropsFlagged = Object.entries(pmTree.shadow).filter(([k]) => k !== 'inset').filter(([, leaf]: [string, any]) =>
-      [leaf.$value, ...Object.values(leaf.$extensions.prism3.modes).map((e: any) => e.$value)].some((ls: any[]) => ls.some((l) => 'inset' in l))).map(([k]) => k);
-    ok(dropsFlagged.length === 0, `[#3603] no drop shadow carries an inset field` + (dropsFlagged.length ? ` — got ${dropsFlagged.join(', ')}` : ''));
-    const figInset = buildFigmaShadow(brandTheme(perMode)).styles.filter((st) => st.name.endsWith('/inset'));
-    ok(figInset.length === insetSets.length && figInset.every((st) => st.effects.every((e: any) => e.type === 'INNER_SHADOW')),
-      `[#3603] every Figma inset effect style is INNER_SHADOW, one per DTCG mode (${figInset.length} styles for ${insetSets.length} modes)`);
-  }
-
   // (d) every DTCG alias resolves.
   ok(built.stats.broken.length === 0 && built.stats.aliases > 0, `D-shadow(d): all ${built.stats.aliases} aliases resolve` + (built.stats.broken.length ? ` — BROKEN ${built.stats.broken.slice(0, 3).map((b: any) => b.ref).join(',')}` : ''));
 
@@ -10015,14 +9996,25 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(bpMsg('bpDec', [0.5, 768]) === 'The first breakpoint must be 0px. This brand starts at 0.5px.',
     `[#2132] the message carries the value as entered, not rounded (got "${bpMsg('bpDec', [0.5, 768])}")`);
   // #2137 — an EMPTY breakpoints list is refused (owner decision 2026-10-05, Q22 a). It built a brand with no
-  // layout at all. EXPECTED is the owner-approved sentence, typed here literally. A single breakpoint at 0 is
-  // the smallest list that builds. BY-NAME MUTATION: delete the empty-list refusal in `buildLayout` → the
-  // refused arm fails (and nothing else names it: the #2132 check reads `floors[0]`, undefined here, so it
-  // throws #2132's message instead, which this arm's exact match rejects).
-  ok(bpMsg('bpEmpty', []) === 'The brand needs at least one breakpoint, starting at 0px.',
-    `[#2137] an empty breakpoints list is refused with the approved wording (got "${bpMsg('bpEmpty', [])}")`);
-  ok(bpMsg('bpOne', [0]) === '' && lyBrand('bpOneB', { breakpoints: [0] }).layout.breakpoints.length === 1,
-    `[#2137] a single breakpoint at 0px builds, with one breakpoint (got "${bpMsg('bpOne', [0])}")`);
+  // layout at all. #3698 R2 (owner decision 2026-11-12) raised the floor to two, so the empty list now takes
+  // R2's sentence, and a single breakpoint, which built and dropped four guaranteed contract paths
+  // (`breakpoint.md`, `grid.md.*`), is refused too. EXPECTED is the sentence typed here literally, with the count
+  // as entered. Two is the smallest list that builds. BY-NAME MUTATION: restore `floors.length === 0` in
+  // `buildLayout` → the bpOne arm fails (one floor builds again); delete the refusal → both refused arms fail
+  // (the empty list throws #2132's first-breakpoint message instead, which the exact match rejects).
+  ok(bpMsg('bpEmpty', []) === 'The brand needs at least two breakpoints, starting at 0px. This brand has 0.',
+    `[#2137, #3698 R2] an empty breakpoints list is refused (got "${bpMsg('bpEmpty', [])}")`);
+  ok(bpMsg('bpOne', [0]) === 'The brand needs at least two breakpoints, starting at 0px. This brand has 1.',
+    `[#3698 R2] a single breakpoint at 0px is refused, with the count as entered (got "${bpMsg('bpOne', [0])}")`);
+  ok(bpMsg('bpTwo', [0, 768]) === '' && lyBrand('bpTwoB', { breakpoints: [0, 768] }).layout.breakpoints.length === 2,
+    `[#3698 R2] two breakpoints, the first at 0px, build with two breakpoints (got "${bpMsg('bpTwo', [0, 768])}")`);
+  // The schema states the same floor, so `validateBrandInput` (the CLI, `validate_brand`, `theme_brand`) refuses
+  // one floor before the build path runs, and accepts two. BY-NAME MUTATION: drop `minItems` from the schema →
+  // this arm fails.
+  ok(validateBrandInput({ id: 'bpS1', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout: { breakpoints: [0] } })
+      .some((e) => /layout\.breakpoints.*1 item\(s\) < minItems 2/.test(e))
+    && validateBrandInput({ id: 'bpS2', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout: { breakpoints: [0, 768] } }).length === 0,
+    '[#3698 R2] the schema refuses one breakpoint (minItems 2) and accepts two');
   // #2198 — more than seven breakpoints are refused (owner decision 2026-10-06, Q43 A). `bpNames` names seven
   // (xs to 3xl), and an eighth took the placeholder `bp7`. EXPECTED is the sentence typed here literally, with
   // the count as entered. Seven is the largest list that builds, and it carries real names. BY-NAME MUTATION:

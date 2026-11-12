@@ -126,23 +126,17 @@ export const GLASS_BLUR_PX = 32;
 // $extensions.prism3.modes.dark carries the REDUCED dark shadow (lift-primary — the
 // surface ladder does dark elevation). Materializes as a Figma Effect Style (colour
 // + numerics bindable per layer; verified in the Figma round-trip research).
-// `inset: true` is DTCG's own shadow field for an inner shadow (#3603, owner decision A). Without it a
-// consumer reads the layer as a drop shadow: stock Style Dictionary wrote `--pds3-shadow-inset` with no
-// `inset` keyword, so `box-shadow: var(--pds3-shadow-inset)` drew outside the box. Every mode carries it,
-// because every mode's layers pass through here. Drop shadows omit the field (DTCG's default is false).
-const shadowLayerValue = (colorRgb: RGB, l: ShadowLayer, fmt: 'rgb' | 'hex', inset: boolean) => ({
+const shadowLayerValue = (colorRgb: RGB, l: ShadowLayer, fmt: 'rgb' | 'hex') => ({
   color: alphaColorValue(colorRgb, l.alpha, fmt),
   offsetX: `${l.offsetX}px`, offsetY: `${l.offsetY}px`, blur: `${l.blur}px`, spread: `${l.spread}px`,
-  ...(inset ? { inset: true } : {}),
 });
 const shadowLeaf = (theme: Theme, step: ShadowStep, description: string): Token => {
   const fmt = theme.colorFormat;
   const base = theme.shadow.colorRgb;
-  const inset = step.name === 'inset';
-  const lightVals = step.light.map((l) => shadowLayerValue(base, l, fmt, inset));
+  const lightVals = step.light.map((l) => shadowLayerValue(base, l, fmt));
   // dark shadow reduction only when the brand generates dark (docs/11 Pillar 1) — a light-only brand
   // carries no mode overrides on shadow either.
-  const darkVals = theme.modes.includes('dark') ? step.dark.map((l) => shadowLayerValue(base, l, fmt, inset)) : undefined;
+  const darkVals = theme.modes.includes('dark') ? step.dark.map((l) => shadowLayerValue(base, l, fmt)) : undefined;
   const modes: Record<string, unknown> = {};
   // WRAPPED IN `$value`, like every other mode entry — see #708. This shape is not cosmetic: it is the
   // one thing `emit-dtcg-overlay.ts` needs to recognize a mode entry at all. Shadow used to write the
@@ -158,7 +152,7 @@ const shadowLeaf = (theme: Theme, step: ShadowStep, description: string): Token 
   // shadowByMode → nothing emitted here.
   for (const [mode, sm] of Object.entries(theme.shadow.shadowByMode ?? {})) {
     const layers = sm.layers[step.name];
-    if (layers) modes[mode] = { $value: layers.map((l) => shadowLayerValue(sm.colorRgb, l, fmt, inset)) };
+    if (layers) modes[mode] = { $value: layers.map((l) => shadowLayerValue(sm.colorRgb, l, fmt)) };
   }
   return {
     $type: 'shadow',

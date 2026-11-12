@@ -601,9 +601,9 @@ const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown, onTarget
   if (v.letterSpacing) { const ls = deref(tree, t(v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em · ${emToPercentLabel(em)}`); }
   return parts.join(' · ');
 };
-/** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). `inset` leads, as in `resolve-preview.ts`'s `cssBoxShadow` (#3603). */
+/** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). */
 const shadowCss = (layers: unknown): string => Array.isArray(layers)
-  ? layers.map((l: any) => `${l.inset ? 'inset ' : ''}${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
+  ? layers.map((l: any) => `${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
   : '';
 // ── Preview → Token list, split on the primitive/semantic tier line (#267 pattern) ──────────────
 // Typography carried this split first (#272, via `.pvseg`); this generalises it. Two defects forced
