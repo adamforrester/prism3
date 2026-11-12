@@ -1027,7 +1027,7 @@ export const applyUpdate = async (
     // #3697 H1: a set that STOPPED still fills: the capture is in memory only, and the members the update reached have
     // already traded their rows for the slot, so a fill skipped here is content lost. Only an instance whose member
     // holds the slot is filled (`reachedOnly`); the rest keep their rows for the next run to read.
-    if (mig && entry && !o.stopped && !o.refused) {
+    if (mig && entry && !o.refused) {
       o.carried = await fillSlots(p.set, entry, mig.live, mig.migration, opts.breathe, !!o.stopped);
       o.content.push(...o.carried.misses);
     }
