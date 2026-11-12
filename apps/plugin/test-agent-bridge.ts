@@ -1328,7 +1328,7 @@ section('server-proof — the relay hears only a server that proves the secret')
     socks.push(f);
     return f;
   };
-  const say = (f: Fake, m: unknown) => f.onmessage?.({ data: JSON.stringify(m) });
+  const say = (f: Fake | undefined, m: unknown) => f?.onmessage?.({ data: JSON.stringify(m) });
   const relayOf = () => createBridgeRelay({ open: make, post: (m) => told.push(m), schedule: (fn) => { later.push(fn); return later.length; }, cancel: () => undefined, holdMs: 0 });
   const runLater = () => later.splice(0).forEach((fn) => fn());
   const posted = (type: string) => told.filter((m) => m.type === type);
@@ -1345,21 +1345,21 @@ section('server-proof — the relay hears only a server that proves the secret')
   ok(!r.connected() && s1.closed && !posted('agent-bridge').some((m) => m.connected) && !posted('agent-command').length,
     `server-proof/impostor: a welcome with no proof is refused: the socket is dropped, the link never reads connected and its command is never posted (${posted('agent-command').length} posted)`);
   runLater();
-  const s2 = socks[1];
+  const s2 = socks[1] ?? make() as Fake;
   say(s2, { type: 'challenge', v: 1, nonce: 'bb'.repeat(32) });
-  const h2 = s2.sent.find((m) => m.type === 'hello');
+  const h2 = s2.sent.find((m) => m.type === 'hello') ?? {};
   say(s2, { type: 'welcome', proof: proveWelcome(h2.clientNonce, 'f'.repeat(64)) });
   ok(!r.connected() && s2.closed, 'server-proof/impostor: a welcome proved with another token is refused');
   runLater();
-  const s3 = socks[2];
+  const s3 = socks[2] ?? make() as Fake;
   say(s3, { type: 'challenge', v: 1, nonce: 'cc'.repeat(32) });
-  const h3 = s3.sent.find((m) => m.type === 'hello');
+  const h3 = s3.sent.find((m) => m.type === 'hello') ?? {};
   say(s3, { type: 'welcome', proof: proveWelcome(h2.clientNonce) });
   ok(!r.connected() && s3.closed && h3.clientNonce !== h2.clientNonce, 'server-proof/replay: a welcome proved over an earlier connection\'s nonce is refused, and each connection draws its own');
   runLater();
-  const s4 = socks[3];
+  const s4 = socks[3] ?? make() as Fake;
   say(s4, { type: 'challenge', v: 1, nonce: 'dd'.repeat(32) });
-  const h4 = s4.sent.find((m) => m.type === 'hello');
+  const h4 = s4.sent.find((m) => m.type === 'hello') ?? {};
   say(s4, { type: 'paired', token: 'e'.repeat(64), proof: provePaired('ABCD-EFGH', h4.clientNonce, 'e'.repeat(64)) });
   ok(!posted('agent-bridge-paired').length && s4.sent.filter((m) => m.type === 'hello').length === 1,
     `server-proof/unsolicited-paired: a paired with no code pending is ignored: no token is kept and no second hello sent (${posted('agent-bridge-paired').length} kept)`);
@@ -1378,14 +1378,14 @@ section('server-proof — the relay hears only a server that proves the secret')
   q.pair('abcd-efgh');
   const p1 = socks[socks.length - 1];
   say(p1, { type: 'challenge', v: 1, nonce: 'ff'.repeat(32) });
-  const pair1 = p1.sent.find((m) => m.type === 'pair');
+  const pair1 = p1.sent.find((m) => m.type === 'pair') ?? {};
   say(p1, { type: 'paired', token: 'e'.repeat(64), proof: provePaired('WXYZ-WXYZ', pair1.clientNonce, 'e'.repeat(64)) });
   ok(!posted('agent-bridge-paired').length && p1.closed && !p1.sent.some((m) => m.type === 'hello'),
     'server-proof/impostor-paired: with a code pending, a paired that cannot prove that code keeps no token and is dropped');
   runLater();
   const p2 = socks[socks.length - 1];
   say(p2, { type: 'challenge', v: 1, nonce: '12'.repeat(32) });
-  const pair2 = p2.sent.find((m) => m.type === 'pair');
+  const pair2 = p2.sent.find((m) => m.type === 'pair') ?? {};
   say(p2, { type: 'paired', token: TOKEN, proof: provePaired('ABCD-EFGH', pair2.clientNonce) });
   ok(posted('agent-bridge-paired').some((m) => m.token === TOKEN) && p2.sent.some((m) => m.type === 'hello'),
     'server-proof/paired: a paired proving the pending code over this connection\'s nonce is kept, and the hello follows');
