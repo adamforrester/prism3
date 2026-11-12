@@ -60,7 +60,7 @@ const MUST_SCAN = [
   'packages/engine/regen.ts',
   'packages/engine/test.ts',
 ];
-// The engine held 193 tracked source files at #3698. A scan that reached a fraction of that is broken.
+// The engine held 194 tracked source files at #3698. A scan that reached a fraction of that is broken.
 const MIN_FILES = 150;
 
 // ── PROBE: the comparator's order on literals ────────────────────────────────────────────────────────────────
