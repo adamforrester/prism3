@@ -14,8 +14,8 @@
  * the surfaces bundle the emitters that read it.
  */
 export const localeFreeCompare = (a: string, b: string): number => {
-  const x = a.toLowerCase();
-  const y = b.toLowerCase();
+  const x = a;
+  const y = b;
   if (x !== y) return x < y ? -1 : 1;
   return a < b ? -1 : a > b ? 1 : 0;
 };
