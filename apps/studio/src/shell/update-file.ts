@@ -18,7 +18,7 @@
  * alone; each set then says what changes, and the update waits on that answer. One choice covers the hand edits it finds
  * (Keep, the default). A set built before the ledger reads "Not checked yet", with a way to check it. Both reads measure
  * against the panel's brand while Theme is ticked, else the file's stored one (#3023 Q701 B, `brandFor`), so a Theme toggle
- * checks the file again.
+ * checks the file again: in place (#3713), the checklist kept as drawn and "Reading this file…" in the foot.
  *
  * TO ADD (#3129, Q832 A, Q3129.7–10 A; the owner's revisions R6 and R7): the file's add queue, in Components' order and
  * with its names (`queuedOf`, `displayNameOf`). To add and Due are the two subtitles of one section, Components, at
@@ -155,6 +155,9 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
   let shown = false;
   let waited = false;
   let pendingLines = new Set<string>();
+  /** #3713 (4 of 4): the file's reading the checklist last drew, so a Theme toggle's re-read draws it again, in place,
+   *  with the foot's progress, rather than blanking the dialog to "Checking the file…". Cleared as the overlay opens. */
+  let shownFile: FileSets | null = null;
 
   const show = (): void => {
     if (open) return;
@@ -165,6 +168,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     panelsOpen = false;
     checkedFor = null;
     rechecking = false;
+    shownFile = null;
     seen.clear();
     if (!lend.read().run) {
       const r = lend.read();
@@ -243,11 +247,14 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       if (run.stopping) stop.disabled = true;
       return { body, foot: [btn('p3-btn p3-btn-page', 'update-close', 'close', UPDATE_COPY.close, close), stop] };
     }
-    const f = r.fileSets;
-    if (awaitingRead(f, asked)) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
+    // #3713 (4 of 4): a Theme toggle's re-read keeps the checklist as last drawn, its ticks as the person left them, and
+    // says in the foot that it is reading; only the first read of an opening shows "Checking the file…".
+    const rereading = awaitingRead(r.fileSets, asked) && rechecking && !!ticks && !!shownFile;
+    const f = rereading ? shownFile : r.fileSets;
+    if (!rereading && awaitingRead(f, asked)) return { body: [hook(h('p', 'p3-upd-line', UPDATE_COPY.checking), 'update-checking')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
     if (!f || f.error) return { body: [hook(h('p', 'p3-sg-error', UPDATE_COPY.readError), 'update-read-error')], foot: [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close)] };
-    asked = undefined;
-    if (rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
+    if (!rereading) { asked = undefined; shownFile = f; }
+    if (!rereading && rechecking && ticks) { rechecking = false; ticks = { ...ticks, update: new Set(dueSetsOf(r.catalog, f)) }; }
     ticks ??= defaultTicks(r.catalog, f, r.queue, liveAtOpen);
     const t = ticks;
     const fresh = !f.setUp;
@@ -281,7 +288,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     // The full check, over the due sets (and, #3137 Q3137.2 A, the panel sets while ticked), once per opening, as soon as
     // the ledger's answer is in.
     const scope = checkScopeOf(due, t, panelSets, keptSets);
-    if (scope.length && checkedFor === null) { checkedFor = scope; lend.checkSets(scope, t.theme); }
+    if (!rereading && scope.length && checkedFor === null) { checkedFor = scope; lend.checkSets(scope, t.theme); }
     const chk = r.updateCheck;
     const answered = chk && chk !== 'pending' && checkedFor !== null ? chk : null;
     const checkOf = (id: string): CheckedSetView | undefined => answered?.sets.find((c) => c.def === id);
@@ -513,7 +520,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     go.type = 'button';
     go.dataset.key = 'go';
     go.textContent = fresh ? UPDATE_COPY.goFresh : UPDATE_COPY.go;
-    go.disabled = steps.length === 0 || !!r.off || waiting;
+    go.disabled = steps.length === 0 || !!r.off || waiting || rereading;
     if (r.off) go.title = r.off;
     go.onclick = () => {
       if (go.disabled || !answered && asks) return;
@@ -526,22 +533,23 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     const foot: HTMLElement[] = [btn('p3-btn p3-btn-page', 'update-cancel', 'cancel', UPDATE_COPY.cancel, close), go];
     // #3713 (3 of 4): a disabled Update file says why, beside Cancel and the button, and names it as its description.
     // A set that can run but is unticked makes it "nothing ticked", not the blocked sets' fault.
-    const why = goWhyOf({ off: r.off, waiting, steps: steps.length, blocked: updating.length ? [] : blocked.map(nameOf) });
+    const why = goWhyOf({ off: r.off, waiting: waiting || rereading, steps: steps.length, blocked: updating.length ? [] : blocked.map(nameOf) });
     if (why) {
       const p = hook(h('p', 'p3-sub p3-upd-gowhy', why), 'update-go-why');
       p.id = 'p3-upd-gowhy';
       go.setAttribute('aria-describedby', p.id);
       foot.unshift(p);
     }
-    if (chk === 'pending' && checkedFor !== null && updating.length) {
+    // #3713 (4 of 4): a Theme toggle's re-read of the file shows here too, as "Reading this file…", before the check.
+    if (rereading || (chk === 'pending' && checkedFor !== null && updating.length)) {
       // #3302 Q3302.1 A, Q3302.3 A: the check's progress in the foot, before Cancel: "Reading this file…" with the bar
       // empty until every set is found, then "Checked n of N sets", the chrome's own bar filled by sets. It moves only
       // as a set is checked, never by time (#3150).
-      const text = prog ? UPDATE_COPY.checkedOf(prog.done, prog.total) : UPDATE_COPY.checkReading;
+      const text = prog && !rereading ? UPDATE_COPY.checkedOf(prog.done, prog.total) : UPDATE_COPY.checkReading;
       const wrap = hook(h('div', 'p3-upd-progress'), 'update-check-progress');
       const bar = hook(h('progress', 'p3-op-prog p3-upd-prog'), 'update-check-bar') as HTMLProgressElement;
-      bar.max = prog && prog.total > 0 ? prog.total : 1;
-      bar.value = prog ? prog.done : 0;
+      bar.max = prog && !rereading && prog.total > 0 ? prog.total : 1;
+      bar.value = prog && !rereading ? prog.done : 0;
       bar.setAttribute('aria-label', text);
       wrap.append(bar, hook(h('span', 'p3-sub p3-upd-progtext', text), 'update-check-count'));
       foot.unshift(wrap);

@@ -18418,8 +18418,17 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         await page.evaluate(() => { window.__ia2.length = 0; });
         await hooks.click(page.locator('[data-p3="update-check-theme"]'));
         await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'file-sets-request'), null, { timeout: 5000 }).catch(() => {});
-        // While it checks, the checklist says so, and focus stays inside the modal (the Theme box it was on is gone).
-        const checking = await page.evaluate(() => !!document.querySelector('[data-p3="update-checking"]') && !!document.querySelector('[data-p3="update-dialog"]')?.contains(document.activeElement));
+        // #3713 (4 of 4): while it reads the file again, the checklist keeps its content: no "Checking the file…", the Theme
+        // box drawn as toggled and keeping focus, both Due rows, "Reading this file…" in the foot, Update file waiting.
+        // MUTATION: `rereading` always false (the dialog blanks as before) → `#3713 in place`, by name.
+        const checking = await page.evaluate(() => ({
+          blank: !!document.querySelector('[data-p3="update-checking"]'),
+          box: document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked') ?? null,
+          focus: document.activeElement?.getAttribute('data-p3') ?? null,
+          rows: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => b.dataset.id),
+          foot: document.querySelector('[data-p3="update-check-count"]')?.textContent ?? null,
+          go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
+        }));
         await postMsg(page, FILE);
         await page.waitForFunction(() => window.__ia2.some((m) => m.type === 'update-check-request'), null, { timeout: 5000 }).catch(() => {});
         const got = await page.evaluate(() => window.__ia2.slice());
@@ -18433,7 +18442,9 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         const tg = await toggleTheme();
         const fs = tg.got.filter((m) => m.type === 'file-sets-request');
         const uc = tg.got.filter((m) => m.type === 'update-check-request');
-        ok(tg.box === String(on) && tg.checking && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
+        ok(!tg.checking.blank && tg.checking.box === String(on) && tg.checking.focus === 'update-check-theme' && JSON.stringify(tg.checking.rows) === '["button","select"]' && tg.checking.foot === 'Reading this file…' && tg.checking.go === true,
+          `${where}: #3713 in place: Theme ${words}: the checklist reads the file again in place, the foot saying so, never blanking (${JSON.stringify(tg.checking)})`);
+        ok(tg.box === String(on) && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
           `${where}: #3023 Q701 B: Theme ${words}: the checklist checks the file again, then the due sets, against that brand (${JSON.stringify({ box: tg.box, checking: tg.checking, fileSets: fs.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'), check: uc.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']) })})`);
       }
       // #3713 (2 of 4): a set the check's answer blocks leaves Due for "Can't update yet", with its due reason and its
