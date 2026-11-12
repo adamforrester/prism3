@@ -1,6 +1,6 @@
 # Radio.Row
 
-> One labeled option inside a Radio.Group. The whole row is the hit target.
+> One labeled option inside a radio group. The whole row is the hit target.
 
 - **ID:** `radio-row`
 - **Category:** form

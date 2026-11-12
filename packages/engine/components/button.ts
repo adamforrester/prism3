@@ -186,7 +186,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly." },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over a loading prop.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form).' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked.' },
     { name: 'leadingVisual', type: 'slot', required: false, description: 'Icon / avatar / counter / spinner before the label.' },
     { name: 'trailingVisual', type: 'slot', required: false, description: 'Icon / caret / indicator after the label.' },
     { name: 'href', type: 'string', required: false, description: 'A destination, for a navigation that needs a button\'s weight, such as "Continue to checkout". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link.' },
@@ -779,11 +779,12 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)',
       'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
     ],
-    contentGuidelines: 'Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound i18n expansion.',
+    contentGuidelines: 'Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound text expansion in translation.',
   },
 
   ai: {
-    primaryPurpose: 'Trigger an action in place.',
+    // #3555 Q-MD14 A: one line per sibling, in the imperative register every def's primaryPurpose takes.
+    primaryPurpose: { primary: 'Trigger an action in place, in the brand\'s primary style.', destructive: 'Trigger an action in place that deletes or removes something.', neutral: 'Trigger an action in place that carries no brand emphasis.' }[family],
     whenToUse: 'The user needs to act on this surface — submit, confirm, open, apply, or start async work.',
     avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
