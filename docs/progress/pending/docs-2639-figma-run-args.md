@@ -1,0 +1,7 @@
+## (2026-11-12) — figma_run's args description names every agent-link command (#2639)
+
+`figma_run`'s `args` description in `tools/figma-bridge/server.ts` was the one hand-typed part of the tool. It named 4 of the commands and told an agent to send `{}` to the rest, though `style-guide`, `update-components`, `capture-baseline`, `adopt-members`, `draw-specs` and the read commands all take arguments. It is now built from `AGENT_COMMANDS`, and each command's args are its `AgentArgs` member in `apps/plugin/src/agent-protocol.ts`, read from the source at load in the same one-line form `emit-agent-reference.ts` reads. A command without a one-line member stops the bridge at load and names the command, so the description can't skip one. Arms 0 and 1 drop `context` from the args description as they already did from the command list. `docs/public/reference/commands.json` is regenerated, because it embeds the bridge's tools.
+
+**Gate:** `test-agent-bridge.ts` arm `mcp/args`. Its expected shapes are copied by hand from `AgentArgs`, not re-read from it, so the server's own parse can't pass itself. Two mutations fail by name: the hand-typed line put back fails `mcp/args` (3/18), and arms 0 and 1 given the full list fail `arm/0-context` and `arm/1-context`.
+
+**Trap:** an `AgentArgs` member split over two lines breaks this parse and `emit-agent-reference.ts` the same way. Keep each member on one line.

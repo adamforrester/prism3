@@ -154,7 +154,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the icon button sits on, as on Button. default for a normal page; inverse for a dark or brand-filled band, where the control binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon button takes the shared white-inverse treatment with the icon as the ink: a white fill and a per-family icon ink derived to clear AA on white. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Swaps the icon for a spinner after a short delay, keeps focus (aria-disabled, not native disabled), suppresses re-fire, and announces busy through a polite live region. The square keeps its size.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled for relevant-but-blocked actions — retains tab order and surfaces the blockage reason on focus.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the accessibility tree.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled', 'inactive'],
@@ -604,7 +604,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   },
 
   ai: {
-    primaryPurpose: 'Trigger an action with an icon alone, no visible label.',
+    primaryPurpose: { primary: 'Trigger an action with an icon alone, no visible label, in the brand\'s primary style.', destructive: 'With an icon alone and no visible label, trigger an action that deletes or removes something.', neutral: 'With an icon alone and no visible label, trigger an action that carries no brand emphasis.' }[family],
     whenToUse: sibling.whenToUse ?? 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).',
     avoidWhen: `The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. ${sibling.avoidWhen}`,
     commonPartners: ['icon', 'spinner', 'focus-ring'],

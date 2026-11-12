@@ -106,7 +106,7 @@ export const focusRing: ComponentDef = {
   aliases: ['focus-indicator', 'focus-outline'],
   category: 'foundations',
   status: 'draft',
-  summary: 'Keyboard-focus ring nested by focusable components. Build first; don\'t place alone.',
+  summary: 'Keyboard-focus ring nested by focusable components. Don\'t place it alone.',
   description:
     'The shared keyboard-focus indicator: a stroke drawn outside its host\'s bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control\'s own border and the ring; 0 at the field offset, where the host\'s own border supplies the separation). Authored once and nested by every focusable control rather than re-drawn per host; fields draw their own 2px focus edge and nest no ring — the ring belongs to no single component, which is why its tokens are top-level families.',
 

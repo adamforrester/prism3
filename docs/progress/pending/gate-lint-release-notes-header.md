@@ -1,0 +1,7 @@
+## (2026-11-12) — lint-release-notes: each page's title and header line agree with its JSON (#2692)
+
+Line 3 of each `docs/public/releases/<v>.md` is the header a reader sees first: `2026-10-15 · from 0.236.0 · 0 breaking changes, 29 new, 1 fix`. `MARKDOWN` checked the page's list lines and change notes, never this line. So a hand edit to the date, the `from` version or any count passed with "every release lists exactly the changes git shows".
+
+`MARKDOWN` now reads the title (`# What changed in <v>`) and the header line, in a shape restated in the gate rather than read from `release-notes.ts`. The date and the `from` version are held to the `.json`, which `DATE` and `NOTES` hold to git. Each count is held to the classes of the `.json`'s items, not to its own `counts` field, so the header and `counts` cannot drift together. The words must agree in number ("1 fix", "3 fixes"). A header line in another shape fails as missing, so a template change in the generator moves the gate in the same PR.
+
+**Mutations on `0.237.0.md` only, each failing `MARKDOWN` by name:** the issue's three (date to 2026-10-09, `29 new` to `28 new`, `0 breaking changes` to `3 breaking changes`), plus `from 0.235.0`, "0 breaking change", the title's version, and a header in another shape. Neutering the date check lets the date edit pass, which shows that the arm, not another one, catches it. M11 to M14 are added to the gate's mutation register.

@@ -69,7 +69,7 @@ export const sliderThumb: ComponentDef = {
   aliases: ['slider-handle', 'slider-knob'],
   category: 'form',
   status: 'draft',
-  summary: 'The thumb a Slider moves: an ink disc that sits on the track. Used only inside a Slider.',
+  summary: 'The thumb a slider moves: an ink disc that sits on the track. Used only inside a slider.',
   description:
     'The handle a Slider moves along its track: a disc in neutral ink that sits on the track with no gap. A light halo grows around it at hover and wider while pressed, and it shows the focus ring while it has keyboard focus. It comes in the Slider\'s three sizes. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.',
 
@@ -236,7 +236,7 @@ export const sliderThumb: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'The handle a Slider moves, inside a Slider only.',
+    primaryPurpose: 'Give a Slider the handle the user moves.',
     whenToUse: 'Only as a child of a Slider. Generate a Slider, which places one thumb for a single value and two for a range, and sets their size and state.',
     avoidWhen: 'Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.',
     commonPartners: ['slider', 'focus-ring'],

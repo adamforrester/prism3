@@ -16,7 +16,9 @@
  *                             reverses its item, names kept, fails here.
  *   DATE                      a release's date is not a day git allows: before the fold that set the version
  *                             before it, or after its own fold (the working tree: after today, UTC).
- *   MARKDOWN                  the `.md` page's list lines are not exactly the `.json` items' sentences.
+ *   MARKDOWN                  the `.md` page's list lines are not exactly the `.json` items' sentences, or
+ *                             its title or header line (date, `from` version, the three counts) disagrees
+ *                             with the `.json` and its items (#2692).
  *   NOTES                     the folded change notes are not exactly the ones that version's fold deleted.
  *   INDEX                     `index.json` and the release files disagree, in either direction, or an index
  *                             entry's counts, highlights or items (what the plugin shows) are not the release's.
@@ -70,6 +72,10 @@
  *   M9  the fold walk back on `--first-parent` with merges kept, on a branch that merged `main` across the
  *       0.237.0 fold → NOTES: the merge is read as the fold, and the notes carry change notes it did not fold.
  *   M10 a `token-added` sentence's type word changed (dimension → color) in the `.json` and `.md` → TEXT.
+ *   M11 0.237.0.md's header date changed to 2026-10-09 in the `.md` only → MARKDOWN (dated).
+ *   M12 its `29 new` changed to `28 new` in the `.md` only → MARKDOWN (counts 28 new).
+ *   M13 its `0 breaking changes` changed to `3 breaking changes` in the `.md` only → MARKDOWN (counts 3 breaking).
+ *   M14 its `from 0.236.0` changed to `from 0.235.0` in the `.md` only → MARKDOWN (follows).
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -335,6 +341,23 @@ for (const v of onDisk.sort(cmpVersion)) {
   for (const t of texts) if (!lines.includes(t)) fail('MARKDOWN', `${v}.md does not list "${t}"`);
   for (const l of lines) if (!texts.includes(l)) fail('MARKDOWN', `${v}.md lists "${l}", which is not an item in ${v}.json`);
   for (const n of rel.notes) if (!md.includes(n.prose)) fail('MARKDOWN', `${v}.md does not carry the change note ${n.slug}`);
+  // The page's title and header line (#2692), the first thing a reader sees: `# What changed in <v>`, then
+  // `<date> · from <version> · <n> breaking change(s), <n> new, <n> fix(es)`. The shape is restated here,
+  // never read from `release-notes.ts`. Each field is held to the `.json` that DATE and NOTES hold to git,
+  // and each count to the classes of the items, not to the `.json`'s own `counts`.
+  const head = md.split('\n').slice(0, 6);
+  if (head[0] !== `# What changed in ${v}`) fail('MARKDOWN', `${v}.md's title is "${head[0]}", not "# What changed in ${v}"`);
+  const hm = head.map((l) => /^(\d{4}-\d{2}-\d{2}) · from (\d+\.\d+\.\d+) · (\d+) breaking (changes?), (\d+) new, (\d+) (fix(?:es)?)$/.exec(l)).find(Boolean);
+  if (!hm) fail('MARKDOWN', `${v}.md has no header line of the shape "<date> · from <version> · <n> breaking changes, <n> new, <n> fixes" under its title`);
+  else {
+    const [, date, fromV, nb, wb, nn, nf, wf] = hm;
+    if (date !== rel.date) fail('MARKDOWN', `${v}.md's header is dated ${date}; ${v}.json says ${rel.date}`);
+    if (fromV !== rel.from) fail('MARKDOWN', `${v}.md's header says it follows ${fromV}; ${v}.json says ${rel.from}`);
+    for (const [c, n] of [['breaking', nb], ['new', nn], ['fix', nf]] as const) {
+      if (Number(n) !== counts[c]) fail('MARKDOWN', `${v}.md's header counts ${n} ${c}; ${v}.json's items hold ${counts[c]}`);
+    }
+    if ((wb === 'change') !== (Number(nb) === 1) || (wf === 'fix') !== (Number(nf) === 1)) fail('MARKDOWN', `${v}.md's header "${hm[0]}" does not agree in number`);
+  }
 
   // The folded notes: exactly the ones this version's fold deleted, as they read before it.
   const before = at === null ? 'HEAD' : `${at}^1`;
