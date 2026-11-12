@@ -50,7 +50,7 @@
 import { subscribe } from '../state/store';
 import type { Catalog } from '../state/component-catalog';
 import { displayNameOf, groupsOf, GROUPS_COPY, sentenceCase } from '../state/component-groups';
-import { alsoAddsOf, awaitingRead, badgeParts, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
+import { alsoAddsOf, awaitingRead, badgeParts, blockedDueOf, blockedReason, checkScopeOf, defaultTicks, dueSetsOf, themeDueOf, themeMatchesOf, newSetsOf, panelSetsOf, keptChoicesOf, keptSetsOf, queuedOf, recheckFirst, runOrderOf, setupOfferedOf, stepOf, stepsOf, unrecordedOf, updateDefsOf, PANELS_INLINE, STEP_TITLE, UPDATE_COPY, type FileSets, type HandEditChoice, type LiveDue, type StepKey, type Ticks, type UpdateRun } from '../state/update-file';
 import type { CheckedSetView } from '../write-adapter';
 import type { UpdateProgress } from '../state/host-session';
 import { armEnter, entering, focusables, glyph, h, hook, leave, pendingLabel, setBusy, trapTab } from './dom';
@@ -297,7 +297,12 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       const add = unrec.filter((id) => { const c = checkOf(id); return c && !c.blocked && !c.upToDate && !t.update.has(id); });
       if (add.length) { ticks = { ...t, update: new Set([...t.update, ...add]) }; return updateBody(); }
     }
-    const updating = [...new Set([...due, ...t.update])];
+    const listed = [...new Set([...due, ...t.update])];
+    // #3713 (2 of 4): a set the check's answer blocks for this run leaves Due for Can't update yet, with no tick. Due's
+    // line, its ticks, the hand-edit count and the saves line count only the sets that can run.
+    const blocked = blockedDueOf(listed, answered, t.theme);
+    const updating = listed.filter((id) => !blocked.includes(id));
+    const ticked = [...t.update].filter((id) => !blocked.includes(id));
     // #3129 R6: To add and Due are the two subtitles of one section, Components, at Theme's level. Where a removal takes
     // the last of To add away, focus goes on to the next control: Due's first tick, else Style guides'.
     const after = updating.length ? `due=${updating[0]}` : 'item=guides';
@@ -385,7 +390,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       if (chk && chk !== 'pending' && chk.error) sets.append(hook(h('p', 'p3-sg-error', UPDATE_COPY.checkError), 'update-check-error'));
       // One choice for every hand edit the update meets (the owner's starter-kit posture: Keep, by default). Since #3083
       // (the owner's Q3083.3 A) a compact select in the foot, before Cancel and Update file, built below.
-      handN = [...t.update].reduce((n, id) => n + (checkOf(id)?.handEdited ?? r.handEdits.get(id)?.edited ?? 0), 0);
+      handN = ticked.reduce((n, id) => n + (checkOf(id)?.handEdited ?? r.handEdits.get(id)?.edited ?? 0), 0);
     }
     if (unrec.length && !unrec.every((id) => t.update.has(id) || checkOf(id))) {
       // Built before the ledger: only the full check can say. Checked, each one with changes joins the update, ticked.
@@ -400,6 +405,24 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     // Due is drawn while a set is due or unchecked (the check offered below); a file with neither has no Due group, and
     // with neither group there is no Components section.
     if (updating.length || unrec.length) comps.append(sets);
+    // #3713 (2 of 4): the sets the check blocks, each with its due reason and why it can't update; nothing to tick.
+    if (blocked.length) {
+      const grp = hook(h('div', 'p3-upd-group'), 'update-group-blocked');
+      grp.append(h('span', 'p3-upd-subtitle', UPDATE_COPY.blocked));
+      const list = hook(h('div', 'p3-upd-sets'), 'update-blocked-sets');
+      for (const id of blocked) {
+        const d = f.due[id];
+        const row = hook(h('div', 'p3-upd-setrow'), 'update-blocked-row');
+        row.dataset.id = id;
+        const text = h('span', 'p3-check-text p3-upd-checktext');
+        text.append(h('span', 'p3-upd-setname', nameOf(id)));
+        if (d?.state === 'due') text.append(hook(h('span', 'p3-sg-tag', UPDATE_COPY.dueWhy(d)), 'update-set-due'));
+        row.append(text, hook(h('p', 'p3-sub p3-upd-setline', blockedReason(checkOf(id)?.reasons)), 'update-blocked-why'));
+        list.append(row);
+      }
+      grp.append(list);
+      comps.append(grp);
+    }
     // #3137 Q3137.1 A: Usage panels, the third subtitle: one tick for the group, then the names (Q3137.5 A).
     if (panelSets.length) {
       const grp = hook(h('div', 'p3-upd-group'), 'update-group-panels');
@@ -477,7 +500,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
       comps.append(grp);
     }
     // The section's last line (#3137): a version is saved before the update, Due and the panels alike.
-    if (t.update.size || (t.panels && panelSets.length) || keptSets.some((id) => (t.kept.get(id) ?? 'keep') !== 'keep')) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
+    if (ticked.length || (t.panels && panelSets.length) || keptSets.some((id) => (t.kept.get(id) ?? 'keep') !== 'keep')) comps.append(hook(h('p', 'p3-sub p3-upd-saves', UPDATE_COPY.saves), 'update-saves'));
     if (comps.children.length > 1) body.push(comps);
     body.push(item('guides', t.guides, UPDATE_COPY.guides, UPDATE_COPY.guidesSub, () => { ticks = { ...t, guides: !t.guides }; }));
     const t2 = ticks ?? t;

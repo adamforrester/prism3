@@ -199,6 +199,11 @@ export const brandFor = <B>(theme: boolean, panel: B): B | undefined => (theme ?
 /** Whether the scoped check's reading of a set lets the run update it: not blocked; or (#3421) blocked only by variables
  *  or styles the brand's Theme writes, in a run whose Theme step goes first. */
 const runnable = (c: CheckedSetView, theme: boolean): boolean => !c.blocked || (theme && !!c.themeBlocked);
+/** #3713 (2 of 4): the Due sets the check's answer reads as blocked for this run, in the order given: listed apart under
+ *  Can't update yet, with no tick, since the run would leave them anyway. A set only Theme blocks is not among them while
+ *  Theme is ticked (#3421). Empty before the answer: until then every Due set is listed, ticked. */
+export const blockedDueOf = (ids: readonly string[], check: { readonly sets: readonly CheckedSetView[] } | null, theme: boolean): string[] =>
+  check ? ids.filter((id) => { const c = check.sets.find((x) => x.def === id); return !!c && !runnable(c, theme); }) : [];
 /** What the scoped check says of the ticked sets the update would act on: the ones it read and did not block, and
  *  (#3421) with Theme ticked, the ones only Theme's variables and styles block. The run checks those again after Theme. */
 export const updatableOf = (t: Ticks, check: { readonly sets: readonly CheckedSetView[] }): string[] =>
@@ -336,12 +341,16 @@ export const blockedWhy = (line: string): { readonly why: string; readonly next:
   const t = line.replace(/\s*\(#\d+\)/g, '').trim().replace(/:$/, '');
   return { why: `${t}${/[.!?]$/.test(t) ? '' : '.'}`, next: null };
 };
-/** #3713: a blocked set's line: its first reason in plain words, the step that clears it, and how many more. DRAFT. */
-export const blockedLine = (reasons: readonly string[] | undefined): string => {
-  if (!reasons?.length) return 'Can’t update yet — the check gave no reason.';
+/** #3713: a blocked set's first reason in plain words, the step that clears it, and how many more; `lead` opens it. DRAFT. */
+const reasonText = (reasons: readonly string[] | undefined, lead: (why: string) => string): string => {
+  if (!reasons?.length) return lead('the check gave no reason.');
   const { why, next } = blockedWhy(reasons[0]);
-  return [`Can’t update yet — ${why}`, next, reasons.length > 1 ? `${s_(reasons.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
+  return [lead(why), next, reasons.length > 1 ? `${s_(reasons.length - 1, 'more reason', 'more reasons')}.` : ''].filter(Boolean).join(' ');
 };
+/** #3713: a blocked set's line where it stands among the checked sets: "Can't update yet — …". DRAFT. */
+export const blockedLine = (reasons: readonly string[] | undefined): string => reasonText(reasons, (why) => `Can’t update yet — ${why}`);
+/** #3713 (2 of 4): its line under Can't update yet, whose title already says so: the reason as a sentence. DRAFT. */
+export const blockedReason = (reasons: readonly string[] | undefined): string => reasonText(reasons, (why) => `${why.charAt(0).toUpperCase()}${why.slice(1)}`);
 
 /** The checklist's words, DRAFT placeholders until the owner words them (Q2909.10 A). */
 export const UPDATE_COPY = {
@@ -375,6 +384,8 @@ export const UPDATE_COPY = {
   addAll: (n: number): string => `Add all ${n}`,
   due: 'Due',
   dueSub: (n: number): string => `${plural(n)} to update in place. Ticked by default.`,
+  /** #3713 (2 of 4, DRAFT): the group a blocked Due set is listed in, apart from Due and with no tick. */
+  blocked: 'Can’t update yet',
   updateStep: 'Update sets in place',
   /** A due set's one-line reason (#3082 Q811 A): a setting it follows, or what an engine update moved in its drawing. */
   dueWhy: (d: Extract<SetDueView, { state: 'due' }>): string => (d.reason === 'engine' ? (d.moved ? engineWhy(d.moved) : UPDATE_COPY.engineUnprinted)

@@ -18436,6 +18436,27 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         ok(tg.box === String(on) && tg.checking && fs.length === 1 && fs.every(want(brand)) && uc.length === 1 && JSON.stringify(uc[0].defs) === JSON.stringify(['button', 'select']) && uc.every(want(brand)),
           `${where}: #3023 Q701 B: Theme ${words}: the checklist checks the file again, then the due sets, against that brand (${JSON.stringify({ box: tg.box, checking: tg.checking, fileSets: fs.map((m) => 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none'), check: uc.map((m) => [m.defs, 'input' in m ? wireDiff(m.input, PANEL_BRAND) : 'none']) })})`);
       }
+      // #3713 (2 of 4): a set the check's answer blocks leaves Due for "Can't update yet", with its due reason and its
+      // own reason in plain words, and no tick; Due's line counts only the set that can run, and Update file still runs
+      // it. Theme is unticked here, so a set only Theme blocks is blocked too. Literals, DRAFT copy. MUTATION:
+      // `blockedDueOf` returning [] (the blocked set left in Due, ticked) → this arm, by name.
+      step = 'a blocked set';
+      const blockedSet = { ...sets[1], blocked: true, upToDate: false, reasons: ['Not in this file: icon/close. Build icon first, then run the update again'] };
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [sets[0], blockedSet] });
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="update-blocked-row"]'), null, { timeout: 5000 }).catch(() => {});
+      const bl = await page.evaluate(() => ({
+        due: [...document.querySelectorAll('[data-p3="update-due-set"]')].map((b) => b.dataset.id),
+        dueLine: document.querySelector('[data-p3="update-due-line"]')?.textContent ?? null,
+        title: document.querySelector('[data-p3="update-group-blocked"] .p3-upd-subtitle')?.textContent ?? null,
+        rows: [...document.querySelectorAll('[data-p3="update-blocked-row"]')].map((r) => [r.dataset.id, r.querySelector('[data-p3="update-set-due"]')?.textContent ?? null, r.querySelector('[data-p3="update-blocked-why"]')?.textContent ?? null]),
+        boxes: document.querySelectorAll('[data-p3="update-group-blocked"] [role="checkbox"], [data-p3="update-group-blocked"] input').length,
+        go: document.querySelector('[data-p3="update-go"]')?.disabled ?? null,
+      }));
+      ok(JSON.stringify(bl.due) === '["button"]' && bl.dueLine === '1 set to update in place. Ticked by default.' && bl.title === 'Can’t update yet'
+        && JSON.stringify(bl.rows) === JSON.stringify([['select', 'Engine update: focus ring size', 'It needs Icon, which this file doesn’t have. Add Icon on Components first.']]) && bl.boxes === 0 && bl.go === false,
+        `${where}: #3713 blocked apart: a blocked set is listed under Can't update yet with its reason and no tick, and Due counts only the set that can run (${JSON.stringify(bl)})`);
+      await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets });
+      await page.waitForFunction(() => !document.querySelector('[data-p3="update-blocked-row"]') && document.querySelectorAll('[data-p3="update-due-set"]').length === 2, null, { timeout: 5000 }).catch(() => {});
       // #3083 (Q3083.3 A): the select's pick is the one the update posts, and the repaint the pick causes keeps focus
       // on the select. MUTATION: `sel.onchange` writes 'keep' whatever is picked → this arm and the update-sets one below.
       step = 'the hand-edits pick';

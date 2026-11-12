@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, blockedLine, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -334,6 +334,22 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
   ok(!cases.some(([, w]) => /agent’s update check/.test(w)) && !/agent’s update check/.test(B()), '#3713: no line points at the agent\'s update check');
   ok(UPDATE_COPY.checked({ def: 'tag', hash: 'h', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, themeBlocked: true, reasons: ['1 variable the plan binds is not in this file (a)'] }, true) === 'Updated after Theme — Theme writes the variables and styles it binds first',
     '#3713 (#3421 kept): a set only Theme blocks, with Theme ticked, still reads Updated after Theme');
+}
+
+// #3713 (2 of 4): THE DUE SETS THE ANSWER BLOCKS ARE LISTED APART. Literals (docs/34). MUTATION: `blockedDueOf` returning
+// every Due set, or none → `#3713 apart`.
+{
+  const ck = { sets: [
+    { def: 'button', hash: 'a', members: 4, update: 2, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: false },
+    { def: 'icon', hash: 'b', members: 9, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, reasons: ['2 members share the coordinate size=medium (1:2, 1:3) — the set is refused rather than one picked'] },
+    { def: 'tag', hash: 'c', members: 4, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: true, upToDate: false, themeBlocked: true as const, reasons: ['1 variable the plan binds is not in this file (a)'] },
+  ] };
+  ok(same(blockedDueOf(['button', 'icon', 'tag', 'select'], ck, false), ['icon', 'tag']), '#3713 apart: without Theme, the sets the answer blocks are listed apart, a set it did not read is not');
+  ok(same(blockedDueOf(['button', 'icon', 'tag'], ck, true), ['icon']), '#3713 apart: with Theme ticked, a set only Theme blocks stays in Due (#3421)');
+  ok(same(blockedDueOf(['button', 'icon'], null, false), []), '#3713 apart: before the answer, no set is listed apart');
+  ok(blockedReason(ck.sets[1].reasons) === '2 variants share one name, size=medium. Rename or remove the extra one in Figma.'
+    && blockedReason(undefined) === 'The check gave no reason.' && UPDATE_COPY.blocked === 'Can’t update yet',
+    `#3713 apart copy: the group is "Can't update yet", and each row's reason is a sentence (got "${blockedReason(ck.sets[1].reasons)}")`);
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);
