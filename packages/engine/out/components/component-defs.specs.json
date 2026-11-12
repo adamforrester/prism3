@@ -50719,9 +50719,25 @@
                 }
               }
             },
+            "decrement": {
+              "styles": {
+                "fillColor": {
+                  "$token": "color.disabled.on-fill",
+                  "$type": "color"
+                }
+              }
+            },
             "value": {
               "styles": {
                 "textColor": {
+                  "$token": "color.disabled.on-fill",
+                  "$type": "color"
+                }
+              }
+            },
+            "increment": {
+              "styles": {
+                "fillColor": {
                   "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }

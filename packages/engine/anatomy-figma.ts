@@ -2181,6 +2181,14 @@ export const figmaAnatomyPlan = (
       // A part that keeps its content's own paint (#2343 PR 2, `fixedPaint`) takes none: on a provider logo the host's
       // ink would be the retint the provider forbids.
       if (!p.fixedPaint) descendantFills = paintOf('icon');
+    } else if (p.kind === 'nest' && p.hostInk) {
+      // HOST-TO-NEST PAINT (owner decisions Q-FL1 A and Q-FL1.1 A, #3554; `PartDef.hostInk`). A nest otherwise keeps
+      // its own component's paint; one that declares `hostInk` takes the HOST's ink for that slot, resolved here exactly
+      // as a glyph part of the host would resolve it, so the disabled branch asks for the on-fill form where the host's
+      // disabled fill lands. Where the host keys nothing for the slot at this coordinate, nothing is pushed and the
+      // nested component's own ink stands. The ink rides `descendantFills` on the NESTED_INSTANCE, which both executors
+      // already paint on every VECTOR inside the node (#2380), so no executor code moves.
+      descendantFills = paintOf(p.hostInk);
     }
 
     // The placeholder lands only on a TEXT node, and only where the def declares a TEXT property for

@@ -373,7 +373,9 @@ Type: color. Bound by 15 component(s).
 | card-number-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
 |  |  | placeholder | state: disabled (12 of 84) |
 | checkbox-control | `disabled.icon.on-fill` | glyph | selection: checked, indeterminate · state: disabled (12 of 90) |
-| counter | `disabled.label.on-fill` | value | appearance: outline · state: disabled (3 of 18) |
+| counter | `disabled.icon.on-fill`, `disabled.label.on-fill` | decrement | appearance: outline · state: disabled (3 of 18) |
+|  |  | increment | appearance: outline · state: disabled (3 of 18) |
+|  |  | value | appearance: outline · state: disabled (3 of 18) |
 | icon-button | `disabled.icon.on-fill` | icon | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-destructive | `disabled.icon.on-fill` | icon | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.icon.on-fill` | icon | appearance: filled · state: disabled · surface: default (6 of 216) |

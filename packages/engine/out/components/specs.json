@@ -41501,8 +41501,16 @@
               "stroke": "color.disabled.border"
             },
             {
+              "part": "container/control/decrement",
+              "icon": "color.disabled.on-fill"
+            },
+            {
               "part": "container/control/entry/value",
               "ink": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/increment",
+              "icon": "color.disabled.on-fill"
             }
           ]
         },
