@@ -20,7 +20,7 @@ A slider picks an approximate value, or a range between two values, by moving a 
 Shown on the default member: size `medium`, type `single`.
 
 1. **Container** — The slider: the field (label, value, track and milestones), then the optional inputs and message. It fills its column.
-2. **Field**
+2. **Field** — The header, the track and the milestones, with no space between them.
 3. **Header** — The label at the start and the value text at the end.
 4. **Label** (optional) — The visible label, naming the dimension being set; it fills the room the value leaves. Its label text, required marker, emphasis and weight surface on the slider. Starts primary and regular, and follows the slider's size.
 5. **Value single** (optional) — The current value, formatted as the thumb announces it.
@@ -32,9 +32,9 @@ Shown on the default member: size `medium`, type `single`.
 11. **Bar** — The selected part of the track, in ink at the track's own thickness: from the start to the thumb, or between the two thumbs of a range. Square-ended, so it meets the disc with no gap.
 12. **Thumb** — The thumb of a single value, or the maximum thumb of a range. It shows the state.
 13. **Space end** — The track after the thumb, outside the selected value or range. Paints nothing: the track shows through.
-14. **Milestones** (optional)
+14. **Milestones** (optional) — Labels under the track for the minimum, a value between and the maximum, evenly spaced; off by default, with no tick marks.
 15. **Min label** — The minimum value, under the start of the track.
-16. **Milestone**
+16. **Milestone** — A milestone between the ends, halfway along the track.
 17. **Max label** — The maximum value, under the end of the track.
 18. **Inputs** (optional) — Paired number inputs for exact entry: one for a single value, two for a range. Off by default.
 19. **Input single** — The number input of a single value.
@@ -106,7 +106,7 @@ The label names the dimension. The value text shows the value with its unit; a r
 ## Related components
 
 - **Built from:** `field-label`, `_slider-thumb`, `text-field`, `field-message`
-- **Instead, consider:** `text-field`, `segmented-control`, `radio-group`, `switch-row`
+- **Instead, consider:** `segmented-control`, `radio-group`, `switch-row`
 - **Replaces:**
   - a native \<input type="range"> styled per browser engine
   - a drag-only custom slider with no keyboard support
@@ -118,7 +118,7 @@ The label names the dimension. The value text shows the value with its unit; a r
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `label` | string | — | yes | Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb. |
+| `label` | string \| node | — | yes | Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb. |
 | `hideLabel` | boolean | `false` | no | Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none. |
 | `value` | number \| [number, number] | — | no | The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange. |
 | `defaultValue` | number \| [number, number] | — | no | The starting value when the slider manages its own state. A pair starts a range. |
@@ -137,7 +137,8 @@ The label names the dimension. The value text shows the value with its unit; a r
 | `showMilestones` | boolean | `false` | no | Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position. |
 | `milestones` | Array\<number \| { value: number; label: string }> | — | no | The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled. |
 | `showInputs` | boolean | `false` | no | Shows paired number inputs under the track: one for a single value, "Minimum" and "Maximum" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off. |
-| `helpText` | string | — | no | Guidance under the slider, in a field message. |
+| `helpText` | string \| node | — | no | Guidance under the slider, in a field message. |
+| `showMessage` | boolean | `false` | no | Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error. |
 | `validation` | enum: 'default' \| 'error' | `default` | no | error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider's own value is always in range, so an error comes from a paired input or from validation elsewhere in the form. |
 | `validationMessage` | string | — | no | The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it. |
 | `disabled` | boolean | `false` | no | Takes the slider out of interaction and out of the form payload, and dims it. |
@@ -377,7 +378,7 @@ Keyed by `type`, `state`.
 | `value` | boolean | `true` |
 | `milestones` | boolean | `false` |
 | `inputs` | boolean | `false` |
-| `helper` | boolean | `false` |
+| `message` | boolean | `false` |
 
 ---
 

@@ -150,6 +150,9 @@ type ButtonSibling = {
   do: string[];
 };
 
+/** #3555 C2: icon-only is sent to the IconButton of the same color, so Button.Destructive does not recommend the brand one. */
+const ICON_BUTTON_OF: Record<IntentFamily, string> = { primary: 'IconButton', destructive: 'IconButton.Destructive', neutral: 'IconButton.Neutral' };
+
 const makeButton = (id: string, name: string, summary: string, description: string, family: IntentFamily, sibling: ButtonSibling): ComponentDef => ({
   id,
   name,
@@ -174,7 +177,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1223 — no `intent` prop. Intent is now the COMPONENT (Button = primary; Destructive Button;
     // Neutral Button), not a prop on one component. EMPHASIS IS STILL THE APPEARANCE AXIS: a form with
     // three actions is typically three of the SAME component at filled / outline / text, not three colors.
-    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'filled', required: false, description: 'Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)' },
+    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'filled', required: false, description: 'Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Control size — drives height, padding, and label type.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives.' },
     // #2350 (owner Q143) — DRAFT name, values and wording, for the owner.
@@ -466,7 +469,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // def to fix — which is exactly what `swap` says.
       leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
       label: { kind: 'text', optional: false, type: 'size.{size}.{appearance}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
-      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / caret / indicator after the label. Not split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
+      // Maintainer detail, out of the reader caption (#3610): Icon / caret / indicator after the label. Not split
+      // into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own
+      // slot — is already carried by leadingVisual + isPending.
+      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'An icon, caret or indicator after the label.' },
       spinner: {
         kind: 'overlay',
         // THE SPINNER COMPONENT (#1670), swapped in at the member on the slot's own icon rung (a medium
@@ -481,7 +487,19 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         overlaysWhenAbsent: 'label',
         when: 'pending',
         size: 'size.{size}.icon',
-        note: 'Takes a visual cell when there is one (Primer: "the spinner replaces only that visual slot, and the button label remains visible") — width identical, because the cell was already the icon\'s size. With no visual cell at all there is nothing to take, so it goes out of flow, centered on the label, and the label holds the width open at zero opacity (React Aria). Generalized from "the leading visual" to "a visual cell" by #848, and the narrow reading was a real defect rather than a simplification: `replaces` named only `leadingVisual`, so `leading=false, trailing=true` — which has a visual cell — fell through to the label overlay and rendered as spinner + trailing visual with the label at zero opacity, i.e. two icons and no text. Found in a live Figma paste; every gate was green (see #848 and docs/34 shape 16). The older note before that ruled out the label\'s position on the grounds that replacing a centered label collapses the width, which conflated replacing with removing: removing the label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the label-only case for as long as it stood (#612).',
+        // Maintainer detail, out of the reader caption (#3610): Takes a visual cell when there is one (Primer: "the
+        // spinner replaces only that visual slot, and the button label remains visible") — width identical, because
+        // the cell was already the icon's size. With no visual cell at all there is nothing to take, so it goes out
+        // of flow, centered on the label, and the label holds the width open at zero opacity (React Aria).
+        // Generalized from "the leading visual" to "a visual cell" by #848, and the narrow reading was a real defect
+        // rather than a simplification: `replaces` named only `leadingVisual`, so `leading=false, trailing=true` —
+        // which has a visual cell — fell through to the label overlay and rendered as spinner + trailing visual with
+        // the label at zero opacity, i.e. two icons and no text. Found in a live Figma paste; every gate was green
+        // (see #848 and docs/34 shape 16). The older note before that ruled out the label's position on the grounds
+        // that replacing a centered label collapses the width, which conflated replacing with removing: removing the
+        // label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the
+        // label-only case for as long as it stood (#612).
+        note: 'Shown while the button is busy: it takes the place of an icon when there is one, and otherwise sits over the hidden label, so the button keeps its width.',
       },
       focusRing: {
         kind: 'absolute',
@@ -503,7 +521,14 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         // Naming the variant is still #681 — the def CHOOSES rather than inheriting the ring set's first
         // child (creation-order, #656's error one layer out); `follow` only makes the choice per member.
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component. Takes no cell in the row, so no geometry moves, and has its own stroke — which is what dissolves the collision rather than trading a loss: a ring drawn on the target would compete with `appearance=outline`\'s border for the single stroke a Figma node has, at three different palette steps (550 ring / 500 border / 550 rest fill). Shared rather than authored per host because the ring is nobody\'s component — `focus.ring.*` and `color.border.focus` are top-level families and `focus.ring.offset-field` already emits separately.',
+        // Maintainer detail, out of the reader caption (#3610): An absolutely-positioned sibling nesting the shared
+        // `focus-ring` component. Takes no cell in the row, so no geometry moves, and has its own stroke — which is
+        // what dissolves the collision rather than trading a loss: a ring drawn on the target would compete with
+        // `appearance=outline`'s border for the single stroke a Figma node has, at three different palette steps (550
+        // ring / 500 border / 550 rest fill). Shared rather than authored per host because the ring is nobody's
+        // component — `focus.ring.*` and `color.border.focus` are top-level families and `focus.ring.offset-field`
+        // already emits separately.
+        note: 'The shared focus ring, shown on keyboard focus; it sits outside the button and moves nothing in its layout.',
       },
     },
     derived: {
@@ -700,7 +725,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     wcag: [
       '1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)',
       '2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)',
-      '2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)',
+      '2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)',
       '2.5.3 Label in Name (an aria-label starts with the visible label text)',
       '2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)',
       '2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)',
@@ -760,7 +785,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   ai: {
     primaryPurpose: 'Trigger an action in place.',
     whenToUse: 'The user needs to act on this surface — submit, confirm, open, apply, or start async work.',
-    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
+    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
     commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group'],

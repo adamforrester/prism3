@@ -421,7 +421,11 @@ export const checkboxRow: ComponentDef = {
         size: 'size.{size}.control',
         // `status` FOLLOWS (owner Q354, #2751): the Row's `status` member nests the control at the same status.
         nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest', status: 'default' }, expose: ['selection', 'state'], follow: ['size', 'status'] },
-        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size and status, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
+        // Maintainer detail, out of the reader caption (#3610): An in-flow instance of `checkbox-control` taking the
+        // control cell inside the line-box wrapper. It EXPOSES the control's selection and state (the consumer drives
+        // them from the Row), follows the Row's size and status, and binds its own square so it is centered within
+        // the taller wrapper rather than stretched to fill it.
+        note: 'The checkbox, centered on the label\'s first line; it follows the row\'s size, status and selection.',
       },
       // THE TEXT COLUMN (#3153, owner Q853 A and Q852). The label and, under it, the description, so the description
       // starts at the label's start edge and never under the control. Its top inset is `label-inset`, half of the box
@@ -449,7 +453,11 @@ export const checkboxRow: ComponentDef = {
         // reflows while the top-aligned row holds the control on the first line (#1201). The row's `minWidth`
         // floor is what gives the fill something to resolve against — `anatomyErrors` requires it.
         wrap: true,
-        note: 'The accessible name AND the second half of the hit target. Rich content in code (a consent line carries a link); a plain text node in Figma, where a nested link cannot exist. It WRAPS to a second line rather than overflowing (#1424) — it fills the row\'s main axis and reflows.',
+        // Maintainer detail, out of the reader caption (#3610): The accessible name AND the second half of the hit
+        // target. Rich content in code (a consent line carries a link); a plain text node in Figma, where a nested
+        // link cannot exist. It WRAPS to a second line rather than overflowing (#1424) — it fills the row's main axis
+        // and reflows.
+        note: 'The accessible name, and part of what a person clicks; a long label wraps to a second line.',
       },
       // THE DESCRIPTION (#3153, owner Q853 A). Helper text under the label: one type step below it, in the muted
       // ink, starting at the label's edge (it is the text column's second child), a small fixed gap above it. Hidden
@@ -572,7 +580,7 @@ export const checkboxRow: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember me"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7-10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.',
+    usage: 'Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember me"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.',
     do: [
       'Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond',
       'Set aria-checked="mixed" explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech',
@@ -594,7 +602,7 @@ export const checkboxRow: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture an independent binary choice that is staged into a form and submitted, with an associated label that doubles as the hit target and an optional indeterminate state for select-all hierarchy.',
     whenToUse: 'A single opt-in (consent, "remember me", "include X"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.',
-    avoidWhen: 'The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).',
+    avoidWhen: 'The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).',
     commonPartners: ['checkbox-control', 'checkbox-group', 'field-label', 'field-message', 'focus-ring', 'button'],
     triggerKeywords: ['checkbox', 'check box', 'tickbox', 'check', 'select all', 'consent', 'terms and conditions', 'opt in'],
     generationPriority: 2,

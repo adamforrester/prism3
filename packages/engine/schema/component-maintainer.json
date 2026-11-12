@@ -70,11 +70,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.glyph.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -270,11 +265,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.ring.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -434,21 +424,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -557,21 +532,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -682,21 +642,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.trailingVisual.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -728,7 +673,7 @@
         {
           "class": "platform-owned",
           "disposition": "REFUSED",
-          "description": "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and type and style through unchanged."
+          "description": "the provider's element — the component is a container the provider's element mounts into: apple-pay-button (Apple Pay JS), the button createButton() returns (Google Pay), the PayPal SDK button and Shopify's Shop Pay element. It never draws a button of its own. It passes size as the element's height, the brand radius as the element's radius option (clamped for Google Pay, below), and wording (as the provider's button type) and style through unchanged."
         },
         {
           "class": "runtime-behavior",
@@ -783,6 +728,7 @@
           "The style artwork, grounds and edges were captured from each provider's public SDK on 2026-10-30 (the records in marks/provenance.json). An SDK that changes its paint later is not seen until the artwork is captured again."
         ],
         "evolution": [
+          "2026-11-11 (#3554 Q-CC21 A): the wording prop is `wording`, as SignInButton names the same job, not `type`, which is the HTML button type on Button, IconButton and FlushIconButton. It still reaches the provider as its button type.",
           "Proposed on #2343 (2026-10-25, §2) as one of two branded buttons from one factory; the owner chose two components (Q-B4 A), valid provider × style pairs only (Q-B5 A) and the provider's own element in code (Q-B8 A). Built in PR 4 on the owner's logo marks (PR 3).",
           "Q-W1 (the Figma member) was built as A, a layout stand-in with no fill, while the providers' artwork was not in. #3174 took B (Q3174.1–6, all A): a style axis in each SDK's own names, each style drawn from the provider's SDK artwork with its record's ground and edge, and the stand-in kept as the any style, so every member built before is still there at style any.",
           "Q-W2 (heights outside a provider's range): built as A, no member, and kept by Q3174.4 A: PayPal has no large member, because 55 is its documented ceiling.",
@@ -838,6 +784,16 @@
     },
     "sign-in-button": {
       "codeOnly": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "pending — not projected: the design file's states are rest, hover, pressed and focus-visible (Q-S6 A), and pending is code-only, as Button's inactive is (Q-CC23 A). In code isPending keeps focus with aria-disabled and aria-busy, ignores a second click while the provider's sign-in is in flight, and announces busy through a polite live region."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "disabled — not projected: the design file's states are rest, hover, pressed and focus-visible (Q-S6 A), and disabled is code-only (Q-CC23 A). In code it is the native attribute, and the button leaves the tab order and the accessibility tree."
+        },
         {
           "class": "platform-owned",
           "disposition": "REFUSED",
@@ -998,7 +954,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1011,21 +967,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -1107,7 +1048,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1120,21 +1061,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -1216,7 +1142,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1229,21 +1155,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.icon.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.spinner.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -1301,7 +1212,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1391,7 +1307,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1481,7 +1402,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1593,16 +1519,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.indicator.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "accessibility",
           "field": "accessibility.keyboard",
           "reason": "empty"
@@ -1700,26 +1616,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.errorGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.warningGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.successGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -1862,21 +1758,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -1993,26 +1874,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.gripGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.counter.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -2080,26 +1941,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.checkGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.dashGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2194,16 +2035,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2390,21 +2221,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.dot.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -2496,16 +2312,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -2518,6 +2324,11 @@
         {
           "section": "related",
           "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
           "reason": "empty"
         },
         {
@@ -2605,11 +2416,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.row1.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "styles",
           "field": "states",
           "reason": "empty"
@@ -2694,31 +2500,6 @@
         ]
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.track.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.thumb.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.onGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.offGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -2819,16 +2600,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.control.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -2885,6 +2656,11 @@
         {
           "class": "not-projected",
           "disposition": "LOWERED",
+          "description": "style — not projected: the field's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695)."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED",
           "description": "pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, text-field's posture. In code async options are loading: a spinner replaces the chevron and the control sets aria-busy. It stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members."
         },
         {
@@ -2921,26 +2697,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.chevronGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.emptyPattern",
@@ -3234,7 +2990,7 @@
         {
           "class": "announcement",
           "disposition": "REFUSED",
-          "description": "announcement — a wrapper with `role=\"status\"` and `aria-live=\"polite\"` around an `aria-hidden` `<svg>`, with the `label` (\"Loading\" by default) in a visually hidden span (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer's stance) — puts `aria-hidden=\"true\"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role=\"progressbar\"`: a spinner has no value."
+          "description": "announcement — the region comes first: a polite `role=\"status\"` region, the host's or the app's, is on the page and empty before the spinner shows, and the `label` (\"Loading\" by default) is written into it, visually hidden, when the spinner shows, because some screen readers ignore a region inserted together with its text (owner decision Q-CC25 A, as Progress, Toast and Banner require). The `<svg>` is `aria-hidden`. The label is the region's content, not its accessible name (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer's stance) — puts `aria-hidden=\"true\"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role=\"progressbar\"`: a spinner is not a progressbar (Q-CC24 A)."
         }
       ],
       "notes": {
@@ -3243,7 +2999,7 @@
           "STANDALONE COMPONENTS, not one variant set (`emitAsComponents`). The button swaps a spinner into its icon slot by component name, and a set member's name is not unique in a file.",
           "THE TURN IS NOT TEMPO-SCALED. `motion.duration.spin` holds 800ms at every tempo, where the transition ramp scales with the brand's tempo lever.",
           "A SEPARATE PRIMITIVE, not a `CircularProgress` variant (brief §1, §10). The practice default, and this def: a separate `Spinner` keeps the no-value contract off a component that carries `value` / `min` / `max`, so a button loader is never read as a `progressbar` that needs a value. The alternative is the fold MUI (`CircularProgress variant=\"indeterminate\"`) and Spectrum (`ProgressCircle isIndeterminate`) ship. Material 3 split its \"Loading indicator\" out of indeterminate progress in May 2025 (unverified, see below).",
-          "THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role=\"status\"` with a hidden \"Loading\" (the APG-recommended pattern, and this def's default); an indeterminate `role=\"progressbar\"` with no `aria-valuenow` (permitted, but some screen readers keep announcing the missing value, so ruled out here); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).",
+          "THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role=\"status\"` with a hidden \"Loading\" (the APG-recommended pattern, and this def's default); an indeterminate `role=\"progressbar\"` with no `aria-valuenow` (permitted, and Progress uses it for its visible indeterminate bar; a spinner is not a progressbar, so ruled out here, Q-CC24 A); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).",
           "INLINE vs OVERLAY, and the API divide (brief §3, §4). This def is the inline primitive only: no mask, no `spinning` toggle, no `fullscreen`. The alternatives are Ant's `Spin`, which wraps content in a dimming mask and blocks it, and, on API shape, Base Web's exhaustive `overrides` (drilling into `Svg` / `TrackPath`) against Spectrum's locked-down API (only `staticColor`). This def sits at the locked-down end: `size` and `label`.",
           "REDUCED MOTION SLOWS THE TURN rather than substituting a pulse (owner, 2026-09-26). Brief §6 and §8 name a slow opacity pulse, or a static indicator with a low-frequency text ellipsis, as the substitute. Both agree on the rule that matters: never a frozen ring, which reads as a crash (Primer: make it subtle, do not remove it).",
           "THE ANTI-FLASH DELAY IS THE HOST'S, not a `delay` prop. Brief §3 lists `delay` (~200–500ms), a first-class prop in Ant and Fluent. The host already decides when to mount the spinner and owns the busy announcement, so the timer sits with that decision; a `delay` prop would put a second timer beside the host's. The alternative is the brief's prop, defaulting to 0.",
@@ -3257,7 +3013,6 @@
         ],
         "unverified": [
           "The external 2026 version numbers and the Material 3 \"Loading indicator\" split (May 2025 Expressive Update) — brief §14 holds them loosely and flags them unverified, and so does this def. They back the separate-primitive call and the 200ms / 5s bands, both of which stand on their own reasoning.",
-          "The `role=\"status\"`-versus-`role=\"progressbar\"` announcement specifics — which screen readers keep announcing an indeterminate progressbar's missing value. The brief asks for verification against current screen readers; not verified here.",
           "1.4.11 for the arc: it takes its host's icon ink and is stated to clear 3:1, but that is not measured per host. Standalone it binds `color.icon.primary`, which the engine gates against `background.primary`; inside a host it takes whatever ink the host pushes (on-fill, disabled ink, their inverse twins), and no gate composes the spinner onto each host's ground and measures the arc there."
         ],
         "evolution": [
@@ -3274,11 +3029,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.frame.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -3568,11 +3318,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "names a tool"
-        },
-        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -3668,11 +3413,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.labelReserve.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -3972,7 +3712,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion."
+          "description": "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs, on motion.transition.default both ways, and swaps without turning under prefers-reduced-motion (the prism3-motion accordion recipe). Figma swaps the down and up glyphs, since a variant holds no motion."
         },
         {
           "class": "right-to-left",
@@ -3998,21 +3738,6 @@
         {
           "section": "accessibility",
           "field": "accessibility.keyboard",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.enter",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.exit",
-          "reason": "empty"
-        },
-        {
-          "section": "accessibility",
-          "field": "motion.reduceMotion",
           "reason": "empty"
         },
         {
@@ -4133,11 +3858,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.focusRing.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -4221,11 +3941,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.number.note",
-          "reason": "names a tool"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -4542,11 +4257,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.label.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -5049,21 +4759,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -5208,6 +4903,11 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "ai.commonPartners",
           "reason": "empty"
         },
         {
@@ -5525,6 +5225,11 @@
         },
         {
           "section": "related",
+          "field": "ai.commonPartners",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
           "field": "composition.supersedes",
           "reason": "empty"
         },
@@ -5726,26 +5431,12 @@
           "2026-10-18 (Q414 A): `type` gains previous and next, the square cell with a chevron in the neutral ink and wash, with a disabled state for an end; `labeled` adds the word for simple.",
           "2026-10-19 (owner QA, Q426 A, Q427 A, Q428 A): the underline is as wide as the number (its childless balance frame stretches to the number instead of keeping a new frame's default width); the gap icon is in the page numbers' ink; the labeled previous and next lose the wash and change ink only; the chevrons and the gap icon are one icon-size rung smaller (xs, sm, md), the cells unchanged.",
           "2026-10-19 (Q427 A), WCAG 1.4.11 and the second cue: in the border style the current page's border is color.border.secondary, one rung lighter than border.tertiary (lowest 2.00 against color.background.primary in light and dark; 9.8 and up in high contrast). 1.4.11 asks 3:1 of the visual information needed to identify a state. Here the border is not needed: the current page's number is in the emphasis weight, and each page keeps the width of that weight, so the weight alone identifies it, with aria-current in code. The border is a second, decorative cue, so it may be subtle. The underline style has no other visual cue in its box, so its underline keeps border.tertiary at 3:1. The exception is this part only: test.ts holds the border to the emphasis weight and the underline to 3:1.",
+          "2026-11-11 (Q-CC12 A, #3554): the underline style's underline is a selection mark, so it binds color.interactive.neutral.indicator.rest, the mark that matches the number's ink, in place of border.tertiary. Its value moves from the mid gray to the label ink, and a brand that quiets its outline edges (#3346) no longer thins it below the 3:1 Q427 A requires. The border style's border stays an edge on border.secondary.",
           "2026-10-17 (Q394 A, Q395 A, Q404 A): the id loses the `_` prefix and the item becomes the items slot's preferred item, preferred-only; border.tertiary at 1px kept; the ellipsis becomes the decorative more-horizontal icon, so its text part, its TEXT property and the `mark` prop go."
         ],
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.previousGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.gapGlyph.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.nextGlyph.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.errorPattern",
@@ -5877,26 +5568,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.previous.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.next.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.previousButton.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.nextButton.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -6150,21 +5821,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
-        {
           "section": "content",
           "field": "content.dialogPattern",
           "reason": "empty"
@@ -6285,21 +5941,6 @@
         ]
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.caret.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.value.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.dialogPattern",
@@ -6435,16 +6076,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.action.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.dismiss.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "styles",
           "field": "states",
@@ -6681,21 +6312,6 @@
       },
       "docGaps": [
         {
-          "section": "anatomy",
-          "field": "anatomy.parts.field.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.milestones.note",
-          "reason": "maintainer register"
-        },
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.milestone.note",
-          "reason": "names a tool"
-        },
-        {
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
@@ -6779,7 +6395,7 @@
         "contested": [
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
           "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
-          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+          "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
           "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
@@ -6915,7 +6531,7 @@
       ],
       "notes": {
         "contested": [
-          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
+          "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
           "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
         ],
         "unverified": [
@@ -6927,11 +6543,6 @@
         "projection": []
       },
       "docGaps": [
-        {
-          "section": "anatomy",
-          "field": "anatomy.parts.message.note",
-          "reason": "maintainer register"
-        },
         {
           "section": "content",
           "field": "content.dialogPattern",

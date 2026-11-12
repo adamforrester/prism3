@@ -314,7 +314,7 @@ export const slider: ComponentDef = {
     'A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.',
 
   props: [
-    { name: 'label', type: 'string', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
+    { name: 'label', type: 'string | node', required: true, description: 'Names the dimension being set, such as "Price" or "Volume". Shown above the track, and the accessible name of a single thumb.' },
     // Q-CC7 A (#3554): the hidden label is one code prop across Search, Counter and Slider. Figma's `label` switch stands
     // for it, so code can now hide what Figma can.
     { name: 'hideLabel', type: 'boolean', default: false, required: false, description: 'Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none.' },
@@ -335,7 +335,8 @@ export const slider: ComponentDef = {
     { name: 'showMilestones', type: 'boolean', default: false, required: false, description: 'Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position.' },
     { name: 'milestones', type: 'Array<number | { value: number; label: string }>', required: false, description: 'The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled.' },
     { name: 'showInputs', type: 'boolean', default: false, required: false, description: 'Shows paired number inputs under the track: one for a single value, "Minimum" and "Maximum" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off.' },
-    { name: 'helpText', type: 'string', required: false, description: 'Guidance under the slider, in a field message.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Guidance under the slider, in a field message.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error.' },
     { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider\'s own value is always in range, so an error comes from a paired input or from validation elsewhere in the form.' },
     { name: 'validationMessage', type: 'string', required: false, description: 'The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Takes the slider out of interaction and out of the form payload, and dims it.' },
@@ -402,7 +403,9 @@ export const slider: ComponentDef = {
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'header-gap',
         crossAxisFill: true,
-        note: 'The header, the track and the milestones, with no gap between them (Q550 c).',
+        // Maintainer detail, out of the reader caption (#3610): The header, the track and the milestones, with no gap
+        // between them (Q550 c).
+        note: 'The header, the track and the milestones, with no space between them.',
       },
       header: {
         kind: 'box',
@@ -489,10 +492,13 @@ export const slider: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'hug', y: 'hug' } },
         crossAxisFill: true,
         optional: true,
-        note: 'Labeled milestones under the track (Q550 d): the minimum, a value between, and the maximum, spaced evenly. Off by default. No tick marks.',
+        // Maintainer detail, out of the reader caption (#3610): Labeled milestones under the track (Q550 d): the
+        // minimum, a value between, and the maximum, spaced evenly. Off by default. No tick marks.
+        note: 'Labels under the track for the minimum, a value between and the maximum, evenly spaced; off by default, with no tick marks.',
       },
       minLabel: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'The minimum value, under the start of the track.' },
-      milestone: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'A milestone between the ends, halfway along in Figma.' },
+      // Maintainer detail, out of the reader caption (#3610): A milestone between the ends, halfway along in Figma.
+      milestone: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'A milestone between the ends, halfway along the track.' },
       maxLabel: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'The maximum value, under the end of the track.' },
       inputs: {
         kind: 'box',
@@ -649,7 +655,7 @@ export const slider: ComponentDef = {
       showValue: { part: ['valueSingle', 'valueRange'], default: true, figmaName: 'value' },
       showMilestones: { part: 'milestones', default: false, figmaName: 'milestones' },
       showInputs: { part: 'inputs', default: false, figmaName: 'inputs' },
-      showHelper: { part: 'message', default: false, figmaName: 'helper', figmaOnly: true },
+      showMessage: { part: 'message', default: false, figmaName: 'message' },
     },
   },
 
