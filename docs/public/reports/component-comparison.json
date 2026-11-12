@@ -1903,7 +1903,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -1970,6 +1971,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -1992,7 +1997,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -2059,6 +2065,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -2081,7 +2091,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -2148,6 +2159,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -4161,6 +4176,9 @@
           "small",
           "large"
         ],
+        "style": [
+          "outline"
+        ],
         "status": [
           "default",
           "error",
@@ -4174,6 +4192,9 @@
         },
         {
           "name": "value"
+        },
+        {
+          "name": "defaultValue"
         },
         {
           "name": "placeholder"
@@ -4220,6 +4241,9 @@
           "default": false
         },
         {
+          "name": "autoComplete"
+        },
+        {
           "name": "isPending",
           "default": false
         },
@@ -4254,7 +4278,9 @@
         "rest",
         "hover",
         "pressed",
-        "focus-visible"
+        "pending",
+        "focus-visible",
+        "disabled"
       ],
       "projectedStates": [
         "rest",
@@ -4323,6 +4349,14 @@
         },
         {
           "name": "onClick"
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
         }
       ],
       "sizes": [
@@ -5517,6 +5551,7 @@
       "search-field",
       "segmented-control-segment",
       "select",
+      "sign-in-button",
       "slider",
       "switch-control",
       "switch-row",
@@ -5629,6 +5664,9 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral"
@@ -5645,6 +5683,7 @@
       "password-field",
       "search-field",
       "select",
+      "sign-in-button",
       "switch-row",
       "text-field",
       "textarea"
@@ -6275,6 +6314,7 @@
           "card-number-field",
           "password-field",
           "search-field",
+          "select",
           "text-field",
           "textarea"
         ]
@@ -6694,6 +6734,9 @@
         "id": "search-field"
       },
       {
+        "id": "select"
+      },
+      {
         "id": "text-field"
       }
     ],
@@ -6852,6 +6895,9 @@
         "id": "segmented-control"
       },
       {
+        "id": "select"
+      },
+      {
         "id": "slider"
       },
       {
@@ -6998,6 +7044,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "sign-in-button",
         "default": false
       },
       {
@@ -7429,6 +7479,18 @@
         "default": false
       },
       {
+        "id": "flush-icon-button",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-neutral",
+        "default": false
+      },
+      {
         "id": "icon-button",
         "default": false
       },
@@ -7494,6 +7556,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "sign-in-button",
         "default": false
       },
       {
@@ -9881,7 +9947,7 @@
       "components": [
         "flush-icon-button"
       ],
-      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9889,7 +9955,7 @@
       "components": [
         "flush-icon-button-destructive"
       ],
-      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9897,7 +9963,7 @@
       "components": [
         "flush-icon-button-neutral"
       ],
-      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9953,6 +10019,30 @@
     },
     {
       "kind": "state not drawn",
+      "subject": "flush-icon-button",
+      "components": [
+        "flush-icon-button"
+      ],
+      "detail": "flush-icon-button declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button-destructive",
+      "components": [
+        "flush-icon-button-destructive"
+      ],
+      "detail": "flush-icon-button-destructive declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button-neutral",
+      "components": [
+        "flush-icon-button-neutral"
+      ],
+      "detail": "flush-icon-button-neutral declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
       "subject": "icon-button",
       "components": [
         "icon-button"
@@ -9998,6 +10088,14 @@
         "select"
       ],
       "detail": "select declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "sign-in-button",
+      "components": [
+        "sign-in-button"
+      ],
+      "detail": "sign-in-button declares the states pending and disabled, which the design-file state axis does not draw"
     },
     {
       "kind": "state not drawn",
@@ -10190,12 +10288,13 @@
         "pagination-item",
         "password-field",
         "search-field",
+        "select",
         "sign-in-button",
         "text-field",
         "textarea",
         "wallet-button"
       ],
-      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
+      "detail": "the style axis takes 6 value sets — [outline] in card-number-field, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -10845,7 +10944,7 @@
       "components": [
         "select"
       ],
-      "detail": "select has the variant axis status and no prop of that name"
+      "detail": "select has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",
