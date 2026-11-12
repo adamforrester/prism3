@@ -21,7 +21,7 @@ Shown on the default member: size `medium`, status `default`.
 
 1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts primary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.
 2. **Items** — The items: a native slot holding the Radio.Row instances, three by default. A designer adds, removes and reorders rows in place.
-3. **Row1**
+3. **Row1** — The first option, always present; it fills the group's width and is selected when its value is the group's value.
 4. **Row2** — The second default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.
 5. **Row3** — The third default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.
 6. **Message** — The group's validation message under the options, a nested FieldMessage present only when the group is at error. Its status follows the group's, so it shows the error glyph and ink. Fills the group's width, so a long message wraps.

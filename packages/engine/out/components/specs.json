@@ -11050,7 +11050,10 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "pending",
+        "disabled"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -16685,7 +16688,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -17300,7 +17305,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -17915,7 +17922,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -33239,7 +33248,7 @@
       ],
       "properties": [
         {
-          "name": "text",
+          "name": "label",
           "type": "TEXT",
           "default": "List item"
         },
@@ -41488,11 +41497,12 @@
           "parts": [
             {
               "part": "container/control",
+              "fill": "color.disabled.fill",
               "stroke": "color.disabled.border"
             },
             {
               "part": "container/control/entry/value",
-              "ink": "color.disabled.text"
+              "ink": "color.disabled.on-fill"
             }
           ]
         },

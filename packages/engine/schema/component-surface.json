@@ -228,12 +228,12 @@
     },
     "wallet-button": {
       "members": 68,
-      "sha256": "c8f1aac4328cba74d80c8d87dc2493ae80ccb1913199bb758a7ad4f3cb551982",
+      "sha256": "ce64c6a23d644b3af8a1729f13996d6860f625d52313b52d5048feb11a6f0173",
       "properties": []
     },
     "sign-in-button": {
       "members": 96,
-      "sha256": "9a4d39342b35aa1f46094c12968b581a9446d91eb78c0c51b873cdbee57dfbac",
+      "sha256": "15c630daad4c710b661ecb96b119bad74390b22856e794dbf0c88e607e38b824",
       "properties": []
     },
     "icon-button": {
@@ -283,47 +283,47 @@
     },
     "flush-icon-button": {
       "members": 60,
-      "sha256": "883bed625005b937a619449b95421dadd915969e51c8726d1c1a452a746709ac",
+      "sha256": "bee236db809c97af6adbf384d3e599c886a2e7d702945f9f38e89a9acb261742",
       "properties": []
     },
     "flush-icon-button@outline-solid-tint": {
       "members": 60,
-      "sha256": "e64153e1c86dd23d557f31148be6a68a35edf4cf568deae8a58744f92a4709bc",
+      "sha256": "b63f423683cd4e6081db4927d963a390bdbcf7b9a6fdbb45f2a4a479c69b6dd6",
       "properties": []
     },
     "flush-icon-button@outline-none": {
       "members": 60,
-      "sha256": "8d6eb54e74c3571cf5888f96b1187148420fe270c45bd35e838f4e359a1f814a",
+      "sha256": "7f0c7fce30d416bd2977c70ea70d1eade910c52d391c0894cecd6eb8076af9e1",
       "properties": []
     },
     "flush-icon-button-destructive": {
       "members": 60,
-      "sha256": "9f4c8e30a2511a02d37f2ec0769b713c27f68ce7a91714b4111d2af4b6613069",
+      "sha256": "de85eb6efc508ed13a5f5397a8442a0de57d8c993e2b523bd6c52beba333d322",
       "properties": []
     },
     "flush-icon-button-destructive@outline-solid-tint": {
       "members": 60,
-      "sha256": "135634d4dc2db5338b657fe438f3f0ce7842f59f0db47d39c9fea29e7e11cfcb",
+      "sha256": "6b24bbb6d35694fc4bca1777f6c848d0a781e8c2b767e41096e990eacec8cba8",
       "properties": []
     },
     "flush-icon-button-destructive@outline-none": {
       "members": 60,
-      "sha256": "eeb53d20ed51e606d8c2383d03f7df96faa6017f61dceb7f1700e4ce834b3fda",
+      "sha256": "3f8a1ea480e9ce4d360405890a410dc3e5a564a75d0ace92e4e7b88b1d36915e",
       "properties": []
     },
     "flush-icon-button-neutral": {
       "members": 60,
-      "sha256": "85253aa1b0d44e9af005d780c91849f6c3874742ee3d2fdb68bcd46614ae85d9",
+      "sha256": "46cc1aa3e9da5fc7a3a1941fecc316bd52b86d00ae227bf9790d61f8b4b93591",
       "properties": []
     },
     "flush-icon-button-neutral@outline-solid-tint": {
       "members": 60,
-      "sha256": "e5f6df8aa346fc41fb9eef7c25cc39372d8777f121814dcf001cee5f10adce2b",
+      "sha256": "1baa8bd0cb5c37d0d6378dc19d5a16aa4a2885dd3b559da89a7eccf9f1e17a0f",
       "properties": []
     },
     "flush-icon-button-neutral@outline-none": {
       "members": 60,
-      "sha256": "12cb8a3cba84e7fce83b222d04cdbd4f2f795dd36090f2b703ddd4eb7b686503",
+      "sha256": "9f310a9f47ce85fdd3eda0744bee64b3ff4c00bd22ecdd31c8433f9a04ede751",
       "properties": []
     },
     "field-label": {
@@ -441,7 +441,7 @@
     },
     "select": {
       "members": 84,
-      "sha256": "a218a54c13cfadf6538c74c668d369e8df4b98785b6047c9534f4057ee21cae3",
+      "sha256": "4e35265577de52fcb3030661f6ca2dc305c750c735bdf85b65d76d6fd1aa6a44",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -562,7 +562,7 @@
     },
     "_accordion-indicator": {
       "members": 12,
-      "sha256": "608768a6d100d88fdce8be96cf7cfffcee8797739e53d96de5a926c3eb212a96",
+      "sha256": "a1cf9dab3ba1ede6342bc6e4fdeba13b055542b15361689b6683a6f2173d7742",
       "properties": []
     },
     "accordion": {
@@ -576,11 +576,11 @@
     },
     "list-item": {
       "members": 12,
-      "sha256": "7d9ecec7b537abcffc70bf4278a35c875d3183274e6b16e8894d289dcaecd076",
+      "sha256": "089e83fb25da650afae18b70ea66a8bd8598f59b1ac17be88877b4e427c7c433",
       "properties": [
+        "label:TEXT",
         "number:TEXT",
-        "swap icon:INSTANCE_SWAP",
-        "text:TEXT"
+        "swap icon:INSTANCE_SWAP"
       ]
     },
     "list": {
@@ -705,7 +705,7 @@
     },
     "counter": {
       "members": 18,
-      "sha256": "b7b708fc1c078c1f43df06153206b749955bf0f80fa3bcf8e3846b5e335b58c7",
+      "sha256": "22458d4468f5d356c0b6dc607f8049443d6b5a6f026e91983feb8484bab63e47",
       "properties": [
         "label:BOOLEAN",
         "message:BOOLEAN",

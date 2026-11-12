@@ -2563,6 +2563,8 @@ for (const place of SEARCH_PLACES) {
     }
   }
   await page.locator('[data-p3="search-input"]').fill('');
+  // #3553 M1 A: the tab row hides while Search is open, at every width, so the sweep closes it before the next place.
+  if (place !== 'components') await hooks.click(page.locator('[data-p3="search-close"]'));
 }
 for (const l of levers) {
   const at = foundAt.get(l.key);
@@ -2595,10 +2597,17 @@ for (const s of SEARCH_SAMPLE) {
   ok(before['lever-raised-surface'] && !before['lever-dialog-title-size'] && afterEdit['lever-raised-surface'] && !afterEdit['lever-dialog-title-size'],
     `#3093: on Components, searching "white" then picking Dialog surface's "${String(picked).trim()}" keeps Dialog title size hidden (${JSON.stringify({ before, after: afterEdit })})`);
   // #3129 R4: Components shows no mode control, so the mode changes on Theme (Components previews Light, Q3129.14 B), and
-  // the search holds across the visit.
-  await goPlace(page, 'brand');
+  // the search holds across the visit. #3553 M1 A changed the route: the tab row hides while Search is open, so no other
+  // Theme page can be reached without closing it. The visit goes by the rail instead, to the Theme page last open
+  // (Layout, the sweep's last), and the mode is changed there with Search still open.
+  await hooks.click(page.locator('[data-p3="rail-theme"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place !== 'components');
+  const onTheme = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, open: document.querySelector('[data-p3="search"]')?.dataset.open === 'true',
+    tabs: [...document.querySelectorAll('[data-p3="tab-row"] .p3-tabs')].filter((t) => t.getClientRects().length > 0).length }));
+  ok(onTheme.open && onTheme.tabs === 0, `#3553 M1 A: the rail's Theme tile keeps Search open, and the tab row stays hidden under it (${JSON.stringify(onTheme)})`);
   await pickMode(page, 'dark');
-  await goPlace(page, 'components');
+  await hooks.click(page.locator('[data-p3="rail-components"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components');
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const afterMode = await read();
   ok(afterMode['lever-raised-surface'] && !afterMode['lever-dialog-title-size'],
@@ -7083,14 +7092,14 @@ for (const host of ['web', 'plugin']) {
 // button set a card of its own after it (`EXPECT_SET_CARDS`). The preview keeps its one Interactive section, which those
 // cards together drive; Disabled and Links still pair one for one.
 const EXPECT_INTERACTIVE_SECTIONS = [
-  ['Interactive Settings', 'Every button set, in every mode.'],
+  ['Interactive settings', 'Every button set, in every mode.'],   // #3553 Q-UI3 A: sentence case, as every other card title
   ['Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.'],
   ['Links', 'The link color in each state, on the page and on the inverse fill.'],
 ];
 /** Which section each lever sits in (Q51), by hook. */
 const EXPECT_PREVIEW_SECTIONS = ['Interactive', 'Disabled', 'Links'];
-const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary Interactive Colors'], ['outlineInteraction', 'Interactive Settings'], ['outlineWash.hover', 'Interactive Settings'],
-  ['neutralEmphasis', 'Neutral Interactive Colors'], ['strictInteractiveContrast', 'Interactive Settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
+const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary Interactive Colors'], ['outlineInteraction', 'Interactive settings'], ['outlineWash.hover', 'Interactive settings'],
+  ['neutralEmphasis', 'Neutral Interactive Colors'], ['strictInteractiveContrast', 'Interactive settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
   ['linkPalette', 'Links'], ['linkStateRungs', 'Links']];
 const EVERY_SET = 'Every button set is shown, including ones you added.';
 const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
@@ -10398,7 +10407,8 @@ const COMPONENTS_COPY = {
   web: 'Building sets needs the Figma plugin.',
   // #2909 (Q2909.5 A): the plugin's line, a DRAFT (Q2909.10 A).
   plugin: 'Sets not in this file are added from Update file.',
-  intro: (n) => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
+  // #3553 Q-UI6 A: the web's intro has no file sentence (the web has no file and builds nothing).
+  intro: (n) => `The ${n} component sets the engine defines, in families.`,
   build: 'Build', buildOne: 'Build 1 set', busy: 'Building 1 of 1…',
   nothing: 'Select sets to build them.',
 };
@@ -11930,7 +11940,7 @@ if (runs('28')) console.log(`\nThe start window (S12)\n${'='.repeat(78)}`);
 const START = {
   heading: { web: 'Start a brand', figma: 'Start a brand in this file' },                   // G17
   order: ['Start from your color', 'Explore an example', 'Import a design.md'],   // S8, then N1 A (Blank folded into the color card)
-  colorDesc: 'Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray.',   // N1 A
+  colorDesc: 'Your primary brand color; everything else starts from defaults you can tune. No color yet? Start blank with a neutral gray.',   // N1 A, then #3553 Q-UI4 A (no "smart")
   go: 'Start from this color',                                                                  // S1
   badHex: 'Enter a hex color as #rrggbb.',                                                      // S3
   emptyPaste: 'Paste a design.md brief or choose a file first.',                                // S2
@@ -13295,7 +13305,7 @@ const EXPECT_HEADINGS = {
   'color-interactive': {
     // #3335 (the owner's Q3335.1 A and Q3335.7 A): the settings card, then a card per button set at L1, each opening on its
     // lever (Primary Action Palette, Neutral emphasis) at L2 and its state groups' small titles at L2.
-    L1: ['Interactive Settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
+    L1: ['Interactive settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
     L2: ['Outline hover', 'Wash opacity', 'Strict interactive contrast', 'Primary Action Palette', 'Neutral emphasis', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states',
       'Fill', 'Fill · inverse', 'Text', 'Text · inverse', 'Border', 'Border · inverse', 'Overlay wash', 'On-fill text', 'On-fill text · inverse'],
     L3: ['Hover', 'Pressed', 'Hover', 'Pressed', 'Visited'],
@@ -21494,7 +21504,7 @@ if (runs('2069')) {
 // … "You get 4 files" starts at the files' edge` and `… "Import" starts at its note's edge`; the action's negative margin
 // dropped → `#3553 M9 … "↑ Brand brief…" starts at its note's edge`; the caption rule narrowed to
 // `.p3-menu-cap:is(:has(+ .p3-export-files), :first-child)` → `#3553 M9 … "A few tokens, shaped by these settings"
-// starts at the files' edge`.
+// starts at the files' edge`. Since #3553 Q-UI11 A the switcher is underline tabs (section 3553-export holds their form).
 if (runs('3553-md')) {
   console.log(`\nExport: the switcher fits, and its captions align (#3553 M8, M9)\n${'='.repeat(78)}`);
   for (const [host, w, h] of [['figma', 380, 420], ['figma', 1280, 900], ['web', 1280, 900]]) for (const theme of ['light', 'dark']) {
@@ -21510,8 +21520,9 @@ if (runs('3553-md')) {
         const page = document.querySelector('[data-p3="export-page"]');
         const textLeft = (n) => { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; };
         const contentBox = (n) => { const r = n.getBoundingClientRect(); const cs = getComputedStyle(n); return { l: r.left + parseFloat(cs.paddingLeft), r: r.right - parseFloat(cs.paddingRight) }; };
-        const seg = page.querySelector('.p3-export-seg');
-        const col = contentBox(seg.parentElement);
+        // #3553 Q-UI11 A: the switcher is underline tabs now (`.p3-export-tabs`), still held inside its column.
+        const seg = page.querySelector('.p3-export-tabs');
+        const col = contentBox(seg.closest('.p3-bardlg-col'));
         const tabs = [...seg.querySelectorAll('[data-p3="export-artifact"]')].map((t) => { const r = t.getBoundingClientRect(); return { t: t.textContent, l: r.left, r: r.right }; });
         const out = page.querySelector('.p3-export-out');
         const capIn = (box, text) => [...box.querySelectorAll(':scope > .p3-menu-cap')].find((c) => c.textContent.startsWith(text));
@@ -21605,6 +21616,237 @@ if (runs('3553-me')) {
     } finally { await ctx.close(); }
   }
 } // 3553-me
+// #3553 M1 (the owner's M1 A): SEARCH AT EVERY WIDTH TAKES THE ROW. At the wide tier an open field was `flex: 0 1 50%`
+// beside tabs that kept their width: about 52px of field, "Depth & motion" cut, the no-match status run about 180px past
+// the levers column and over the preview's title, and Close outside the row; on Components Close ran past the column at
+// every width. Now the field takes the row and the tab row hides while it is open, as the narrow tier already did. Held
+// on both hosts, both themes, at 1280 and 1024 (and the plugin's 380), on every Theme page and Components, with a query
+// that matches nothing so the status line is at its longest. On Components the page's title gives way too: the row
+// carried it beside the field, which left the field 0px at 1024. MUTATIONS (each after a `wip:` commit): the general
+// `.p3-nav:has(.p3-search[data-open="true"]) :is(.p3-tabs, .p3-preview-title)` rule dropped → `#3553 M1 … the tab row hides while Search is open`
+// and `… the field shows at least 80px of text`; the open field's `flex: 1 1 auto` put back to `0 1 50%` → `… the status and
+// Close stay inside the levers column`.
+/** The field's floor: about ten characters of the chrome's 14px text, where the wide tier left about 52px. */
+const M1_FIELD_MIN = 80;
+if (runs('3553-m1')) {
+  console.log(`\nSearch takes the row at every width (#3553 M1)\n${'='.repeat(78)}`);
+  const sizes = { web: [[1280, 900], [1024, 768]], figma: [[1280, 900], [1024, 768], [380, 420]] };
+  for (const host of ['web', 'figma']) for (const [w, h] of sizes[host]) for (const theme of ['light', 'dark']) {
+    const where = `3553-m1 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'open';
+    try {
+      for (const place of ['brand', 'color-fills', 'type', 'shape', 'depth', 'layout', 'components']) {
+        step = place;
+        await goPlace(page, place);
+        await hooks.click(page.locator('[data-p3="search-open"]'));
+        await hooks.need(page, '[data-p3="search-input"]');
+        await page.locator('[data-p3="search-input"]').fill('zqxj');
+        await page.waitForFunction(() => (document.querySelector('[data-p3="search-status"]')?.textContent ?? '') !== '');
+        await settle(page);
+        const m = await page.evaluate(() => {
+          const r = (sel) => { const n = document.querySelector(sel); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width }; };
+          const input = document.querySelector('[data-p3="search-input"]');
+          const cs = input ? getComputedStyle(input) : null;
+          return {
+            nav: r('[data-p3="tab-row"]'), status: r('[data-p3="search-status"]'), close: r('[data-p3="search-close"]'),
+            tabs: [...document.querySelectorAll('[data-p3="tab-row"] :is(.p3-tabs, .p3-preview-title)')].filter((t) => t.getClientRects().length > 0).length,
+            whole: input ? input.scrollWidth <= input.clientWidth : false,
+            field: input ? input.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : null,
+            statusText: document.querySelector('[data-p3="search-status"]')?.textContent ?? '',
+          };
+        });
+        const at = `${where} ${place}`;
+        ok(m.statusText !== '' && !!m.nav && !!m.status && !!m.close, `${at}: premise, the no-match status and Close are drawn in the tab row (${JSON.stringify(m)})`);
+        ok(m.tabs === 0, `#3553 M1 ${at}: the tab row hides while Search is open, and Components' title with it (${m.tabs} drawn)`);
+        // The floor is M1's, the wide tier's. At the plugin's 380 the no-match status leaves the field 17px on `main` too:
+        // filed as #3620, not fixed here.
+        if (w >= 1024) ok(m.field !== null && m.field >= M1_FIELD_MIN && m.whole, `#3553 M1 ${at}: the field shows at least ${M1_FIELD_MIN}px of text, the typed query whole (${m.field?.toFixed(1)}, whole ${m.whole})`);
+        if (m.nav && m.status && m.close) ok(m.status.r <= m.nav.r + ALIGN_TOLERANCE && m.close.r <= m.nav.r + ALIGN_TOLERANCE,
+          `#3553 M1 ${at}: the status and Close stay inside the levers column (status ${m.status.r.toFixed(1)}, Close ${m.close.r.toFixed(1)}, column ${m.nav.r.toFixed(1)})`);
+        if (SHOTS && theme === 'light' && place === 'depth') await page.screenshot({ path: join(SHOTS, `s3553-m1-${host}-${w}-${place}.png`) });
+        await hooks.click(page.locator('[data-p3="search-close"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="search"]')?.dataset.open !== 'true');
+        if (place !== 'components') {
+          const back = await page.evaluate(() => [...document.querySelectorAll('[data-p3="tab-row"] .p3-tabs, [data-p3="tab-row"] .p3-domrow')].filter((t) => t.getClientRects().length > 0).length);
+          ok(back === 1, `#3553 M1 ${at}: closing Search brings the place switcher back (${back} drawn)`);
+        }
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-m1
+// #3553 M2, M3 AND M4 (batch M-B; the owner's M2 A, M3 A and M4 A): THE LEVERS ROWS IN A PANE BETWEEN 360 AND 480.
+// M2: at web 1024 the levers pane is 404px, above the old snug line (360), and a fill row's step picker squeezed its
+// name to 20–40px ("Hover" read "Ho"); the line is now 480, so from 1024 to 1200 the picker sits under the name. Held on
+// Surfaces & fills and Interactive at 1024, 1100 and 1200: the pane is snug, and every drawn fill row's name column is at
+// least 90px with its label on one line. At 1280 (511px) the pane stays full: the few rows that still wrap there are
+// the accepted cost of A. M3: the easing-role tokens all ellipsized to "motion.easing-ro…" at the plugin's 380; they now
+// wrap at their dots, held whole at 380 and 1280. M4: the OKLCH readout of a snug color field drops, as the glass
+// control's does; held on Palettes at the plugin's 380: no readout is drawn cut. Both themes. MUTATIONS (each after a
+// `wip:` commit): `LEVERS_SNUG_MAX` back to 360 → `#3553 M2 … the pane is snug` and `… every fill row keeps its name`;
+// the easing rows' `{ wrap: true }` dropped → `#3553 M3 … every easing-role token is shown whole`; the snug
+// `.p3-colorfield:not(.p3-numfield) .p3-colorfield-meta` rule dropped → `#3553 M4 … no color field's readout is cut`.
+const MB_NAME_MIN = 90;
+if (runs('3553-mb')) {
+  console.log(`\nThe levers rows between 360 and 480 (#3553 M2, M3, M4)\n${'='.repeat(78)}`);
+  const rowsRead = (page) => page.evaluate(() => {
+    const pane = document.querySelector('[data-p3="levers-pane"]');
+    const levers = pane?.querySelector('.p3-levers') ?? pane?.closest('.p3-levers') ?? document.querySelector('.p3-levers');
+    const lines = (n) => { const r = document.createRange(); r.selectNodeContents(n); return new Set([...r.getClientRects()].map((b) => Math.round(b.top))).size; };
+    const rows = [...(pane?.querySelectorAll('.p3-fillrow') ?? [])].filter((r) => r.getClientRects().length > 0 && r.getBoundingClientRect().height > 0);
+    const bad = rows.map((r) => {
+      const name = r.querySelector('.p3-fill-name'); const label = name?.querySelector('.p3-fill-label');
+      return { label: label?.textContent ?? '', w: name ? Math.round(name.getBoundingClientRect().width) : 0, lines: label ? lines(label) : 0 };
+    }).filter((x) => x.w < 90 || x.lines > 1);
+    return { fit: levers?.dataset.fit ?? null, paneW: Math.round(levers?.clientWidth ?? 0), rows: rows.length, bad };
+  });
+  for (const [w, h] of [[1024, 768], [1100, 800], [1200, 800], [1280, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mb web ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'web', theme, w, h });
+    let step = 'open';
+    try {
+      for (const place of ['color-fills', 'color-interactive']) {
+        step = place;
+        await goPlace(page, place);
+        await settle(page);
+        const m = await rowsRead(page);
+        ok(m.rows > 0 && m.paneW > 0, `${where} ${place}: premise, the levers pane draws fill rows (${m.rows} in ${m.paneW}px)`);
+        if (w < 1280) {
+          ok(m.fit === 'snug', `#3553 M2 ${where} ${place}: the ${m.paneW}px pane is snug (read ${m.fit})`);
+          ok(m.bad.length === 0, `#3553 M2 ${where} ${place}: every fill row keeps its name at least ${MB_NAME_MIN}px wide, its label on one line (${m.bad.length} of ${m.rows} do not: ${JSON.stringify(m.bad.slice(0, 4))})`);
+        } else ok(m.fit === 'full', `#3553 M2 ${where} ${place}: the ${m.paneW}px pane stays full (read ${m.fit})`);
+        if (SHOTS && theme === 'light' && w === 1024) await page.screenshot({ path: join(SHOTS, `s3553-mb-web-${w}-${place}.png`) });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const [w, h] of [[1280, 900], [380, 420]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-mb figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h });
+    let step = 'depth';
+    try {
+      await goPlace(page, 'depth');
+      await hooks.need(page, '[data-p3="easing-rows"]');
+      await settle(page);
+      const e = await page.evaluate(() => [...document.querySelectorAll('[data-p3="easing-rows"] [data-p3="easing-row"] .p3-fill-tok')].map((t) => ({
+        text: t.textContent, whole: t.scrollWidth <= t.clientWidth + 0.5,
+        inRow: t.getBoundingClientRect().right <= t.closest('[data-p3="easing-row"]').getBoundingClientRect().right + 0.5 })));
+      ok(e.length >= 4 && e.every((t) => /^motion\.easing-role\.[a-z-]+$/.test(t.text)), `${where}: premise, the easing rows draw each role's token (${JSON.stringify(e.map((t) => t.text))})`);
+      ok(e.length > 0 && e.every((t) => t.whole && t.inRow), `#3553 M3 ${where}: every easing-role token is shown whole, inside its row (${JSON.stringify(e.filter((t) => !t.whole || !t.inRow).map((t) => t.text))})`);
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-mb-plugin-${w}-easing.png`) });
+      step = 'palettes';
+      await goPlace(page, 'color-palettes');
+      await settle(page);
+      const c = await page.evaluate(() => {
+        const metas = [...document.querySelectorAll('[data-p3="levers-pane"] .p3-colorfield-meta')].filter((n) => n.getClientRects().length > 0);
+        return { drawn: metas.length, cut: metas.filter((n) => n.scrollWidth > n.clientWidth + 0.5).map((n) => n.textContent),
+          fields: document.querySelectorAll('[data-p3="levers-pane"] .p3-colorfield').length };
+      });
+      ok(c.fields > 0, `${where}: premise, Palettes draws color fields (${c.fields})`);
+      ok(c.cut.length === 0, `#3553 M4 ${where}: no color field's readout is cut (${JSON.stringify(c)})`);
+      if (w === 1280) ok(c.drawn > 0, `#3553 M4 ${where}: at full width the readout is still drawn (${c.drawn})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-mb
+// #3553 Q-UI7 AND Q-UI11 (the owner's A on each): EXPORT'S SWITCHERS. Q-UI11: "which kind of output" was a segmented
+// control on Export and underline tabs on Documentation; Export's is now Documentation's tabs, a tablist of `.p3-tab`s
+// with one selected, the three on one row at every width (M8's 380 overflow, and the 2 + 1 wrap #3600 left, gone). Held:
+// its role, its one selected tab, its panel named by that tab, Arrow, Home and End moving the selection with focus
+// (#3658 review), its tabs on one row inside the column, and, on the plugin, each tab's type and its
+// selected underline read the same as Documentation's tabs (another page, drawn by `documentation.ts`). Q-UI7: every
+// option tab was set in mono; only Token names' options (token spellings) are now, the rest in the chrome's UI face.
+// Held: each option tab's face is the face Export's code preview is set in exactly when its row is Token names, and the
+// face of the page's own body text otherwise. Plugin 380 and 1280, web 1280, both themes. MUTATIONS (each after a `wip:`
+// commit): the switcher back to `p3-seg p3-export-seg` with `p3-seg-tab`s → `#3553 Q-UI11 … the switcher is
+// Documentation's underline tabs`; the Token names rule widened to every option row → `#3553 Q-UI7 … only Token names'
+// options are set in mono`; the tablist's `keydown` listener dropped → `#3553 Q-UI11 … Arrow, Home and End move the
+// selection`; the body's `aria-labelledby` dropped → `#3553 Q-UI11 … the export panel is named by its selected tab`.
+if (runs('3553-export')) {
+  console.log(`\nExport's switchers (#3553 Q-UI7, Q-UI11)\n${'='.repeat(78)}`);
+  for (const [host, w, h] of [['figma', 380, 420], ['figma', 1280, 900], ['web', 1280, 900]]) for (const theme of ['light', 'dark']) {
+    const where = `3553-export ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    let step = 'docs';
+    try {
+      let docTab = null;
+      if (host === 'figma') {
+        await hooks.click(page.locator('[data-p3="rail-documentation"]'));
+        await hooks.need(page, '[data-p3="docs-head"]');
+        if (w >= 600) docTab = await page.evaluate(() => {
+          const t = document.querySelector('[data-p3="docs-tabs"] [role="tab"][aria-selected="true"]');
+          const c = getComputedStyle(t);
+          return { font: c.fontFamily, size: c.fontSize, line: c.borderBottomWidth, cls: t.className };
+        });
+      }
+      step = 'export';
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '[data-p3="export-page"] [data-p3="export-artifact"]');
+      await settle(page);
+      const m = await page.evaluate(() => {
+        const pg = document.querySelector('[data-p3="export-page"]');
+        const tabs = [...pg.querySelectorAll('[data-p3="export-artifact"]')];
+        const list = tabs[0]?.parentElement;
+        const sel = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+        const c = sel ? getComputedStyle(sel) : null;
+        const col = list?.closest('.p3-bardlg-col')?.getBoundingClientRect();
+        return {
+          role: list?.getAttribute('role') ?? null, roles: tabs.map((t) => t.getAttribute('role')), selected: tabs.filter((t) => t.getAttribute('aria-selected') === 'true').length,
+          rows: new Set(tabs.map((t) => Math.round(t.getBoundingClientRect().top))).size, cls: tabs.map((t) => t.className),
+          inside: tabs.every((t) => { const r = t.getBoundingClientRect(); return r.left >= col.left - 0.5 && r.right <= col.right + 0.5; }),
+          sel: c ? { font: c.fontFamily, size: c.fontSize, line: c.borderBottomWidth } : null,
+          mono: getComputedStyle(pg.querySelector('[data-p3="export-preview"]')).fontFamily,
+          ui: getComputedStyle(pg.querySelector('.p3-bardlg-desc')).fontFamily,
+          opts: [...pg.querySelectorAll('.p3-export-set')].flatMap((row) => [...row.querySelectorAll('[data-p3="export-setting"]')].map((b) => ({
+            row: row.querySelector('.p3-export-lab')?.textContent ?? '', opt: b.textContent, font: getComputedStyle(b).fontFamily }))),
+        };
+      });
+      ok(m.role === 'tablist' && m.roles.length === 3 && m.roles.every((r) => r === 'tab') && m.selected === 1 && m.cls.every((c) => /\bp3-tab\b/.test(c)),
+        `#3553 Q-UI11 ${where}: the switcher is Documentation's underline tabs, a tablist of three tabs, one selected (${JSON.stringify({ role: m.role, roles: m.roles, selected: m.selected, cls: m.cls })})`);
+      ok(m.rows === 1 && m.inside, `#3553 Q-UI11 ${where}: the three tabs sit on one row, inside the column (rows ${m.rows}, inside ${m.inside})`);
+      if (docTab) ok(!!m.sel && m.sel.font === docTab.font && m.sel.size === docTab.size && m.sel.line === docTab.line,
+        `#3553 Q-UI11 ${where}: a selected Export tab reads as Documentation's (${JSON.stringify({ export: m.sel, docs: docTab })})`);
+      ok(m.opts.length >= 6 && m.mono !== m.ui, `${where}: premise, Export draws its option rows, and its code and body faces differ (${m.opts.length}; ${m.mono} / ${m.ui})`);
+      const wrong = m.opts.filter((o) => o.font !== (o.row === 'Token names' ? m.mono : m.ui));
+      ok(m.opts.some((o) => o.row === 'Token names') && wrong.length === 0, `#3553 Q-UI7 ${where}: only Token names' options are set in mono, the rest in the UI face (${JSON.stringify(wrong.map((o) => `${o.row}: ${o.opt}`))})`);
+      if (SHOTS && theme === 'light') await page.screenshot({ path: join(SHOTS, `s3553-export-${host}-${w}.png`) });
+      // The panel is named by its selected tab, and the keys move the selection with focus (Documentation's pattern).
+      step = 'keys';
+      const kr = () => page.evaluate(() => {
+        const tabs = [...document.querySelectorAll('[data-p3="export-page"] [data-p3="export-artifact"]')];
+        const sel = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+        const body = document.querySelector('[data-p3="export-page"] [role="tabpanel"]');
+        const by = body?.getAttribute('aria-labelledby');
+        return { labels: tabs.map((t) => t.textContent), sel: sel?.textContent ?? null, focus: tabs.includes(document.activeElement) ? document.activeElement.textContent : null,
+          named: !!sel && !!by && document.getElementById(by) === sel };
+      });
+      const k0 = await kr();
+      ok(k0.named, `#3553 Q-UI11 ${where}: the export panel is named by its selected tab (${k0.sel})`);
+      await page.locator('[data-p3="export-artifact"][aria-selected="true"]').focus();
+      const n = k0.labels.length, i0 = k0.labels.indexOf(k0.sel);
+      const want = [['ArrowRight', (i0 + 1) % n], ['End', n - 1], ['Home', 0], ['ArrowLeft', n - 1]];
+      const got = [];
+      for (const [key, i] of want) {
+        await page.keyboard.press(key);
+        await settle(page);
+        const r = await kr();
+        got.push({ key, want: k0.labels[i], sel: r.sel, focus: r.focus, named: r.named });
+      }
+      ok(n === 3 && i0 >= 0 && got.every((g) => g.sel === g.want && g.focus === g.want && g.named),
+        `#3553 Q-UI11 ${where}: Arrow, Home and End move the selection, focus follows, and the panel's name with it (${JSON.stringify(got)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3553-export
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the
