@@ -29,6 +29,7 @@
  * `R7/bad-failed-save-same-call`; the `//`-after-`:` URL guard dropped → `R7/good-url-before-save`. 184 assertions run.
  * #3584: the tool-call CLAUDE.md check case-sensitive again → `probe/claude-md-iname`; the user-turn check case-sensitive
  * again → `probe/claude-md-lower-turn`.
+ * #3584 review: the `skills/` path check case-sensitive again → `probe/skills-path-case` (1 of 187). 187 assertions run.
  * THE PLUGIN IS THE ORACLE for the `args/*` arms (#3469): every command `setupCommands`, `resetCommands` and
  * `captureCommands` send goes through the plugin's own `parseCommand` (and `parseRunCode` for the dev `run-code`),
  * imported from `apps/plugin/src/`, and an arg it refuses, drops or rewrites fails that command's arm by its key.
@@ -881,6 +882,9 @@ console.log('\nthe contamination probe');
     ['claude-md-lower-turn', [init, { type: 'user', message: { content: [{ type: 'text', text: 'Contents of /x/claude.md (project instructions)' }] } }], /CLAUDE\.md reached/],
     ['skill-tool', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'prism3-rebind' } }] } }], /Skill tool/],
     ['skills-path', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/repo/skills/prism3-rebind/SKILL.md' } }] } }], /skills\/ path/],
+    // #3584 review: any case, as the code surface's pattern and CLAUDE.md are. The Mac runner's filesystem is
+    // case-insensitive by default, so `Skills/` opens the same file.
+    ['skills-path-case', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'cat /repo/Skills/prism3-rebind/SKILL.md' } }] } }], /skills\/ path \(Bash\)/],
     ['github', [init, { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'WebFetch', input: { url: 'https://github.com/x/y' } }] } }], /GitHub/],
     ['no-init', [read], /no init/],
     ['own-agent', [{ ...init, agents: [...BUILTIN_AGENTS, 'reviewer'] }], /registered agents: reviewer$/],

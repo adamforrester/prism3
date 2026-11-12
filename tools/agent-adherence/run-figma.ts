@@ -177,7 +177,7 @@ export const probe = (lines: unknown[], cwd?: string): { clean: boolean; reasons
         if (failed.has(p.id) || emptySearch(p)) continue;
         // Any case (#3584, as #3567 did in orchestrate.ts): `find / -iname claude.md` reaches the file too.
         if (/CLAUDE\.md/i.test(input) && p.name !== `mcp__${BRIDGE_NAME}__figma_run`) reasons.push(`the agent reached for a CLAUDE.md (${p.name})`);
-        if (/(^|[\\/"])skills[\\/]/.test(input) && !/prism3:\/\/skills\//.test(input)) reasons.push(`the agent read a skills/ path (${p.name})`);
+        if (/(^|[\\/"])skills[\\/]/i.test(input) && !/prism3:\/\/skills\//.test(input)) reasons.push(`the agent read a skills/ path (${p.name})`);
         if (/github\.com|githubusercontent/.test(input)) reasons.push(`the agent fetched from GitHub (${p.name})`);
       }
     }
