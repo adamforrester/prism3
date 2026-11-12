@@ -386,7 +386,7 @@ export const accordion: ComponentDef = {
 
   composition: {
     composesWith: ['_accordion-indicator', 'focus-ring', 'divider'],
-    alternativeTo: ['tabs'],
+    alternativeTo: ['tabs', 'dialog'],
     replacesPatterns: ['a show/hide div with no aria-expanded or heading', 'a tablist used for vertical sections that open together'],
     supersededBy: [],
     planned: ['tree'],

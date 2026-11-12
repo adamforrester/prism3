@@ -616,7 +616,7 @@ export const checkboxRow: ComponentDef = {
     // Brief §12's alternatives that exist. `select` is NOT one — it is single-value, and the brief's
     // large-set alternative is a MULTI-select combobox or listbox (#1698); those and a selectable chip
     // are not built yet, so they sit in `planned`.
-    alternativeTo: ['switch-row', 'radio-row'],
+    alternativeTo: ['switch-row', 'radio-row', 'text-field'],
     replacesPatterns: [
       'a bare <input type="checkbox"> with no label wiring',
       'a role="checkbox" div where a styled native input would do',

@@ -226,7 +226,8 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     for (const it of out) if (it.block && it.block.label === s.title) promoteLever(el, it.block);
     return { el, items: out };
   };
-  /** The page's Show advanced (Type's form): a disclosure button and the body it opens. */
+  /** The Show advanced (Type's form): a disclosure button and the body it opens. #3553 Q-UI14 A: it sits inside the card
+   *  its advanced levers belong to (Radius, for Base radius), as Depth & motion's Shadow tint sits inside Elevation. */
   const advFold = (open: boolean, n: number, body: () => HTMLElement[]): HTMLElement => {
     const row = h('div', 'p3-advrow');
     const btn = hook(h('button', 'p3-btn p3-btn-page'), 'shape-advanced');
@@ -254,10 +255,33 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro)];
     const everyday = PAGE.sections.filter((s) => !s.advanced);
     const adv = PAGE.sections.filter((s) => s.advanced);
-    everyday.forEach((s) => { const x = section(s, PAGE.sections.indexOf(s)); parts.push(x.el); items.push(...x.items); });
     const showAll = advOpen || !!searchQuery.trim();
-    const n = adv.reduce((a, s) => a + s.rows.length, 0);
-    if (adv.length) parts.push(advFold(showAll, n, () => adv.map((s) => { const x = section(s, PAGE.sections.indexOf(s)); items.push(...x.items); return x.el; })));
+    // #3553 Q-UI14 A: an advanced section's levers are drawn inside the everyday card they belong to, the one that drives
+    // the same preview (Base radius in Radius), each lever under its own name with the section's description, as Shadow
+    // tint is drawn in Elevation. The page data keeps the section and its tier (Q69, `test-pages.ts`).
+    const drives = (s: Section): Set<string> => new Set(s.rows.map((r) => r.drive).filter((d): d is NonNullable<typeof d> => !!d));
+    const hostOf = (a: Section): Section | undefined => everyday.find((s) => [...drives(a)].some((d) => drives(s).has(d)));
+    const unhosted = adv.filter((a) => !hostOf(a));
+    everyday.forEach((s) => {
+      const x = section(s, PAGE.sections.indexOf(s));
+      items.push(...x.items);
+      const mine = adv.filter((a) => hostOf(a) === s);
+      if (mine.length) x.el.append(advFold(showAll, mine.reduce((a, m) => a + m.rows.length, 0), () => mine.flatMap((m) => {
+        const drawn: HTMLElement[] = [];
+        for (const r of m.rows) for (const k of r.keys ?? []) {
+          const b = BUILDERS[k];
+          if (!b) continue;
+          const it = b();
+          if (m.desc && it.block) it.block.ctl.prepend(subLine(m.desc));
+          items.push(it);
+          drawn.push(it.el);
+        }
+        return drawn;
+      })));
+      parts.push(x.el);
+    });
+    const n = unhosted.reduce((a, s) => a + s.rows.length, 0);
+    if (unhosted.length) parts.push(advFold(showAll, n, () => unhosted.map((s) => { const x = section(s, PAGE.sections.indexOf(s)); items.push(...x.items); return x.el; })));
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'shape-continue');
     next.type = 'button';
     next.append(h('span', 'p3-btn-label', SHAPE_COPY.next), glyph('chevr'));
