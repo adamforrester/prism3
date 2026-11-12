@@ -2,7 +2,7 @@
 
 This PR is a design exploration and changes no product code. `docs/superpowers/update-dialog-redesign/` holds:
 
-- the audit of the Update file dialog as it stands (every state, string and control, and eleven hierarchy, spacing
+- the audit of the Update file dialog as it stands (every state, string and control, and thirteen hierarchy, spacing
   and alignment problems, each with file:line);
 - the Studio container language the owner asked it to match;
 - three clickable, self-contained mocks: A Cards on gray, B Decisions first, C Folded step cards.
