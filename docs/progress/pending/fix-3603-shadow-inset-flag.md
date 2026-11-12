@@ -22,5 +22,13 @@ compared equal to prism3's missing one.
 - `compare.ts` counts `inset` as a shadow channel. Under the same mutation the VALUES report now lists `shadow.inset`
   against TokenPress's export. That report is a tool, not a gate: `gate.ts` asserts no value arm, and this PR does not add one.
 
+- The studio's token list (`apps/studio/src/main.ts` `shadowCss`) now leads an inner layer with `inset`, as
+  `resolve-preview.ts`'s `cssBoxShadow` already did, so the value cell and the specimen agree (#3689 review).
+
+### Changed on screen
+The studio's Depth & motion **Elevation** specimen (`shadow-ramp.ts`, through `cssBoxShadow`) used to draw `shadow.inset` as a
+drop shadow and now draws it as an inner shadow. The token list's value cell for the token reads `inset 0px 2px 4px 0px …`.
+That inner shadow is the fix the decision asked for.
+
 ### Not changed
 The Figma effect styles (byte-identical), the drop shadows, and `CONTRACT_VERSION`.
