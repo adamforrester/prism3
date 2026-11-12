@@ -140,7 +140,7 @@ export const radioRow: ComponentDef = {
   inherits: 'checkbox-row',
   summary: 'One labeled option inside a Radio.Group. The whole row is the hit target.',
   description:
-    'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).',
+    'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).',
 
   // THE DELTA ONLY. The form-field substrate reaches this def through `checkbox` and is not restated,
   // except `disabled` and `readOnly` (owner decision Q351 A on #2706): a consumer disables or locks a
@@ -523,7 +523,7 @@ export const radioRow: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a group of these for exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.',
+    usage: 'Use a group of these for exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.',
     do: [
       'Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop',
       'Give the group a label; without one, assistive tech announces "radio button, 1 of 3" with no idea what the choice is',
@@ -537,7 +537,7 @@ export const radioRow: ComponentDef = {
       'Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure',
       'Add toggle-off behavior — no-deselect is native and deliberate',
       'Model an exclusive choice as several checkboxes, or a true/false toggle as two radios',
-      'Reach for radio past about 7 options or in tight vertical space — that is Select',
+      'Reach for radio past 7 options or in tight vertical space — that is Select',
       'Use radio for a choice that takes effect instantly — that is Switch.Row, or SegmentedControl',
     ],
     contentGuidelines: 'Option labels are parallel and brief; the detail that distinguishes them goes in the description. The group label names the decision. Errors are group-level and say what to do.',
@@ -545,11 +545,11 @@ export const radioRow: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Present one option within a mutually exclusive set via a labeled row that nests the circle-and-dot control, deriving its selected state from the group that owns the value.',
-    whenToUse: 'Exactly one of 2 to about 7 all-visible options where seeing them together aids the decision, and the choice is committed on submit rather than applied instantly. Always as a child of a Radio.Group.',
-    avoidWhen: 'Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for Radio.Row when what is wanted is the group: use Radio.Group (radio-group), which owns the name, the value and the validation.',
+    whenToUse: 'Only as a child of a Radio.Group. Generate a Radio.Group, which places one row per option and sets which one is selected.',
+    avoidWhen: 'Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for Radio.Row when what is wanted is the group: use Radio.Group (radio-group), which owns the name, the value and the validation.',
     commonPartners: ['radio-control', 'radio-group', 'field-label', 'field-message', 'focus-ring'],
     triggerKeywords: ['radio', 'radio button', 'option', 'pick one', 'mutually exclusive'],
-    generationPriority: 2,
+    generationPriority: 9,
   },
 
   composition: {

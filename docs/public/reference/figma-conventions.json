@@ -1106,6 +1106,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button.md"
       },
       {
@@ -1151,6 +1156,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-destructive.md"
       },
       {
@@ -1196,6 +1206,11 @@
           }
         ],
         "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-neutral.md"
       },
       {
@@ -3330,7 +3345,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "helper",
+            "name": "message",
             "type": "BOOLEAN"
           }
         ],
@@ -3351,7 +3366,7 @@
               "medium",
               "small",
               "large",
-              "xlarge"
+              "x-large"
             ]
           },
           {
@@ -3397,7 +3412,7 @@
               "medium",
               "small",
               "large",
-              "xlarge"
+              "x-large"
             ]
           },
           {

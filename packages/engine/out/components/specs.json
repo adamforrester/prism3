@@ -16688,7 +16688,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -17303,7 +17305,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -17918,7 +17922,9 @@
           "kind": "state"
         }
       ],
-      "codeOnlyStates": [],
+      "codeOnlyStates": [
+        "inactive"
+      ],
       "anatomy": [
         {
           "part": "container",
@@ -49561,7 +49567,7 @@
           "default": false
         },
         {
-          "name": "helper",
+          "name": "message",
           "type": "BOOLEAN",
           "default": false
         }
@@ -49579,7 +49585,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "size"
         },
@@ -49795,7 +49801,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -49885,7 +49891,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -50030,7 +50036,7 @@
             "medium",
             "small",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "kind": "size"
         },
@@ -50178,7 +50184,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": [
             {
@@ -50224,7 +50230,7 @@
         },
         {
           "where": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "parts": []
         }

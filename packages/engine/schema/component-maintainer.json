@@ -954,7 +954,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1048,7 +1048,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1142,7 +1142,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1212,7 +1212,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1302,7 +1307,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1392,7 +1402,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -6380,7 +6395,7 @@
         "contested": [
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
           "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
-          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+          "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
           "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
@@ -6516,7 +6531,7 @@
       ],
       "notes": {
         "contested": [
-          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
+          "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
           "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
         ],
         "unverified": [

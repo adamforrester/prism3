@@ -16875,7 +16875,7 @@ arm: {
           rest: 'color/field/border/rest', hover: 'color/field/border/hover', filled: 'color/field/border/rest',
           'focus-visible': 'color/border/focus', 'focus-visible-filled': 'color/border/focus', error: 'color/border/danger', disabled: 'color/disabled/border',
         };
-        const SIZE_PX: Record<string, string> = { medium: '48x56', small: '44x44', large: '56x64', xlarge: '68x72' };
+        const SIZE_PX: Record<string, string> = { medium: '48x56', small: '44x44', large: '56x64', 'x-large': '68x72' };
         const off: string[] = [];
         const under = figmaAnatomySet(applyFieldStyle(def('code-input-cell'), 'underline'));
         if (under.length !== 28) off.push(`${under.length} members`);
@@ -18673,11 +18673,11 @@ arm: {
       }));
       ok(thumbOff.length === 0, `#2669 Q550 a / b / e / f the thumb: a frame the disc's size (control/size/{sm,md,lg}/thumb), the disc in color/interactive/neutral/indicator rest/hover/pressed with no ring, a color/border/primary halo 4px at hover (a border-width/heavy stroke) and 8px pressed (plus a space/050 fill band), color/disabled/icon when disabled, the focus ring at focus-visible only (${thumbOff.length} off — ${thumbOff.slice(0, 2).join('; ') || 'none'})`);
 
-      // (5) Calls 4 A / 7 A, Q550 d, Q345: the panel. Lowercase names; label and value on; milestones, inputs and helper
-      // off. No end labels and no ticks: the milestones replace them.
+      // (5) Calls 4 A / 7 A, Q550 d, Q345: the panel. Lowercase names; label and value on; milestones, inputs and message
+      // off (the message toggle is `message`, as on every field: #3554 Q-CC6 A). No end labels and no ticks: the milestones replace them.
       const panel = planSetProperties(sMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`).sort();
-      ok(JSON.stringify(panel) === JSON.stringify(['helper=false', 'inputs=false', 'label=true', 'milestones=false', 'value=true']),
-        `#2669 calls 4 A / 7 A, Q550 d, Q345 slider booleans: label and value on, milestones, inputs and helper off, all lowercase (${panel.join(', ')})`);
+      ok(JSON.stringify(panel) === JSON.stringify(['inputs=false', 'label=true', 'message=false', 'milestones=false', 'value=true']),
+        `#2669 calls 4 A / 7 A, Q550 d, Q345, #3554 Q-CC6 A slider booleans: label and value on, milestones, inputs and message off, all lowercase (${panel.join(', ')})`);
       // #2967 (Q550 kept them medium): every nested input is a medium TextField, at every slider size. Without this only
       // `lint-component-surface`'s plan digest held the size, and `--accept` clears a digest. A literal, never read off
       // the def: one input in a single member, two in a range, so the floor below is 15 + 30.
@@ -19377,10 +19377,10 @@ arm: {
 
     // (2b) #2926 (owner decision on #2926, item 1): EVERY field's message defaults OFF. The family is written out
     //     here rather than read from the defs, and the defs are checked against it both ways: a def that gains a
-    //     `showMessage` boolean (Code input #2789, Search #2912) must join this list, and so take the same
+    //     `showMessage` boolean (Code input #2789, Search #2912, Slider #3554 Q-CC6) must join this list, and so take the same
     //     default. The expected `false` is the owner's answer, not a value read off any def (docs/34).
     {
-      const MESSAGE_OFF_FAMILY = ['card-number-field', 'code-input', 'counter', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
+      const MESSAGE_OFF_FAMILY = ['card-number-field', 'code-input', 'counter', 'password-field', 'search-field', 'select', 'slider', 'text-field', 'textarea'];
       const withMsg = componentDefs.filter((d) => d.figmaProperties?.booleans?.showMessage).map((d) => d.id).sort();
       ok(JSON.stringify(withMsg) === JSON.stringify(MESSAGE_OFF_FAMILY),
         `#2926 the defs with a showMessage boolean are exactly the message-off family ${JSON.stringify(MESSAGE_OFF_FAMILY)} (got ${JSON.stringify(withMsg)}) — a new one joins the list and takes its default`);
@@ -19607,7 +19607,9 @@ arm: {
   // field by field rather than dropping `ai` / `docs` / `composition` whole: the shared remainder of each
   // (usage, dont, primaryPurpose, composesWith, …) must still stay byte-identical.
   const sharedPart = (d: ComponentDef, field: string): unknown => {
-    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, ...rest } = d.ai; return rest; }
+    // #3555 C2: `whenToUse` joined the per-sibling fields for the icon-only families (a counter's minus and plus, a card's
+    // close and a close affordance are the neutral sibling's). The C2 arm below holds what still has to agree.
+    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, whenToUse, ...rest } = d.ai; return rest; }
     if (field === 'docs') return { ...d.docs, do: undefined };
     if (field === 'composition') return { ...d.composition, alternativeTo: undefined };
     return (d as Record<string, unknown>)[field];
@@ -20055,11 +20057,11 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
-      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
+      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
-      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'pagination-item': 9, '_slider-thumb': 9,
+      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'radio-row': 9, 'pagination-item': 9, '_slider-thumb': 9,
       // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
       breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
       'page-nav': 2, 'page-nav-item': 9,
@@ -20547,6 +20549,22 @@ arm: {
     const ref = JSON.stringify(sharedPart(iconButton, field));
     const diverged = iconButtonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #3555 C2: a sibling's whenToUse never recommends it for a case its own avoidWhen sends to another sibling. The examples
+  // (a counter's minus and plus, a card's close, a close affordance) are the neutral sibling's, and each icon-only family's
+  // avoidWhen routes them there. The labeled Button family still shares one whenToUse, and its icon-only redirect names
+  // the IconButton of the same color.
+  {
+    const c2Bad: string[] = [];
+    const NEUTRAL_EXAMPLES = /\bcounter\b|\bclose\b/i;
+    for (const d of [iconButton, iconButtonDestructive, flushIconButton, flushIconButtonDestructive])
+      if (NEUTRAL_EXAMPLES.test(d.ai.whenToUse)) c2Bad.push(`${d.id} whenToUse names a neutral-only example: "${d.ai.whenToUse.slice(0, 70)}"`);
+    for (const d of [iconButtonNeutral, flushIconButtonNeutral])
+      if (!NEUTRAL_EXAMPLES.test(d.ai.whenToUse)) c2Bad.push(`${d.id} whenToUse lost the examples the other siblings send it`);
+    if (new Set([button, buttonDestructive, buttonNeutral].map((d) => d.ai.whenToUse)).size !== 1) c2Bad.push('the Button family no longer shares one whenToUse');
+    for (const [d, ib] of [[button, 'IconButton'], [buttonDestructive, 'IconButton.Destructive'], [buttonNeutral, 'IconButton.Neutral']] as const)
+      if (!new RegExp(`Icon-only with no visible text → use ${ib.replace('.', '\\.')} \\(`).test(d.ai.avoidWhen)) c2Bad.push(`${d.id} does not send icon-only to ${ib}`);
+    ok(c2Bad.length === 0, `#3555 C2 sibling whenToUse agrees with its avoidWhen, and Button sends icon-only to its own color's IconButton${c2Bad.length ? ` — ${c2Bad.join(' | ')}` : ''}`);
   }
   // #1697 DECISION 2, icon-only half.
   for (const [a, b] of [[iconButton, iconButtonDestructive], [iconButton, iconButtonNeutral], [iconButtonDestructive, iconButtonNeutral]])
@@ -21282,6 +21300,14 @@ arm: {
       const gReq = g.props.find((p) => p.name === 'required')?.default;
       ok(gReq === false && gReq === flDefault('required'),
         `#1699 ${g.id}'s required default is false (brief §15) and agrees with the nested field-label's marker default (group ${String(gReq)}, label ${String(flDefault('required'))})`);
+    }
+    // Q-CC8 A (#3554): CodeInput surfaces the nested FieldLabel's required marker, so it takes the field family's
+    // `required` prop: a boolean, off by default as the marker is, in TextField's words. The literal list is the fields
+    // that surface the marker and carry the prop; Counter's `required` is decided separately and is not listed.
+    for (const id of ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input']) {
+      const r = componentDefs.find((d) => d.id === id)?.props.find((p) => p.name === 'required');
+      ok(r?.type === 'boolean' && r.default === false && r.default === flDefault('required') && r.description.startsWith('Sets required / aria-required, and turns on the FieldLabel\'s required marker.'),
+        `Q-CC8 ${id} declares the field family's required prop, a boolean off by default like the label's marker (got ${r ? `${r.type} ${String(r.default)}` : 'none'})`);
     }
     // Since #2266 the three field hosts are sized, and the label's SIZE follows the host's (pinned per member in
     // the #2266 block); what stays the label's own default is its emphasis.
@@ -24158,10 +24184,10 @@ arm: {
     // here, not read from the plan; the plugin leg is in test-write-components.
     {
       const cellDef = componentDefs.find((x) => x.id === 'code-input-cell')!;
-      const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
+      const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', 'x-large': 'title/2xl/strong' };
       const bad: string[] = [];
       let pasted = 0;
-      for (const size of ['small', 'medium', 'large', 'xlarge']) {
+      for (const size of ['small', 'medium', 'large', 'x-large']) {
         const plan = figmaAnatomyPlan(cellDef, size, { state: 'filled' } as never);
         const page: StubPage = { children: [] };
         const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page });
@@ -28910,6 +28936,7 @@ arm: {
     const EXPECTED_ADMISSIONS = [
       'button:width', 'button:inactive', 'button-destructive:width', 'button-destructive:inactive', 'button-neutral:width', 'button-neutral:inactive',
       'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
+      'flush-icon-button:inactive', 'flush-icon-button-destructive:inactive', 'flush-icon-button-neutral:inactive',
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
       'search-field:style', 'search-field:pending', 'search-field:empty',
@@ -38032,7 +38059,7 @@ arm: {
 // button's projected columns as they were.
 {
   const STATE_LADDER = ['rest', 'hover', 'pressed', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'inactive', 'read-only', 'error', 'empty'];
-  const SIZE_LADDER = ['x-small', 'small', 'medium', 'large', 'xlarge'];  // xlarge: Code input's display cell (#2428, Q330 A)
+  const SIZE_LADDER = ['x-small', 'small', 'medium', 'large', 'x-large'];  // x-large: Code input's display cell (#2428, Q330 A)
   // MEDIUM LEADS (#2752, owner decision Q1 B, 2026-10-16, superseding Q213's small-first ladder and widening Q221 B's
   // field order to every set): Figma inserts a set's top-left member, so a size axis leads with medium, the code
   // default, and the rest run smallest to largest. Typed here, not read from any def's prop default. EXACT exceptions,
@@ -38095,7 +38122,7 @@ arm: {
   const fieldAt = (status: string, size: string, state: string) => fields.find((p) => planComponentName(p) === `status=${status}, size=${size}, state=${state}`);
   const CELL_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'];
   const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'];
-  const SIZES = ['medium', 'small', 'large', 'xlarge'];
+  const SIZES = ['medium', 'small', 'large', 'x-large'];
 
   // (1) THE SETS: the cell is size × seven states (Q329's cell states; active spelled focus-visible), the field size ×
   // status [default, error] × six states (Q321.9 A), and medium leads both (Q347, Q359).
@@ -38108,7 +38135,7 @@ arm: {
 
   // (2) THE CELL SIZES (Q330 A), literal px, each built at that width and height; every one at least 44 tall, the floor
   // `lint-hit-target.ts` hands to this arm (EXCLUDED: code-input). And the 32px fill floor.
-  const SIZE_PX: Record<string, [number, number]> = { small: [44, 44], medium: [48, 56], large: [56, 64], xlarge: [68, 72] };
+  const SIZE_PX: Record<string, [number, number]> = { small: [44, 44], medium: [48, 56], large: [56, 64], 'x-large': [68, 72] };
   const sizeOff = SIZES.filter((s) => {
     const r = cellAt(s, 'rest')?.root;
     return !r || r.placementWidth !== SIZE_PX[s][0] || r.placementHeight !== SIZE_PX[s][1] || r.primaryAxisSizingMode !== 'FIXED' || r.counterAxisSizingMode !== 'FIXED' || r.minWidth !== 32;
@@ -38118,8 +38145,8 @@ arm: {
 
   // (3) THE CHARACTER: 16 / 20 / 24 / 40px (Q330 A). The text style per size is typed here, and its font size read from
   // the committed prism3 emission, the brand Q330's numbers are from. Shown only where the cell holds a character.
-  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
-  const PX: Record<string, number> = { small: 16, medium: 20, large: 24, xlarge: 40 };
+  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', 'x-large': 'title/2xl/strong' };
+  const PX: Record<string, number> = { small: 16, medium: 20, large: 24, 'x-large': 40 };
   const p3tree = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8')) as Record<string, Record<string, unknown>>;
   // The composite's font size, read off its `{<root>.core.font.size.<px>}` alias in the emitted DTCG tree.
   const fontPx = (style: string): number | undefined => {
