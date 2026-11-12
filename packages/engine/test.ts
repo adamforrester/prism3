@@ -20598,8 +20598,11 @@ arm: {
     const oneWord = componentDefs.map((d) => d.name).filter((n) => /^[A-Z][A-Za-z]*$/.test(n));
     for (const d of componentDefs) {
       const s = d.summary ?? '';
-      for (const n of dotted) if (n !== d.name && s.includes(n)) mdBad.push(`${d.id} summary names ${n}`);
-      for (const n of oneWord) if (n !== d.name && new RegExp(`(?<![\\w.-])${n}(?![\\w-]|\\.\\w)`).test(s)) mdBad.push(`${d.id} summary names ${n}`);
+      // #3555 Q206 A: a name directly after "use" is an alternative pointer ("For navigation, use Link."), which a designer
+      // reads as a plain word; any other placement of a registered name still fails.
+      const ptr = (n: string) => new RegExp(`(?<!\\buse )${n.replace(/\./g, '\\.')}`);
+      for (const n of dotted) if (n !== d.name && ptr(n).test(s)) mdBad.push(`${d.id} summary names ${n}`);
+      for (const n of oneWord) if (n !== d.name && new RegExp(`(?<![\\w.-]|\\buse )${n}(?![\\w-]|\\.\\w)`).test(s)) mdBad.push(`${d.id} summary names ${n}`);
       if (/\bbuild\b/i.test(s)) mdBad.push(`${d.id} summary carries a build instruction: "${s}"`);
     }
     for (const fam of [[button, buttonDestructive, buttonNeutral], [iconButton, iconButtonDestructive, iconButtonNeutral], [flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral]])

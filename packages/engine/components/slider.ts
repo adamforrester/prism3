@@ -236,7 +236,7 @@ export const sliderThumb: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Give a Slider the handle the user moves, inside a Slider only.',
+    primaryPurpose: 'Give a Slider the handle the user moves.',
     whenToUse: 'Only as a child of a Slider. Generate a Slider, which places one thumb for a single value and two for a range, and sets their size and state.',
     avoidWhen: 'Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.',
     commonPartners: ['slider', 'focus-ring'],

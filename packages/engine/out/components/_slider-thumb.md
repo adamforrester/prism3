@@ -11,7 +11,7 @@
 
 The handle a Slider moves along its track: a disc in neutral ink that sits on the track with no gap. A light halo grows around it at hover and wider while pressed, and it shows the focus ring while it has keyboard focus. It comes in the Slider's three sizes. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.
 
-- **Purpose:** Give a Slider the handle the user moves, inside a Slider only.
+- **Purpose:** Give a Slider the handle the user moves.
 - **Use when:** Only as a child of a Slider. Generate a Slider, which places one thumb for a single value and two for a range, and sets their size and state.
 - **Avoid when:** Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.
 

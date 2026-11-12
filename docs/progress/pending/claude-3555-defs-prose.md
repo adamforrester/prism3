@@ -16,6 +16,8 @@ halves of Q-MD5, Q-MD14, Q-MD15 and Q-MD16.
     already use: "in the brand's primary style", "deletes or removes something", "carries no brand emphasis".
   - Shipped fields lose "a11y" (now "accessibility"), "i18n" ("text expansion in translation") and
     `IA2_ROLE_TOGGLE_BUTTON` ("some platform accessibility layers map … to the same toggle-button role").
+  - Q200 A rewords four of them: ListItem "Hold one item inside a List: …", Slider thumb "Give a Slider the handle the
+    user moves.", and the destructive and neutral IconButtons now open "With an icon alone and no visible label, …".
   - Switch.Row's lowercase sentence start ("two implementation traps") is fixed in the same sentence.
 - **Q-MD15 A, Badge.** The summary said "color is never the only signal", but the dot type has no text. It now reads as
   intent, "color is not meant to be the only signal", and its 1.4.1 line is stated "as intent", the form other defs use.
@@ -30,16 +32,18 @@ halves of Q-MD5, Q-MD14, Q-MD15 and Q-MD16.
 
 A new arm, `#3555 Q-MD5`, holds three things:
 - No summary names another registered component: its dotted name, or its one-word name as a whole capitalized word
-  ("Icon-only" is not a reference). The oracle is the registry's names.
+  ("Icon-only" is not a reference). The oracle is the registry's names. Q206 A: a name directly after "use" is an
+  alternative pointer, so Button keeps "For navigation, use Link."; a name anywhere else still fails.
 - No summary contains "build".
 - Each action family's three siblings state three different `primaryPurpose` lines.
 
 The family equality tests mask `primaryPurpose` as a per-sibling field. Mutation: "Nested by Checkbox.Row" was restored
 and Button's three purposes were collapsed back into one. The arm failed by name: "checkbox-control summary names
-Checkbox.Row | button family shares a primaryPurpose".
+Checkbox.Row | button family shares a primaryPurpose". After Q206 A, two more mutations, each failing by name:
+"Nested by Checkbox.Row" restored ("checkbox-control summary names Checkbox.Row"), and Button's "use Link" changed to
+"like Link" ("button summary names Link").
 
-### Trap for whoever merges
+### Merge with #3634
 
-#3634 (C2) edits the same `sharedPart` mask line in `test.ts`, and the `whenToUse` lines next to `primaryPurpose` in
-`icon-button.ts` and `flush-icon-button.ts`. Whichever lands second keeps both fields in the mask and both per-sibling
-values.
+#3634 (C2) landed first and edited the same `sharedPart` mask line in `test.ts`. The merge keeps both fields in the
+mask and both per-sibling values.

@@ -604,7 +604,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   },
 
   ai: {
-    primaryPurpose: { primary: 'Trigger an action with an icon alone, no visible label, in the brand\'s primary style.', destructive: 'Trigger an action that deletes or removes something with an icon alone, no visible label.', neutral: 'Trigger an action that carries no brand emphasis with an icon alone, no visible label.' }[family],
+    primaryPurpose: { primary: 'Trigger an action with an icon alone, no visible label, in the brand\'s primary style.', destructive: 'With an icon alone and no visible label, trigger an action that deletes or removes something.', neutral: 'With an icon alone and no visible label, trigger an action that carries no brand emphasis.' }[family],
     whenToUse: sibling.whenToUse ?? 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).',
     avoidWhen: `The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. ${sibling.avoidWhen}`,
     commonPartners: ['icon', 'spinner', 'focus-ring'],

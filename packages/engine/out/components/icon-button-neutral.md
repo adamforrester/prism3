@@ -12,7 +12,7 @@
 
 An icon-only trigger that carries no brand weight — a toolbar control, a dense table-row action, a close affordance — in the neutral color, which is where most icon-only actions sit. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis). Same anatomy as IconButton; the accessible name is still mandatory.
 
-- **Purpose:** Trigger an action that carries no brand emphasis with an icon alone, no visible label.
+- **Purpose:** With an icon alone and no visible label, trigger an action that carries no brand emphasis.
 - **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).
 - **Avoid when:** The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action carries the brand → use IconButton. It deletes or removes something → use IconButton.Destructive.
 

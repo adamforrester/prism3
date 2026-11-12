@@ -2629,7 +2629,7 @@
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action that deletes or removes something with an icon alone, no visible label.",
+        "primaryPurpose": "With an icon alone and no visible label, trigger an action that deletes or removes something.",
         "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).",
         "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action is not destructive → use IconButton, or IconButton.Neutral for one with no brand emphasis.",
         "commonPartners": [
@@ -2887,7 +2887,7 @@
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
       "ai": {
-        "primaryPurpose": "Trigger an action that carries no brand emphasis with an icon alone, no visible label.",
+        "primaryPurpose": "With an icon alone and no visible label, trigger an action that carries no brand emphasis.",
         "whenToUse": "A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).",
         "avoidWhen": "The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action carries the brand → use IconButton. It deletes or removes something → use IconButton.Destructive.",
         "commonPartners": [
@@ -8872,7 +8872,7 @@
         "contentGuidelines": "One phrase or sentence per item, sentence case, parallel with the items around it."
       },
       "ai": {
-        "primaryPurpose": "Set one item inside a List: a marker in a fixed column, then text that wraps under itself.",
+        "primaryPurpose": "Hold one item inside a List: a marker in a fixed column, then text that wraps under itself.",
         "whenToUse": "Only as a child of a List. Generate a List, which places its items and sets their marker type and size.",
         "avoidWhen": "Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).",
         "commonPartners": [
@@ -13500,7 +13500,7 @@
         "contentGuidelines": "No copy of its own."
       },
       "ai": {
-        "primaryPurpose": "Give a Slider the handle the user moves, inside a Slider only.",
+        "primaryPurpose": "Give a Slider the handle the user moves.",
         "whenToUse": "Only as a child of a Slider. Generate a Slider, which places one thumb for a single value and two for a range, and sets their size and state.",
         "avoidWhen": "Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.",
         "commonPartners": [
