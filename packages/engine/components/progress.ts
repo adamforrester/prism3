@@ -444,7 +444,7 @@ export const progress: ComponentDef = {
   ai: {
     primaryPurpose: 'Show that system work is under way and, when it can be measured, how far along it is.',
     whenToUse: 'An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.',
-    avoidWhen: 'The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout\'s shape), the value is a static measurement such as storage used (a meter), it marks a user\'s place in a multi-step flow (a stepper).',
+    avoidWhen: 'The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout\'s shape), the value is a static measurement such as storage used (a meter), it marks a user\'s place in a multi-step flow (a stepper).',
     commonPartners: ['button', 'spinner', 'field-message'],
     triggerKeywords: ['progress', 'progress bar', 'progress indicator', 'linear progress', 'circular progress', 'progress ring', 'upload progress', 'determinate', 'indeterminate'],
     generationPriority: 3,

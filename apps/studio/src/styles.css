@@ -527,7 +527,10 @@ label.cset-head{cursor:pointer}
 .sg-floor-lab{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
 .sg-floor-lab + .sub-lab{margin-top:12px}
 .sg-grid{display:grid;gap:14px;margin-top:2px}
-.sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(5,1fr)}
+.sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(auto-fill,minmax(max(90px,calc((100% - 56px) / 5)),1fr))}
+/* #3553 M6 A: `.sg-g5`'s five columns reflow where the ground is narrow. Each column is at least 90px (at web 1024 they
+   were 61px, and "Success", "Warning" and "Danger" clipped), and never narrower than a fifth, so a wide ground keeps
+   exactly five. 56px is the four 14px gaps of `.sg-grid`. */
 .sg-cw{display:flex;flex-direction:column;gap:8px;min-width:0}
 /* Gallery pills WRAP instead of eliding. #289's elision is right in a table cell, where a column can
    only be so wide and siblings differ by their tail; here the grid width is fixed by the semantic set

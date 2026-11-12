@@ -954,7 +954,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1048,7 +1048,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1142,7 +1142,7 @@
           "outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too."
         ],
         "unverified": [
-          "motion timing — the button brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.",
+          "motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.",
           "the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host's own edge or fill is not measured."
         ],
         "evolution": [
@@ -1212,7 +1212,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1302,7 +1307,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1392,7 +1402,12 @@
         {
           "class": "composition",
           "disposition": "REFUSED",
-          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+          "description": "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets isInactive on that button at the limit rather than native disabled, so it stays in the accessibility tree."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: as on IconButton, its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled control. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus."
         },
         {
           "class": "right-to-left",
@@ -1895,7 +1910,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate."
+          "description": "motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw, morphing dash to check, on motion.duration.fast, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate."
         },
         {
           "class": "right-to-left",
@@ -2007,7 +2022,7 @@
           "The unchecked box has no `pressed` binding. `color.field.border.*` emits `rest` and `hover` only, so a pressed unchecked box falls through to its rest border. Reaching into `color.interactive.neutral.border.pressed` for that one coordinate would put two families on one ladder, which is the inconsistency `lint-paint.ts` arm 1 exists to see in its axis-led form. The checked and indeterminate coordinates DO paint pressed, so the gap is asymmetric — worth knowing before anyone reads the pressed row as covered.",
           "`read-only` is declared and binds nothing (see `states`). The brief calls it \"the awkward one\" and recommends static text over a styled locked control, so there is no treatment to bind; a consumer choosing `aria-readonly` plus a prevented toggle has no token telling them what it should look like.",
           "The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch. Since #2894 the row's floor, `size.*.min-height`, is bound in Figma as well as code, and every row clears 24 by measurement (`test.ts` #2894: 29px at its smallest, small at compact). History: before #1433b gave the row 12px of block padding, an aurora `small` row at compact hugged to 21px, short of 24. `lint-hit-target` holds only the default (medium) row's `min-height` to 44px on comfortable and spacious density, which is why `accessibility.wcag` states 2.5.8 as intent (#1698). The heights are measured from emitted tokens and plans, not yet read back from a real host.",
-          "The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw at roughly 100-150ms, morphing dash to check) is stated in `checkbox-control`'s `motion`, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`."
+          "The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw, morphing dash to check) is stated in `checkbox-control`'s `motion` on motion.duration.fast, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`."
         ],
         "evolution": [
           "THE PAINT GRAMMAR IS AXIS-LED and the exemption is declared per-AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than per-key. RESOLVED, not open — kept here because the rejected alternative is the instructive part. This def first shipped SLOT-led (`fill.checked`), which skips arm 1 by construction, since that rule only examines a key whose literal lead is an axis value: the same net coverage, none of the visibility, and exactly the shape the house rule forbids — a false positive is fixed by adding to the exemption list, never by narrowing a scan. The other alternative, axis-led with a `PROVENANCE_EXCEPTIONS` entry per binding, was costed at roughly four times `field-message`'s whole list for this one def; the axis-level entry replaces all twenty with one declaration that `radio-control` and `switch-control` inherit. What stays genuinely open is only the underlying fact, and it is a TOKEN-TIER claim anyone can check: the tier emits no `color.checked.*` family and should not grow one. If that stops being true, arm 1 should cover this axis and the exemption fails as no-longer-exercised, which is the direction it is checked in.",
@@ -2170,7 +2185,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — the select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING's dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate."
+          "description": "motion — the select micro-motion (a scale-up of the dot on motion.duration.fast, and — uniquely — a SIBLING's dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate."
         },
         {
           "class": "hit-target",
@@ -2291,7 +2306,7 @@
         "evolution": [
           "THE COMPANIONS ARE BUILT. This def used to record Radio.Control and RadioGroup as the two companions, with the group deferred (#901). `radio-control` (#1348) is the atom this Row nests, and `radio-group` (#1469) is the mandatory group that owns the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation` and all validation.",
           "THE SELECT MICRO-MOTION HAS A HOME. It was recorded here as having no expression in the def schema. The schema has a `motion` field; the dot's transition is stated on `radio-control`, where the dot is, and this Row's `motion` names the rest.",
-          "Field POV (brief §13): the group became the mandatory first-class component and the bare radio an incomplete unit; composition (a group wrapping option children) replaced the options array; styled native inputs sharing a `name` replaced hand-rolled `role=radio` groups, with `role=\"radiogroup\"` + `aria-labelledby` over `fieldset`; the segmented control split out as a compact presentation of the same semantics; and selection-follows-focus was affirmed as the default, with the cheap-`onChange` caveat."
+          "Field POV (brief §13): the group became the mandatory first-class component and the bare radio an incomplete unit; composition (a group wrapping option children) replaced the options array; styled native inputs sharing a `name` replaced hand-rolled `role=radio` groups, with `role=\"radiogroup\"` + `aria-labelledby` over `fieldset`; SegmentedControl split out as a compact presentation of the same semantics; and selection-follows-focus was affirmed as the default, with the cheap-`onChange` caveat."
         ],
         "projection": []
       },
@@ -2568,7 +2583,7 @@
           "THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`'s was: the nested control instance must pin its own HEIGHT (the track height) rather than stretch to the `control-box` line box, and whether the instance's inherited sizing mode cooperates with the row's auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. The control is non-square, so the Row pins HEIGHT only and the width is the control's own 2:1 — a narrower pin than checkbox's square.",
           "THE THUMB GLYPH IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. Since #1425 the thumb is 0.75 × the track (`control.size.*.thumb`), 18px at `small` and 24px at `medium` in every corpus brand, so the glyph is ~12.7px and ~17px after its optical inset; the smallest case is compact density `small`, a 12px thumb and a ~8.5px glyph. The measurement is in `switch-control.ts`.",
           "THE LABEL SIDE HAS ONE EXPRESSION AND `labelPosition` STILL HAS NONE. The anatomy states the DEFAULT (`row.children` is `[label, trackBox]`, label-leading); the flipped order the prop selects is not expressible, because a prop is not a coordinate. RTL is the sharper half and inverts twice over (the row mirrors AND the thumb travel flips).",
-          "THE TRAVEL'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The ~150–200ms ease-in-out slide with the synchronized track-color crossfade (dropping to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.",
+          "THE TRAVEL'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The slide on motion.transition.default with the synchronized track-color crossfade (at once under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.",
           "THE role=\"switch\" ANNOUNCEMENT INSIDE A SHADOW ROOT on older Safari with VoiceOver, where no explicit aria-label or aria-labelledby is set (KB switch brief §15, from Material 3's notes). The `aria` block already tells a web-component host to set the name explicitly; whether older Safari announces the role and state correctly across the shadow boundary is not checked by anything here.",
           "THE WHOLE-ROW HIT TARGET HAS A NUMBER SINCE #2894: the row's floor, `size.*.min-height` (the control-height ladder), is bound in Figma as well as code, so a single-line row measures 36/44 at comfortable and 29/36 at compact, and every row clears SC 2.5.8's 24×24 (`test.ts` #2894). Still unverified on a real host, and sharper here than on the siblings because the row is label-leading (the control sits at the trailing edge, furthest from the label). The track spilling past its line-box cell is #1439, which the taller row hides but does not fix."
         ],
@@ -2975,7 +2990,7 @@
         {
           "class": "announcement",
           "disposition": "REFUSED",
-          "description": "announcement — a wrapper with `role=\"status\"` and `aria-live=\"polite\"` around an `aria-hidden` `<svg>`, with the `label` (\"Loading\" by default) in a visually hidden span (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer's stance) — puts `aria-hidden=\"true\"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role=\"progressbar\"`: a spinner has no value."
+          "description": "announcement — the region comes first: a polite `role=\"status\"` region, the host's or the app's, is on the page and empty before the spinner shows, and the `label` (\"Loading\" by default) is written into it, visually hidden, when the spinner shows, because some screen readers ignore a region inserted together with its text (owner decision Q-CC25 A, as Progress, Toast and Banner require). The `<svg>` is `aria-hidden`. The label is the region's content, not its accessible name (brief §11). A host that already announces its busy state through its own live region — a Button or IconButton `isPending`, or a region carrying `aria-busy` with a live status (Primer's stance) — puts `aria-hidden=\"true\"` on the spinner, so the state is announced once. Never `aria-valuenow` and never `role=\"progressbar\"`: a spinner is not a progressbar (Q-CC24 A)."
         }
       ],
       "notes": {
@@ -2984,7 +2999,7 @@
           "STANDALONE COMPONENTS, not one variant set (`emitAsComponents`). The button swaps a spinner into its icon slot by component name, and a set member's name is not unique in a file.",
           "THE TURN IS NOT TEMPO-SCALED. `motion.duration.spin` holds 800ms at every tempo, where the transition ramp scales with the brand's tempo lever.",
           "A SEPARATE PRIMITIVE, not a `CircularProgress` variant (brief §1, §10). The practice default, and this def: a separate `Spinner` keeps the no-value contract off a component that carries `value` / `min` / `max`, so a button loader is never read as a `progressbar` that needs a value. The alternative is the fold MUI (`CircularProgress variant=\"indeterminate\"`) and Spectrum (`ProgressCircle isIndeterminate`) ship. Material 3 split its \"Loading indicator\" out of indeterminate progress in May 2025 (unverified, see below).",
-          "THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role=\"status\"` with a hidden \"Loading\" (the APG-recommended pattern, and this def's default); an indeterminate `role=\"progressbar\"` with no `aria-valuenow` (permitted, but some screen readers keep announcing the missing value, so ruled out here); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).",
+          "THE ANNOUNCEMENT MODEL (brief §6) — three methods in the field: `role=\"status\"` with a hidden \"Loading\" (the APG-recommended pattern, and this def's default); an indeterminate `role=\"progressbar\"` with no `aria-valuenow` (permitted, and Progress uses it for its visible indeterminate bar; a spinner is not a progressbar, so ruled out here, Q-CC24 A); and `aria-busy` on the region with an `aria-hidden` drawing (Primer; the practice default for the overlay or region case, and what a host does when it hides the spinner).",
           "INLINE vs OVERLAY, and the API divide (brief §3, §4). This def is the inline primitive only: no mask, no `spinning` toggle, no `fullscreen`. The alternatives are Ant's `Spin`, which wraps content in a dimming mask and blocks it, and, on API shape, Base Web's exhaustive `overrides` (drilling into `Svg` / `TrackPath`) against Spectrum's locked-down API (only `staticColor`). This def sits at the locked-down end: `size` and `label`.",
           "REDUCED MOTION SLOWS THE TURN rather than substituting a pulse (owner, 2026-09-26). Brief §6 and §8 name a slow opacity pulse, or a static indicator with a low-frequency text ellipsis, as the substitute. Both agree on the rule that matters: never a frozen ring, which reads as a crash (Primer: make it subtle, do not remove it).",
           "THE ANTI-FLASH DELAY IS THE HOST'S, not a `delay` prop. Brief §3 lists `delay` (~200–500ms), a first-class prop in Ant and Fluent. The host already decides when to mount the spinner and owns the busy announcement, so the timer sits with that decision; a `delay` prop would put a second timer beside the host's. The alternative is the brief's prop, defaulting to 0.",
@@ -2998,7 +3013,6 @@
         ],
         "unverified": [
           "The external 2026 version numbers and the Material 3 \"Loading indicator\" split (May 2025 Expressive Update) — brief §14 holds them loosely and flags them unverified, and so does this def. They back the separate-primitive call and the 200ms / 5s bands, both of which stand on their own reasoning.",
-          "The `role=\"status\"`-versus-`role=\"progressbar\"` announcement specifics — which screen readers keep announcing an indeterminate progressbar's missing value. The brief asks for verification against current screen readers; not verified here.",
           "1.4.11 for the arc: it takes its host's icon ink and is stated to clear 3:1, but that is not measured per host. Standalone it binds `color.icon.primary`, which the engine gates against `background.primary`; inside a host it takes whatever ink the host pushes (on-fill, disabled ink, their inverse twins), and no gate composes the spinner onto each host's ground and measures the arc there."
         ],
         "evolution": [
@@ -4214,7 +4228,7 @@
         {
           "class": "implementation",
           "disposition": "REFUSED",
-          "description": "The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option's measured box (a ResizeObserver, re-measured when fonts load or the direction changes), about 150–200ms. Under prefers-reduced-motion it moves without animation."
+          "description": "The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option's measured box (a ResizeObserver, re-measured when fonts load or the direction changes), on motion.transition.default. Under prefers-reduced-motion it moves without animation."
         },
         {
           "class": "responsive-layout",
@@ -5417,6 +5431,7 @@
           "2026-10-18 (Q414 A): `type` gains previous and next, the square cell with a chevron in the neutral ink and wash, with a disabled state for an end; `labeled` adds the word for simple.",
           "2026-10-19 (owner QA, Q426 A, Q427 A, Q428 A): the underline is as wide as the number (its childless balance frame stretches to the number instead of keeping a new frame's default width); the gap icon is in the page numbers' ink; the labeled previous and next lose the wash and change ink only; the chevrons and the gap icon are one icon-size rung smaller (xs, sm, md), the cells unchanged.",
           "2026-10-19 (Q427 A), WCAG 1.4.11 and the second cue: in the border style the current page's border is color.border.secondary, one rung lighter than border.tertiary (lowest 2.00 against color.background.primary in light and dark; 9.8 and up in high contrast). 1.4.11 asks 3:1 of the visual information needed to identify a state. Here the border is not needed: the current page's number is in the emphasis weight, and each page keeps the width of that weight, so the weight alone identifies it, with aria-current in code. The border is a second, decorative cue, so it may be subtle. The underline style has no other visual cue in its box, so its underline keeps border.tertiary at 3:1. The exception is this part only: test.ts holds the border to the emphasis weight and the underline to 3:1.",
+          "2026-11-11 (Q-CC12 A, #3554): the underline style's underline is a selection mark, so it binds color.interactive.neutral.indicator.rest, the mark that matches the number's ink, in place of border.tertiary. Its value moves from the mid gray to the label ink, and a brand that quiets its outline edges (#3346) no longer thins it below the 3:1 Q427 A requires. The border style's border stays an edge on border.secondary.",
           "2026-10-17 (Q394 A, Q395 A, Q404 A): the id loses the `_` prefix and the item becomes the items slot's preferred item, preferred-only; border.tertiary at 1px kept; the ellipsis becomes the decorative more-horizontal icon, so its text part, its TEXT property and the `mark` prop go."
         ],
         "projection": []
@@ -6380,7 +6395,7 @@
         "contested": [
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
           "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
-          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+          "The character weight: no guaranteed type role is above 18px, so the medium, large and x-large characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
         ],
         "unverified": [
           "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
@@ -6516,7 +6531,7 @@
       ],
       "notes": {
         "contested": [
-          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
+          "The label size: one FieldLabel size at every cell size, because FieldLabel has no x-large. Text field's label follows its size one step down.",
           "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
         ],
         "unverified": [

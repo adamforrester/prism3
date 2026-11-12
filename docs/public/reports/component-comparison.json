@@ -1374,7 +1374,7 @@
           "medium",
           "small",
           "large",
-          "xlarge"
+          "x-large"
         ],
         "status": [
           "default",
@@ -1438,7 +1438,7 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ]
         },
         {
@@ -1448,6 +1448,10 @@
             "auto",
             "full"
           ]
+        },
+        {
+          "name": "required",
+          "default": false
         },
         {
           "name": "disabled",
@@ -1468,7 +1472,7 @@
         "medium",
         "small",
         "large",
-        "xlarge"
+        "x-large"
       ],
       "sizeDefault": "medium"
     },
@@ -1499,7 +1503,7 @@
           "medium",
           "small",
           "large",
-          "xlarge"
+          "x-large"
         ]
       },
       "props": [
@@ -1513,7 +1517,7 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ]
         },
         {
@@ -1533,7 +1537,7 @@
         "medium",
         "small",
         "large",
-        "xlarge"
+        "x-large"
       ],
       "sizeDefault": "medium"
     },
@@ -1567,8 +1571,8 @@
           "name": "label"
         },
         {
-          "name": "showLabel",
-          "default": false
+          "name": "hideLabel",
+          "default": true
         },
         {
           "name": "value"
@@ -1608,7 +1612,7 @@
           ]
         },
         {
-          "name": "message"
+          "name": "helpText"
         },
         {
           "name": "showMessage",
@@ -1903,7 +1907,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -1970,6 +1975,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -1992,7 +2001,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -2059,6 +2069,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -2081,7 +2095,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "projectedStates": [
         "rest",
@@ -2148,6 +2163,10 @@
             "default",
             "inverse"
           ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "disabled",
@@ -4385,6 +4404,10 @@
           "name": "label"
         },
         {
+          "name": "hideLabel",
+          "default": false
+        },
+        {
           "name": "value"
         },
         {
@@ -4455,6 +4478,10 @@
         },
         {
           "name": "helpText"
+        },
+        {
+          "name": "showMessage",
+          "default": false
         },
         {
           "name": "validation",
@@ -5649,6 +5676,9 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral"
@@ -6233,7 +6263,7 @@
           "large",
           "medium",
           "small",
-          "xlarge"
+          "x-large"
         ],
         "components": [
           "code-input",
@@ -7207,6 +7237,9 @@
         "id": "code-input"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -7227,7 +7260,15 @@
     ],
     "hideLabel": [
       {
+        "id": "counter",
+        "default": true
+      },
+      {
         "id": "search-field",
+        "default": false
+      },
+      {
+        "id": "slider",
         "default": false
       }
     ],
@@ -7458,6 +7499,18 @@
       },
       {
         "id": "button-neutral",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-neutral",
         "default": false
       },
       {
@@ -7821,9 +7874,6 @@
       }
     ],
     "message": [
-      {
-        "id": "counter"
-      },
       {
         "id": "field-message"
       },
@@ -8373,6 +8423,10 @@
         "default": false
       },
       {
+        "id": "code-input",
+        "default": false
+      },
+      {
         "id": "field-label",
         "default": false
       },
@@ -8558,12 +8612,6 @@
         "default": false
       }
     ],
-    "showLabel": [
-      {
-        "id": "counter",
-        "default": false
-      }
-    ],
     "showMessage": [
       {
         "id": "card-number-field",
@@ -8587,6 +8635,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "slider",
         "default": false
       },
       {
@@ -8758,7 +8810,7 @@
           "small",
           "medium",
           "large",
-          "xlarge"
+          "x-large"
         ]
       },
       {
@@ -8768,7 +8820,7 @@
           "small",
           "medium",
           "large",
-          "xlarge"
+          "x-large"
         ]
       },
       {
@@ -9917,7 +9969,7 @@
       "components": [
         "flush-icon-button"
       ],
-      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9925,7 +9977,7 @@
       "components": [
         "flush-icon-button-destructive"
       ],
-      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9933,7 +9985,7 @@
       "components": [
         "flush-icon-button-neutral"
       ],
-      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
     },
     {
       "kind": "state set",
@@ -9986,6 +10038,30 @@
         "code-input"
       ],
       "detail": "code-input declares the state pending, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button",
+      "components": [
+        "flush-icon-button"
+      ],
+      "detail": "flush-icon-button declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button-destructive",
+      "components": [
+        "flush-icon-button-destructive"
+      ],
+      "detail": "flush-icon-button-destructive declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "flush-icon-button-neutral",
+      "components": [
+        "flush-icon-button-neutral"
+      ],
+      "detail": "flush-icon-button-neutral declares the state inactive, which the design-file state axis does not draw"
     },
     {
       "kind": "state not drawn",
@@ -10197,7 +10273,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, xlarge] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -10387,7 +10463,7 @@
       "components": [
         "code-input"
       ],
-      "detail": "code-input declares its sizes as [medium, small, large, xlarge], not smallest first"
+      "detail": "code-input declares its sizes as [medium, small, large, x-large], not smallest first"
     },
     {
       "kind": "size order",
@@ -10395,7 +10471,7 @@
       "components": [
         "code-input-cell"
       ],
-      "detail": "code-input-cell declares its sizes as [medium, small, large, xlarge], not smallest first"
+      "detail": "code-input-cell declares its sizes as [medium, small, large, x-large], not smallest first"
     },
     {
       "kind": "size order",
@@ -10694,6 +10770,16 @@
         "banner"
       ],
       "detail": "headingLevel defaults differ over the same values — 2 in banner; 3 in accordion"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop hideLabel",
+      "components": [
+        "counter",
+        "search-field",
+        "slider"
+      ],
+      "detail": "hideLabel defaults differ over the same values — false in search-field, slider; true in counter"
     },
     {
       "kind": "prop default",

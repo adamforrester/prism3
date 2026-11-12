@@ -1265,7 +1265,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
@@ -5048,7 +5048,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
@@ -8831,7 +8831,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
@@ -14757,7 +14757,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -14913,7 +14913,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -15069,7 +15069,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -15225,7 +15225,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -16847,7 +16847,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -17003,7 +17003,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -17159,7 +17159,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -17315,7 +17315,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -18937,7 +18937,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19093,7 +19093,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19249,7 +19249,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.disabled.icon",
+                  "$token": "color.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -19405,7 +19405,7 @@
             "icon": {
               "styles": {
                 "fillColor": {
-                  "$token": "color.inverse.disabled.icon",
+                  "$token": "color.inverse.disabled.on-fill",
                   "$type": "color"
                 }
               }
@@ -20113,7 +20113,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -20179,6 +20179,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -20186,7 +20197,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -20203,7 +20214,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
@@ -20879,7 +20893,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -20945,6 +20959,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -20952,7 +20977,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -20969,7 +20994,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
@@ -21645,7 +21673,7 @@
             "com.prism3": {
               "type": "function",
               "required": false,
-              "description": "Action handler. Not called while disabled."
+              "description": "Action handler. Not called while disabled or inactive."
             }
           }
         },
@@ -21711,6 +21739,17 @@
             }
           }
         },
+        "isInactive": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,
@@ -21718,7 +21757,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+              "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
             }
           }
         },
@@ -21735,7 +21774,10 @@
           "$extensions": {
             "com.prism3": {
               "axis": "state",
-              "figmaName": "state"
+              "figmaName": "state",
+              "codeOnlyStates": [
+                "inactive"
+              ]
             }
           }
         }
@@ -31753,7 +31795,7 @@
             "com.prism3": {
               "type": "array",
               "required": false,
-              "description": "The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
+              "description": "The bounded set of choices. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better."
             }
           }
         },
@@ -33896,7 +33938,7 @@
             "com.prism3": {
               "type": "string",
               "required": false,
-              "description": "The accessible name of the spinner's role=\"status\" wrapper, visually hidden and announced politely. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
+              "description": "The text announced when the spinner shows, written into a polite role=\"status\" region that is present and empty before it shows, and visually hidden. \"Loading\" by default; name the work when it is known (\"Loading results\"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden=\"true\" on the spinner instead, so the state is announced once."
             }
           }
         }
@@ -49976,20 +50018,20 @@
           "default": null,
           "$extensions": {
             "com.prism3": {
-              "type": "string",
+              "type": "string | node",
               "required": true,
-              "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter only with showLabel."
+              "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set."
             }
           }
         },
-        "showLabel": {
+        "hideLabel": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "$extensions": {
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way."
+              "description": "Hides the label visually and keeps it in the accessibility tree, so the value keeps its name. On by default: a counter on a product card or a bag line is usually explained by what sits around it. Set it to false to show the label above the counter. Never display: none."
             }
           }
         },
@@ -50087,12 +50129,12 @@
             }
           }
         },
-        "message": {
+        "helpText": {
           "type": "string",
           "default": null,
           "$extensions": {
             "com.prism3": {
-              "type": "string",
+              "type": "string | node",
               "required": false,
               "description": "Text below the counter, such as the reason for a limit (\"Limit 5 per order\"). Added to the value's description."
             }
@@ -50105,7 +50147,7 @@
             "com.prism3": {
               "type": "boolean",
               "required": false,
-              "description": "Shows the message below the counter. Off by default."
+              "description": "Shows the help text below the counter. Off by default."
             }
           }
         },
@@ -51752,7 +51794,7 @@
             "underline": {
               "styles": {
                 "backgroundColor": {
-                  "$token": "color.border.tertiary",
+                  "$token": "color.interactive.neutral.indicator.rest",
                   "$type": "color"
                 }
               }
@@ -51795,7 +51837,7 @@
             "underline": {
               "styles": {
                 "backgroundColor": {
-                  "$token": "color.border.tertiary",
+                  "$token": "color.interactive.neutral.indicator.rest",
                   "$type": "color"
                 }
               }
@@ -59207,9 +59249,20 @@
           "default": null,
           "$extensions": {
             "com.prism3": {
-              "type": "string",
+              "type": "string | node",
               "required": true,
               "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
+            }
+          }
+        },
+        "hideLabel": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Hides the label visually and keeps it in the accessibility tree, so the slider keeps its name. For a slider whose purpose is plain from where it sits. Never display: none."
             }
           }
         },
@@ -59413,9 +59466,20 @@
           "default": null,
           "$extensions": {
             "com.prism3": {
-              "type": "string",
+              "type": "string | node",
               "required": false,
               "description": "Guidance under the slider, in a field message."
+            }
+          }
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error."
             }
           }
         },
@@ -60441,12 +60505,12 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "default": "medium",
           "$extensions": {
             "com.prism3": {
-              "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+              "type": "enum: 'small' | 'medium' | 'large' | 'x-large'",
               "required": false,
               "description": "The cell size and its character size. Set by the code input."
             }
@@ -60691,7 +60755,7 @@
         },
         {
           "configuration": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "elements": {
             "container": {
@@ -61083,14 +61147,14 @@
             "small",
             "medium",
             "large",
-            "xlarge"
+            "x-large"
           ],
           "default": "medium",
           "$extensions": {
             "com.prism3": {
-              "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+              "type": "enum: 'small' | 'medium' | 'large' | 'x-large'",
               "required": false,
-              "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes."
+              "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, x-large 68×72 with 40px, meant for four-character codes."
             }
           }
         },
@@ -61106,6 +61170,17 @@
               "type": "enum: 'auto' | 'full'",
               "required": false,
               "description": "auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must."
+            }
+          }
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
             }
           }
         },
@@ -61281,7 +61356,7 @@
         },
         {
           "configuration": {
-            "size": "xlarge"
+            "size": "x-large"
           },
           "elements": {
             "container": {

@@ -7916,6 +7916,28 @@ arm: {
   }
 }
 
+// ---- #3554 Q-CC24 A, Q-CC25 A: SPINNER'S ANNOUNCEMENT — the region exists first; a spinner is not a progressbar ----
+// The phrases are the OWNER'S decisions, typed here rather than read from the def: the region is present and
+// empty before the spinner shows and the label is its content, not its name (Q-CC25 A); a spinner is not a
+// progressbar, with no screen-reader claim, while Progress keeps its indeterminate role="progressbar" (Q-CC24 A).
+{
+  const a = spinner.accessibility as { role: string; aria: string; wcag: string[] };
+  const labelDesc = spinner.props.find((p) => p.name === 'label')?.description ?? '';
+  const ann = (spinner.anatomy.codeOnly ?? []).find((c) => c.class === 'announcement')?.description ?? '';
+  const fields: Record<string, string> = { role: a.role, aria: a.aria, wcag: a.wcag.join(' | '), 'label prop': labelDesc, 'codeOnly announcement': ann, description: spinner.description };
+  const stale = Object.entries(fields).filter(([, v]) => /named by|keep(s)? announcing|is the name|missing value/i.test(v)).map(([k]) => k);
+  ok(stale.length === 0,
+    `#3554 Q-CC25 A spinner: no field names the region by its label or repeats the screen-reader claim Q-CC24 A dropped (no "named by", "keep announcing", "is the name", "missing value")${stale.length ? ` — STALE in: ${stale.join(', ')}` : ''}`);
+  ok(a.aria.includes('is present and empty before the spinner shows') && a.aria.includes("The label is the region's content, not its accessible name") && ann.includes('empty before the spinner shows'),
+    `#3554 Q-CC25 A spinner: aria and the codeOnly announcement say the region is present and empty before the spinner shows, and the label is its content, not its name`);
+  const dont = (spinner.docs?.dont ?? []).join(' | ');
+  ok(a.aria.includes('a spinner is not a progressbar') && dont.includes('a spinner is not a progressbar'),
+    `#3554 Q-CC24 A spinner: aria and the dont list both say "a spinner is not a progressbar"`);
+  const pa = (progress.accessibility as { aria: string }).aria;
+  ok(/Indeterminate: role="progressbar" with no value attributes/.test(pa),
+    `#3554 Q-CC24 A progress: the indeterminate bar keeps role="progressbar" with no value attributes`);
+}
+
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
 // Expectations are the OWNER'S (2026-09-26), written here rather than read from the def or the geometry
 // module: the icon ladder 16 / 20 / 24 / 32, a button slot one rung below its size (#1350), 0.8s per turn
@@ -9576,10 +9598,11 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       // The weight, italic and underline match body.sm's same-named variant: only the size differs.
       for (const f of ['fontWeight', 'fontStyle', 'textDecoration']) if (v[f] !== ref[f]) bad.push(`${where}: ${f} ${v[f]} where body.sm.${k} has ${ref[f]}`);
       // Its link variants keep the link guidance beside the owner's words (Q117 A); the others carry the words alone.
-      const wantDesc = k.endsWith('-link') ? `${XS_DESC} Underlined (link — pair with text.link.* color).` : XS_DESC;
+      const wantDesc = k.endsWith('-link') ? `${XS_DESC} Underlined (link — pair with \`text.link.*\` color).` : XS_DESC;
       if (c.$description !== wantDesc) bad.push(`${where}: $description "${c.$description}"`);
       const meta = aiType[`type.body.xs.${k}`];
-      if (meta?.$description !== XS_DESC) bad.push(`${where}: .ai.json $description "${meta?.$description}"`);
+      // The sidecar copies the token's own description (#3555 G2), so its link variants carry Q117 A's link guidance too.
+      if (meta?.$description !== wantDesc) bad.push(`${where}: .ai.json $description "${meta?.$description}"`);
       if (!k.endsWith('-link') && !(meta?.avoid_when ?? '').includes('`type.caption.lg`')) bad.push(`${where}: .ai.json avoid_when does not send standalone small print to caption.lg ("${meta?.avoid_when}")`);
     }
   }
@@ -10383,7 +10406,9 @@ arm: {
 // (docs/34: a gate whose expected value comes from its subject cannot fail). The color math below is this
 // block's own; `regen --check` is what keeps the two committed files in step.
 {
-  const BRANDS = ['aurora', 'harbor', 'nb', 'wendys'];
+  // Every committed sidecar, prism3 included (#3555 G3: it was left out of both gates while the schema gate's message
+  // claimed every committed out/*.ai.json).
+  const BRANDS = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
   type C4 = { r: number; g: number; b: number; a: number };
   const parseColor = (v: string): C4 => {
     const m = v.match(/^rgba?\(([^)]+)\)$/);
@@ -10399,8 +10424,16 @@ arm: {
   const isGround = (role: string) => { const s = role.replace(/^inverse\./, '').split('.'); return ['background', 'foreground', 'scrim', 'veil'].includes(s[0]) || s.includes('fill') || s.includes('overlay'); };
   const isBorder = (role: string) => role.replace(/^inverse\./, '').split('.').includes('border');
   const PATHISH = /^[a-z][a-z0-9-]*(?:\.[a-z0-9*-]+)+$/;
-  // Role-shaped names written OUTSIDE backticks — prose the path arm could not otherwise see.
-  const BARE = /\b(?:text|icon|background|foreground|border|interactive|disabled|field|scrim|veil|inverse|type|core|color|font|space|radius|size|motion)\.[a-z0-9*<]/g;
+  // Role-shaped names written OUTSIDE backticks — prose the path arm could not otherwise see. The families are read
+  // per brand from the EMITTED tree: its top-level groups, plus `color`'s groups for the role-relative names. They are
+  // never imported or copied from `tree.ts`'s quoting list (#3555 Q-MD2 review): a gate that shares its subject's list
+  // cannot fail on the subject's omissions (docs/34). This hand list is a floor under the tree's.
+  const BARE_FLOOR = ['text', 'icon', 'background', 'foreground', 'border', 'interactive', 'disabled', 'field', 'scrim', 'veil', 'inverse', 'type', 'core', 'color', 'font', 'space', 'radius', 'size', 'motion'];
+  const bareRe = (tree: any): RegExp => {
+    const groups = (o: any) => Object.keys(o ?? {}).filter((k) => !k.startsWith('$'));
+    const fams = [...new Set([...BARE_FLOOR, ...groups(tree), ...groups(tree?.color)])];
+    return new RegExp(`\\b(?:${fams.map((f) => f.replace(/-/g, '\\-')).join('|')})\\.[a-z0-9*<]`, 'g');
+  };
   // The AI/A-11 exemption that stood here (held for #1614) is gone (#3555 S1): #1614 shipped, and the
   // `foreground.<category>-subtle` names it let through were false in every brand (#3555 F2). Bare names now fail
   // the BARE arm like any other.
@@ -10410,7 +10443,7 @@ arm: {
   const RELS = ['sits_on', 'carries', 'tracks'];
   // Real acronyms the guidance may use. A new all-caps word fails until it is either lower-cased or added
   // here as the term it is.
-  const ACRONYMS = new Set(['UI', 'DOM', 'SC', 'WCAG', 'AA', 'AAA', 'HC']);
+  const ACRONYMS = new Set(['UI', 'DOM', 'SC', 'WCAG', 'AA', 'AAA', 'HC', 'CSS']);
   // The exact names the consume skill hands an agent, read from the SHIPPED skill — the oracle for "every
   // name the skill tells you to use has an entry". Backticked, dotted, lower-case, at most one wildcard
   // segment; file names (`.json`) and the private primitives it names only as the wrong choice are out.
@@ -10424,6 +10457,7 @@ arm: {
     const tj = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
     const ai = JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8'));
     const root = Object.keys(tj).find((k) => !k.startsWith('$'))!;
+    const BARE = bareRe(tj[root]);
     const at = (p: string): any => p.split('.').reduce((o: any, k) => o?.[k], tj[root]);
     const leaves: string[] = [];
     const walk = (o: any, p: string[]) => { if (!o || typeof o !== 'object') return; if (o.$type !== undefined) { leaves.push(p.join('.')); return; } for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...p, k]); };
@@ -10472,7 +10506,17 @@ arm: {
       if (!hit) pathBad.push(`${b} consume skill names \`${n}\`, which has no sidecar entry`);
     }
     for (const [k, e] of Object.entries<any>(ai.gradient ?? {})) { miss('gradient key', k); for (const v of e.resolves_to ?? []) refMiss(`${k}.resolves_to`, v); }
-    for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
+    // #3555 G2: an entry's `$description` IS the token's own, copied (AI/A-22), in every tier. The typography, weight-role
+    // and gradient entries regenerated theirs and lost the face, the fluid range and "underlined". The key is the tree
+    // path (color roles gain back their `color.` segment), and the expected text is read off the tree, never the sidecar.
+    for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) {
+      const own = at(tier === 'color' ? `color.${k}` : k)?.$description;
+      if (typeof own === 'string' && e.$description !== own) pathBad.push(`${b} ${tier}.${k}.$description is not the token's own ("${String(e.$description).slice(0, 60)}" vs "${own.slice(0, 60)}")`);
+    }
+    // #3555 Q-MD2 A: `$description` is held too. It is copied from the tree, and the schema's prose promise (every token
+    // name backticked, every backticked name resolves) covers it like every other prose field. This loop's AI/C-3
+    // capitals check is the one that reaches `$description` (#3555 V1: "PAGE" shipped in nine overlay descriptions).
+    for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['$description', 'meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
       const t: string = e[f]; if (typeof t !== 'string') continue;
       // AI/C-3: no capitals for emphasis in generated guidance — an agent can read `INVERSE` as an enum or
       // a keyword. Acronyms that are real terms stay; a path meant as a path is backticked.
@@ -10668,6 +10712,52 @@ arm: {
     `sidecar gate scope: ${pathsChecked} paths, ${pairsChecked} legibility relations (+${tracking} tracks), ${cwChecked} contrast_with, ${clausesChecked} surface clauses, ${entriesChecked} tree leaves, ${skillNamesChecked} skill names, ${capsChecked} prose fields for capitals, ${limitsChecked} usage-limit checks across ${BRANDS.length} brands`);
   ok(pathBad.length === 0, 'sidecar paths: every token path named in .ai.json resolves in the brand\'s emitted tree' + (pathBad.length ? ` — ${pathBad.length}: ${pathBad.slice(0, 5).join(' | ')}` : ''));
 
+  // #3555 Q-MD2 A, THE TREE'S OWN PROSE. The arm above reads `.ai.json` only, so the DTCG tree's per-mode
+  // `description`s, and the `$description`s of tokens outside the sidecar's tiers, were quoted at the source and held
+  // by nothing (#3667 review: dropping the per-mode quoting branch left every gate green). This walks every brand's
+  // COMMITTED `out/<brand>.tokens.json`, the brands read from `out/` itself, and holds each `$description` and each
+  // `$extensions.prism3.modes.<mode>.description` to the same three checks: no capitals for emphasis, every
+  // backticked path resolves in that tree (as a path, or under `color.`), and no family-shaped name outside backticks.
+  {
+    const treeBrands = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace(/\.tokens\.json$/, '')).sort();
+    const treeBad: string[] = [];
+    const seen = new Map<string, { desc: number; mode: number }>();
+    for (const b of treeBrands) {
+      const tj = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
+      const root = Object.keys(tj).find((k) => !k.startsWith('$'))!;
+      const BARE = bareRe(tj[root]);
+      const leaves: string[] = [];
+      const collect = (o: any, p: string[]) => { if (!o || typeof o !== 'object') return; if (o.$type !== undefined) leaves.push(p.join('.')); for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) collect(v, [...p, k]); };
+      collect(tj[root], []);
+      const at = (p: string): any => p.split('.').reduce((o: any, k) => o?.[k], tj[root]);
+      const globRe = (p: string) => new RegExp('^' + p.split('.').map((s) => s.split('*').map((x) => x.replace(/[-]/g, '\\-')).join('[^.]*')).join('\\.') + '(?:\\..+)?$');
+      const exists = (p: string) => (p.includes('*') ? leaves.some((l) => globRe(p).test(l)) : at(p) !== undefined);
+      const n = { desc: 0, mode: 0 };
+      const check = (where: string, t: string) => {
+        const shout = (t.replace(/`[^`]*`/g, '').match(/\b[A-Z]{2,}\b/g) ?? []).filter((w) => !ACRONYMS.has(w));
+        if (shout.length) treeBad.push(`${b} ${where}: capitals for emphasis ${[...new Set(shout)].join(', ')}`);
+        for (const m of t.matchAll(/`([^`]+)`/g)) if (PATHISH.test(m[1]) && !exists(m[1]) && !exists(`color.${m[1]}`)) treeBad.push(`${b} ${where}: \`${m[1]}\` resolves to no token`);
+        const bare = t.replace(/`[^`]*`/g, '').match(BARE);
+        if (bare) treeBad.push(`${b} ${where}: unquoted ${bare.join(', ')}`);
+      };
+      const walk = (o: any, p: string[]) => {
+        if (!o || typeof o !== 'object') return;
+        if (typeof o.$description === 'string') { n.desc++; check(`${p.join('.') || '(root)'} $description`, o.$description); }
+        for (const [m, v] of Object.entries<any>(o.$extensions?.prism3?.modes ?? {})) if (typeof v?.description === 'string') { n.mode++; check(`${p.join('.')} modes.${m}.description`, v.description); }
+        for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...p, k]);
+      };
+      walk(tj[root], []);
+      seen.set(b, n);
+    }
+    // Represented, not counted (docs/34): every brand the sidecar arm reads plus `prism3`, and each one carrying both
+    // kinds of prose, so a walk that stopped reading per-mode lines, or a brand, fails here rather than passing empty.
+    const want = [...new Set([...BRANDS, 'prism3'])];
+    const thin = want.filter((b) => !(seen.get(b)?.desc! > 500 && seen.get(b)?.mode! > 100));
+    ok(thin.length === 0 && treeBrands.length >= want.length,
+      `#3555 Q-MD2 token tree prose scope: ${[...seen].map(([b, v]) => `${b} ${v.desc} $description + ${v.mode} per-mode`).join(', ')}${thin.length ? ` — too thin or missing: ${thin.join(', ')}` : ''}`);
+    ok(treeBad.length === 0, '#3555 Q-MD2 token tree prose: every $description and per-mode description in out/<brand>.tokens.json backticks each token name, each resolves, and none uses capitals for emphasis' + (treeBad.length ? ` — ${treeBad.length}: ${treeBad.slice(0, 5).join(' | ')}` : ''));
+  }
+
 // THE TINTED WASH IN THE SIDECAR (2026-09-29). Every overlay-neutral brand now carries one tinted wash,
 // `interactive.primary.subtle-fill.selected`, whose `$value` is a literal composite — which exposed two readings
 // that had only ever seen a synthetic solid-tint theme (#1112). (1) A semantic color role is described under
@@ -10705,7 +10795,9 @@ arm: {
 // state a constraint nothing checks.
 {
   const schema = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8'));
-  const BRANDS = ['aurora', 'harbor', 'nb', 'wendys'];
+  // Every committed sidecar, prism3 included (#3555 G3: it was left out of both gates while the schema gate's message
+  // claimed every committed out/*.ai.json).
+  const BRANDS = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
   const docs = BRANDS.map((b) => ({ b, ai: JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8')) }));
   const bad = docs.flatMap(({ b, ai }) => validateJsonSchema(schema, ai).map((e) => `${b} ${e}`));
   let entries = 0;
@@ -14842,7 +14934,7 @@ arm: {
     for (const d of dots(theme)) {
       const gap = (d.height - d.dot) / 2;
       const p = d.leaf.$extensions?.prism3 ?? {};
-      ok(d.dot * 2 === d.height && d.leaf.$description.startsWith(`control.size.${d.rung} dot — ${d.dot}px inner mark for a radio's dot (half the ${d.height}px box edge, leaving a ${gap}px gap to the boundary).`)
+      ok(d.dot * 2 === d.height && d.leaf.$description.startsWith(`\`control.size.${d.rung}\` dot — ${d.dot}px inner mark for a radio's dot (half the ${d.height}px box edge, leaving a ${gap}px gap to the boundary).`)
         && !('share' in p) && !('offScale' in p),
         `#3086 G2: ${id.split(' ')[0]} ${d.rung}: at the default the radio dot is half the box, with the #910 line and no share (${d.dot} of ${d.height}; ${JSON.stringify(p)})`);
     }
@@ -16818,7 +16910,7 @@ arm: {
           rest: 'color/field/border/rest', hover: 'color/field/border/hover', filled: 'color/field/border/rest',
           'focus-visible': 'color/border/focus', 'focus-visible-filled': 'color/border/focus', error: 'color/border/danger', disabled: 'color/disabled/border',
         };
-        const SIZE_PX: Record<string, string> = { medium: '48x56', small: '44x44', large: '56x64', xlarge: '68x72' };
+        const SIZE_PX: Record<string, string> = { medium: '48x56', small: '44x44', large: '56x64', 'x-large': '68x72' };
         const off: string[] = [];
         const under = figmaAnatomySet(applyFieldStyle(def('code-input-cell'), 'underline'));
         if (under.length !== 28) off.push(`${under.length} members`);
@@ -18616,11 +18708,11 @@ arm: {
       }));
       ok(thumbOff.length === 0, `#2669 Q550 a / b / e / f the thumb: a frame the disc's size (control/size/{sm,md,lg}/thumb), the disc in color/interactive/neutral/indicator rest/hover/pressed with no ring, a color/border/primary halo 4px at hover (a border-width/heavy stroke) and 8px pressed (plus a space/050 fill band), color/disabled/icon when disabled, the focus ring at focus-visible only (${thumbOff.length} off — ${thumbOff.slice(0, 2).join('; ') || 'none'})`);
 
-      // (5) Calls 4 A / 7 A, Q550 d, Q345: the panel. Lowercase names; label and value on; milestones, inputs and helper
-      // off. No end labels and no ticks: the milestones replace them.
+      // (5) Calls 4 A / 7 A, Q550 d, Q345: the panel. Lowercase names; label and value on; milestones, inputs and message
+      // off (the message toggle is `message`, as on every field: #3554 Q-CC6 A). No end labels and no ticks: the milestones replace them.
       const panel = planSetProperties(sMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`).sort();
-      ok(JSON.stringify(panel) === JSON.stringify(['helper=false', 'inputs=false', 'label=true', 'milestones=false', 'value=true']),
-        `#2669 calls 4 A / 7 A, Q550 d, Q345 slider booleans: label and value on, milestones, inputs and helper off, all lowercase (${panel.join(', ')})`);
+      ok(JSON.stringify(panel) === JSON.stringify(['inputs=false', 'label=true', 'message=false', 'milestones=false', 'value=true']),
+        `#2669 calls 4 A / 7 A, Q550 d, Q345, #3554 Q-CC6 A slider booleans: label and value on, milestones, inputs and message off, all lowercase (${panel.join(', ')})`);
       // #2967 (Q550 kept them medium): every nested input is a medium TextField, at every slider size. Without this only
       // `lint-component-surface`'s plan digest held the size, and `--accept` clears a digest. A literal, never read off
       // the def: one input in a single member, two in a range, so the floor below is 15 + 30.
@@ -19320,10 +19412,10 @@ arm: {
 
     // (2b) #2926 (owner decision on #2926, item 1): EVERY field's message defaults OFF. The family is written out
     //     here rather than read from the defs, and the defs are checked against it both ways: a def that gains a
-    //     `showMessage` boolean (Code input #2789, Search #2912) must join this list, and so take the same
+    //     `showMessage` boolean (Code input #2789, Search #2912, Slider #3554 Q-CC6) must join this list, and so take the same
     //     default. The expected `false` is the owner's answer, not a value read off any def (docs/34).
     {
-      const MESSAGE_OFF_FAMILY = ['card-number-field', 'code-input', 'counter', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
+      const MESSAGE_OFF_FAMILY = ['card-number-field', 'code-input', 'counter', 'password-field', 'search-field', 'select', 'slider', 'text-field', 'textarea'];
       const withMsg = componentDefs.filter((d) => d.figmaProperties?.booleans?.showMessage).map((d) => d.id).sort();
       ok(JSON.stringify(withMsg) === JSON.stringify(MESSAGE_OFF_FAMILY),
         `#2926 the defs with a showMessage boolean are exactly the message-off family ${JSON.stringify(MESSAGE_OFF_FAMILY)} (got ${JSON.stringify(withMsg)}) — a new one joins the list and takes its default`);
@@ -19550,7 +19642,9 @@ arm: {
   // field by field rather than dropping `ai` / `docs` / `composition` whole: the shared remainder of each
   // (usage, dont, primaryPurpose, composesWith, …) must still stay byte-identical.
   const sharedPart = (d: ComponentDef, field: string): unknown => {
-    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, ...rest } = d.ai; return rest; }
+    // #3555 C2: `whenToUse` joined the per-sibling fields for the icon-only families (a counter's minus and plus, a card's
+    // close and a close affordance are the neutral sibling's). The C2 arm below holds what still has to agree.
+    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, whenToUse, ...rest } = d.ai; return rest; }
     if (field === 'docs') return { ...d.docs, do: undefined };
     if (field === 'composition') return { ...d.composition, alternativeTo: undefined };
     return (d as Record<string, unknown>)[field];
@@ -19998,11 +20092,11 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
-      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
+      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
-      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'pagination-item': 9, '_slider-thumb': 9,
+      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'radio-row': 9, 'pagination-item': 9, '_slider-thumb': 9,
       // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
       breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
       'page-nav': 2, 'page-nav-item': 9,
@@ -20355,8 +20449,8 @@ arm: {
     ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, on ghost only, at the control offset (Q283.10 A); outline draws none, its edge is the focus edge (#3399)${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
     const b = counter.figmaProperties?.booleans ?? {};
     ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
-      && counter.props.find((x) => x.name === 'showLabel')?.default === false,
-      `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B), and the message is off (got ${JSON.stringify(b)})`);
+      && b.showLabel.figmaOnly === true && !counter.props.some((x) => x.name === 'showLabel') && counter.props.find((x) => x.name === 'hideLabel')?.default === true,
+      `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B; since Q-CC7 A the code prop is hideLabel, default true, and the Figma switch is Figma-only), and the message is off (got ${JSON.stringify(b)})`);
     const keyboardSays = /tabindex="-1"/.test(counter.accessibility.keyboard ?? '') && (codeOnlyText(counter.anatomy?.codeOnly) ?? []).some((e) => /<button type="button" tabindex="-1">/.test(e));
     ok(counter.props.find((x) => x.name === 'min')?.default === 0 && keyboardSays && !counter.props.some((x) => /remove/i.test(x.name)),
       `#2427 counter/api: min defaults to 0 (Q283.7), the buttons are tabindex="-1" in the shipped keyboard text and in codeOnly (Q283.8 A), and no remove-at-min prop (Q283.7 C)`);
@@ -20490,6 +20584,22 @@ arm: {
     const ref = JSON.stringify(sharedPart(iconButton, field));
     const diverged = iconButtonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #3555 C2: a sibling's whenToUse never recommends it for a case its own avoidWhen sends to another sibling. The examples
+  // (a counter's minus and plus, a card's close, a close affordance) are the neutral sibling's, and each icon-only family's
+  // avoidWhen routes them there. The labeled Button family still shares one whenToUse, and its icon-only redirect names
+  // the IconButton of the same color.
+  {
+    const c2Bad: string[] = [];
+    const NEUTRAL_EXAMPLES = /\bcounter\b|\bclose\b/i;
+    for (const d of [iconButton, iconButtonDestructive, flushIconButton, flushIconButtonDestructive])
+      if (NEUTRAL_EXAMPLES.test(d.ai.whenToUse)) c2Bad.push(`${d.id} whenToUse names a neutral-only example: "${d.ai.whenToUse.slice(0, 70)}"`);
+    for (const d of [iconButtonNeutral, flushIconButtonNeutral])
+      if (!NEUTRAL_EXAMPLES.test(d.ai.whenToUse)) c2Bad.push(`${d.id} whenToUse lost the examples the other siblings send it`);
+    if (new Set([button, buttonDestructive, buttonNeutral].map((d) => d.ai.whenToUse)).size !== 1) c2Bad.push('the Button family no longer shares one whenToUse');
+    for (const [d, ib] of [[button, 'IconButton'], [buttonDestructive, 'IconButton.Destructive'], [buttonNeutral, 'IconButton.Neutral']] as const)
+      if (!new RegExp(`Icon-only with no visible text → use ${ib.replace('.', '\\.')} \\(`).test(d.ai.avoidWhen)) c2Bad.push(`${d.id} does not send icon-only to ${ib}`);
+    ok(c2Bad.length === 0, `#3555 C2 sibling whenToUse agrees with its avoidWhen, and Button sends icon-only to its own color's IconButton${c2Bad.length ? ` — ${c2Bad.join(' | ')}` : ''}`);
   }
   // #1697 DECISION 2, icon-only half.
   for (const [a, b] of [[iconButton, iconButtonDestructive], [iconButton, iconButtonNeutral], [iconButtonDestructive, iconButtonNeutral]])
@@ -21225,6 +21335,14 @@ arm: {
       const gReq = g.props.find((p) => p.name === 'required')?.default;
       ok(gReq === false && gReq === flDefault('required'),
         `#1699 ${g.id}'s required default is false (brief §15) and agrees with the nested field-label's marker default (group ${String(gReq)}, label ${String(flDefault('required'))})`);
+    }
+    // Q-CC8 A (#3554): CodeInput surfaces the nested FieldLabel's required marker, so it takes the field family's
+    // `required` prop: a boolean, off by default as the marker is, in TextField's words. The literal list is the fields
+    // that surface the marker and carry the prop; Counter's `required` is decided separately and is not listed.
+    for (const id of ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input']) {
+      const r = componentDefs.find((d) => d.id === id)?.props.find((p) => p.name === 'required');
+      ok(r?.type === 'boolean' && r.default === false && r.default === flDefault('required') && r.description.startsWith('Sets required / aria-required, and turns on the FieldLabel\'s required marker.'),
+        `Q-CC8 ${id} declares the field family's required prop, a boolean off by default like the label's marker (got ${r ? `${r.type} ${String(r.default)}` : 'none'})`);
     }
     // Since #2266 the three field hosts are sized, and the label's SIZE follows the host's (pinned per member in
     // the #2266 block); what stays the label's own default is its emphasis.
@@ -24101,10 +24219,10 @@ arm: {
     // here, not read from the plan; the plugin leg is in test-write-components.
     {
       const cellDef = componentDefs.find((x) => x.id === 'code-input-cell')!;
-      const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
+      const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', 'x-large': 'title/2xl/strong' };
       const bad: string[] = [];
       let pasted = 0;
-      for (const size of ['small', 'medium', 'large', 'xlarge']) {
+      for (const size of ['small', 'medium', 'large', 'x-large']) {
         const plan = figmaAnatomyPlan(cellDef, size, { state: 'filled' } as never);
         const page: StubPage = { children: [] };
         const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page });
@@ -28853,6 +28971,7 @@ arm: {
     const EXPECTED_ADMISSIONS = [
       'button:width', 'button:inactive', 'button-destructive:width', 'button-destructive:inactive', 'button-neutral:width', 'button-neutral:inactive',
       'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
+      'flush-icon-button:inactive', 'flush-icon-button-destructive:inactive', 'flush-icon-button-neutral:inactive',
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
       'search-field:style', 'search-field:pending', 'search-field:empty',
@@ -37975,7 +38094,7 @@ arm: {
 // button's projected columns as they were.
 {
   const STATE_LADDER = ['rest', 'hover', 'pressed', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'inactive', 'read-only', 'error', 'empty'];
-  const SIZE_LADDER = ['x-small', 'small', 'medium', 'large', 'xlarge'];  // xlarge: Code input's display cell (#2428, Q330 A)
+  const SIZE_LADDER = ['x-small', 'small', 'medium', 'large', 'x-large'];  // x-large: Code input's display cell (#2428, Q330 A)
   // MEDIUM LEADS (#2752, owner decision Q1 B, 2026-10-16, superseding Q213's small-first ladder and widening Q221 B's
   // field order to every set): Figma inserts a set's top-left member, so a size axis leads with medium, the code
   // default, and the rest run smallest to largest. Typed here, not read from any def's prop default. EXACT exceptions,
@@ -38038,7 +38157,7 @@ arm: {
   const fieldAt = (status: string, size: string, state: string) => fields.find((p) => planComponentName(p) === `status=${status}, size=${size}, state=${state}`);
   const CELL_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'];
   const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'];
-  const SIZES = ['medium', 'small', 'large', 'xlarge'];
+  const SIZES = ['medium', 'small', 'large', 'x-large'];
 
   // (1) THE SETS: the cell is size × seven states (Q329's cell states; active spelled focus-visible), the field size ×
   // status [default, error] × six states (Q321.9 A), and medium leads both (Q347, Q359).
@@ -38051,7 +38170,7 @@ arm: {
 
   // (2) THE CELL SIZES (Q330 A), literal px, each built at that width and height; every one at least 44 tall, the floor
   // `lint-hit-target.ts` hands to this arm (EXCLUDED: code-input). And the 32px fill floor.
-  const SIZE_PX: Record<string, [number, number]> = { small: [44, 44], medium: [48, 56], large: [56, 64], xlarge: [68, 72] };
+  const SIZE_PX: Record<string, [number, number]> = { small: [44, 44], medium: [48, 56], large: [56, 64], 'x-large': [68, 72] };
   const sizeOff = SIZES.filter((s) => {
     const r = cellAt(s, 'rest')?.root;
     return !r || r.placementWidth !== SIZE_PX[s][0] || r.placementHeight !== SIZE_PX[s][1] || r.primaryAxisSizingMode !== 'FIXED' || r.counterAxisSizingMode !== 'FIXED' || r.minWidth !== 32;
@@ -38061,8 +38180,8 @@ arm: {
 
   // (3) THE CHARACTER: 16 / 20 / 24 / 40px (Q330 A). The text style per size is typed here, and its font size read from
   // the committed prism3 emission, the brand Q330's numbers are from. Shown only where the cell holds a character.
-  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
-  const PX: Record<string, number> = { small: 16, medium: 20, large: 24, xlarge: 40 };
+  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', 'x-large': 'title/2xl/strong' };
+  const PX: Record<string, number> = { small: 16, medium: 20, large: 24, 'x-large': 40 };
   const p3tree = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8')) as Record<string, Record<string, unknown>>;
   // The composite's font size, read off its `{<root>.core.font.size.<px>}` alias in the emitted DTCG tree.
   const fontPx = (style: string): number | undefined => {
@@ -39304,8 +39423,8 @@ arm: {
     'page/unselected/border/focus-visible': { ink: 'color/interactive/neutral/text/rest' },
     'page/selected/border/rest': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
     'page/selected/border/focus-visible': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
-    'page/selected/underline/rest': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
-    'page/selected/underline/focus-visible': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/underline/rest': { bar: 'color/interactive/neutral/indicator/rest', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/underline/focus-visible': { bar: 'color/interactive/neutral/indicator/rest', ink: 'color/interactive/neutral/text/rest' },
     'ellipsis/unselected/border/rest': { ink: 'color/icon/primary' },
   };
   const cellOff: string[] = [];
@@ -39336,7 +39455,7 @@ arm: {
     if (JSON.stringify(got) !== JSON.stringify(exp)) cellOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
   }
   ok(pageCells.length === 27 && cellOff.length === 0,
-    `#2665 call 8 / Q381 / Q427 A / Q428 A pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page unfilled with a hairline border/secondary border (border style, Q427 A) or a 2px border/tertiary underline balanced above (underline style), its number neutral in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis the more-horizontal icon at icon/size/{sm,xs,md} (Q428 A) in icon/primary (owner QA) with no text node (Q404 A); the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
+    `#2665 call 8 / Q381 / Q427 A / Q428 A pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page unfilled with a hairline border/secondary border (border style, Q427 A) or a 2px interactive/neutral/indicator underline balanced above (underline style, Q-CC12 A), its number neutral in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis the more-horizontal icon at icon/size/{sm,xs,md} (Q428 A) in icon/primary (owner QA) with no text node (Q404 A); the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
 
   // (2b) PREVIOUS AND NEXT (Q414 A), per member: the page cell's box (rung height and floor, radius.md, the space.100
   // inset), a chevron (left on previous, right on next) at the chevrons' glyph rung in the neutral icon ink, and on a
@@ -39447,8 +39566,8 @@ arm: {
       ok(measured === CELLS && low.length === 0,
         `#2665 contrast pagination (${p.what}): ${p.ink}${p.wash ? ` on ${p.wash} over the page` : p.ground ? ` on ${p.ground}` : ' on the page'} clears ${p.floor}:1 in all ${measured} of ${CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
     }
-    ok(BAR === 'border.tertiary' && !sel.root.paints?.fills && !under.root.paints?.fills,
-      `#2665 Q381 1 A and 2 A: the current page has no fill, and its underline binds border.tertiary, the role measured at 3:1 above (got underline ${BAR}, fill ${sel.root.paints?.fills ?? 'none'})`);
+    ok(BAR === 'interactive.neutral.indicator.rest' && !sel.root.paints?.fills && !under.root.paints?.fills,
+      `#2665 Q381 1 A and 2 A, Q-CC12 A: the current page has no fill, and its underline binds interactive.neutral.indicator.rest, the selection mark, measured at 3:1 above (got underline ${BAR}, fill ${sel.root.paints?.fills ?? 'none'})`);
     // Q427 A: THE BORDER IS ONE RUNG LIGHTER THAN THE UNDERLINE, AND IT IS NOT THE ONLY CUE. The neutral border ladder,
     // typed here lightest first, is the oracle: the border is the rung directly under the underline's, so it is a
     // subtle edge (measured: lighter than the underline in every brand × mode cell, and below 3:1 in at least one,
@@ -39467,8 +39586,8 @@ arm: {
     const cue = findIn(sel.root, 'label')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'label')?.textStyle === 'label/md/default'
       && findIn(sel.root, 'labelReserve')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'labelReserve')?.textStyle === 'label/md/emphasis';
     const reasoned = (itemDef.notes?.evolution ?? []).some((e) => /Q427 A/.test(e) && /1\.4\.11/.test(e) && /second, decorative cue/.test(e) && /emphasis weight/.test(e));
-    ok(BORDER === LADDER[LADDER.indexOf(BAR) - 1] && lighter && below3.length > 0 && cue && reasoned,
-      `#2665 Q427 A the current page's border (border style) is the neutral border rung one lighter than the underline's, a subtle edge below 3:1 by decision, with the emphasis weight as the second cue and the WCAG 1.4.11 reasoning in the notes (bound ${BORDER}, underline ${BAR}; lighter everywhere ${lighter}; below 3:1 in ${below3.length} of ${rows.length}, lowest ${Math.min(...rows.map(({ r }) => lum(BORDER, r))).toFixed(2)}; second cue ${cue}; reasoning recorded ${reasoned})`);
+    ok(BORDER === LADDER[LADDER.indexOf('border.tertiary') - 1] && lighter && below3.length > 0 && cue && reasoned,
+      `#2665 Q427 A the current page's border (border style) is the neutral border rung one lighter than border.tertiary, lighter than the underline, a subtle edge below 3:1 by decision, with the emphasis weight as the second cue and the WCAG 1.4.11 reasoning in the notes (bound ${BORDER}, underline ${BAR}; lighter everywhere ${lighter}; below 3:1 in ${below3.length} of ${rows.length}, lowest ${Math.min(...rows.map(({ r }) => lum(BORDER, r))).toFixed(2)}; second cue ${cue}; reasoning recorded ${reasoned})`);
     // Owner QA (2026-10-19): the gap icon in the page numbers' ink. Measured, never read off the def: the gap icon's
     // role resolves to the same color as a page number's at rest in every brand × mode cell.
     const GAP = role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapGlyph')?.descendantFills), NUM = role(findIn(unsel.root, 'label')?.paints?.fills);
@@ -40505,6 +40624,35 @@ arm: {
     && validateComponentDef(withStateMap({ disabled: { tone: 'quiet' } })).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'tone', which its 'variant' does not name/.test(m))
     && validateComponentDef(withStateMap({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'size', which is also in 'follow'/.test(m)),
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+}
+
+// Q-CC5 A and Q-CC7 A (#3554): the field label, nested and hidden alike across the field hosts. Q-CC7: Search, Counter
+// and Slider hide their label through one code prop, `hideLabel`, each default typed here from its decision (Search
+// Q?4 A visible, Counter Q283.9 B hidden, Slider visible); none declares a code `showLabel`, and each Figma `label`
+// switch is Figma-only. Q-CC5: Slider nests FieldLabel as the fields do (Q399 A): exposed emphasis and weight, starting
+// primary and regular, following the slider's size and dimming with it. ACTUAL is the def and its projected plan.
+{
+  const HIDE: Record<string, boolean> = { 'search-field': false, counter: true, slider: false };
+  for (const [id, dflt] of Object.entries(HIDE)) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const h = d.props.find((p) => p.name === 'hideLabel');
+    const sw = d.figmaProperties?.booleans?.showLabel as { part?: string; figmaOnly?: boolean } | undefined;
+    ok(h?.type === 'boolean' && h.default === dflt && !d.props.some((p) => p.name === 'showLabel') && sw?.part === 'label' && sw.figmaOnly === true,
+      `Q-CC7 ${id}: hides its label through the code prop hideLabel (default ${String(dflt)}), declares no code showLabel, and its Figma label switch is Figma-only (got ${h ? String(h.default) : 'no hideLabel'}, switch ${JSON.stringify(sw)})`);
+  }
+  const sl = componentDefs.find((x) => x.id === 'slider')!;
+  const n = (sl.anatomy!.parts.label as { nesting?: { kind?: string; variant?: Record<string, string>; expose?: readonly string[]; follow?: readonly string[] } }).nesting;
+  ok(n?.kind === 'nest-exposed' && JSON.stringify(n.variant) === JSON.stringify({ size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' })
+    && JSON.stringify(n.expose) === JSON.stringify(['emphasis', 'weight']) && JSON.stringify(n.follow) === JSON.stringify(['size']),
+    `Q-CC5 slider: FieldLabel is nest-exposed as on the fields, exposing emphasis and weight, starting primary and regular, following size (got ${JSON.stringify(n)})`);
+  type LN = { name: string; children: LN[]; nestTarget?: string; nestVariant?: Record<string, string> };
+  const findL = (x: LN, nm: string): LN | undefined => x.name === nm ? x : x.children.map((c) => findL(c, nm)).find(Boolean);
+  const off = figmaAnatomySet(sl, {}).flatMap((pl) => {
+    const lab = findL(pl.root as LN, 'label');
+    const want = { size: String(pl.size ?? pl.coord.size), emphasis: 'primary', weight: 'regular', state: pl.coord.state === 'disabled' ? 'disabled' : 'rest' };
+    return lab?.nestTarget === 'field-label' && JSON.stringify(lab.nestVariant) === JSON.stringify(want) ? [] : [`${planComponentName(pl)}: ${JSON.stringify(lab?.nestVariant)}`];
+  });
+  ok(off.length === 0, `Q-CC5 slider: every member's label is FieldLabel at the slider's size, primary and regular, disabled only on the disabled members (off: ${off.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // Q-CC3 A and Q-CC4 A (#3554): Select joins the field family's code surface. Q-CC3: the `style` code axis of one value,

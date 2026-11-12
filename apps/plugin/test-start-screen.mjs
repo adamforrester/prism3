@@ -228,7 +228,8 @@ console.log('\n4. "+ New brand" surfaces the start screen (it used to load a neu
   await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
   await hooks.need(page, '[data-p3="brand-menu"]');
   const nb = page.locator('[data-p3="brand-menu-new"]');
-  ok(await nb.count() > 0 && (await nb.textContent()) === '+ New brand', 'the brand menu offers "+ New brand"');
+  // #3553 Q-UI8 A: the vendored plus icon, then the words; no text "+".
+  ok(await nb.count() > 0 && (await nb.textContent()) === 'New brand' && (await nb.locator('svg[data-icon="plus"]').count()) === 1, 'the brand menu offers New brand, with the plus icon');
   await hooks.click(nb);
   ok(await waitStart(page, true), 'clicking it returns to the start moment');
   const s = await readStart(page);

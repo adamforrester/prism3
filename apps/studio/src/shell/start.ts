@@ -223,7 +223,10 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   paste.setAttribute('aria-label', 'Paste a design.md brief');
   paste.spellcheck = false;
   const row4 = h('div', 'p3-start-row p3-start-pasterow');
-  const upload = button('p3-btn p3-btn-page', 'start-upload', '↑ Upload…');
+  // #3553 Q-UI8 A: the vendored upload icon, not a text "↑".
+  const upload = hook(h('button', 'p3-btn p3-btn-page'), 'start-upload');
+  upload.type = 'button';
+  upload.append(glyph('upload'), h('span', 'p3-btn-label', 'Upload…'));
   const file = hook(h('input', 'p3-start-file'), 'start-file');
   file.type = 'file'; file.accept = IMPORT_ACCEPT; file.tabIndex = -1;
   file.setAttribute('aria-hidden', 'true');

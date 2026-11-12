@@ -13,7 +13,7 @@ A compact, interactive token of one of two types. A select tag toggles on and of
 
 - **Purpose:** Render a small interactive token the user toggles or removes in place.
 - **Use when:** Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.
-- **Avoid when:** Nobody can act on it (use a badge), it runs an action (use a button), or it is a structured choice in a form submission (use a checkbox group or radio group).
+- **Avoid when:** Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).
 
 ## Anatomy
 
