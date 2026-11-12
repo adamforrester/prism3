@@ -1746,13 +1746,15 @@ const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionU
 /** Whether the dry run calls the set up to date, for the apply's verdict to say the same (#2495, owner Q205 A). */
 export const setUpToDate = upToDate;
 
-/** One set as Update file's scoped check posts it (#2909): its counts, whether it is blocked or up to date, and, on a
+/** One set as Update file's scoped check posts it (#2909): its counts, whether it is blocked (and, #3713, why) or up to date, and, on a
  *  published set, its consumer-breaking line (#2831). `def` is the target's id, which the preview's set name may not
  *  be. */
 export const checkedSetOf = (p: SetPreview, def: string): CheckedSet => ({
   def, hash: p.previewHash, members: p.counts.members, update: p.counts.update, add: p.counts.add, drop: p.counts.drop,
   handEdited: p.counts.handEdited, noBaseline: p.counts.noBaseline, blocked: p.blockers.length > 0, upToDate: upToDate(p),
   ...(p.themeBlocked ? { themeBlocked: true as const } : {}),
+  // #3713: the reasons themselves, so the dialog names them rather than pointing elsewhere.
+  ...(p.blockers.length ? { reasons: [...p.blockers] } : {}),
   ...(p.breaking?.length ? { breaks: breakingSummary(p.breaking) } : {}),
 });
 
