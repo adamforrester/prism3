@@ -19635,7 +19635,7 @@
       }
     },
     "flush-icon-button": {
-      "digest": "361e6973",
+      "digest": "20f1d2bb",
       "def": {
         "id": "flush-icon-button",
         "name": "FlushIconButton",
@@ -19665,7 +19665,7 @@
             "name": "onClick",
             "type": "function",
             "required": false,
-            "description": "Action handler. Not called while disabled."
+            "description": "Action handler. Not called while disabled or inactive."
           },
           {
             "name": "type",
@@ -19714,11 +19714,18 @@
             "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
           },
           {
+            "name": "isInactive",
+            "type": "boolean",
+            "default": false,
+            "required": false,
+            "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+          },
+          {
             "name": "disabled",
             "type": "boolean",
             "default": false,
             "required": false,
-            "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+            "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
           }
         ],
         "states": [
@@ -19726,7 +19733,8 @@
           "hover",
           "pressed",
           "focus-visible",
-          "disabled"
+          "disabled",
+          "inactive"
         ],
         "variants": {
           "shape": {
@@ -19763,7 +19771,7 @@
           ],
           "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
           "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-          "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+          "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
         },
         "content": {
           "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -19840,6 +19848,10 @@
             "disposition": "REFUSED"
           },
           {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
             "class": "right-to-left",
             "disposition": "UNSUPPORTED"
           },
@@ -19895,7 +19907,9 @@
             "kind": "state"
           }
         ],
-        "codeOnlyStates": [],
+        "codeOnlyStates": [
+          "inactive"
+        ],
         "anatomy": [
           {
             "part": "container",
@@ -20466,7 +20480,7 @@
       }
     },
     "flush-icon-button-destructive": {
-      "digest": "d7a41f89",
+      "digest": "10473ec1",
       "def": {
         "id": "flush-icon-button-destructive",
         "name": "FlushIconButton.Destructive",
@@ -20496,7 +20510,7 @@
             "name": "onClick",
             "type": "function",
             "required": false,
-            "description": "Action handler. Not called while disabled."
+            "description": "Action handler. Not called while disabled or inactive."
           },
           {
             "name": "type",
@@ -20545,11 +20559,18 @@
             "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
           },
           {
+            "name": "isInactive",
+            "type": "boolean",
+            "default": false,
+            "required": false,
+            "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+          },
+          {
             "name": "disabled",
             "type": "boolean",
             "default": false,
             "required": false,
-            "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+            "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
           }
         ],
         "states": [
@@ -20557,7 +20578,8 @@
           "hover",
           "pressed",
           "focus-visible",
-          "disabled"
+          "disabled",
+          "inactive"
         ],
         "variants": {
           "shape": {
@@ -20594,7 +20616,7 @@
           ],
           "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
           "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-          "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+          "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
         },
         "content": {
           "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -20672,6 +20694,10 @@
             "disposition": "REFUSED"
           },
           {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
             "class": "right-to-left",
             "disposition": "UNSUPPORTED"
           },
@@ -20727,7 +20753,9 @@
             "kind": "state"
           }
         ],
-        "codeOnlyStates": [],
+        "codeOnlyStates": [
+          "inactive"
+        ],
         "anatomy": [
           {
             "part": "container",
@@ -21298,7 +21326,7 @@
       }
     },
     "flush-icon-button-neutral": {
-      "digest": "a7da0a07",
+      "digest": "75055c49",
       "def": {
         "id": "flush-icon-button-neutral",
         "name": "FlushIconButton.Neutral",
@@ -21328,7 +21356,7 @@
             "name": "onClick",
             "type": "function",
             "required": false,
-            "description": "Action handler. Not called while disabled."
+            "description": "Action handler. Not called while disabled or inactive."
           },
           {
             "name": "type",
@@ -21377,11 +21405,18 @@
             "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
           },
           {
+            "name": "isInactive",
+            "type": "boolean",
+            "default": false,
+            "required": false,
+            "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+          },
+          {
             "name": "disabled",
             "type": "boolean",
             "default": false,
             "required": false,
-            "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+            "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
           }
         ],
         "states": [
@@ -21389,7 +21424,8 @@
           "hover",
           "pressed",
           "focus-visible",
-          "disabled"
+          "disabled",
+          "inactive"
         ],
         "variants": {
           "shape": {
@@ -21426,7 +21462,7 @@
           ],
           "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
           "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-          "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+          "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
         },
         "content": {
           "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -21505,6 +21541,10 @@
             "disposition": "REFUSED"
           },
           {
+            "class": "not-projected",
+            "disposition": "REFUSED"
+          },
+          {
             "class": "right-to-left",
             "disposition": "UNSUPPORTED"
           },
@@ -21560,7 +21600,9 @@
             "kind": "state"
           }
         ],
-        "codeOnlyStates": [],
+        "codeOnlyStates": [
+          "inactive"
+        ],
         "anatomy": [
           {
             "part": "container",
