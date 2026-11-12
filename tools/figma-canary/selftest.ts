@@ -15,6 +15,8 @@
  *   · `bad-shape.json`   — a response that does not parse against the protocol's shape;
  *   · `3209.json`        — #3209's error verbatim, as the real host returned it through the agent link on 2026-10-31:
  *     `update-components { confirm: false }` failed its check with the Proxy invariant.
+ * Every fixture carries a `set-override` preview response (#3394 §5b), hand-written to the plugin's shape after the runs
+ * above were recorded, and lists `set-override` among its build's commands: the real runs predate the command.
  * The arms after them are `pass.json` with one edit, so each tests one check. The first live run is worth adding.
  *
  * INDEPENDENCE (docs/34): the expected rows, reasons and lines are literals here, never computed by the judge's code; the
@@ -24,7 +26,8 @@
  * `bad-file/status-after`; the transport check dropped → `bad-shape/readback`; the run's requested-commit compare dropped
  * → `asked/run`; the stamp check's commit compare dropped → `check/stale`; its file compare dropped → `check/file`; a
  * stamp with no usable commit let through → `check/dirty`; its `cmd` guard dropped → `check/wrong-cmd`; the commit
- * compare loosened to accept any commit (an "or later" with no ancestry check) → `bad-commit/status`, `check/later`.
+ * compare loosened to accept any commit (an "or later" with no ancestry check) → `bad-commit/status`, `check/later`; the
+ * `set-override` preview check dropped → `wrote/set-override`; its no-op compare dropped → `noop/set-override` (#3394).
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -37,7 +40,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const load = (f: string) => JSON.parse(readFileSync(resolve(HERE, 'fixtures', f), 'utf8')) as Record<string, any>;
 const EXPECT = 'a5f203b3';
 const SCRATCH = 'Prism3 canary (scratch)';
-const KEYS = ['status', 'readback', 'update-components', 'prune', 'status-after'];
+const KEYS = ['status', 'readback', 'update-components', 'prune', 'set-override', 'status-after'];
 
 let failures = 0;
 let executed = 0;
@@ -102,8 +105,14 @@ held('refused/update-components', judge(edit((r) => { r['update-components'].res
 held('log/readback', judge(edit((r) => { r.readback.result.logs = ['[error] ReferenceError: seedModes is not defined']; }), EXPECT), { readback: 'ReferenceError' });
 held('wrote/update-components', judge(edit((r) => { r['update-components'].result.data.update.mode = 'apply'; }), EXPECT), { 'update-components': 'not a dry run' });
 held('wrote/prune', judge(edit((r) => { r.prune.result.verdict.applied = true; }), EXPECT), { prune: 'the prune was applied' });
+// #3394 §5b: the color override preview — never a write, no new miss, a hash, and a no-op on the house brand.
+held('wrote/set-override', judge(edit((r) => { r['set-override'].result.verdict.preview = false; r['set-override'].result.verdict.applied = true; }), EXPECT), { 'set-override': 'the overrides were written' });
+held('misses/set-override', judge(edit((r) => { r['set-override'].result.data.newMisses = [{ mode: 'light', role: 'interactive.primary.border.rest', against: 'background.primary', ratio: 2.4, min: 3 }]; }), EXPECT), {
+  'set-override': 'a pair moved below its minimum' });
+held('hash/set-override', judge(edit((r) => { delete r['set-override'].result.data.previewHash; }), EXPECT), { 'set-override': 'no previewHash' });
+held('noop/set-override', judge(edit((r) => { r['set-override'].result.data.changes[0].after.hex = '#8e8e92'; }), EXPECT), { 'set-override': 'not a no-op' });
 held('other/command', judge(edit((r) => { r['build-components'] = r.readback; }), EXPECT), { '(other)': 'build-components' });
-held('input/not-a-run', judge([], EXPECT), { '(run)': 'not a canary run file', status: 'no response', readback: 'no response', 'update-components': 'no response', prune: 'no response', 'status-after': 'no response' });
+held('input/not-a-run', judge([], EXPECT), { '(run)': 'not a canary run file', status: 'no response', readback: 'no response', 'update-components': 'no response', prune: 'no response', 'set-override': 'no response', 'status-after': 'no response' });
 
 console.log('\njudge — the protocol shape (literals, docs/34)');
 const shaped = (name: string, f: (e: Record<string, any>) => void, text: string) =>
