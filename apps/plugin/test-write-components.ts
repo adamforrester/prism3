@@ -5994,6 +5994,20 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       `sign-in build/font fallback: with Google Sans refused, all 96 members build, every Google label (${google.length}) lands in Roboto Medium 14/20, and the refused face is reported once per Google label as 'label.font -> Google Sans Medium (…)' (${refused.length} reported; off: ${offFace[0] ?? 'none'}; other misses: ${other[0] ?? 'none'})`);
   }
 
+  // THE REFUSAL'S REASON, WHATEVER THE HOST REJECTS WITH (the owner's Update file run, 2026-11-12). Figma's refusal of a
+  // face it does not have carried no `.message`, and every Google label read `label.font -> Google Sans Medium
+  // (undefined)`: the fallback landed, and the reason was lost. A host that rejects with a plain string must have that
+  // string reported, typed here. Mutation: the executor's literal-font catch back to `(err as Error).message` fails this
+  // arm by name.
+  {
+    const fb = await buildSignIn({ unavailableFonts: [{ family: 'Google Sans', style: 'Medium' }], fontRefusal: 'string' });
+    const refused = fb.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium ('));
+    const want = 'label.font -> Google Sans Medium (Cannot load font "Google Sans Medium": it is not available.)';
+    const off = refused.filter((x) => x !== want);
+    ok(fb.members.length === 96 && refused.length === 36 && off.length === 0,
+      `sign-in build/font reason: a host that rejects the load with a string has it reported, on all 36 Google labels (${refused.length} reported; off: ${off[0] ?? 'none'})`);
+  }
+
   // THE LITERAL READ-BACK SPEAKS: a host that takes the container's literal fill and keeps nothing must surface as
   // 'container.fills -> DISCARDED (literal … set, not retained)' on every member, by value. Mutation: the executor's
   // literal read-back guard → `if (false)` fails this arm by name.
