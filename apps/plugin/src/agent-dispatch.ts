@@ -34,6 +34,7 @@ import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd
 import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
 import type { MainToUi, StyleGuideOptions } from './messages';
 import type { BrandInput } from '@prism3/engine/theme';
+import type { OverrideChange } from './set-override';
 import { allLeaves, leafPageName } from './file-taxonomy';
 import { inspect, componentKeys, auditFrames, snapshot, context, ReadRefusal } from './agent-reads';
 import type { ReadHost, ContextFacts } from './agent-reads';
@@ -81,6 +82,8 @@ export type AgentActions = {
   drawSpecs(def: string | undefined, scope: 'file' | 'page', sink: ActionSink): Promise<void>;
   /** #3137 Q3137.7 A: Clean up's usage panels: a count (`confirm` false), or the removal of the unedited ones. */
   panelsClean(confirm: boolean, sink: ActionSink): Promise<void>;
+  /** #3394: color overrides, previewed (`previewHash` null) or written through `applyTheme`, this table's own entry. */
+  setOverride(changes: readonly OverrideChange[], previewHash: string | null, sink: ActionSink): Promise<void>;
 };
 
 /** The slice of a page node the census reads. */
@@ -205,6 +208,10 @@ export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   activity: async (c, _a, sink, d) => {
     if (!d.activity) throw new Error('this plugin build keeps no activity log');
     sink.data(d.activity((c as Extract<ValidCommand, { cmd: 'activity' }>).args) as Record<string, unknown>);
+  },
+  'set-override': (c, a, sink) => {
+    const args = (c as Extract<ValidCommand, { cmd: 'set-override' }>).args;
+    return a.setOverride(args.changes, args.confirm ? args.previewHash : null, sink);
   },
   'panels-clean': (c, a, sink) => a.panelsClean((c as Extract<ValidCommand, { cmd: 'panels-clean' }>).args.confirm === true, sink),
   // #3300 B: read-only, the main thread's facts plus a capped walk for the protected nodes (`agent-reads.ts`).
