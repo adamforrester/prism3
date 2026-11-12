@@ -1752,6 +1752,8 @@ const activityReading = (): ActivityReading => {
       // #2830 Q713 A: Documentation › Specs' Draw specs has a row of its own, like Style guides: "Drawing specs…" while
       // it is out, the panel's or an agent's, then its verdict. The Build set row never shows it.
       specs: opReading('specs', host.specsState === 'pending', verdictOf(host.specsState), fixed(PENDING_TEXT.specs)),
+      // #3394 Q3394.7 A: the agent link's color overrides. Only an agent runs them, so the row is never the panel's pending.
+      override: opReading('override', false, verdictOf(host.overrideState), fixed(null)),
     },
     detail: host.openDetail,
     refused: host.refused,
@@ -1771,7 +1773,8 @@ const activityReading = (): ActivityReading => {
 // Before this, an agent's run left the panel's Apply ready to post a second write over the same variables.
 
 /** True while a write of this kind runs: the panel's own slot is pending, or an agent's command runs it. */
-const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
+// #3394: an agent's set-override writes the theme through Theme's own guard, so Theme is busy while it runs.
+const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply') || agentRunning('override');
 const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
 const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
 const componentBusy = (): boolean => host.componentState === 'pending' || host.specsState === 'pending' || agentRunning('components') || agentRunning('specs');

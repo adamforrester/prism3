@@ -7,7 +7,7 @@
  *   npx tsx tools/figma-canary/judge.ts --commands     # the commands the Mac sends, as JSON, the house brand filled in
  *
  * `<run.json>` is `{ format, commit, responses }`: `commit` is the commit the Mac's job was asked to check, and
- * `responses` is keyed by command (`status`, `readback`, `update-components`, `prune`, `run-code`, then `status-after`,
+ * `responses` is keyed by command (`status`, `readback`, `update-components`, `prune`, `set-override`, `run-code`, then `status-after`,
  * the closing `status`), each the plugin's result envelope verbatim, as `figma_run` returned it. `--expect` is the main
  * commit the orchestrator asked for. The job builds nothing (Q20 A), so the build that ran is known only from the stamp
  * each `status` reports, and that is what the commit check reads.
@@ -36,7 +36,10 @@
  *     (exactly: a later commit is not accepted), or is `-dirty`, `git-unavailable` or missing; the build does not list a command the canary sends; the open file
  *     is not the scratch file. Both bracket the run, so a bridge that moved to another plugin mid-run (#3297) is
  *     caught on the way out; `status-after` must also report the same build as `status`;
- *   · a write: `update-components` came back as an apply rather than a dry run, or `prune` as applied;
+ *   · a write: `update-components` came back as an apply rather than a dry run, or `prune` as applied, or `set-override`
+ *     (#3394) as anything but a preview;
+ *   · `set-override`'s preview, a no-op on the house brand: no `previewHash`, a pair below its minimum (`newMisses`), or
+ *     the role not resolving the same before and after;
  *   · a response under a key the canary does not send.
  * `run-code` (the host-descriptor read, dev builds only) is RECORDED, never judged: it measures, it cannot fail.
  */
@@ -45,12 +48,12 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** The read-only commands the Mac sends, in order, and the closing `status` it sends again. */
-export const CANARY_COMMANDS = ['status', 'readback', 'update-components', 'prune'] as const;
+export const CANARY_COMMANDS = ['status', 'readback', 'update-components', 'prune', 'set-override'] as const;
 export type CanaryCmd = (typeof CANARY_COMMANDS)[number];
 /** Recorded, not judged. */
 export const RECORDED_COMMANDS = ['run-code'] as const;
 /** The keys of `responses`, in the order the Mac runs them. `status-after` is a second `status`. */
-export const RUN_KEYS = ['status', 'readback', 'update-components', 'prune', 'run-code', 'status-after'] as const;
+export const RUN_KEYS = ['status', 'readback', 'update-components', 'prune', 'set-override', 'run-code', 'status-after'] as const;
 /** The scratch file the owner created (#3215 Q-C3 A). A name, not a key: the key never enters this repo. */
 export const SCRATCH_FILE = 'Prism3 canary (scratch)';
 export const RUN_FORMAT = 'prism3-figma-canary-run/1';
@@ -183,6 +186,16 @@ export const judge = (run: unknown, expect: string, opts: { fileName?: string } 
     }
     if (cmd === 'update-components' && update?.mode !== 'preview') { no(`not a dry run: data.update.mode is ${JSON.stringify(update?.mode)}, not "preview"`); continue; }
     if (cmd === 'prune' && (verdict?.applied !== false || 'pruneApplied' in data)) { no('not a preview: the prune was applied'); continue; }
+    if (cmd === 'set-override') {
+      // #3394 §5b: a preview of one change that sets a role to the step it already resolves to. It reads and writes nothing.
+      if (verdict?.preview !== true || verdict?.applied !== false) { no('not a preview: the overrides were written'); continue; }
+      const d = data as { previewHash?: unknown; newMisses?: unknown; changes?: { before?: Record<string, unknown> | null; after?: Record<string, unknown> | null }[] };
+      if (typeof d.previewHash !== 'string' || !/^[0-9a-f]{8}$/.test(d.previewHash)) { no(`no previewHash: ${JSON.stringify(d.previewHash)}`); continue; }
+      if (!Array.isArray(d.newMisses) || d.newMisses.length) { no(`a pair moved below its minimum: ${JSON.stringify(d.newMisses)}`); continue; }
+      const c = Array.isArray(d.changes) ? d.changes[0] : undefined;
+      const same = (x: Record<string, unknown> | null | undefined) => JSON.stringify(x ? [x.resolved, x.hex, x.ratio] : null);
+      if (!c?.before || !c.after || same(c.before) !== same(c.after)) { no(`not a no-op: the role resolves to ${same(c?.before)} before and ${same(c?.after)} after`); continue; }
+    }
     rows.push({ cmd: key, status: 'PASS', why: headline || (typeof verdict?.summary === 'string' ? verdict.summary : '') || 'ok' });
   }
   const unknown = Object.keys(responses).filter((k) => !(RUN_KEYS as readonly string[]).includes(k));
@@ -197,16 +210,26 @@ export const render = (j: Judgement): string => {
   return [...j.rows.map((r) => `  ${r.cmd.padEnd(w)}  ${r.status.padEnd(8)}  ${r.why}`), '', j.line].join('\n');
 };
 
-/** The commands the Mac sends, args included: `prune` previews against the engine's house brand. */
+/** The role the `set-override` preview names (#3394 §5b). */
+export const OVERRIDE_ROLE = 'interactive.primary.border.rest';
+/** The commands the Mac sends, args included: `prune` previews against the engine's house brand, and `set-override`
+ *  previews one no-op change on it: light's primary border set to the step the house brand resolves it to. */
 export const commands = async (): Promise<{ cmd: string; args: Record<string, unknown> }[]> => {
   const { brandFromDesignMd } = await import('../../apps/plugin/mcp-paste');
+  const { brandTheme } = await import('../../packages/engine/theme');
+  const { resolveAllModes } = await import('../../packages/engine/modes');
   const here = dirname(fileURLToPath(import.meta.url));
   const input = brandFromDesignMd(readFileSync(resolve(here, '../../packages/engine/examples/prism3.design.md'), 'utf8'));
+  const theme = brandTheme(input);
+  const path = resolveAllModes(theme).find((m) => m.mode === 'light')?.roles[OVERRIDE_ROLE]?.path ?? '';
+  const rest = path.slice(theme.namespace.length + 1);
+  const dot = rest.lastIndexOf('.');
   return [
     { cmd: 'status', args: {} },
     { cmd: 'readback', args: {} },
     { cmd: 'update-components', args: { confirm: false } },
     { cmd: 'prune', args: { input, confirm: false } },
+    { cmd: 'set-override', args: { changes: [{ mode: 'light', role: OVERRIDE_ROLE, palette: rest.slice(0, dot), step: rest.slice(dot + 1) }], confirm: false } },
   ];
 };
 
