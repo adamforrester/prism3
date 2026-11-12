@@ -466,13 +466,15 @@ export type MainToUi =
       /** Set on an AGENT's preview (the agent link): show it as a pill, never open the confirm dialog. The
        *  dialog's Confirm would prune against the panel's own knobs, not the input the agent previewed. */
       pillOnly?: boolean }
-  /** A write the main thread DECLINED because a run of the same operation was already going (#1957,
+  /** A write the main thread DECLINED because another write held the file (#1957; file-wide since #3697 R7,
    *  `run-guard.ts`). Not a verdict: the file is untouched and the running write is unaffected, so this
    *  must not land in the operation's verdict slot or settle its run, and it is its own kind for that
    *  reason. `agent` says whose request was declined: an agent's (the agent also gets `busy` in its own
    *  command result), or the panel's own. The Activity drawer adds it to the row's earlier results as
    *  "Refused" (the owner's call). */
-  | { type: 'refused'; code: 'busy'; cmd: WriteCmd; agent: boolean; message: string }
+  | { type: 'refused'; code: 'busy'; cmd: WriteCmd; agent: boolean; message: string;
+      /** #3697 R7: the write holding the file, which since the one file-wide hold need not be `cmd`. */
+      held: WriteCmd }
   /** A component build is UNDERWAY (#684) — posted at every chunk boundary, many times per build.
    *
    *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`

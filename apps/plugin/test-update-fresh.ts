@@ -173,13 +173,13 @@ ok(upd?.type === 'component-update-result', `update/after the last set: answered
   let endFirst!: () => void;
   const first = g2.run('build-components', () => new Promise<void>((res) => { endFirst = res; }));
   g2.release('build-components');
-  const freed = !g2.busy('build-components');
+  const freed = !g2.busy();
   let endSecond!: () => void;
   const second = g2.run('build-components', () => new Promise<void>((res) => { endSecond = res; }));
   endFirst(); await first;
-  ok(freed && g2.busy('build-components'), `guard/release: released, the operation is free (${freed}); a later run's hold outlives the first run's end (busy ${g2.busy('build-components')})`);
+  ok(freed && g2.holding('build-components'), `guard/release: released, the file is free (${freed}); a later run's hold outlives the first run's end (held ${g2.held()})`);
   endSecond(); await second;
-  ok(!g2.busy('build-components'), 'guard/release: the later run releases its own hold when it ends');
+  ok(!g2.busy(), 'guard/release: the later run releases its own hold when it ends');
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
