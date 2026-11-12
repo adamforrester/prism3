@@ -377,7 +377,7 @@ export const icon: ComponentDef = {
   composition: {
     // Nests nothing (#1700). The hosts that swap it into a slot are in `ai.commonPartners`.
     composesWith: [],
-    alternativeTo: [],
+    alternativeTo: ['provider-logo'],
     replacesPatterns: ['legacy icon fonts', 'ad-hoc inline SVGs outside the set'],
     // `avatar` from brief §12 (an icon is Avatar's image-load fallback). `tag` left for `ai.commonPartners`
     // when it was built (2026-09-27): its leading slot carries an icon.

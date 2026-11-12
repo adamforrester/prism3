@@ -145,8 +145,8 @@
  *   family/related  (#2970 Q5 A) Checkbox's and Buttons' Related lists typed from the approved wireframe; a family named
  *                   twice in one list once. Mutations: the own-family drop removed → `family/related`, `family/related
  *                   buttons`; the de-duplication removed → `family/related once`. `related/…` (#3552 Q-UG3 A): Dialog's and
- *                   Tag's lists typed from their defs, each family once, in the first list that names it; over every lead,
- *                   no family or component in two lists. Mutation: the panel's de-duplication reset per list →
+ *                   Tag's lists typed from their defs (the symmetric lists of #3555 Q-MD10 A), each family once,
+ *                   in the first list that names it; over every lead, no family or component in two lists. Mutation: the panel's de-duplication reset per list →
  *                   `related/dialog`, `related/every lead`. (The model's own once-rule is gated by `lint-component-docs.ts`.)
  *   line/…          a file without `_Doc-block`: one usage-panel line for the run (`docBlockLine`), and the warning templates'
  *                   line names nothing (#3467 Q2 A). Mutation: `_Doc-block` back in `WARN_TEMPLATES` → `line/not a warning`.
@@ -1180,8 +1180,9 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   // loses Built from: Checkbox.Control and Often used with: Checkbox.Group; Buttons loses nothing of its own here).
   const related = (id: string) => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections.find((s) => s.id === 'related')!.blocks
     .flatMap((b) => (b.type === 'Links' && b.label !== 'Replaces' ? [`${b.label}: ${b.items.map((i) => `${i.name}>${i.def}`).join(' / ')}`] : []));
-  const cb = ['Instead, consider: Switch>switch-row / Radio>radio-row', 'Often used with: FieldLabel>field-label / FieldMessage>field-message / FocusRing>focus-ring / Buttons>button'];
-  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row', 'Often used with: Icon>icon'];
+  // #3555 Q-MD10 A: `alternativeTo` is symmetric, so Checkbox gains TextField (which names it) and Button gains Tag and Link.
+  const cb = ['Instead, consider: Switch>switch-row / Radio>radio-row / TextField>text-field', 'Often used with: FieldLabel>field-label / FieldMessage>field-message / FocusRing>focus-ring / Buttons>button'];
+  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row / Tag>tag / Link>link', 'Often used with: Icon>icon'];
   ok(related('checkbox-row').join('\n') === cb.join('\n'), 'family/related: Checkbox names families, its own parts dropped, Built from gone', related('checkbox-row').join(' | '));
   ok(related('button').join('\n') === bt.join('\n'), 'family/related buttons: Buttons as the wireframe has it', related('button').join(' | '));
   // A list naming one family twice, through two members: one entry.
@@ -1192,7 +1193,7 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   // EACH ONCE ACROSS THE LISTS (#3552 Q-UG3 A), typed from the defs: Dialog is built from Button.Group and names Button,
   // Button.Neutral and Button.Destructive as partners, all of the Buttons family, so Buttons is under Built from alone;
   // Tag names Badge, Checkbox.Group and Radio.Group as alternatives and as partners, so they stay under Instead, consider. Then over every lead: no family or component in two lists.
-  ok(related('dialog').join('\n') === ['Built from: Flush Icon Button>flush-icon-button / Divider>divider / Buttons>button', 'Instead, consider: Accordion>accordion',
+  ok(related('dialog').join('\n') === ['Built from: Flush Icon Button>flush-icon-button / Divider>divider / Buttons>button', 'Instead, consider: Accordion>accordion / Toast>toast / Banner>banner',
     'Often used with: TextField>text-field / Select>select / Checkbox>checkbox-row / Radio>radio-row'].join('\n'), 'related/dialog: Buttons once, under Built from', related('dialog').join(' | '));
   ok(related('tag').join('\n') === ['Built from: FocusRing>focus-ring', 'Instead, consider: Badge>badge / Buttons>button / Checkbox>checkbox-row / Radio>radio-row', 'Often used with: Icon>icon'].join('\n'),
     'related/tag: Badge, Checkbox and Radio once, under Instead, consider', related('tag').join(' | '));

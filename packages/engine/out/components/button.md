@@ -103,7 +103,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 ## Related components
 
 - **Built from:** `focus-ring`, `spinner`
-- **Instead, consider:** `icon-button`, `switch-row`
+- **Instead, consider:** `icon-button`, `switch-row`, `tag`, `link`
 - **Often used with:** `icon`, `button-group`
 - **Replaces:**
   - input[type=button\|submit]
