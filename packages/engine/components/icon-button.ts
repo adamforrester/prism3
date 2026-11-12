@@ -269,6 +269,11 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // components (that identity is why splitting the intents loses no coverage — #1225).
     'disabled.fill': 'color.disabled.fill',
     'disabled.icon': 'color.disabled.icon',
+    // The glyph's ink is keyed twice, per ground, as on Button (#784; owner decision Q-CC11 A, #3554): on
+    // `filled` the glyph sits on `disabled.fill`, so it takes `color.disabled.on-fill`, the ink gated against
+    // that fill (3.06:1 where the page ink gave 2.14:1 on the default brand's light mode). The projector picks
+    // the `.on-fill` form only where the appearance has a disabled fill beneath the glyph.
+    'disabled.icon.on-fill': 'color.disabled.on-fill',
     // A border never binds an icon or text role (Q346, #2749): the disabled edge is `color.disabled.border`,
     // as on Button. It once bound the disabled icon ink to clear 3:1 against the page (#1697); the owner
     // superseded that. It paints only on `outline` (STRUCTURAL, no fill beneath).
