@@ -213,7 +213,7 @@ export const spinner: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Show that work is in progress with no known end, inside the control or region that is waiting.',
-    whenToUse: 'A short indeterminate wait of about 200ms to 5s (Material 3\'s bands) inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host\'s icon slot.',
+    whenToUse: 'A short indeterminate wait of about 200ms to 5s inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host\'s icon slot.',
     avoidWhen: 'The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (Progress: a bar, or a ring in a small space), or is a task that ends in complete or error (a Progress ring, indeterminate until the amount is known), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.',
     commonPartners: ['button', 'icon-button', 'text-field', 'select'],
     triggerKeywords: ['spinner', 'loading', 'loader', 'busy', 'pending', 'activity indicator', 'loading indicator', 'inline-loading', 'spin'],

@@ -21,7 +21,7 @@ To come back to these later, open the brand menu at the left of the top bar and 
 
 ## Set the levers
 
-A lever is one brand setting, such as the primary color, the type scale or the corner radius. The **Theme** area of the rail groups them into tabs. <!-- src: apps/studio/src/shell/pages.ts:513 -->
+A lever is one brand setting, such as the primary color, the type scale or the corner radius. The **Theme** area of the rail groups them into tabs. <!-- src: apps/studio/src/shell/pages.ts:514 -->
 
 | Tab | What it holds |
 |---|---|

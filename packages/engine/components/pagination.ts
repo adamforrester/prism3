@@ -481,7 +481,7 @@ export const paginationItem: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One page number, the ellipsis, or previous or next, inside a pagination row.',
+    primaryPurpose: 'Show one page number, the ellipsis, or previous or next, inside a pagination row.',
     whenToUse: 'Only as a child of Pagination. Generate Pagination, which places the pages, the gap marker, previous and next, and sets which page is current.',
     avoidWhen: 'Anywhere outside Pagination: a single action is a Button, and a choice between a few views is a segmented control or tabs.',
     commonPartners: ['pagination'],

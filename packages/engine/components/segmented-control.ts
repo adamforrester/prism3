@@ -307,7 +307,7 @@ export const segmentedControlSegment: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'One option inside a segmented control.',
+    primaryPurpose: 'Offer one option inside a segmented control.',
     whenToUse: 'Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.',
     avoidWhen: 'Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.',
     commonPartners: ['segmented-control', 'icon'],
@@ -323,9 +323,9 @@ export const segmentedControlSegment: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. On selection the pill moves to this option, or cross-fades, over a short duration.',
+    enter: 'None. On selection the pill travels to this option on motion.transition.default, or cross-fades.',
     exit: 'None.',
-    reduceMotion: 'The indicator moves at once; only the color change remains.',
+    reduceMotion: 'The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast.',
   },
 
   notes: {
@@ -483,7 +483,7 @@ export const segmentedControl: ComponentDef = {
         class: 'implementation',
         disposition: 'refused',
         description:
-          'The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option\'s measured box (a ResizeObserver, re-measured when fonts load or the direction changes), about 150–200ms. Under prefers-reduced-motion it moves without animation.',
+          'The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option\'s measured box (a ResizeObserver, re-measured when fonts load or the direction changes), on motion.transition.default. Under prefers-reduced-motion it moves without animation.',
       },
       {
         class: 'responsive-layout',
@@ -570,9 +570,9 @@ export const segmentedControl: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.',
+    enter: 'None. On selection the pill travels to the new option on motion.transition.default, or cross-fades.',
     exit: 'None.',
-    reduceMotion: 'The indicator moves at once; only the color change remains.',
+    reduceMotion: 'The indicator moves at once; only the color change remains, fading on motion.duration-reduced.fast.',
   },
 
   notes: {

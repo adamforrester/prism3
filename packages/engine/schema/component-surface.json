@@ -385,7 +385,7 @@
     },
     "checkbox-control": {
       "members": 90,
-      "sha256": "67fb1eb337586befdeddeb8dbcbceee65548cb6369323a835a3313e4ca518cb5",
+      "sha256": "cfb7375bd381c53b8a3cbf41c4fe5999067b6d5b5e5b2245437aba2eda8891ea",
       "properties": []
     },
     "checkbox-row": {
@@ -406,7 +406,7 @@
     },
     "radio-control": {
       "members": 60,
-      "sha256": "0d2a42f8a9ba56e7d281af8ee031a441e72030d07cc87879990686831c78f90f",
+      "sha256": "c87e86164b8ad1510fab85f50d40f753fa6ee49f26d18ec635857d28f492a20f",
       "properties": []
     },
     "radio-row": {
@@ -616,7 +616,7 @@
     },
     "segmented-control": {
       "members": 3,
-      "sha256": "82eedef5fa8f38b1abd41bf3c961340411127ff8c67d32d48c514755601dd7a4",
+      "sha256": "3eb17870f7d7fd8fabc686b9029a853f09a66aadefd9f547e710499de9715802",
       "properties": [
         "items:SLOT",
         "label:BOOLEAN"
@@ -808,7 +808,7 @@
     },
     "slider": {
       "members": 30,
-      "sha256": "17e160cb58aedf41ff20106843f01c612f2ecde9a991b93c07f90d47c2705013",
+      "sha256": "75d3ac70fb1cf7972899867c641d98dae8ac99777b3275c8b08623632d52ec5e",
       "properties": [
         "inputs:BOOLEAN",
         "label:BOOLEAN",

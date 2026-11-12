@@ -1,0 +1,5 @@
+## (2026-11-12) — The agent-link runbook names the current switch (#2655)
+
+`tools/figma-mcp/README.md` §5 told an agent to ask the owner to switch on **Agent link** using "the dashed chip, bottom-left of the panel". That chip and its popover were removed in the UI redesign (T7), and since #3083 the control has been a switch named **Agent** on the top bar. The precondition now names what the source draws. The **Agent** switch sits on the top bar just before **Update file** (`apps/studio/src/shell/bar.ts` places the `bar-agent` slot there, and `apps/plugin/src/agent-link-ui.ts` fills it with `switchEl('agent-toggle', 'Agent', …)`). The library home has a second switch, **Agent link** (`home-agent-switch`), that turns the same link on and off.
+
+The issue described an **Agent** tile with a green dot. #3083 replaced that tile too, with a plain switch and no dot, so the runbook describes the switch. The edit keeps the paragraph at its original line count, because `docs/public/guides/agent-link.md` and `style-guides.md` cite later lines of this README by line number and hash, and `lint-guide-claims` fails if those lines move.
