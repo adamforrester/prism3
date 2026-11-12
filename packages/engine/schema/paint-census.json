@@ -92,7 +92,7 @@
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "grid": {
-        "members": 96,
+        "members": 144,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
@@ -322,7 +322,7 @@
       "grid": {
         "members": 108,
         "assignments": 540,
-        "sha256": "a8434cd39e22fee2636792dc7237a801dbc47bf50155321d1e518dfbbb2633fd"
+        "sha256": "d65e56b4bd276d87263ae4896f20143010ccb701b7a4b5f4ce5004fe554654b8"
       }
     },
     "veil": {
