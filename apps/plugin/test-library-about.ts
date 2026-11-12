@@ -43,6 +43,7 @@ import { previewUpdate, previewVerdict } from './src/update-plan';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
 import { aboutContent, countsLine, lastChangedIn, lastChangedLines, publishDescription, whatChanged, RELEASES, type ReleaseIndex } from './src/library-about';
 import { aboutDue, aboutDueLine, drawAbout, ABOUT_NS, ABOUT_KEY, type AboutApi } from './src/about-frame';
+import { versionOf, MARKER } from './src/version-title';
 
 let failed = 0;
 let executed = 0;
@@ -110,10 +111,10 @@ section('last — "Last changed in", from the release notes only');
 section('publish — the description offered after an Update');
 {
   const d = publishDescription({ title: 'Saved before Prism3 updated 2 sets', sets: ['icon', 'badge'], from: '0.236.0', engine: '0.237.0', contract: '14.7.0' });
-  ok(d === 'Saved before Prism3 updated 2 sets. Engine 0.237.0, from 0.236.0. Token contract 14.7.0.\nicon: name has a new value, menu.\nbadge: builds differently.\nNo breaking changes.',
+  ok(d === 'Prism3 updated icon, badge. Engine 0.237.0, from 0.236.0. Token contract 14.7.0.\nicon: name has a new value, menu.\nbadge: builds differently.\nNo breaking changes.',
     `publish/wireframe: word for word (${JSON.stringify(d)})`);
   const r = publishDescription({ title: 'Before Prism3 updated button', sets: ['button'], from: '0.234.0', engine: '0.237.0', contract: '14.7.0', consumerBreaks: 2 });
-  ok(r === 'Before Prism3 updated button. Engine 0.237.0, from 0.234.0. Token contract 14.7.0.\nbutton: builds differently.\nbutton: has a new property, inset, with the values default and flush.\n2 breaking changes for library consumers.',
+  ok(r === 'Prism3 updated button. Engine 0.237.0, from 0.234.0. Token contract 14.7.0.\nbutton: builds differently.\nbutton: has a new property, inset, with the values default and flush.\n2 breaking changes for library consumers.',
     `publish/range: each release after the file's engine, newest first, and the consumer breaks (${JSON.stringify(r)})`);
   // One change seen from two sides: a breaking release item and the Update's own consumer break are counted once (#2876 review).
   const bix: ReleaseIndex = { releases: [{ version: '9.0.0', from: '8.0.0', date: '2026-11-01', counts: { breaking: 1, new: 0, fix: 0 },
@@ -123,7 +124,14 @@ section('publish — the description offered after an Update');
   const noted = publishDescription({ title: 'T', sets: ['button'], from: '8.0.0', engine: '9.0.0', contract: '1.0.0', ix: bix });
   ok(noted.endsWith('\nIncludes breaking changes for library consumers.'), `publish/a breaking release item with no consumer count is still named (${JSON.stringify(noted)})`);
   const first = publishDescription({ title: 'Before Prism3 updated tag', sets: ['tag'], from: null, engine: '0.237.0', contract: '14.7.0' });
-  ok(first === 'Before Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.', `publish/no from: the engine's own release only, which names no tag item (${JSON.stringify(first)})`);
+  ok(first === 'Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.', `publish/no from: the engine's own release only, which names no tag item (${JSON.stringify(first)})`);
+  // #2914 (owner decision A): the head says what this publish brings, never the version title's "before". The title passed
+  // here is the real one `versionOf` builds, so a head that fell back to it fails by name.
+  const titled = versionOf({ run: 'update', sets: [{ set: 'icon' }, { set: 'badge' }] }).title;
+  const heads = [publishDescription({ title: titled, sets: ['icon', 'badge'], from: '0.236.0', engine: '0.237.0', contract: '14.7.0' }),
+    publishDescription({ title: versionOf({ run: 'update', sets: [{ set: 'tag', name: 'Tag' }] }).title, sets: ['tag'], from: null, engine: '0.237.0', contract: '14.7.0' })];
+  ok(heads.every((h) => !h.startsWith(MARKER) && !/^[^.]*\bbefore\b/i.test(h)) && heads[0].startsWith('Prism3 updated icon, badge. ') && heads[1].startsWith('Prism3 updated tag. '),
+    `publish/head: "Prism3 updated <sets>.", never the version title's "${MARKER}" (#2914) (${JSON.stringify(heads.map((h) => h.split('\n')[0]))})`);
 }
 
 /* ── the shim as a file with a Cover page ────────────────────────────────────────────────────────────── */
@@ -292,7 +300,8 @@ section('update — through a real Update in the component shim');
   ok(!res3.aboutOnly && !applyVerdict(res3).lines.some((l) => l.startsWith('No version saved')), 'update/a run that changes a set: no "no version" line');
   ok(res3.about?.drawn && res3.about.replaced && fr3.length === 1 && textsOf(fr3[0]).includes('2026-10-23'),
     `update/redrawn by a run that changed a set, with its date (${JSON.stringify(api._versions)}; ${fr3.length})`);
-  ok(typeof res3.publish === 'string' && res3.publish.startsWith('Saved before Prism3 updated tag. Engine ') && res3.publish.includes('Token contract '), `update/publish names the set's run (${JSON.stringify(res3.publish)})`);
+  ok(typeof res3.publish === 'string' && !res3.publish.startsWith(res3.version!) && !res3.publish.startsWith(MARKER), `update/publish does not open with the version title (#2914) (${JSON.stringify(res3.publish)})`);
+  ok(typeof res3.publish === 'string' && res3.publish.startsWith('Prism3 updated tag. Engine ') && res3.publish.includes('Token contract '), `update/publish names the set's run (${JSON.stringify(res3.publish)})`);
   // Q498 B's other side: a set change while the frame is also due still saves one version (Q7): the set in the title,
   // the frame in the description (#2828).
   for (const n of tagged(cover)) (n.remove as () => void)();
