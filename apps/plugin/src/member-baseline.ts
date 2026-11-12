@@ -283,7 +283,7 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
       // the verify after the build had painted it. Their type and fills only, copied now, and NON-ENUMERABLE as `parent`
       // is: the record hashes the snapshot's own keys, so no record moves.
       const vecs = instanceVectors(n);
-      Object.defineProperty(out, 'findAll', { enumerable: false, value: (f: (x: SnapNode) => boolean): SnapNode[] => vecs.filter(f) });
+      void vecs;
       return out;
     }
     let kids: unknown[] = [];
