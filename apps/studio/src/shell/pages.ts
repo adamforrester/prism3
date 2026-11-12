@@ -113,7 +113,7 @@ export type Host = 'web' | 'figma';
 /** The views a page can call home, with their titles (the preview header shows the title). */
 export const VIEWS = [
   ['guide', 'Style guide'], ['palettes', 'Palettes'], ['surfaces', 'Surfaces & fills'], ['interactive', 'Interactive'],
-  ['type', 'Type'], ['shape', 'Size & shape'], ['depth', 'Depth & motion'], ['layout', 'Layout'], ['comps', 'Components'],
+  ['type', 'Type'], ['shape', 'Shape'], ['depth', 'Depth & motion'], ['layout', 'Layout'], ['comps', 'Components'],
 ] as const;
 /** The views behind Inspect (F1). They open over any page's preview and are never a page's home. The Decisions log, the
  *  third, was cut (#2909 Q2909.7 A). */
@@ -507,13 +507,14 @@ export const viewLabel = (v: ViewId | InspectId): string =>
 
 // ── the rail (#2909 IA v2; both hosts since phase 2, Q2909.9 A) ─────────────────────────────────────────────────────────────────────────────
 /** The rail's areas, in order (owner decision of 2026-10-24): Theme · Components · Documentation · Export. Labels are the
- *  owner's (Q2909.20 A, Chunk 2, 2026-10-24): one word under each icon, so
- *  Documentation is "Docs" on the rail and "Documentation" in its own header. */
+ *  owner's (Q2909.20 A, Chunk 2, 2026-10-24): one word under each icon. #3553 Q-UI9 A: the rail and the page's title
+ *  agree. "Documentation" does not fit the rail's 55px tile at its 9px label (it needs 60px; "Components" is 53), so the
+ *  area is "Docs" in both, and in its name and tooltip. */
 export const RAIL_AREAS = [
   { id: 'theme', label: 'Theme', name: 'Theme', glyph: 'swatches' },
   // Whole since Q732 A (2026-10-26): at the rail's 9px the word fits one line, so the wireframe's "Compo-nents" break went.
   { id: 'components', label: 'Components', name: 'Components', glyph: 'diamonds' },
-  { id: 'documentation', label: 'Docs', name: 'Documentation', glyph: 'page' },
+  { id: 'documentation', label: 'Docs', name: 'Docs', glyph: 'page' },
   { id: 'export', label: 'Export', name: 'Export', glyph: 'send' },
 ] as const;
 export type AreaId = (typeof RAIL_AREAS)[number]['id'];

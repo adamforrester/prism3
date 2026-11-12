@@ -105,8 +105,8 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `label` | string \| node | — | yes | What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter only with showLabel. |
-| `showLabel` | boolean | `false` | no | Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way. |
+| `label` | string \| node | — | yes | What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set. |
+| `hideLabel` | boolean | `true` | no | Hides the label visually and keeps it in the accessibility tree, so the value keeps its name. On by default: a counter on a product card or a bag line is usually explained by what sits around it. Set it to false to show the label above the counter. Never display: none. |
 | `value` | number | — | no | Controlled value; pair it with onChange. |
 | `defaultValue` | number | — | no | The starting value when the counter manages its own state. Defaults to min. |
 | `onChange` | function | — | no | Called with the new number after each step. Never called with a value outside min and max. |

@@ -16544,7 +16544,7 @@ arm: {
   // grow into a hole. The child-only arm holds the two whenToUse templates and resolves the host each names
   // against the anatomy of the OTHER defs, so a template naming a host that does not nest the part fails.
   {
-    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HIG', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
+    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
     const consumerStrings = (d: ComponentDef): [string, string][] => {
       const out: [string, string][] = [];
       const walk = (path: string, v: unknown): void => {
@@ -19664,9 +19664,10 @@ arm: {
   // field by field rather than dropping `ai` / `docs` / `composition` whole: the shared remainder of each
   // (usage, dont, primaryPurpose, composesWith, …) must still stay byte-identical.
   const sharedPart = (d: ComponentDef, field: string): unknown => {
+    // #3555 Q-MD14 A: `primaryPurpose` is per-sibling too, one imperative line each; the Q-MD5 arm below holds it.
     // #3555 C2: `whenToUse` joined the per-sibling fields for the icon-only families (a counter's minus and plus, a card's
     // close and a close affordance are the neutral sibling's). The C2 arm below holds what still has to agree.
-    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, whenToUse, ...rest } = d.ai; return rest; }
+    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, whenToUse, primaryPurpose, ...rest } = d.ai; return rest; }
     if (field === 'docs') return { ...d.docs, do: undefined };
     if (field === 'composition') return { ...d.composition, alternativeTo: undefined };
     return (d as Record<string, unknown>)[field];
@@ -20471,8 +20472,8 @@ arm: {
     ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, on ghost only, at the control offset (Q283.10 A); outline draws none, its edge is the focus edge (#3399)${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
     const b = counter.figmaProperties?.booleans ?? {};
     ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
-      && counter.props.find((x) => x.name === 'showLabel')?.default === false,
-      `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B), and the message is off (got ${JSON.stringify(b)})`);
+      && b.showLabel.figmaOnly === true && !counter.props.some((x) => x.name === 'showLabel') && counter.props.find((x) => x.name === 'hideLabel')?.default === true,
+      `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B; since Q-CC7 A the code prop is hideLabel, default true, and the Figma switch is Figma-only), and the message is off (got ${JSON.stringify(b)})`);
     const keyboardSays = /tabindex="-1"/.test(counter.accessibility.keyboard ?? '') && (codeOnlyText(counter.anatomy?.codeOnly) ?? []).some((e) => /<button type="button" tabindex="-1">/.test(e));
     ok(counter.props.find((x) => x.name === 'min')?.default === 0 && keyboardSays && !counter.props.some((x) => /remove/i.test(x.name)),
       `#2427 counter/api: min defaults to 0 (Q283.7), the buttons are tabindex="-1" in the shipped keyboard text and in codeOnly (Q283.8 A), and no remove-at-min prop (Q283.7 C)`);
@@ -20606,6 +20607,29 @@ arm: {
     const ref = JSON.stringify(sharedPart(iconButton, field));
     const diverged = iconButtonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #3555 Q-MD5 A and Q-MD14 A. A summary is the Figma set description a designer reads, so it names other components in
+  // plain words, never by a code name (`Checkbox.Row`), and carries no build instruction. And each sibling of an action
+  // family states its own primaryPurpose. The oracle for a code name is the registry's names, not the summary: every
+  // dotted name (`Checkbox.Row`), and every one-word name (`Accordion`, `Slider`) as a whole capitalized word. A word
+  // joined by a hyphen is a different word ("Icon-only" is not the Icon component), and one before a dot and a letter
+  // is part of a dotted name, so neither is a reference here.
+  {
+    const mdBad: string[] = [];
+    const dotted = componentDefs.map((d) => d.name).filter((n) => n.includes('.'));
+    const oneWord = componentDefs.map((d) => d.name).filter((n) => /^[A-Z][A-Za-z]*$/.test(n));
+    for (const d of componentDefs) {
+      const s = d.summary ?? '';
+      // #3555 Q206 A: a name directly after "use" is an alternative pointer ("For navigation, use Link."), which a designer
+      // reads as a plain word; any other placement of a registered name still fails.
+      const ptr = (n: string) => new RegExp(`(?<!\\buse )${n.replace(/\./g, '\\.')}`);
+      for (const n of dotted) if (n !== d.name && ptr(n).test(s)) mdBad.push(`${d.id} summary names ${n}`);
+      for (const n of oneWord) if (n !== d.name && new RegExp(`(?<![\\w.-]|\\buse )${n}(?![\\w-]|\\.\\w)`).test(s)) mdBad.push(`${d.id} summary names ${n}`);
+      if (/\bbuild\b/i.test(s)) mdBad.push(`${d.id} summary carries a build instruction: "${s}"`);
+    }
+    for (const fam of [[button, buttonDestructive, buttonNeutral], [iconButton, iconButtonDestructive, iconButtonNeutral], [flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral]])
+      if (new Set(fam.map((d) => d.ai.primaryPurpose)).size !== 3) mdBad.push(`${fam[0].id} family shares a primaryPurpose`);
+    ok(mdBad.length === 0 && dotted.length > 10 && oneWord.length > 20, `#3555 Q-MD5 summaries name components in plain words with no build instruction, and action siblings each state their own primaryPurpose${mdBad.length ? ` — ${mdBad.join(' | ')}` : ''}`);
   }
   // #3555 C2: a sibling's whenToUse never recommends it for a case its own avoidWhen sends to another sibling. The examples
   // (a counter's minus and plus, a card's close, a close affordance) are the neutral sibling's, and each icon-only family's
@@ -40646,6 +40670,35 @@ arm: {
     && validateComponentDef(withStateMap({ disabled: { tone: 'quiet' } })).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'tone', which its 'variant' does not name/.test(m))
     && validateComponentDef(withStateMap({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'size', which is also in 'follow'/.test(m)),
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+}
+
+// Q-CC5 A and Q-CC7 A (#3554): the field label, nested and hidden alike across the field hosts. Q-CC7: Search, Counter
+// and Slider hide their label through one code prop, `hideLabel`, each default typed here from its decision (Search
+// Q?4 A visible, Counter Q283.9 B hidden, Slider visible); none declares a code `showLabel`, and each Figma `label`
+// switch is Figma-only. Q-CC5: Slider nests FieldLabel as the fields do (Q399 A): exposed emphasis and weight, starting
+// primary and regular, following the slider's size and dimming with it. ACTUAL is the def and its projected plan.
+{
+  const HIDE: Record<string, boolean> = { 'search-field': false, counter: true, slider: false };
+  for (const [id, dflt] of Object.entries(HIDE)) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const h = d.props.find((p) => p.name === 'hideLabel');
+    const sw = d.figmaProperties?.booleans?.showLabel as { part?: string; figmaOnly?: boolean } | undefined;
+    ok(h?.type === 'boolean' && h.default === dflt && !d.props.some((p) => p.name === 'showLabel') && sw?.part === 'label' && sw.figmaOnly === true,
+      `Q-CC7 ${id}: hides its label through the code prop hideLabel (default ${String(dflt)}), declares no code showLabel, and its Figma label switch is Figma-only (got ${h ? String(h.default) : 'no hideLabel'}, switch ${JSON.stringify(sw)})`);
+  }
+  const sl = componentDefs.find((x) => x.id === 'slider')!;
+  const n = (sl.anatomy!.parts.label as { nesting?: { kind?: string; variant?: Record<string, string>; expose?: readonly string[]; follow?: readonly string[] } }).nesting;
+  ok(n?.kind === 'nest-exposed' && JSON.stringify(n.variant) === JSON.stringify({ size: 'medium', emphasis: 'primary', weight: 'regular', state: 'rest' })
+    && JSON.stringify(n.expose) === JSON.stringify(['emphasis', 'weight']) && JSON.stringify(n.follow) === JSON.stringify(['size']),
+    `Q-CC5 slider: FieldLabel is nest-exposed as on the fields, exposing emphasis and weight, starting primary and regular, following size (got ${JSON.stringify(n)})`);
+  type LN = { name: string; children: LN[]; nestTarget?: string; nestVariant?: Record<string, string> };
+  const findL = (x: LN, nm: string): LN | undefined => x.name === nm ? x : x.children.map((c) => findL(c, nm)).find(Boolean);
+  const off = figmaAnatomySet(sl, {}).flatMap((pl) => {
+    const lab = findL(pl.root as LN, 'label');
+    const want = { size: String(pl.size ?? pl.coord.size), emphasis: 'primary', weight: 'regular', state: pl.coord.state === 'disabled' ? 'disabled' : 'rest' };
+    return lab?.nestTarget === 'field-label' && JSON.stringify(lab.nestVariant) === JSON.stringify(want) ? [] : [`${planComponentName(pl)}: ${JSON.stringify(lab?.nestVariant)}`];
+  });
+  ok(off.length === 0, `Q-CC5 slider: every member's label is FieldLabel at the slider's size, primary and regular, disabled only on the disabled members (off: ${off.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // Q-CC3 A and Q-CC4 A (#3554): Select joins the field family's code surface. Q-CC3: the `style` code axis of one value,

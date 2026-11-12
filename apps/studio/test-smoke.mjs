@@ -4745,6 +4745,8 @@ const PILL_PROBE = () => {
     const box = p.getBoundingClientRect();
     const left = box.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft);
     const right = box.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight);
+    const top = box.top + parseFloat(cs.borderTopWidth) + parseFloat(cs.paddingTop);
+    const bottom = box.bottom - parseFloat(cs.borderBottomWidth) - parseFloat(cs.paddingBottom);
     const elides = cs.overflow !== 'visible' && cs.textOverflow === 'ellipsis' && cs.whiteSpace === 'nowrap';
     let visible = p.textContent;
     if (elides) {
@@ -4773,8 +4775,10 @@ const PILL_PROBE = () => {
       visible,
       badge: badge?.textContent ?? '',
       // OUTSIDE the pill's content box is the whole point of the badge being a sibling, and it is the
-      // one property the markup cannot show: a marker inside `.tpill` is elided by the same rule.
-      badgeOutside: br ? (br.right <= left + 0.5 || br.left >= right - 0.5) : false,
+      // one property the markup cannot show: a marker inside `.tpill` is elided by the same rule. #3553 M5 A widened it
+      // from "beside" to either direction: where a narrow Style guide card cannot hold the two side by side, the
+      // badge goes above the pill (`.sg-pills .tpill-wrap { flex-wrap: wrap }`), still outside its box.
+      badgeOutside: br ? (br.right <= left + 0.5 || br.left >= right - 0.5 || br.bottom <= top + 0.5 || br.top >= bottom - 0.5) : false,
       badgeWidth: br ? Math.round(br.width) : 0,
       badgeRendered: (badge?.getClientRects().length ?? 0) > 0,
     });

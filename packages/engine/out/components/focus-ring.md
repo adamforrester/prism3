@@ -1,6 +1,6 @@
 # FocusRing
 
-> Keyboard-focus ring nested by focusable components. Build first; don't place alone.
+> Keyboard-focus ring nested by focusable components. Don't place it alone.
 
 - **ID:** `focus-ring`
 - **Category:** foundations

@@ -118,7 +118,7 @@ export const radioControl: ComponentDef = {
   aliases: ['radio-circle', 'radio-disc', 'radio-atom'],
   category: 'form',
   status: 'draft',
-  summary: 'Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.',
+  summary: 'Outlined radio ring; dot and brand ring on select. Nested by a radio row; no label.',
   description:
     'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring\'s diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
 
@@ -339,7 +339,7 @@ export const radioControl: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'motion — the select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING\'s dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate.',
+          'motion — the select micro-motion (a scale-up of the dot on motion.duration.fast, and — uniquely — a SIBLING\'s dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate.',
       },
       {
         class: 'hit-target',
@@ -424,9 +424,9 @@ export const radioControl: ComponentDef = {
   // Brief §8. The select transition is this atom's; the sibling-dot exit is the group's exclusivity made
   // visible, drawn here because the dot is here.
   motion: {
-    enter: 'On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.',
-    exit: 'When a sibling is selected, this dot animates out — the one exit a radio has, since it is never deselected on its own.',
-    reduceMotion: 'Under prefers-reduced-motion, the dot snaps in and out through opacity and color only, with no scale.',
+    enter: 'On select, the inner dot scales in from a little under full size with a border-color crossfade on the ring, on motion.duration.fast with motion.easing-role.default. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.',
+    exit: 'When a sibling is selected, this dot scales out on the same timing — the one exit a radio has, since it is never deselected on its own.',
+    reduceMotion: 'Under prefers-reduced-motion, the dot has no scale: it fades in and out with the color change, on motion.duration-reduced.fast.',
   },
 
   notes: {
