@@ -400,7 +400,9 @@ export const slider: ComponentDef = {
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'header-gap',
         crossAxisFill: true,
-        note: 'The header, the track and the milestones, with no gap between them (Q550 c).',
+        // Maintainer detail, out of the reader caption (#3610): The header, the track and the milestones, with no gap
+        // between them (Q550 c).
+        note: 'The header, the track and the milestones, with no space between them.',
       },
       header: {
         kind: 'box',
@@ -484,10 +486,13 @@ export const slider: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'hug', y: 'hug' } },
         crossAxisFill: true,
         optional: true,
-        note: 'Labeled milestones under the track (Q550 d): the minimum, a value between, and the maximum, spaced evenly. Off by default. No tick marks.',
+        // Maintainer detail, out of the reader caption (#3610): Labeled milestones under the track (Q550 d): the
+        // minimum, a value between, and the maximum, spaced evenly. Off by default. No tick marks.
+        note: 'Labels under the track for the minimum, a value between and the maximum, evenly spaced; off by default, with no tick marks.',
       },
       minLabel: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'The minimum value, under the start of the track.' },
-      milestone: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'A milestone between the ends, halfway along in Figma.' },
+      // Maintainer detail, out of the reader caption (#3610): A milestone between the ends, halfway along in Figma.
+      milestone: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'A milestone between the ends, halfway along the track.' },
       maxLabel: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'The maximum value, under the end of the track.' },
       inputs: {
         kind: 'box',

@@ -786,7 +786,7 @@
             "outline",
             "text"
           ],
-          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
         },
         {
           "name": "size",
@@ -940,7 +940,7 @@
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "2.5.3 Label in Name (an aria-label starts with the visible label text)",
           "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -1112,7 +1112,7 @@
             "outline",
             "text"
           ],
-          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
         },
         {
           "name": "size",
@@ -1266,7 +1266,7 @@
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "2.5.3 Label in Name (an aria-label starts with the visible label text)",
           "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -1440,7 +1440,7 @@
             "outline",
             "text"
           ],
-          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+          "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
         },
         {
           "name": "size",
@@ -1594,7 +1594,7 @@
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "2.5.3 Label in Name (an aria-label starts with the visible label text)",
           "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -1785,11 +1785,11 @@
           "description": "The height: 36, 44 or 56px. Google Pay and Shop Pay have no small size and PayPal no large one, because each provider sets a smallest and a largest height."
         },
         {
-          "name": "type",
+          "name": "wording",
           "type": "string",
           "default": "plain",
           "required": false,
-          "description": "The provider's wording, from its own list, passed to the provider: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain."
+          "description": "The provider's wording, from its own list, passed to the provider as its button type: plain shows the logo alone; buy, checkout, donate, order, pay and subscribe add the provider's words, translated by the provider. A value the provider does not offer falls back to plain."
         }
       ],
       "states": [
@@ -2007,14 +2007,30 @@
           "name": "onClick",
           "type": "(event: MouseEvent) => void",
           "required": false,
-          "description": "Called before the provider's sign-in starts, for analytics or a loading state. The sign-in itself is the provider's."
+          "description": "Called before the provider's sign-in starts, for analytics or to set isPending. The sign-in itself is the provider's. Not called while isPending or disabled."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "While the provider's sign-in is in flight: keeps focus (aria-disabled, not native disabled), sets aria-busy, ignores a second click, and announces busy through a polite live region. The provider's mark and words stay as drawn."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled, reserved for a sign-in the view does not offer right now; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
         "rest",
         "hover",
         "pressed",
-        "focus-visible"
+        "pending",
+        "focus-visible",
+        "disabled"
       ],
       "variants": {
         "provider": {
@@ -2119,6 +2135,14 @@
         ]
       },
       "syncBoundary": [
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
         {
           "class": "platform-owned",
           "disposition": "REFUSED"
@@ -2319,7 +2343,7 @@
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
           "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
@@ -2366,7 +2390,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -2577,7 +2601,7 @@
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
           "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
@@ -2625,7 +2649,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -2836,7 +2860,7 @@
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
           "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-          "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
           "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
@@ -2883,7 +2907,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border) are meant to run ~100–150ms through the brand's motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98), as on Button, gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -2965,7 +2989,7 @@
           "name": "onClick",
           "type": "function",
           "required": false,
-          "description": "Action handler. Not called while disabled."
+          "description": "Action handler. Not called while disabled or inactive."
         },
         {
           "name": "type",
@@ -3014,11 +3038,18 @@
           "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+          "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -3026,7 +3057,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "shape": {
@@ -3063,7 +3095,7 @@
         ],
         "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
         "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -3140,6 +3172,10 @@
           "disposition": "REFUSED"
         },
         {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED"
         },
@@ -3178,7 +3214,7 @@
           "name": "onClick",
           "type": "function",
           "required": false,
-          "description": "Action handler. Not called while disabled."
+          "description": "Action handler. Not called while disabled or inactive."
         },
         {
           "name": "type",
@@ -3227,11 +3263,18 @@
           "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+          "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -3239,7 +3282,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "shape": {
@@ -3276,7 +3320,7 @@
         ],
         "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
         "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -3354,6 +3398,10 @@
           "disposition": "REFUSED"
         },
         {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED"
         },
@@ -3392,7 +3440,7 @@
           "name": "onClick",
           "type": "function",
           "required": false,
-          "description": "Action handler. Not called while disabled."
+          "description": "Action handler. Not called while disabled or inactive."
         },
         {
           "name": "type",
@@ -3441,11 +3489,18 @@
           "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable disabled for a relevant but blocked action, such as a counter at its minimum. It keeps its place in the tab order and the accessibility tree, carries aria-disabled rather than the native attribute, and surfaces the reason on focus."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+          "description": "Native disabled, reserved for a button irrelevant to the view; it leaves the tab order and the accessibility tree."
         }
       ],
       "states": [
@@ -3453,7 +3508,8 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled"
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "shape": {
@@ -3490,7 +3546,7 @@
         ],
         "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
         "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
-        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
         "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
@@ -3566,6 +3622,10 @@
         },
         {
           "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
           "disposition": "REFUSED"
         },
         {
@@ -6393,6 +6453,12 @@
           "description": "The displayed text — the selected option's label, or the placeholder when nothing is chosen. Controlled: pair with onChange. When it holds the placeholder the ink is the muted placeholder role; a chosen value shows the full-contrast value ink — the same empty-vs-value polarity text-field uses. This is an internal, content-driven distinction, not a variant a designer picks."
         },
         {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "Uncontrolled initial value: the option chosen when the select first renders."
+        },
+        {
           "name": "placeholder",
           "type": "string",
           "required": false,
@@ -6470,6 +6536,12 @@
           "description": "Distinct from disabled: focusable, submitted with the form, and at full contrast, with the value shown and not changeable. Native <select> has no readonly attribute, only disabled, so a read-only select is the custom control with aria-readonly, or a hidden input mirroring the value beside a non-interactive display."
         },
         {
+          "name": "autoComplete",
+          "type": "string (WHATWG token)",
+          "required": false,
+          "description": "Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience. Set it on a select that collects the user's own information, such as country."
+        },
+        {
           "name": "isPending",
           "type": "boolean",
           "default": false,
@@ -6518,6 +6590,12 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "style": {
+          "values": [
+            "outline"
           ],
           "kind": "authoring"
         },
@@ -6622,6 +6700,10 @@
         {
           "class": "semantics",
           "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "LOWERED"
         },
         {
           "class": "not-projected",
@@ -7327,9 +7409,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "A count or dot scales in from zero, from the corner it is anchored to. When a count changes, only the number animates, not the pill. A status label appears with no motion. A dot pulses only for a critical alert.",
-        "exit": "A count or dot scales out to its anchor corner.",
-        "reduceMotion": "Under prefers-reduced-motion every change is instant: no scale, no pulse."
+        "enter": "A count or dot fades in and scales up from a little under full size, from the corner it is anchored to, on motion.transition.enter. When a count changes, only the number changes, on motion.transition.default; the pill does not move. A status label appears with no motion.",
+        "exit": "A count or dot fades out and scales down toward its anchor corner on motion.transition.exit.",
+        "reduceMotion": "Under prefers-reduced-motion a count or dot fades in and out with no scale, on motion.duration-reduced.normal both ways, and a changed count's number fades on the same role."
       },
       "composition": {
         "composesWith": [],
@@ -8396,6 +8478,11 @@
           "expand collapse glyph"
         ],
         "generationPriority": 9
+      },
+      "motion": {
+        "enter": "On open, a chevron turns to its open position on motion.transition.default; a plus and minus swap glyphs.",
+        "exit": "On close, the chevron turns back on motion.transition.default; a plus and minus swap back.",
+        "reduceMotion": "Under prefers-reduced-motion the indicator swaps to its open or closed glyph without turning."
       },
       "composition": {
         "composesWith": [],
@@ -14125,6 +14212,13 @@
           "description": "auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must."
         },
         {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -14193,7 +14287,7 @@
         ],
         "keyboard": "One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.",
         "focus": "Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.",
-        "aria": "aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
+        "aria": "aria-describedby names the helper and any error, aria-required is set when the code is required, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
       },
       "content": {
         "labelPattern": "Noun phrase, sentence case: \"Verification code\". Spell it out; never an acronym.",

@@ -44,9 +44,10 @@
  *
  * Outline: the field's fill and edge (`color.field.fill`, `color.field.border.rest`, `radius.sm`), insets 12 / 12 /
  * 16, so a 20px glyph sits 12px in and its 44×44 code-side hit area reaches the edge exactly at medium (12 + 20 +
- * 12). Ghost: no box paint and no inset; the round buttons are the ends of the row. The disabled outline keeps an
- * edge in `color.disabled.border`: the cross-cutting disabled branch applies an edge only where the member has one
- * at rest, so a disabled ghost Counter draws none (the Oct 9 proposal's item 3c.3, answered by the paint grammar).
+ * 12). Ghost: no box paint and no inset; the round buttons are the ends of the row. The disabled outline keeps Text
+ * field's disabled fill and edge (`color.disabled.fill`, `color.disabled.border`; Q-CC10 A, #3554), with the value in
+ * the on-fill ink: the cross-cutting disabled branch applies a fill and an edge only where the member has them at
+ * rest, so a disabled ghost Counter draws none (the Oct 9 proposal's item 3c.3, answered by the paint grammar).
  *
  * `state`: rest, focus-visible, disabled. Hover and pressed belong to each button, which carries its own reactions
  * (#2574), so this set carries none. 2 appearances × 3 sizes × 3 states = 18 members.
@@ -153,9 +154,14 @@ export const counter: ComponentDef = {
     // The value, full contrast on both appearances.
     'outline.label': 'color.text.primary',
     'ghost.label': 'color.text.primary',
-    // Disabled: the dimmed value, and on outline only (the only appearance with an edge at rest) the disabled edge.
-    'disabled.label': 'color.disabled.text',
+    // Disabled (Q-CC10 A, #3554): outline keeps a box, so it takes Text field's disabled fill and edge, and its value
+    // takes the on-fill ink, gated against that fill (#784). The cross-cutting branch applies the fill and edge only
+    // where the member has them at rest, and the on-fill ink only where the fill lands, so ghost draws no box and its
+    // value keeps the page form, `disabled.label`.
+    'disabled.fill': 'color.disabled.fill',
     'disabled.border': 'color.disabled.border',
+    'disabled.label': 'color.disabled.text',
+    'disabled.label.on-fill': 'color.disabled.on-fill',
   },
 
   anatomy: {
