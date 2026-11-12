@@ -59509,6 +59509,17 @@
             }
           }
         },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "$extensions": {
+            "com.prism3": {
+              "type": "boolean",
+              "required": false,
+              "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
+            }
+          }
+        },
         "disabled": {
           "type": "boolean",
           "default": false,

@@ -77,7 +77,7 @@ Use a slider for an approximate value, or a range, where seeing the position wit
 - **Focus:** A focus ring around the focused thumb on :focus-visible, never around the track.
 - **Screen readers:** slider, once per thumb, from a visually hidden native \<input type="range">; a range is two sliders in a group named by the label
 
-  Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs "Minimum {label}" and "Maximum {label}", which are translatable. Help and error text join aria-describedby; an error sets aria-invalid on each thumb. The layout mirrors right to left.
+  Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs "Minimum {label}" and "Maximum {label}", which are translatable. Help and error text join aria-describedby; aria-required is set on each thumb when the slider is required, and an error sets aria-invalid on each thumb. The layout mirrors right to left.
 
 ### WCAG
 
@@ -141,6 +141,7 @@ The label names the dimension. The value text shows the value with its unit; a r
 | `showMessage` | boolean | `false` | no | Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error. |
 | `validation` | enum: 'default' \| 'error' | `default` | no | error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider's own value is always in range, so an error comes from a paired input or from validation elsewhere in the form. |
 | `validationMessage` | string | — | no | The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it. |
+| `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Takes the slider out of interaction and out of the form payload, and dims it. |
 | `readOnly` | boolean | `false` | no | The thumbs stay focusable and the value is still submitted, but it cannot change. Looks like rest. |
 | `name` | string | — | no | The form field name. A range submits two values. |

@@ -21385,7 +21385,8 @@ arm: {
     // Q-CC8 A (#3554): CodeInput surfaces the nested FieldLabel's required marker, so it takes the field family's
     // `required` prop: a boolean, off by default as the marker is, in TextField's words. The literal list is the fields
     // that surface the marker and carry the prop; Counter's `required` is decided separately and is not listed.
-    for (const id of ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input']) {
+    // Q-FL2 A (#3554): Slider surfaces the marker too (Q-CC5 A's nest-exposed label), so it joins the list.
+    for (const id of ['text-field', 'textarea', 'select', 'password-field', 'search-field', 'card-number-field', 'code-input', 'slider']) {
       const r = componentDefs.find((d) => d.id === id)?.props.find((p) => p.name === 'required');
       ok(r?.type === 'boolean' && r.default === false && r.default === flDefault('required') && r.description.startsWith('Sets required / aria-required, and turns on the FieldLabel\'s required marker.'),
         `Q-CC8 ${id} declares the field family's required prop, a boolean off by default like the label's marker (got ${r ? `${r.type} ${String(r.default)}` : 'none'})`);

@@ -13735,6 +13735,13 @@
           "description": "The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it."
         },
         {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -13793,7 +13800,7 @@
         ],
         "keyboard": "Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.",
         "focus": "A focus ring around the focused thumb on :focus-visible, never around the track.",
-        "aria": "Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs \"Minimum {label}\" and \"Maximum {label}\", which are translatable. Help and error text join aria-describedby; an error sets aria-invalid on each thumb. The layout mirrors right to left."
+        "aria": "Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs \"Minimum {label}\" and \"Maximum {label}\", which are translatable. Help and error text join aria-describedby; aria-required is set on each thumb when the slider is required, and an error sets aria-invalid on each thumb. The layout mirrors right to left."
       },
       "content": {
         "labelPattern": "Name the dimension, in sentence case: \"Price\", \"Volume\", \"Text size\". The value text carries the unit, currency or percent, formatted for the locale (\"$40 – $120\", \"120%\").",
