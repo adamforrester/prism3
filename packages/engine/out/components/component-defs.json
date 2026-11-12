@@ -2138,7 +2138,7 @@
       }
     },
     "button": {
-      "digest": "cb9fdc98",
+      "digest": "a9343da8",
       "def": {
         "id": "button",
         "name": "Button",
@@ -2173,7 +2173,7 @@
               "outline",
               "text"
             ],
-            "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+            "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
           },
           {
             "name": "size",
@@ -2327,7 +2327,7 @@
           "wcag": [
             "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
             "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-            "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+            "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
             "2.5.3 Label in Name (an aria-label starts with the visible label text)",
             "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
             "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -5302,7 +5302,7 @@
       }
     },
     "button-destructive": {
-      "digest": "764f7349",
+      "digest": "f9cbc869",
       "def": {
         "id": "button-destructive",
         "name": "Button.Destructive",
@@ -5337,7 +5337,7 @@
               "outline",
               "text"
             ],
-            "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+            "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
           },
           {
             "name": "size",
@@ -5491,7 +5491,7 @@
           "wcag": [
             "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
             "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-            "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+            "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
             "2.5.3 Label in Name (an aria-label starts with the visible label text)",
             "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
             "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -8468,7 +8468,7 @@
       }
     },
     "button-neutral": {
-      "digest": "953665a9",
+      "digest": "3b80742d",
       "def": {
         "id": "button-neutral",
         "name": "Button.Neutral",
@@ -8503,7 +8503,7 @@
               "outline",
               "text"
             ],
-            "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+            "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
           },
           {
             "name": "size",
@@ -8657,7 +8657,7 @@
           "wcag": [
             "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
             "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-            "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+            "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
             "2.5.3 Label in Name (an aria-label starts with the visible label text)",
             "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)",
             "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
@@ -14255,7 +14255,7 @@
       }
     },
     "icon-button": {
-      "digest": "06540ae9",
+      "digest": "1a7c3d77",
       "def": {
         "id": "icon-button",
         "name": "IconButton",
@@ -14414,7 +14414,7 @@
             "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
             "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
             "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-            "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+            "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
             "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
             "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
             "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
@@ -16048,7 +16048,7 @@
       }
     },
     "icon-button-destructive": {
-      "digest": "c09bc10b",
+      "digest": "6f469c8d",
       "def": {
         "id": "icon-button-destructive",
         "name": "IconButton.Destructive",
@@ -16207,7 +16207,7 @@
             "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
             "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
             "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-            "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+            "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
             "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
             "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
             "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
@@ -17842,7 +17842,7 @@
       }
     },
     "icon-button-neutral": {
-      "digest": "2d3d2bff",
+      "digest": "b795979d",
       "def": {
         "id": "icon-button-neutral",
         "name": "IconButton.Neutral",
@@ -18001,7 +18001,7 @@
             "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
             "1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)",
             "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
-            "2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)",
+            "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)",
             "1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)",
             "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
             "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"

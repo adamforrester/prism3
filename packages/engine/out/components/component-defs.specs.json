@@ -1265,7 +1265,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
@@ -5048,7 +5048,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
@@ -8831,7 +8831,7 @@
             "com.prism3": {
               "type": "enum: 'filled' | 'outline' | 'text'",
               "required": false,
-              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)"
+              "description": "Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only."
             }
           }
         },
