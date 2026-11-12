@@ -362,11 +362,16 @@
 .p3-export-out { background: var(--p3-fill-1); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-bardlg-desc { margin: 0; }
 .p3-bardlg-note { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
-.p3-export-seg, .p3-export-oseg { align-self: flex-start; max-width: 100%; }
-/* #3553 M8: the artifact switcher wraps as the option rows below it do: at the plugin's 380 its third tab ran past the
-   panel's edge. */
-.p3-export-seg, .p3-export-oseg { flex-wrap: wrap; }
-.p3-export-oseg .p3-seg-tab { flex: 0 1 auto; padding: 0 var(--p3-space-150); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.p3-export-oseg { align-self: flex-start; max-width: 100%; }
+/* #3553 M8: the option rows wrap. #3553 Q-UI11 A: the artifact switcher is Documentation's underline tabs (`.p3-tabs`,
+   above), on a hairline as Documentation's head is; the three fit the plugin's 380 (M8's overflow), and the row scrolls
+   rather than wrap if they ever do not. */
+.p3-export-oseg { flex-wrap: wrap; }
+.p3-export-tabhead { display: flex; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+/* #3553 Q-UI7 A: the options are set in the chrome's Inter, as every other segmented control is; only Token names', whose
+   options are token spellings, stay in mono. */
+.p3-export-oseg .p3-seg-tab { flex: 0 1 auto; padding: 0 var(--p3-space-150); font-size: var(--p3-fs-12); }
+.p3-export-oseg[data-key="tokenNameCase"] .p3-seg-tab { font-family: var(--p3-font-mono); }
 .p3-export-sets { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-rhythm-row); }
 /* #3337 (Q3337.4 A): Export's settings join the rhythm: rows a row apart, an L3 label space-050 above its control, the
    control's note the hint rhythm under it. */

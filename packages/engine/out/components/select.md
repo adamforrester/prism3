@@ -17,7 +17,7 @@ A control for choosing one value from a known, bounded set — the closed, nativ
 
 ## Anatomy
 
-Shown on the default member: size `medium`, status `default`.
+Shown on the default member: size `medium`, style `outline`, status `default`.
 
 1. **Label** — The field's label, set here on the select (its text, required marker and weight); a long label wraps.
 2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
@@ -31,6 +31,7 @@ Shown on the default member: size `medium`, status `default`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored | Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea. |
+| `style` | `outline` | once, when authored | — |
 | `status` | `default`, `error`, `warning`, `success` | at runtime | — |
 
 ### States
@@ -101,6 +102,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 | --- | --- | --- | --- | --- |
 | `label` | string \| node | — | yes | The visible, persistent label, rendered as the nested FieldLabel. Required — a select always carries a programmatic name. Never the placeholder. |
 | `value` | string | — | no | The displayed text — the selected option's label, or the placeholder when nothing is chosen. Controlled: pair with onChange. When it holds the placeholder the ink is the muted placeholder role; a chosen value shows the full-contrast value ink — the same empty-vs-value polarity text-field uses. This is an internal, content-driven distinction, not a variant a designer picks. |
+| `defaultValue` | string | — | no | Uncontrolled initial value: the option chosen when the select first renders. |
 | `placeholder` | string | — | no | The null state shown before a choice is made — plainly the thing to choose ("Country"), not an instruction ("Select a country from the list"), and omittable when the label suffices. Muted, and never load-bearing — it is not the label, not a real option, and it vanishes once a value is chosen. |
 | `options` | array | — | no | The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. |
 | `onChange` | function | — | no | Fires with the newly chosen value (also onBlur / onFocus). A controlled value with no onChange is read-only by accident. |
@@ -112,6 +114,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled — removed from tab order, not submitted, contrast-exempt. Reserve for a choice irrelevant in the current state. |
 | `readOnly` | boolean | `false` | no | Distinct from disabled: focusable, submitted with the form, and at full contrast, with the value shown and not changeable. Native \<select> has no readonly attribute, only disabled, so a read-only select is the custom control with aria-readonly, or a hidden input mirroring the value beside a non-interactive display. |
+| `autoComplete` | string (WHATWG token) | — | no | Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience. Set it on a select that collects the user's own information, such as country. |
 | `isPending` | boolean | `false` | no | Async options are loading — a spinner replaces the chevron and the control sets aria-busy. Not an empty state: the option list is still arriving. The same name Button and TextField use. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying the label to the control and stitching the aria-describedby chain to the message. |
 | `name` | string | — | no | A real control name so the field works uncontrolled, in a native form, and with Server Actions. |
