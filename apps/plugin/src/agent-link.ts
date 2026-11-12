@@ -197,8 +197,7 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
       if (next === undefined) return null;
       const id = commandId(next) as string;
       claim(q.entries, q.claimed, [id]);
-      // MUTATION (#3697 R8): the session check never runs.
-      if (needsSession(next) && false) {
+      if (needsSession(next)) {
         const sent = (next as { session?: unknown }).session;
         const right = session !== null && typeof sent === 'string' && normalizeCode(sent) === session;
         if (!right) {
