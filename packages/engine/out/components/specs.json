@@ -42479,7 +42479,7 @@
             },
             {
               "part": "container/labelBox/underline",
-              "fill": "color.border.tertiary"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "container/labelBox/underline/underlineReserve/underlineLabel",
@@ -42506,7 +42506,7 @@
             },
             {
               "part": "container/labelBox/underline",
-              "fill": "color.border.tertiary"
+              "fill": "color.interactive.neutral.indicator.rest"
             },
             {
               "part": "container/labelBox/underline/underlineReserve/underlineLabel",

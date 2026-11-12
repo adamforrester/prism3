@@ -39423,8 +39423,8 @@ arm: {
     'page/unselected/border/focus-visible': { ink: 'color/interactive/neutral/text/rest' },
     'page/selected/border/rest': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
     'page/selected/border/focus-visible': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
-    'page/selected/underline/rest': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
-    'page/selected/underline/focus-visible': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/underline/rest': { bar: 'color/interactive/neutral/indicator/rest', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/underline/focus-visible': { bar: 'color/interactive/neutral/indicator/rest', ink: 'color/interactive/neutral/text/rest' },
     'ellipsis/unselected/border/rest': { ink: 'color/icon/primary' },
   };
   const cellOff: string[] = [];
@@ -39455,7 +39455,7 @@ arm: {
     if (JSON.stringify(got) !== JSON.stringify(exp)) cellOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
   }
   ok(pageCells.length === 27 && cellOff.length === 0,
-    `#2665 call 8 / Q381 / Q427 A / Q428 A pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page unfilled with a hairline border/secondary border (border style, Q427 A) or a 2px border/tertiary underline balanced above (underline style), its number neutral in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis the more-horizontal icon at icon/size/{sm,xs,md} (Q428 A) in icon/primary (owner QA) with no text node (Q404 A); the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
+    `#2665 call 8 / Q381 / Q427 A / Q428 A pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page unfilled with a hairline border/secondary border (border style, Q427 A) or a 2px interactive/neutral/indicator underline balanced above (underline style, Q-CC12 A), its number neutral in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis the more-horizontal icon at icon/size/{sm,xs,md} (Q428 A) in icon/primary (owner QA) with no text node (Q404 A); the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
 
   // (2b) PREVIOUS AND NEXT (Q414 A), per member: the page cell's box (rung height and floor, radius.md, the space.100
   // inset), a chevron (left on previous, right on next) at the chevrons' glyph rung in the neutral icon ink, and on a
@@ -39566,8 +39566,8 @@ arm: {
       ok(measured === CELLS && low.length === 0,
         `#2665 contrast pagination (${p.what}): ${p.ink}${p.wash ? ` on ${p.wash} over the page` : p.ground ? ` on ${p.ground}` : ' on the page'} clears ${p.floor}:1 in all ${measured} of ${CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
     }
-    ok(BAR === 'border.tertiary' && !sel.root.paints?.fills && !under.root.paints?.fills,
-      `#2665 Q381 1 A and 2 A: the current page has no fill, and its underline binds border.tertiary, the role measured at 3:1 above (got underline ${BAR}, fill ${sel.root.paints?.fills ?? 'none'})`);
+    ok(BAR === 'interactive.neutral.indicator.rest' && !sel.root.paints?.fills && !under.root.paints?.fills,
+      `#2665 Q381 1 A and 2 A, Q-CC12 A: the current page has no fill, and its underline binds interactive.neutral.indicator.rest, the selection mark, measured at 3:1 above (got underline ${BAR}, fill ${sel.root.paints?.fills ?? 'none'})`);
     // Q427 A: THE BORDER IS ONE RUNG LIGHTER THAN THE UNDERLINE, AND IT IS NOT THE ONLY CUE. The neutral border ladder,
     // typed here lightest first, is the oracle: the border is the rung directly under the underline's, so it is a
     // subtle edge (measured: lighter than the underline in every brand × mode cell, and below 3:1 in at least one,
@@ -39586,8 +39586,8 @@ arm: {
     const cue = findIn(sel.root, 'label')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'label')?.textStyle === 'label/md/default'
       && findIn(sel.root, 'labelReserve')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'labelReserve')?.textStyle === 'label/md/emphasis';
     const reasoned = (itemDef.notes?.evolution ?? []).some((e) => /Q427 A/.test(e) && /1\.4\.11/.test(e) && /second, decorative cue/.test(e) && /emphasis weight/.test(e));
-    ok(BORDER === LADDER[LADDER.indexOf(BAR) - 1] && lighter && below3.length > 0 && cue && reasoned,
-      `#2665 Q427 A the current page's border (border style) is the neutral border rung one lighter than the underline's, a subtle edge below 3:1 by decision, with the emphasis weight as the second cue and the WCAG 1.4.11 reasoning in the notes (bound ${BORDER}, underline ${BAR}; lighter everywhere ${lighter}; below 3:1 in ${below3.length} of ${rows.length}, lowest ${Math.min(...rows.map(({ r }) => lum(BORDER, r))).toFixed(2)}; second cue ${cue}; reasoning recorded ${reasoned})`);
+    ok(BORDER === LADDER[LADDER.indexOf('border.tertiary') - 1] && lighter && below3.length > 0 && cue && reasoned,
+      `#2665 Q427 A the current page's border (border style) is the neutral border rung one lighter than border.tertiary, lighter than the underline, a subtle edge below 3:1 by decision, with the emphasis weight as the second cue and the WCAG 1.4.11 reasoning in the notes (bound ${BORDER}, underline ${BAR}; lighter everywhere ${lighter}; below 3:1 in ${below3.length} of ${rows.length}, lowest ${Math.min(...rows.map(({ r }) => lum(BORDER, r))).toFixed(2)}; second cue ${cue}; reasoning recorded ${reasoned})`);
     // Owner QA (2026-10-19): the gap icon in the page numbers' ink. Measured, never read off the def: the gap icon's
     // role resolves to the same color as a page number's at rest in every brand × mode cell.
     const GAP = role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapGlyph')?.descendantFills), NUM = role(findIn(unsel.root, 'label')?.paints?.fills);
